@@ -26,9 +26,9 @@ import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-drawer';
 import { Input } from '@/components/ui/input';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { apiFetch, apiMutate } from '@/lib/api-client';
-import { cn } from '@/lib/cn';
-import { toastApiError } from '@/lib/toast-api-error';
+import { cn } from '@/lib/formatters/cn';
+import { apiFetch, apiMutate } from '@/lib/http/api-client';
+import { toastApiError } from '@/lib/http/toast-api-error';
 
 interface ProbeResponse {
   enabled: boolean;

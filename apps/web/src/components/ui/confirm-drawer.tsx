@@ -47,7 +47,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 import { Button } from './button';
 

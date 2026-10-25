@@ -47,13 +47,9 @@ const DEFAULT_RETENTION: Required<RetentionConfig> = {
   cronRunRetentionDays: 30,
   outboxRetentionDays: 30,
   analysisJobRetentionDays: 7,
-  billingWebhookDlqRetentionDays: 90,
   aiEvaluationRetentionDays: 90,
   budgetReservationRetentionDays: 90,
   observationalMemoryRetentionDays: 90,
-  // Billing law/chargeback windows are multi-year. This is deliberately NOT
-  // the 90-day telemetry sweep; see plan §4 invariant 9.
-  creditLedgerRetentionDays: 730,
 };
 
 export interface RetentionConfig {
@@ -71,8 +67,6 @@ export interface RetentionConfig {
   outboxRetentionDays?: number;
   /** Retention window in days for terminal Full-analysis queue rows. */
   analysisJobRetentionDays?: number;
-  /** Retention window in days for successfully replayed billing DLQ rows. */
-  billingWebhookDlqRetentionDays?: number;
   /** Retention window in days for terminal AI evaluation artifacts. */
   aiEvaluationRetentionDays?: number;
   /** Retention window in days for terminal budget reservation ledger rows. */
@@ -82,8 +76,6 @@ export interface RetentionConfig {
    * (audit v2 §4.4). Rows whose last write predates the cutoff are deleted.
    */
   observationalMemoryRetentionDays?: number;
-  /** Retention window for the append-only credit ledger (730d default). */
-  creditLedgerRetentionDays?: number;
 }
 
 export interface RetentionResult {
@@ -95,16 +87,12 @@ export interface RetentionResult {
   cronRunsDeleted: number;
   outboxDeleted: number;
   fullAnalysisQueueDeleted: number;
-  billingWebhookDlqDeleted: number;
   aiShadowComparisonsDeleted: number;
   aiQualityResultsDeleted: number;
   budgetReservationsDeleted: number;
-  telegramUpdatesDeleted: number;
   sharedSnapshotsDeleted: number;
   notificationNoiseStateDeleted: number;
   mastraObservationalMemoryDeleted: number;
-  creditLedgerDeleted: number;
-  billingEventsDeleted: number;
   note: string;
 }
 
@@ -153,10 +141,6 @@ export function getRetentionConfigFromEnv(): Required<RetentionConfig> {
       'ANALYSIS_JOB_RETENTION_DAYS',
       DEFAULT_RETENTION.analysisJobRetentionDays,
     ),
-    billingWebhookDlqRetentionDays: envDays(
-      'BILLING_WEBHOOK_DLQ_RETENTION_DAYS',
-      DEFAULT_RETENTION.billingWebhookDlqRetentionDays,
-    ),
     aiEvaluationRetentionDays: envDays(
       'AI_EVALUATION_RETENTION_DAYS',
       DEFAULT_RETENTION.aiEvaluationRetentionDays,
@@ -168,10 +152,6 @@ export function getRetentionConfigFromEnv(): Required<RetentionConfig> {
     observationalMemoryRetentionDays: envDays(
       'OBSERVATIONAL_MEMORY_RETENTION_DAYS',
       DEFAULT_RETENTION.observationalMemoryRetentionDays,
-    ),
-    creditLedgerRetentionDays: envDays(
-      'CREDIT_LEDGER_RETENTION_DAYS',
-      DEFAULT_RETENTION.creditLedgerRetentionDays,
     ),
   };
 }
@@ -256,10 +236,8 @@ async function deleteBatched(
  * Terminal-only rules:
  * - outbox: completed/dead rows only
  * - analysis jobs: complete/failed rows with a completion timestamp
- * - billing DLQ: replayed rows with a replay timestamp
  * - AI evaluations: terminal shadow/quality artifacts
  * - budget ledger: reconciled/released rows only
- * - Telegram deduplication: processed rows older than one hour
  * - share snapshots: expired rows only
  * - notification noise state: expired rows only
  * - Mastra observational memory: rows whose last write predates the cutoff
@@ -298,10 +276,6 @@ export async function runRetentionCleanup(
       config.analysisJobRetentionDays,
       DEFAULT_RETENTION.analysisJobRetentionDays,
     ),
-    billingWebhookDlqRetentionDays: boundedDays(
-      config.billingWebhookDlqRetentionDays,
-      DEFAULT_RETENTION.billingWebhookDlqRetentionDays,
-    ),
     aiEvaluationRetentionDays: boundedDays(
       config.aiEvaluationRetentionDays,
       DEFAULT_RETENTION.aiEvaluationRetentionDays,
@@ -313,10 +287,6 @@ export async function runRetentionCleanup(
     observationalMemoryRetentionDays: boundedDays(
       config.observationalMemoryRetentionDays,
       DEFAULT_RETENTION.observationalMemoryRetentionDays,
-    ),
-    creditLedgerRetentionDays: boundedDays(
-      config.creditLedgerRetentionDays,
-      DEFAULT_RETENTION.creditLedgerRetentionDays,
     ),
   };
 
@@ -333,10 +303,6 @@ export async function runRetentionCleanup(
     now,
     retention.analysisJobRetentionDays * 24 * 60 * 60 * 1_000,
   );
-  const billingWebhookDlqCutoff = isoCutoff(
-    now,
-    retention.billingWebhookDlqRetentionDays * 24 * 60 * 60 * 1_000,
-  );
   const aiEvaluationCutoff = isoCutoff(
     now,
     retention.aiEvaluationRetentionDays * 24 * 60 * 60 * 1_000,
@@ -348,10 +314,6 @@ export async function runRetentionCleanup(
   const observationalMemoryCutoff = isoCutoff(
     now,
     retention.observationalMemoryRetentionDays * 24 * 60 * 60 * 1_000,
-  );
-  const creditLedgerCutoff = isoCutoff(
-    now,
-    retention.creditLedgerRetentionDays * 24 * 60 * 60 * 1_000,
   );
 
   const telemetryDeleted = await deleteBatched(db, 'chat_telemetry', 'created_at', telemetryCutoff);
@@ -380,11 +342,6 @@ export async function runRetentionCleanup(
     'full_analysis_queue',
     `status IN ('succeeded', 'failed', 'cancelled', 'blocked') AND completed_at IS NOT NULL AND completed_at < '${analysisJobCutoff}'`,
   );
-  const billingWebhookDlqDeleted = await deleteBatchedWhere(
-    db,
-    'billing_webhook_dlq',
-    `status = 'replayed' AND replayed_at IS NOT NULL AND replayed_at < '${billingWebhookDlqCutoff}'`,
-  );
   const aiShadowComparisonsDeleted = await deleteBatched(
     db,
     'ai_shadow_comparisons',
@@ -402,14 +359,6 @@ export async function runRetentionCleanup(
     'ai_budget_reservations',
     `status IN ('reconciled', 'released') AND resolved_at IS NOT NULL AND resolved_at < '${budgetCutoff}'`,
   );
-  // Telegram retries are expected within roughly 24 hours; the schema's
-  // one-hour deduplication window makes older processed IDs disposable.
-  const telegramUpdatesDeleted = await deleteBatched(
-    db,
-    'telegram_updates',
-    'processed_at',
-    rateLimitCutoff,
-  );
   // Expired share links cannot pass token validation and their snapshots are
   // no longer reachable through the public share route.
   const sharedSnapshotsDeleted = await deleteBatchedWhere(
@@ -422,19 +371,6 @@ export async function runRetentionCleanup(
     'notification_noise_state',
     'expires_at',
     now.toISOString(),
-  );
-  // Billing history intentionally uses its own multi-year window. Never fold
-  // these into `telemetryCutoff` (90d) — tax/chargeback audits need them.
-  const creditLedgerDeleted = await deleteBatched(
-    db,
-    'credit_ledger',
-    'created_at',
-    creditLedgerCutoff,
-  );
-  const billingEventsDeleted = await deleteBatchedWhere(
-    db,
-    'billing_events',
-    `status = 'processed' AND processed_at IS NOT NULL AND processed_at < '${creditLedgerCutoff}'`,
   );
   // Audit v2 §4.4 (P2-4) — Mastra's observational-memory table is excluded
   // from the storage domain's own retention tables, so prune() can never
@@ -465,16 +401,12 @@ export async function runRetentionCleanup(
     cronRunsDeleted,
     outboxDeleted,
     fullAnalysisQueueDeleted,
-    billingWebhookDlqDeleted,
     aiShadowComparisonsDeleted,
     aiQualityResultsDeleted,
     budgetReservationsDeleted,
-    telegramUpdatesDeleted,
     sharedSnapshotsDeleted,
     notificationNoiseStateDeleted,
     mastraObservationalMemoryDeleted,
-    creditLedgerDeleted,
-    billingEventsDeleted,
   };
 
   return {

@@ -42,16 +42,16 @@ vi.mock('@kestrel/db', () => ({
   withTenantDb: vi.fn(),
 }));
 
-vi.mock('../src/db', () => ({
+vi.mock('../src/runtime/db', () => ({
   getDb: () => ({ insert: mockInsert }),
 }));
 
-vi.mock('../src/embeddings', () => ({
+vi.mock('../src/models/embeddings', () => ({
   embedTexts: mockEmbedTexts,
   vectorLiteral: vi.fn(),
 }));
 
-vi.mock('../src/cost', () => ({
+vi.mock('../src/budget/cost', () => ({
   dailySpendUsd: vi.fn(),
 }));
 

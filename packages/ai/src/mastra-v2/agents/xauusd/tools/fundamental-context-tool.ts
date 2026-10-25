@@ -20,7 +20,6 @@ import { GetSocialSentimentOutputSchema } from '@kestrel/shared';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
-import { getSentimentService } from '@ai/sentiment';
 import { createEvidenceId } from '@ai/mastra-v2/packets/evidence';
 import {
   assembleXauusdMacroEvidence,
@@ -28,6 +27,8 @@ import {
 } from '@ai/mastra-v2/packets/research-packet-macro';
 import { executeMastraTool } from '@ai/mastra-v2/shared/telemetry';
 import { XAUUSD, XauusdMacroEvidenceSchema } from '@ai/mastra-v2/shared/types';
+import { getSentimentService } from '@ai/sentiment';
+
 import { XauusdSymbolSchema } from '../tool-schemas';
 
 const InputSchema = z.object({

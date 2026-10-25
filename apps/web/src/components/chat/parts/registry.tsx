@@ -52,7 +52,6 @@ import {
   GetJournalStatsOutputSchema,
   GetMarketStructureOutputSchema,
   GetNewsOutputSchema,
-  GetPortfolioSnapshotOutputSchema,
   GetPriceOutputSchema,
   GetSeasonalityOutputSchema,
   GetSessionLevelsOutputSchema,
@@ -149,11 +148,6 @@ const GetIntermarketResonancePart = dynamic(
   { loading: PartSkeletonFallback },
 ) as ComponentType<ToolPartProps<'get_intermarket_resonance'>>;
 
-const GetPortfolioSnapshotPart = dynamic(
-  () => import('./get-portfolio-snapshot').then((m) => m.GetPortfolioSnapshotPart),
-  { loading: PartSkeletonFallback },
-) as ComponentType<ToolPartProps<'get_portfolio_snapshot'>>;
-
 const GetSeasonalityPart = dynamic(
   () => import('./get-seasonality').then((m) => m.GetSeasonalityPart),
   { loading: PartSkeletonFallback },
@@ -234,7 +228,6 @@ export const partRegistry: { [K in CoreToolName]: ComponentType<ToolPartProps<K>
   get_intermarket_resonance: GetIntermarketResonancePart,
   get_system_diagnostics: GetSystemDiagnosticsPart,
   run_system_action: RunSystemActionPart,
-  get_portfolio_snapshot: GetPortfolioSnapshotPart,
   get_social_sentiment: GetSocialSentimentPart,
   web_search: WebSearchPart,
 };
@@ -282,7 +275,6 @@ const partSchemas: { [K in CoreToolName]: z.ZodType<ToolOutput<K>> } = {
   get_intermarket_resonance: GetIntermarketResonanceOutputSchema,
   get_system_diagnostics: GetSystemDiagnosticsOutputSchema,
   run_system_action: RunSystemActionOutputSchema,
-  get_portfolio_snapshot: GetPortfolioSnapshotOutputSchema,
   get_social_sentiment: GetSocialSentimentOutputSchema,
   web_search: WebSearchOutputSchema,
 };

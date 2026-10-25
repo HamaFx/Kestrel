@@ -35,7 +35,7 @@
 //   </Tooltip>
 import type { ReactNode } from 'react';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface TooltipProps {
   /** Bubble text. Always provide an `aria-label` on the trigger to match. */

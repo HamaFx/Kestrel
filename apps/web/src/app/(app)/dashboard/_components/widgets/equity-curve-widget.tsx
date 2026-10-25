@@ -29,7 +29,7 @@ import { useMemo, useState } from 'react';
 
 import { PerformanceChart } from '@/components/chart/performance-chart';
 import { Card } from '@/components/ui/card';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface EquityCurveWidgetProps {
   entries: readonly JournalEntry[];

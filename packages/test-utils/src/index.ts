@@ -15,3 +15,4 @@
  */
 
 export { makeCandles, type MakeCandlesOpts } from './factories/candles';
+export { createMockToolContext, type MockToolContextDefaults } from './tool-context-factory';

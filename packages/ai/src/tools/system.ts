@@ -19,7 +19,6 @@
 // as a sub-path export: @kestrel/ai/tools/system
 
 import { conveneCommitteeTool } from './convene-committee';
-import { getPortfolioSnapshotTool } from './get-portfolio-snapshot';
 import { getSocialSentimentTool } from './get-social-sentiment';
 import { getSystemDiagnosticsTool } from './get-system-diagnostics';
 import { toolRegistry } from './registry';
@@ -30,7 +29,6 @@ import { verifyCallTool } from './verify-call';
 const systemTools = [
   ['get_system_diagnostics', getSystemDiagnosticsTool],
   ['run_system_action', runSystemActionTool],
-  ['get_portfolio_snapshot', getPortfolioSnapshotTool],
   ['get_social_sentiment', getSocialSentimentTool],
   ['verify_call', verifyCallTool],
   ['replay_setup', replaySetupTool],

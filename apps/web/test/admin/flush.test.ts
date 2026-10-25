@@ -20,7 +20,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { POST } from '@/app/api/admin/flush/route';
 
-vi.mock('@/lib/admin-auth', () => ({
+vi.mock('@/lib/auth/admin-auth', () => ({
   withAdminAuth: (handler: (req: Request) => Promise<Response>) => async (req: Request) =>
     handler(req),
 }));

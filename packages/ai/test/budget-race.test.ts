@@ -21,7 +21,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { tryReserveBudget } from '../src/cost';
+import { tryReserveBudget } from '../src/budget/cost';
 
 interface SpendRow {
   totalCents: number;

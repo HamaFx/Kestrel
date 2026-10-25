@@ -25,7 +25,7 @@ import {
   safeGetItem,
   safeSetItem,
   uploadChatImage,
-} from '../src/lib/storage';
+} from '../src/lib/http/storage';
 
 beforeEach(() => {
   const store: Record<string, string> = {};

@@ -17,7 +17,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { SymbolResearchPacket } from '../src/mastra-v2/packets/symbol-research';
-import { createToolContext, withToolContext } from '../src/tool-context';
+import { createToolContext, withToolContext } from '../src/runtime/tool-context';
 import { conveneCommitteeTool } from '../src/tools/convene-committee';
 
 // Options the SDK passes to the tool's execute; derived from the tool itself

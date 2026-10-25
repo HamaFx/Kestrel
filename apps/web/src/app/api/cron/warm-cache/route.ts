@@ -24,7 +24,7 @@
 //
 // Schedule: every 2 minutes via the GCE-VM crontab. Idempotent + fast.
 
-import { withCronAuth } from '@/lib/cron';
+import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import { getCandlesWithMeta, getPricesWithMeta, SYMBOLS } from '@/lib/services/api-boundary';
 

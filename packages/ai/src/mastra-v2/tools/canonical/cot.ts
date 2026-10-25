@@ -29,6 +29,7 @@ import { createTool } from '@mastra/core/tools';
 import type { z } from 'zod';
 
 import { countCoTRows, listCoTSamples } from '@ai/cot/persistence';
+
 import { createReadOnlyToolExecute } from '../../agents/xauusd/legacy-tool-adapter';
 
 export const CanonicalCoTInputSchema = GetCoTInputSchema;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { SPECIALIST_DEFINITIONS } from '../src/committee/specialists';
-import { verifyMastraOpinion } from '../src/mastra';
+import { verifyMastraOpinion } from '../src/mastra-v2';
 
 const packet = {
   symbol: 'XAUUSD',

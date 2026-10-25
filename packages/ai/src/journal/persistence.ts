@@ -40,8 +40,8 @@ import {
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { and, asc, desc, eq, gte, lte } from 'drizzle-orm';
 
-import { getDb } from '../db';
 import { rememberJournalEntry } from '../memory/memory-index';
+import { getDb } from '../runtime/db';
 
 const jlog = createCategorizedLogger('ai', { component: 'journal' });
 

@@ -20,7 +20,7 @@
 // Using these helpers instead of importing `schema` directly decouples
 // callers from Drizzle ORM internals.
 
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
 import { requireTenantIdForUser } from '../tenant';
@@ -198,4 +198,14 @@ export async function markAlertFired(userId: string, alertId: string): Promise<v
         eq(schema.alerts.tenantId, tenantId),
       ),
     );
+}
+
+/** Count active alerts for a tenant. */
+export async function countActiveAlerts(tenantId: string): Promise<number> {
+  const db = getDb();
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(schema.alerts)
+    .where(and(eq(schema.alerts.tenantId, tenantId), eq(schema.alerts.active, true)));
+  return row?.count ?? 0;
 }

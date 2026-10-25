@@ -38,8 +38,8 @@ import type { Mastra } from '@mastra/core';
 import { runEvals, type MastraScorer } from '@mastra/core/evals';
 import { z } from 'zod';
 
-import casesJson from '../../eval/cases.json';
 import canonicalGroundingJson from '../../eval/canonical-grounding.json';
+import casesJson from '../../eval/cases.json';
 import multiSymbolComparisonJson from '../../eval/multi-symbol-comparison.json';
 import promptsJson from '../../eval/prompts.json';
 import regressionCasesJson from '../../eval/regression-cases.json';

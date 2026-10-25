@@ -22,8 +22,8 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
-import { apiFetch, apiMutate } from '@/lib/api-client';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
+import { apiFetch, apiMutate } from '@/lib/http/api-client';
 import type { PluginStoreSnapshot } from '@/lib/plugins/types';
 import { AlertCreateSchema } from '@/lib/services/alerts.schema';
 

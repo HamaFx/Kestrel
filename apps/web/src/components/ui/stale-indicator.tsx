@@ -24,7 +24,7 @@
 // neither `isStale` nor `isFetching` are true.
 import { IconRefresh } from '@tabler/icons-react';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface StaleIndicatorProps {
   /** True when the query is refetching in the background. */

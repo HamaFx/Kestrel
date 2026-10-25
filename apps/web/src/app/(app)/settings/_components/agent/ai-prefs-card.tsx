@@ -21,7 +21,7 @@ import { useEffect, useRef } from 'react';
 
 import { useConfirm } from '@/components/ui/confirm-drawer';
 import { useLocalStorage } from '@/hooks/use-local-storage';
-import { migrateLocalStorageKey } from '@/lib/storage';
+import { migrateLocalStorageKey } from '@/lib/http/storage';
 
 import { updateAiPrefsAction } from '../../actions';
 

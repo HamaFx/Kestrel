@@ -35,7 +35,7 @@ import {
 } from '@kestrel/shared';
 import { z } from 'zod';
 
-import { INJECTION_TERMS, isHighConfidenceMutationIntent } from '../../routing-keywords';
+import { INJECTION_TERMS, isHighConfidenceMutationIntent } from '../../routing/keywords';
 import { fetchPacketCandles } from './candle-fetcher';
 import {
   assembleGenericMacroExtension,

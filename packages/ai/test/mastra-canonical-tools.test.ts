@@ -21,16 +21,11 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const dataMocks = vi.hoisted(() => ({
-  getPrice: vi.fn(),
-  getCandles: vi.fn(),
-}));
-
-vi.mock('@kestrel/data', async (importOriginal) => {
-  const actual = await importOriginal<Record<string, unknown>>();
-  return { ...actual, getPrice: dataMocks.getPrice, getCandles: dataMocks.getCandles };
-});
-
+import {
+  assertCanonicalToolAllowlist,
+  CANONICAL_READ_ONLY_TOOL_NAMES,
+} from '../src/mastra-v2/agents/canonical';
+import { manifestToolNames } from '../src/mastra-v2/capabilities';
 import {
   canonicalCandlesTool,
   canonicalCoTTool,
@@ -42,16 +37,21 @@ import {
   NATIVE_CANONICAL_TOOLS,
   resolveNativeCanonicalTool,
 } from '../src/mastra-v2/tools/canonical';
-import {
-  assertCanonicalToolAllowlist,
-  CANONICAL_READ_ONLY_TOOL_NAMES,
-} from '../src/mastra-v2/agents/canonical';
-import { manifestToolNames } from '../src/mastra-v2/capabilities';
 import { registerAllTools, toolRegistry } from '../src/tools';
 import { getCandlesTool } from '../src/tools/get-candles';
 import { getIndicatorsTool } from '../src/tools/get-indicators';
 import { getPriceTool } from '../src/tools/get-price';
 import { searchKnowledgeTool } from '../src/tools/search-knowledge';
+
+const dataMocks = vi.hoisted(() => ({
+  getPrice: vi.fn(),
+  getCandles: vi.fn(),
+}));
+
+vi.mock('@kestrel/data', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return { ...actual, getPrice: dataMocks.getPrice, getCandles: dataMocks.getCandles };
+});
 
 const requestContext = {
   get: (key: string) =>
@@ -132,7 +132,7 @@ describe('native canonical tools (B-01)', () => {
       const nativeOutput = (await asAnyTool(canonicalPriceTool).execute(
         { symbols: ['XAUUSD'] },
         toolContext,
-      )) as { ticks: typeof tick[]; asOf: string };
+      )) as { ticks: (typeof tick)[]; asOf: string };
       const legacyOutput = await asAnyTool(getPriceTool).execute({ symbols: ['XAUUSD'] }, {});
 
       expect(nativeOutput).toEqual(legacyOutput);

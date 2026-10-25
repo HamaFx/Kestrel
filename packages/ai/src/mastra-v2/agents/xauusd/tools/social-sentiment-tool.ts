@@ -18,11 +18,12 @@ import { GetSocialSentimentOutputSchema } from '@kestrel/shared';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
-import { getSentimentService } from '@ai/sentiment';
 import { createEvidenceId, freshnessFromAge } from '@ai/mastra-v2/packets/evidence';
 import { EXTERNAL_CONTENT_TRUST_WARNING } from '@ai/mastra-v2/packets/external-content';
 import { executeMastraTool } from '@ai/mastra-v2/shared/telemetry';
 import { XAUUSD } from '@ai/mastra-v2/shared/types';
+import { getSentimentService } from '@ai/sentiment';
+
 import { XauusdSymbolSchema } from '../tool-schemas';
 
 const InputSchema = z.object({

@@ -31,7 +31,7 @@ import {
 } from '@tabler/icons-react';
 
 import { Tooltip } from '@/components/ui/tooltip';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 export interface AlertCardData {
   id: string;

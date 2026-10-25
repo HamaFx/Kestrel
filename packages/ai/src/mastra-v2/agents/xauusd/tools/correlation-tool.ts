@@ -18,10 +18,11 @@ import { GetCorrelationInputSchema, GetCorrelationOutputSchema } from '@kestrel/
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
-import { getCorrelationTool } from '@ai/tools/get-correlation';
 import { createEvidenceId } from '@ai/mastra-v2/packets/evidence';
 import { executeMastraTool } from '@ai/mastra-v2/shared/telemetry';
 import { XAUUSD } from '@ai/mastra-v2/shared/types';
+import { getCorrelationTool } from '@ai/tools/get-correlation';
+
 import { executeLegacyReadOnlyTool } from '../legacy-tool-adapter';
 
 const InputSchema = GetCorrelationInputSchema;

@@ -4,7 +4,7 @@ import {
   capabilityDefinitionForRoute,
   decideMastraExecution,
   manifestToolsForDomain,
-} from '../src/mastra';
+} from '../src/mastra-v2';
 
 const env = {} as never;
 

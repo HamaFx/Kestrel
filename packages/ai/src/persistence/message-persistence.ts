@@ -22,9 +22,9 @@ import { getMessageText } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
 import { and, desc, eq } from 'drizzle-orm';
 
-import { getDb } from '../db';
 import { getDiagnosticContext } from '../diagnostics/run-context';
-import { enqueuePersistenceFailure } from '../persistence-outbox';
+import { getDb } from '../runtime/db';
+import { enqueuePersistenceFailure } from './outbox';
 
 // ---------------------------------------------------------------------------
 // Messages

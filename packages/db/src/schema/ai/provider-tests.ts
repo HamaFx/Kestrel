@@ -1,0 +1,62 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { sql } from 'drizzle-orm';
+import { boolean, jsonb, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core';
+
+import { organization, users } from '../core/auth';
+
+/**
+ * Latest test result per (userId, providerId) — populated by the
+ * Test Connection button on /settings/api-keys and read by the
+ * health badge in the ApiKeyCard.
+ *
+ * Phase A — UX_UPGRADE_PLAN.md item 7.
+ *
+ * We store ONE row per (user, provider) using a composite primary
+ * key so the upsert in /api/settings/test-provider is idempotent:
+ * pressing "Test" twice in a row just overwrites the previous
+ * row with the newer result. We do not accumulate history here —
+ * if we ever want history, that is a separate table.
+ *
+ * ON DELETE CASCADE on user_id: when a user account is removed
+ * (an admin operation), all their test results go with it.
+ */
+export const providerTests = pgTable(
+  'provider_tests',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tenantId: text('tenant_id')
+      .notNull()
+      .default(sql`current_setting('app.current_tenant', true)`)
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    providerId: text('provider_id').notNull(),
+    ok: boolean('ok').notNull(),
+    /** Human-readable error message — null when ok. Never logged. */
+    error: text('error'),
+    testedAt: timestamp('tested_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+    /** Rate limit information extracted from response headers. */
+    rateLimit: jsonb('rate_limit').$type<{
+      remainingRequests?: number;
+      remainingTokens?: number;
+      resetRequests?: string;
+      resetTokens?: string;
+    }>(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.providerId] })],
+);

@@ -44,7 +44,7 @@ import {
   type Symbol,
 } from '@kestrel/shared';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface GetIndicatorsPartProps {
   /** Tool output, or `null` while streaming / before completion. */

@@ -48,9 +48,9 @@ import { LibSQLVector } from '@mastra/libsql';
 import { Memory } from '@mastra/memory';
 import { PgVector } from '@mastra/pg';
 
-import { embedTexts } from '../embeddings';
-import type { ResolveModelEnv } from '../env-model-factory';
-import { resolveEmbeddingModel } from '../model';
+import { embedTexts } from '../models/embeddings';
+import type { ResolveModelEnv } from '../models/env-factory';
+import { resolveEmbeddingModel } from '../models/model';
 import { getKestrelMastra } from './instance';
 import {
   ensureLibsqlParent,
@@ -260,8 +260,7 @@ export interface KestrelMemoryOptionsArgs {
  *   `ENABLE_MASTRA_OBSERVATIONAL_MEMORY=true` on long-lived paths (thread-scoped).
  */
 export function kestrelMemoryOptions(args: KestrelMemoryOptionsArgs): MemoryConfigInternal {
-  const operatorRecallEnabled =
-    (process.env.ENABLE_MASTRA_SEMANTIC_RECALL ?? 'true') !== 'false';
+  const operatorRecallEnabled = (process.env.ENABLE_MASTRA_SEMANTIC_RECALL ?? 'true') !== 'false';
   const recallEnabled = operatorRecallEnabled && (args.semanticRecall ?? true);
   const semanticRecall = recallEnabled
     ? {

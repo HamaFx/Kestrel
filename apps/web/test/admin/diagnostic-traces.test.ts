@@ -22,7 +22,7 @@ import { GET as explorerGet } from '@/app/api/admin/diagnostics/explorer/route';
 import { GET as detailGet } from '@/app/api/admin/diagnostics/trace/[id]/route';
 import { GET as listGet } from '@/app/api/admin/diagnostics/traces/route';
 
-vi.mock('@/lib/admin-auth', () => ({
+vi.mock('@/lib/auth/admin-auth', () => ({
   withAdminAuth:
     <T extends { params?: Promise<unknown> }>(
       handler: (req: Request, ctx: T & { user: { userId: string } }) => Promise<Response>,

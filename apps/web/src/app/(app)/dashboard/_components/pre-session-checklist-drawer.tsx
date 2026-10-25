@@ -41,7 +41,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface SessionPlan {
   date: string;

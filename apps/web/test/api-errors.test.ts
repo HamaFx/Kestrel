@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { jsonApiError } from '../src/lib/api-errors';
+import { jsonApiError } from '../src/lib/http/api-errors';
 
 describe('jsonApiError', () => {
   it('returns the standard envelope and request-id header', async () => {

@@ -28,7 +28,7 @@ import { toast } from 'sonner';
 import { Segmented } from '@/components/ui/segmented';
 import { Switch } from '@/components/ui/switch';
 import { useLocalStorage } from '@/hooks/use-local-storage';
-import { migrateLocalStorageKey } from '@/lib/storage';
+import { migrateLocalStorageKey } from '@/lib/http/storage';
 
 import { updateUIPrefsAction } from '../../actions';
 import { RowDivider } from '../row-divider';

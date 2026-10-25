@@ -19,7 +19,7 @@
 // /api/journal/[id]/replay — fetch historical candles, technical indicators, MFE/MAE for setup replay.
 // GET ?timeframe=15m
 
-import { errorResponse, withAuth } from '@/lib/api';
+import { errorResponse, withAuth } from '@/lib/http/api';
 import { isTimeframe, type Timeframe } from '@/lib/services/api-boundary';
 import { getTradeSetupReplayService } from '@/lib/services/journal';
 

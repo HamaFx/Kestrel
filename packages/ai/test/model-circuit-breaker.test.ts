@@ -35,7 +35,7 @@ import {
   isCircuitOpen,
   recordModelFailure,
   recordModelSuccess,
-} from '../src/model-circuit-breaker';
+} from '../src/models/circuit-breaker';
 
 const mocks = vi.hoisted(() => ({
   execute: vi.fn(),
@@ -46,7 +46,7 @@ const mocks = vi.hoisted(() => ({
   getDb: vi.fn(),
 }));
 
-vi.mock('../src/db', () => ({ getDb: mocks.getDb }));
+vi.mock('../src/runtime/db', () => ({ getDb: mocks.getDb }));
 
 vi.mock('@kestrel/db', async () => {
   const actual = await vi.importActual<Record<string, unknown>>('@kestrel/db');
@@ -55,13 +55,13 @@ vi.mock('@kestrel/db', async () => {
 
 // §1.4 wiring tests import `finishMastraRun`; its heavy collaborators are
 // mocked so only the real run-telemetry + circuit-breaker modules execute.
-vi.mock('../src/cost', () => ({ estimateKnownCostUsd: vi.fn(() => 0) }));
+vi.mock('../src/budget/cost', () => ({ estimateKnownCostUsd: vi.fn(() => 0) }));
 vi.mock('../src/diagnostics', () => ({
   recordStep: vi.fn(),
   completeStep: vi.fn(),
   recordError: vi.fn(),
 }));
-vi.mock('../src/instrumentation', () => ({ flushLangfuse: vi.fn(async () => {}) }));
+vi.mock('../src/runtime/instrumentation', () => ({ flushLangfuse: vi.fn(async () => {}) }));
 vi.mock('../src/mastra-v2/shared/constants', () => ({
   MASTRA_XAUUSD_AGENT_ID: 'test-agent',
   MASTRA_XAUUSD_AGENT_VERSION: '0.0.0-test',

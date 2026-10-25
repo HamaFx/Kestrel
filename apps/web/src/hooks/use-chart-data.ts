@@ -24,8 +24,8 @@ import type { Candle, IndicatorResult, Symbol, Timeframe } from '@kestrel/shared
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo } from 'react';
 
-import { refetchIntervalFor } from '@/lib/datetime';
-import { fetchCandles, fetchChartData, type IndicatorRequest } from '@/lib/market-client';
+import { refetchIntervalFor } from '@/lib/formatters/datetime';
+import { fetchCandles, fetchChartData, type IndicatorRequest } from '@/lib/services/market-client';
 
 function getAdjacentTimeframes(tf: Timeframe): Timeframe[] {
   switch (tf) {

@@ -38,8 +38,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
 import { usePrices } from '@/hooks/use-prices';
-import { apiMutate } from '@/lib/api-client';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
+import { apiMutate } from '@/lib/http/api-client';
 
 import { SortableSymbolRow, type SymbolItem } from './sortable-symbol-row';
 

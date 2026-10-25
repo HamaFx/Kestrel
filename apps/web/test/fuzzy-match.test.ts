@@ -18,7 +18,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { fuzzyMatch, rankByQuery } from '../src/lib/fuzzy-match';
+import { fuzzyMatch, rankByQuery } from '../src/lib/formatters/fuzzy-match';
 
 describe('fuzzyMatch — empty query', () => {
   it('matches any non-empty target with a baseline score', () => {

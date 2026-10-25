@@ -23,26 +23,21 @@
 import type { UIMessage } from 'ai';
 import { z } from 'zod';
 
-import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
 import { getServerEnv } from '@/lib/env';
+import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
 import { createRequestLogger } from '@/lib/logger';
 import {
   AnalysisQueuedEventSchema,
-  assertCredits,
-  assertEntitlement,
   BudgetExceededError,
   CanonicalEvidenceBlockedError,
   createExecutionPlan,
   enqueueFullAnalysis,
-  estimateCreditsForTurn,
   extractMastraSymbols,
   extractUserMessageText,
   getThread,
   getUserWithSettings,
   GuardrailUnavailableError,
-  InsufficientCreditsError,
   isBudgetEnforced,
-  isCreditsEnforcementEnabled,
   isHighConfidenceMutationIntent,
   isInjectionAttempt,
   isMastraMutationEnabled,
@@ -61,10 +56,13 @@ import {
   withDiagnostics,
   withRateLimit,
 } from '@/lib/services/api-boundary';
-import { runCustomAgentStreamService } from '@/lib/services/mastra-custom-agent-stream';
-import { runConversationalTurn, runResearchWorkflow } from '@/lib/services/mastra-execution';
-import { startMutationDraft } from '@/lib/services/mastra-mutation-draft';
-import { extractLatestMastraReport } from '@/lib/services/mastra-report-context';
+import {
+  runConversationalTurn,
+  runCustomAgentStreamService,
+  runResearchWorkflow,
+} from '@/lib/services/mastra/chat-orchestrator';
+import { startMutationDraft } from '@/lib/services/mastra/mutation-handler';
+import { extractLatestMastraReport } from '@/lib/services/mastra/xauusd-handler';
 import {
   getInstalledPluginRuntime,
   hasUserAgentCatalogs,
@@ -241,7 +239,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
   // ── Standalone custom agents (`@handle` or an explicit composer pick) ──
   // A user-authored agent is a separate Mastra agent, not a committee route.
   // It is intercepted before the router so selection is deterministic and
-  // cheap; the normal guards (rate limit, onboarding, injection, credits)
+  // cheap; the normal guards (rate limit, onboarding, injection)
   // still apply.
   const agentMention = parseCustomAgentMention(userText);
   const requestedAgentSlug = agentMention?.slug ?? body.agentSlug ?? null;
@@ -263,50 +261,6 @@ export const POST = withAuth<void>(async (req, { user }) => {
           'I can help with read-only research, but I cannot process instruction-overriding requests.',
           422,
         );
-      }
-
-      // Custom agents consume model tokens like any other turn. Keep the
-      // same admission policy as canonical chat (`chat_basic`) so installing
-      // a free plugin never introduces a new plan gate.
-      if (serverEnv.BILLING_ENABLED && userSettings) {
-        const creditModel =
-          descriptor.agent.model?.replace(':', '/') ??
-          userSettings.chatModel?.replace(':', '/') ??
-          serverEnv.AI_DEFAULT_MODEL ??
-          null;
-        const entitlement = await assertEntitlement(user.userId, 'chat_basic');
-        if (!entitlement.ok && isCreditsEnforcementEnabled()) {
-          return Response.json(
-            {
-              error: {
-                code: 'UPGRADE_REQUIRED',
-                message: 'Custom agent turns require an available chat plan.',
-                feature: 'chat_basic',
-                ...(entitlement.requiredPlan ? { requiredPlan: entitlement.requiredPlan } : {}),
-              },
-            },
-            { status: 402 },
-          );
-        }
-        const estimate = estimateCreditsForTurn({
-          mode: 'single',
-          providerMode: resolveProviderMode(userSettings.aiApiKeys, creditModel),
-          modelId: creditModel,
-        });
-        const creditGate = await assertCredits(user.userId, estimate);
-        if (!creditGate.ok) {
-          return Response.json(
-            {
-              error: {
-                code: 'INSUFFICIENT_CREDITS',
-                message: `You need ${creditGate.required} credits for this turn — you have ${creditGate.balance}.`,
-                balance: creditGate.balance,
-                required: creditGate.required,
-              },
-            },
-            { status: 402 },
-          );
-        }
       }
 
       const prompt =
@@ -382,70 +336,6 @@ export const POST = withAuth<void>(async (req, { user }) => {
         symbol: fallbackSymbol,
       })
     : null;
-
-  // Plan §9.1 — entitlement and credit admission run before any model work.
-  // Entitlement only blocks when enforcement is on; the credit read still
-  // triggers the lazy monthly grant so shadow reservations see a real wallet.
-  if (serverEnv.BILLING_ENABLED && executionPlan && userSettings) {
-    const creditMode: 'single' | 'full' =
-      executionPlan.route === 'full-analysis' ? 'full' : 'single';
-    // Basic conversation is Free-tier; durable/symbol research is `chat_single`;
-    // Full committee runs are `chat_full`.
-    const feature =
-      creditMode === 'full'
-        ? 'chat_full'
-        : executionPlan.route === 'canonical-chat' || executionPlan.route === 'xauusd-conversation'
-          ? 'chat_basic'
-          : 'chat_single';
-    const modelId = executionPlan.model
-      ? `${executionPlan.model.providerId}/${executionPlan.model.bareModelId}`
-      : (userSettings.chatModel?.replace(':', '/') ?? serverEnv.AI_DEFAULT_MODEL ?? null);
-    const providerMode = resolveProviderMode(userSettings.aiApiKeys, modelId);
-
-    // D5: BYOK single turns stay available on Free. Full mode still requires
-    // the `chat_full` entitlement (risk table: never partially execute Free
-    // full runs), even when the user brings their own key.
-    const entitlementRequired = !(creditMode === 'single' && providerMode === 'byok');
-    const entitlement = entitlementRequired
-      ? await assertEntitlement(user.userId, feature)
-      : ({ ok: true, feature } as const);
-    if (!entitlement.ok && isCreditsEnforcementEnabled()) {
-      return Response.json(
-        {
-          error: {
-            code: 'UPGRADE_REQUIRED',
-            message:
-              creditMode === 'full'
-                ? 'Full analysis requires a paid plan. Upgrade to continue.'
-                : 'This feature requires a paid plan. Upgrade to continue.',
-            feature,
-            ...(entitlement.requiredPlan ? { requiredPlan: entitlement.requiredPlan } : {}),
-          },
-        },
-        { status: 402 },
-      );
-    }
-
-    const estimate = estimateCreditsForTurn({
-      mode: creditMode,
-      providerMode,
-      modelId,
-    });
-    const creditGate = await assertCredits(user.userId, estimate);
-    if (!creditGate.ok) {
-      return Response.json(
-        {
-          error: {
-            code: 'INSUFFICIENT_CREDITS',
-            message: `You need ${creditGate.required} credits for this turn — you have ${creditGate.balance}.`,
-            balance: creditGate.balance,
-            required: creditGate.required,
-          },
-        },
-        { status: 402 },
-      );
-    }
-  }
 
   // Injection/jailbreak attempts are always blocked — no model should
   // process them regardless of mutation capability.
@@ -681,19 +571,6 @@ export const POST = withAuth<void>(async (req, { user }) => {
   } catch (error) {
     // Q4 decision: spend is ledger-only — a 429 is possible only when the
     // operator explicitly set ENFORCE_BUDGET=true.
-    if (error instanceof InsufficientCreditsError) {
-      return Response.json(
-        {
-          error: {
-            code: 'INSUFFICIENT_CREDITS',
-            message: `You need ${error.required} credits for this turn — you have ${error.balance}.`,
-            balance: error.balance,
-            required: error.required,
-          },
-        },
-        { status: 402 },
-      );
-    }
     if (error instanceof BudgetExceededError && isBudgetEnforced()) {
       return errorJson(
         'BUDGET_EXCEEDED',

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { BudgetHandle } from '../src/budget';
-import { createExecutionLifecycle } from '../src/execution-lifecycle';
+import { createExecutionLifecycle } from '../src/runtime/execution-lifecycle';
 
 function budgetMock(): BudgetHandle {
   return {

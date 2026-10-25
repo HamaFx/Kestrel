@@ -30,8 +30,8 @@ import { Drawer as DrawerPrimitive } from 'vaul';
 
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
 import { pluginIcon } from '@/components/plugins/plugin-icon';
-import { clearKestrelClientState } from '@/lib/cache-isolation';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
+import { clearKestrelClientState } from '@/lib/http/cache-isolation';
 
 import '@/lib/plugins/register-ui';
 

@@ -24,7 +24,7 @@ import {
   evaluateMastraMutation,
   issueMutationConfirmationToken,
   storedConfirmationForToken,
-} from '../src/mastra';
+} from '../src/mastra-v2';
 
 const SECRET = 'm'.repeat(64);
 const INPUT_DIGEST = 'a'.repeat(64);

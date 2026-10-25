@@ -18,7 +18,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { cn } from '../src/lib/cn';
+import { cn } from '../src/lib/formatters/cn';
 
 const CASES: Array<{ label: string; args: Parameters<typeof cn>; expected: string }> = [
   // Basic merging

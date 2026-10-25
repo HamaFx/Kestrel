@@ -20,9 +20,9 @@ import path from 'node:path';
 import { schema } from '@kestrel/db';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
-import { getDb } from '../db';
 import { langfuseTraceUrl } from '../mastra-v2/langfuse-link';
-import { enqueuePersistenceFailure } from '../persistence-outbox';
+import { enqueuePersistenceFailure } from '../persistence/outbox';
+import { getDb } from '../runtime/db';
 
 const log = createCategorizedLogger('ai', { component: 'trace-persistence' });
 

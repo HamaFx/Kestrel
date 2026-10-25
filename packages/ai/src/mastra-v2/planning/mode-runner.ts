@@ -42,12 +42,12 @@ import {
   type MastraSpecialistName,
 } from '../../committee/types';
 import { CommitteeWorkflowInputSchema, createCommitteeWorkflow } from '../../committee/workflow';
-import { getDb } from '../../db';
-import type { ResolveModelEnv } from '../../env-model-factory';
-import { createGenerationLedger, type GenerationLedger } from '../../generation-ledger';
-import { resolveMastraExecutionModel, type ChatModelResolution } from '../../model';
+import type { ResolveModelEnv } from '../../models/env-factory';
+import { resolveMastraExecutionModel, type ChatModelResolution } from '../../models/model';
+import { createGenerationLedger, type GenerationLedger } from '../../persistence/generation-ledger';
 import { getInstalledPluginRuntime } from '../../plugins';
-import { createToolContext, withToolContext, type ToolEnv } from '../../tool-context';
+import { getDb } from '../../runtime/db';
+import { createToolContext, withToolContext, type ToolEnv } from '../../runtime/tool-context';
 import { getKestrelMastra } from '../instance';
 import { logWorkflowEnd, logWorkflowError, logWorkflowStart } from '../logger';
 import { kestrelMemoryOptions } from '../memory';

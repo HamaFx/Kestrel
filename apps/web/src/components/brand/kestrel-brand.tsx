@@ -18,7 +18,7 @@
 
 import { Link } from 'next-view-transitions';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 export type KestrelBrandVariant = 'mark' | 'lockup';
 

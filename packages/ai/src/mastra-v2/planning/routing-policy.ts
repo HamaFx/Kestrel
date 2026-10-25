@@ -16,7 +16,7 @@ import {
   isHighConfidenceMutationIntent,
   OTHER_SYMBOL_TERMS,
   XAUUSD_TERMS,
-} from '../../routing-keywords';
+} from '../../routing/keywords';
 import { MAX_COMPARISON_SYMBOLS } from '../shared/constants';
 
 export { MAX_COMPARISON_SYMBOLS };

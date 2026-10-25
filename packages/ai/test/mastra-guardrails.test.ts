@@ -29,8 +29,8 @@ const mocks = vi.hoisted(() => ({
   resolveChatModel: vi.fn(),
 }));
 
-vi.mock('../src/model', async () => {
-  const actual = await vi.importActual<Record<string, unknown>>('../src/model');
+vi.mock('../src/models/model', async () => {
+  const actual = await vi.importActual<Record<string, unknown>>('../src/models/model');
   return { ...actual, resolveChatModel: mocks.resolveChatModel };
 });
 

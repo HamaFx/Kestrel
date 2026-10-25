@@ -164,7 +164,7 @@ vi.mock('@kestrel/db', () => ({
   schema: { userSettings: { userId: 'userSettings.userId' } },
 }));
 
-vi.mock('@kestrel/ai/mastra', () => ({
+vi.mock('@kestrel/ai/mastra-v2', () => ({
   claimNextFullAnalysisRun: mockClaimNextFullAnalysisRun,
   completeFullAnalysisRun: mockCompleteFullAnalysisRun,
   failFullAnalysisRun: mockFailFullAnalysisRun,
@@ -506,7 +506,7 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
       snapshot: () => ({ entries: [], totalCostUsd: totalCost }),
       total: () => totalCost,
     });
-    const mastraMod = await import('@kestrel/ai/mastra');
+    const mastraMod = await import('@kestrel/ai/mastra-v2');
     vi.mocked(mastraMod.maybeGenerateThreadTitle).mockImplementationOnce(async () => {
       await new Promise((r) => setTimeout(r, 15));
       totalCost = 0.042;

@@ -22,7 +22,7 @@ import type { UIMessage } from 'ai';
 import { m } from 'motion/react';
 import { useMemo } from 'react';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface FollowUpSuggestionsProps {
   message: UIMessage;

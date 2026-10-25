@@ -41,10 +41,10 @@ import { ArticleCard } from '@/components/news/article-card';
 import { useBookmarks } from '@/components/news/use-bookmarks';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { apiFetch } from '@/lib/api-client';
-import { cn } from '@/lib/cn';
-import { startOfDay, startOfDayOffset } from '@/lib/datetime';
-import { formatRelative } from '@/lib/format';
+import { cn } from '@/lib/formatters/cn';
+import { startOfDay, startOfDayOffset } from '@/lib/formatters/datetime';
+import { formatRelative } from '@/lib/formatters/format';
+import { apiFetch } from '@/lib/http/api-client';
 
 import { NewsToolbar } from './news-toolbar';
 

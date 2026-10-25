@@ -18,9 +18,9 @@
 
 import { z } from 'zod';
 
-import { withAdminAuth } from '@/lib/admin-auth';
-import { parseJsonBody } from '@/lib/api';
-import { jsonApiError } from '@/lib/api-errors';
+import { withAdminAuth } from '@/lib/auth/admin-auth';
+import { parseJsonBody } from '@/lib/http/api';
+import { jsonApiError } from '@/lib/http/api-errors';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

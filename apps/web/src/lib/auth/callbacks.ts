@@ -4,7 +4,7 @@ import { logErrorContext } from '@kestrel/shared/logger';
 import { AuthError, type Session, type User } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
 
-import { assertProductionSecurity } from '@/lib/security-invariants';
+import { assertProductionSecurity } from '@/lib/http/security-invariants';
 
 import { validateSession } from './session-validators';
 

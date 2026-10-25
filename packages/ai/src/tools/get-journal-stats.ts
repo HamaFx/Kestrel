@@ -30,9 +30,9 @@ import { tool, type Tool } from 'ai';
 import { and, eq, gte, lte, sql, type SQL } from 'drizzle-orm';
 import type { z } from 'zod';
 
-import { getDb } from '../db';
 import { computeStats } from '../journal/persistence';
-import { getToolContext, maybeGetToolContext } from '../tool-context';
+import { getDb } from '../runtime/db';
+import { getToolContext, maybeGetToolContext } from '../runtime/tool-context';
 
 const InputSchema = GetJournalStatsInputSchema;
 

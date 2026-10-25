@@ -27,8 +27,8 @@
 // Triggered by a daily systemd timer on the GCE VM (see
 // infra/cron-vm/units/kestrel-light-cleanup-uploads.{service,timer}).
 
-import { withCronAuth } from '@/lib/cron';
 import { getServerEnv } from '@/lib/env';
+import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 
 export const runtime = 'nodejs';

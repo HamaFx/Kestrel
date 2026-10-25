@@ -48,7 +48,13 @@
  * stay on the request path; reads are the point of the mirror.
  */
 
-import { metrics, readFeatureFlag, SymbolSchema, type Symbol } from '@kestrel/shared';
+import {
+  metrics,
+  readFeatureFlag,
+  safeParseJson,
+  SymbolSchema,
+  type Symbol,
+} from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 import { MAX_COMPARISON_SYMBOLS, PACKET_CACHE_TTL_MS } from '../shared/constants';
@@ -238,12 +244,8 @@ export function createPacketCache<T>(opts: PacketCacheOptions<T>): PacketCache<T
    * later, than its true TTL.
    */
   function reviveMirrorEntry(raw: string, keyBucket: number): CacheEntry<T> | null {
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      return null;
-    }
+    const parsed = safeParseJson<unknown>(raw, null);
+    if (parsed === null) return null;
     if (parsed !== null && typeof parsed === 'object' && 'packet' in parsed) {
       const envelope = parsed as { storedAt?: unknown; packet: unknown };
       const packet = opts.revive(JSON.stringify(envelope.packet));

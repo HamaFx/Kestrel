@@ -38,9 +38,6 @@ test.describe('Navigation — authenticated routes', () => {
     { path: '/settings/models', heading: /models/i },
     { path: '/settings/usage', heading: /limits & alerts/i },
     { path: '/settings/agent', heading: null, urlCheck: /.*\/settings\/agent/ },
-    { path: '/settings/billing', heading: null, urlCheck: /.*\/settings\/billing/ },
-    { path: '/settings/portfolio', heading: null, urlCheck: /.*\/settings\/portfolio/ },
-    { path: '/settings/telegram', heading: null, urlCheck: /.*\/settings\/telegram/ },
     { path: '/offline', heading: /offline/i },
   ];
 

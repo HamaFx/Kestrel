@@ -4,7 +4,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { awaitLlmHeadroom, noteLlmRateLimit } from '../src/llm-throttle';
+import { awaitLlmHeadroom, noteLlmRateLimit } from '../src/budget/llm-throttle';
 
 describe('noteLlmRateLimit + awaitLlmHeadroom', () => {
   beforeEach(() => {

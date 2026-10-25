@@ -29,7 +29,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
-import { checkIsAdmin } from '@/lib/admin-check';
+import { checkIsAdmin } from '@/lib/auth/admin-check';
 
 import { AIPrefsCard } from '../_components/agent/ai-prefs-card';
 import { AISubNav } from '../_components/ai-subnav';

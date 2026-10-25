@@ -25,7 +25,7 @@ const mocks = vi.hoisted(() => ({
   recordAdminAudit: vi.fn(),
 }));
 
-vi.mock('@/lib/admin-auth', () => ({
+vi.mock('@/lib/auth/admin-auth', () => ({
   withAdminAuth:
     (
       handler: (
@@ -40,7 +40,7 @@ vi.mock('@/lib/admin-auth', () => ({
       }),
 }));
 
-vi.mock('@/lib/api', () => ({
+vi.mock('@/lib/http/api', () => ({
   parseSearchParams: (
     req: Request,
     schema: { parse: (value: Record<string, string>) => unknown },

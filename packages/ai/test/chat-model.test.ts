@@ -16,7 +16,7 @@ import {
   deriveTitleModel,
   resolveChatModel,
   resolveModelForProvider,
-} from '../src/model';
+} from '../src/models/model';
 
 // Phase E tests mock @kestrel/shared/encryption with a permisssive
 // stub. We replicate that here so we can inject BYOK payloads via

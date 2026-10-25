@@ -16,7 +16,7 @@
 
 import { z } from 'zod';
 
-import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
+import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
 import { updateUserSettingsField } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';

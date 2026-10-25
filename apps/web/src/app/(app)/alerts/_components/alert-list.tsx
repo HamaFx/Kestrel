@@ -47,9 +47,9 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Segmented } from '@/components/ui/segmented';
 import { StaleIndicator } from '@/components/ui/stale-indicator';
 import { Tooltip } from '@/components/ui/tooltip';
-import { apiFetch, apiMutate } from '@/lib/api-client';
-import { cn } from '@/lib/cn';
-import { formatRelative } from '@/lib/format';
+import { cn } from '@/lib/formatters/cn';
+import { formatRelative } from '@/lib/formatters/format';
+import { apiFetch, apiMutate } from '@/lib/http/api-client';
 
 import { AlertForm } from './alert-form';
 

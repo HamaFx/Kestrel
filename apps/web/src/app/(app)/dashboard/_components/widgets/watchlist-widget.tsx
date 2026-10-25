@@ -42,7 +42,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { SparklineCanvas } from '@/components/ui/sparkline-canvas';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { usePrices } from '@/hooks/use-prices';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 const DEFAULT_WATCHLIST: Symbol[] = ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'BTCUSDT', 'ETHUSDT'];
 

@@ -30,7 +30,7 @@
 
 import { z } from 'zod';
 
-import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
+import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
 import { batchDeleteThreads, withRateLimit } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';

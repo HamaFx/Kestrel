@@ -22,7 +22,7 @@ import { container } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runMastraCanonicalChat } from '../src/mastra-v2/agents/canonical';
-import { DB } from '../src/tokens';
+import { DB } from '../src/runtime/tokens';
 
 // ToolContext resolves the DB lazily; no tool calls run in these tests, so a
 // stub client is enough. Register before any turn executes.
@@ -40,8 +40,8 @@ const mocks = vi.hoisted(() => ({
   prepareFails: false,
 }));
 
-vi.mock('../src/model', async () => {
-  const actual = await vi.importActual<Record<string, unknown>>('../src/model');
+vi.mock('../src/models/model', async () => {
+  const actual = await vi.importActual<Record<string, unknown>>('../src/models/model');
   return {
     ...actual,
     resolveChatModel: mocks.resolveChatModel,

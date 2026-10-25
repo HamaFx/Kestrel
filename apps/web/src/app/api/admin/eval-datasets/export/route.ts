@@ -23,8 +23,8 @@
 // folds in eval reports and writes/upload the JSONL files. Both paths share
 // the same assembly + registration pipeline in @kestrel/ai and @kestrel/db.
 
-import { withAdminAuth } from '@/lib/admin-auth';
-import { errorResponse } from '@/lib/api';
+import { withAdminAuth } from '@/lib/auth/admin-auth';
+import { errorResponse } from '@/lib/http/api';
 import { recordAdminAudit } from '@/lib/services/admin';
 import {
   assembleTrainingDataset,

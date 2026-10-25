@@ -88,11 +88,11 @@ Environment schemas are authoritative for runtime validation.
 
 The database package contains:
 
-- Drizzle PostgreSQL schema
+- Drizzle PostgreSQL schema, grouped into `core/`, `market/`, `ai/`, and `ops/` domain sub-barrels under `src/schema/`
 - Migration files and migration tooling
 - PostgreSQL client and pooling behavior
 - User ownership and tenant-aware query helpers
-- Retention, budget, queue, telemetry, billing, and persistence queries
+- Retention, budget, queue, telemetry, and persistence queries
 
 PostgreSQL 16 with pgvector is required across all deployments to support vector embeddings and enforce PostgreSQL Row Level Security (RLS).
 
@@ -118,7 +118,7 @@ Pure technical-analysis calculations include moving averages, RSI, MACD, ATR, Bo
 The AI package contains:
 
 - Mastra agents and durable workflows
-- Domain/model routing
+- Domain/model routing under `src/models/`, `src/routing/`, `src/budget/`, `src/runtime/`, and `src/persistence/`
 - Typed read-only tools
 - Mutation drafts and confirmation workflows
 - Prompt-injection detection and Unicode normalization
@@ -128,14 +128,13 @@ The AI package contains:
 
 All Mastra orchestration lives under `packages/ai/src/mastra-v2/` (the former
 `mastra/` generation was atomically migrated in 2026-10; the audit v2 cleanup
-deleted the 70 per-module re-export shims). `src/mastra/index.ts` is now the
-only file under `src/mastra/`: a **deprecated** thin barrel kept for one
-release of wire compatibility — it logs a one-time deprecation warning outside
-tests and re-exports `mastra-v2` for the `@kestrel/ai/mastra` subpath. New
-code imports `@kestrel/ai/mastra-v2`. Committee orchestration stays in
-`packages/ai/src/committee/` (specialists, cross-critique, fusion) and is
-consumed by the mode runner. The 2026-10-18 deep agentic audit and its phased
-remediation plan live in `docs/audits/mastra-agentic-deep-audit-2026-10-18.md`.
+deleted the 70 per-module re-export shims). The deprecated `src/mastra/`
+compatibility barrel was removed in the Part 1 maintainability cleanup;
+`@kestrel/ai/mastra-v2` is the single public entry point. Committee
+orchestration stays in `packages/ai/src/committee/` (specialists,
+cross-critique, fusion) and is consumed by the mode runner. The 2026-10-18 deep
+agentic audit and its phased remediation plan live in
+`docs/audits/mastra-agentic-deep-audit-2026-10-18.md`.
 
 The tree below is asserted in CI by `scripts/check-architecture-tree.mjs` —
 editing this list and `packages/ai/src/mastra-v2/` must happen together:
@@ -290,43 +289,30 @@ Tenant isolation is enforced via Postgres Row Level Security (RLS) on all user-d
 
 The operator-managed cloud deployment is an infrastructure choice, not a separate product mode. Its private provider proxies, monitoring, cron, staging, and secret-management details are maintained by the operator.
 
-## Subscription and credit billing
+## BYOK and local spend budgets
 
-Billing has two orthogonal layers:
+Kestrel is BYOK-only: users bring their own provider keys, and there is no
+subscription, checkout, credit wallet, or payment webhook in the product.
 
-- **Subscriptions** (Stripe primary, NOWPayments optional, Gammal one-time
-  prepaid passes) control feature entitlements and the credits granted each
-  billing cycle. Gammal has no auto-renew; its pass expires and the user buys
-  another.
-- **Credits** are an exact integer meter (`bigint`, 1 credit = $0.001) for
-  platform-paid managed AI usage. BYOK turns remain free but still emit
-  telemetry.
-
-```
-Stripe / NOWPayments / Gammal webhook
-  └─ billing_events / ipn_events (idempotent claim)
-       └─ subscriptions + payments projection
-            └─ credit_ledger (append-only, idempotency-keyed)
-                 └─ credit_wallets.available_credits  ← atomic UPDATE … RETURNING
-                      └─ credit_reservations (pre-auth, reconcile/release)
-                           └─ chat_telemetry.provider_mode / credits_charged
-```
+- `chat_telemetry.est_cost_usd` records the estimated USD cost of a turn and
+  attributes it to `byok` or `managed` (operator fallback key).
+- `daily_ai_spend` and `ai_budget_reservations` are the local spend ledger.
+  `packages/ai/src/budget/index.ts` is the single admission facade
+  (`acquireBudget` / `reserveTurnBudget`); `packages/ai/src/budget/cost.ts` remains
+  the only model price source and rate table.
+- Budget enforcement is off by default (ledger-only observability). Set
+  `ENFORCE_BUDGET=true` to enforce each user's `max_daily_usd` cap locally.
+- BYOK key material is encrypted by `@kestrel/shared` and never leaves the
+  instance; `/settings/models` manages provider keys.
 
 Invariants:
 
-1. `packages/ai/src/cost.ts` + `buildCatalogRateTable()` remain the only model
-   price source. `packages/ai/src/credits.ts` is the only USD → credit
-   converter.
-2. Wallet writes never go negative; admission uses a guarded single-statement
-   update (or a `FOR UPDATE` lock when a decision needs the balance).
-3. Every grant, reservation, reconcile, release, refund, and adjustment has a
-   stable idempotency key and one ledger row.
-4. Webhooks run in fresh tenant transactions, never the request transaction.
-5. Billing tables use their own multi-year retention window; the 90-day
-   telemetry sweep must not delete them.
-
-See `docs/configuration.md` for the locked decisions (D1–D6) and environment
-variables.
+1. No turn depends on a remote billing service; provider keys are the only
+   external spend authority.
+2. `packages/ai/src/budget/cost.ts` + `buildCatalogRateTable()` remain the only model
+   price source.
+3. Reservation reconcile/release is idempotent and keeps the ledger
+   non-negative.
 
 ## Security boundaries
 

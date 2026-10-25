@@ -26,7 +26,7 @@ import {
   terminalMetadata,
   type ExecutionAnswerOutcome,
   type ExecutionTerminalState,
-} from '../src/execution-lifecycle';
+} from '../src/runtime/execution-lifecycle';
 
 const ALLOWED_PAIRS: ReadonlyArray<readonly [ExecutionTerminalState, ExecutionAnswerOutcome]> = [
   ['completed', 'ready'],

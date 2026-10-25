@@ -223,7 +223,7 @@ for unit in \
   kestrel-light-news kestrel-light-calendar \
   kestrel-light-warm-cache kestrel-light-cleanup-uploads \
   kestrel-backup-db kestrel-backup-journal kestrel-verify-restore \
-  kestrel-tenant-export kestrel-tenant-delete kestrel-billing-dlq \
+  kestrel-tenant-export kestrel-tenant-delete \
   kestrel-disk-check kestrel-docker-prune \
   kestrel-update kestrel-docker-autoheal kestrel-webhook kestrel-health-alerts; do
   for ext in service timer; do
@@ -241,7 +241,7 @@ for timer in \
   kestrel-light-cleanup-uploads.timer \
   kestrel-backup-db.timer kestrel-backup-journal.timer \
   kestrel-verify-restore.timer \
-  kestrel-tenant-export.timer kestrel-tenant-delete.timer kestrel-billing-dlq.timer \
+  kestrel-tenant-export.timer kestrel-tenant-delete.timer \
   kestrel-disk-check.timer kestrel-docker-prune.timer \
   kestrel-update.timer kestrel-docker-autoheal.timer kestrel-health-alerts.timer; do
   systemctl enable --now "$timer" 2>/dev/null || true

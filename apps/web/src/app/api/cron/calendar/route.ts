@@ -24,7 +24,7 @@
 // actionable signal. Treat ProviderError as a "skip this tick" event:
 // the next tick will retry, the data we already have stays valid.
 
-import { withCronAuth } from '@/lib/cron';
+import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import { fetchUpcomingEvents, ProviderError, upsertEvents } from '@/lib/services/api-boundary';
 

@@ -43,9 +43,9 @@
 
 import { z } from 'zod';
 
-import { withAdminAuth } from '@/lib/admin-auth';
-import { checkAdminRateLimit } from '@/lib/admin-rate-limit';
-import { errorResponse, parseJsonBody } from '@/lib/api';
+import { withAdminAuth } from '@/lib/auth/admin-auth';
+import { checkAdminRateLimit } from '@/lib/auth/admin-rate-limit';
+import { errorResponse, parseJsonBody } from '@/lib/http/api';
 import { AppError } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';

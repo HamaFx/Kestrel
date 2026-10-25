@@ -6,7 +6,7 @@ import { generateImpersonationChallenge } from '@/lib/auth/impersonation';
 import { createAuthProviders } from '@/lib/auth/providers';
 import { provisionUserOnSignIn } from '@/lib/auth/provision-user';
 import { getAuthEnv } from '@/lib/env';
-import { assertProductionSecurity } from '@/lib/security-invariants';
+import { assertProductionSecurity } from '@/lib/http/security-invariants';
 
 import { authConfig } from './auth.config';
 

@@ -20,7 +20,11 @@ import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { z } from 'zod';
 
 import { acquireBudget } from '../budget';
-import { DEFAULT_MAX_DAILY_USD, estimateKnownCostUsd, releaseBudgetReservation } from '../cost';
+import {
+  DEFAULT_MAX_DAILY_USD,
+  estimateKnownCostUsd,
+  releaseBudgetReservation,
+} from '../budget/cost';
 import * as textRunner from '../mastra-v2/agents/xauusd/text-runner';
 import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
 import {
@@ -28,7 +32,7 @@ import {
   finishMastraRun,
   mastraOutcomeForError,
 } from '../mastra-v2/shared/telemetry';
-import { resolveChatModel } from '../model';
+import { resolveChatModel } from '../models/model';
 import { computeStats, listEntries } from './persistence';
 
 export const CoachInsightsOutputSchema = z.object({
@@ -260,7 +264,7 @@ export async function getCoachInsights(args: CoachInsightsArgs): Promise<CoachIn
     });
 
     if (reservation.reservationId) {
-      const { reconcileBudgetReservation } = await import('../cost');
+      const { reconcileBudgetReservation } = await import('../budget/cost');
       await reconcileBudgetReservation(reservation.reservationId, costUsd);
     }
 
@@ -321,7 +325,7 @@ export async function getCoachInsights(args: CoachInsightsArgs): Promise<CoachIn
       if (reservation.reservationId) {
         await releaseBudgetReservation(reservation.reservationId);
       } else {
-        const { applyBudgetDelta } = await import('../cost');
+        const { applyBudgetDelta } = await import('../budget/cost');
         await applyBudgetDelta(userId, -estimatedUsd);
       }
     } catch (releaseErr) {

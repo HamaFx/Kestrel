@@ -23,8 +23,6 @@ import {
   getDiagnosticTraceForAdmin as getDiagnosticTraceForAdminDb,
   listDiagnosticTraces as listDiagnosticTracesDb,
   listDiagnosticTracesForAdmin as listDiagnosticTracesForAdminDb,
-  updatePaymentStatus as updatePaymentStatusDb,
-  updateSubscriptionFromPayment as updateSubscriptionFromPaymentDb,
 } from '@kestrel/db';
 
 /**
@@ -79,12 +77,10 @@ export {
   toMastraRunView,
   fullAnalysisRunId,
   type FullAnalysisRunView,
-} from '@kestrel/ai/mastra';
+} from '@kestrel/ai/mastra-v2';
 export {
   BYOK_PROVIDERS,
-  estimateCreditsForTurn,
   resolveProviderMode,
-  InsufficientCreditsError,
   assembleTrainingDataset,
   resolveEvaluationAnnotations,
   testProviderKey,
@@ -120,11 +116,6 @@ export {
   PushSubscriptionConflictError,
   getEntry,
   reviewTrade,
-  handleTelegramWebhook,
-  telegramApiCall,
-  createLinkCode,
-  getBotLink,
-  unlinkBot,
   listAgentOpinions,
   withDiagnostics,
   flushLangfuse,
@@ -145,12 +136,12 @@ export {
   forkThread,
 } from '@kestrel/ai/persistence';
 export type { FeedbackAnnotationInput, PromptResult } from '@kestrel/ai';
-export type { RunTelemetryRow } from '@kestrel/ai/mastra';
+export type { RunTelemetryRow } from '@kestrel/ai/mastra-v2';
 export { BudgetExceededError } from '@kestrel/ai/cost';
-export { CanonicalEvidenceBlockedError } from '@kestrel/ai/mastra';
+export { CanonicalEvidenceBlockedError } from '@kestrel/ai/mastra-v2';
 // Audit plan §1.9: guardrail failure classes for clean route-boundary mapping.
-export { GuardrailUnavailableError } from '@kestrel/ai/mastra';
-export { TripWire } from '@kestrel/ai/mastra';
+export { GuardrailUnavailableError } from '@kestrel/ai/mastra-v2';
+export { TripWire } from '@kestrel/ai/mastra-v2';
 
 // Database queries and infrastructure used by controllers that do not yet
 // have a dedicated domain service.
@@ -180,57 +171,7 @@ export {
   findVerificationToken,
   deleteVerificationToken,
   verifyUserEmail,
-  listActivePlans,
-  getPlan,
-  getUserSubscription,
-  getUserPayments,
-  upsertSubscription,
-  createPayment,
-  createTopupPayment,
-  getWallet,
-  getWalletWithGrant,
-  ensureWallet,
-  grantCredits,
-  addCredits,
-  consumeCredits,
-  expireCredits,
-  reserveCredits,
-  reconcileCreditReservation,
-  releaseCreditReservation,
-  ensureMonthlyGrant,
-  expireUnusedSubscriptionGrant,
-  reclaimStaleCreditReservations,
-  listLedger,
-  listActiveTopupProducts,
-  getTopupProduct,
-  getEntitlementSnapshot,
-  assertEntitlement,
-  assertCredits,
-  isCreditsEnforcementEnabled,
-  isCreditsShadowLogEnabled,
-  getBillingCustomer,
-  getBillingCustomerByStripeId,
-  getBillingUserIdForTenant,
-  ensureBillingCustomer,
-  claimBillingEvent,
-  markBillingEventProcessed,
-  markBillingEventFailed,
-  type EntitlementSnapshot,
-  type LedgerPage,
   createJournalEntry,
-  claimCheckoutAttempt,
-  saveCheckoutInvoice,
-  completeCheckoutAttempt,
-  failCheckoutAttempt,
-  claimIpnEvent,
-  getPaymentByNowpaymentsId,
-  markIpnFailed,
-  markIpnProcessed,
-  recordBillingWebhookFailure,
-  countStaleBillingWebhookFailures,
-  claimBillingWebhookReplay,
-  markBillingWebhookReplayed,
-  releaseBillingWebhookReplay,
   listTraceExplorerEvents,
   listToolTelemetry,
   listAdminAuditLogs,
@@ -259,9 +200,7 @@ export {
   schema,
 } from '@kestrel/db';
 
-export type { PaymentRow, DiagnosticTraceRow } from '@kestrel/db';
-export const updatePaymentStatus = updatePaymentStatusDb;
-export const updateSubscriptionFromPayment = updateSubscriptionFromPaymentDb;
+export type { DiagnosticTraceRow } from '@kestrel/db';
 
 // Market-data adapters and provider-specific cron helpers.
 export {
@@ -288,8 +227,6 @@ export {
   SymbolSchema,
   NoiseConfigSchema,
   RouteConfigSchema,
-  CreatePositionInputSchema,
-  ClosePositionInputSchema,
   AppError,
   conflict,
   validationError,
@@ -309,7 +246,6 @@ export { REQUIRED_HEALTH_ENV_VARS } from '@kestrel/shared/env-secrets';
 export { traceIdStorage } from '@kestrel/shared/logger';
 
 // Type-only facade exports used by a few server controllers.
-export type { TelegramUpdate } from '@kestrel/ai';
 export type { ProviderId, NoiseConfig, RouteConfig, Symbol, Timeframe } from '@kestrel/shared';
 export type { UIMessage } from 'ai';
 

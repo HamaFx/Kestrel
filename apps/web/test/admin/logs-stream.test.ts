@@ -24,7 +24,7 @@ const mockSubscribe = vi.hoisted(() => vi.fn());
 const mockUnsubscribe = vi.hoisted(() => vi.fn());
 const mockIsEnabled = vi.hoisted(() => vi.fn());
 
-vi.mock('@/lib/admin-auth', () => ({
+vi.mock('@/lib/auth/admin-auth', () => ({
   withAdminAuth: (handler: (req: Request) => Promise<Response>) => async (req: Request) =>
     handler(req),
 }));

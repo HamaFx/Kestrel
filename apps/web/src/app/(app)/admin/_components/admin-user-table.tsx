@@ -28,8 +28,8 @@ import { useConfirm } from '@/components/ui/confirm-drawer';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { apiFetch, apiMutate } from '@/lib/api-client';
-import { downloadCSV, formatAbsoluteTime } from '@/lib/format-number';
+import { downloadCSV, formatAbsoluteTime } from '@/lib/formatters/format-number';
+import { apiFetch, apiMutate } from '@/lib/http/api-client';
 import type { UserSummary } from '@/lib/services/admin-dtos';
 
 import { AdminErrorBlock } from './admin-error-block';

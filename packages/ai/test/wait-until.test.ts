@@ -32,7 +32,7 @@ describe('waitUntil', () => {
   });
 
   it('does not throw when called with a resolved promise', async () => {
-    const mod = await import('../src/wait-until');
+    const mod = await import('../src/runtime/wait-until');
     let resolved = false;
     const promise = new Promise<void>((resolve) => {
       mod.waitUntil(Promise.resolve('ok'));
@@ -44,7 +44,7 @@ describe('waitUntil', () => {
   });
 
   it('handles a rejected promise via the shim catch handler', async () => {
-    const mod = await import('../src/wait-until');
+    const mod = await import('../src/runtime/wait-until');
     const err = new Error('test error');
     const promise = new Promise((_, reject) => {
       // Delay long enough for the shim catch to be installed after
@@ -57,7 +57,7 @@ describe('waitUntil', () => {
   });
 
   it('accepts multiple sequential calls', async () => {
-    const mod = await import('../src/wait-until');
+    const mod = await import('../src/runtime/wait-until');
     const results: string[] = [];
     const p1 = new Promise<string>((resolve) =>
       setTimeout(() => {
@@ -80,7 +80,7 @@ describe('waitUntil', () => {
   });
 
   it('handles concurrent calls before the binding is resolved', async () => {
-    const mod = await import('../src/wait-until');
+    const mod = await import('../src/runtime/wait-until');
     const results: string[] = [];
     const p1 = new Promise<string>((resolve) =>
       setTimeout(() => {
@@ -103,7 +103,7 @@ describe('waitUntil', () => {
   });
 
   it('uses the shim fallback when @vercel/functions is not available', async () => {
-    const mod = await import('../src/wait-until');
+    const mod = await import('../src/runtime/wait-until');
     const err = new Error('shim fallback');
     const promise = new Promise((_, reject) => {
       setTimeout(() => reject(err), 100);

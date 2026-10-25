@@ -32,7 +32,7 @@
 import type { Symbol } from '@kestrel/shared';
 import { IconX } from '@tabler/icons-react';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 export interface SymbolChipProps {
   symbol: Symbol;

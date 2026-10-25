@@ -17,6 +17,7 @@
 import { metrics } from '@kestrel/shared';
 
 import type { XauusdResearchPacket } from '@ai/mastra-v2/packets/research-types';
+
 import { verifyXauusdReport } from './report-verifier';
 
 export interface XauusdReportEvaluationCase {

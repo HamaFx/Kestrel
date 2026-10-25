@@ -49,8 +49,9 @@ import {
   ragRowToItem,
   runMemoryQuery,
   runRagQuery,
-} from '@ai/rag';
-import { maybeGetToolContext } from '@ai/tool-context';
+} from '@ai/models/rag';
+import { maybeGetToolContext } from '@ai/runtime/tool-context';
+
 import { createReadOnlyToolExecute } from '../../agents/xauusd/legacy-tool-adapter';
 
 // We extend the published input schema with the optional `kinds` filter

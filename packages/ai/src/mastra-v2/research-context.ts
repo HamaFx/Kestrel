@@ -34,7 +34,7 @@ import type { MemoryConfigInternal } from '@mastra/core/memory';
 import type { Memory } from '@mastra/memory';
 import type { LanguageModel } from 'ai';
 
-import type { ResolveModelEnv } from '../env-model-factory';
+import type { ResolveModelEnv } from '../models/env-factory';
 import { prepareKestrelMemory, type PreparedKestrelMemory } from './context';
 import { buildConversationScorers, buildResearchScorers, type BuiltScorers } from './evals/scorers';
 import {

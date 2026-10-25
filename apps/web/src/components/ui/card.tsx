@@ -25,7 +25,7 @@
 
 import { createElement, type HTMLAttributes, type ReactNode } from 'react';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 export interface CardProps extends HTMLAttributes<HTMLElement> {
   /** Use a semantic section/article without duplicating the shell classes. */

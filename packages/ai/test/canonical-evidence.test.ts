@@ -4,7 +4,7 @@ import {
   assertCanonicalEvidence,
   CanonicalEvidenceBlockedError,
   checkCanonicalEvidence,
-} from '../src/mastra';
+} from '../src/mastra-v2';
 
 const goldQuote = [{ name: 'get_gold_price', resultText: '{"symbol":"XAUUSD","price":2650.4}' }];
 

@@ -38,7 +38,7 @@ import { useMemo } from 'react';
 
 import { EmptyState } from '@/components/ui/empty-state';
 import { StatCard, type StatTone } from '@/components/ui/stat-card';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface StatsSummaryProps {
   stats: JournalStats;

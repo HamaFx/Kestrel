@@ -16,8 +16,8 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { errorResponse, withAuth } from '@/lib/api';
-import { buildCatalogForUser } from '@/lib/catalog-server';
+import { errorResponse, withAuth } from '@/lib/http/api';
+import { buildCatalogForUser } from '@/lib/services/catalog-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

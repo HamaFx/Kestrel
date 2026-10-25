@@ -20,11 +20,11 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { fetchCandles, fetchChartData } from '@/lib/market-client';
+import { fetchCandles, fetchChartData } from '@/lib/services/market-client';
 
 import { useChartData } from '../src/hooks/use-chart-data';
 
-vi.mock('@/lib/market-client', () => ({
+vi.mock('@/lib/services/market-client', () => ({
   fetchCandles: vi.fn(),
   fetchChartData: vi.fn(),
 }));

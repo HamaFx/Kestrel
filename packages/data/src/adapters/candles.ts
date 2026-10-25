@@ -29,9 +29,7 @@ import { SymbolSchema, type Candle, type Symbol, type Timeframe } from '@kestrel
 import { cacheKey, cacheTag, candleTtl, getDefaultCache } from '../cache';
 import { ProviderError } from '../errors';
 import { runWithFailover, type ProviderAttempt } from '../failover';
-
-import '../providers/provider-adapters'; // side-effect: register providers
-
+import { ensureDataProvidersRegistered } from '../providers/provider-adapters';
 import { marketDataProviders } from '../providers/provider-registry';
 
 export interface GetCandlesOptions {
@@ -89,6 +87,7 @@ export async function getCandlesWithMeta(
   tf: Timeframe,
   opts: GetCandlesOptions = {},
 ): Promise<CandlesResult> {
+  ensureDataProvidersRegistered();
   const symbol = SymbolSchema.parse(symbolInput);
   const count = Math.max(1, Math.min(opts.count ?? DEFAULT_COUNT, MAX_COUNT));
   const keys = resolveKeys(opts);

@@ -17,10 +17,10 @@
 import { LibSQLStore } from '@mastra/libsql';
 import { describe, expect, it } from 'vitest';
 
-import { MASTRA_CAPABILITIES } from '../src/mastra';
 import {
   assertMastraRegistryComplete,
   createKestrelMastra,
+  MASTRA_CAPABILITIES,
   MASTRA_COMPONENT_REGISTRY,
   MastraComponentKindMismatchError,
   MastraComponentNotRegisteredError,

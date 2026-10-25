@@ -27,7 +27,7 @@
 import { requireTenantIdForUser, schema } from '@kestrel/db';
 import { and, eq, sql } from 'drizzle-orm';
 
-import { getDb } from '../db';
+import { getDb } from '../runtime/db';
 
 export interface PushSubscriptionRow {
   id: string;

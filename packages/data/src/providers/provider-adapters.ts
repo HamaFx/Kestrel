@@ -317,5 +317,7 @@ export function bootstrapMarketDataProviders(): void {
   _bootstrapped = true;
 }
 
-// Auto-bootstrap on first import.
-bootstrapMarketDataProviders();
+/** RULE-R02 explicit bootstrap for app entrypoints. Idempotent. */
+export function ensureDataProvidersRegistered(): void {
+  bootstrapMarketDataProviders();
+}

@@ -23,7 +23,7 @@
 
 import type { HTMLAttributes } from 'react';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface SkeletonProps extends HTMLAttributes<HTMLDivElement> {
   /** Hide decorative placeholders from assistive technology. */

@@ -23,8 +23,8 @@
 
 import { z } from 'zod';
 
-import { withAdminAuth } from '@/lib/admin-auth';
-import { parseSearchParams } from '@/lib/api';
+import { withAdminAuth } from '@/lib/auth/admin-auth';
+import { parseSearchParams } from '@/lib/http/api';
 import { computeHealthSloService } from '@/lib/services/admin-health';
 import { getAdminDb } from '@/lib/services/api-boundary';
 

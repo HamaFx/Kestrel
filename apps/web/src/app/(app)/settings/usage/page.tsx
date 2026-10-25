@@ -17,11 +17,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { computeUsage, listTelemetry, type DayBucket, type UsageStats } from '@kestrel/ai';
-import {
-  listMtdAgentOpinions,
-  requireTenantIdForUser,
-  withTenantDbRO,
-} from '@kestrel/db';
+import { listMtdAgentOpinions, requireTenantIdForUser, withTenantDbRO } from '@kestrel/db';
 import { IconChartBar } from '@tabler/icons-react';
 import type { Metadata } from 'next';
 import { Link } from 'next-view-transitions';
@@ -29,7 +25,7 @@ import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
 import { EmptyState } from '@/components/ui/empty-state';
-import { formatRelative } from '@/lib/format';
+import { formatRelative } from '@/lib/formatters/format';
 
 export const metadata: Metadata = {
   title: 'Activity & Quota · Settings',

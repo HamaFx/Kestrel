@@ -31,7 +31,7 @@ import {
   executeCanonicalIndicators,
   type CanonicalIndicatorsInput,
 } from '../mastra-v2/tools/canonical/indicators';
-import { maybeGetToolContext } from '../tool-context';
+import { maybeGetToolContext } from '../runtime/tool-context';
 
 declare module '@kestrel/shared' {
   interface ToolIOMap {

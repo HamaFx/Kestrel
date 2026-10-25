@@ -18,7 +18,7 @@
 
 // PF-22 — /api/calendar — economic calendar (thin controller).
 
-import { errorResponse, withAuth } from '@/lib/api';
+import { errorResponse, withAuth } from '@/lib/http/api';
 import { checkCalendarRateLimit, listEventsService } from '@/lib/services/calendar';
 
 export const runtime = 'nodejs';

@@ -24,9 +24,9 @@ import { and, eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
-import { checkIsAdmin } from '@/lib/admin-check';
-import { buildCatalogForUser } from '@/lib/catalog-server';
-import { formatRelative } from '@/lib/format';
+import { checkIsAdmin } from '@/lib/auth/admin-check';
+import { formatRelative } from '@/lib/formatters/format';
+import { buildCatalogForUser } from '@/lib/services/catalog-server';
 
 import { AISubNav } from '../_components/ai-subnav';
 import { updateApiKeysAction } from '../actions';

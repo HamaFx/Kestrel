@@ -26,8 +26,8 @@ import { useMemo, useRef, useState } from 'react';
 import { useConfirm } from '@/components/ui/confirm-drawer';
 import { EmptyState } from '@/components/ui/empty-state';
 import { usePrices } from '@/hooks/use-prices';
-import { cn } from '@/lib/cn';
-import { formatRelative } from '@/lib/format';
+import { cn } from '@/lib/formatters/cn';
+import { formatRelative } from '@/lib/formatters/format';
 
 import { EntryRow } from './entry-row';
 

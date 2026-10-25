@@ -19,7 +19,7 @@
 // Reusable sortable breakdown table for by-symbol / by-session / by-hour / by-day / by-tag stats.
 import { useMemo, useState } from 'react';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface BreakdownRow {
   label: string;

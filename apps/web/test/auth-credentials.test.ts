@@ -26,7 +26,7 @@
 import bcrypt from 'bcryptjs';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { recordAuthEvent } from '@/lib/auth-anomaly';
+import { recordAuthEvent } from '@/lib/auth/auth-anomaly';
 
 import {
   DUMMY_PASSWORD_HASH,
@@ -34,7 +34,7 @@ import {
   normalizeEmail,
 } from '../src/lib/auth/credentials';
 import { authorizeCredentials } from '../src/lib/auth/credentials-authorize';
-import { passwordSchema } from '../src/lib/validation';
+import { passwordSchema } from '../src/lib/http/validation';
 
 const VALID_PASSWORD = 'Str0ngPassw0rd!';
 
@@ -101,7 +101,7 @@ vi.mock('otplib', () => ({
   verifySync: vi.fn(() => ({ valid: false })),
 }));
 
-vi.mock('@/lib/auth-anomaly', () => ({
+vi.mock('@/lib/auth/auth-anomaly', () => ({
   recordAuthEvent: vi.fn(),
 }));
 

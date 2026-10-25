@@ -20,7 +20,7 @@
 import { IconChevronDown, IconCpu } from '@tabler/icons-react';
 
 import { usePopupMenu } from '@/hooks/use-popup-menu';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 import { modelLabelFromSelection } from './model-picker-utils';
 import { RegenModelPicker } from './regen-model-picker';

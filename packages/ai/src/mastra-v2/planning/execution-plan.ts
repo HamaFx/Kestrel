@@ -6,7 +6,7 @@
 
 import { z } from 'zod';
 
-import type { MastraResolvedModel } from '../../model';
+import type { MastraResolvedModel } from '../../models/model';
 import {
   getMastraCapability,
   guardrailPolicyForCapability,

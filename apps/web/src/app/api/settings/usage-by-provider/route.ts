@@ -28,7 +28,7 @@
 //
 // Auth: NextAuth session gate. Per-user data only.
 
-import { errorResponse, withAuth } from '@/lib/api';
+import { errorResponse, withAuth } from '@/lib/http/api';
 import { computeUsage } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';

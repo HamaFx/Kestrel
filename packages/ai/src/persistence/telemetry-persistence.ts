@@ -23,11 +23,11 @@ import { requireTenantIdForUser, schema } from '@kestrel/db';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { eq } from 'drizzle-orm';
 
-import { estimateCostUsd } from '../cost';
-import { platformFeeCredits, resolveProviderMode, usdToCredits } from '../credits';
-import { getDb } from '../db';
+import { estimateCostUsd } from '../budget/cost';
 import { getDiagnosticContext } from '../diagnostics/run-context';
-import { enqueuePersistenceFailure } from '../persistence-outbox';
+import { resolveProviderMode } from '../models/byok-providers';
+import { getDb } from '../runtime/db';
+import { enqueuePersistenceFailure } from './outbox';
 
 const perlog = createCategorizedLogger('ai', { component: 'persistence' });
 
@@ -106,9 +106,6 @@ export interface TelemetryInput {
   kind?: TelemetryKind;
   /** D1 — who paid for the turn. Null for auxiliary/legacy rows. */
   providerMode?: 'byok' | 'managed' | null;
-  /** Credits actually charged after reconciliation. */
-  creditsCharged?: number;
-  walletBalanceAfter?: number | null;
 }
 
 export async function recordTelemetry(t: TelemetryInput): Promise<void> {
@@ -135,8 +132,6 @@ export async function recordTelemetry(t: TelemetryInput): Promise<void> {
       providerMode = resolveProviderMode(null, t.model);
     }
   }
-  const creditsCharged =
-    t.creditsCharged ?? (providerMode === 'byok' ? platformFeeCredits() : usdToCredits(estCostUsd));
 
   try {
     await db
@@ -158,8 +153,6 @@ export async function recordTelemetry(t: TelemetryInput): Promise<void> {
         estCostUsd,
         kind: t.kind ?? null,
         providerMode,
-        creditsCharged,
-        walletBalanceAfter: t.walletBalanceAfter ?? null,
       })
       .onConflictDoNothing({ target: schema.chatTelemetry.idempotencyKey });
   } catch (err) {

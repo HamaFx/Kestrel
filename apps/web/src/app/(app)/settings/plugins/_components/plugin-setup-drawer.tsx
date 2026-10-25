@@ -52,8 +52,8 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import { ApiError, apiMutate } from '@/lib/api-client';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
+import { ApiError, apiMutate } from '@/lib/http/api-client';
 import type { PluginStoreEntry } from '@/lib/plugins/types';
 
 import { AutoZodSettingsForm, type PluginSettingsValues } from './auto-zod-settings-form';

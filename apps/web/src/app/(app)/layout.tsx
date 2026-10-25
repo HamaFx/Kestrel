@@ -42,7 +42,7 @@ import { TopBar } from '@/components/layout/top-bar';
 import { MotionRoot } from '@/components/ui/motion-config';
 import { AmbientTelemetry } from '@/components/ui/segmented';
 import { Toaster } from '@/components/ui/toaster';
-import { checkIsAdmin } from '@/lib/admin-check';
+import { checkIsAdmin } from '@/lib/auth/admin-check';
 
 const getOnboardingStatus = cache(async (userId: string) => {
   const { settings } = await getUserWithSettings(userId);

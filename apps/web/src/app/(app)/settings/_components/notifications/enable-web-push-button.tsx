@@ -34,7 +34,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { fetchCsrf } from '@/lib/csrf';
+import { fetchCsrf } from '@/lib/auth/csrf';
 
 type Status =
   | { kind: 'idle' }

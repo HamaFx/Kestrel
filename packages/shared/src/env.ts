@@ -170,89 +170,6 @@ const NotifyEnv = z.object({
   VAPID_SUBJECT: z.string().optional(),
 });
 
-/**
- * NOWPayments (crypto billing) — Phase A/B of the billing integration plan.
- *
- * All optional: billing routes are feature-flagged and no-op when unset.
- * In production with billing enabled, set all three.
- *
- *   NOWPAYMENTS_API_KEY     — x-api-key header for REST API calls
- *   NOWPAYMENTS_IPN_SECRET  — HMAC-SHA512 shared secret for webhook verification
- *   NOWPAYMENTS_API_BASE    — sandbox (api-sandbox.nowpayments.io) or live (api.nowpayments.io)
- */
-const BillingEnv = z.object({
-  NOWPAYMENTS_API_KEY: z.string().min(1).optional(),
-  NOWPAYMENTS_IPN_SECRET: z.string().min(1).optional(),
-  NOWPAYMENTS_API_BASE: z.url().default('https://api-sandbox.nowpayments.io'),
-  /** Billing stays disabled unless explicitly opted in. */
-  BILLING_ENABLED: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('0')
-    .transform((v) => v === '1' || v === 'true'),
-  /**
-   * D6 — billing deployment profile. `selfhost` keeps billing opt-in and
-   * hides upsell surfaces; `saas` requires a configured provider and always
-   * exposes the billing UI. Never branch on NODE_ENV for this.
-   */
-  BILLING_MODE: z.enum(['selfhost', 'saas']).default('selfhost'),
-  /** D2 — Stripe is primary; NOWPayments remains available behind the switch. */
-  BILLING_PROVIDER: z.enum(['stripe', 'nowpayments', 'both']).default('stripe'),
-  /** Stripe webhook/checkout master switch (can be flipped before launch). */
-  BILLING_STRIPE_ENABLED: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('0')
-    .transform((v) => v === '1' || v === 'true'),
-  BILLING_TOPUPS_ENABLED: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('1')
-    .transform((v) => v === '1' || v === 'true'),
-  STRIPE_SECRET_KEY: z.string().min(1).optional(),
-  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
-  STRIPE_BILLING_PORTAL_RETURN_URL: z.url().optional(),
-  // ── Gammal Tech (one-time prepaid passes) ─────────────────────────────
-  /**
-   * Gammal has no API key. Enable only after the project's domain and payment
-   * callback URL are configured in the Gammal dashboard.
-   */
-  BILLING_GAMMAL_ENABLED: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('0')
-    .transform((v) => v === '1' || v === 'true'),
-  /** Public Gammal project id (pid), e.g. 47. Not a secret. */
-  GAMMAL_PROJECT_ID: z.preprocess(
-    (value) => (value === '' || value == null ? undefined : value),
-    z.coerce.number().int().positive().optional(),
-  ),
-  /** API origin used for payment links and the public signing key. */
-  GAMMAL_API_BASE: z.url().default('https://api.gammal.tech'),
-  /** Charge currency. Kestrel plan prices are USD cents; keep USD. */
-  GAMMAL_CURRENCY: z.string().length(3).default('USD'),
-  /** Optional pinned PEM public key; otherwise fetched and cached. */
-  GAMMAL_PUBLIC_KEY_PEM: z.preprocess(
-    (value) => (value === '' || value == null ? undefined : value),
-    z.string().min(1).optional(),
-  ),
-  /** Fallback pass length when a plan interval is unknown. */
-  GAMMAL_PASS_DAYS: z.coerce.number().int().positive().default(30),
-  // ── Credits ────────────────────────────────────────────────────────────
-  /** D3 — 1 credit = 1/CREDITS_PER_DOLLAR USD. Default 1000 → $0.001. */
-  CREDITS_PER_DOLLAR: z.coerce.number().int().positive().prefault(1000),
-  /** Estimated credits reserved for one durable Full-analysis turn. */
-  FULL_MODE_CREDIT_ESTIMATE: z.coerce.number().int().nonnegative().prefault(250),
-  /** D1 — flat platform fee per BYOK turn. 0 avoids double-charging. */
-  PLATFORM_FEE_CREDITS: z.coerce.number().int().nonnegative().prefault(0),
-  /** When off, credit reservations are shadow-only and never return 402. */
-  CREDITS_ENFORCEMENT_ENABLED: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('0')
-    .transform((v) => v === '1' || v === 'true'),
-  /** Emit shadow ledger/reservation rows even when enforcement is off. */
-  CREDITS_SHADOW_LOG: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('1')
-    .transform((v) => v === '1' || v === 'true'),
-});
-
 const PublicEnv = z.object({
   NEXT_PUBLIC_APP_URL: z.url().default('http://localhost:3000'),
   /** Browser-readable VAPID public key. MUST equal `VAPID_PUBLIC_KEY`. */
@@ -316,12 +233,9 @@ const RuntimeEnv = z.object({
   PROVIDER_DAILY_QUOTA_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(3),
   CRON_RUN_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(30),
   ANALYSIS_JOB_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(7),
-  BILLING_WEBHOOK_DLQ_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(90),
   AI_EVALUATION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(90),
   PERSISTENCE_OUTBOX_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(30),
   BUDGET_RESERVATION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(90),
-  /** Tax/chargeback audit requires multi-year billing history (plan §4 #9). */
-  CREDIT_LEDGER_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(730),
 
   // Feature Flags
   /**
@@ -440,7 +354,6 @@ export const ServerEnvSchema = z
     AuthEnv.extend(CacheEnv.shape)
       .extend(ProvidersEnv.shape)
       .extend(NotifyEnv.shape)
-      .extend(BillingEnv.shape)
       .extend(PublicEnv.shape)
       .extend(RuntimeEnv.shape),
   )

@@ -24,7 +24,8 @@
 // When `WORKER_ENABLE_TICK_STREAM=1` is explicitly enabled, `main()` invokes
 // `runWorker()` to start the legacy SignalR + Binance streaming consumers.
 
-import { getDb, initLangfuse, shutdownLangfuse } from '@kestrel/ai';
+import { ensureAiBootstrapped, getDb, initLangfuse, shutdownLangfuse } from '@kestrel/ai';
+import { ensureDataProvidersRegistered } from '@kestrel/data';
 import { closeDb } from '@kestrel/db';
 import { getCapabilityReport, isForexWeekend } from '@kestrel/shared';
 
@@ -392,6 +393,8 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
 }
 
 export async function main(): Promise<void> {
+  ensureAiBootstrapped();
+  ensureDataProvidersRegistered();
   const { loadSecretsFromVault } = await import('@kestrel/shared/vault');
   await loadSecretsFromVault();
 
@@ -431,7 +434,7 @@ export async function main(): Promise<void> {
 
   initLangfuse({ service: 'worker' });
 
-  const { initializeKestrelMastra } = await import('@kestrel/ai/mastra');
+  const { initializeKestrelMastra } = await import('@kestrel/ai/mastra-v2');
   await initializeKestrelMastra().catch((err: unknown) => {
     log.warn('Mastra storage init failed (non-fatal; lazy init will retry)', { err: String(err) });
   });
@@ -581,7 +584,7 @@ export async function main(): Promise<void> {
 
     onShutdown(() => shutdownLangfuse());
     onShutdown(async () => {
-      const { flushMastraObservability, getKestrelMastra } = await import('@kestrel/ai/mastra');
+      const { flushMastraObservability, getKestrelMastra } = await import('@kestrel/ai/mastra-v2');
       await flushMastraObservability(getKestrelMastra().instance).catch(() => {});
     });
     // Cleanups run in reverse registration order. Registering the producers

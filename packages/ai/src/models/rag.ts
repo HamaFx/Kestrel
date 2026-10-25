@@ -1,0 +1,374 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// RAG layer for the news embeddings index. Phase 7b upgrade:
+//
+//   - Dense cosine over `news_embeddings` (existing).
+//   - Lexical Postgres FTS over `news_articles.title || summary` (new).
+//   - Reciprocal-rank fusion combines the two — robust to either signal
+//     being weak on its own ("FOMC minutes" needs lexical, "macro
+//     volatility tonight" needs dense).
+//   - Time-decay multiplier: similarity *= exp(-ageDays / halflifeDays).
+//   - Optional memory expansion: when `kinds` includes journal /
+//     briefing / thread_synopsis, results from `memory_embeddings` are
+//     RRF-fused into the same ranked list.
+//
+// `search_knowledge` callers pass the existing news-only signature; the
+// hybrid path is opt-in via the new `memoryKinds` argument so existing
+// behaviour stays bit-stable when the agent doesn't ask for memory.
+
+import { schema } from '@kestrel/db';
+import type { NewsSentiment, SearchKnowledgeItem, Symbol } from '@kestrel/shared';
+import { sql } from 'drizzle-orm';
+
+import { quarantineExternalText } from '../mastra-v2/packets/external-content';
+import { searchMemory, type MemoryKind, type MemoryRow } from '../memory/memory-index';
+import { getDb } from '../runtime/db';
+import { embedTexts, vectorLiteral } from './embeddings';
+
+/** Exported for testing — RAG result row shape. */
+export interface RagRow {
+  id: string;
+  title: string;
+  summary: string | null;
+  url: string;
+  source: string;
+  publisher: string | null;
+  publishedAt: Date;
+  sentiment: string | null;
+  sentimentScore: number | null;
+  similarity: number;
+  /** Available only on FTS rows (Postgres ts_rank_cd). */
+  ftsRank?: number;
+}
+
+const DEFAULT_HALFLIFE_DAYS_NEWS = 7;
+const DEFAULT_HALFLIFE_DAYS_MEMORY = 30;
+
+const RRF_K = 60; // Reciprocal-rank fusion constant — larger = flatter weighting.
+
+export interface RunRagQueryArgs {
+  embedding: number[];
+  limit: number;
+  /** Embedding model id used to produce `embedding` — filters out vectors from other spaces. */
+  model: string;
+  /** Lexical query for FTS. Falls back to a simple to_tsquery if omitted. */
+  query?: string;
+  since?: number | undefined;
+  symbol?: Symbol | undefined;
+  /** Halflife in days for time-decay. */
+  halflifeDays?: number;
+}
+
+/**
+ * Hybrid news retrieval (dense + FTS) with time-decay. Returns at most
+ * `limit` rows, RRF-fused.
+ */
+export async function runRagQuery(args: RunRagQueryArgs): Promise<RagRow[]> {
+  const halflife = args.halflifeDays ?? DEFAULT_HALFLIFE_DAYS_NEWS;
+  // PERF-11: Hard cap the pool to prevent runaway vector scans.
+  // pool = min(limit * 4, MAX_POOL). At limit=50 this gives 200 rows —
+  // enough for quality RRF fusion while keeping Postgres ANN scan O(1).
+  const MAX_POOL = 200;
+  const POOL = Math.min(Math.max(args.limit * 4, 16), MAX_POOL);
+
+  const [dense, lexical] = await Promise.all([
+    runDenseNewsQuery({ ...args, limit: POOL }),
+    args.query !== undefined && args.query.trim().length > 0
+      ? runFtsNewsQuery({ ...args, query: args.query, limit: POOL })
+      : Promise.resolve<RagRow[]>([]),
+  ]);
+
+  const fused = rrfFuse([dense, lexical]);
+  const decayed = fused.map((r) => decayRow(r, halflife));
+  decayed.sort((a, b) => b.similarity - a.similarity);
+  return decayed.slice(0, args.limit);
+}
+
+// ---------------------------------------------------------------------------
+// Dense + FTS query primitives
+// ---------------------------------------------------------------------------
+
+interface SubQueryArgs {
+  embedding: number[];
+  limit: number;
+  model: string;
+  since?: number | undefined;
+  symbol?: Symbol | undefined;
+}
+
+async function runDenseNewsQuery(args: SubQueryArgs): Promise<RagRow[]> {
+  const { embedding, limit, since, symbol, model } = args;
+  const vec = vectorLiteral(embedding);
+  const sinceClause = since !== undefined ? sql`AND na.published_at >= ${new Date(since)}` : sql``;
+  const symbolClause =
+    symbol !== undefined ? sql`AND na.symbols && ARRAY[${symbol}]::text[]` : sql``;
+
+  // HNSW ANN search must run inside a transaction so we can raise
+  // `hnsw.ef_search` / enable iterative scan before the index scan. Without
+  // `iterative_scan`, the default `ef_search = 40` truncates the candidate
+  // set before the `news_articles` post-filter, silently starving dense RAG.
+  return getDb().transaction(async (tx) => {
+    await tx.execute(sql`SET LOCAL hnsw.ef_search = 200`);
+    await tx.execute(sql`SET LOCAL hnsw.iterative_scan = 'relaxed_order'`);
+    await tx.execute(sql`SET LOCAL hnsw.max_scan_tuples = 20000`);
+
+    const result = await tx.execute(sql<RagRow>`
+      SELECT
+        na.id,
+        na.title,
+        na.summary,
+        na.url,
+        na.source,
+        na.publisher,
+        na.published_at AS "publishedAt",
+        na.sentiment,
+        na.sentiment_score AS "sentimentScore",
+        1 - (ne.embedding <=> ${vec}::vector) AS similarity
+      FROM news_embeddings ne
+      JOIN news_articles na ON na.id = ne.article_id
+      WHERE ne.model = ${model}
+        ${sinceClause}
+        ${symbolClause}
+      ORDER BY ne.embedding <=> ${vec}::vector
+      LIMIT ${limit}
+    `);
+
+    // db.execute() returns a RowList in drizzle-orm v0.40+.
+    // Cast through unknown to access the underlying postgres-js result rows.
+    const rows = result as unknown as RagRow[];
+    return rows.map((r) => ({
+      ...r,
+      publishedAt: r.publishedAt instanceof Date ? r.publishedAt : new Date(r.publishedAt),
+      similarity: Number(r.similarity),
+    }));
+  });
+}
+
+interface FtsSubQueryArgs extends SubQueryArgs {
+  query: string;
+}
+
+async function runFtsNewsQuery(args: FtsSubQueryArgs): Promise<RagRow[]> {
+  const { query, limit, since, symbol } = args;
+  // websearch_to_tsquery is the right primitive: tolerates raw user
+  // strings ("FOMC minutes hawkish") without requiring `&` joining.
+  const tsq = sql`websearch_to_tsquery('english', ${query})`;
+  const sinceClause = since !== undefined ? sql`AND na.published_at >= ${new Date(since)}` : sql``;
+  const symbolClause =
+    symbol !== undefined ? sql`AND na.symbols && ARRAY[${symbol}]::text[]` : sql``;
+
+  const result = await getDb().execute(sql<RagRow>`
+    SELECT
+      na.id,
+      na.title,
+      na.summary,
+      na.url,
+      na.source,
+      na.publisher,
+      na.published_at AS "publishedAt",
+      na.sentiment,
+      na.sentiment_score AS "sentimentScore",
+      ts_rank_cd(
+        to_tsvector('english', coalesce(na.title, '') || ' ' || coalesce(na.summary, '')),
+        ${tsq}
+      ) AS "ftsRank"
+    FROM news_articles na
+    WHERE to_tsvector('english', coalesce(na.title, '') || ' ' || coalesce(na.summary, ''))
+      @@ ${tsq}
+      ${sinceClause}
+      ${symbolClause}
+    ORDER BY "ftsRank" DESC
+    LIMIT ${limit}
+  `);
+
+  // db.execute() returns a RowList in drizzle-orm v0.40+.
+  // Cast through unknown to access the underlying postgres-js result rows.
+  const rows = result as unknown as RagRow[];
+  return (rows as RagRow[]).map((r) => ({
+    ...r,
+    publishedAt: r.publishedAt instanceof Date ? r.publishedAt : new Date(r.publishedAt),
+    // FTS rank → pseudo-similarity for downstream uniformity. We never
+    // expose `ftsRank`-derived similarity raw to the user; it gets fused
+    // into a final similarity value via RRF + decay below.
+    similarity: 0,
+    ftsRank: Number(r.ftsRank),
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// RRF + time decay
+// ---------------------------------------------------------------------------
+
+/** Exported for testing — pure RRF fusion algorithm. */
+export function rrfFuse(rankings: RagRow[][]): RagRow[] {
+  const fused = new Map<string, { row: RagRow; score: number; bestSimilarity: number }>();
+  for (const list of rankings) {
+    list.forEach((row, idx) => {
+      const rank = idx + 1;
+      const contribution = 1 / (RRF_K + rank);
+      const existing = fused.get(row.id);
+      if (existing) {
+        existing.score += contribution;
+        // Preserve the highest dense similarity we've seen so the final
+        // row carries a meaningful similarity number for the consumer.
+        if (row.similarity > existing.bestSimilarity) {
+          existing.bestSimilarity = row.similarity;
+          existing.row = row;
+        }
+      } else {
+        fused.set(row.id, { row, score: contribution, bestSimilarity: row.similarity });
+      }
+    });
+  }
+
+  return [...fused.values()]
+    .sort((a, b) => b.score - a.score)
+    .map(({ row, bestSimilarity }) => ({
+      ...row,
+      similarity: bestSimilarity > 0 ? bestSimilarity : 0.5,
+    }));
+}
+
+/** Exported for testing — pure time-decay function. */
+export function decayRow(row: RagRow, halflifeDays: number): RagRow {
+  const ageDays = Math.max(0, (Date.now() - row.publishedAt.getTime()) / (24 * 60 * 60 * 1000));
+  // exp(-ln2 * age / halflife) — a true halflife model.
+  const factor = Math.exp(-Math.LN2 * (ageDays / halflifeDays));
+  return { ...row, similarity: row.similarity * factor };
+}
+
+// ---------------------------------------------------------------------------
+// Memory-side hybrid search (journal / briefing / thread_synopsis)
+// ---------------------------------------------------------------------------
+
+export interface RunMemoryQueryArgs {
+  embedding: number[];
+  limit: number;
+  kinds: MemoryKind[];
+  /** Embedding model id — restricts recall to the same embedding space. */
+  model?: string;
+  since?: number | undefined;
+  symbol?: Symbol | undefined;
+  halflifeDays?: number;
+  userId: string;
+}
+
+export async function runMemoryQuery(args: RunMemoryQueryArgs): Promise<MemoryRow[]> {
+  const halflife = args.halflifeDays ?? DEFAULT_HALFLIFE_DAYS_MEMORY;
+  const memArgs: Parameters<typeof searchMemory>[0] = {
+    embedding: args.embedding,
+    limit: args.limit,
+    kinds: args.kinds,
+    userId: args.userId,
+  };
+  if (args.symbol !== undefined) memArgs.symbol = args.symbol;
+  if (args.since !== undefined) memArgs.since = args.since;
+  if (args.model !== undefined) memArgs.model = args.model;
+  const rows = await searchMemory(memArgs);
+  return rows.map((r) => {
+    const ageDays = Math.max(0, (Date.now() - r.occurredAtMs) / (24 * 60 * 60 * 1000));
+    const factor = Math.exp(-Math.LN2 * (ageDays / halflife));
+    return { ...r, similarity: r.similarity * factor };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Adapters
+// ---------------------------------------------------------------------------
+
+/** Cheap probe: does `news_embeddings` have any rows at all? */
+export async function countEmbeddings(): Promise<number> {
+  const rows = await getDb()
+    .select({ id: schema.newsEmbeddings.articleId })
+    .from(schema.newsEmbeddings)
+    .limit(1);
+  return rows.length;
+}
+
+/** Map a RAG row to the `SearchKnowledgeItem` DTO the tool returns. */
+export function ragRowToItem(r: RagRow): SearchKnowledgeItem {
+  const sentiment: NewsSentiment | null =
+    r.sentiment === 'positive' || r.sentiment === 'negative' || r.sentiment === 'neutral'
+      ? r.sentiment
+      : null;
+  const sim = Math.max(0, Math.min(1, r.similarity));
+  return {
+    id: r.id,
+    title: quarantineExternalText(r.title, 240).text || '[filtered]',
+    summary: r.summary ? quarantineExternalText(r.summary, 420).text || null : null,
+    url: r.url,
+    source: quarantineExternalText(r.source, 80).text || 'unknown',
+    publisher: r.publisher ? quarantineExternalText(r.publisher, 80).text || null : null,
+    publishedAt: r.publishedAt.getTime(),
+    sentiment,
+    sentimentScore: r.sentimentScore,
+    similarity: sim,
+  };
+}
+
+/**
+ * Map a memory row to the `SearchKnowledgeItem` shape so the chat part
+ * can render journal / briefing memories alongside news without a second
+ * UI primitive. We synthesise a "title" from kind + symbol and use the
+ * `text` body as the summary.
+ */
+export function memoryRowToItem(r: MemoryRow): SearchKnowledgeItem {
+  const titleHead =
+    r.kind === 'journal'
+      ? `Journal · ${r.symbol ?? ''}`
+      : r.kind === 'briefing'
+        ? 'Briefing'
+        : 'Thread synopsis';
+  const sim = Math.max(0, Math.min(1, r.similarity));
+  return {
+    id: `mem:${r.id}`,
+    title: titleHead.trim(),
+    summary: r.text,
+    // No outbound URL for memory rows — surface the journal/chat deep
+    // link in the part renderer if needed.
+    url: '',
+    source: r.kind,
+    publisher: null,
+    publishedAt: r.occurredAtMs,
+    sentiment: null,
+    sentimentScore: null,
+    similarity: sim,
+  };
+}
+
+/**
+ * Embed a query string with the same model id stored alongside the corpus
+ * (defaults to `AI_EMBEDDING_MODEL` when env is supplied; honours the
+ * user's per-user pick from user_settings.embedding_model).
+ */
+export async function embedQuery(
+  query: string,
+  options?: {
+    aiEmbeddingModel?: string;
+    userSettings?: Parameters<typeof embedTexts>[0]['userSettings'];
+    signal?: AbortSignal;
+  },
+): Promise<{ embedding: number[]; model: string }> {
+  const args: Parameters<typeof embedTexts>[0] = { texts: [query] };
+  if (options?.userSettings) args.userSettings = options.userSettings;
+  if (options?.aiEmbeddingModel) args.env = { AI_EMBEDDING_MODEL: options.aiEmbeddingModel };
+  if (options?.signal) args.signal = options.signal;
+  const r = await embedTexts(args);
+  const e = r.embeddings[0];
+  if (!e) throw new Error('embedQuery: provider returned no embedding');
+  return { embedding: e, model: r.model };
+}

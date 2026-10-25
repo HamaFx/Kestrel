@@ -22,8 +22,8 @@ import { container } from '@kestrel/shared';
 import { and, asc, eq } from 'drizzle-orm';
 
 import { getDiagnosticContext } from '../diagnostics/run-context';
-import { enqueuePersistenceFailure } from '../persistence-outbox';
-import { DB } from '../tokens';
+import { enqueuePersistenceFailure } from '../persistence/outbox';
+import { DB } from '../runtime/tokens';
 
 export interface SaveOpinionsArgs {
   userId: string;

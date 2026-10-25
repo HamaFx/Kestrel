@@ -18,7 +18,7 @@
 
 // PF-22 — /api/settings/analysis-mode — analysis mode settings (thin controller).
 
-import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
+import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
 import {
   AnalysisModePatchSchema,
   getAnalysisModeService,

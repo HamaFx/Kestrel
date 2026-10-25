@@ -70,7 +70,7 @@ vi.mock('@/hooks/use-voice-input', () => ({
 }));
 
 // Mock fetchCsrf to return a successful upload response.
-vi.mock('@/lib/csrf', () => ({
+vi.mock('@/lib/auth/csrf', () => ({
   fetchCsrf: vi.fn().mockResolvedValue({
     ok: true,
     json: () => Promise.resolve({ url: 'https://example.com/img.jpg', mediaType: 'image/jpeg' }),

@@ -31,7 +31,7 @@ import { fileURLToPath } from 'node:url';
 import { sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
-import { withAuth } from '@/lib/api';
+import { withAuth } from '@/lib/http/api';
 import { getDb } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';

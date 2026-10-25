@@ -19,7 +19,7 @@
 // PF-22 — Controller for /api/journal/[id].
 // Thin HTTP layer; business logic delegates to the JournalService.
 
-import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
+import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
 import {
   deleteJournalEntryService,
   getJournalEntryService,

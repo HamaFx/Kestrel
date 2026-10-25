@@ -46,10 +46,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { apiFetch } from '@/lib/api-client';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
+import { apiFetch } from '@/lib/http/api-client';
+import { toastApiError } from '@/lib/http/toast-api-error';
 import type { HealthSloData, SliSnapshot, SpendWatchSummary } from '@/lib/services/admin-dtos';
-import { toastApiError } from '@/lib/toast-api-error';
 
 import { AdminErrorBlock } from './admin-error-block';
 

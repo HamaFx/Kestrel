@@ -20,6 +20,7 @@ import { createTool } from '@mastra/core/tools';
 import { buildPriceEvidence } from '@ai/mastra-v2/packets/evidence-builders';
 import { executeMastraTool } from '@ai/mastra-v2/shared/telemetry';
 import { XauusdPriceEvidenceSchema } from '@ai/mastra-v2/shared/types';
+
 import { XauusdPriceInputSchema } from '../tool-schemas';
 
 export const xauusdPriceTool = createTool({

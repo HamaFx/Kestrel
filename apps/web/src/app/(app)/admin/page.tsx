@@ -19,7 +19,6 @@
  */
 import {
   IconBug,
-  IconCreditCard,
   IconCpu,
   IconDatabase,
   IconFlag,
@@ -46,7 +45,7 @@ import {
 } from 'react';
 
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 function TabFallback() {
   return (
@@ -149,11 +148,6 @@ const AdminMastraRuns = dynamic(
   { loading: TabFallback },
 ) as ComponentType;
 
-const AdminBilling = dynamic(
-  () => import('./_components/admin-billing').then((m) => m.AdminBilling),
-  { loading: TabFallback },
-) as ComponentType;
-
 const TABS = [
   { id: 'platform', label: 'AI & Platform', icon: IconCpu, Component: AdminPlatformConfig },
   { id: 'health', label: 'Health', icon: IconHeartbeat, Component: AdminSystemHealth },
@@ -170,7 +164,6 @@ const TABS = [
   { id: 'regressions', label: 'Regressions', icon: IconBug, Component: AdminRegressionCases },
   { id: 'ai-eval', label: 'AI Eval', icon: IconFlask, Component: AdminAiEval },
   { id: 'mastra-runs', label: 'Committee Runs', icon: IconStethoscope, Component: AdminMastraRuns },
-  { id: 'billing', label: 'Billing', icon: IconCreditCard, Component: AdminBilling },
   { id: 'devtools', label: 'Dev Tools', icon: IconSettingsBolt, Component: AdminDevTools },
 ] as const;
 

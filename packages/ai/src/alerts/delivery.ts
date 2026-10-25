@@ -170,10 +170,10 @@ export async function deliverAlert({
 }
 
 /**
- * Phase 6 migration — a web-created alert that still stores the core
- * `telegram` channel is delivered through the user's personal Telegram bot
- * when the Telegram plugin is installed and linked. The shared server bot
- * remains the fallback for deployments that have not moved to the plugin.
+ * DEC-02 — a web-created alert that stores the core `telegram` channel is
+ * delivered exclusively through the user's personal Telegram bot plugin.
+ * There is no shared-server-bot fallback: linking, webhooks, and delivery are
+ * owned by `@kestrel/plugin-telegram-bot`.
  */
 async function deliverTelegramViaPlugin(
   args: DeliverArgs,
@@ -215,6 +215,12 @@ async function deliverChannel(ch: string, args: DeliverArgs): Promise<DeliveryRe
   if (ch === 'telegram') {
     const bridged = await deliverTelegramViaPlugin(args);
     if (bridged) return finalizeDelivery('telegram', bridged, args);
+    return {
+      alertId: args.alert.id,
+      channel: 'telegram',
+      ok: false,
+      message: 'Telegram plugin is not installed or not linked',
+    };
   }
 
   const core = alertChannelRegistry.get(ch);
@@ -378,54 +384,6 @@ function renderEmailBody(alert: Alert, reading: RuleReading): string {
 
 const TELEGRAM_API = 'https://api.telegram.org';
 
-async function deliverTelegram({
-  alert,
-  reading,
-  env,
-}: DeliverArgs): Promise<AlertChannelDeliveryResult> {
-  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
-    alog.warn('telegram channel not configured (TELEGRAM_*); skipping');
-    return {
-      ok: false,
-      message: 'not configured (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID missing)',
-    };
-  }
-
-  const subject = describeRule(alert.rule);
-  const body = renderTelegramBody(alert, reading);
-  const text = `*${escapeMd(subject)}*\n\n${escapeMd(body)}`;
-
-  try {
-    // Use the resilient Telegram client with retry + chunking
-    const { sendTextMessage } = await import('../telegram/client');
-    await sendTextMessage(env.TELEGRAM_BOT_TOKEN, env.TELEGRAM_CHAT_ID, text, {
-      parseMode: 'MarkdownV2',
-      signal: AbortSignal.timeout(EXTERNAL_DELIVERY_TIMEOUT_MS),
-    });
-    return { ok: true };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'fetch failed';
-    logErrorContext(err, 'alerts/telegram_delivery_failed', { alertId: alert.id }, 'telegram');
-    return {
-      ok: false,
-      message: msg,
-    };
-  }
-}
-
-function renderTelegramBody(alert: Alert, reading: RuleReading): string {
-  const lines = [`Reading: ${reading.value} (${reading.source})`, `Trigger: ${alert.rule.level}`];
-  if (alert.note) {
-    lines.push('', alert.note);
-  }
-  return lines.join('\n');
-}
-
-/**
- * Escape MarkdownV2 reserved characters per Telegram's spec. Apply to any
- * user-controlled string before interpolating into a `parse_mode: MarkdownV2`
- * message body.
- */
 export function escapeMd(s: string): string {
   return s.replace(/[\\_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
 }
@@ -586,5 +544,4 @@ export async function sendDirectNotification(
 // Plugin channels are resolved from `pluginHost` in `deliverChannel`, so no
 // core edit is needed to add Discord/Slack/etc.
 alertChannelRegistry.register({ id: 'email', label: 'Email', deliver: deliverEmail });
-alertChannelRegistry.register({ id: 'telegram', label: 'Telegram', deliver: deliverTelegram });
 alertChannelRegistry.register({ id: 'web-push', label: 'Web push', deliver: deliverWebPush });

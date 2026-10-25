@@ -51,7 +51,6 @@ import type { GetIntermarketResonanceOutputSchema } from '../schemas/tool-output
 import type { GetJournalStatsOutputSchema } from '../schemas/tool-outputs/get-journal-stats';
 import type { GetMarketStructureOutputSchema } from '../schemas/tool-outputs/get-market-structure';
 import type { GetNewsOutputSchema } from '../schemas/tool-outputs/get-news';
-import type { GetPortfolioSnapshotOutputSchema } from '../schemas/tool-outputs/get-portfolio-snapshot';
 import type { GetPriceOutputSchema } from '../schemas/tool-outputs/get-price';
 import type { GetSeasonalityOutputSchema } from '../schemas/tool-outputs/get-seasonality';
 import type { GetSessionLevelsOutputSchema } from '../schemas/tool-outputs/get-session-levels';
@@ -160,8 +159,6 @@ export interface ToolOutputMap {
   get_intermarket_resonance: z.infer<typeof GetIntermarketResonanceOutputSchema>;
   get_system_diagnostics: z.infer<typeof GetSystemDiagnosticsOutputSchema>;
   run_system_action: z.infer<typeof RunSystemActionOutputSchema>;
-  // F2 — Portfolio Management
-  get_portfolio_snapshot: z.infer<typeof GetPortfolioSnapshotOutputSchema>;
   // F3 — Social Sentiment
   get_social_sentiment: z.infer<typeof GetSocialSentimentOutputSchema>;
   web_search: z.infer<typeof WebSearchOutputSchema>;

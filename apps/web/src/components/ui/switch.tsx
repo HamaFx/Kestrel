@@ -21,7 +21,7 @@
 // keyboard (space/enter via the underlying button) and aria-checked.
 import { forwardRef, type ButtonHTMLAttributes } from 'react';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface SwitchProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onChange'> {
   checked: boolean;

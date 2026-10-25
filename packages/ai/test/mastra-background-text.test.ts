@@ -32,11 +32,11 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../src/budget', () => ({
   reserveTurnBudget: mocks.reserveTurnBudget,
 }));
-vi.mock('../src/model', () => ({
+vi.mock('../src/models/model', () => ({
   resolveMastraModel: mocks.resolveMastraModel,
   resolveMastraExecutionModel: mocks.resolveMastraExecutionModel,
 }));
-vi.mock('../src/cost', () => ({
+vi.mock('../src/budget/cost', () => ({
   DEFAULT_MAX_DAILY_USD: 5,
   DEFAULT_TURN_ESTIMATE_USD: 0.01,
   estimateCostUsd: mocks.estimateCostUsd,
@@ -47,7 +47,7 @@ vi.mock('../src/mastra-v2/shared/telemetry', () => ({
   getMastraGenerationStats: mocks.getMastraGenerationStats,
   mastraOutcomeForError: vi.fn(() => 'failed'),
 }));
-vi.mock('../src/telemetry', () => ({
+vi.mock('../src/runtime/telemetry', () => ({
   telemetryConfig: vi.fn(() => ({})),
 }));
 vi.mock('@mastra/core/agent', () => ({

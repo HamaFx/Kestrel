@@ -19,7 +19,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
-import { parseJsonBody } from '../src/lib/api';
+import { parseJsonBody } from '../src/lib/http/api';
 
 vi.mock('@/auth', () => ({ auth: vi.fn() }));
 

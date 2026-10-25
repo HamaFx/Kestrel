@@ -40,8 +40,8 @@ import { PromptInjectionDetector, UnicodeNormalizer } from '@mastra/core/process
 import type { LanguageModel } from 'ai';
 
 import { hashLogValue } from '../diagnostics/redact';
-import type { ResolveModelEnv } from '../env-model-factory';
-import { resolveChatModel } from '../model';
+import type { ResolveModelEnv } from '../models/env-factory';
+import { resolveChatModel } from '../models/model';
 
 const glog = createCategorizedLogger('ai', { component: 'mastra:guardrails' });
 
@@ -107,9 +107,7 @@ export function buildGuardrailInputProcessors(options: GuardrailOptions): {
     trim: true,
   });
 
-  let resolution: { model: LanguageModel } | null = options.model
-    ? { model: options.model }
-    : null;
+  let resolution: { model: LanguageModel } | null = options.model ? { model: options.model } : null;
   if (!resolution) {
     try {
       // Resolve the user's fast-tier model for the injection detector. Fall

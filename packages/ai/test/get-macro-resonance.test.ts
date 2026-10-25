@@ -18,7 +18,7 @@
 import { type GetIntermarketResonanceOutput } from '@kestrel/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { withToolContext } from '../src/tool-context';
+import { createToolContext, withToolContext } from '../src/runtime/tool-context';
 import { getIntermarketResonanceTool } from '../src/tools/get-intermarket-resonance';
 
 vi.mock('@kestrel/db', () => ({
@@ -61,14 +61,11 @@ describe('getIntermarketResonanceTool', () => {
   it('correctly maps Drizzle outputs to the standardized resonance schema', async () => {
     // Run within a mocked ToolContext scope to pass AsyncLocalStorage assertion
     const result = (await withToolContext(
-      {
+      createToolContext({
         threadId: '00000000-0000-0000-0000-000000000000',
         userId: 'test-user',
-        env: {} as any,
-        signal: null,
         budget: { spent: 0, max: 5 },
-        userSettings: {} as any,
-      },
+      }),
       () =>
         Promise.resolve(
           getIntermarketResonanceTool.execute!({ symbol: 'XAUUSD', days: 10 }, {} as any),
@@ -101,15 +98,12 @@ describe('getIntermarketResonanceTool', () => {
     };
 
     const result = (await withToolContext(
-      {
+      createToolContext({
         threadId: '00000000-0000-0000-0000-000000000000',
         userId: 'test-user',
-        db: emptyDb as any,
-        env: {} as any,
-        signal: null,
+        db: emptyDb as never,
         budget: { spent: 0, max: 5 },
-        userSettings: {} as any,
-      },
+      }),
       () =>
         Promise.resolve(
           getIntermarketResonanceTool.execute!({ symbol: 'XAUUSD', days: 10 }, {} as any),

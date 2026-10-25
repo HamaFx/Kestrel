@@ -4,8 +4,8 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as KestrelDbModule from '@kestrel/db';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { _resetKestrelMastra, getKestrelMastra } from '../src/mastra-v2';
 import {
@@ -300,10 +300,7 @@ describe.skipIf(process.env.RUN_AI_QUEUE_POSTGRES_TESTS !== '1')(
         // projection never persisted (or was lost).
         const storage = getKestrelMastra().instance.getStorage()!;
         const workflows = (await storage.getStore('workflows')) as {
-          deleteWorkflowRunById: (args: {
-            runId: string;
-            workflowName: string;
-          }) => Promise<void>;
+          deleteWorkflowRunById: (args: { runId: string; workflowName: string }) => Promise<void>;
         };
         await workflows.deleteWorkflowRunById({
           runId: runId!,

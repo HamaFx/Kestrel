@@ -23,7 +23,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { normalizePemPrivateKey } from '../src/util/pem';
+import { normalizePemPrivateKey } from '../src/utils/pem';
 
 // A real (but intentionally generated for test) RSA 1024-bit private key
 // in canonical PEM format. Generated with: openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:1024

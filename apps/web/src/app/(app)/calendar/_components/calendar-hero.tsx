@@ -28,8 +28,8 @@ import { IconBolt, IconClock } from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
 
 import { useTime } from '@/components/providers/time-provider';
-import { cn } from '@/lib/cn';
-import { startOfDay, startOfDayOffset } from '@/lib/datetime';
+import { cn } from '@/lib/formatters/cn';
+import { startOfDay, startOfDayOffset } from '@/lib/formatters/datetime';
 
 interface CalendarHeroProps {
   events?: readonly EconomicEvent[];

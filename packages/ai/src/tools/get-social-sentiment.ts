@@ -26,8 +26,8 @@ import { SymbolSchema } from '@kestrel/shared';
 import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 
+import { getToolContext } from '../runtime/tool-context';
 import { getSentimentService } from '../sentiment';
-import { getToolContext } from '../tool-context';
 
 const InputSchema = z.object({
   symbol: SymbolSchema.describe('The supported gold, forex, or crypto symbol to get sentiment for'),

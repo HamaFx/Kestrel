@@ -17,7 +17,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { MemoryRow } from '../src/memory/memory-index';
-import { decayRow, memoryRowToItem, ragRowToItem, rrfFuse, type RagRow } from '../src/rag';
+import { decayRow, memoryRowToItem, ragRowToItem, rrfFuse, type RagRow } from '../src/models/rag';
 
 function makeRagRow(overrides: Partial<RagRow> = {}): RagRow {
   return {

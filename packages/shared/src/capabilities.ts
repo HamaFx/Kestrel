@@ -105,14 +105,6 @@ export function getCapabilityReport(env: NodeJS.ProcessEnv = process.env): Capab
         ? { reason: 'prompt/output capture is explicitly enabled' }
         : { reason: 'privacy-preserving default' }),
     },
-    {
-      name: 'billing',
-      status:
-        env.BILLING_ENABLED === '1' || env.BILLING_ENABLED === 'true' ? 'enabled' : 'disabled',
-      ...(env.BILLING_ENABLED === '1' || env.BILLING_ENABLED === 'true'
-        ? {}
-        : { reason: 'BILLING_ENABLED is not enabled' }),
-    },
   ];
 
   return {

@@ -29,7 +29,7 @@
 // The endpoint never returns key values — only the presence/absence
 // per provider.
 
-import { errorResponse, withAuth } from '@/lib/api';
+import { errorResponse, withAuth } from '@/lib/http/api';
 import { configuredProviders, decryptByok, getUserWithSettings } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';

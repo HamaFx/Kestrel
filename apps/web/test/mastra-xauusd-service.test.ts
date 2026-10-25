@@ -16,7 +16,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { runMastraXauusdResearch } from '@/lib/services/mastra-xauusd';
+import { runMastraXauusdResearch } from '@/lib/services/mastra/xauusd-handler';
 
 const mocks = vi.hoisted(() => ({
   getThread: vi.fn(),
@@ -29,7 +29,7 @@ vi.mock('@kestrel/db', () => ({
   getThread: mocks.getThread,
   getUserWithSettings: mocks.getUserWithSettings,
 }));
-vi.mock('@kestrel/ai/mastra', () => ({
+vi.mock('@kestrel/ai/mastra-v2', () => ({
   runXauusdMastra: mocks.runXauusdMastra,
 }));
 vi.mock('@/lib/env', () => ({

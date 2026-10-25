@@ -40,9 +40,9 @@ import type { NewsArticle } from '@kestrel/shared';
 import { IconBolt, IconBookmark, IconExternalLink } from '@tabler/icons-react';
 import { memo } from 'react';
 
-import { cleanNewsText } from '@/lib/clean-news-text';
-import { cn } from '@/lib/cn';
-import { formatRelative } from '@/lib/format';
+import { cleanNewsText } from '@/lib/formatters/clean-news-text';
+import { cn } from '@/lib/formatters/cn';
+import { formatRelative } from '@/lib/formatters/format';
 
 import { useBookmarks } from './use-bookmarks';
 

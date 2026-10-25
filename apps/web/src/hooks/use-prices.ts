@@ -26,7 +26,7 @@ import type { Symbol, Tick } from '@kestrel/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
-import { fetchPrices } from '@/lib/market-client';
+import { fetchPrices } from '@/lib/services/market-client';
 
 const POLL_MS = 3_000;
 

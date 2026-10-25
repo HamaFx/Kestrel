@@ -16,7 +16,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { withToolContext } from '../src/tool-context';
+import { withToolContext } from '../src/runtime/tool-context';
 import { computePositionHealthTool } from '../src/tools/compute-position-health';
 
 // The raw tool factory exposes `.execute` directly. The registry wraps it

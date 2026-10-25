@@ -17,7 +17,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { withDiagnostics } from '../src/diagnostics/run-context';
-import { telemetryConfig } from '../src/telemetry';
+import { telemetryConfig } from '../src/runtime/telemetry';
 
 describe('telemetryConfig', () => {
   afterEach(() => {

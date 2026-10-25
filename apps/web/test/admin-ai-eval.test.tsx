@@ -27,10 +27,10 @@ import {
   isMastraXauusdCandidate,
   isMutationIntent,
   isSafeSymbolResearchPrompt,
-} from '@kestrel/ai/mastra';
+} from '@kestrel/ai/mastra-v2';
 import { describe, expect, it } from 'vitest';
 
-import { AI_EVAL_PROMPTS } from '@/lib/ai-eval-prompts';
+import { AI_EVAL_PROMPTS } from '@/lib/services/ai-eval-prompts';
 
 describe('AI eval prompt set', () => {
   it('contains a meaningful number of unique prompts', () => {

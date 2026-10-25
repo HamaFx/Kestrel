@@ -27,9 +27,9 @@
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { LanguageModel } from 'ai';
 
-import { estimateCostUsd } from '../../cost';
-import type { GenerationLedger } from '../../generation-ledger';
-import { resolveChatModel, resolveModel, type ResolveModelEnv } from '../../model';
+import { estimateCostUsd } from '../../budget/cost';
+import { resolveChatModel, resolveModel, type ResolveModelEnv } from '../../models/model';
+import type { GenerationLedger } from '../../persistence/generation-ledger';
 import { runMastraText } from '../agents/xauusd/text-runner';
 
 export interface GenerateThreadTitleArgs {

@@ -33,15 +33,15 @@ const model = {} as LanguageModel;
 describe('canonical Agent Network experiment (I-02)', () => {
   it('is disabled unless PHASE_AGENT_NETWORK is explicitly opt-in', () => {
     expect(isCanonicalNetworkExperimentEnabled({} as NodeJS.ProcessEnv)).toBe(false);
-    expect(isCanonicalNetworkExperimentEnabled({ PHASE_AGENT_NETWORK: '' } as NodeJS.ProcessEnv)).toBe(
-      false,
-    );
-    expect(isCanonicalNetworkExperimentEnabled({ PHASE_AGENT_NETWORK: '0' } as NodeJS.ProcessEnv)).toBe(
-      false,
-    );
-    expect(isCanonicalNetworkExperimentEnabled({ PHASE_AGENT_NETWORK: '1' } as NodeJS.ProcessEnv)).toBe(
-      true,
-    );
+    expect(
+      isCanonicalNetworkExperimentEnabled({ PHASE_AGENT_NETWORK: '' } as NodeJS.ProcessEnv),
+    ).toBe(false);
+    expect(
+      isCanonicalNetworkExperimentEnabled({ PHASE_AGENT_NETWORK: '0' } as NodeJS.ProcessEnv),
+    ).toBe(false);
+    expect(
+      isCanonicalNetworkExperimentEnabled({ PHASE_AGENT_NETWORK: '1' } as NodeJS.ProcessEnv),
+    ).toBe(true);
     expect(
       isCanonicalNetworkExperimentEnabled({ PHASE_AGENT_NETWORK: 'true' } as NodeJS.ProcessEnv),
     ).toBe(true);

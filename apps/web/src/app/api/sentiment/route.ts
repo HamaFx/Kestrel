@@ -19,7 +19,7 @@
 // /api/sentiment — get aggregated social sentiment for a symbol.
 // GET /api/sentiment?symbol=XAUUSD
 
-import { errorResponse, withAuth } from '@/lib/api';
+import { errorResponse, withAuth } from '@/lib/http/api';
 import {
   AppError,
   getSentimentService,

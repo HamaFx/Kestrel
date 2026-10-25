@@ -25,7 +25,7 @@ import {
   requireXauusdUserContext,
   XAUUSD,
   XauusdRequestContextSchema,
-} from '../src/mastra';
+} from '../src/mastra-v2';
 
 describe('Mastra XAUUSD proof of concept', () => {
   it('restricts the request context to an authenticated user and run', () => {

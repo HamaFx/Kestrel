@@ -673,17 +673,17 @@ describe('committee comparison workflow (A-01 / B-01)', () => {
     expect(output.packets?.['XAUUSD']?.packetId).toBe('packet-XAUUSD');
     // P1-04: technical + risk per symbol.
     expect(output.opinions).toHaveLength(4);
-    expect(output.opinions.map((opinion) => `${opinion.agentName}:${opinion.symbol}`).sort()).toEqual(
-      ['risk:EURUSD', 'risk:XAUUSD', 'technical:EURUSD', 'technical:XAUUSD'],
-    );
+    expect(
+      output.opinions.map((opinion) => `${opinion.agentName}:${opinion.symbol}`).sort(),
+    ).toEqual(['risk:EURUSD', 'risk:XAUUSD', 'technical:EURUSD', 'technical:XAUUSD']);
     // The risk desk's read reaches the fusion prompt alongside the technical one.
     const decisionCall = mocks.generateCalls.find((call) => call.id.includes('decision'));
     const fusionOpinions = (
       decisionCall?.options?.['requestContext'] as { get?: (key: string) => unknown } | undefined
     )?.get?.('opinions') as Array<{ agentName: string; symbol?: string }> | undefined;
-    expect(fusionOpinions?.map((opinion) => `${opinion.agentName}:${opinion.symbol}`).sort()).toEqual(
-      ['risk:EURUSD', 'risk:XAUUSD', 'technical:EURUSD', 'technical:XAUUSD'],
-    );
+    expect(
+      fusionOpinions?.map((opinion) => `${opinion.agentName}:${opinion.symbol}`).sort(),
+    ).toEqual(['risk:EURUSD', 'risk:XAUUSD', 'technical:EURUSD', 'technical:XAUUSD']);
     // The fusion synthesis is the decision agent's text (mock), not a single
     // desk read — a comparison always runs one fusion pass.
     expect(output.finalText).toBe('Synthesized read.');
@@ -702,7 +702,10 @@ describe('committee comparison workflow (A-01 / B-01)', () => {
       };
       expect(output.status).toBe('ready');
       expect(output.opinions).toHaveLength(2);
-      expect(output.opinions.map((opinion) => opinion.agentName)).toEqual(['technical', 'technical']);
+      expect(output.opinions.map((opinion) => opinion.agentName)).toEqual([
+        'technical',
+        'technical',
+      ]);
     } finally {
       delete process.env.ENABLE_COMPARISON_RISK_DESK;
     }
@@ -735,8 +738,7 @@ describe('committee comparison workflow (A-01 / B-01)', () => {
     // …and the fusion prompt carries the gap explicitly.
     const decisionCall = mocks.generateCalls.find((call) => call.id.includes('decision'));
     const requestContext = decisionCall?.options?.['requestContext'] as
-      | { get?: (key: string) => unknown }
-      | undefined;
+      { get?: (key: string) => unknown } | undefined;
     expect(requestContext?.get?.('blockedSymbols')).toEqual(['XAUUSD']);
     expect(requestContext?.get?.('blockedMissingData')).toEqual([
       'Current XAUUSD price is unavailable.',

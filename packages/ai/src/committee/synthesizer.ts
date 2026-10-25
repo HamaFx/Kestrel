@@ -35,13 +35,13 @@ import type { RequestContext } from '@mastra/core/request-context';
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
 
-import { estimateCostUsd } from '../cost';
-import type { GenerationLedger } from '../generation-ledger';
+import { estimateCostUsd } from '../budget/cost';
 import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
 import {
   getMastraGenerationStats,
   type MastraGenerationStats,
 } from '../mastra-v2/shared/telemetry';
+import type { GenerationLedger } from '../persistence/generation-ledger';
 import {
   fusionRepairPrompt,
   verifyComparisonFusionAnswer,
@@ -49,6 +49,7 @@ import {
 } from './fusion-verifier';
 import { comparisonFusionInstructionsForRequest, fusionInstructionsForRequest } from './prompts';
 import { createCommitteeAgent, FUSION_AGENT_ID } from './specialists';
+import { jsonPromptInjectionForModel } from './structured-output';
 import {
   contextWithPacket,
   contextWithPackets,
@@ -58,7 +59,6 @@ import {
   type MastraModeOpinion,
   type ModeRequestContext,
 } from './types';
-import { jsonPromptInjectionForModel } from './structured-output';
 
 /**
  * Audit plan §3.3 + Audit v3 Q12 — structured fusion answer (enabled by default

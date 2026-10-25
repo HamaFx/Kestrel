@@ -26,7 +26,7 @@ import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 
 import { createEntry } from '../journal/persistence';
-import { getToolContext } from '../tool-context';
+import { getToolContext } from '../runtime/tool-context';
 import { assertMutationIntent } from './mutation-guard';
 
 const InputSchema = z.object({

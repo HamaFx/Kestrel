@@ -1027,4 +1027,3 @@ html[data-reduce-motion='force'] *::after {
   mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black 25%, transparent 75%);
   -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black 25%, transparent 75%);
 }
-

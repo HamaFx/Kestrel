@@ -451,6 +451,18 @@
     {
       "tag": "0113_paper_strategy_runs",
       "hash": "5c4316f36ef27756ff534e36bba92240767ef83f42552ed78d42c20a1a1cd337"
+    },
+    {
+      "tag": "0114_drop_legacy_billing_tables",
+      "hash": "fe39386f131ae71795fdb6871d39fdc8ee6b3bf9eace2f9b74652e27a08de185"
+    },
+    {
+      "tag": "0115_drop_legacy_telegram_updates",
+      "hash": "0bd9f5fefa63c135666d3cabca1aef4c05f1b65e0dcf8d37120a8e31f96ba9ea"
+    },
+    {
+      "tag": "0116_drop_legacy_portfolio_tables",
+      "hash": "77b30a6ef9995012da73efc8b2250c2b1f6fe75e485e270ca76546f4c51ceeed"
     }
   ]
 }

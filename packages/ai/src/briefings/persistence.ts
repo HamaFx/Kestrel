@@ -35,8 +35,8 @@ import {
   inArray,
 } from 'drizzle-orm';
 
-import { getDb } from '../db';
 import type { DbThread } from '../persistence';
+import { getDb } from '../runtime/db';
 
 /**
  * Returns the singleton `Briefings_Thread`, creating one if absent. Cron

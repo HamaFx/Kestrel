@@ -18,7 +18,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { cleanNewsText } from '@/lib/clean-news-text';
+import { cleanNewsText } from '@/lib/formatters/clean-news-text';
 
 describe('cleanNewsText', () => {
   it('decodes common entities and removes malformed tag fragments', () => {

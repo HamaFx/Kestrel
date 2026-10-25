@@ -28,8 +28,8 @@
 //
 // Idempotent: only patches rows where `actuals_filled_at IS NULL`.
 
-import { withCronAuth } from '@/lib/cron';
 import { getServerEnv } from '@/lib/env';
+import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import {
   fetchObservations,

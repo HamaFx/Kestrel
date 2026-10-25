@@ -31,7 +31,7 @@ import {
 import { AnimatePresence, m } from 'motion/react';
 import { useMemo, type ReactNode } from 'react';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface AgentOpinion {
   agentName?: string;

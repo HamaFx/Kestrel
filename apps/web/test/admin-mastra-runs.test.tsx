@@ -24,7 +24,7 @@ import { AdminMastraRuns } from '@/app/(app)/admin/_components/admin-mastra-runs
 
 const mockApiFetch = vi.hoisted(() => vi.fn());
 
-vi.mock('@/lib/api-client', () => ({
+vi.mock('@/lib/http/api-client', () => ({
   apiFetch: mockApiFetch,
 }));
 

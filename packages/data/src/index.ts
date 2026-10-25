@@ -1,6 +1,3 @@
-// P2-2 — Auto-register provider adapters on import.
-import './providers/provider-adapters';
-
 /**
  * Copyright 2026 Kestrel
  *
@@ -85,7 +82,7 @@ export * as cftc from './providers/cftc';
 export * as fred from './providers/fred';
 export * as binance from './providers/binance';
 export * as biquote from './providers/biquote';
-export { isTickStreamEnabled } from './providers/provider-adapters';
+export { ensureDataProvidersRegistered, isTickStreamEnabled } from './providers/provider-adapters';
 
 // P2-2 — Market Data Provider Plugin Registry.
 // Adding a new provider means registering a plugin — no adapter code changes (OCP).

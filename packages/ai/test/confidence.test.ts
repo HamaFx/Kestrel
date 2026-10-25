@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { summarizeConfidenceCalibration } from '../src/mastra';
+import { summarizeConfidenceCalibration } from '../src/mastra-v2';
 
 describe('confidence calibration', () => {
   it('summarizes confidence against observed accuracy', () => {

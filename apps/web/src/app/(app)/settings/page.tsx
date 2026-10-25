@@ -19,7 +19,6 @@
 import {
   IconBell,
   IconChevronRight,
-  IconCreditCard,
   IconInfoCircle,
   IconKey,
   IconPalette,
@@ -27,14 +26,13 @@ import {
   IconRobot,
   IconShield,
   IconTrendingUp,
-  IconWallet,
 } from '@tabler/icons-react';
 import type { Metadata } from 'next';
 import { Link } from 'next-view-transitions';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
-import { checkIsAdmin } from '@/lib/admin-check';
+import { checkIsAdmin } from '@/lib/auth/admin-check';
 
 import { AboutCard } from './_components/about-card';
 import { OnboardingResetCard } from './_components/onboarding-reset-card';
@@ -73,22 +71,10 @@ export default async function SettingsPage() {
             description="Install backtesting, paper trading, Telegram, and custom agents in one click"
           />
           <QuickLink
-            href="/settings/billing"
-            icon={<IconCreditCard className="size-4.5" />}
-            title="Subscription & Billing"
-            description="Plan tier, membership status, and billing history"
-          />
-          <QuickLink
             href="/settings/symbols"
             icon={<IconTrendingUp className="size-4.5" />}
             title="Watchlist Symbols"
             description="Customize the Gold, Forex, and Crypto pairs on your watchlist"
-          />
-          <QuickLink
-            href="/settings/portfolio"
-            icon={<IconWallet className="size-4.5" />}
-            title="Portfolio & Risk Rules"
-            description="Account balance, max risk per trade, and open position tracking"
           />
           <QuickLink
             href="/settings/notifications"

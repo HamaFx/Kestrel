@@ -34,8 +34,8 @@ import remarkGfm from 'remark-gfm';
 
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { cn } from '@/lib/cn';
-import { formatRelative } from '@/lib/format';
+import { cn } from '@/lib/formatters/cn';
+import { formatRelative } from '@/lib/formatters/format';
 
 interface BriefingWidgetProps {
   briefing: {

@@ -1,8 +1,9 @@
 // context imports
 import { RequestContext } from '@mastra/core/request-context';
 
-import type { ResolveModelEnv } from '@ai/env-model-factory';
-import { resolveMastraExecutionModel, type ChatModelResolution } from '@ai/model';
+import type { ResolveModelEnv } from '@ai/models/env-factory';
+import { resolveMastraExecutionModel, type ChatModelResolution } from '@ai/models/model';
+
 import {
   XauusdResearchPacketSchema,
   type XauusdResearchPacket,

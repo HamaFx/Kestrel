@@ -38,8 +38,8 @@ import { Tooltip } from '@/components/ui/tooltip';
 import type { CustomAgentSummary } from '@/hooks/use-custom-agents';
 import { usePopupMenu } from '@/hooks/use-popup-menu';
 import type { AnalysisMode } from '@/lib/analysis-mode';
-import { apiMutate } from '@/lib/api-client';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
+import { apiMutate } from '@/lib/http/api-client';
 
 import { ThreadSwitcher } from './_components/thread-switcher';
 

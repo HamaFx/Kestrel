@@ -31,9 +31,9 @@
 import { getUserWithSettings } from '@kestrel/db';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
-import type { GenerationLedger } from '../../generation-ledger';
-import { deriveTitleModel, type ResolveModelEnv } from '../../model';
+import { deriveTitleModel, type ResolveModelEnv } from '../../models/model';
 import { getThread, updateThreadTitle } from '../../persistence';
+import type { GenerationLedger } from '../../persistence/generation-ledger';
 import { generateThreadTitle } from './title';
 
 const tilog = createCategorizedLogger('ai', { component: 'thread-title' });

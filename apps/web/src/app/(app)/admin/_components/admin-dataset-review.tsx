@@ -26,8 +26,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { apiFetch, apiMutate } from '@/lib/api-client';
-import { toastApiError } from '@/lib/toast-api-error';
+import { apiFetch, apiMutate } from '@/lib/http/api-client';
+import { toastApiError } from '@/lib/http/toast-api-error';
 
 interface DatasetRow {
   id: string;

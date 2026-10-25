@@ -20,7 +20,7 @@
 import type { JournalEntry, JournalStats } from '@kestrel/shared';
 import { useMemo } from 'react';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface DrawdownChartProps {
   entries: readonly JournalEntry[];

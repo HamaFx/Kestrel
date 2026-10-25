@@ -30,7 +30,7 @@ import { Button } from '@/components/ui/button';
 import type { useConfirm } from '@/components/ui/confirm-drawer';
 import { Input } from '@/components/ui/input';
 import { Tooltip } from '@/components/ui/tooltip';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 import { deleteJournalEntryAction, updateJournalEntryAction } from '../actions';
 import { SetupReplayModal } from './setup-replay-modal';

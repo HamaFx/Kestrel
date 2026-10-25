@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { errorResponse, withAuth } from '@/lib/api';
+import { errorResponse, withAuth } from '@/lib/http/api';
 import { getThread, listAgentOpinions } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';

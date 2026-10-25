@@ -30,8 +30,8 @@
 
 import { createCategorizedLogger, type CategorizedLogger } from '@kestrel/shared/logger';
 
-import type { RequestUser } from './api';
-import { REQUEST_ID_HEADER } from './request-id';
+import type { RequestUser } from './http/api';
+import { REQUEST_ID_HEADER } from './http/request-id';
 
 /**
  * Create a request-scoped child logger that carries `requestId`, `userId`,

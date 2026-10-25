@@ -30,10 +30,10 @@
 
 import type { UIMessage } from 'ai';
 
-import type { ResolveModelEnv } from '../../env-model-factory';
-import type { MastraModelPurpose } from '../../model';
+import type { ResolveModelEnv } from '../../models/env-factory';
+import type { MastraModelPurpose } from '../../models/model';
 import type { RoutingDecision, RoutingDomain } from '../../routing';
-import { isHighConfidenceMutationIntent } from '../../routing-keywords';
+import { isHighConfidenceMutationIntent } from '../../routing/keywords';
 import { classifyMutationRequest } from '../mutation/mutation-detect';
 import {
   decideMastraExecution,

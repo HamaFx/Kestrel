@@ -25,7 +25,7 @@
 
 import { Link } from 'next-view-transitions';
 
-import { formatStamp } from '@/lib/datetime';
+import { formatStamp } from '@/lib/formatters/datetime';
 
 import type { ToolPartProps } from './registry';
 

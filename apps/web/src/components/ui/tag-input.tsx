@@ -21,7 +21,7 @@ import { IconX } from '@tabler/icons-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 export interface TagInputProps {
   value: string[];

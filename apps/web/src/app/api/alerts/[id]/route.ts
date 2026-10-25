@@ -18,7 +18,7 @@
 
 // PF-22 — /api/alerts/[id] — read / patch / delete one alert (thin controller).
 
-import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
+import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
 import {
   AlertPatchSchema,
   deleteAlertService,

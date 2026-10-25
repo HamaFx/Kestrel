@@ -18,7 +18,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getAdminUser, withAdminAuth } from '@/lib/admin-auth';
+import { getAdminUser, withAdminAuth } from '@/lib/auth/admin-auth';
 
 // ── Mock db ────────────────────────────────────────────────────────
 // admin-auth.ts uses one query pattern: select → from → where (user lookup).

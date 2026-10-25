@@ -42,9 +42,9 @@ import { tool, type Tool } from 'ai';
 import { and, desc, eq, gte, inArray, lte, or, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 
-import { getDb } from '../db';
 import { quarantineExternalText } from '../mastra-v2/packets/external-content';
-import { maybeGetToolContext } from '../tool-context';
+import { getDb } from '../runtime/db';
+import { maybeGetToolContext } from '../runtime/tool-context';
 
 const InputSchema = AnalyzeFundamentalInputSchema;
 

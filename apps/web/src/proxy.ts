@@ -37,13 +37,13 @@
 import NextAuth from 'next-auth';
 import { NextResponse } from 'next/server';
 
-import { readOrCreateRequestId, REQUEST_ID_HEADER } from '@/lib/request-id';
 import {
   getSigningSecret,
   signUserId,
   USER_ID_HEADER,
   USER_ID_SIG_HEADER,
-} from '@/lib/signed-user-header';
+} from '@/lib/auth/signed-user-header';
+import { readOrCreateRequestId, REQUEST_ID_HEADER } from '@/lib/http/request-id';
 
 import { authConfig } from './auth.config';
 
@@ -59,7 +59,7 @@ function buildCsp(nonce: string): string {
     "style-src 'self' 'unsafe-inline' https://s3.tradingview.com",
     "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://s3.tradingview.com https://api.dicebear.com",
     "font-src 'self' data:",
-    "connect-src 'self' wss: https://*.supabase.co https://*.biquote.io https://*.binance.com https://api.resend.com https://*.nowpayments.io https://*.tradingview.com https://api.dicebear.com",
+    "connect-src 'self' wss: https://*.supabase.co https://*.biquote.io https://*.binance.com https://api.resend.com https://*.tradingview.com https://api.dicebear.com",
     "frame-src 'self' https://*.tradingview.com https://*.s3.tradingview.com https://s.tradingview.com",
   ].join('; ');
 }
@@ -183,9 +183,9 @@ export const config = {
   // Same exclusions as before — /api/auth is NextAuth's catch-all,
   // /api/cron is cron-secret-protected, /api/health/public is the
   // unauthenticated uptime probe, /share is public, /auth is the login
-  // surface. /api/billing/webhook is HMAC-signed (not session-auth).
+  // surface.
   // landing, fonts, brand, icons are public static assets.
   matcher: [
-    '/((?!auth|share|offline|api/auth|api/dev/login|api/cron|api/telegram|api/billing/webhook|api/health/public|api/health/alerts|debug|sw\\.js|sw-precache\\.json|_next/static|_next/image|favicon\\.ico|manifest\\.webmanifest|icons|brand|landing|fonts|robots\\.txt|sitemap\\.xml).*)',
+    '/((?!auth|share|offline|api/auth|api/dev/login|api/cron|api/health/public|api/health/alerts|debug|sw\\.js|sw-precache\\.json|_next/static|_next/image|favicon\\.ico|manifest\\.webmanifest|icons|brand|landing|fonts|robots\\.txt|sitemap\\.xml).*)',
   ],
 };

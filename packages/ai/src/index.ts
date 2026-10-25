@@ -1,6 +1,6 @@
-// P2-3 — Auto-bootstrap DI container services on first import.
-// Every consumer of @kestrel/ai gets db + llmClient registered.
-import './services';
+// RULE-R02 — importing this barrel has no side effects. App entrypoints
+// (web instrumentation, worker main, tests) call `ensureAiBootstrapped()`.
+export { ensureAiBootstrapped } from './runtime/services';
 
 /**
  * Copyright 2026 Kestrel
@@ -19,7 +19,7 @@ import './services';
  */
 
 // Public barrel for @kestrel/ai. The route handler imports from here.
-export * from './workflow-status';
+export * from './runtime/workflow-status';
 export * from './mastra-v2/shared/telemetry-startup';
 export {
   isMastraTelemetryDegraded,
@@ -33,38 +33,22 @@ export {
   reserveTurnBudget,
   resumeTurnBudget,
   UNCAPPED_DAILY_USD,
-  InsufficientCreditsError,
   type AcquireBudgetArgs,
   type AcquireBudgetResult,
   type BudgetHandle,
-  type CreditHandle,
-  type CreditReservationOptions,
 } from './budget';
 export {
-  creditsPerDollar,
-  usdToCredits,
-  creditsToUsd,
-  platformFeeCredits,
-  fullModeCreditEstimate,
-  creditsForTurn,
-  estimateCreditsForTokens,
-  estimateCreditsForTurn,
   hasUserKeyForProvider,
   resolveProviderMode,
-  turnCreditIdempotencyKey,
-  DEFAULT_INPUT_TOKENS,
-  EXPECTED_OUTPUT_TOKENS,
-  SINGLE_TURN_ESTIMATE_BUFFER,
   type ProviderMode,
-  type CreditTurnMode,
-} from './credits';
+} from './models/byok-providers';
 export {
   createExecutionLifecycle,
   terminalMetadata,
   type ExecutionTerminalState,
   type ExecutionAnswerOutcome,
   type ExecutionTerminalMetadata,
-} from './execution-lifecycle';
+} from './runtime/execution-lifecycle';
 export {
   createGenerationLedger,
   restoreGenerationLedger,
@@ -72,10 +56,9 @@ export {
   type GenerationLedger,
   type GenerationLedgerEntry,
   type GenerationLedgerSnapshot,
-} from './generation-ledger';
+} from './persistence/generation-ledger';
 export { registerAllTools, toolRegistry, type ToolRegistry } from './tools';
-export * from './wait-until';
-export * from './telegram/webhook';
+export * from './runtime/wait-until';
 export {
   BYOK_PROVIDERS,
   BYOK_PROVIDERS_LIST,
@@ -87,7 +70,7 @@ export {
   type ByokProviderModels,
   type ModelDomain,
   type ModelSpec,
-} from './byok-providers';
+} from './models/byok-providers';
 export {
   resolveChatModel,
   resolveModelForProvider,
@@ -108,7 +91,7 @@ export {
   type VisionModelResolution,
   type EmbeddingModelResolution,
   type EmbeddingModelResolutionDetails,
-} from './model';
+} from './models/model';
 export {
   estimateCostUsd,
   estimateKnownCostUsd,
@@ -128,8 +111,8 @@ export {
   DEFAULT_TURN_ESTIMATE_USD,
   DEFAULT_MAX_DAILY_USD,
   BudgetExceededError,
-} from './cost';
-export { embedTexts, type EmbedTextsArgs, type EmbedResult } from './embeddings';
+} from './budget/cost';
+export { embedTexts, type EmbedTextsArgs, type EmbedResult } from './models/embeddings';
 export {
   upsertArticles,
   listRecentArticles,
@@ -137,13 +120,13 @@ export {
   latestArticleTimestampMs,
   backfillEmbeddings,
   countPendingEmbeddings,
-} from './news-persistence';
+} from './persistence/news';
 export {
   upsertEvents,
   listFredEventsMissingActual,
   patchEventActual,
   parseFredEventId,
-} from './calendar-persistence';
+} from './persistence/calendar';
 export {
   listThreads,
   getThread,
@@ -226,7 +209,7 @@ export {
   type ModelBreakdown,
   type ProviderBreakdown,
   type DayBucket,
-} from './usage';
+} from './budget/usage';
 
 // Snapshots (Phase 2)
 export {
@@ -298,7 +281,7 @@ export {
   type RoutingDecision,
   type RoutingDomain,
 } from './routing';
-export type { SemanticRoutingAccounting } from './semantic-routing';
+export type { SemanticRoutingAccounting } from './routing/semantic';
 
 // Phase 7b — memory index
 export {
@@ -310,7 +293,7 @@ export {
   type MemoryKind,
   type MemoryRow,
 } from './memory/memory-index';
-export { runMemoryQuery, memoryRowToItem, type RunMemoryQueryArgs } from './rag';
+export { runMemoryQuery, memoryRowToItem, type RunMemoryQueryArgs } from './models/rag';
 
 // Phase 7c — citation enforcement, tool catalogue
 
@@ -350,16 +333,16 @@ export {
   type LangfusePublishOptions,
   type LangfusePublishResult,
 } from './eval/langfuse-publisher';
-export { buildToolCatalogue, type CatalogueEntry } from './catalogue';
+export { buildToolCatalogue, type CatalogueEntry } from './models/catalogue';
 
 // P2-3 — DI-backed getDb() wrapper.
 // Prefer this over importing getDb from @kestrel/db directly.
-export { getDb } from './db';
+export { getDb } from './runtime/db';
 
 // Langfuse / OpenTelemetry instrumentation
-export { initLangfuse, flushLangfuse, shutdownLangfuse } from './instrumentation';
-export { telemetryConfig, type TelemetryConfigOptions } from './telemetry';
-export { replayPersistenceFailures } from './persistence-recovery';
+export { initLangfuse, flushLangfuse, shutdownLangfuse } from './runtime/instrumentation';
+export { telemetryConfig, type TelemetryConfigOptions } from './runtime/telemetry';
+export { replayPersistenceFailures } from './persistence/recovery';
 export {
   consumeUIMessageStream,
   type ParsedStreamResult,
@@ -368,11 +351,11 @@ export {
   type AgentProgressSnapshot,
 } from './eval/parse-stream';
 
-export { extractRateLimits, type RateLimitData } from './rate-limits';
-export { noteLlmRateLimit, awaitLlmHeadroom } from './llm-throttle';
+export { extractRateLimits, type RateLimitData } from './budget/rate-limits';
+export { noteLlmRateLimit, awaitLlmHeadroom } from './budget/llm-throttle';
 
 // STAB-06: Exponential-backoff retry helper.
-export { withRetry, type RetryOptions } from './retry';
+export { withRetry, type RetryOptions } from './runtime/retry';
 
 // M4 — Model circuit breaker for repeated failures.
 export {
@@ -380,7 +363,7 @@ export {
   recordModelFailure,
   isCircuitOpen,
   _resetCircuits,
-} from './model-circuit-breaker';
+} from './models/circuit-breaker';
 
 // Phase 2 — one serializable Mastra execution plan.
 export {
@@ -418,7 +401,7 @@ export {
   listMessageOpinions,
   type SaveOpinionsArgs,
 } from './multi-agent/persistence';
-export { extractUserMessageText } from './message-text';
+export { extractUserMessageText } from './runtime/message-text';
 
 // F5 — Run Diagnostics with Secret Redaction
 export {
@@ -439,19 +422,6 @@ export {
 } from './diagnostics';
 
 // F2 — Portfolio Management
-export {
-  createPosition,
-  listOpenPositions,
-  listAllPositions,
-  getPosition,
-  closePosition,
-  deletePosition,
-  getPortfolioSettings,
-  savePortfolioSettings,
-  computePnL,
-  getOpenPositionsWithPnL,
-  getPortfolioRiskReport,
-} from './portfolio';
 
 // F3 — Social Sentiment Integration
 export {
@@ -474,34 +444,3 @@ export {
   saveRouteConfig,
   type NoiseState,
 } from './notifications';
-
-// F7 — Bot Platform with Commands
-export {
-  BotDispatcher,
-  getBotDispatcher,
-  parseCommand,
-  createLinkCode,
-  resolveLinkCode,
-  resolveBotUser,
-  unlinkBot,
-  getBotLink,
-  type BotCommand,
-  type BotContext,
-  type BotResponse,
-  type BotPlatform,
-  type ParsedCommand,
-} from './bot';
-
-// F7+ — Telegram client utilities (resilient API, idempotency, rate limiting)
-export {
-  sendTextMessage,
-  sendPhoto,
-  sendChatAction,
-  answerCallbackQuery,
-  sendInlineKeyboard,
-  setBotCommands,
-  telegramApiCall,
-  TelegramApiError,
-} from './telegram/client';
-export { isDuplicateUpdate, markProcessed } from './telegram/idempotency';
-export { checkRateLimit, getRateLimitStatus } from './telegram/rate-limiter';

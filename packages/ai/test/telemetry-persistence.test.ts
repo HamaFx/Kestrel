@@ -43,7 +43,7 @@ const { insertValues, db, selectBuilder } = vi.hoisted(() => {
   return { insertValues, db, selectBuilder };
 });
 
-vi.mock('../src/db', () => ({
+vi.mock('../src/runtime/db', () => ({
   getDb: () => db,
 }));
 

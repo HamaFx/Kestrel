@@ -19,7 +19,7 @@
 // Current and max win/loss streak pills.
 import type { JournalStats } from '@kestrel/shared';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface StreakDisplayProps {
   stats: JournalStats;

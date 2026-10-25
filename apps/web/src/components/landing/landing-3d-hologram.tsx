@@ -18,7 +18,7 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface Props {
   className?: string;

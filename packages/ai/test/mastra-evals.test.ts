@@ -38,7 +38,7 @@ const mocks = vi.hoisted(() => ({
   resolveChatModel: vi.fn(),
 }));
 
-vi.mock('../src/model', () => ({
+vi.mock('../src/models/model', () => ({
   resolveChatModel: mocks.resolveChatModel,
 }));
 

@@ -153,84 +153,22 @@ The overlay starts ClickHouse, Redis, MinIO (S3), Langfuse, and its worker. The 
 
 Review privacy, retention, and provider terms before enabling telemetry or prompt/output capture.
 
-## Billing
+## BYOK and local spend budgets
 
-Billing is disabled unless `BILLING_ENABLED=1` — it is a self-host opt-in and is not part of the normal path.
+Kestrel has no subscriptions, credit wallets, or payment gateways. Users bring
+their own provider keys (BYOK), and spend is tracked locally in USD.
 
-### Locked billing decisions (plan §1.2)
+| Variable                            | Default | Description                                                        |
+| ----------------------------------- | ------- | ------------------------------------------------------------------ |
+| `MAX_DAILY_USD`                     | `5`     | Default per-user daily AI ceiling (USD)                            |
+| `ENFORCE_BUDGET`                    | `false` | `true` blocks over-cap turns with HTTP 429; default is ledger-only |
+| `BUDGET_RESERVATION_RETENTION_DAYS` | `90`    | Retention for terminal `ai_budget_reservations` rows               |
 
-These decisions are recorded here so implementation and operations share one
-contract. Change them only with a migration + docs update.
-
-| #   | Decision              | Locked behaviour                                                                                                                                           |
-| --- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1  | Who pays the LLM bill | **Hybrid.** Credits meter platform-paid (managed) turns only. BYOK turns still emit telemetry but consume `PLATFORM_FEE_CREDITS` (default `0`).            |
-| D2  | Currency/provider     | **Stripe fiat primary**, NOWPayments crypto retained. `BILLING_PROVIDER=stripe\|nowpayments\|both`.                                                        |
-| D3  | Credit unit           | Integer credits where **1 credit = $0.001** (`CREDITS_PER_DOLLAR=1000`). Stored as `bigint`, never float.                                                  |
-| D4  | Rollover              | Subscription grants expire at period end (no rollover). Top-up packs roll over and never expire. Promo grants may expire.                                  |
-| D5  | Grace / overage       | **Soft degrade.** At zero credits, BYOK turns still work; managed turns return HTTP 402 with an upsell. Balances never go negative.                        |
-| D6  | Self-host semantics   | `BILLING_ENABLED` remains the kill-switch; `BILLING_MODE=selfhost\|saas` selects the presentation/requirement profile. Never branch billing on `NODE_ENV`. |
-
-### Core billing variables
-
-| Variable                           | Default                   | Description                                                     |
-| ---------------------------------- | ------------------------- | --------------------------------------------------------------- |
-| `BILLING_ENABLED`                  | `0`                       | Explicit billing master switch                                  |
-| `BILLING_MODE`                     | `selfhost`                | `selfhost` or `saas` (UI/requirement profile)                   |
-| `BILLING_PROVIDER`                 | `stripe`                  | `stripe`, `nowpayments`, or `both`                              |
-| `BILLING_STRIPE_ENABLED`           | `0`                       | Enables Stripe checkout/webhooks                                |
-| `BILLING_TOPUPS_ENABLED`           | `1`                       | Enables credit top-up packs                                     |
-| `NOWPAYMENTS_API_KEY`              | unset                     | NOWPayments API credential                                      |
-| `NOWPAYMENTS_IPN_SECRET`           | unset                     | Webhook signature secret                                        |
-| `NOWPAYMENTS_API_BASE`             | Sandbox URL               | NOWPayments API endpoint                                        |
-| `STRIPE_SECRET_KEY`                | unset                     | Stripe API secret (`sk_live_…` / `sk_test_…`)                   |
-| `STRIPE_WEBHOOK_SECRET`            | unset                     | Stripe webhook signing secret (`whsec_…`)                       |
-| `STRIPE_BILLING_PORTAL_RETURN_URL` | unset                     | Return URL after the Stripe customer portal                     |
-| `BILLING_GAMMAL_ENABLED`           | `0`                       | Enables Gammal one-time pass checkout/webhooks                  |
-| `GAMMAL_PROJECT_ID`                | unset                     | Public Gammal project id (`pid`), e.g. `47`                     |
-| `GAMMAL_API_BASE`                  | `https://api.gammal.tech` | Gammal API origin for links and signing key                     |
-| `GAMMAL_CURRENCY`                  | `USD`                     | Charge currency; Kestrel plans are USD                          |
-| `GAMMAL_PUBLIC_KEY_PEM`            | unset                     | Optional pinned RS256 public key (otherwise fetched)            |
-| `GAMMAL_PASS_DAYS`                 | `30`                      | Fallback prepaid pass length                                    |
-| `CREDITS_PER_DOLLAR`               | `1000`                    | Credits per USD (1 credit = $0.001)                             |
-| `FULL_MODE_CREDIT_ESTIMATE`        | `250`                     | Credits reserved for one Full-analysis turn                     |
-| `PLATFORM_FEE_CREDITS`             | `0`                       | Flat fee per BYOK turn                                          |
-| `CREDITS_ENFORCEMENT_ENABLED`      | `0`                       | `0` = shadow metering, `1` = return 402 on insufficient credits |
-| `CREDITS_SHADOW_LOG`               | `1`                       | Write shadow reservations/ledger rows while enforcement is off  |
-| `CREDIT_LEDGER_RETENTION_DAYS`     | `730`                     | Ledger/billing audit retention (never swept at 90 days)         |
-
-Never enable billing without reviewing webhook safety, legal terms, idempotency, and operator responsibilities.
-
-### Provider guardrails
-
-- A Stripe `sk_test_` key in a production process logs a warning; it never
-  silently takes live money.
-- NOWPayments sandbox in production logs an error; set
-  `NOWPAYMENTS_API_BASE=https://api.nowpayments.io` before real charges.
-- Both webhook paths verify the signature over the **raw** body before any
-  JSON parsing. Stripe uses `Stripe-Signature`; NOWPayments uses
-  `x-nowpayments-sig`.
-- `billing_events` deduplicates Stripe events; `ipn_events` deduplicates
-  NOWPayments `(payment_id, payment_status)`. Gammal events are deduplicated by
-  the verified `txn` in `billing_events`.
-- Gammal has no API key. The checkout link is domain-authorised, and the
-  short-lived RS256 `payment_token` is verified locally against
-  `GAMMAL_PUBLIC_KEY_PEM` (or the cached public key) before any credit
-  movement. Never grant access from the browser return URL's `status` alone.
-- `credit_ledger` and `billing_*` tables are excluded from the 90-day
-  telemetry sweep and retained for `CREDIT_LEDGER_RETENTION_DAYS`.
-- In shared/SaaS mode, set `ADMIN_DATABASE_URL` (BYPASSRLS). Stripe webhooks
-  resolve the tenant from the Stripe customer before entering a tenant
-  transaction; the cross-tenant lookup cannot run under the RLS app role.
-- Webhook endpoints: `POST /api/billing/webhook` dispatches on
-  `Stripe-Signature` first, then `x-nowpayments-sig`, then the Gammal
-  `X-Gammal-Event` + signed `payment_token`. Configure Stripe to send
-  `checkout.session.completed`, `customer.subscription.created|updated|deleted`,
-  `invoice.paid`, `invoice.payment_failed`, `payment_intent.succeeded`, and
-  `charge.refunded`.
-- Reconciliation crons: `GET /api/cron/billing-reconcile` (every 6h) and
-  `GET /api/cron/credit-reclaim` (every 30m), both protected by
-  `CRON_SECRET` or an admin session.
+- `packages/ai/src/budget.ts` is the only admission path; it writes
+  `daily_ai_spend` and `ai_budget_reservations` atomically.
+- `packages/ai/src/budget/cost.ts` is the only model price source.
+- BYOK keys are encrypted at rest by `@kestrel/shared`; `/settings/models`
+  manages them. There is no remote billing dependency and no webhook surface.
 
 ## Worker configuration
 

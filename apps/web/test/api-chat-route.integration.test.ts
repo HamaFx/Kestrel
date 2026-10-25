@@ -65,7 +65,7 @@ vi.mock('@kestrel/db', async (importOriginal) => {
   return { ...actual, getUserWithSettings: mockGetUserWithSettings };
 });
 
-vi.mock('@/lib/api', () => ({
+vi.mock('@/lib/http/api', () => ({
   errorResponse: vi.fn((error: unknown) =>
     Response.json({ error: { code: 'TEST_ERROR', message: String(error) } }, { status: 500 }),
   ),
@@ -90,27 +90,27 @@ vi.mock('@/lib/logger', () => ({
   createCategorizedLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-vi.mock('@/lib/services/mastra-chat', () => ({
+vi.mock('@/lib/services/mastra/chat/mastra-chat', () => ({
   runMastraXauusdChat: mockRunMastraXauusdChat,
 }));
-vi.mock('@/lib/services/mastra-canonical-chat-stream', () => ({
+vi.mock('@/lib/services/mastra/chat/mastra-canonical-chat-stream', () => ({
   runMastraCanonicalChatStreamService: mockRunMastraCanonicalChatStreamService,
 }));
-vi.mock('@/lib/services/mastra-chat-stream', () => ({
+vi.mock('@/lib/services/mastra/chat/mastra-chat-stream', () => ({
   runMastraXauusdConversationStreamChat: mockRunMastraXauusdConversationStreamChat,
 }));
-vi.mock('@/lib/services/mastra-mode', () => ({
+vi.mock('@/lib/services/mastra/chat/mastra-mode', () => ({
   runMastraModeChatStream: mockRunMastraModeChatStream,
 }));
-vi.mock('@/lib/services/mastra-chat-response', () => ({
+vi.mock('@/lib/services/mastra/stream/mastra-chat-response', () => ({
   mastraChatResponse: mockMastraChatResponse,
 }));
-vi.mock('@/lib/services/mastra-report-context', () => ({
+vi.mock('@/lib/services/mastra/xauusd/mastra-report-context', () => ({
   extractLatestMastraReport: vi.fn(() => null),
   mayReferToMastraReport: vi.fn(() => false),
 }));
 
-vi.mock('@kestrel/ai/mastra', () => ({
+vi.mock('@kestrel/ai/mastra-v2', () => ({
   classifyMutationRequest: vi.fn(() => null),
   isMastraMutationEnabled: vi.fn(() => false),
   MutationExtractionError: class MutationExtractionError extends Error {},
@@ -124,15 +124,7 @@ vi.mock('@/lib/services/api-boundary', () => ({
     spent = 5;
     max = 5;
   },
-  InsufficientCreditsError: class InsufficientCreditsError extends Error {
-    balance = 0;
-    required = 10;
-  },
-  assertEntitlement: async () => ({ ok: true, feature: 'chat_single' }),
-  assertCredits: async () => ({ ok: true, balance: 10_000, required: 10, enforced: false }),
-  estimateCreditsForTurn: () => 10,
   resolveProviderMode: () => 'managed',
-  isCreditsEnforcementEnabled: () => false,
   CanonicalEvidenceBlockedError: class CanonicalEvidenceBlockedError extends Error {},
   GuardrailUnavailableError: mockGuardrailUnavailableError,
   TripWire: mockTripWire,
@@ -234,16 +226,15 @@ vi.mock('@/lib/services/api-boundary', () => ({
             : null);
     return {
       version: 1,
-      route:
-        comparisonActive
-          ? 'multi-symbol-research'
-          : mode === 'full'
-            ? 'full-analysis'
-            : plannedSymbol === 'XAUUSD'
-              ? 'xauusd-research'
-              : plannedSymbol
-                ? 'symbol-research'
-                : 'canonical-chat',
+      route: comparisonActive
+        ? 'multi-symbol-research'
+        : mode === 'full'
+          ? 'full-analysis'
+          : plannedSymbol === 'XAUUSD'
+            ? 'xauusd-research'
+            : plannedSymbol
+              ? 'symbol-research'
+              : 'canonical-chat',
       capabilityId:
         plannedSymbol === 'XAUUSD' ? 'xauusd-research' : plannedSymbol ? 'symbol-research' : null,
       capabilityVersion: 'test',

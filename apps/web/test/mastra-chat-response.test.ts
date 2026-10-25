@@ -18,7 +18,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { mastraChatResponse } from '@/lib/services/mastra-chat-response';
+import { mastraChatResponse } from '@/lib/services/mastra/stream-adapter';
 
 describe('mastraChatResponse', () => {
   it('emits non-transient report metadata for immediate and reload-safe rendering', async () => {

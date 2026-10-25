@@ -32,7 +32,7 @@
 // The cap stays low (256 rows) because the route still has the 60s ceiling.
 // The worker job ramps to 1024 rows per run — see apps/worker/src/jobs/embedding-backfill.ts.
 
-import { withCronAuth } from '@/lib/cron';
+import { withCronAuth } from '@/lib/http/cron';
 import { backfillEmbeddings, countPendingEmbeddings } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';

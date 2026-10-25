@@ -16,7 +16,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { testProviderKey, validateProviderConfig } from '../src/model';
+import { testProviderKey, validateProviderConfig } from '../src/models/model';
 
 vi.mock('@kestrel/shared/encryption', () => ({
   decryptByok: (_payload: string | null | undefined) => null,

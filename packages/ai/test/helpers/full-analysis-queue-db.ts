@@ -33,7 +33,7 @@ import {
   createKestrelMastra,
   initializeKestrelMastra,
 } from '../../src/mastra-v2';
-import { DB } from '../../src/tokens';
+import { DB } from '../../src/runtime/tokens';
 
 export type QueueTestDb = ReturnType<typeof drizzle<typeof schema>>;
 

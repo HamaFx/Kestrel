@@ -19,8 +19,8 @@
 // Calendar toolbar — importance + currency filters + "show past" toggle.
 import type { Importance } from '@kestrel/shared';
 
-import { cn } from '@/lib/cn';
-import { handleRadioKeyDown } from '@/lib/datetime';
+import { cn } from '@/lib/formatters/cn';
+import { handleRadioKeyDown } from '@/lib/formatters/datetime';
 
 export type ImportanceFilter = Importance | 'all';
 export type CurrencyFilter = 'USD' | 'EUR' | 'GBP' | 'all';

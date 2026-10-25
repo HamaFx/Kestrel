@@ -61,7 +61,7 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('../src/model', () => ({
+vi.mock('../src/models/model', () => ({
   resolveChatModel: mocks.resolveChatModel,
   resolveMastraModel: mocks.resolveMastraModel,
   resolveMastraExecutionModel: mocks.resolveMastraExecutionModel,

@@ -27,8 +27,8 @@ import { useCallback, useRef, useState } from 'react';
 
 import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
 import { Button } from '@/components/ui/button';
-import { AI_EVAL_PROMPTS } from '@/lib/ai-eval-prompts';
-import { getCsrfToken } from '@/lib/csrf';
+import { getCsrfToken } from '@/lib/auth/csrf';
+import { AI_EVAL_PROMPTS } from '@/lib/services/ai-eval-prompts';
 
 interface EvalRow {
   id: string;

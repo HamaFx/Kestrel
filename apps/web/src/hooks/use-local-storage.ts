@@ -17,7 +17,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { migrateLegacyStorageKey } from '@/lib/storage';
+import { migrateLegacyStorageKey } from '@/lib/http/storage';
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
   const [storedValue, setStoredValue] = useState<T>(initialValue);

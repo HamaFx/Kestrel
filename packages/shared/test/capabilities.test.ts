@@ -17,7 +17,7 @@ describe('capability report', () => {
     expect(report.enabled).toEqual(
       expect.arrayContaining(['database', 'ai-server-fallback', 'finnhub', 'langfuse']),
     );
-    expect(report.disabled).toEqual(expect.arrayContaining(['telegram', 'email', 'billing']));
+    expect(report.disabled).toEqual(expect.arrayContaining(['telegram', 'email']));
     expect(JSON.stringify(report)).not.toContain('secret-password');
     expect(JSON.stringify(report)).not.toContain('secret-api-key');
     expect(JSON.stringify(report)).not.toContain('finnhub-secret');

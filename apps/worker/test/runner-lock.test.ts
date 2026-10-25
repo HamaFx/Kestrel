@@ -37,7 +37,7 @@ vi.mock('@kestrel/ai', async (importOriginal) => {
   };
 });
 
-vi.mock('@kestrel/ai/mastra', () => ({
+vi.mock('@kestrel/ai/mastra-v2', () => ({
   flushMastraObservability: vi.fn().mockResolvedValue(undefined),
   getKestrelMastra: vi.fn(() => ({ instance: {} })),
   closeKestrelMastra: vi.fn().mockResolvedValue(undefined),

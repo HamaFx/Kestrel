@@ -18,7 +18,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { getSessionInfo, type TradingSession } from '../src/lib/session';
+import { getSessionInfo, type TradingSession } from '../src/lib/auth/session';
 
 /**
  * Helper to build a UTC Date at a specific (year, month-1, day, hour, minute).

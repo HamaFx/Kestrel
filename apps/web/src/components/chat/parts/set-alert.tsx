@@ -31,7 +31,7 @@ import type { SetAlertOutput } from '@kestrel/shared';
 import { IconBell } from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface SetAlertPartProps {
   /** Tool output, or `null` while streaming / before completion. */

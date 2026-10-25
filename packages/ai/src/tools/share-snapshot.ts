@@ -27,9 +27,9 @@ import { ShareSnapshotInputSchema, type ShareSnapshotOutput } from '@kestrel/sha
 import { tool, type Tool } from 'ai';
 import type { z } from 'zod';
 
+import { getToolContext } from '../runtime/tool-context';
 import { createSnapshot } from '../share/persistence';
 import { signShareToken } from '../share/sign';
-import { getToolContext } from '../tool-context';
 import { assertMutationIntent } from './mutation-guard';
 
 const InputSchema = ShareSnapshotInputSchema;

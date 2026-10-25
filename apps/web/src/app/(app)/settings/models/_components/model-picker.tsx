@@ -29,7 +29,7 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { apiFetch, apiMutate } from '@/lib/api-client';
+import { apiFetch, apiMutate } from '@/lib/http/api-client';
 
 /**
  * Phase D2 — generic per-domain model picker. One component powers

@@ -29,7 +29,7 @@ import {
   xauusdPriceTool,
   xauusdResearchPacketTool,
   type MastraCapability,
-} from '../src/mastra';
+} from '../src/mastra-v2';
 
 describe('Mastra capability policy', () => {
   it('keeps the manifest internally consistent and mutation-safe', () => {
@@ -60,7 +60,7 @@ describe('Mastra capability policy', () => {
 
   it('derives legacy routing tools from the canonical manifest', () => {
     expect(manifestToolsForDomain('technical')).toContain('get_price');
-    expect(manifestToolsForDomain('technical')).toContain('get_portfolio_snapshot');
+    expect(manifestToolsForDomain('technical')).toContain('compute_position_health');
   });
 
   it('declares the canonical capability as public read-only only', () => {
@@ -70,7 +70,6 @@ describe('Mastra capability policy', () => {
       readOnly: true,
       maxSteps: 6,
     });
-    expect(MASTRA_CAPABILITIES['canonical-chat'].tools).not.toContain('get_portfolio_snapshot');
     expect(MASTRA_CAPABILITIES['canonical-chat'].tools).not.toContain('log_journal');
   });
 

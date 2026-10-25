@@ -32,7 +32,7 @@ import { useEffect, useId, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 export interface AutoPluginToolCardProps {
   name: string;

@@ -18,7 +18,7 @@ import {
   toUntrustedExternalEvidence,
   wrapExternalContent,
 } from '../src/mastra-v2/packets/external-content';
-import { ragRowToItem } from '../src/rag';
+import { ragRowToItem } from '../src/models/rag';
 
 describe('external content safety', () => {
   it('removes markup and control characters', () => {

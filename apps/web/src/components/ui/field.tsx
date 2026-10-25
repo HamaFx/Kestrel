@@ -18,7 +18,7 @@
 
 import { Children, cloneElement, type ReactElement, type ReactNode } from 'react';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface FieldProps {
   label: ReactNode;

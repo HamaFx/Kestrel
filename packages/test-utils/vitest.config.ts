@@ -37,11 +37,11 @@ export default defineConfig({
       },
     },
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: ['test/**/*.test.ts'],
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
-      exclude: ['src/**/*.test.ts', 'src/index.ts'],
+      exclude: ['src/index.ts'],
       thresholds: {
         statements: 60,
         branches: 50,

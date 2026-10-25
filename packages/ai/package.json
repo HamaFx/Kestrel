@@ -14,19 +14,19 @@
       "import": "./dist/index.js"
     },
     "./model": {
-      "source": "./src/model.ts",
-      "types": "./dist/model.d.ts",
-      "import": "./dist/model.js"
+      "source": "./src/models/model.ts",
+      "types": "./dist/models/model.d.ts",
+      "import": "./dist/models/model.js"
     },
     "./cost": {
-      "source": "./src/cost.ts",
-      "types": "./dist/cost.d.ts",
-      "import": "./dist/cost.js"
+      "source": "./src/budget/cost.ts",
+      "types": "./dist/budget/cost.d.ts",
+      "import": "./dist/budget/cost.js"
     },
     "./persistence": {
-      "source": "./src/persistence.ts",
-      "types": "./dist/persistence.d.ts",
-      "import": "./dist/persistence.js"
+      "source": "./src/persistence/index.ts",
+      "types": "./dist/persistence/index.d.ts",
+      "import": "./dist/persistence/index.js"
     },
     "./tools": {
       "source": "./src/tools/index.ts",
@@ -68,30 +68,20 @@
       "types": "./dist/diagnostics/index.d.ts",
       "import": "./dist/diagnostics/index.js"
     },
-    "./bot": {
-      "source": "./src/bot/index.ts",
-      "types": "./dist/bot/index.d.ts",
-      "import": "./dist/bot/index.js"
-    },
-    "./portfolio": {
-      "source": "./src/portfolio/index.ts",
-      "types": "./dist/portfolio/index.d.ts",
-      "import": "./dist/portfolio/index.js"
-    },
     "./notifications": {
       "source": "./src/notifications/index.ts",
       "types": "./dist/notifications/index.d.ts",
       "import": "./dist/notifications/index.js"
     },
     "./catalogue": {
-      "source": "./src/catalogue.ts",
-      "types": "./dist/catalogue.d.ts",
-      "import": "./dist/catalogue.js"
+      "source": "./src/models/catalogue.ts",
+      "types": "./dist/models/catalogue.d.ts",
+      "import": "./dist/models/catalogue.js"
     },
     "./byok-providers": {
-      "source": "./src/byok-providers.ts",
-      "types": "./dist/byok-providers.d.ts",
-      "import": "./dist/byok-providers.js"
+      "source": "./src/models/byok-providers.ts",
+      "types": "./dist/models/byok-providers.d.ts",
+      "import": "./dist/models/byok-providers.js"
     },
     "./memory": {
       "source": "./src/memory/memory-index.ts",
@@ -104,29 +94,24 @@
       "import": "./dist/share/persistence.js"
     },
     "./embeddings": {
-      "source": "./src/embeddings.ts",
-      "types": "./dist/embeddings.d.ts",
-      "import": "./dist/embeddings.js"
+      "source": "./src/models/embeddings.ts",
+      "types": "./dist/models/embeddings.d.ts",
+      "import": "./dist/models/embeddings.js"
     },
     "./rag": {
-      "source": "./src/rag.ts",
-      "types": "./dist/rag.d.ts",
-      "import": "./dist/rag.js"
+      "source": "./src/models/rag.ts",
+      "types": "./dist/models/rag.d.ts",
+      "import": "./dist/models/rag.js"
     },
     "./usage": {
-      "source": "./src/usage.ts",
-      "types": "./dist/usage.d.ts",
-      "import": "./dist/usage.js"
-    },
-    "./credits": {
-      "source": "./src/credits.ts",
-      "types": "./dist/credits.d.ts",
-      "import": "./dist/credits.js"
+      "source": "./src/budget/usage.ts",
+      "types": "./dist/budget/usage.d.ts",
+      "import": "./dist/budget/usage.js"
     },
     "./instrumentation": {
-      "source": "./src/instrumentation.ts",
-      "types": "./dist/instrumentation.d.ts",
-      "import": "./dist/instrumentation.js"
+      "source": "./src/runtime/instrumentation.ts",
+      "types": "./dist/runtime/instrumentation.d.ts",
+      "import": "./dist/runtime/instrumentation.js"
     },
     "./eval/training-export": {
       "source": "./src/eval/training-export.ts",
@@ -147,16 +132,6 @@
       "source": "./src/plugins/index.ts",
       "types": "./dist/plugins/index.d.ts",
       "import": "./dist/plugins/index.js"
-    },
-    "./mastra": {
-      "source": "./src/mastra/index.ts",
-      "types": "./dist/mastra/index.d.ts",
-      "import": "./dist/mastra/index.js"
-    },
-    "./mastra/routing-policy": {
-      "source": "./src/mastra-v2/planning/routing-policy.ts",
-      "types": "./dist/mastra-v2/planning/routing-policy.d.ts",
-      "import": "./dist/mastra-v2/planning/routing-policy.js"
     }
   },
   "scripts": {

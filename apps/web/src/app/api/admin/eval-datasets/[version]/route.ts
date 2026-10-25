@@ -18,8 +18,8 @@
 
 import { z } from 'zod';
 
-import { withAdminAuth } from '@/lib/admin-auth';
-import { errorResponse, parseJsonBody } from '@/lib/api';
+import { withAdminAuth } from '@/lib/auth/admin-auth';
+import { errorResponse, parseJsonBody } from '@/lib/http/api';
 import { recordAdminAudit } from '@/lib/services/admin';
 import { approveEvalDataset } from '@/lib/services/api-boundary';
 

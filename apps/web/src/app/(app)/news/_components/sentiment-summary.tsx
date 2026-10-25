@@ -27,7 +27,7 @@
 
 import type { NewsArticle } from '@kestrel/shared';
 
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 interface SentimentSummaryProps {
   articles: readonly NewsArticle[];

@@ -24,8 +24,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { sanitizeNext } from '../src/app/(auth)/actions';
-import * as actionErrors from '../src/lib/action-errors';
 import { isFailedSignIn } from '../src/lib/auth/sign-in-result';
+import * as actionErrors from '../src/lib/http/action-errors';
 
 describe('isFailedSignIn (next-auth beta.32 contract)', () => {
   it('treats a string result (redirect URL) as success', () => {

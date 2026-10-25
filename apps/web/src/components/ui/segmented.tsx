@@ -35,7 +35,7 @@ import { Link } from 'next-view-transitions';
 import { useEffect, useId, useRef, useState } from 'react';
 
 import { useShellRoute } from '@/components/layout/shell-route-context';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 export type SegmentedVariant = 'accent' | 'solid' | 'tone';
 export type SegmentedTone = 'brand' | 'bull' | 'bear';

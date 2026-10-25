@@ -20,9 +20,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { POST as emailPost } from '@/app/api/admin/test-alert-email/route';
 import { POST as telegramPost } from '@/app/api/admin/test-telegram/route';
-import { resetAdminRateLimit } from '@/lib/admin-rate-limit';
+import { resetAdminRateLimit } from '@/lib/auth/admin-rate-limit';
 
-vi.mock('@/lib/admin-auth', () => ({
+vi.mock('@/lib/auth/admin-auth', () => ({
   withAdminAuth:
     (handler: (req: Request, ctx: { user: { userId: string } }) => Promise<Response>) =>
     async (req: Request) =>

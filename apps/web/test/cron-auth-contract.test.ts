@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { withCronAuth } from '@/lib/cron';
+import { withCronAuth } from '@/lib/http/cron';
 
 const mockGetAuthEnv = vi.hoisted(() => vi.fn());
 const mockGetUserFromRequest = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/env', () => ({ getAuthEnv: mockGetAuthEnv }));
-vi.mock('@/lib/api', () => ({ getUserFromRequest: mockGetUserFromRequest }));
+vi.mock('@/lib/http/api', () => ({ getUserFromRequest: mockGetUserFromRequest }));
 vi.mock('@/lib/logger', () => ({
   createScopedLoggerWithContext: () => ({ error: vi.fn() }),
 }));
@@ -33,7 +33,7 @@ describe('withCronAuth request correlation', () => {
 
   it('returns request id on admin-session failures', async () => {
     mockGetUserFromRequest.mockResolvedValue({ userId: 'user-1' });
-    vi.doMock('@/lib/admin-auth', () => ({
+    vi.doMock('@/lib/auth/admin-auth', () => ({
       getAdminUser: vi.fn().mockResolvedValue({ admin: null }),
     }));
 

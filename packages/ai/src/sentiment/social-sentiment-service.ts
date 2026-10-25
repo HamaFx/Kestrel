@@ -33,7 +33,7 @@ import {
   type SocialSentiment,
 } from '@kestrel/shared';
 
-import { withRetry } from '../retry';
+import { withRetry } from '../runtime/retry';
 
 // ---------------------------------------------------------------------------
 // Configuration

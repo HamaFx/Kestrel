@@ -34,7 +34,7 @@ import { tool, type Tool } from 'ai';
 import type { z } from 'zod';
 
 import { listEntries } from '../journal/persistence';
-import { getToolContext } from '../tool-context';
+import { getToolContext } from '../runtime/tool-context';
 
 const InputSchema = ComputePositionHealthInputSchema;
 

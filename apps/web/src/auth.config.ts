@@ -22,7 +22,7 @@
 
 import type { NextAuthConfig } from 'next-auth';
 
-import { assertProductionSecurity } from '@/lib/security-invariants';
+import { assertProductionSecurity } from '@/lib/http/security-invariants';
 
 // P2-3 / C-2: Production invariants are checked when the proxy handles a
 // request, not at module evaluation time. Next.js evaluates this config

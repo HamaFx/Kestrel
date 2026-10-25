@@ -30,15 +30,15 @@
 // cross-site form posts. (The §22 CSRF token would add belt-and-
 // braces double-submit on top.)
 
-import { errorResponse, withAuth } from '@/lib/api';
 import { getServerEnv } from '@/lib/env';
+import { errorResponse, withAuth } from '@/lib/http/api';
+import { CHAT_IMAGE_MAX_BYTES, uploadChatImage } from '@/lib/http/storage';
 import {
   AppError,
   providerUnavailable,
   validationError,
   withRateLimit,
 } from '@/lib/services/api-boundary';
-import { CHAT_IMAGE_MAX_BYTES, uploadChatImage } from '@/lib/storage';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

@@ -21,7 +21,7 @@ import { createHash } from 'node:crypto';
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
-import type { RegressionCaseStatus } from '../schema/ai-regression-cases';
+import type { RegressionCaseStatus } from '../schema/ai/ai-regression-cases';
 import { requireTenantIdForUser } from '../tenant';
 
 export type AiRegressionCaseRow = typeof schema.aiRegressionCases.$inferSelect;

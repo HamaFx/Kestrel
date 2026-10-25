@@ -41,8 +41,8 @@ import {
 } from '@tabler/icons-react';
 import { memo, useMemo } from 'react';
 
-import { cn } from '@/lib/cn';
-import { getSessionInfo, type TradingSession } from '@/lib/session';
+import { getSessionInfo, type TradingSession } from '@/lib/auth/session';
+import { cn } from '@/lib/formatters/cn';
 
 interface QuickPromptsProps {
   onSelect: (text: string) => void;

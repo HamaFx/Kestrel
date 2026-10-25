@@ -34,7 +34,7 @@ import { TradingViewWidget } from '@/components/chart';
 import { Segmented } from '@/components/ui/segmented';
 import { useTimeframe } from '@/hooks/use-tf';
 import type { AgentProgress } from '@/lib/chat-transport';
-import { cn } from '@/lib/cn';
+import { cn } from '@/lib/formatters/cn';
 
 import { AgentDeliberation } from './parts/agent-deliberation';
 import { PlanPart } from './parts/plan';

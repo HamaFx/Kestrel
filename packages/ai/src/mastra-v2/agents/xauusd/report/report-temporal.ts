@@ -15,6 +15,7 @@
  */
 
 import type { XauusdResearchPacket } from '@ai/mastra-v2/packets/research-types';
+
 import type { XauusdResearchReport } from './report-types';
 
 export function verifyTemporalDisclosure(

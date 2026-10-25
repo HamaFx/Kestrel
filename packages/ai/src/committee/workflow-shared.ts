@@ -40,9 +40,9 @@ import type { InputProcessorOrWorkflow } from '@mastra/core/processors';
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
 
-import type { GenerationLedger } from '../generation-ledger';
 import { SymbolResearchPacketSchema } from '../mastra-v2/packets/packet-cache';
-import type { ToolContext } from '../tool-context';
+import type { GenerationLedger } from '../persistence/generation-ledger';
+import type { ToolContext } from '../runtime/tool-context';
 import { combineRunSignal, deadlineSignalFor, type DeadlineSignals } from '../utils/timeout';
 import type { SpecialistRunnerDeps } from './specialist-runner';
 import {
