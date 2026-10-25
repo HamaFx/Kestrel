@@ -1,0 +1,54 @@
+{
+  "name": "@kestrel/plugin-telegram-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "skills"
+  ],
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./ui": {
+      "source": "./src/ui/index.tsx",
+      "types": "./dist/ui/index.d.ts",
+      "import": "./dist/ui/index.js"
+    }
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.build.json && node ../../scripts/rewrite-dist-imports.mjs dist",
+    "clean": "rm -rf node_modules .turbo dist"
+  },
+  "dependencies": {
+    "@kestrel/ai": "workspace:*",
+    "@kestrel/data": "workspace:*",
+    "@kestrel/db": "workspace:*",
+    "@kestrel/plugin-sdk": "workspace:*",
+    "@kestrel/shared": "workspace:*",
+    "@tabler/icons-react": "^3.49.0",
+    "ai": "^7.0.143",
+    "drizzle-orm": "^0.45.4",
+    "grammy": "^1.46.0",
+    "react": "^19.3.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@kestrel/config": "workspace:*",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "eslint": "^10.13.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  },
+  "description": "Run Kestrel from Telegram: commands, alerts, and scheduled briefings.",
+  "license": "Apache-2.0"
+}

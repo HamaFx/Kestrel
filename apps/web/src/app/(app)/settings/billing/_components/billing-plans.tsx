@@ -39,16 +39,18 @@ export function BillingPlans({
   plans,
   currentPlanId,
   provider = 'stripe',
+  gammalEnabled = false,
 }: {
   plans: Plan[];
   currentPlanId: string | null;
   provider?: 'stripe' | 'nowpayments';
+  gammalEnabled?: boolean;
 }) {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const checkoutKeys = useRef(new Map<string, string>());
 
-  async function handleCheckout(planId: string) {
+  async function handleCheckout(planId: string, checkoutProvider?: 'gammal') {
     setError(null);
     setLoading(planId);
     try {
@@ -60,7 +62,10 @@ export function BillingPlans({
           'Content-Type': 'application/json',
           'Idempotency-Key': idempotencyKey,
         },
-        body: JSON.stringify({ planId }),
+        body: JSON.stringify({
+          planId,
+          ...(checkoutProvider ? { provider: checkoutProvider } : {}),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -126,26 +131,45 @@ export function BillingPlans({
                 ))}
               </ul>
               {!isCurrent && plan.priceUsdCents > 0 && (
-                <button
-                  onClick={() => handleCheckout(plan.id)}
-                  disabled={
-                    loading !== null || (provider === 'stripe' && !plan.stripePriceId)
-                  }
-                  className="bg-fg hover:bg-fg/90 mt-auto inline-flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
-                  title={
-                    provider === 'stripe' && !plan.stripePriceId
-                      ? 'Stripe price not configured for this plan'
-                      : undefined
-                  }
-                >
-                  {loading === plan.id ? (
-                    <IconLoader2 className="size-4 animate-spin" />
-                  ) : provider === 'stripe' && !plan.stripePriceId ? (
-                    'Unavailable'
-                  ) : (
-                    `Upgrade to ${plan.name}`
+                <div className="mt-auto flex flex-col gap-2">
+                  <button
+                    onClick={() => handleCheckout(plan.id)}
+                    disabled={loading !== null || (provider === 'stripe' && !plan.stripePriceId)}
+                    className="bg-fg hover:bg-fg/90 inline-flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
+                    title={
+                      provider === 'stripe' && !plan.stripePriceId
+                        ? 'Stripe price not configured for this plan'
+                        : undefined
+                    }
+                  >
+                    {loading === plan.id ? (
+                      <IconLoader2 className="size-4 animate-spin" />
+                    ) : provider === 'stripe' && !plan.stripePriceId ? (
+                      'Unavailable'
+                    ) : (
+                      `Upgrade to ${plan.name}`
+                    )}
+                  </button>
+                  {gammalEnabled && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleCheckout(plan.id, 'gammal')}
+                        disabled={loading !== null}
+                        className="border-border bg-bg-elev-2 text-fg hover:border-brand/40 inline-flex items-center justify-center gap-2 rounded-sm border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+                      >
+                        {loading === plan.id ? (
+                          <IconLoader2 className="size-4 animate-spin" />
+                        ) : (
+                          'Pay with Gammal'
+                        )}
+                      </button>
+                      <p className="text-fg-subtle text-[10px] leading-snug">
+                        One-time pass · no auto-renew. Gammal adds an 8% card fee at checkout.
+                      </p>
+                    </>
                   )}
-                </button>
+                </div>
               )}
               {!isCurrent && plan.priceUsdCents === 0 && (
                 <span className="text-fg-subtle mt-auto text-sm">

@@ -30,12 +30,14 @@ import Image from 'next/image';
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 
+import type { CustomAgentSummary } from '@/hooks/use-custom-agents';
 import { useSlashCommands } from '@/hooks/use-slash-commands';
 import { useVoiceInput } from '@/hooks/use-voice-input';
 import { cn } from '@/lib/cn';
 import { fetchCsrf } from '@/lib/csrf';
 
 import { ChatModelSelector } from './_components/chat-model-selector';
+import { CustomAgentSelector } from './_components/custom-agent-selector';
 import { MODE_DESCRIPTIONS, MODE_LABELS, type AnalysisMode } from './chat-top-bar';
 import { formatCharCount, getCharCountTone, MAX_TEXT_CHARS } from './composer-helpers';
 import { ComposerSlashMenu, type SlashMenuCommand } from './composer-slash-menu';
@@ -58,6 +60,9 @@ interface ComposerProps {
   chatModel?: string | null;
   onChatModelChange?: (modelId: string) => void;
   contextUsagePercent?: number;
+  customAgents?: readonly CustomAgentSummary[];
+  selectedAgentSlug?: string | null;
+  onAgentChange?: (slug: string | null) => void;
 }
 
 const DEFAULT_LANG = 'en-US';
@@ -113,6 +118,9 @@ export const Composer = memo(function Composer({
   chatModel,
   onChatModelChange,
   contextUsagePercent,
+  customAgents = [],
+  selectedAgentSlug = null,
+  onAgentChange,
 }: ComposerProps) {
   const [value, setValue] = useState('');
   const [images, setImages] = useState<ComposerImage[]>([]);
@@ -120,6 +128,7 @@ export const Composer = memo(function Composer({
   const [focused, setFocused] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [isTouch, setIsTouch] = useState(false);
+  const [mentionIndex, setMentionIndex] = useState(0);
   const ref = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -176,6 +185,23 @@ export const Composer = memo(function Composer({
       href?: string;
     }[],
   });
+
+  // `@handle` autocomplete. Only active while the whole input is a handle
+  // prefix, so an @mention inside normal prose never hijacks Enter.
+  const mentionMatch = /^@([a-z0-9-]*)$/i.exec(value);
+  const mentionAgents =
+    mentionMatch && customAgents.length > 0
+      ? customAgents
+          .filter((agent) => agent.slug.startsWith((mentionMatch[1] ?? '').toLowerCase()))
+          .slice(0, 6)
+      : [];
+  const activeMentionIndex = Math.min(mentionIndex, Math.max(0, mentionAgents.length - 1));
+
+  function insertMention(slug: string) {
+    setValue(`@${slug} `);
+    setMentionIndex(0);
+    requestAnimationFrame(() => ref.current?.focus());
+  }
 
   function send() {
     const trimmed = value.trim();
@@ -393,6 +419,34 @@ export const Composer = memo(function Composer({
           </p>
         ) : null}
 
+        {mentionAgents.length > 0 ? (
+          <div
+            role="listbox"
+            aria-label="Custom agents"
+            className="border-border bg-bg-elev-1 absolute bottom-full left-0 z-40 mb-2 w-72 overflow-hidden rounded-lg border shadow-xl"
+          >
+            {mentionAgents.map((agent, index) => (
+              <button
+                key={agent.id}
+                type="button"
+                role="option"
+                aria-selected={index === activeMentionIndex}
+                onMouseEnter={() => setMentionIndex(index)}
+                onClick={() => insertMention(agent.slug)}
+                className={cn(
+                  'flex w-full items-start gap-2 px-3 py-2 text-left transition-colors',
+                  index === activeMentionIndex ? 'bg-bg-elev-2' : 'hover:bg-bg-elev-2/60',
+                )}
+              >
+                <span className="min-w-0">
+                  <span className="text-fg block text-xs font-semibold">{agent.name}</span>
+                  <span className="text-fg-subtle block font-mono text-[10px]">@{agent.slug}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+
         <ComposerSlashMenu
           active={slashActive && filteredCommands.length > 0}
           commands={filteredCommands as readonly SlashMenuCommand[]}
@@ -424,6 +478,33 @@ export const Composer = memo(function Composer({
               '[field-sizing:content] max-h-[4lh] min-h-[36px] sm:max-h-[10lh]',
             )}
             onKeyDown={(e) => {
+              if (mentionAgents.length > 0) {
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  setMentionIndex((activeMentionIndex + 1) % mentionAgents.length);
+                  return;
+                }
+                if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setMentionIndex(
+                    (activeMentionIndex - 1 + mentionAgents.length) % mentionAgents.length,
+                  );
+                  return;
+                }
+                if (e.key === 'Enter' || e.key === 'Tab') {
+                  const picked = mentionAgents[activeMentionIndex];
+                  if (picked) {
+                    e.preventDefault();
+                    insertMention(picked.slug);
+                    return;
+                  }
+                }
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  setValue('');
+                  return;
+                }
+              }
               if (handleSlashKeyDown(e)) return;
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -431,6 +512,7 @@ export const Composer = memo(function Composer({
               }
             }}
             onChange={(e) => {
+              setMentionIndex(0);
               handleSlashChange(e.target.value);
             }}
           />
@@ -483,8 +565,8 @@ export const Composer = memo(function Composer({
               </button>
             ) : null}
 
-            {/* Analysis Mode Toggle */}
-            {analysisMode && onAnalysisModeChange ? (
+            {/* Analysis Mode Toggle (a standalone agent has no committee mode) */}
+            {analysisMode && onAnalysisModeChange && !selectedAgentSlug ? (
               <button
                 type="button"
                 onClick={() => {
@@ -518,6 +600,15 @@ export const Composer = memo(function Composer({
                 activeModelId={chatModel ?? null}
                 disabled={disabled}
                 onPick={onChatModelChange}
+              />
+            ) : null}
+
+            {onAgentChange ? (
+              <CustomAgentSelector
+                agents={customAgents}
+                value={selectedAgentSlug}
+                onChange={onAgentChange}
+                disabled={disabled}
               />
             ) : null}
           </div>

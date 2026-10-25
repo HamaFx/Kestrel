@@ -170,9 +170,14 @@ export interface ToolOutputMap {
 export type ToolInput<T extends ToolName> = T extends keyof ToolIOMap
   ? ToolIOMap[T] extends { input: infer I }
     ? I
-    : never
-  : never;
+    : unknown
+  : unknown;
 
+/**
+ * Output type for a tool id. Core tools resolve to their zod-inferred shape;
+ * plugin tools are open-ended, so the fallback is `unknown` (the plugin's UI
+ * card validates its own payload).
+ */
 export type ToolOutput<T extends ToolName> = T extends keyof ToolOutputMap
   ? ToolOutputMap[T]
-  : never;
+  : unknown;

@@ -59,3 +59,4 @@ export * as evalDatasets from './eval-datasets';
 export * as aiShadowComparisons from './ai-shadow-comparisons';
 export * as memoryBackfill from './memory-backfill';
 export * as memoryProjection from './memory-projection';
+export * as plugins from './plugins';

@@ -19,6 +19,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { xauusdMarketStructureTool } from '../src/mastra-v2/agents/xauusd/tools/market-structure-tool';
 import { xauusdSessionLevelsTool } from '../src/mastra-v2/agents/xauusd/tools/session-levels-tool';
 import { xauusdTechnicalAnalysisTool } from '../src/mastra-v2/agents/xauusd/tools/technical-tool';
+import type * as AnalyzeTechnicalModule from '../src/tools/analyze-technical';
+import type * as GetMarketStructureModule from '../src/tools/get-market-structure';
+import type * as GetSessionLevelsModule from '../src/tools/get-session-levels';
 
 const mocks = vi.hoisted(() => ({
   getCandlesWithMeta: vi.fn(),
@@ -36,17 +39,28 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@kestrel/data', () => ({
   getCandlesWithMeta: mocks.getCandlesWithMeta,
 }));
-vi.mock('../src/tools/get-market-structure', () => ({
-  computeMarketStructureOutput: mocks.computeMarketStructureOutput,
-  getMarketStructureTool: mocks.getMarketStructureTool,
-}));
-vi.mock('../src/tools/get-session-levels', () => ({
-  computeSessionLevels: mocks.computeSessionLevels,
-}));
-vi.mock('../src/tools/analyze-technical', () => ({
-  computeTechnicalReading: mocks.computeTechnicalReading,
-  deterministicSummary: mocks.deterministicSummary,
-}));
+// Preserve every real export: the tool-registry barrel is evaluated by the
+// Mastra instance in the same process and imports the full category modules.
+vi.mock('../src/tools/get-market-structure', async (importOriginal) => {
+  const actual = await importOriginal<typeof GetMarketStructureModule>();
+  return {
+    ...actual,
+    computeMarketStructureOutput: mocks.computeMarketStructureOutput,
+    getMarketStructureTool: mocks.getMarketStructureTool,
+  };
+});
+vi.mock('../src/tools/get-session-levels', async (importOriginal) => {
+  const actual = await importOriginal<typeof GetSessionLevelsModule>();
+  return { ...actual, computeSessionLevels: mocks.computeSessionLevels };
+});
+vi.mock('../src/tools/analyze-technical', async (importOriginal) => {
+  const actual = await importOriginal<typeof AnalyzeTechnicalModule>();
+  return {
+    ...actual,
+    computeTechnicalReading: mocks.computeTechnicalReading,
+    deterministicSummary: mocks.deterministicSummary,
+  };
+});
 vi.mock('../src/mastra-v2/shared/telemetry', () => ({
   executeMastraTool: vi.fn((_name: string, _context: unknown, fn: () => Promise<unknown>) => fn()),
 }));

@@ -22,6 +22,7 @@ import {
   IconBell,
   IconBellOff,
   IconBellRinging,
+  IconBrandTelegram,
   IconCheck,
   IconMail,
   IconSend,
@@ -41,7 +42,7 @@ export interface AlertCardData {
   active: boolean;
   firedAt?: number | null;
   createdAt: number;
-  channels?: ('email' | 'telegram' | 'webhook')[];
+  channels?: string[];
   note?: string;
   muted?: boolean;
 }
@@ -163,6 +164,12 @@ export function AlertCard({ alert, onAcknowledge, onMute, onDelete, className }:
           )}
           {alert.channels?.includes('telegram') && (
             <IconSend className="text-fg-subtle size-3.5" aria-label="Telegram enabled" />
+          )}
+          {alert.channels?.includes('telegram-bot') && (
+            <IconBrandTelegram
+              className="text-fg-subtle size-3.5"
+              aria-label="Telegram personal bot enabled"
+            />
           )}
         </div>
       </div>

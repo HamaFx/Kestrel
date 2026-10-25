@@ -106,21 +106,22 @@ Provider availability, cost, rate limits, licensing, and redistribution rights r
 
 ## Notifications and storage
 
-| Variable                       | Description                             |
-| ------------------------------ | --------------------------------------- |
-| `TELEGRAM_BOT_TOKEN`           | Telegram bot credential                 |
-| `TELEGRAM_CHAT_ID`             | Telegram destination                    |
-| `TELEGRAM_SECRET_TOKEN`        | Telegram webhook secret                 |
-| `RESEND_API_KEY`               | Email provider credential               |
-| `ALERT_FROM_EMAIL`             | Alert sender address                    |
-| `ALERT_TO_EMAIL`               | Alert recipient address                 |
-| `VAPID_PUBLIC_KEY`             | Server-side Web Push public key         |
-| `VAPID_PRIVATE_KEY`            | Server-side Web Push private key        |
-| `VAPID_SUBJECT`                | VAPID contact subject                   |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Browser-readable matching public key    |
-| `SUPABASE_URL`                 | Optional Supabase Storage URL           |
-| `SUPABASE_SERVICE_ROLE_KEY`    | Server-only Supabase service credential |
-| `CHAT_IMAGES_BUCKET`           | Storage bucket used for chat images     |
+| Variable                       | Description                                                                                      |
+| ------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `TELEGRAM_BOT_TOKEN`           | Telegram bot credential                                                                          |
+| `TELEGRAM_CHAT_ID`             | Telegram destination                                                                             |
+| `TELEGRAM_SECRET_TOKEN`        | Telegram webhook secret                                                                          |
+| `TELEGRAM_PLUGIN_SECRET`       | Optional signing key for the Telegram plugin's link/webhook tokens (falls back to `AUTH_SECRET`) |
+| `RESEND_API_KEY`               | Email provider credential                                                                        |
+| `ALERT_FROM_EMAIL`             | Alert sender address                                                                             |
+| `ALERT_TO_EMAIL`               | Alert recipient address                                                                          |
+| `VAPID_PUBLIC_KEY`             | Server-side Web Push public key                                                                  |
+| `VAPID_PRIVATE_KEY`            | Server-side Web Push private key                                                                 |
+| `VAPID_SUBJECT`                | VAPID contact subject                                                                            |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Browser-readable matching public key                                                             |
+| `SUPABASE_URL`                 | Optional Supabase Storage URL                                                                    |
+| `SUPABASE_SERVICE_ROLE_KEY`    | Server-only Supabase service credential                                                          |
+| `CHAT_IMAGES_BUCKET`           | Storage bucket used for chat images                                                              |
 
 Keep service-role credentials server-only. The VAPID public keys must match exactly.
 
@@ -161,36 +162,42 @@ Billing is disabled unless `BILLING_ENABLED=1` — it is a self-host opt-in and 
 These decisions are recorded here so implementation and operations share one
 contract. Change them only with a migration + docs update.
 
-| # | Decision | Locked behaviour |
-|---|----------|------------------|
-| D1 | Who pays the LLM bill | **Hybrid.** Credits meter platform-paid (managed) turns only. BYOK turns still emit telemetry but consume `PLATFORM_FEE_CREDITS` (default `0`). |
-| D2 | Currency/provider | **Stripe fiat primary**, NOWPayments crypto retained. `BILLING_PROVIDER=stripe\|nowpayments\|both`. |
-| D3 | Credit unit | Integer credits where **1 credit = $0.001** (`CREDITS_PER_DOLLAR=1000`). Stored as `bigint`, never float. |
-| D4 | Rollover | Subscription grants expire at period end (no rollover). Top-up packs roll over and never expire. Promo grants may expire. |
-| D5 | Grace / overage | **Soft degrade.** At zero credits, BYOK turns still work; managed turns return HTTP 402 with an upsell. Balances never go negative. |
-| D6 | Self-host semantics | `BILLING_ENABLED` remains the kill-switch; `BILLING_MODE=selfhost\|saas` selects the presentation/requirement profile. Never branch billing on `NODE_ENV`. |
+| #   | Decision              | Locked behaviour                                                                                                                                           |
+| --- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | Who pays the LLM bill | **Hybrid.** Credits meter platform-paid (managed) turns only. BYOK turns still emit telemetry but consume `PLATFORM_FEE_CREDITS` (default `0`).            |
+| D2  | Currency/provider     | **Stripe fiat primary**, NOWPayments crypto retained. `BILLING_PROVIDER=stripe\|nowpayments\|both`.                                                        |
+| D3  | Credit unit           | Integer credits where **1 credit = $0.001** (`CREDITS_PER_DOLLAR=1000`). Stored as `bigint`, never float.                                                  |
+| D4  | Rollover              | Subscription grants expire at period end (no rollover). Top-up packs roll over and never expire. Promo grants may expire.                                  |
+| D5  | Grace / overage       | **Soft degrade.** At zero credits, BYOK turns still work; managed turns return HTTP 402 with an upsell. Balances never go negative.                        |
+| D6  | Self-host semantics   | `BILLING_ENABLED` remains the kill-switch; `BILLING_MODE=selfhost\|saas` selects the presentation/requirement profile. Never branch billing on `NODE_ENV`. |
 
 ### Core billing variables
 
-| Variable | Default | Description |
-| -------- | ------- | ----------- |
-| `BILLING_ENABLED` | `0` | Explicit billing master switch |
-| `BILLING_MODE` | `selfhost` | `selfhost` or `saas` (UI/requirement profile) |
-| `BILLING_PROVIDER` | `stripe` | `stripe`, `nowpayments`, or `both` |
-| `BILLING_STRIPE_ENABLED` | `0` | Enables Stripe checkout/webhooks |
-| `BILLING_TOPUPS_ENABLED` | `1` | Enables credit top-up packs |
-| `NOWPAYMENTS_API_KEY` | unset | NOWPayments API credential |
-| `NOWPAYMENTS_IPN_SECRET` | unset | Webhook signature secret |
-| `NOWPAYMENTS_API_BASE` | Sandbox URL | NOWPayments API endpoint |
-| `STRIPE_SECRET_KEY` | unset | Stripe API secret (`sk_live_…` / `sk_test_…`) |
-| `STRIPE_WEBHOOK_SECRET` | unset | Stripe webhook signing secret (`whsec_…`) |
-| `STRIPE_BILLING_PORTAL_RETURN_URL` | unset | Return URL after the Stripe customer portal |
-| `CREDITS_PER_DOLLAR` | `1000` | Credits per USD (1 credit = $0.001) |
-| `FULL_MODE_CREDIT_ESTIMATE` | `250` | Credits reserved for one Full-analysis turn |
-| `PLATFORM_FEE_CREDITS` | `0` | Flat fee per BYOK turn |
-| `CREDITS_ENFORCEMENT_ENABLED` | `0` | `0` = shadow metering, `1` = return 402 on insufficient credits |
-| `CREDITS_SHADOW_LOG` | `1` | Write shadow reservations/ledger rows while enforcement is off |
-| `CREDIT_LEDGER_RETENTION_DAYS` | `730` | Ledger/billing audit retention (never swept at 90 days) |
+| Variable                           | Default                   | Description                                                     |
+| ---------------------------------- | ------------------------- | --------------------------------------------------------------- |
+| `BILLING_ENABLED`                  | `0`                       | Explicit billing master switch                                  |
+| `BILLING_MODE`                     | `selfhost`                | `selfhost` or `saas` (UI/requirement profile)                   |
+| `BILLING_PROVIDER`                 | `stripe`                  | `stripe`, `nowpayments`, or `both`                              |
+| `BILLING_STRIPE_ENABLED`           | `0`                       | Enables Stripe checkout/webhooks                                |
+| `BILLING_TOPUPS_ENABLED`           | `1`                       | Enables credit top-up packs                                     |
+| `NOWPAYMENTS_API_KEY`              | unset                     | NOWPayments API credential                                      |
+| `NOWPAYMENTS_IPN_SECRET`           | unset                     | Webhook signature secret                                        |
+| `NOWPAYMENTS_API_BASE`             | Sandbox URL               | NOWPayments API endpoint                                        |
+| `STRIPE_SECRET_KEY`                | unset                     | Stripe API secret (`sk_live_…` / `sk_test_…`)                   |
+| `STRIPE_WEBHOOK_SECRET`            | unset                     | Stripe webhook signing secret (`whsec_…`)                       |
+| `STRIPE_BILLING_PORTAL_RETURN_URL` | unset                     | Return URL after the Stripe customer portal                     |
+| `BILLING_GAMMAL_ENABLED`           | `0`                       | Enables Gammal one-time pass checkout/webhooks                  |
+| `GAMMAL_PROJECT_ID`                | unset                     | Public Gammal project id (`pid`), e.g. `47`                     |
+| `GAMMAL_API_BASE`                  | `https://api.gammal.tech` | Gammal API origin for links and signing key                     |
+| `GAMMAL_CURRENCY`                  | `USD`                     | Charge currency; Kestrel plans are USD                          |
+| `GAMMAL_PUBLIC_KEY_PEM`            | unset                     | Optional pinned RS256 public key (otherwise fetched)            |
+| `GAMMAL_PASS_DAYS`                 | `30`                      | Fallback prepaid pass length                                    |
+| `CREDITS_PER_DOLLAR`               | `1000`                    | Credits per USD (1 credit = $0.001)                             |
+| `FULL_MODE_CREDIT_ESTIMATE`        | `250`                     | Credits reserved for one Full-analysis turn                     |
+| `PLATFORM_FEE_CREDITS`             | `0`                       | Flat fee per BYOK turn                                          |
+| `CREDITS_ENFORCEMENT_ENABLED`      | `0`                       | `0` = shadow metering, `1` = return 402 on insufficient credits |
+| `CREDITS_SHADOW_LOG`               | `1`                       | Write shadow reservations/ledger rows while enforcement is off  |
+| `CREDIT_LEDGER_RETENTION_DAYS`     | `730`                     | Ledger/billing audit retention (never swept at 90 days)         |
 
 Never enable billing without reviewing webhook safety, legal terms, idempotency, and operator responsibilities.
 
@@ -204,14 +211,20 @@ Never enable billing without reviewing webhook safety, legal terms, idempotency,
   JSON parsing. Stripe uses `Stripe-Signature`; NOWPayments uses
   `x-nowpayments-sig`.
 - `billing_events` deduplicates Stripe events; `ipn_events` deduplicates
-  NOWPayments `(payment_id, payment_status)`.
+  NOWPayments `(payment_id, payment_status)`. Gammal events are deduplicated by
+  the verified `txn` in `billing_events`.
+- Gammal has no API key. The checkout link is domain-authorised, and the
+  short-lived RS256 `payment_token` is verified locally against
+  `GAMMAL_PUBLIC_KEY_PEM` (or the cached public key) before any credit
+  movement. Never grant access from the browser return URL's `status` alone.
 - `credit_ledger` and `billing_*` tables are excluded from the 90-day
   telemetry sweep and retained for `CREDIT_LEDGER_RETENTION_DAYS`.
 - In shared/SaaS mode, set `ADMIN_DATABASE_URL` (BYPASSRLS). Stripe webhooks
   resolve the tenant from the Stripe customer before entering a tenant
   transaction; the cross-tenant lookup cannot run under the RLS app role.
 - Webhook endpoints: `POST /api/billing/webhook` dispatches on
-  `Stripe-Signature` first, then `x-nowpayments-sig`. Configure Stripe to send
+  `Stripe-Signature` first, then `x-nowpayments-sig`, then the Gammal
+  `X-Gammal-Event` + signed `payment_token`. Configure Stripe to send
   `checkout.session.completed`, `customer.subscription.created|updated|deleted`,
   `invoice.paid`, `invoice.payment_failed`, `payment_intent.succeeded`, and
   `charge.refunded`.
@@ -236,6 +249,21 @@ Never enable billing without reviewing webhook safety, legal terms, idempotency,
 | `DEPLOYED_SHA`              | `unknown`                                                     | Deployment revision label                                                      |
 
 The worker exposes `/health/live` and `/health/ready` on port `8081`, and the optional `/biquote` proxy on port `8082` (when `BIQUOTE_PROXY_TOKEN` is set). Both bind privately by default; if either must be reachable by an orchestrator, use a private network or loopback binding and pass the matching bearer token. Production worker startup requires `WORKER_HEALTH_TOKEN` (and `BIQUOTE_PROXY_TOKEN` when `WORKER_ENABLE_TICK_STREAM=1`). Never expose either port directly to the public internet.
+
+## Custom Agents and MCP
+
+The Custom Agents plugin can connect a user-authored agent to a remote Model
+Context Protocol server. URLs are user input, so the bridge is an SSRF
+boundary:
+
+| Variable                  | Default | Description                                                                                                         |
+| ------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------- |
+| `MCP_ALLOW_PRIVATE_HOSTS` | `0`     | Allow loopback/private/link-local/CGNAT MCP hosts (including `http://localhost`). Enable only on a trusted network. |
+| `MCP_ALLOW_INSECURE_URLS` | `0`     | Allow plain `http://` for non-loopback hosts. HTTPS is required otherwise.                                          |
+
+TLS is always required for public endpoints. Credentials embedded in a URL are
+rejected; use the encrypted authorization field instead. MCP tool discovery has
+a 15-second timeout and fails open (the agent keeps its other tools).
 
 ## Docker-only settings
 

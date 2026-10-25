@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
+import { pluginHost } from '@kestrel/plugin-sdk';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { z } from 'zod';
 
 import {
   assertMastraMutationAllowed,
@@ -171,5 +173,75 @@ describe('Mastra mutation policy', () => {
       mutation: 'set_alert',
       reason: 'confirmation-required',
     });
+  });
+
+  it('fails closed for plugin writes unless the owning plugin is installed', () => {
+    process.env.ENABLE_MASTRA_MUTATIONS = 'true';
+    pluginHost.register({
+      manifest: {
+        id: 'paper-trading',
+        name: 'Paper Trading',
+        version: '1.0.0',
+        tagline: 'paper',
+        description: 'paper',
+        category: 'trading-execution',
+        iconName: 'IconWallet',
+        installMode: 'instant',
+      },
+      tools: [
+        {
+          name: 'paper_place_order',
+          description: 'place a paper order',
+          inputSchema: z.object({}),
+          outputSchema: z.object({ ok: z.boolean() }),
+          access: 'write',
+          requiresConfirmation: true,
+          execute: async () => ({ ok: true }),
+        },
+      ],
+    });
+
+    const issued = issueMutationConfirmationToken({
+      mutation: 'paper_place_order',
+      userId: 'user-1',
+      secret: SECRET,
+      ttlMs: 60_000,
+    });
+    const confirmation = storedConfirmationForToken(issued.token, {
+      mutation: 'paper_place_order',
+      userId: 'user-1',
+      inputDigest: INPUT_DIGEST,
+      expiresAt: issued.expiresAt,
+      secret: SECRET,
+    });
+    const request = {
+      mutation: 'paper_place_order',
+      userId: 'user-1',
+      threadId: 'thread-1',
+      approval: {
+        approvalId: 'approval-plugin-1',
+        userId: 'user-1',
+        threadId: 'thread-1',
+        mutation: 'paper_place_order',
+        inputDigest: INPUT_DIGEST,
+        expiresAt: issued.expiresAt,
+        confirmationToken: issued.token,
+        confirmation,
+      },
+    };
+
+    try {
+      expect(evaluateMastraMutation(request)).toEqual({
+        allowed: false,
+        mutation: 'paper_place_order',
+        reason: 'plugin-not-installed',
+      });
+      expect(evaluateMastraMutation({ ...request, installedPlugins: ['paper-trading'] })).toEqual({
+        allowed: true,
+        mutation: 'paper_place_order',
+      });
+    } finally {
+      pluginHost.clear();
+    }
   });
 });

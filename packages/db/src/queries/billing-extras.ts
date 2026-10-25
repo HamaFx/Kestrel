@@ -89,6 +89,7 @@ export async function upsertSubscription(
       tenantId,
       planId: data.planId,
       status: 'active',
+      provider: 'nowpayments',
       nowpaymentsInvoiceId: data.nowpaymentsInvoiceId,
     })
     .onConflictDoUpdate({
@@ -97,6 +98,7 @@ export async function upsertSubscription(
       set: {
         planId: data.planId,
         status: 'active',
+        provider: 'nowpayments',
         nowpaymentsInvoiceId: data.nowpaymentsInvoiceId,
         updatedAt: now,
       },

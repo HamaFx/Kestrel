@@ -25,8 +25,9 @@ import { and, eq, isNotNull, lt, or } from 'drizzle-orm';
 import { withCronAuth } from '@/lib/cron';
 import { getServerEnv } from '@/lib/env';
 import { createScopedLoggerWithContext } from '@/lib/logger';
-import { reconcileStripeSubscription } from '@/lib/services/stripe-billing';
 import { getAdminDb, getDb, schema } from '@/lib/services/api-boundary';
+import { expireGammalPasses } from '@/lib/services/gammal-billing';
+import { reconcileStripeSubscription } from '@/lib/services/stripe-billing';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -37,8 +38,28 @@ export async function GET(req: Request): Promise<Response> {
     req,
     async () => {
       const env = getServerEnv();
-      if (!env.BILLING_ENABLED || !env.BILLING_STRIPE_ENABLED) {
-        return { processed: 0, note: 'Stripe billing is disabled' };
+      if (!env.BILLING_ENABLED || (!env.BILLING_STRIPE_ENABLED && !env.BILLING_GAMMAL_ENABLED)) {
+        return { processed: 0, note: 'Billing providers are disabled' };
+      }
+
+      let gammalExpired = 0;
+      if (env.BILLING_GAMMAL_ENABLED) {
+        try {
+          gammalExpired = await expireGammalPasses();
+        } catch (err) {
+          createScopedLoggerWithContext({ component: 'cron', job: 'billing-reconcile' }).error(
+            { err: String(err) },
+            'Gammal pass expiry failed',
+          );
+        }
+      }
+
+      if (!env.BILLING_STRIPE_ENABLED) {
+        return {
+          processed: gammalExpired,
+          failed: 0,
+          note: `${gammalExpired} Gammal pass(es) expired; Stripe billing is disabled`,
+        };
       }
 
       const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -80,7 +101,11 @@ export async function GET(req: Request): Promise<Response> {
           );
         }
       }
-      return { processed, failed, note: `${processed} reconciled, ${failed} failed` };
+      return {
+        processed: processed + gammalExpired,
+        failed,
+        note: `${processed} Stripe reconciled, ${gammalExpired} Gammal pass(es) expired, ${failed} failed`,
+      };
     },
     { requireAdminSession: true },
   );

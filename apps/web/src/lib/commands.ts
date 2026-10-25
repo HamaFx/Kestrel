@@ -32,13 +32,14 @@ import {
   IconNews,
   IconPalette,
   IconPlus,
+  IconPuzzle,
   IconSettings,
   IconShield,
   IconWallet,
   type Icon,
 } from '@tabler/icons-react';
 
-export type CommandGroup = 'navigation' | 'create' | 'settings';
+export type CommandGroup = 'navigation' | 'create' | 'plugins' | 'settings';
 
 export interface CommandItem {
   id: string;
@@ -140,6 +141,14 @@ export const COMMANDS: readonly CommandItem[] = [
     icon: IconCreditCard,
     href: '/settings/billing',
     keywords: ['plan', 'upgrade', 'billing', 'subscription'],
+  },
+  {
+    id: 'set-plugins',
+    group: 'settings',
+    label: 'Plugin Store',
+    icon: IconPuzzle,
+    href: '/settings/plugins',
+    keywords: ['plugins', 'install', 'extensions', 'backtesting', 'telegram', 'paper trading'],
   },
   {
     id: 'set-portfolio',

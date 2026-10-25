@@ -133,6 +133,7 @@ export function createReadOnlyToolExecute<TInput, TOutput>(
   fullToolId: string,
   uiToolName: string,
   run: (input: TInput, context: MastraReadOnlyToolContext) => Promise<TOutput>,
+  options?: { agentId?: string },
 ): (input: TInput, context: MastraReadOnlyToolContext) => Promise<TOutput> {
   return async (input: TInput, context: MastraReadOnlyToolContext) => {
     const toolCallId = context.toolCallId ?? `call-${uiToolName}-${crypto.randomUUID()}`;
@@ -151,7 +152,12 @@ export function createReadOnlyToolExecute<TInput, TOutput>(
     }
 
     try {
-      const output = await executeMastraTool(fullToolId, context, () => run(input, context));
+      const output = await executeMastraTool(
+        fullToolId,
+        context,
+        () => run(input, context),
+        options,
+      );
       if (typeof onToolEvent === 'function') {
         try {
           onToolEvent({ type: 'tool-output-available', toolCallId, output });

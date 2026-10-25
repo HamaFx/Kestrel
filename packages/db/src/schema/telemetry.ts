@@ -88,6 +88,8 @@ export type ChatTelemetryKind =
   | 'mastra_worker_task_failed'
   | 'mastra_canonical_chat'
   | 'mastra_canonical_chat_failed'
+  | 'mastra_custom_agent'
+  | 'mastra_custom_agent_failed'
   | 'legacy_shadow'
   | 'legacy_shadow_failed'
   | 'turn_failed';

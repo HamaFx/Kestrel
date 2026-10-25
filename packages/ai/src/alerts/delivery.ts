@@ -34,13 +34,16 @@
 // they fire normally once the suppression window lifts. The dedup/cooldown
 // state is persisted via `DbNoiseState` so every cron runner shares one view.
 
+import { pluginHost } from '@kestrel/plugin-sdk';
 import { metrics, type Alert, type AlertRule, type NoiseDecision } from '@kestrel/shared';
 import { createCategorizedLogger, logErrorContext } from '@kestrel/shared/logger';
 
 import { evaluateNoise, hashContent } from '../notifications/noise-control';
 import { DbNoiseState, getNoiseConfig } from '../notifications/noise-state';
+import { createPluginExecutionContext, getInstalledPluginRuntime } from '../plugins';
 import { deletePushSubscription, listPushSubscriptions } from '../push/persistence';
 import { sendWebPush } from '../push/send';
+import { alertChannelRegistry, type AlertChannelDeliveryResult } from './channel-registry';
 import type { EvaluatorEnv, RuleReading } from './evaluator';
 import { markFiredForAlert } from './persistence';
 import { alertRuleRegistry } from './rule-registry';
@@ -167,33 +170,86 @@ export async function deliverAlert({
 }
 
 async function deliverChannel(ch: string, args: DeliverArgs): Promise<DeliveryResult | null> {
-  switch (ch) {
-    case 'email':
-      return deliverEmail(args);
-    case 'telegram':
-      return deliverTelegram(args);
-    case 'web-push':
-      return deliverWebPush(args);
-    default:
-      return null;
+  const core = alertChannelRegistry.get(ch);
+  if (core) {
+    const result = await core.deliver(args);
+    return finalizeDelivery(ch, result, args);
   }
+
+  const plugin = pluginHost.getAlertChannel(ch);
+  if (plugin) {
+    const runtime = await getInstalledPluginRuntime(args.alert.userId);
+    if (!runtime.installedPluginIds.includes(plugin.pluginId) || !runtime.tenantId) {
+      return {
+        alertId: args.alert.id,
+        channel: ch,
+        ok: false,
+        message: `plugin "${plugin.pluginId}" is not installed`,
+      };
+    }
+    const ctx = createPluginExecutionContext({
+      userId: runtime.userId,
+      tenantId: runtime.tenantId,
+      pluginId: plugin.pluginId,
+      settings: runtime.plugins.find((entry) => entry.pluginId === plugin.pluginId)?.settings ?? {},
+    });
+    const result = await plugin.deliver({
+      alert: {
+        id: args.alert.id,
+        userId: args.alert.userId,
+        note: args.alert.note ?? null,
+        channels: args.alert.channels,
+      },
+      reading: { value: args.reading.value, source: args.reading.source },
+      settings: ctx.settings,
+      log: ctx.log,
+    });
+    return finalizeDelivery(ch, result, args);
+  }
+
+  // Unknown channel id — skip, never fatal (a user may have downgraded a
+  // plugin while an alert still lists the channel).
+  return null;
+}
+
+/**
+ * Single place that marks an alert fired. Channels only report provider
+ * acceptance; they never mutate alert state themselves.
+ */
+async function finalizeDelivery(
+  channel: string,
+  result: AlertChannelDeliveryResult,
+  args: DeliverArgs,
+): Promise<DeliveryResult> {
+  if (!result.ok) {
+    return {
+      alertId: args.alert.id,
+      channel,
+      ok: false,
+      ...(result.message !== undefined ? { message: result.message } : {}),
+    };
+  }
+  const finalized = await markFiredForAlert(args.alert, new Date(), args.claimAt);
+  return finalized
+    ? { alertId: args.alert.id, channel, ok: true }
+    : {
+        alertId: args.alert.id,
+        channel,
+        ok: false,
+        message: 'delivery claim lost after provider acceptance',
+      };
 }
 
 async function deliverEmail({
   alert,
   reading,
   env,
-  claimAt,
-}: DeliverArgs): Promise<DeliveryResult> {
+}: DeliverArgs): Promise<AlertChannelDeliveryResult> {
   if (!env.RESEND_API_KEY || !env.ALERT_FROM_EMAIL || !env.ALERT_TO_EMAIL) {
-    // No Resend call happens, so there is no 2xx and we deliberately do NOT
-    // call markFired. The alert will keep matching every cron tick until the
-    // user either deactivates it or fills in the env vars — which is the
-    // signal the spec wants (Requirement 7.5 conditions on env vars present).
+    // No Resend call happens, so delivery is not confirmed and the alert
+    // stays active for the next cron tick.
     alog.warn('email channel not configured (RESEND_*); skipping');
     return {
-      alertId: alert.id,
-      channel: 'email',
       ok: false,
       message: 'not configured (RESEND_API_KEY / ALERT_FROM_EMAIL / ALERT_TO_EMAIL missing)',
     };
@@ -222,8 +278,6 @@ async function deliverEmail({
     const msg = err instanceof Error ? err.message : 'fetch failed';
     logErrorContext(err, 'alerts/resend_fetch_failed', { alertId: alert.id }, 'email');
     return {
-      alertId: alert.id,
-      channel: 'email',
       ok: false,
       message: msg,
     };
@@ -241,25 +295,12 @@ async function deliverEmail({
       'email',
     );
     return {
-      alertId: alert.id,
-      channel: 'email',
       ok: false,
       message: `resend HTTP ${res.status}: ${truncated}`,
     };
   }
 
-  // 2xx response — only now do we mark the alert as fired. This is the single
-  // point where markFired is called for the email channel; the evaluator does
-  // not call it separately.
-  const finalized = await markFiredForAlert(alert, new Date(), claimAt);
-  return finalized
-    ? { alertId: alert.id, channel: 'email', ok: true }
-    : {
-        alertId: alert.id,
-        channel: 'email',
-        ok: false,
-        message: 'delivery claim lost after provider acceptance',
-      };
+  return { ok: true };
 }
 
 function renderEmailBody(alert: Alert, reading: RuleReading): string {
@@ -294,13 +335,10 @@ async function deliverTelegram({
   alert,
   reading,
   env,
-  claimAt,
-}: DeliverArgs): Promise<DeliveryResult> {
+}: DeliverArgs): Promise<AlertChannelDeliveryResult> {
   if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
     alog.warn('telegram channel not configured (TELEGRAM_*); skipping');
     return {
-      alertId: alert.id,
-      channel: 'telegram',
       ok: false,
       message: 'not configured (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID missing)',
     };
@@ -317,21 +355,11 @@ async function deliverTelegram({
       parseMode: 'MarkdownV2',
       signal: AbortSignal.timeout(EXTERNAL_DELIVERY_TIMEOUT_MS),
     });
-    const finalized = await markFiredForAlert(alert, new Date(), claimAt);
-    return finalized
-      ? { alertId: alert.id, channel: 'telegram', ok: true }
-      : {
-          alertId: alert.id,
-          channel: 'telegram',
-          ok: false,
-          message: 'delivery claim lost after provider acceptance',
-        };
+    return { ok: true };
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'fetch failed';
     logErrorContext(err, 'alerts/telegram_delivery_failed', { alertId: alert.id }, 'telegram');
     return {
-      alertId: alert.id,
-      channel: 'telegram',
       ok: false,
       message: msg,
     };
@@ -371,12 +399,9 @@ async function deliverWebPush({
   alert,
   reading,
   env,
-  claimAt,
-}: DeliverArgs): Promise<DeliveryResult> {
+}: DeliverArgs): Promise<AlertChannelDeliveryResult> {
   if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) {
     return {
-      alertId: alert.id,
-      channel: 'web-push',
       ok: false,
       message: 'not configured (VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY missing)',
     };
@@ -385,8 +410,6 @@ async function deliverWebPush({
   const subs = await listPushSubscriptions(alert.userId);
   if (subs.length === 0) {
     return {
-      alertId: alert.id,
-      channel: 'web-push',
       ok: false,
       message: 'not configured (no push subscriptions registered)',
     };
@@ -431,8 +454,6 @@ async function deliverWebPush({
 
   if (!allOkOrGone) {
     return {
-      alertId: alert.id,
-      channel: 'web-push',
       ok: false,
       message: 'one or more pushes failed',
     };
@@ -440,20 +461,12 @@ async function deliverWebPush({
 
   if (!anyOk) {
     // Every active subscription returned 410/404 — none delivered. Still
-    // mark the alert fired so we don't re-evaluate it forever; the user
-    // can re-subscribe and the next matching alert will fire normally.
+    // return ok so the alert is marked fired and not re-evaluated forever;
+    // the user can re-subscribe and the next matching alert will fire.
     alog.warn(`all push subscriptions were dead for alert ${alert.id}; marking fired anyway`);
   }
 
-  const finalized = await markFiredForAlert(alert, new Date(), claimAt);
-  return finalized
-    ? { alertId: alert.id, channel: 'web-push', ok: true }
-    : {
-        alertId: alert.id,
-        channel: 'web-push',
-        ok: false,
-        message: 'delivery claim lost after provider acceptance',
-      };
+  return { ok: true };
 }
 
 export async function sendDirectNotification(
@@ -521,3 +534,10 @@ export async function sendDirectNotification(
 // Hoist renderEmailBody so deliverWebPush above can read it. It was already
 // defined as a function declaration earlier in the file, so this comment is
 // purely a reading-aid.
+
+// Core channels register themselves into the plugin-extensible registry.
+// Plugin channels are resolved from `pluginHost` in `deliverChannel`, so no
+// core edit is needed to add Discord/Slack/etc.
+alertChannelRegistry.register({ id: 'email', label: 'Email', deliver: deliverEmail });
+alertChannelRegistry.register({ id: 'telegram', label: 'Telegram', deliver: deliverTelegram });
+alertChannelRegistry.register({ id: 'web-push', label: 'Web push', deliver: deliverWebPush });

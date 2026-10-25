@@ -22,6 +22,7 @@ import {
   IconBell,
   IconBellOff,
   IconBellRinging,
+  IconBrandTelegram,
   IconChartBar,
   IconMail,
   IconPlus,
@@ -310,6 +311,13 @@ function AlertRow({ alert, onToggle, onDelete }: AlertRowProps) {
                   className="text-fg size-3.5"
                   strokeWidth={2}
                   title="Telegram delivery"
+                />
+              )}
+              {alert.channels.includes('telegram-bot') && (
+                <IconBrandTelegram
+                  className="text-fg size-3.5"
+                  strokeWidth={2}
+                  title="Telegram personal bot delivery"
                 />
               )}
             </div>

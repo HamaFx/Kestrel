@@ -25,6 +25,9 @@ const intentionalPublic = new Set([
   'apps/web/src/app/api/market/stream/route.ts',
   'apps/web/src/app/api/dev/login/route.ts',
   'apps/web/src/app/api/cron/health-alerts/route.ts',
+  // Generic public plugin transport. Each handler authenticates its provider
+  // (HMAC path token + provider secret) before resolving an install.
+  'apps/web/src/app/api/plugins/public/[pluginId]/[[...path]]/route.ts',
 ]);
 
 const failures = [];

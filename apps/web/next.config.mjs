@@ -36,7 +36,33 @@ const nextConfig = {
     '@kestrel/data',
     '@kestrel/indicators',
     '@kestrel/ai',
+    '@kestrel/plugin-backtesting',
+    '@kestrel/plugin-custom-agents',
+    '@kestrel/plugin-paper-trading',
+    '@kestrel/plugin-sdk',
+    '@kestrel/plugin-telegram-bot',
+    '@kestrel/plugins',
     '@kestrel/config',
+  ],
+
+  // Mastra resolves plugin SKILL.md directories at runtime via absolute
+  // filesystem paths. Next's static tracer cannot see those reads, so include
+  // every bundled plugin's skills folder in the standalone output.
+  outputFileTracingIncludes: {
+    '/*': [
+      '../../plugins/*/skills/**/*',
+      '../../node_modules/.pnpm/@jitl+quickjs-wasmfile-release-sync@*/node_modules/@jitl/quickjs-wasmfile-release-sync/dist/*.wasm',
+    ],
+  },
+
+  // QuickJS ships a separate .wasm file that Next's static tracer cannot see.
+  // Keep the package external so Node resolves it from node_modules at runtime,
+  // and include the wasm in the standalone output.
+  serverExternalPackages: [
+    'quickjs-emscripten',
+    '@jitl/quickjs-wasmfile-release-sync',
+    'pg-boss',
+    'pg',
   ],
 
   typescript: { ignoreBuildErrors: process.env.NEXT_BUILD_SKIP_TYPECHECK === '1' },

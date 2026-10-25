@@ -12,8 +12,13 @@ const packages = [
   { name: 'packages/data', path: join(root, 'packages/data') },
   { name: 'packages/db', path: join(root, 'packages/db') },
   { name: 'packages/indicators', path: join(root, 'packages/indicators') },
+  { name: 'packages/plugin-sdk', path: join(root, 'packages/plugin-sdk') },
   { name: 'packages/shared', path: join(root, 'packages/shared') },
   { name: 'packages/test-utils', path: join(root, 'packages/test-utils') },
+  { name: 'plugins/backtesting', path: join(root, 'plugins/backtesting') },
+  { name: 'plugins/custom-agents', path: join(root, 'plugins/custom-agents') },
+  { name: 'plugins/paper-trading', path: join(root, 'plugins/paper-trading') },
+  { name: 'plugins/telegram-bot', path: join(root, 'plugins/telegram-bot') },
 ];
 
 let failed = false;

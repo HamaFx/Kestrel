@@ -18,6 +18,11 @@
 
 // GET /api/telegram/webhook — Returns webhook info and bot status.
 // POST /api/telegram/webhook — Receives Telegram updates.
+//
+// Legacy shared-bot transport. Per-user bots installed through the Telegram
+// Copilot plugin are served by /api/plugins/public/telegram-bot/webhook/:token
+// and keep their own secret + idempotency ledger. This route stays for
+// deployments that rely on the shared TELEGRAM_BOT_TOKEN for alerts.
 
 import { timingSafeEqual } from 'node:crypto';
 

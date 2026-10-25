@@ -46,6 +46,7 @@ import { getDb } from '../../db';
 import type { ResolveModelEnv } from '../../env-model-factory';
 import { createGenerationLedger, type GenerationLedger } from '../../generation-ledger';
 import { resolveMastraExecutionModel, type ChatModelResolution } from '../../model';
+import { getInstalledPluginRuntime } from '../../plugins';
 import { createToolContext, withToolContext, type ToolEnv } from '../../tool-context';
 import { getKestrelMastra } from '../instance';
 import { logWorkflowEnd, logWorkflowError, logWorkflowStart } from '../logger';
@@ -167,18 +168,21 @@ export function resolveMastraModeModel(
 }
 
 /** Base run context (no packet — the workflow collects it inside its first step). */
-function contextForRun(args: RunMastraModeArgs): RequestContext {
+async function contextForRun(args: RunMastraModeArgs): Promise<RequestContext> {
+  const pluginRuntime = await getInstalledPluginRuntime(args.userId);
   REQUEST_CONTEXT_SCHEMA.parse({
     userId: args.userId,
     runId: args.runId,
     threadId: args.threadId,
     symbol: args.symbol,
+    installedPlugins: [...pluginRuntime.installedPluginIds],
   });
   return new RequestContext([
     ['userId', args.userId],
     ['runId', args.runId],
     ['threadId', args.threadId],
     ['symbol', args.symbol],
+    ['installedPlugins', pluginRuntime.installedPluginIds],
   ]);
 }
 
@@ -353,7 +357,7 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
     memoryBackfill = prepared.backfillAttempted;
     const guardrails = runContext.research!.guardrails.processors;
     const researchScorers = runContext.research!.scorers.entries;
-    const requestContext = contextForRun(args);
+    const requestContext = await contextForRun(args);
     // §3.1: per-agent top-tier committee models when the user configured them.
     const resolveModelForAgent = committeeModelResolver(args.settings, args.env);
     let toolDb: ReturnType<typeof getDb> | undefined;

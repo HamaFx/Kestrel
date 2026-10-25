@@ -1,0 +1,45 @@
+{
+  "name": "@kestrel/plugins",
+  "version": "0.0.0",
+  "description": "Kestrel bundled plugin discovery barrel",
+  "private": true,
+  "type": "module",
+  "main": "./dist/registry.js",
+  "types": "./dist/registry.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "source": "./registry.ts",
+      "types": "./dist/registry.d.ts",
+      "import": "./dist/registry.js"
+    },
+    "./ui": {
+      "source": "./ui-registry.ts",
+      "types": "./dist/ui-registry.d.ts",
+      "import": "./dist/ui-registry.js"
+    }
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "echo 'no tests for the plugin registry barrel'",
+    "build": "tsc -p tsconfig.build.json && node ../scripts/rewrite-dist-imports.mjs dist",
+    "clean": "rm -rf node_modules .turbo dist"
+  },
+  "dependencies": {
+    "@kestrel/plugin-backtesting": "workspace:*",
+    "@kestrel/plugin-custom-agents": "workspace:*",
+    "@kestrel/plugin-paper-trading": "workspace:*",
+    "@kestrel/plugin-sdk": "workspace:*",
+    "@kestrel/plugin-telegram-bot": "workspace:*"
+  },
+  "devDependencies": {
+    "@kestrel/config": "workspace:*",
+    "@types/node": "^22.20.5",
+    "eslint": "^10.13.0",
+    "typescript": "^7.0.2"
+  },
+  "license": "Apache-2.0"
+}

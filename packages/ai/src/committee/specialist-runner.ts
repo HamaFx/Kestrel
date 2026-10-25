@@ -41,6 +41,13 @@ import {
 } from '../mastra-v2/agents/xauusd/legacy-tool-adapter';
 import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
 import { getMastraGenerationStats } from '../mastra-v2/shared/telemetry';
+import {
+  buildPluginMastraTools,
+  getInstalledPluginRuntime,
+  mergePluginTools,
+  resolvePluginSkills,
+  resolvePluginToolsForAgent,
+} from '../plugins';
 import { withRetry } from '../retry';
 import { maybeGetToolContext, withToolContext, type ToolContext } from '../tool-context';
 import { extractNumbersFromToolOutput } from './grounding';
@@ -50,6 +57,7 @@ import {
   resolveSpecialistDeskTools,
   SPECIALIST_DEFINITIONS,
 } from './specialists';
+import { jsonPromptInjectionForModel } from './structured-output';
 import {
   CollectPacketOutputSchema,
   committeeModelMetadata,
@@ -63,7 +71,6 @@ import {
   type MastraSpecialistName,
   type ModeRequestContext,
 } from './types';
-import { jsonPromptInjectionForModel } from './structured-output';
 import { verifyMastraOpinion } from './verifier';
 
 /** Typed output of one specialist step (replaces broad `unknown` casts). */
@@ -149,14 +156,32 @@ export async function runSpecialistGeneration(
     providerId: deps.providerId,
   };
   try {
-    // Audit v3 Phase 4 (Q8): bind each specialist's dedicated read-only domain toolset.
-    const deskTools = resolveSpecialistDeskTools(name, deps.disabledTools);
     const toolPartsBuffer: MastraToolInvocationPart[] = [];
     const packetContext = contextWithPacket(requestContext, packet);
     (packetContext as unknown as { set?: (k: string, v: unknown) => void }).set?.(
       'toolParts',
       toolPartsBuffer,
     );
+
+    // Audit v3 Phase 4 (Q8): bind each specialist's dedicated read-only
+    // domain toolset. Phase 1 plugin extension: merge only the tools from
+    // plugins this user installed and that target this desk.
+    const coreDeskTools = resolveSpecialistDeskTools(name, deps.disabledTools);
+    const pluginUserId = requestContext.get('userId');
+    const pluginRuntime =
+      typeof pluginUserId === 'string' && pluginUserId.length > 0
+        ? await getInstalledPluginRuntime(pluginUserId)
+        : null;
+    const pluginTools = pluginRuntime
+      ? buildPluginMastraTools({
+          runtime: pluginRuntime,
+          tools: resolvePluginToolsForAgent(pluginRuntime, name, deps.disabledTools ?? []),
+          ...(signal ? { signal } : {}),
+          requestContext: packetContext,
+        })
+      : {};
+    const deskTools = mergePluginTools(coreDeskTools, pluginTools);
+    const pluginSkills = pluginRuntime ? resolvePluginSkills(pluginRuntime) : [];
 
     const agent = createCommitteeAgent(
       agentModel.model,
@@ -168,6 +193,7 @@ export async function runSpecialistGeneration(
       deps.researchInputProcessors ?? deps.inputProcessors,
       deps.scorers,
       deskTools,
+      pluginSkills,
     );
     const effectiveMaxSteps = Math.max(deps.maxSteps, 3);
     const toolCtx = deps.toolContext ?? maybeGetToolContext();
@@ -235,11 +261,7 @@ export async function runSpecialistGeneration(
           Date.now() - startedAt,
         ),
       };
-      const costUsd = estimateCostUsd(
-        agentModel.modelId,
-        stats.inputTokens,
-        stats.outputTokens,
-      );
+      const costUsd = estimateCostUsd(agentModel.modelId, stats.inputTokens, stats.outputTokens);
       return { opinion, candidateOpinion, stats, costUsd };
     };
 

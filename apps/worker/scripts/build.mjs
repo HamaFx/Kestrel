@@ -41,9 +41,16 @@ const deps = Object.keys(pkg.dependencies ?? {});
 // root node_modules. ws is bundled via the pnpm-resolver plugin below
 // to avoid runtime resolution issues with pnpm's strict layout.
 const alwaysBundle = new Set(['ws']);
-const external = deps.filter(
-  (d) => !d.startsWith('@kestrel/') && !d.startsWith('@opentelemetry/') && !alwaysBundle.has(d),
-);
+// QuickJS ships a .wasm asset that esbuild cannot inline. Keep the package
+// external so Node resolves it from the deployed node_modules (pnpm deploy
+// includes it as a transitive dependency of @kestrel/plugin-backtesting).
+const alwaysExternal = new Set(['quickjs-emscripten', '@jitl/quickjs-wasmfile-release-sync']);
+const external = [
+  ...deps.filter(
+    (d) => !d.startsWith('@kestrel/') && !d.startsWith('@opentelemetry/') && !alwaysBundle.has(d),
+  ),
+  ...alwaysExternal,
+];
 
 // Plus Node built-ins that shouldn't be inlined.
 external.push('node:*');

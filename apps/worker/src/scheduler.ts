@@ -25,6 +25,7 @@
 // long loops.
 
 import { getDb } from '@kestrel/ai';
+import { ensureBundledPluginsRegistered } from '@kestrel/plugins';
 import { sql } from 'drizzle-orm';
 import cron from 'node-cron';
 
@@ -33,6 +34,7 @@ import type { WorkerEnv } from './env.js';
 import { withHeartbeat } from './healthchecks.js';
 import { JOBS } from './jobs/index.js';
 import type { Logger } from './log.js';
+import { startPluginJobs } from './plugin-jobs.js';
 import { tenantRouter } from './tenant-router.js';
 
 // Maximum wall-clock time any scheduled job may run.
@@ -75,6 +77,7 @@ export function startScheduler(log: Logger, env?: WorkerEnv): () => void {
   // them on shutdown. Previously these were fire-and-forget.
   const tasks: ReturnType<typeof cron.schedule>[] = [];
   let multiAgentTimer: NodeJS.Timeout | null = null;
+  let stopPluginJobs: (() => void) | null = null;
 
   log.info('Starting node-cron scheduler for Docker mode');
 
@@ -113,6 +116,17 @@ export function startScheduler(log: Logger, env?: WorkerEnv): () => void {
       ),
     );
     log.info(`Scheduled job ${name} at "${job.schedule}"`);
+  }
+
+  // Plugin cron jobs run alongside core JOBS. Registration is idempotent;
+  // a faulty plugin must not prevent core jobs from being scheduled.
+  try {
+    ensureBundledPluginsRegistered();
+    stopPluginJobs = startPluginJobs(log);
+  } catch (err) {
+    log.error('Plugin job registration failed; core jobs continue', {
+      err: err instanceof Error ? err.message : String(err),
+    });
   }
 
   // U2 — Multi-agent analysis: poll every 3 seconds for pending jobs.
@@ -162,6 +176,7 @@ export function startScheduler(log: Logger, env?: WorkerEnv): () => void {
       multiAgentTimer = null;
     }
     for (const t of tasks) t.stop();
+    stopPluginJobs?.();
     // Abort every in-flight job so they stop work before the database
     // connection closes. Jobs receive SIGTERM via their signal and should
     // short-circuit within their configured timeout.

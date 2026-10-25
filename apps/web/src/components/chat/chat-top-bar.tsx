@@ -35,6 +35,7 @@ import { NavTrigger } from '@/components/layout/nav-trigger';
 import { useConfirm } from '@/components/ui/confirm-drawer';
 import { SymbolChip } from '@/components/ui/symbol-chip';
 import { Tooltip } from '@/components/ui/tooltip';
+import type { CustomAgentSummary } from '@/hooks/use-custom-agents';
 import { usePopupMenu } from '@/hooks/use-popup-menu';
 import type { AnalysisMode } from '@/lib/analysis-mode';
 import { apiMutate } from '@/lib/api-client';
@@ -76,6 +77,8 @@ interface ChatTopBarProps {
   onToggleSplitMode?: () => void;
   viewsOpen?: boolean;
   onToggleViews?: () => void;
+  /** Active standalone agent, when the composer has one selected. */
+  activeAgent?: CustomAgentSummary | null;
 }
 
 export function ChatTopBar({
@@ -88,6 +91,7 @@ export function ChatTopBar({
   onToggleSplitMode,
   viewsOpen = false,
   onToggleViews,
+  activeAgent = null,
 }: ChatTopBarProps) {
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -201,6 +205,15 @@ export function ChatTopBar({
 
         {pinnedSymbol ? (
           <SymbolChip symbol={pinnedSymbol} clearing={unpinning} onClear={() => void clearPin()} />
+        ) : null}
+
+        {activeAgent ? (
+          <span
+            className="border-brand/30 bg-brand/10 text-brand hidden items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[10px] font-semibold sm:inline-flex"
+            title={`Standalone agent: ${activeAgent.name}`}
+          >
+            @{activeAgent.slug}
+          </span>
         ) : null}
 
         {isStreaming ? (

@@ -32,6 +32,7 @@ import {
   IconChevronDown,
   IconChevronRight,
   IconRobot,
+  IconUsersGroup,
   IconLink as LinkIcon,
 } from '@tabler/icons-react';
 import type { UIMessage } from 'ai';
@@ -49,6 +50,21 @@ interface Citation {
 function parseMeta(message: UIMessage) {
   const parsed = UIMessageMetadataSchema.safeParse(message.metadata ?? {});
   return parsed.success ? parsed.data : {};
+}
+
+/** Standalone agent identity written into the turn's data-multi-agent-meta. */
+function customAgentLabel(message: UIMessage): string | null {
+  for (const part of message.parts ?? []) {
+    if (part.type !== 'data-multi-agent-meta' || !('data' in part)) continue;
+    const data = part.data as {
+      customAgent?: { slug?: unknown; name?: unknown };
+    } | null;
+    const agent = data?.customAgent;
+    if (agent && typeof agent.slug === 'string') {
+      return typeof agent.name === 'string' ? agent.name : `@${agent.slug}`;
+    }
+  }
+  return null;
 }
 
 /**
@@ -73,11 +89,12 @@ export function MessageFooter({ message }: MessageFooterProps) {
   const meta = parseMeta(message);
   const model = meta.model;
   const usage = meta.usage;
+  const agentLabel = customAgentLabel(message);
 
   const citations = extractCitations(message);
 
-  // Nothing to show if there's no model and no usage and no citations.
-  if (!model && !usage && citations.length === 0) return null;
+  // Nothing to show if there's no model, usage, citations or agent identity.
+  if (!model && !usage && citations.length === 0 && !agentLabel) return null;
 
   const rawTime = meta.createdAt;
   const time = rawTime
@@ -87,6 +104,12 @@ export function MessageFooter({ message }: MessageFooterProps) {
   return (
     <div className="flex flex-col gap-0">
       <div className="text-caption text-fg-subtle mt-1.5 flex items-center gap-2">
+        {agentLabel ? (
+          <span className="border-brand/30 bg-brand/10 text-brand inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold">
+            <IconUsersGroup className="size-3" />
+            {agentLabel}
+          </span>
+        ) : null}
         {model ? (
           <span className="inline-flex items-center gap-1">
             <IconRobot className="size-3" />

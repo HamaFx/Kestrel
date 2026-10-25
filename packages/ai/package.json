@@ -143,6 +143,11 @@
       "types": "./dist/mastra-v2/index.d.ts",
       "import": "./dist/mastra-v2/index.js"
     },
+    "./plugins": {
+      "source": "./src/plugins/index.ts",
+      "types": "./dist/plugins/index.d.ts",
+      "import": "./dist/plugins/index.js"
+    },
     "./mastra": {
       "source": "./src/mastra/index.ts",
       "types": "./dist/mastra/index.d.ts",
@@ -178,6 +183,7 @@
     "@kestrel/data": "workspace:*",
     "@kestrel/db": "workspace:*",
     "@kestrel/indicators": "workspace:*",
+    "@kestrel/plugin-sdk": "workspace:*",
     "@kestrel/shared": "workspace:*",
     "@langfuse/client": "^6.0.0",
     "@langfuse/otel": "^6.0.0",

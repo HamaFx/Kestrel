@@ -16,16 +16,16 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// POST /api/billing/checkout — create a NOWPayments invoice and return
-// the hosted checkout URL.
-// Auth required. Body: { planId: string } → { checkoutUrl: string }
+// POST /api/billing/checkout — create a provider checkout and return the
+// hosted checkout URL. Stripe/NOWPayments create subscriptions; Gammal
+// creates a one-time prepaid pass.
+// Auth required. Body: { planId: string, provider?: string } → { checkoutUrl: string }
 
 import { z } from 'zod';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/api';
 import { getServerEnv } from '@/lib/env';
 import { createInvoice } from '@/lib/nowpayments';
-import { createStripeCheckoutSession, createStripeCustomer } from '@/lib/stripe';
 import {
   claimCheckoutAttempt,
   completeCheckoutAttempt,
@@ -35,6 +35,7 @@ import {
   getBillingCustomer,
   getPlan,
   getTenantDbScope,
+  getUserSubscription,
   getUserWithSettings,
   metrics,
   saveCheckoutInvoice,
@@ -42,13 +43,15 @@ import {
   withRateLimit,
   withTenantDbFresh,
 } from '@/lib/services/api-boundary';
+import { createGammalPassCheckout } from '@/lib/services/gammal-billing';
+import { createStripeCheckoutSession, createStripeCustomer } from '@/lib/stripe';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const CheckoutSchema = z.object({
   planId: z.uuid('Invalid plan ID'),
-  provider: z.enum(['stripe', 'nowpayments']).optional(),
+  provider: z.enum(['stripe', 'nowpayments', 'gammal']).optional(),
 });
 
 function defaultProvider(env: ReturnType<typeof getServerEnv>): 'stripe' | 'nowpayments' {
@@ -59,8 +62,9 @@ function defaultProvider(env: ReturnType<typeof getServerEnv>): 'stripe' | 'nowp
 
 function providerAllowed(
   env: ReturnType<typeof getServerEnv>,
-  provider: 'stripe' | 'nowpayments',
+  provider: 'stripe' | 'nowpayments' | 'gammal',
 ): boolean {
+  if (provider === 'gammal') return env.BILLING_GAMMAL_ENABLED;
   if (env.BILLING_PROVIDER === 'both') return true;
   if (env.BILLING_PROVIDER === 'stripe') return provider === 'stripe';
   return provider === 'nowpayments';
@@ -73,7 +77,12 @@ export const POST = withAuth<void>(async (req, { user }) => {
     const rateLimit = await withRateLimit(user.userId, 'billing_checkout', 10);
     if (!rateLimit.allowed) {
       return Response.json(
-        { error: { code: 'RATE_LIMITED', message: 'Too many checkout attempts. Try again shortly.' } },
+        {
+          error: {
+            code: 'RATE_LIMITED',
+            message: 'Too many checkout attempts. Try again shortly.',
+          },
+        },
         { status: 429, headers: { 'Retry-After': '60' } },
       );
     }
@@ -135,6 +144,29 @@ export const POST = withAuth<void>(async (req, { user }) => {
         { status: 503 },
       );
     }
+    if (provider === 'gammal' && (!env.BILLING_GAMMAL_ENABLED || !env.GAMMAL_PROJECT_ID)) {
+      return Response.json(
+        { error: { code: 'NOT_CONFIGURED', message: 'Gammal billing is not configured' } },
+        { status: 503 },
+      );
+    }
+
+    if (provider === 'gammal') {
+      const active = await getUserSubscription(user.userId);
+      if (active && (active.status === 'active' || active.status === 'trialing')) {
+        return Response.json(
+          {
+            error: {
+              code: 'PLAN_ACTIVE',
+              message: active.currentPeriodEnd
+                ? `You already have an active plan until ${active.currentPeriodEnd.toISOString().slice(0, 10)}.`
+                : 'You already have an active plan.',
+            },
+          },
+          { status: 409 },
+        );
+      }
+    }
 
     const claim = await claimCheckoutAttempt({
       userId: user.userId,
@@ -190,6 +222,40 @@ export const POST = withAuth<void>(async (req, { user }) => {
               invoice_url: claim.attempt.checkoutUrl,
             }
           : null;
+
+      if (provider === 'gammal') {
+        if (!tenantId) throw new Error('Checkout requires an active tenant scope');
+        if (claim.attempt.status === 'provider_created' && claim.attempt.checkoutUrl) {
+          return Response.json({
+            checkoutUrl: claim.attempt.checkoutUrl,
+            paymentId: claim.attempt.invoiceId,
+            provider: 'gammal',
+            idempotent: true,
+          });
+        }
+
+        const created = await createGammalPassCheckout({
+          userId: user.userId,
+          tenantId,
+          plan: {
+            id: plan.id,
+            name: plan.name,
+            priceUsdCents: plan.priceUsdCents,
+            interval: plan.interval,
+            monthlyCredits: Number(plan.monthlyCredits ?? 0),
+          },
+          attemptId: claim.attempt.id,
+          processingToken: claim.attempt.processingToken!,
+        });
+        metrics.increment('checkout_completed_total', {
+          tags: { provider: 'gammal', plan: plan.name },
+        });
+        return Response.json({
+          checkoutUrl: created.checkoutUrl,
+          paymentId: created.paymentId,
+          provider: 'gammal',
+        });
+      }
 
       if (provider === 'stripe') {
         if (!tenantId) throw new Error('Checkout requires an active tenant scope');

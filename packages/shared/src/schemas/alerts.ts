@@ -19,8 +19,23 @@ import { z } from 'zod';
 import { SymbolSchema } from '../symbols';
 import { TimeframeSchema } from '../timeframes';
 
-export const AlertChannelSchema = z.enum(['email', 'telegram', 'web-push']);
-export type AlertChannel = z.infer<typeof AlertChannelSchema>;
+/**
+ * Core delivery channels. Plugin channels are additional kebab-case ids
+ * registered on `pluginHost` (e.g. `discord`), so the persisted shape is an
+ * open string validated structurally here and resolved at delivery time.
+ */
+export const CORE_ALERT_CHANNELS = ['email', 'telegram', 'web-push'] as const;
+export type CoreAlertChannel = (typeof CORE_ALERT_CHANNELS)[number];
+export type AlertChannel = CoreAlertChannel | (string & {});
+
+export const AlertChannelSchema = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(
+    /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/,
+    'channel must be a kebab-case id (e.g. "email", "web-push", "discord")',
+  );
 
 const PriceCrossRule = z.object({
   type: z.literal('priceCross'),
@@ -43,15 +58,14 @@ const IndicatorCrossRule = z.object({
   tf: TimeframeSchema,
   /**
    * Strict spec format: `<kind>` or `<kind>:<n>(,n)(,n)`.
-   * Kinds: sma, ema, rsi, atr, macd, bollinger, pivots. The evaluator
-   * re-validates with the same regex; `parseIndicatorSpec` returns null on
-   * any deviation so a rule that previously slipped through (e.g.
-   * "rsi:14:bogus") is now filtered before delivery.
+   * The stored kind is validated structurally here; the evaluator then
+   * checks it against `indicatorRegistry` so core and plugin indicators are
+   * both addressable without a shared-package import cycle.
    */
   indicator: z
     .string()
     .regex(
-      /^(?:sma|ema|rsi|atr|macd|bollinger|pivots)(?::[0-9]+(?:,[0-9]+){0,2})?$/i,
+      /^[a-z][a-z0-9_]*(?::[0-9]+(?:,[0-9]+){0,2})?$/i,
       'indicator must match `<kind>` or `<kind>:n[,n[,n]]`',
     ),
   level: z.number(),

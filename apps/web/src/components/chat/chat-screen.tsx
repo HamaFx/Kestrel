@@ -29,6 +29,7 @@ import { toast } from 'sonner';
 
 import { useConfirm } from '@/components/ui/confirm-drawer';
 import { useAutoScroll } from '@/hooks/use-auto-scroll';
+import { useCustomAgents } from '@/hooks/use-custom-agents';
 import { useThreadTitle } from '@/hooks/use-thread-title';
 import { useWebappShortcuts } from '@/hooks/use-webapp-shortcuts';
 import { apiFetch, apiMutate } from '@/lib/api-client';
@@ -64,6 +65,8 @@ interface ChatScreenProps {
   initialCustomInstructions?: string | null;
   /** Optional prompt to auto-submit on mount. */
   autoSubmitPrompt?: string | null;
+  /** Preselected standalone agent (`@handle`) from the Agent Studio. */
+  initialAgentSlug?: string | null;
 }
 
 export function ChatScreen({
@@ -77,8 +80,25 @@ export function ChatScreen({
   initialShowAgentOpinions = true,
   initialCustomInstructions,
   autoSubmitPrompt,
+  initialAgentSlug = null,
 }: ChatScreenProps) {
+  const { agents: customAgents, loading: customAgentsLoading } = useCustomAgents();
+  const [selectedAgentSlug, setSelectedAgentSlug] = useState<string | null>(initialAgentSlug);
+  const selectedAgent = selectedAgentSlug
+    ? (customAgents.find((agent) => agent.slug === selectedAgentSlug) ?? null)
+    : null;
   const lastUserTextRef = useRef<string>('');
+
+  useEffect(() => {
+    setSelectedAgentSlug(initialAgentSlug);
+  }, [initialAgentSlug]);
+
+  useEffect(() => {
+    if (customAgentsLoading) return;
+    if (selectedAgentSlug && !customAgents.some((agent) => agent.slug === selectedAgentSlug)) {
+      setSelectedAgentSlug(null);
+    }
+  }, [customAgentsLoading, customAgents, selectedAgentSlug]);
   const autoSubmittedRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   // Populated by MessageList — lets the TOC rail jump to virtualized rows.
@@ -143,6 +163,7 @@ export function ChatScreen({
             ...body,
             modelOverride: override ?? undefined,
             analysisMode: singleTurnOverride ?? analysisModeRef.current,
+            agentSlug: selectedAgentSlug ?? undefined,
             threadId,
             id,
             messages,
@@ -156,7 +177,7 @@ export function ChatScreen({
         },
         onAgentProgress: (p) => onAgentProgressRef.current(p),
       }),
-    [threadId, customInstructions, responseStyle, citeSources],
+    [threadId, customInstructions, responseStyle, citeSources, selectedAgentSlug],
   );
 
   useEffect(() => {
@@ -394,10 +415,11 @@ export function ChatScreen({
     stop();
   }, [stop]);
 
-  const composerPlaceholder = useMemo(
-    () => (pinnedSymbol ? `Ask about ${pinnedSymbol}…` : 'Ask about XAU, EUR, GBP…'),
-    [pinnedSymbol],
-  );
+  const composerPlaceholder = useMemo(() => {
+    if (selectedAgentSlug) return `Ask @${selectedAgentSlug}…`;
+    if (customAgents.length > 0) return 'Ask about XAU… or type @ to pick an agent';
+    return pinnedSymbol ? `Ask about ${pinnedSymbol}…` : 'Ask about XAU, EUR, GBP…';
+  }, [pinnedSymbol, selectedAgentSlug, customAgents.length]);
 
   return (
     <div className="bg-bg paint-isolated relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
@@ -416,6 +438,7 @@ export function ChatScreen({
         onToggleViews={() => setSplitMode((v) => !v)}
         splitMode={splitMode}
         onToggleSplitMode={() => setSplitMode((v) => !v)}
+        activeAgent={selectedAgent}
       />
 
       <div className="flex min-h-0 w-full flex-1 overflow-hidden">
@@ -568,6 +591,9 @@ export function ChatScreen({
               isStreaming={isStreaming}
               disabled={isStreaming || modelSelectionPending}
               placeholder={composerPlaceholder}
+              customAgents={customAgents}
+              selectedAgentSlug={selectedAgentSlug}
+              onAgentChange={setSelectedAgentSlug}
             />
           </div>
         </div>
@@ -626,7 +652,7 @@ function ChatErrorBanner({ error }: { error: Error }) {
       {billing && (
         <Link
           href="/settings/billing"
-          className="border-warn/30 text-warn rounded-sm border px-2 py-1 font-semibold hover:bg-warn/10"
+          className="border-warn/30 text-warn hover:bg-warn/10 rounded-sm border px-2 py-1 font-semibold"
         >
           View plans & credits
         </Link>

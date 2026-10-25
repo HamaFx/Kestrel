@@ -411,6 +411,27 @@ export {
   markMemoryProjectionFailed,
   getMemoryProjectionState,
 } from './queries/memory-projection';
+// Plugin platform — per-user installation + zero-migration storage
+export {
+  listInstalledPlugins,
+  getInstalledPlugin,
+  getInstalledPluginIdsForUser,
+  installPlugin,
+  setPluginEnabled,
+  updatePluginSettings,
+  uninstallPlugin,
+  listEnabledPluginUsers,
+  pluginStorageGet,
+  pluginStorageSet,
+  pluginStorageList,
+  pluginStorageDelete,
+  pluginStorageClear,
+  type InstalledPluginRow,
+  type InstallPluginInput,
+  type PluginStorageScope,
+  type PluginStorageValue,
+  type UpdatePluginSettingsInput,
+} from './queries/plugins';
 export * as queries from './queries';
 export {
   withCancellablePostgresQuery,

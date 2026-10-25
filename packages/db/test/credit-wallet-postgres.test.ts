@@ -28,6 +28,8 @@ import { randomUUID } from 'node:crypto';
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import type * as CreditModuleTypes from '../src/index';
+
 const adminUrl = process.env.TEST_POSTGRES_ADMIN_URL ?? process.env.DATABASE_URL;
 const enabled = process.env.RUN_CREDIT_POSTGRES_TESTS === '1' && Boolean(adminUrl);
 
@@ -35,7 +37,7 @@ const userId = `credit-test-${randomUUID()}`;
 const tenantId = userId;
 const admin = enabled ? postgres(adminUrl!, { max: 2, prepare: false }) : null;
 
-type CreditModule = typeof import('../src/index');
+type CreditModule = typeof CreditModuleTypes;
 let credit: CreditModule;
 
 describe.skipIf(!enabled)('credit engine — Postgres concurrency', () => {
@@ -45,9 +47,7 @@ describe.skipIf(!enabled)('credit engine — Postgres concurrency', () => {
     process.env.MULTI_USER_ENABLED = 'false';
     await admin!`INSERT INTO "user" (id, email) VALUES (${userId}, ${`${userId}@example.test`})`;
     credit = await import('../src/index');
-    await credit.withTenantDbFresh(tenantId, () =>
-      credit.ensureWallet(userId, { tenantId }),
-    );
+    await credit.withTenantDbFresh(tenantId, () => credit.ensureWallet(userId, { tenantId }));
   });
 
   afterAll(async () => {

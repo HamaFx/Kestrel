@@ -16,39 +16,42 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// POST /api/billing/webhook — NOWPayments IPN receiver.
-// PUBLIC route — auth via HMAC-SHA512 signature, not user session.
+// POST /api/billing/webhook — provider webhook receiver.
+// PUBLIC route — auth via Stripe signature, NOWPayments HMAC, or a verified
+// Gammal payment token; never a user session.
 
 import { createHash } from 'node:crypto';
 
 import { z } from 'zod';
 
 import { getServerEnv } from '@/lib/env';
+import { getGammalProjectId, verifyGammalToken, type GammalClaims } from '@/lib/gammal';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import { verifyIpnSignature } from '@/lib/nowpayments';
 import { getRequestId } from '@/lib/request-id';
-import { verifyStripeWebhook } from '@/lib/stripe';
-import { processStripeEvent } from '@/lib/services/stripe-billing';
 import {
   addCredits,
-  createTopupPayment,
   claimBillingEvent,
+  claimIpnEvent,
+  createTopupPayment,
   ensureMonthlyGrant,
+  getBillingUserIdForTenant,
+  getPaymentByNowpaymentsId,
+  getTopupProduct,
   markBillingEventFailed,
   markBillingEventProcessed,
-  getBillingUserIdForTenant,
-  getTopupProduct,
-  metrics,
-  requireTenantIdForUser,
-  claimIpnEvent,
-  getPaymentByNowpaymentsId,
   markIpnFailed,
   markIpnProcessed,
+  metrics,
   recordBillingWebhookFailure,
+  requireTenantIdForUser,
   updatePaymentStatus,
   updateSubscriptionFromPayment,
   withTenantDbFresh,
 } from '@/lib/services/api-boundary';
+import { processGammalClaims } from '@/lib/services/gammal-billing';
+import { processStripeEvent } from '@/lib/services/stripe-billing';
+import { verifyStripeWebhook } from '@/lib/stripe';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -263,6 +266,86 @@ export async function POST(req: Request): Promise<Response> {
       }
       // Authenticated and safely recorded for replay; acknowledge so Stripe
       // does not retry forever.
+      return new Response('OK', { status: 200, headers: responseHeaders });
+    }
+  }
+
+  // ── Gammal dispatch (X-Gammal-Event is informational; the token is trusted) ──
+  const gammalEvent = req.headers.get('x-gammal-event');
+  if (gammalEvent) {
+    if (!env.BILLING_ENABLED || !env.BILLING_GAMMAL_ENABLED) {
+      return new Response('Not Found', { status: 404, headers: responseHeaders });
+    }
+    let body: { payment_token?: unknown };
+    try {
+      body = JSON.parse(rawBody) as { payment_token?: unknown };
+    } catch {
+      return new Response('Bad Request', { status: 400, headers: responseHeaders });
+    }
+    if (typeof body.payment_token !== 'string' || body.payment_token.length === 0) {
+      return new Response('Bad Request', { status: 400, headers: responseHeaders });
+    }
+
+    let claims: GammalClaims;
+    try {
+      claims = await verifyGammalToken(body.payment_token);
+      if (claims.project_id !== getGammalProjectId()) {
+        logger.warn({ projectId: claims.project_id }, 'Gammal token project mismatch');
+        return new Response('Bad Request', { status: 400, headers: responseHeaders });
+      }
+    } catch (err) {
+      logger.warn({ err: String(err) }, 'Invalid Gammal payment token');
+      return new Response('Unauthorized', { status: 401, headers: responseHeaders });
+    }
+
+    const claim = await claimBillingEvent({
+      provider: 'gammal',
+      eventId: claims.txn,
+      eventType: claims.event ?? claims.type,
+      payload: claims as unknown as Record<string, unknown>,
+    });
+    if (claim.kind === 'processed' || claim.kind === 'in_progress') {
+      return new Response('OK', { status: 200, headers: responseHeaders });
+    }
+    if (claim.kind === 'conflict') {
+      return new Response('Conflicting event payload', { status: 409, headers: responseHeaders });
+    }
+
+    try {
+      const result = await processGammalClaims(claims);
+      await markBillingEventProcessed(claim.id);
+      metrics.increment('webhook_processed_total', {
+        tags: { provider: 'gammal', event_type: claims.event ?? claims.type },
+      });
+      logger.info(
+        { event: claims.event ?? claims.type, txn: claims.txn, result },
+        'Gammal webhook processed',
+      );
+      return new Response('OK', { status: 200, headers: responseHeaders });
+    } catch (err) {
+      const error = err instanceof Error ? err.message : String(err);
+      logger.error(
+        { err: error, event: claims.event ?? claims.type, txn: claims.txn },
+        'Gammal webhook failed',
+      );
+      try {
+        await markBillingEventFailed(claim.id, error);
+        await recordBillingWebhookFailure({
+          provider: 'gammal',
+          eventType: claims.event ?? claims.type,
+          eventId: claims.txn,
+          payload: claims,
+          error,
+        });
+      } catch (dlqError) {
+        logger.error(
+          { err: String(dlqError), txn: claims.txn },
+          'Failed to persist Gammal webhook DLQ entry',
+        );
+        return new Response('Internal Server Error', { status: 500, headers: responseHeaders });
+      }
+      // Token lifetime is short; persist the failure for operator replay and
+      // acknowledge so Gammal does not retry an already-expired token.
       return new Response('OK', { status: 200, headers: responseHeaders });
     }
   }

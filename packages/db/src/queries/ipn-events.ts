@@ -183,7 +183,7 @@ export async function recordBillingWebhookFailure(data: {
   eventId: string;
   payload: unknown;
   error: string;
-  provider?: 'nowpayments' | 'stripe';
+  provider?: 'nowpayments' | 'stripe' | 'gammal';
 }): Promise<void> {
   const db = getDb();
   await db

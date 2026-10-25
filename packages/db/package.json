@@ -23,6 +23,11 @@
       "source": "./src/client.ts",
       "types": "./dist/client.d.ts",
       "import": "./dist/client.js"
+    },
+    "./queue": {
+      "source": "./src/queue.ts",
+      "types": "./dist/queue.d.ts",
+      "import": "./dist/queue.js"
     }
   },
   "scripts": {
@@ -47,7 +52,8 @@
   "dependencies": {
     "@kestrel/shared": "workspace:*",
     "drizzle-orm": "^0.45.4",
-    "postgres": "^3.4.9"
+    "postgres": "^3.4.9",
+    "pg-boss": "^12.38.0"
   },
   "devDependencies": {
     "@kestrel/config": "workspace:*",

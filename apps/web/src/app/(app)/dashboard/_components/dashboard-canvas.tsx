@@ -48,12 +48,14 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { pluginUiRegistry, type RegisteredDashboardWidget } from '@kestrel/plugin-sdk/ui';
 import type { Alert, EconomicEvent, JournalEntry, NewsArticle, Symbol } from '@kestrel/shared';
 import {
   IconAdjustmentsHorizontal,
   IconAlertTriangle,
   IconGripVertical,
   IconPlus,
+  IconPuzzle,
   IconRotate,
   IconX,
 } from '@tabler/icons-react';
@@ -64,11 +66,17 @@ import { useConfirm } from '@/components/ui/confirm-drawer';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { cn } from '@/lib/cn';
 
+import '@/lib/plugins/register-ui';
+
 import { PreSessionChecklistDrawer } from './pre-session-checklist-drawer';
 import { QuickLogTradeDrawer } from './quick-log-trade-drawer';
 import {
+  CORE_WIDGET_TYPES,
   DEFAULT_LAYOUT,
+  isPluginWidgetType,
   LAYOUT_STORAGE_KEY,
+  makePluginWidgetType,
+  parsePluginWidgetType,
   PRESET_LAYOUTS,
   WIDGET_LABELS,
   type LayoutPresetName,
@@ -131,21 +139,11 @@ interface DashboardCanvasProps {
     settings?: string | null;
   };
   hasAnyError?: boolean;
+  /** Installed plugin ids whose dashboard widgets may be mounted. */
+  installedPluginIds?: readonly string[];
+  /** Masked plugin settings, keyed by plugin id (secrets never reach the browser). */
+  pluginSettings?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
 }
-
-const ALL_WIDGETS: WidgetType[] = [
-  'today-glance',
-  'briefing',
-  'quant-desk',
-  'pnl-heatmap',
-  'equity-curve',
-  'stats',
-  'watchlist',
-  'open-positions',
-  'alerts',
-  'calendar',
-  'news-pulse',
-];
 
 export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
   const [layout, setLayout, hydrated] = useLocalStorage<WidgetConfig[]>(
@@ -155,13 +153,43 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
   const [editMode, setEditMode] = useState(false);
   const [confirmEl, confirm] = useConfirm();
 
+  const installedPluginKey = (props.installedPluginIds ?? []).join(',');
+  const pluginWidgets = useMemo(
+    () => pluginUiRegistry.listDashboardWidgets(props.installedPluginIds ?? []),
+    // The joined key avoids re-listing when the parent re-renders with a
+    // freshly serialised but equivalent array.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [installedPluginKey],
+  );
+
+  const pluginWidgetByType = useMemo(
+    () =>
+      new Map(
+        pluginWidgets.map((entry) => [
+          makePluginWidgetType(entry.pluginId, entry.widget.id),
+          entry,
+        ]),
+      ),
+    [pluginWidgets],
+  );
+
+  const labelFor = useCallback(
+    (type: WidgetType): string => {
+      if (isPluginWidgetType(type)) {
+        return pluginWidgetByType.get(type)?.widget.title ?? 'Plugin widget';
+      }
+      return WIDGET_LABELS[type];
+    },
+    [pluginWidgetByType],
+  );
+
   // After hydration, prune any widget types that no longer exist in the
-  // catalogue (forward-compat).
+  // catalogue (core widget removed, or plugin uninstalled).
   const safeLayout = useMemo(() => {
     if (!hydrated) return DEFAULT_LAYOUT;
-    const known = new Set<WidgetType>(ALL_WIDGETS);
+    const known = new Set<string>([...CORE_WIDGET_TYPES, ...pluginWidgetByType.keys()]);
     return layout.filter((w) => known.has(w.type)).map((w, i) => ({ ...w, order: i }));
-  }, [hydrated, layout]);
+  }, [hydrated, layout, pluginWidgetByType]);
 
   const persistLayout = useCallback(
     (next: WidgetConfig[]) => {
@@ -213,7 +241,18 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
     if (ok) resetLayout();
   }
 
-  const hidden = ALL_WIDGETS.filter((t) => !safeLayout.some((w) => w.type === t));
+  const hidden: Array<{ type: WidgetType; label: string }> = [
+    ...CORE_WIDGET_TYPES.filter((type) => !safeLayout.some((w) => w.type === type)).map((type) => ({
+      type,
+      label: WIDGET_LABELS[type],
+    })),
+    ...pluginWidgets
+      .map((entry) => ({
+        type: makePluginWidgetType(entry.pluginId, entry.widget.id),
+        label: entry.widget.title,
+      }))
+      .filter((entry) => !safeLayout.some((w) => w.type === entry.type)),
+  ];
 
   return (
     <div className="flex flex-col gap-4">
@@ -350,6 +389,8 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
               <SortableWidget
                 key={w.id}
                 widget={w}
+                label={labelFor(w.type)}
+                pluginWidgetByType={pluginWidgetByType}
                 editMode={editMode}
                 onRemove={() => removeWidget(w.id)}
                 onToggleSpan={() => toggleSpan(w.id)}
@@ -372,6 +413,8 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
 
 interface SortableWidgetProps extends DashboardCanvasProps {
   widget: WidgetConfig;
+  label: string;
+  pluginWidgetByType: ReadonlyMap<string, RegisteredDashboardWidget>;
   editMode: boolean;
   onRemove: () => void;
   onToggleSpan: () => void;
@@ -379,6 +422,8 @@ interface SortableWidgetProps extends DashboardCanvasProps {
 
 function SortableWidget({
   widget,
+  label,
+  pluginWidgetByType,
   editMode,
   onRemove,
   onToggleSpan,
@@ -409,7 +454,7 @@ function SortableWidget({
         <div className="surface-chip mb-1.5 flex items-center justify-between gap-2 rounded-xl border border-white/10 px-3 py-2 shadow-sm">
           <button
             type="button"
-            aria-label={`Drag ${WIDGET_LABELS[widget.type]} widget`}
+            aria-label={`Drag ${label} widget`}
             className="text-fg-subtle hover:text-fg tactile-press inline-flex size-10 min-h-10 min-w-10 cursor-grab touch-none items-center justify-center rounded-md transition-colors active:cursor-grabbing"
             {...attributes}
             {...listeners}
@@ -417,12 +462,12 @@ function SortableWidget({
             <IconGripVertical className="size-4" />
           </button>
           <span className="text-fg-subtle font-mono text-[11px] tracking-wider uppercase">
-            {WIDGET_LABELS[widget.type]}
+            {label}
           </span>
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              aria-label={`Toggle span for ${WIDGET_LABELS[widget.type]}`}
+              aria-label={`Toggle span for ${label}`}
               onClick={onToggleSpan}
               className="text-fg-subtle hover:text-fg tactile-press inline-flex min-h-10 items-center justify-center rounded-md border border-white/10 bg-black/40 px-3 py-2 font-mono text-xs transition-colors active:translate-y-[0.5px]"
               title={`Current span: ${widget.span === 1 ? 'Compact' : widget.span === 2 ? 'Wide' : 'Full Width'}umns (click to cycle)`}
@@ -431,7 +476,7 @@ function SortableWidget({
             </button>
             <button
               type="button"
-              aria-label={`Remove ${WIDGET_LABELS[widget.type]}`}
+              aria-label={`Remove ${label}`}
               onClick={onRemove}
               className="text-fg-subtle hover:text-bear hover:bg-bear/10 tactile-press inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md transition-colors active:translate-y-[0.5px]"
             >
@@ -441,7 +486,7 @@ function SortableWidget({
         </div>
       ) : null}
 
-      <div className="h-full">{renderWidget(widget.type, data)}</div>
+      <div className="h-full">{renderWidget(widget.type, data, pluginWidgetByType)}</div>
     </div>
   );
 }
@@ -451,8 +496,37 @@ function SortableWidget({
 // chrome (`SortableWidget`) decoupled from individual widget APIs.
 // ---------------------------------------------------------------------------
 
-function renderWidget(type: WidgetType, data: Omit<DashboardCanvasProps, never>) {
+function PluginWidgetUnavailable() {
+  return (
+    <div className="border-border/60 bg-bg-elev-1/40 flex h-full min-h-32 flex-col items-center justify-center gap-1 rounded-xl border border-dashed p-4 text-center">
+      <IconPuzzle className="text-fg-subtle size-5" />
+      <p className="text-fg text-xs font-semibold">Plugin widget unavailable</p>
+      <p className="text-fg-subtle text-[11px]">
+        Reinstall or enable its plugin, then add it again from Customize Layout.
+      </p>
+    </div>
+  );
+}
+
+function renderWidget(
+  type: WidgetType,
+  data: Omit<DashboardCanvasProps, never>,
+  pluginWidgetByType: ReadonlyMap<string, RegisteredDashboardWidget>,
+) {
   const { alerts, events, entries, news, briefing } = data;
+
+  if (isPluginWidgetType(type)) {
+    const registered = pluginWidgetByType.get(type);
+    if (!registered) return <PluginWidgetUnavailable />;
+    const Widget = registered.widget.component;
+    const parsed = parsePluginWidgetType(type);
+    return (
+      <Widget
+        pluginId={registered.pluginId}
+        settings={data.pluginSettings?.[parsed?.pluginId ?? registered.pluginId] ?? {}}
+      />
+    );
+  }
 
   const briefingNudge = briefing?.body?.split('. ')[0] ?? null;
 
@@ -500,7 +574,7 @@ function AddWidgetMenu({
   hidden,
   onAdd,
 }: {
-  hidden: WidgetType[];
+  hidden: Array<{ type: WidgetType; label: string }>;
   onAdd: (type: WidgetType) => void;
 }) {
   const ref = useRef<HTMLDetailsElement>(null);
@@ -527,14 +601,14 @@ function AddWidgetMenu({
         Add widget
       </summary>
       <div className="surface-panel absolute right-0 z-20 mt-1.5 flex min-w-[200px] flex-col rounded-xl border border-white/15 bg-[#141516]/98 p-1.5 shadow-2xl backdrop-blur-xl">
-        {hidden.map((t) => (
+        {hidden.map((item) => (
           <button
-            key={t}
+            key={item.type}
             type="button"
-            onClick={() => onAdd(t)}
+            onClick={() => onAdd(item.type)}
             className="text-fg-muted hover:text-fg rounded-lg px-3 py-2 text-left font-sans text-xs transition-colors hover:bg-white/5 active:translate-y-[0.5px]"
           >
-            {WIDGET_LABELS[t]}
+            {item.label}
           </button>
         ))}
       </div>

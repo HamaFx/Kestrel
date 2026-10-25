@@ -21,8 +21,8 @@ import {
   getEntitlementSnapshot,
   getUserPayments,
   getUserSubscription,
-  listActiveTopupProducts,
   listActivePlans,
+  listActiveTopupProducts,
   listLedger,
   requireTenantIdForUser,
   withTenantDbFresh,
@@ -136,6 +136,7 @@ export default async function BillingPage() {
         planName={snapshot.planName}
         currentPeriodEnd={snapshot.currentPeriodEnd?.toISOString() ?? null}
         cancelAtPeriodEnd={snapshot.cancelAtPeriodEnd}
+        provider={subscription?.provider ?? null}
       />
 
       <CreditUsageChart buckets={usage} />
@@ -148,12 +149,10 @@ export default async function BillingPage() {
         plans={JSON.parse(JSON.stringify(allPlans))}
         currentPlanId={subscription?.planId ?? null}
         provider={topupProvider}
+        gammalEnabled={env.BILLING_GAMMAL_ENABLED}
       />
       {topups.length > 0 && (
-        <TopupPacks
-          products={JSON.parse(JSON.stringify(topups))}
-          provider={topupProvider}
-        />
+        <TopupPacks products={JSON.parse(JSON.stringify(topups))} provider={topupProvider} />
       )}
       <LedgerTable
         initialRows={JSON.parse(JSON.stringify(ledger.rows))}

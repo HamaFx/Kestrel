@@ -41,7 +41,7 @@ export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ threadId: string }>;
-  searchParams: Promise<{ prompt?: string }>;
+  searchParams: Promise<{ prompt?: string; agent?: string }>;
 }
 
 const uiMessageSchema = z.object({
@@ -97,7 +97,8 @@ export default async function ChatThreadPage({ params, searchParams }: PageProps
     })
     .filter((m): m is UIMessage => m !== null);
 
-  const { prompt } = await searchParams;
+  const { prompt, agent } = await searchParams;
+  const initialAgentSlug = agent && /^[a-z][a-z0-9-]{1,31}$/.test(agent) ? agent : null;
 
   return (
     <ChatScreen
@@ -116,6 +117,7 @@ export default async function ChatThreadPage({ params, searchParams }: PageProps
       initialShowAgentOpinions={settings?.showAgentOpinions ?? true}
       initialCustomInstructions={customInstructions ?? null}
       autoSubmitPrompt={prompt ?? null}
+      initialAgentSlug={initialAgentSlug}
     />
   );
 }

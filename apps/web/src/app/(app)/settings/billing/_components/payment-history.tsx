@@ -26,6 +26,8 @@ interface Payment {
   usdAmountCents: number | null;
   creditsGranted?: number | null;
   txHash: string | null;
+  gammalTxn?: string | null;
+  gammalRefundTxn?: string | null;
   createdAt: string;
 }
 
@@ -91,7 +93,11 @@ export function PaymentHistory({ payments }: { payments: Payment[] }) {
                     {payment.creditsGranted?.toLocaleString() ?? '—'}
                   </td>
                   <td className="text-fg-subtle py-2 font-mono text-xs">
-                    {payment.txHash ? `${payment.txHash.slice(0, 12)}…` : '—'}
+                    {(() => {
+                      const reference =
+                        payment.gammalTxn ?? payment.gammalRefundTxn ?? payment.txHash;
+                      return reference ? `${reference.slice(0, 16)}…` : '—';
+                    })()}
                   </td>
                 </tr>
               );

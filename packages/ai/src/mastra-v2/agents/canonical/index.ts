@@ -26,6 +26,14 @@ import { convertToModelMessages, type ModelMessage, type UIMessage } from 'ai';
 import { estimateCostUsd } from '@ai/cost';
 import { createGenerationLedger, type GenerationLedger } from '@ai/generation-ledger';
 import { resolveMastraExecutionModel, type ChatModelResolution } from '@ai/model';
+import {
+  buildCustomAgentSubagents,
+  buildPluginMastraTools,
+  getInstalledPluginRuntime,
+  mergePluginTools,
+  resolvePluginSkills,
+  resolvePluginToolsForAgent,
+} from '@ai/plugins';
 import { withRetry } from '@ai/retry';
 import { resolveSemanticRoutingConfig, routeTurn, type RoutingDecision } from '@ai/routing';
 import type { SemanticRoutingAccounting } from '@ai/semantic-routing';
@@ -33,6 +41,7 @@ import { DB } from '@ai/tokens';
 import { withToolContext, type ToolContext } from '@ai/tool-context';
 import { registerAllTools, toolRegistry } from '@ai/tools';
 import { domainToolFilter } from '@ai/tools/by-domain';
+
 import {
   manifestForCapability,
   manifestToolNames,
@@ -40,9 +49,12 @@ import {
   type MastraRoutingDomain,
 } from '../../capabilities';
 import { prepareKestrelMemory } from '../../context';
-import { buildConversationScorers, buildScorersForExecutionPlan, type BuiltScorers } from '../../evals/scorers';
+import {
+  buildConversationScorers,
+  buildScorersForExecutionPlan,
+  type BuiltScorers,
+} from '../../evals/scorers';
 import { buildGuardrailInputProcessors } from '../../guardrails';
-import { NATIVE_CANONICAL_TOOLS, resolveNativeCanonicalTool } from '../../tools/canonical';
 import {
   createKestrelMemory,
   KESTREL_MEMORY_LAST_MESSAGES,
@@ -63,6 +75,7 @@ import {
   type MastraGenerationStats,
 } from '../../shared/telemetry';
 import { runTracingOptions } from '../../telemetry';
+import { NATIVE_CANONICAL_TOOLS, resolveNativeCanonicalTool } from '../../tools/canonical';
 import {
   adaptLegacyReadOnlyTool,
   extractToolPartsFromMessages,
@@ -270,6 +283,10 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
   const setupStartedAt = Date.now();
   const semanticRouting = resolveSemanticRoutingConfig(args.settings, args.env, args.signal);
 
+  // Plugin capabilities are per user. Resolve them alongside memory/routing
+  // so an uninstalled plugin costs one cached lookup, never a tool prompt.
+  const pluginRuntimePromise = getInstalledPluginRuntime(args.userId);
+
   // Audit plan §2.4: memory preparation is independent of domain routing —
   // start both concurrently instead of paying their latencies in series.
   const memoryPromise = (async () => {
@@ -418,6 +435,10 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
   const memoryDegraded =
     memoryOutcome.memoryDegraded || (memoryOutcome.prepared?.memoryDegraded ?? false);
   const memoryBackfill = memoryOutcome.prepared?.backfillAttempted ?? false;
+  const pluginRuntime = await pluginRuntimePromise;
+  metrics.observe('mastra_setup_latency_ms', Date.now() - setupStartedAt, {
+    tags: { phase: 'plugins' },
+  });
 
   const toolPartsBuffer: MastraToolInvocationPart[] = [];
   const contextEntries: Array<[string, unknown]> = [
@@ -425,12 +446,40 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
     ['threadId', args.threadId],
     ['runId', runId],
     ['routingDomain', routing.domain],
+    ['installedPlugins', pluginRuntime.installedPluginIds],
     ['toolParts', toolPartsBuffer],
   ];
   if (args.onToolEvent) {
     contextEntries.push(['onToolEvent', args.onToolEvent]);
   }
   const requestContext = new RequestContext<Record<string, unknown>>(contextEntries);
+
+  // Dynamic plugin tools/skills for THIS user only. Uninstalled plugins are
+  // absent from the prompt entirely (token + focus win, not just permissions).
+  const pluginToolRegistrations = resolvePluginToolsForAgent(
+    pluginRuntime,
+    'canonical-chat',
+    args.settings.disabledTools ?? [],
+  );
+  const pluginTools = buildPluginMastraTools({
+    runtime: pluginRuntime,
+    tools: pluginToolRegistrations,
+    ...(args.signal ? { signal: args.signal } : {}),
+    requestContext,
+  });
+  const agentTools = mergePluginTools(registeredTools, pluginTools);
+  const pluginSkills = resolvePluginSkills(pluginRuntime);
+  // Optional user-authored agents (custom-agents plugin). Only delegatable
+  // agents are built, read-only, and without remote MCP connections so the
+  // hot chat path never pays a network round-trip. No catalogs = no work.
+  const customAgentSubagents = await buildCustomAgentSubagents({
+    runtime: pluginRuntime,
+    settings: args.settings,
+    env: args.env,
+    userId: args.userId,
+    threadId: args.threadId,
+    ...(args.signal ? { signal: args.signal } : {}),
+  });
   // External retrieval is enabled by the canonical allowlist, so detector
   // unavailability must fail closed rather than silently exposing raw external
   // content to an unguarded agent. The mode now derives from the capability
@@ -470,7 +519,11 @@ async function setupCanonicalChat(args: RunMastraCanonicalChatArgs): Promise<Can
       args.responseStyle,
       args.citeSources,
     ),
-    tools: registeredTools as never,
+    tools: agentTools as never,
+    ...(pluginSkills.length > 0 ? { skills: pluginSkills as never } : {}),
+    ...(Object.keys(customAgentSubagents).length > 0
+      ? { agents: customAgentSubagents as never }
+      : {}),
     inputProcessors,
     ...(memory ? { memory } : {}),
   });

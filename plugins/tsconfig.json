@@ -1,0 +1,4 @@
+{
+  "extends": "@kestrel/config/typescript/base",
+  "include": ["registry.ts", "ui-registry.ts"]
+}

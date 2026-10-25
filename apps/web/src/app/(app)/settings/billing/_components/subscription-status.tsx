@@ -31,6 +31,7 @@ interface Subscription {
   trialEnd: string | null;
   canceledAt: string | null;
   cancelAtPeriodEnd?: boolean;
+  provider?: string | null;
   plan: { name: string; priceUsdCents: number } | null;
 }
 
@@ -67,6 +68,7 @@ export function SubscriptionStatus({
 
   const statusColor = STATUS_COLORS[subscription.status] ?? STATUS_COLORS.expired;
   const periodEnd = subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : null;
+  const isPrepaid = subscription.provider === 'gammal';
 
   return (
     <div className="border-border bg-bg-elev-1 rounded-sm border p-4">
@@ -79,10 +81,15 @@ export function SubscriptionStatus({
             >
               {subscription.status.replace('_', ' ')}
             </span>
+            {isPrepaid && (
+              <span className="bg-bg-elev-2 text-fg-subtle rounded-sm px-2 py-0.5 text-xs font-medium">
+                Prepaid pass
+              </span>
+            )}
           </div>
           {periodEnd && (
             <p className="text-fg-subtle text-sm">
-              {subscription.cancelAtPeriodEnd ? 'Access ends' : 'Next billing date'}:{' '}
+              {isPrepaid || subscription.cancelAtPeriodEnd ? 'Access ends' : 'Next billing date'}:{' '}
               {periodEnd.toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'short',
@@ -90,18 +97,26 @@ export function SubscriptionStatus({
               })}
             </p>
           )}
-          {subscription.cancelAtPeriodEnd && (
-            <p className="text-warn text-xs">
-              Subscription cancels at the end of this period. Remaining credits stay usable.
+          {isPrepaid ? (
+            <p className="text-fg-subtle text-xs">
+              This is a one-time pass. It will not renew; buy another pass when it ends.
             </p>
+          ) : (
+            subscription.cancelAtPeriodEnd && (
+              <p className="text-warn text-xs">
+                Subscription cancels at the end of this period. Remaining credits stay usable.
+              </p>
+            )
           )}
         </div>
         <div className="flex flex-col items-end gap-2">
           <p className="text-fg text-lg font-bold">
             ${currentPlan.priceUsdCents / 100}
-            <span className="text-fg-subtle text-sm font-normal">/mo</span>
+            <span className="text-fg-subtle text-sm font-normal">
+              {isPrepaid ? '/pass' : '/mo'}
+            </span>
           </p>
-          <ManageButton />
+          {!isPrepaid && <ManageButton />}
         </div>
       </div>
     </div>

@@ -22,8 +22,9 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
-import { apiMutate } from '@/lib/api-client';
+import { apiFetch, apiMutate } from '@/lib/api-client';
 import { cn } from '@/lib/cn';
+import type { PluginStoreSnapshot } from '@/lib/plugins/types';
 import { AlertCreateSchema } from '@/lib/services/alerts.schema';
 
 import { createAlertAction } from '../actions';
@@ -109,8 +110,27 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const touch = (field: string) => setTouched((prev) => new Set(prev).add(field));
 
-  const [channels, setChannels] = useState<('email' | 'telegram')[]>(['email']);
+  const [channels, setChannels] = useState<string[]>(['email']);
+  const [pluginChannels, setPluginChannels] = useState<Array<{ id: string; label: string }>>([]);
   const [snoozeHours, setSnoozeHours] = useState<string>('');
+
+  // The Telegram plugin delivers through the user's own bot. Surface that
+  // channel only when the plugin is installed + enabled.
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch<PluginStoreSnapshot>('/api/plugins/manage')
+      .then((snapshot) => {
+        if (cancelled) return;
+        const telegram = snapshot.plugins.find((plugin) => plugin.id === 'telegram-bot');
+        if (telegram?.installed && telegram.enabled && telegram.onboardingCompleted) {
+          setPluginChannels([{ id: 'telegram-bot', label: 'Telegram (personal bot)' }]);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const fieldErrors = useMemo(() => {
     const errs: Record<string, string | null> = {};
@@ -395,6 +415,27 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
             />
             Telegram
           </label>
+          {pluginChannels.map((channel) => (
+            <label
+              key={channel.id}
+              className="text-fg flex cursor-pointer items-center gap-2 text-sm"
+            >
+              <input
+                type="checkbox"
+                className="accent-brand size-4 cursor-pointer"
+                checked={channels.includes(channel.id)}
+                onChange={(e) => {
+                  setChannels(
+                    e.target.checked
+                      ? [...channels, channel.id]
+                      : channels.filter((x) => x !== channel.id),
+                  );
+                }}
+                onBlur={() => touch('channels')}
+              />
+              {channel.label}
+            </label>
+          ))}
         </div>
         {fieldErrors.channels ? (
           <p id="alert-channels-error" role="alert" className="text-danger text-xs">

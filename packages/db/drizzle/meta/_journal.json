@@ -736,6 +736,41 @@
       "when": 1792433561552,
       "tag": "0105_credit_reservation_shadow",
       "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1792536590674,
+      "tag": "0106_gammal_billing",
+      "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1792882500384,
+      "tag": "0107_plugin_system_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1792891645249,
+      "tag": "0108_backtesting_plugin_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 108,
+      "version": "7",
+      "when": 1792892029781,
+      "tag": "0109_paper_trading_plugin_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 109,
+      "version": "7",
+      "when": 1792895763814,
+      "tag": "0110_custom_agents_plugin_tables",
+      "breakpoints": true
     }
   ]
 }
