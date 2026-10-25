@@ -32,6 +32,7 @@ import { fromDrizzle, PgBoss, type Job, type JobWithMetadata } from 'pg-boss';
 import { getDb, getTenantDbScope } from './client';
 
 export const BACKTEST_RUN_QUEUE = 'backtest-run';
+export const BACKTEST_SWEEP_QUEUE = 'backtest-sweep';
 
 let bossInstance: PgBoss | null = null;
 let starting: Promise<PgBoss> | null = null;
@@ -105,6 +106,14 @@ export async function getQueue(): Promise<PgBoss> {
       retryDelay: 15,
       retryBackoff: true,
       expireInSeconds: 600,
+      retentionSeconds: 86_400,
+      deleteAfterSeconds: 3_600,
+    });
+    await boss.createQueue(BACKTEST_SWEEP_QUEUE, {
+      retryLimit: 1,
+      retryDelay: 30,
+      retryBackoff: true,
+      expireInSeconds: 1_800,
       retentionSeconds: 86_400,
       deleteAfterSeconds: 3_600,
     });

@@ -38,6 +38,7 @@ describe('custom agents plugin', () => {
         'custom_agent_delete',
         'custom_agent_get',
         'custom_agent_list',
+        'custom_agent_run_script',
         'custom_agent_templates',
         'custom_agent_update',
       ].sort(),

@@ -41,6 +41,7 @@ import { z } from 'zod';
 import { createGenerationLedger } from '../generation-ledger';
 import { collectSymbolResearchPacketCached } from '../mastra-v2/packets/packet-cache';
 import type { MastraGenerationStats } from '../mastra-v2/shared/stats';
+import { enrichPacketForUser } from '../plugins/enrichers';
 import { isDeadlineAbort } from '../utils/timeout';
 import { readCritiqueStepResult, readDebateStepResult } from './critique';
 import { createCritiqueStep, createDebateStep, type CritiqueStepContext } from './critique-steps';
@@ -71,8 +72,8 @@ import {
   CommitteeWorkflowInputSchema,
   CommitteeWorkflowOutputSchema,
   runSignalsFor,
-  SpecialistStepInputSchema,
   specialistRunnerDepsFor,
+  SpecialistStepInputSchema,
   VerifyOutputSchema,
   type CommitteeWorkflowDeps,
 } from './workflow-shared';
@@ -103,7 +104,9 @@ export function createSingleCommitteeWorkflow(
     execute: async ({ inputData, requestContext, abortSignal, bail }) => {
       const signal = runSignal ?? abortSignal;
       await deps.onProgress?.(progressStages[0]!);
-      const packet = await collectPacket(inputData.symbol, signal);
+      const basePacket = await collectPacket(inputData.symbol, signal);
+      const userId = requestContext.get('userId') as string | undefined;
+      const packet = userId ? await enrichPacketForUser(basePacket, userId, signal) : basePacket;
       recordCommitteeStepSpan({
         step: 'collect-packet',
         runId: (requestContext.get('runId') as string | undefined) ?? 'unknown',
@@ -392,4 +395,5 @@ export function createSingleCommitteeWorkflow(
     .then(fusionStep)
     .commit() as unknown as Workflow;
 
-  return workflow;}
+  return workflow;
+}

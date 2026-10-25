@@ -27,6 +27,9 @@ description: Use when the user asks for the London open liquidity sweep rules.
 - Limits: 24,000 characters per skill in the Studio, 12 skills per agent.
 - References are optional extra documents in a `references/` folder; when you
   paste a skill into the Studio, keep it self-contained.
+- PDFs can be uploaded in the Studio; Kestrel extracts the text (up to 10 MB)
+  and wraps it in a generated SKILL.md. Text-based PDFs work best; scanned
+  image-only PDFs need OCR before upload.
 
 ## What makes a good skill
 

@@ -23,7 +23,14 @@
 import { getDb, requireTenantIdForUser, type DbClient } from '@kestrel/db';
 import { and, count, desc, eq, sql } from 'drizzle-orm';
 
-import { customAgents, type CustomAgentInsert, type CustomAgentRow } from './tables';
+import {
+  customAgentRuns,
+  customAgents,
+  type CustomAgentInsert,
+  type CustomAgentRow,
+  type CustomAgentRunInsert,
+  type CustomAgentRunRow,
+} from './tables';
 
 export class AgentSlugTakenError extends Error {
   readonly code = 'AGENT_SLUG_TAKEN';
@@ -229,4 +236,54 @@ export async function markCustomAgentRun(
         eq(customAgents.id, id),
       ),
     );
+}
+
+/** Append one bounded run-history row. */
+export async function insertCustomAgentRun(
+  input: Omit<CustomAgentRunInsert, 'tenantId'>,
+  db: DbClient = getDb(),
+): Promise<CustomAgentRunRow> {
+  const tenantId = await tenantFor(input.userId, db);
+  const rows = await db
+    .insert(customAgentRuns)
+    .values({ ...input, tenantId })
+    .returning();
+  const row = rows[0];
+  if (!row) throw new Error('[custom-agents] run insert returned no row');
+
+  // Keep the per-agent history bounded (the card only needs the latest 200).
+  await db.execute(sql`
+    DELETE FROM plg_custom_agents_runs
+    WHERE user_id = ${input.userId}
+      AND agent_id = ${input.agentId}
+      AND id NOT IN (
+        SELECT id FROM plg_custom_agents_runs
+        WHERE user_id = ${input.userId}
+          AND agent_id = ${input.agentId}
+        ORDER BY created_at DESC
+        LIMIT 200
+      )
+  `);
+  return row;
+}
+
+export async function listCustomAgentRuns(
+  userId: string,
+  agentId: string,
+  limit = 20,
+  db: DbClient = getDb(),
+): Promise<CustomAgentRunRow[]> {
+  const tenantId = await tenantFor(userId, db);
+  return db
+    .select()
+    .from(customAgentRuns)
+    .where(
+      and(
+        eq(customAgentRuns.userId, userId),
+        eq(customAgentRuns.tenantId, tenantId),
+        eq(customAgentRuns.agentId, agentId),
+      ),
+    )
+    .orderBy(desc(customAgentRuns.createdAt))
+    .limit(Math.max(1, Math.min(100, limit)));
 }

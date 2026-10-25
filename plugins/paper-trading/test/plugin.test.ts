@@ -32,10 +32,12 @@ describe('paper trading plugin', () => {
       [
         'paper_cancel_order',
         'paper_close_position',
+        'paper_deploy_strategy',
         'paper_get_accounts',
         'paper_get_position',
         'paper_list_orders',
         'paper_list_positions',
+        'paper_list_strategy_runs',
         'paper_modify_position',
         'paper_place_order',
         'paper_reset_account',
@@ -45,8 +47,9 @@ describe('paper trading plugin', () => {
     expect(host.resolveToolsForUser([])).toHaveLength(0);
     expect(host.resolveSkillsForUser(['paper-trading'])).toHaveLength(1);
     expect(plugin.tickSubscribers).toHaveLength(1);
-    expect(plugin.jobs).toHaveLength(1);
-    expect(plugin.jobs?.[0]?.schedule).toBe('* * * * *');
+    expect(plugin.packetEnrichers).toHaveLength(1);
+    expect(plugin.jobs).toHaveLength(2);
+    expect(plugin.jobs?.every((job) => job.schedule === '* * * * *')).toBe(true);
   });
 
   it('gates personal orders and leaves risk-reducing actions unblocked', () => {

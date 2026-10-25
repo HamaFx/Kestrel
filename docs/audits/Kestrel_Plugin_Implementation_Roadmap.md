@@ -11,6 +11,7 @@
 > - ✅ **Phase 4 — Complete (Backtesting Lab).** `@kestrel/plugin-backtesting` ships a QuickJS-WASM `getSignal(ctx)` sandbox, point-in-time SMC/TA feature matrix, deterministic bar-by-bar engine, scorecard, 3 built-in skills + 10 references, run/strategy/knowledge persistence, uPlot equity charts, and an optional `pg-boss` async run queue.
 > - ✅ **Phase 5 — Complete (Paper Trading).** `@kestrel/plugin-paper-trading` ships the dual Personal/Autonomous Sandbox accounts, risk/margin sizing, market/limit/stop orders, SL/TP/trailing/breakeven, sub-second TickBus fills, a minute mark-to-market fallback, Journal sync, agent tools, API, and desk UI.
 > - ✅ **Phase 6 — Complete (Custom Agents).** `@kestrel/plugin-custom-agents` ships the Agent Studio, four starter agents, SKILL.md/`.agent.md` import, tool allowlists, optional model pins, per-user run counters, `@handle` routing in chat and Telegram, Mastra subagent delegation, and a hardened `@mastra/mcp` bridge.
+> - ✅ **Optional follow-ups — Complete (except the high-fidelity engine).** Backtest → Paper deployment, parameter sweeps, packet enrichers, plugin-first Telegram alerts, agent run history, PDF knowledge and a QuickJS calculation sandbox are live.
 >
 > See the [Implementation Progress Log](#implementation-progress-log) at the end for delivered files, deviations, and verification evidence.
 
@@ -598,11 +599,64 @@ Once Part I (Phases 0–2) is complete, building any of the 4 plugins below requ
 - `node scripts/check-route-security.mjs` and `node scripts/check-test-files.mjs`
   passed.
 
-### Next — follow-ups (all optional)
+### 2026-10-25 — Optional follow-ups: sweeps, deploy-to-paper, enrichers, alert bridge ✅
 
-1. 1-click "deploy a backtest to the Paper Sandbox" with a durable strategy runner.
-2. Parameter-sweep/optimizer tool on the `pg-boss` queue.
-3. Wire `PluginPacketEnricher` (user-aware packet cache) and migrate core
-   `telegram` alert delivery to the plugin channel.
-4. High-fidelity engine adapter (NautilusTrader/LEAN sidecar) behind the existing
+**Delivered**
+
+- **Backtest → Paper Sandbox deployment**:
+  - `plg_paper_trading_strategy_runs` (`0113_paper_strategy_runs.sql`) with
+    forced RLS, source/params snapshot, bar cursor, last signal, linked position
+    and order/signal counters.
+  - `plugins/paper-trading/src/strategy-runner.ts` evaluates the latest closed
+    bar with the exact Backtesting Lab QuickJS engine, sizes virtual market
+    orders from the signal stop, links the sandbox position and flips exposure on
+    an opposite signal.
+  - Minute `strategy-runner` plugin job isolates users and individual runs;
+    `paper_deploy_strategy` / `paper_list_strategy_runs` agent tools and
+    `/strategy-runs` API/UI (pause/resume/stop/delete).
+  - `Deploy to Paper` button on every completed Backtest result card.
+- **Parameter sweep / optimizer**:
+  - `plg_backtesting_sweeps` (`0112_backtesting_sweeps.sql`) with forced RLS,
+    objective, grid, progress, best params/metrics and ranked results.
+  - Cartesian grid expansion (max 6 params / 10 values each / 200 combos),
+    durable `backtest-sweep` pg-boss queue, worker handler, `/sweeps` API and
+    Studio Sweeps tab with live progress and leaderboard.
+  - `backtest_sweep_strategy` agent tool (in-chat cap 30 combinations).
+- **`PluginPacketEnricher` wiring**:
+  - `enrichPacketForUser()` applies installed plugins' enrichers after the
+    shared base-packet cache read (never cached, never cross-user).
+  - Wired into the committee collect step, `convene_committee` and the XAUUSD
+    research-packet tool.
+  - Paper Trading registers `open-paper-positions`, returning per-symbol open
+    exposure, P&L and stops.
+- **Core Telegram alert migration**:
+  - Web-created alerts that store the core `telegram` channel now deliver
+    through the user's personal Telegram bot when the plugin is installed and
+    linked; the shared server bot remains a fallback for non-plugin deployments.
+- **Custom Agent polish**:
+  - `plg_custom_agents_runs` (`0111_custom_agent_runs.sql`) run history with
+    bounded pruning, `/agents/:id/runs` API and a Studio Runs dialog.
+  - PDF knowledge upload via server-side `unpdf` text extraction (10 MB cap,
+    text-based PDFs), wrapped into a validated SKILL.md.
+  - `custom_agent_run_script` QuickJS calculation sandbox (32 MB, timeout,
+    no network/filesystem/host globals), completing the script-testing gap.
+
+**Verification**
+
+- `pnpm build:packages` — 13/13 tasks.
+- `pnpm typecheck` / `pnpm lint` — all workspaces.
+- `pnpm test` — all 15 projects passed: AI 175 files / 1,554 tests, web 127 files
+  / 1,164 tests, worker 28 files / 149 tests, db 52 tests, plugin suites
+  (backtesting 25, paper-trading 27, custom-agents 25, plugin-sdk 30).
+- Migrations `0111`–`0113` applied to a throwaway PostgreSQL 16 DB; forced RLS,
+  tenant isolation and `kestrel_app` grants verified (tenant A 1/1/1, tenant B
+  0/1/0).
+- DB smoke: created a custom agent + run history, deployed/paused/deleted a
+  paper strategy run, and created/read a 2-combination sweep.
+- Paper runner sandbox test generated a latest-bar signal; enricher, sweep
+  expansion and schema tests pass.
+
+### Next — only remaining optional item
+
+1. High-fidelity engine adapter (NautilusTrader/LEAN sidecar) behind the existing
    engine interface, only if L2/L3 realism is required.

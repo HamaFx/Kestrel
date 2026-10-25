@@ -40,6 +40,8 @@ export const XauusdResearchPacketSchema = z.object({
   macro: XauusdMacroEvidenceSchema.nullable(),
   missingData: z.array(z.string()),
   warnings: z.array(z.string()),
+  /** Per-user plugin enrichment (never cached with the base packet). */
+  pluginEnrichment: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type XauusdResearchPacket = z.infer<typeof XauusdResearchPacketSchema>;

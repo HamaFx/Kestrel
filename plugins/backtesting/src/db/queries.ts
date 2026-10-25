@@ -27,8 +27,11 @@ import type { BacktestMetrics, BacktestTrade, EquityPoint, RejectedSignal } from
 import {
   backtestRuns,
   backtestStrategies,
+  backtestSweeps,
   type BacktestRunRow,
   type BacktestStrategyRow,
+  type BacktestSweepInsert,
+  type BacktestSweepRow,
 } from './tables';
 
 export interface PersistBacktestRunInput {
@@ -263,4 +266,97 @@ export async function deleteBacktestStrategy(userId: string, idOrSlug: string): 
     .delete(backtestStrategies)
     .where(and(eq(backtestStrategies.userId, userId), eq(backtestStrategies.id, existing.id)));
   return true;
+}
+
+// ── Parameter sweeps ─────────────────────────────────────────────────────
+
+export async function createBacktestSweep(
+  input: Omit<BacktestSweepInsert, 'tenantId'>,
+): Promise<BacktestSweepRow> {
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(input.userId, db);
+  const rows = await db
+    .insert(backtestSweeps)
+    .values({ ...input, tenantId })
+    .returning();
+  const row = rows[0];
+  if (!row) throw new Error('[backtesting] sweep insert returned no row');
+  return row;
+}
+
+export async function updateBacktestSweep(
+  userId: string,
+  sweepId: string,
+  patch: Partial<
+    Pick<
+      BacktestSweepRow,
+      | 'status'
+      | 'total'
+      | 'completed'
+      | 'bestParams'
+      | 'bestMetrics'
+      | 'bestScore'
+      | 'results'
+      | 'error'
+    >
+  >,
+): Promise<BacktestSweepRow | undefined> {
+  const db = getDb();
+  const rows = await db
+    .update(backtestSweeps)
+    .set({ ...patch, updatedAt: new Date() })
+    .where(and(eq(backtestSweeps.userId, userId), eq(backtestSweeps.id, sweepId)))
+    .returning();
+  return rows[0];
+}
+
+export async function getBacktestSweep(
+  userId: string,
+  sweepId: string,
+): Promise<BacktestSweepRow | undefined> {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(backtestSweeps)
+    .where(and(eq(backtestSweeps.userId, userId), eq(backtestSweeps.id, sweepId)))
+    .limit(1);
+  return rows[0];
+}
+
+export async function listBacktestSweeps(userId: string, limit = 20): Promise<BacktestSweepRow[]> {
+  const db = getDb();
+  return db
+    .select()
+    .from(backtestSweeps)
+    .where(eq(backtestSweeps.userId, userId))
+    .orderBy(desc(backtestSweeps.createdAt))
+    .limit(Math.max(1, Math.min(50, limit)));
+}
+
+export async function deleteBacktestSweep(userId: string, sweepId: string): Promise<boolean> {
+  const db = getDb();
+  const rows = await db
+    .delete(backtestSweeps)
+    .where(and(eq(backtestSweeps.userId, userId), eq(backtestSweeps.id, sweepId)))
+    .returning({ id: backtestSweeps.id });
+  return rows.length > 0;
+}
+
+export async function requestBacktestSweepCancel(
+  userId: string,
+  sweepId: string,
+): Promise<boolean> {
+  const db = getDb();
+  const rows = await db
+    .update(backtestSweeps)
+    .set({ status: 'cancelled', updatedAt: new Date() })
+    .where(
+      and(
+        eq(backtestSweeps.userId, userId),
+        eq(backtestSweeps.id, sweepId),
+        inArray(backtestSweeps.status, ['queued', 'running']),
+      ),
+    )
+    .returning({ id: backtestSweeps.id });
+  return rows.length > 0;
 }

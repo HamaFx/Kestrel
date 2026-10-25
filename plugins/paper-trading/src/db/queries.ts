@@ -28,10 +28,13 @@ import {
   paperFills,
   paperOrders,
   paperPositions,
+  paperStrategyRuns,
   type PaperAccountRow,
   type PaperFillRow,
   type PaperOrderRow,
   type PaperPositionRow,
+  type PaperStrategyRunInsert,
+  type PaperStrategyRunRow,
 } from './tables';
 
 // ── Accounts ─────────────────────────────────────────────────────────────
@@ -173,10 +176,88 @@ export async function resetAccount(
 /** Uninstall + wipe: remove every row owned by this user. */
 export async function deleteAllPaperData(userId: string): Promise<void> {
   const db = getDb();
+  await db.delete(paperStrategyRuns).where(eq(paperStrategyRuns.userId, userId));
   await db.delete(paperFills).where(eq(paperFills.userId, userId));
   await db.delete(paperOrders).where(eq(paperOrders.userId, userId));
   await db.delete(paperPositions).where(eq(paperPositions.userId, userId));
   await db.delete(paperAccounts).where(eq(paperAccounts.userId, userId));
+}
+
+// ── Deployed strategy runs ───────────────────────────────────────────────
+
+export async function listStrategyRuns(
+  userId: string,
+  status?: 'active' | 'paused' | 'stopped' | 'error',
+): Promise<PaperStrategyRunRow[]> {
+  const db = getDb();
+  const filters = [eq(paperStrategyRuns.userId, userId)];
+  if (status) filters.push(eq(paperStrategyRuns.status, status));
+  return db
+    .select()
+    .from(paperStrategyRuns)
+    .where(and(...filters))
+    .orderBy(desc(paperStrategyRuns.updatedAt));
+}
+
+export async function getStrategyRun(
+  userId: string,
+  strategyRunId: string,
+): Promise<PaperStrategyRunRow | undefined> {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(paperStrategyRuns)
+    .where(and(eq(paperStrategyRuns.userId, userId), eq(paperStrategyRuns.id, strategyRunId)))
+    .limit(1);
+  return rows[0];
+}
+
+export async function insertStrategyRun(
+  input: Omit<PaperStrategyRunInsert, 'tenantId'>,
+): Promise<PaperStrategyRunRow> {
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(input.userId, db);
+  const rows = await db
+    .insert(paperStrategyRuns)
+    .values({ ...input, tenantId })
+    .returning();
+  const row = rows[0];
+  if (!row) throw new Error('[paper-trading] strategy run insert returned no row');
+  return row;
+}
+
+export interface StrategyRunPatch {
+  status?: 'active' | 'paused' | 'stopped' | 'error';
+  lastBarTime?: Date | null;
+  lastSignal?: string | null;
+  lastSignalAt?: Date | null;
+  positionId?: string | null;
+  signalCount?: number;
+  orderCount?: number;
+  lastError?: string | null;
+}
+
+export async function updateStrategyRun(
+  userId: string,
+  strategyRunId: string,
+  patch: StrategyRunPatch,
+): Promise<PaperStrategyRunRow | undefined> {
+  const db = getDb();
+  const rows = await db
+    .update(paperStrategyRuns)
+    .set({ ...patch, updatedAt: new Date() })
+    .where(and(eq(paperStrategyRuns.userId, userId), eq(paperStrategyRuns.id, strategyRunId)))
+    .returning();
+  return rows[0];
+}
+
+export async function deleteStrategyRun(userId: string, strategyRunId: string): Promise<boolean> {
+  const db = getDb();
+  const rows = await db
+    .delete(paperStrategyRuns)
+    .where(and(eq(paperStrategyRuns.userId, userId), eq(paperStrategyRuns.id, strategyRunId)))
+    .returning({ id: paperStrategyRuns.id });
+  return rows.length > 0;
 }
 
 // ── Positions ────────────────────────────────────────────────────────────

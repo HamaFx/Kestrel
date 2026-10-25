@@ -27,6 +27,7 @@ import {
   boolean,
   doublePrecision,
   index,
+  integer,
   jsonb,
   pgPolicy,
   pgTable,
@@ -198,6 +199,38 @@ export const paperFills = pgTable(
   ],
 ).enableRLS();
 
+export const paperStrategyRuns = pgTable(
+  'plg_paper_trading_strategy_runs',
+  {
+    ...baseColumns(),
+    accountId: uuid('account_id')
+      .notNull()
+      .references(() => paperAccounts.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    strategyId: text('strategy_id'),
+    symbol: text('symbol').notNull(),
+    timeframe: text('timeframe').notNull(),
+    source: text('source').notNull(),
+    params: jsonb('params').$type<Record<string, unknown>>().notNull().default({}),
+    riskPct: doublePrecision('risk_pct').notNull().default(1),
+    /** 'active' | 'paused' | 'stopped' | 'error'. */
+    status: text('status').notNull().default('active'),
+    lastBarTime: timestamp('last_bar_time', { withTimezone: true }),
+    /** 'long' | 'short' | null. */
+    lastSignal: text('last_signal'),
+    lastSignalAt: timestamp('last_signal_at', { withTimezone: true }),
+    positionId: uuid('position_id'),
+    signalCount: integer('signal_count').notNull().default(0),
+    orderCount: integer('order_count').notNull().default(0),
+    lastError: text('last_error'),
+  },
+  (t) => [
+    index('plg_paper_trading_strategy_runs_tenant_user_idx').on(t.tenantId, t.userId),
+    index('plg_paper_trading_strategy_runs_status_idx').on(t.status, t.updatedAt),
+    tenantIsolation(),
+  ],
+).enableRLS();
+
 export type PaperAccountRow = typeof paperAccounts.$inferSelect;
 export type PaperAccountInsert = typeof paperAccounts.$inferInsert;
 export type PaperPositionRow = typeof paperPositions.$inferSelect;
@@ -206,3 +239,5 @@ export type PaperOrderRow = typeof paperOrders.$inferSelect;
 export type PaperOrderInsert = typeof paperOrders.$inferInsert;
 export type PaperFillRow = typeof paperFills.$inferSelect;
 export type PaperFillInsert = typeof paperFills.$inferInsert;
+export type PaperStrategyRunRow = typeof paperStrategyRuns.$inferSelect;
+export type PaperStrategyRunInsert = typeof paperStrategyRuns.$inferInsert;

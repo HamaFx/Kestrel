@@ -19,11 +19,23 @@
 import { getTableConfig } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 
-import { paperAccounts, paperFills, paperOrders, paperPositions } from '../src/db/tables';
+import {
+  paperAccounts,
+  paperFills,
+  paperOrders,
+  paperPositions,
+  paperStrategyRuns,
+} from '../src/db/tables';
 
 describe('paper trading schema', () => {
   it('prefixes every table and forces tenant RLS', () => {
-    for (const table of [paperAccounts, paperPositions, paperOrders, paperFills]) {
+    for (const table of [
+      paperAccounts,
+      paperPositions,
+      paperOrders,
+      paperFills,
+      paperStrategyRuns,
+    ]) {
       const config = getTableConfig(table);
       expect(config.name.startsWith('plg_paper_trading_')).toBe(true);
       expect(config.enableRLS).toBe(true);
@@ -44,6 +56,29 @@ describe('paper trading schema', () => {
         'leverage',
         'risk_per_trade_pct',
         'status',
+      ]),
+    );
+  });
+
+  it('stores deployed strategy state and the sandbox position link', () => {
+    const config = getTableConfig(paperStrategyRuns);
+    expect(config.columns.map((column) => column.name)).toEqual(
+      expect.arrayContaining([
+        'account_id',
+        'name',
+        'strategy_id',
+        'symbol',
+        'timeframe',
+        'source',
+        'params',
+        'risk_pct',
+        'status',
+        'last_bar_time',
+        'last_signal',
+        'position_id',
+        'signal_count',
+        'order_count',
+        'last_error',
       ]),
     );
   });

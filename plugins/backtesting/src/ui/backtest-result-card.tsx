@@ -25,6 +25,7 @@ import {
 } from '@tabler/icons-react';
 
 import { RunResultSchema } from '../schemas';
+import { DeployToPaperButton } from './deploy-to-paper-button';
 import { EquityChart } from './equity-chart';
 import { fmtMoney, toneClass } from './format';
 import { MetricsGrid } from './metrics-grid';
@@ -138,13 +139,16 @@ export function BacktestResultCard({ output, state, errorMessage }: PluginToolPa
           {run.metrics.trades} trades · PF {run.metrics.profitFactor.toFixed(2)} · maxDD{' '}
           {run.metrics.maxDrawdownPct.toFixed(1)}%
         </span>
-        <a
-          href={href}
-          className="text-brand inline-flex items-center gap-1 text-xs font-semibold hover:underline"
-        >
-          Open full run
-          <IconArrowUpRight className="size-3.5" />
-        </a>
+        <div className="flex items-center gap-2">
+          {run.status === 'completed' ? <DeployToPaperButton runId={run.runId} compact /> : null}
+          <a
+            href={href}
+            className="text-brand inline-flex items-center gap-1 text-xs font-semibold hover:underline"
+          >
+            Open full run
+            <IconArrowUpRight className="size-3.5" />
+          </a>
+        </div>
       </footer>
     </section>
   );

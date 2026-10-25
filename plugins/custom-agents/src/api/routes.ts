@@ -30,7 +30,9 @@ import { AgentSlugTakenError } from '../db/queries';
 import {
   CatalogOutputSchema,
   CreateAgentInputSchema,
+  ExtractPdfOutputSchema,
   ImportAgentMarkdownInputSchema,
+  ListAgentRunsOutputSchema,
   ListAgentsOutputSchema,
   UpdateAgentInputSchema,
   ValidateSkillInputSchema,
@@ -40,6 +42,7 @@ import {
   createAgentForUser,
   deleteAgentForUser,
   getAgentView,
+  listAgentRunViews,
   listAgentViews,
   updateAgentForUser,
 } from '../services/agents';
@@ -195,6 +198,16 @@ const updateAgent = wrap(async (ctx) => {
   return json({ ok: true, message: `Updated @${agent.slug}.`, agent });
 });
 
+const listAgentRuns = wrap(async (ctx) => {
+  const ref = ctx.params['agentId'];
+  if (!ref) throw new ApiError(400, 'An agent id or handle is required.', 'MISSING_AGENT');
+  const agent = await getAgentView(ctx.userId, ref);
+  if (!agent) throw new ApiError(404, 'Agent not found.', 'AGENT_NOT_FOUND');
+  const limit = Math.min(100, Math.max(1, Number(query(ctx.request).get('limit') ?? 20) || 20));
+  const runs = await listAgentRunViews(ctx.userId, agent.id, limit);
+  return json(ListAgentRunsOutputSchema.parse({ runs, count: runs.length }));
+});
+
 const deleteAgent = wrap(async (ctx) => {
   const ref = ctx.params['agentId'];
   if (!ref) throw new ApiError(400, 'An agent id or handle is required.', 'MISSING_AGENT');
@@ -262,6 +275,51 @@ const validateSkill = wrap(async (ctx) => {
   return json(result);
 });
 
+const extractPdf = wrap(async (ctx) => {
+  const contentType = ctx.request.headers.get('content-type') ?? '';
+  if (!contentType.includes('multipart/form-data')) {
+    throw new ApiError(400, 'Upload a PDF as multipart/form-data.', 'INVALID_UPLOAD');
+  }
+  let form: FormData;
+  try {
+    form = await ctx.request.formData();
+  } catch {
+    throw new ApiError(400, 'Could not read the uploaded file.', 'INVALID_UPLOAD');
+  }
+  const file = form.get('file');
+  if (!(file instanceof File)) {
+    throw new ApiError(400, 'The "file" field is required.', 'MISSING_FILE');
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    throw new ApiError(413, 'PDF must be 10 MB or smaller.', 'FILE_TOO_LARGE');
+  }
+  if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+    throw new ApiError(415, 'Only PDF files are supported.', 'UNSUPPORTED_FILE');
+  }
+
+  try {
+    const { extractText, getDocumentProxy } = await import('unpdf');
+    const pdf = await getDocumentProxy(new Uint8Array(await file.arrayBuffer()));
+    const result = await extractText(pdf, { mergePages: true });
+    const text = Array.isArray(result.text) ? result.text.join('\n\n') : result.text;
+    return json(
+      ExtractPdfOutputSchema.parse({
+        text: String(text ?? '').slice(0, 100_000),
+        pages: result.totalPages ?? 0,
+      }),
+    );
+  } catch (err) {
+    ctx.log.warn('PDF text extraction failed', {
+      err: err instanceof Error ? err.message : String(err),
+    });
+    throw new ApiError(
+      422,
+      'Could not extract text from this PDF. Try a text-based PDF or paste the Markdown instead.',
+      'PDF_EXTRACTION_FAILED',
+    );
+  }
+});
+
 const importAgentMarkdown = wrap(async (ctx) => {
   const input = await parseBody(ctx.request, ImportAgentMarkdownInputSchema);
   const parsed = parseAgentMarkdown(input.content);
@@ -296,8 +354,10 @@ const installTemplate = wrap(async (ctx) => {
 export const customAgentsApiRoutes: Readonly<Record<string, PluginApiRouteHandler>> = {
   '/agents': byMethod({ GET: listAgents, POST: createAgent }),
   '/agents/:agentId': byMethod({ GET: getAgent, PATCH: updateAgent, DELETE: deleteAgent }),
+  '/agents/:agentId/runs': byMethod({ GET: listAgentRuns }),
   '/catalog': byMethod({ GET: catalog }),
   '/skills/validate': byMethod({ POST: validateSkill }),
+  '/skills/extract': byMethod({ POST: extractPdf }),
   '/import-agent-md': byMethod({ POST: importAgentMarkdown }),
   '/templates/:templateId': byMethod({ POST: installTemplate }),
 };

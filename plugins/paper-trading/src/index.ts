@@ -33,6 +33,8 @@ import { definePlugin } from '@kestrel/plugin-sdk';
 import { paperTradingApiRoutes } from './api/routes';
 import { deleteAllPaperData } from './db/queries';
 import { paperMarketWatchJob } from './jobs/market-watch';
+import { paperStrategyRunnerJob } from './jobs/strategy-runner';
+import { paperPositionEnricher } from './packet-enricher';
 import { ensurePaperAccounts } from './services/accounts';
 import { DEFAULT_SETTINGS, normaliseSettings, PLUGIN_ID, settingsSchema } from './settings';
 import { paperTickSubscriber } from './tick';
@@ -73,8 +75,9 @@ const plugin = definePlugin({
   },
   skills: [resolveSkillDir('paper-trading-desk')],
   tools: paperTradingTools,
-  jobs: [paperMarketWatchJob],
+  jobs: [paperMarketWatchJob, paperStrategyRunnerJob],
   tickSubscribers: [paperTickSubscriber],
+  packetEnrichers: [paperPositionEnricher],
   apiRoutes: paperTradingApiRoutes,
   onUserInstall: async (ctx) => {
     await ensurePaperAccounts(ctx.userId, normaliseSettings(ctx.settings));

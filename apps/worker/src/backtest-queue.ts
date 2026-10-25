@@ -22,8 +22,13 @@
 // stores the run id as the job output for the UI to poll.
 
 import { withTenantDb } from '@kestrel/db';
-import { BACKTEST_RUN_QUEUE, workQueue } from '@kestrel/db/queue';
-import { BacktestQueueJobSchema, runBacktestForUser } from '@kestrel/plugin-backtesting/server';
+import { BACKTEST_RUN_QUEUE, BACKTEST_SWEEP_QUEUE, workQueue } from '@kestrel/db/queue';
+import {
+  BacktestQueueJobSchema,
+  executeSweep,
+  runBacktestForUser,
+  SweepQueueJobSchema,
+} from '@kestrel/plugin-backtesting/server';
 
 import type { Logger } from './log.js';
 
@@ -63,5 +68,43 @@ export async function startBacktestQueueWorker(log: Logger): Promise<string> {
       trades: response.result.metrics.trades,
     });
     return { runId: response.row.id };
+  });
+}
+
+export async function startBacktestSweepQueueWorker(log: Logger): Promise<string> {
+  const queueLog = log.with({ module: 'backtest-sweep-queue' });
+
+  return workQueue(BACKTEST_SWEEP_QUEUE, async (job) => {
+    const parsed = SweepQueueJobSchema.safeParse(job.data);
+    if (!parsed.success) {
+      throw new Error(
+        `Invalid backtest sweep payload: ${parsed.error.issues
+          .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+          .join('; ')}`,
+      );
+    }
+    const { userId, tenantId, sweepId, settings } = parsed.data;
+    queueLog.info('backtest sweep started', { jobId: job.id, sweepId, userId });
+
+    const row = await withTenantDb(
+      tenantId,
+      () =>
+        executeSweep({
+          userId,
+          sweepId,
+          settings,
+          signal: job.signal,
+        }),
+      { userId },
+    );
+
+    queueLog.info('backtest sweep completed', {
+      jobId: job.id,
+      sweepId,
+      status: row.status,
+      total: row.total,
+      userId,
+    });
+    return { sweepId: row.id, status: row.status };
   });
 }

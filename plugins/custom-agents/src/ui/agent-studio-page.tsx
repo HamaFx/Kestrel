@@ -28,6 +28,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AgentView, CatalogOutput } from '../schemas';
 import { AgentCard } from './agent-card';
 import { AgentEditor } from './agent-editor';
+import { AgentRunsDialog } from './agent-runs-dialog';
 import { errorMessage, pluginFetch } from './api';
 import { TemplateGallery } from './template-gallery';
 
@@ -39,6 +40,7 @@ export function AgentStudioPage(_props: PluginPageProps) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<AgentView | null>(null);
+  const [runsAgent, setRunsAgent] = useState<AgentView | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -189,6 +191,7 @@ export function AgentStudioPage(_props: PluginPageProps) {
               }}
               onDelete={() => void deleteAgent(agent)}
               onChat={() => chatWith(agent)}
+              onRuns={() => setRunsAgent(agent)}
             />
           ))}
         </section>
@@ -212,6 +215,8 @@ export function AgentStudioPage(_props: PluginPageProps) {
           onSaved={() => void load()}
         />
       ) : null}
+
+      {runsAgent ? <AgentRunsDialog agent={runsAgent} onClose={() => setRunsAgent(null)} /> : null}
 
       <section className="text-fg-subtle border-border/40 rounded-lg border p-3 text-[10px] leading-relaxed">
         <strong className="text-fg-muted">How to use an agent:</strong> type{' '}

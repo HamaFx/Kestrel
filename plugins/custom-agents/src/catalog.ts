@@ -62,6 +62,17 @@ export const customAgentsCatalog: PluginUserAgentCatalog = {
   },
 
   async recordRun(record) {
-    await recordAgentRun(record.ctx.userId, record.agent.id, record.status);
+    await recordAgentRun(record.ctx.userId, record.agent.id, {
+      runId: record.runId,
+      threadId: record.threadId,
+      status: record.status,
+      model: record.model,
+      latencyMs: record.latencyMs,
+      costUsd: record.costUsd,
+      toolCalls: record.toolCalls,
+      inputChars: record.inputChars,
+      outputChars: record.outputChars,
+      ...(record.error !== undefined ? { error: record.error } : {}),
+    });
   },
 };

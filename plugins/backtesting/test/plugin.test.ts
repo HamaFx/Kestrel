@@ -41,6 +41,7 @@ describe('backtesting plugin', () => {
         'backtest_read_strategy',
         'backtest_run_strategy',
         'backtest_save_strategy',
+        'backtest_sweep_strategy',
       ].sort(),
     );
 

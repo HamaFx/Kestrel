@@ -38,6 +38,7 @@ import { KnowledgeBase } from './knowledge-base';
 import { NewRunForm } from './new-run-form';
 import { RunsList } from './runs-list';
 import { StrategyLibrary } from './strategy-library';
+import { SweepPanel } from './sweep-panel';
 
 type RunSummary = z.infer<typeof RunSummarySchema>;
 type StrategySummary = z.infer<typeof StrategySummarySchema>;
@@ -51,11 +52,12 @@ interface SummaryResponse {
   latestRun: RunSummary | null;
 }
 
-type Tab = 'new' | 'runs' | 'strategies' | 'knowledge';
+type Tab = 'new' | 'runs' | 'sweeps' | 'strategies' | 'knowledge';
 
 const TABS: readonly { id: Tab; label: string }[] = [
   { id: 'new', label: 'New run' },
   { id: 'runs', label: 'Runs' },
+  { id: 'sweeps', label: 'Sweeps' },
   { id: 'strategies', label: 'Strategies' },
   { id: 'knowledge', label: 'Knowledge' },
 ];
@@ -296,6 +298,8 @@ export function BacktestingPage(_props: PluginPageProps) {
       {tab === 'runs' ? (
         <RunsList runs={runs} busyId={busyId} onDelete={(runId) => void removeRun(runId)} />
       ) : null}
+
+      {tab === 'sweeps' ? <SweepPanel strategies={strategies} /> : null}
 
       {tab === 'strategies' ? (
         <StrategyLibrary
