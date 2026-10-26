@@ -29,6 +29,7 @@ import '@/lib/plugins/register-ui';
 import { useShellRoute } from '../shell-route-context';
 import { CommandPreview } from './command-preview';
 import { CommandResults } from './command-results';
+import { CommandTouchLauncher } from './command-touch-launcher';
 import { useCoarsePointer } from './use-coarse-pointer';
 import { useCommandListNavigation } from './use-command-list-navigation';
 import { useCommandPalette } from './use-command-palette';
@@ -237,19 +238,9 @@ export function CommandPalette({ onNewChat, installedPluginIds = [] }: CommandPa
         </AnimatePresence>
       )}
 
-      {/* Touch launcher — hidden on /chat so it never overlaps the sticky
-          composer or the scroll-to-bottom FAB. */}
-      {isTouch && !isChat ? (
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-label="Open command palette"
-          className="bg-bg-elev-2 text-fg-muted border-border hover:bg-bg-elev-3 hover:text-fg focus-visible:ring-brand fixed right-4 bottom-24 z-30 inline-flex size-12 items-center justify-center rounded-sm border shadow-md focus-visible:ring-2 focus-visible:outline-none"
-          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 96px)' }}
-        >
-          <IconCommand className="size-5" aria-hidden="true" />
-        </button>
-      ) : null}
+      {/* Touch launcher — suppressed on /chat so it never overlaps the composer
+          or the scroll-to-bottom FAB. */}
+      {isTouch && !isChat ? <CommandTouchLauncher onOpen={() => setOpen(true)} /> : null}
     </>
   );
 }
