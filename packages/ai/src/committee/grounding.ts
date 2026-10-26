@@ -14,9 +14,9 @@ import type { MastraModeOpinion } from './types';
 /** Evidence tolerance: legitimate integer rounding of indicator readings. */
 export const EVIDENCE_TOLERANCE = 0.5;
 
-/** Scenario-projection wording exempts forward-looking numbers from grounding. */
+/** Scenario-projection and chart metadata wording exempts forward-looking numbers from grounding. */
 const SCENARIO_PROJECTION_TERMS =
-  /\b(?:target|entry(?:\s+zone)?|invalidation|trigger|take.?profit|stop.?loss|tp|sl|risk.?reward)\b/i;
+  /\b(?:target|entry(?:\s+zone)?|invalidation|trigger|take.?profit|stop.?loss|tp|sl|risk.?reward|timeframe|tf|period|ema|sma|rsi|atr|macd|vwap|bb|fibonacci|pullback|retracement|tier|step|phase|stage|wave|h|m|d|min|hour|day|ratio|rr)\b/i;
 
 /** Characters on either side of a number that may carry its scenario wording. */
 const SCENARIO_CONTEXT_CHARS = 24;
@@ -146,6 +146,8 @@ function hasScenarioProjectionContext(text: string, value: number): boolean {
     const windowStart = Math.max(0, start - SCENARIO_CONTEXT_CHARS);
     const windowEnd = Math.min(text.length, start + match[0].length + SCENARIO_CONTEXT_CHARS);
     if (SCENARIO_PROJECTION_TERMS.test(text.slice(windowStart, windowEnd))) return true;
+    const afterMatch = text.slice(start + match[0].length, start + match[0].length + 4);
+    if (/^(?:%|m\b|h\b|d\b|x\b|min\b|pips?\b|pts?\b)/i.test(afterMatch)) return true;
   }
   return false;
 }

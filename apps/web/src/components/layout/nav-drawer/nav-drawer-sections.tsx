@@ -15,6 +15,7 @@ import {
   SECONDARY_NAV_ITEMS,
   type NavItem,
 } from '../nav-items';
+import { SidebarDeskHud } from '../desktop-sidebar/sidebar-desk-hud';
 import { NavLink, Section } from './nav-link';
 
 export function NavDrawerSections({
@@ -30,10 +31,25 @@ export function NavDrawerSections({
 
   return (
     <nav aria-label="Primary" className="scrollbar-hide flex-1 overflow-y-auto px-3 pb-4">
-      <Section label="Navigation">
-        {PRIMARY_NAV_ITEMS.map((item) => (
-          <NavLink key={item.href} item={item} active={isNavItemActive(item, pathname)} />
-        ))}
+      <Section label="Workspace">
+        {PRIMARY_NAV_ITEMS.map((item, index) => {
+          const code = String(index + 1).padStart(2, '0');
+          const isResearch = index === 0;
+          return (
+            <div key={item.href} className="flex flex-col gap-1">
+              <NavLink
+                item={item}
+                active={isNavItemActive(item, pathname)}
+                code={code}
+              />
+              {isResearch && (
+                <div className="px-1 pb-1">
+                  <SidebarDeskHud collapsed={false} />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </Section>
 
       <Section label="Preferences">

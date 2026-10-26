@@ -98,11 +98,27 @@ export function AgentDeliberation({
         )}
       </div>
 
-      {/* Unified Horizontal 4-Desk Status Cards */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {/* Adaptive Desk Status Cards (Horizontal phalanx in full mode, full-width chip in single mode) */}
+      <div
+        className={cn(
+          'grid gap-2',
+          agents.length === 1
+            ? 'grid-cols-1'
+            : agents.length === 2
+              ? 'grid-cols-1 sm:grid-cols-2'
+              : 'grid-cols-2 sm:grid-cols-4',
+        )}
+      >
         {agents.map((a) => {
           const meta = AGENT_META[a.agentName] ?? FALLBACK_META;
-          return <AgentNode key={a.agentName} agent={a} meta={meta} />;
+          return (
+            <AgentNode
+              key={a.agentName}
+              agent={a}
+              meta={meta}
+              isSingle={agents.length === 1}
+            />
+          );
         })}
       </div>
 

@@ -94,6 +94,7 @@ export function classifyFullAnalysisFailure(error: unknown): FullAnalysisFailure
   if (errorCode(error) === 'FULL_ANALYSIS_QUEUE_OWNERSHIP_LOST') return 'lease';
   if (errorCode(error) === 'FULL_ANALYSIS_BUDGET_EXCEEDED') return 'quota';
   if (errorCode(error) === 'FULL_ANALYSIS_BUDGET_ADMISSION_FAILED') return 'transient';
+  if (errorCode(error) === 'MASTRA_MODE_INCOMPLETE') return 'permanent';
   if (isRetryableAnalysisError(error)) return 'transient';
   return 'permanent';
 }
