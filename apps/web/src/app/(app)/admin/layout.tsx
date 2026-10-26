@@ -18,6 +18,7 @@
 
 import { redirect } from 'next/navigation';
 
+import { PageHeader } from '@/components/layout/page-header';
 import { checkIsAdmin } from '@/lib/auth/admin-check';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -28,13 +29,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-fg text-2xl font-bold tracking-tight">Admin Control Plane</h1>
-        <p className="text-fg-subtle text-sm">
-          Global AI providers, model routing, live market feeds, agent tool switches, system health,
-          and subscriber management.
-        </p>
-      </header>
+      <PageHeader
+        title="Admin Control Plane"
+        description="Global AI providers, model routing, live market feeds, system health, and operator audit logs."
+      />
       {children}
     </div>
   );
