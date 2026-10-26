@@ -21,7 +21,7 @@
 import type { Symbol } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
 import { AnimatePresence } from 'motion/react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { ChatThreadView } from './chat-thread-view';
 import { ChatTopBar, type AnalysisMode, type ThreadSummary } from './chat-top-bar';
@@ -78,19 +78,24 @@ export function ChatScreen({
 
   useChatKeyboardShortcuts({ onToggleViews: () => setSplitMode((v) => !v) });
 
-  // Wide-screen default auto-open (Task 4.3): on >=1280px (xl:), auto-open views if content exists
+  // Wide-screen default auto-open (Task 4.3): on >=1280px (xl:), auto-open the
+  // views dock once content exists. Guarded by a per-thread ref: the old
+  // unconditional effect re-opened the dock the instant the user closed it
+  // (closing flips `splitMode`, which re-ran the effect and saw messages), so
+  // the sidecar could never be dismissed on xl screens.
+  const autoOpenedThreadRef = useRef<string | null>(null);
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (window.innerWidth >= 1280) {
-      const hasActiveContext =
-        session.messages.length > 0 ||
-        session.agentProgress !== null ||
-        toolbar.analysisMode === 'full';
-      if (hasActiveContext && !splitMode) {
-        setSplitMode(true);
-      }
+    if (typeof window === 'undefined' || window.innerWidth < 1280) return;
+    if (autoOpenedThreadRef.current === threadId) return;
+    const hasActiveContext =
+      session.messages.length > 0 ||
+      session.agentProgress !== null ||
+      toolbar.analysisMode === 'full';
+    if (hasActiveContext) {
+      autoOpenedThreadRef.current = threadId;
+      setSplitMode(true);
     }
-  }, [session.messages.length, session.agentProgress, toolbar.analysisMode, splitMode, setSplitMode]);
+  }, [threadId, session.messages.length, session.agentProgress, toolbar.analysisMode, setSplitMode]);
 
   const composerPlaceholder = session.selectedAgentSlug
     ? `Ask @${session.selectedAgentSlug}…`

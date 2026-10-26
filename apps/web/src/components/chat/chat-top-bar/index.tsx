@@ -167,7 +167,7 @@ export function ChatTopBar({
               aria-label="Toggle views"
               aria-pressed={isSidecarOpen}
               className={cn(
-                'hidden h-9 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors lg:inline-flex',
+                'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors',
                 isSidecarOpen
                   ? 'border-brand/40 bg-brand/10 text-brand'
                   : 'border-border bg-bg-elev-1 text-fg-muted hover:text-fg hover:bg-bg-elev-2',

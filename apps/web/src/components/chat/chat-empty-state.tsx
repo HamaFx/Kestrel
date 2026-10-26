@@ -24,19 +24,7 @@ import { IconArrowRight, IconSparkles } from '@tabler/icons-react';
 import Image from 'next/image';
 import { useMemo } from 'react';
 
-import { chatErrorText } from '@/lib/chat-transport';
 import { STRATEGIST_DESK_LIST, type StrategistDeskConfig } from '@/lib/kestrel-strategist-desks';
-
-export function ChatErrorBanner({ error }: { error: Error }) {
-  return (
-    <div
-      role="alert"
-      className="border-danger/30 bg-danger/10 text-danger mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 font-mono text-xs"
-    >
-      <span>{chatErrorText(error)}</span>
-    </div>
-  );
-}
 
 export function ChatEmptyState({
   pinnedSymbol,

@@ -18,13 +18,11 @@
 import type { CustomAgentSummary } from '@/hooks/use-custom-agents';
 import { cn } from '@/lib/formatters/cn';
 
-import { ChatErrorBanner } from './chat-empty-state';
 import type { AnalysisMode } from './chat-top-bar';
 import { Composer, type ComposerImage } from './composer';
 
 export function ChatComposerDock({
   splitMode,
-  error,
   analysisMode,
   onAnalysisModeChange,
   chatModel,
@@ -39,7 +37,6 @@ export function ChatComposerDock({
   onAgentChange,
 }: {
   splitMode: boolean;
-  error: Error | undefined;
   analysisMode: AnalysisMode;
   onAnalysisModeChange: (mode: AnalysisMode) => void;
   chatModel: string | null;
@@ -60,7 +57,8 @@ export function ChatComposerDock({
         splitMode ? 'w-full max-w-2xl xl:max-w-3xl' : 'max-w-3xl xl:max-w-4xl',
       )}
     >
-      {error && <ChatErrorBanner error={error} />}
+      {/* Errors render once, in <ChatThreadView>'s dismissible banner with
+          Retry — a second banner here duplicated every failure. */}
       <Composer
         analysisMode={analysisMode}
         onAnalysisModeChange={onAnalysisModeChange}
