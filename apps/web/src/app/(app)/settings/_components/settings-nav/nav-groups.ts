@@ -5,6 +5,7 @@
 import {
   IconActivity,
   IconBell,
+  IconDeviceMobilePlus,
   IconList,
   IconPalette,
   IconPuzzle,
@@ -90,6 +91,12 @@ export const BASE_NAV_GROUPS: NavGroup[] = [
         label: 'Appearance & Data',
         shortLabel: 'Display',
         icon: IconPalette,
+      },
+      {
+        href: '/settings/install',
+        label: 'Install app',
+        shortLabel: 'Install',
+        icon: IconDeviceMobilePlus,
       },
       {
         href: '/settings/usage',

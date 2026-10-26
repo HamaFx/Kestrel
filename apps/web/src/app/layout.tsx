@@ -18,6 +18,8 @@ import type { Metadata, Viewport } from 'next';
 import { ViewTransitions } from 'next-view-transitions';
 
 import { Providers } from '@/components/providers';
+import { PWA_THEME_COLOR } from '@/lib/pwa/pwa-theme';
+import { SPLASH_LINKS } from '@/lib/pwa/splash-links';
 
 import './globals.css';
 
@@ -77,12 +79,31 @@ export const metadata: Metadata = {
     address: false,
     email: false,
   },
+  // Home-screen web app behaviour. iOS 26 opens every Home Screen entry as a
+  // web app by default, but the title under the icon and the status-bar
+  // treatment still come from here; 'black-translucent' lets the app paint
+  // under the status bar, which the shell already handles with pt-safe/pb-safe
+  // insets. Next 16 renders `capable` as the standardized
+  // `mobile-web-app-capable` meta tag (Chromium + iOS both read it), so no
+  // extra `metadata.other` entry is needed.
+  appleWebApp: {
+    capable: true,
+    title: 'Kestrel',
+    statusBarStyle: 'black-translucent',
+  },
   icons: {
     icon: [
+      { url: '/favicon.ico', sizes: '48x48', type: 'image/x-icon' },
       { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
       { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
-    apple: [{ url: '/icons/apple-touch-icon-180.png', sizes: '180x180' }],
+    // iPad home screens pick the closest size; without the 152/167 variants
+    // iOS has to downscale the 180px iPhone asset.
+    apple: [
+      { url: '/icons/apple-touch-icon-180.png', sizes: '180x180' },
+      { url: '/icons/apple-touch-icon-167.png', sizes: '167x167' },
+      { url: '/icons/apple-touch-icon-152.png', sizes: '152x152' },
+    ],
   },
 };
 
@@ -91,14 +112,14 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   viewportFit: 'cover',
-  themeColor: '#121212',
+  colorScheme: 'dark',
+  themeColor: PWA_THEME_COLOR,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" data-brand="kestrel" suppressHydrationWarning>
       <head>
-        <meta name="color-scheme" content="dark" />
         <link
           rel="preload"
           href="/fonts/funnel-sans-latin-wght-normal.woff2"
@@ -134,42 +155,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           type="font/woff2"
           crossOrigin="anonymous"
         />
-        {/* iPhone 14 & 15 Pro */}
-        <link
-          rel="apple-touch-startup-image"
-          media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
-          href="/icons/apple-splash-1179x2556.png"
-        />
-        {/* iPhone 14 & 15 Pro Max */}
-        <link
-          rel="apple-touch-startup-image"
-          media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
-          href="/icons/apple-splash-1179x2556.png"
-        />
-        {/* iPhone 12 & 13 Pro, iPhone 14 */}
-        <link
-          rel="apple-touch-startup-image"
-          media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
-          href="/icons/apple-splash-1179x2556.png"
-        />
-        {/* iPhone 12 & 13 Pro Max, iPhone 14 Plus */}
-        <link
-          rel="apple-touch-startup-image"
-          media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
-          href="/icons/apple-splash-1179x2556.png"
-        />
-        {/* iPad Pro 12.9" */}
-        <link
-          rel="apple-touch-startup-image"
-          media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
-          href="/icons/apple-splash-1179x2556.png"
-        />
-        {/* iPad Pro 11" */}
-        <link
-          rel="apple-touch-startup-image"
-          media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
-          href="/icons/apple-splash-1179x2556.png"
-        />
+        {/* iOS launch images — one per device/orientation from the shared
+            matrix in src/lib/pwa/splash-devices.json. A single image reused
+            for every media query stretches the artwork on other devices. */}
+        {SPLASH_LINKS.map((link) => (
+          <link
+            key={link.href + link.media}
+            rel="apple-touch-startup-image"
+            media={link.media}
+            href={link.href}
+          />
+        ))}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

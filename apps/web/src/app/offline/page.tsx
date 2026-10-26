@@ -15,6 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+// SPDX-License-Identifier: Apache-2.0
+
+// Public offline fallback — the target of every failed offline navigation.
+//
+// It intentionally lives outside the (app) route group: the authenticated shell
+// needs a session and a database, neither of which exists offline, so this page
+// is static, precached by the service worker, and reachable without auth
+// (see src/proxy.ts, src/auth.config.ts and scripts/sw.template.js).
 import { IconRefresh, IconWifiOff } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 
@@ -28,6 +37,7 @@ export default function OfflinePage() {
   const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
+    // Recover automatically the moment the device is back online.
     const handleOnline = () => {
       window.location.reload();
     };
@@ -41,9 +51,9 @@ export default function OfflinePage() {
   };
 
   return (
-    <section className="flex min-h-[60svh] flex-col items-center justify-center gap-6 px-4 text-center">
+    <section className="pb-safe pt-safe flex min-h-svh flex-col items-center justify-center gap-6 px-4 text-center">
       <div className="bg-bg-elev-2 text-fg-subtle border-border flex size-16 items-center justify-center rounded-full border">
-        <IconWifiOff className="size-8" />
+        <IconWifiOff className="size-8" aria-hidden="true" />
       </div>
       <KestrelBrand variant="lockup" decorative className="w-32" />
       <div className="flex flex-col gap-2">
@@ -54,9 +64,12 @@ export default function OfflinePage() {
         </p>
       </div>
       <Button onClick={handleRetry} disabled={retrying} className="gap-2">
-        <IconRefresh className={cn('h-4 w-4', retrying && 'animate-spin')} />
+        <IconRefresh className={cn('h-4 w-4', retrying && 'animate-spin')} aria-hidden="true" />
         {retrying ? 'Reconnecting...' : 'Retry Connection'}
       </Button>
+      <p className="text-fg-subtle max-w-xs text-xs">
+        The installed app reconnects on its own as soon as your device is back online.
+      </p>
     </section>
   );
 }

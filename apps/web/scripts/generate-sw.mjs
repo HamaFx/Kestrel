@@ -19,8 +19,7 @@
  *
  * Requirements: 5.5, 5.6, 5.7
  */
-
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -32,9 +31,13 @@ export const PRECACHE_OUT_FILE = resolve(WEB_ROOT, 'public/sw-precache.json');
 export const BUILD_ID_FILE = resolve(WEB_ROOT, '.build-id');
 
 /**
- * Precache list — exact URLs only (SW cache.addAll requires exact matches,
- * not globs). Runtime caching via the SW fetch handler covers the
- * fingerprinted JS/CSS bundles dynamically.
+ * Precache list — exact URLs only. Runtime caching via the SW fetch handler
+ * covers fingerprinted JS/CSS bundles, fonts and brand assets dynamically.
+ *
+ * `/chat` is the manifest `start_url` (the app boots straight into it) and
+ * `/offline` is the public fallback every failed navigation resolves to.
+ * Entries are fetched individually at install time, so a single 404 degrades
+ * that one entry instead of emptying the whole cache.
  */
 export const PRECACHE_URLS = Object.freeze([
   '/chat',
@@ -72,15 +75,8 @@ export function main() {
   const buildId = resolveBuildId();
 
   mkdirSync(dirname(PRECACHE_OUT_FILE), { recursive: true });
-  writeFileSync(
-    PRECACHE_OUT_FILE,
-    `${JSON.stringify(PRECACHE_URLS, null, 2)}\n`,
-    'utf8',
-  );
-  // eslint-disable-next-line no-console
-  console.log(
-    `[generate-sw] wrote ${PRECACHE_OUT_FILE} (${PRECACHE_URLS.length} urls)`,
-  );
+  writeFileSync(PRECACHE_OUT_FILE, `${JSON.stringify(PRECACHE_URLS, null, 2)}\n`, 'utf8');
+  console.log(`[generate-sw] wrote ${PRECACHE_OUT_FILE} (${PRECACHE_URLS.length} urls)`);
 
   if (!existsSync(TEMPLATE_FILE)) {
     // eslint-disable-next-line no-console
@@ -92,10 +88,15 @@ export function main() {
   }
 
   const template = readFileSync(TEMPLATE_FILE, 'utf8');
-  const stamped = template.replace(/__BUILD_ID__/g, buildId);
+  const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? '';
+  const stamped = template
+    .replace(/__BUILD_ID__/g, buildId)
+    .replace(/__VAPID_PUBLIC_KEY__/g, vapidPublicKey);
   writeFileSync(SW_OUT_FILE, stamped, 'utf8');
-  // eslint-disable-next-line no-console
-  console.log(`[generate-sw] wrote ${SW_OUT_FILE} (build id: ${buildId})`);
+  console.log(
+    `[generate-sw] wrote ${SW_OUT_FILE} (build id: ${buildId}` +
+      `${vapidPublicKey ? '' : ', no VAPID key — push re-subscribe disabled'})`,
+  );
 }
 
 function isMain() {

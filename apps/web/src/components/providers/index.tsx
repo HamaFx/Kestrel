@@ -20,9 +20,10 @@
 //   - NuqsAdapter must wrap anything that reads URL state via `useQueryState`.
 //   - QueryClientProvider must wrap any data hooks.
 //
-// M7: Lazy-load SwRegister — it returns null and defers internally via
-// requestIdleCallback. TimeProvider is kept synchronous because it wraps
-// {children} and lazy-loading it would flash a blank app for ~50-200ms.
+// M7: Lazy-load SwRegister and PwaSignals — both return null and defer
+// internally via requestIdleCallback. TimeProvider is kept synchronous because
+// it wraps {children} and lazy-loading it would flash a blank app for
+// ~50-200ms.
 import dynamic from 'next/dynamic';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 
@@ -34,12 +35,18 @@ const LazySwRegister = dynamic(
   { ssr: false },
 );
 
+const LazyPwaSignals = dynamic(
+  () => import('./pwa-signals').then((m) => ({ default: m.PwaSignals })),
+  { ssr: false },
+);
+
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryProvider>
       <NuqsAdapter>
         <TimeProvider>
           <LazySwRegister />
+          <LazyPwaSignals />
           {children}
         </TimeProvider>
       </NuqsAdapter>

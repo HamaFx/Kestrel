@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "PWA surface palette. Mirrors the Hoplite Dark tokens declared in",
+    "apps/web/src/app/globals.css (@theme) so the installed app, the manifest chrome,",
+    "the generated icons/splashes and the install-dialog screenshots all agree.",
+    "Consumed by: src/app/manifest.ts, src/app/layout.tsx (theme-color),",
+    "scripts/generate-icons.mjs and scripts/generate-pwa-screenshots.mjs.",
+    "test/pwa-brand-contract.test.ts parses globals.css and fails on drift.",
+    "Alpha tokens (fg-muted/fg-subtle) are pre-flattened over `background`."
+  ],
+  "background": "#121212",
+  "themeColor": "#121212",
+  "palette": {
+    "bg": "#121212",
+    "bgElev1": "#161616",
+    "bgElev2": "#1d1d1d",
+    "bgElev3": "#282828",
+    "border": "#2c2c2c",
+    "fg": "#e5e5e5",
+    "fgMuted": "#919191",
+    "fgSubtle": "#666666",
+    "brand": "#ff3616",
+    "brandSoft": "#ff632a",
+    "bull": "#3f9e3d",
+    "bear": "#e02c10",
+    "info": "#4fa3b5",
+    "warn": "#d98f00"
+  }
+}

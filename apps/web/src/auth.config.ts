@@ -64,6 +64,9 @@ export const authConfig: NextAuthConfig = {
         nextUrl.pathname.startsWith('/fonts') ||
         nextUrl.pathname.startsWith('/brand') ||
         nextUrl.pathname.startsWith('/icons') ||
+        // Install-dialog screenshots referenced by the manifest: Chrome fetches
+        // them without a session, so they must stay public.
+        nextUrl.pathname.startsWith('/screenshots') ||
         nextUrl.pathname.startsWith('/login') ||
         nextUrl.pathname.startsWith('/register') ||
         nextUrl.pathname.startsWith('/forgot-password') ||

@@ -30,6 +30,9 @@ const jsdomInclude = [
   '**/csrf.test.ts',
   '**/storage.test.ts',
   '**/shiki-sanitization.test.ts',
+  // PWA contracts: manifest/asset/install-preference checks read `localStorage`
+  // and `matchMedia`, so they need a DOM environment.
+  '**/pwa-*.test.ts',
 ];
 
 export default defineConfig({

@@ -1,107 +1,159 @@
+'use client';
+
 // SPDX-License-Identifier: Apache-2.0
-// PWA install detection: standalone/iOS sniffing, the deferred
-// beforeinstallprompt event, and the localStorage dismiss cap.
+//
+// Install detection for the "Add to Home Screen" nudge.
+//
+// Combines three client-only signals:
+//   1. the deferred `beforeinstallprompt` event (Chromium),
+//   2. standalone / `appinstalled` detection (is it already installed?),
+//   3. the progressive-snooze preference + engagement gate, so the passive
+//      nudge only appears after the user has actually used the app.
+//
+// `/settings/install` reuses the same hook with `gate: false` so an explicit
+// "tell me how to install" request always works.
+import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
-import { useEffect, useState } from 'react';
-
-const STORAGE_KEY = 'kestrel:install-dismissed';
-const LEGACY_STORAGE_KEY = 'hfx_install_dismissed';
-const DISMISS_CAP = 3;
+import {
+  engagementRemainingMs,
+  isOfferable,
+  markInstalled,
+  readInstallPreference,
+  recordDismissal,
+  registerEngagementOnce,
+} from '@/lib/pwa/install-preference';
+import { displayMode, isStandalone, platform, type Platform } from '@/lib/pwa/platform-detect';
 
 interface BeforeInstallPromptEvent extends Event {
-  /** Chrome-defined shape. We don't use any of its members but the
-   *  TS DOM lib does not include them, so we declare the minimum. */
+  /** Chrome-defined shape. The TS DOM lib does not include it. */
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-export function useInstallDetection() {
+export interface InstallDetection {
+  /** False during SSR and the first paint — never render before this. */
+  hydrated: boolean;
+  /** Running as an installed app. */
+  installed: boolean;
+  /** A native Chromium install prompt is available. */
+  canPrompt: boolean;
+  /** The preference + engagement gate allow showing the nudge. */
+  offerable: boolean;
+  platform: Platform;
+  displayMode: ReturnType<typeof displayMode>;
+  /** Trigger the native install prompt. */
+  promptInstall: () => void;
+  /** Hide the nudge: progressively snoozed (3 days → 14 days → permanent). */
+  dismiss: () => void;
+}
+
+export interface InstallDetectionOptions {
+  /**
+   * Apply the engagement gate and the snooze preference. The passive nudge
+   * keeps this on; `/settings/install` turns it off so the user can always ask
+   * for the install flow explicitly, even after a permanent dismissal.
+   */
+  gate?: boolean;
+}
+
+export function useInstallDetection(options: InstallDetectionOptions = {}): InstallDetection {
+  const { gate = true } = options;
   const [hydrated, setHydrated] = useState(false);
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  const [offerable, setOfferable] = useState(false);
 
+  // Detection: installed state, the deferred prompt, and appinstalled.
   useEffect(() => {
     setHydrated(true);
 
-    // Already installed (PWA launched from home screen)?
-    const standalone =
-      typeof window !== 'undefined' &&
-      (window.matchMedia('(display-mode: standalone)').matches ||
-        // iOS-specific marker
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (navigator as any).standalone === true);
-    if (standalone) {
+    if (isStandalone()) {
+      // Already launched from the home screen: record it once so the nudge and
+      // settings card stop asking.
+      markInstalled();
       setInstalled(true);
-      return;
+    } else if (readInstallPreference().installedAt) {
+      setInstalled(true);
     }
 
-    // iOS/iPadOS 13+ detection: userAgent contains iPhone/iPad/iPod OR Macintosh with touch support
-    const ua = navigator.userAgent;
-    const isMac = /Macintosh/.test(ua);
-    const isTouch = 'ontouchend' in window || navigator.maxTouchPoints > 0;
-    const isiOS = /iPhone|iPad|iPod/.test(ua) || (isMac && isTouch);
-    setIsIOS(isiOS);
-
-    // Dismiss cap.
-    try {
-      const raw =
-        window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_STORAGE_KEY);
-      const count = raw ? Number(raw) : 0;
-      if (Number.isFinite(count) && count >= DISMISS_CAP) setDismissed(true);
-      if (raw !== null && window.localStorage.getItem(STORAGE_KEY) === null) {
-        window.localStorage.setItem(STORAGE_KEY, raw);
-        window.localStorage.removeItem(LEGACY_STORAGE_KEY);
-      }
-    } catch {
-      /* localStorage may be unavailable in private mode */
-    }
-
-    // Chrome / Edge / Android: capture the deferred prompt.
-    function onBeforeInstall(e: Event) {
-      e.preventDefault();
-      setDeferred(e as BeforeInstallPromptEvent);
-    }
-    window.addEventListener('beforeinstallprompt', onBeforeInstall);
-
-    function onAppInstalled() {
+    const onBeforeInstall = (event: Event): void => {
+      // Hold the event and decide when to surface it ourselves.
+      event.preventDefault();
+      setDeferred(event as BeforeInstallPromptEvent);
+    };
+    const onAppInstalled = (): void => {
+      markInstalled();
       setInstalled(true);
       setDeferred(null);
-    }
-    window.addEventListener('appinstalled', onAppInstalled);
+      toast.success('Kestrel installed', {
+        description: 'Open it from your home screen any time.',
+      });
+    };
 
+    window.addEventListener('beforeinstallprompt', onBeforeInstall);
+    window.addEventListener('appinstalled', onAppInstalled);
     return () => {
       window.removeEventListener('beforeinstallprompt', onBeforeInstall);
       window.removeEventListener('appinstalled', onAppInstalled);
     };
   }, []);
 
-  function bumpDismiss() {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      const next = (Number(raw) || 0) + 1;
-      window.localStorage.setItem(STORAGE_KEY, String(next));
-    } catch {
-      /* ignore */
+  // Gating: when, if ever, the passive nudge is allowed to appear.
+  useEffect(() => {
+    if (!gate) {
+      setOfferable(!installed);
+      return;
     }
-  }
+    if (installed) {
+      setOfferable(false);
+      return;
+    }
 
-  async function onInstall() {
+    const engagement = registerEngagementOnce();
+    const evaluate = (): void => {
+      setOfferable(isOfferable(readInstallPreference()) && engagementRemainingMs(engagement) === 0);
+    };
+    evaluate();
+
+    // First visit: reveal the nudge once the engagement gate elapses.
+    const remaining = engagementRemainingMs(engagement);
+    if (remaining <= 0) return;
+    const timer = window.setTimeout(evaluate, remaining);
+    return () => window.clearTimeout(timer);
+  }, [gate, installed]);
+
+  const promptInstall = useCallback(() => {
     if (!deferred) return;
-    await deferred.prompt();
-    const { outcome } = await deferred.userChoice;
-    if (outcome === 'accepted') {
-      setInstalled(true);
-    }
-    setDeferred(null);
-    bumpDismiss();
-  }
+    void (async () => {
+      await deferred.prompt();
+      const { outcome } = await deferred.userChoice;
+      setDeferred(null);
+      if (outcome === 'accepted') {
+        markInstalled();
+        setInstalled(true);
+        setOfferable(false);
+        return;
+      }
+      // Declining the browser dialog is a soft no: snooze, don't nag.
+      recordDismissal();
+      setOfferable(false);
+    })();
+  }, [deferred]);
 
-  function onDismiss() {
-    setDismissed(true);
-    bumpDismiss();
-  }
+  const dismiss = useCallback(() => {
+    recordDismissal();
+    setOfferable(false);
+  }, []);
 
-  return { hydrated, deferred, installed, isIOS, dismissed, onInstall, onDismiss };
+  return {
+    hydrated,
+    installed,
+    canPrompt: deferred !== null,
+    offerable,
+    platform: platform(),
+    displayMode: displayMode(),
+    promptInstall,
+    dismiss,
+  };
 }

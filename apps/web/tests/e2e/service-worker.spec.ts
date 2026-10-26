@@ -82,4 +82,22 @@ test.describe('PWA Service Worker', () => {
 
     expect(controlled).toBe(true);
   });
+
+  test('serves the cached offline page when a navigation fails offline', async ({ page }) => {
+    await page.goto('/dashboard');
+    // `ready` resolves once the install event (and its precache) has finished,
+    // so the offline page is guaranteed to be in the shell cache.
+    await page.evaluate(() => navigator.serviceWorker.ready);
+
+    const context = page.context();
+    await context.setOffline(true);
+    try {
+      await page.goto('/journal');
+      await expect(page.getByRole('heading', { name: /offline/i })).toBeVisible();
+      // The offline document is the public route, not the authenticated shell.
+      await expect(page.getByRole('button', { name: /retry connection/i })).toBeVisible();
+    } finally {
+      await context.setOffline(false);
+    }
+  });
 });

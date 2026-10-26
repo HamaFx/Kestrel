@@ -36,7 +36,8 @@ config → shared → db + indicators → data → ai → web + worker
 The web app provides:
 
 - Next.js 16 App Router pages and server actions
-- React 19 UI and PWA behavior
+- React 19 UI and PWA behavior (installable app shell, offline fallback, home-screen
+  and push integration — see [PWA & install](pwa.md))
 - Auth.js/NextAuth credentials authentication
 - Chat transport and streaming responses
 - Market, journal, alert, portfolio, settings, admin, and health routes
