@@ -93,10 +93,10 @@ export function HeroCopy({ isAuthenticated }: HeroCopyProps) {
         </div>
         <div className="min-w-0">
           <div className="text-fg font-mono text-xl font-bold tracking-tight tabular-nums sm:text-2xl">
-            Zero Setup
+            BYOK Vault
           </div>
           <div className="text-fg-subtle font-sans text-[11px] leading-tight sm:text-xs">
-            All AI & Feeds Included
+            Encrypted Key & Spend Control
           </div>
         </div>
       </div>

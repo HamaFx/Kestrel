@@ -69,7 +69,7 @@ export function LandingArchitecture() {
         {/* ── 3D ISOMETRIC EXPLODED STACK WORKBENCH ── */}
         <div className="grid gap-12 lg:grid-cols-12 lg:items-center">
           {/* Left Column: Layer Selector Tabs */}
-          <div className="flex flex-col gap-3 lg:col-span-4">
+          <div className="order-1 flex flex-col gap-3 lg:order-1 lg:col-span-4">
             {LAYERS.map((layer) => (
               <ArchitectureLayerTab
                 key={layer.id}
@@ -83,7 +83,7 @@ export function LandingArchitecture() {
           </div>
 
           {/* Center Column: Interactive 3D Exploded Isometric Stack Projection */}
-          <div className="flex items-center justify-center py-12 lg:col-span-5 lg:py-0">
+          <div className="order-3 flex items-center justify-center py-12 lg:order-2 lg:col-span-5 lg:py-0">
             <div
               className="relative h-[480px] w-[320px] select-none sm:w-[380px]"
               style={{
@@ -107,8 +107,11 @@ export function LandingArchitecture() {
             </div>
           </div>
 
-          {/* Right Column: Active Layer Live Telemetry Console */}
-          <div className="lg:col-span-3">
+          {/* Right Column: Active Layer Live Telemetry Console.
+              On mobile it sits directly under the tabs (order-2) so tapping a
+              layer updates content that is already on screen instead of
+              updating a console ~500px below the fold. */}
+          <div className="order-2 lg:order-3 lg:col-span-3">
             <ArchitectureTelemetryConsole activeLayer={activeLayer} />
           </div>
         </div>
