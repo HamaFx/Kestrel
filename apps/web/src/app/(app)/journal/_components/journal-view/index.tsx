@@ -20,11 +20,13 @@
 // Implements an advanced, responsive two-column grid on desktop, showing the equity curve and list
 // on the left, and stats summary / analytics on the right.
 import type { JournalEntry, JournalStats } from '@kestrel/shared';
-import { IconActivity } from '@tabler/icons-react';
+import { IconActivity, IconPlus, IconRefresh, IconUpload } from '@tabler/icons-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { PerformanceChart } from '@/components/chart/performance-chart';
+import { PageHeader } from '@/components/layout/page-header';
+import { Button } from '@/components/ui/button';
 import {
   Drawer,
   DrawerContent,
@@ -33,6 +35,8 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 import { Segmented } from '@/components/ui/segmented';
+import { StaleIndicator } from '@/components/ui/stale-indicator';
+import { cn } from '@/lib/formatters/cn';
 import { apiFetch } from '@/lib/http/api-client';
 
 import { EntryForm } from '../entry-form';
@@ -40,7 +44,7 @@ import { EntryList } from '../entry-list';
 import { ImportTrades } from '../import-trades';
 import { StatsSummary } from '../stats-summary';
 import { JournalAnalyticsTab } from './journal-analytics-tab';
-import { JournalHeader } from './journal-header';
+import { RecentExecutions } from './recent-executions';
 
 const QKEY = ['journal'] as const;
 
@@ -68,14 +72,34 @@ export function JournalView({ initialData }: { initialData?: JournalResponse } =
 
   return (
     <div className="animate-in fade-in flex flex-col gap-6 duration-300">
-      {/* Sticky header controls */}
-      <JournalHeader
-        isFetching={isFetching}
-        isLoading={isLoading}
-        onRefresh={refresh}
-        onImport={() => setImportOpen(true)}
-        onLogTrade={() => setOpen(true)}
-      />
+      <PageHeader
+        title="Trade Journal"
+        description="Log, tag, and audit your executions, R-multiples, and behavioral edge."
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <StaleIndicator isFetching={isFetching && !isLoading} />
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setImportOpen(true)}
+            aria-label="Import trades"
+          >
+            <IconUpload className="size-4" aria-hidden="true" />
+            Import
+          </Button>
+          <Button variant="ghost" size="sm" onClick={refresh} aria-label="Refresh logs">
+            <IconRefresh
+              className={cn('size-4', isFetching && 'animate-spin')}
+              aria-hidden="true"
+            />
+            Refresh
+          </Button>
+          <Button variant="primary" size="sm" onClick={() => setOpen(true)}>
+            <IconPlus className="size-4" aria-hidden="true" />
+            Log Trade
+          </Button>
+        </div>
+      </PageHeader>
 
       {/* Main Responsive Grid Layout */}
       {isLoading ? (
@@ -86,7 +110,7 @@ export function JournalView({ initialData }: { initialData?: JournalResponse } =
           </p>
         </div>
       ) : isError ? (
-        <div className="border-border bg-bg-elev-1 border-danger/20 bg-danger/5 flex flex-col items-center justify-center gap-2 rounded-sm border p-6 text-center">
+        <div className="border-danger/20 bg-danger/5 flex flex-col items-center justify-center gap-2 rounded-xl border p-6 text-center">
           <p className="text-danger text-sm font-semibold" role="alert">
             Failed to load journal portfolio
           </p>
@@ -117,8 +141,12 @@ export function JournalView({ initialData }: { initialData?: JournalResponse } =
                 {/* Cum R Equity Curve */}
                 <PerformanceChart entries={data?.entries ?? []} />
 
-                {/* Structured Trade logs list */}
-                <EntryList entries={data?.entries ?? []} onClosed={refresh} onDeleted={refresh} />
+                {/* Newest executions preview — the full filterable table lives
+                    in the Trades tab. */}
+                <RecentExecutions
+                  entries={data?.entries ?? []}
+                  onViewAll={() => setTab('trades')}
+                />
               </div>
 
               {/* Right Column: IconKey performance metrics & analytics (occupies 1/3 of desktop width) */}
@@ -146,7 +174,7 @@ export function JournalView({ initialData }: { initialData?: JournalResponse } =
       <Drawer open={open} onOpenChange={setOpen}>
         <DrawerContent className="max-h-[85svh]">
           <DrawerHeader className="pb-2">
-            <DrawerTitle className="text-fg text-lg font-black tracking-tight">
+            <DrawerTitle className="font-display text-fg text-lg font-normal tracking-[-0.03em]">
               Log New Position
             </DrawerTitle>
             <DrawerDescription className="text-fg-subtle text-xs">
@@ -167,7 +195,7 @@ export function JournalView({ initialData }: { initialData?: JournalResponse } =
       <Drawer open={importOpen} onOpenChange={setImportOpen}>
         <DrawerContent className="max-h-[85svh]">
           <DrawerHeader className="pb-2">
-            <DrawerTitle className="text-fg text-lg font-black tracking-tight">
+            <DrawerTitle className="font-display text-fg text-lg font-normal tracking-[-0.03em]">
               Import Trades
             </DrawerTitle>
             <DrawerDescription className="text-fg-subtle text-xs">
