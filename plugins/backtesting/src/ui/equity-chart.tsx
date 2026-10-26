@@ -24,9 +24,13 @@ export interface EquityChartPoint {
 }
 
 const DEFAULT_HEIGHT = 190;
-const AXIS_COLOR = '#8b93a1';
+const AXIS_COLOR = '#8a8a8a'; // mirrors --color-neutral
 const GRID_COLOR = 'rgba(255,255,255,0.06)';
 const BASELINE_COLOR = 'rgba(255,255,255,0.18)';
+const BULL_COLOR = '#3f9e3d'; // mirrors --color-bull
+const BEAR_COLOR = '#e02c10'; // mirrors --color-bear
+const BULL_FILL = 'rgba(63,158,61,0.14)';
+const BEAR_FILL = 'rgba(224,44,16,0.14)';
 
 /**
  * Interactive equity curve (uPlot).
@@ -92,8 +96,8 @@ export function EquityChart({
     void import('uplot').then(({ default: UPlot }) => {
       if (cancelled || !container) return;
 
-      const accent = positive ? '#22c55e' : '#ef4444';
-      const fill = positive ? 'rgba(34,197,94,0.10)' : 'rgba(239,68,68,0.10)';
+      const accent = positive ? BULL_COLOR : BEAR_COLOR;
+      const fill = positive ? BULL_FILL : BEAR_FILL;
 
       const options: uPlot.Options = {
         width,

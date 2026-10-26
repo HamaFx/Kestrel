@@ -26,7 +26,7 @@ import { KestrelBrand } from '@/components/brand/kestrel-brand';
 
 export default function NotFound() {
   return (
-    <main className="bg-bg-elev-1 text-fg flex min-h-svh flex-col items-center justify-center gap-6 px-6 text-center">
+    <main className="bg-bg text-fg flex min-h-svh flex-col items-center justify-center gap-6 px-6 text-center">
       <KestrelBrand variant="lockup" decorative className="w-32" />
       <div className="flex flex-col gap-2" role="alert">
         <h1 className="text-lg font-semibold">Page not found</h1>
@@ -37,7 +37,7 @@ export default function NotFound() {
       </div>
       <Link
         href="/chat"
-        className="bg-fg inline-flex h-10 items-center rounded-sm px-4 text-sm font-medium text-black transition-opacity hover:opacity-90"
+        className="bg-brand inline-flex h-10 items-center rounded-md px-4 text-sm font-medium text-white shadow-[0_4px_14px_rgba(255,54,22,0.3)] transition-opacity hover:opacity-90"
       >
         Go to chat
       </Link>
