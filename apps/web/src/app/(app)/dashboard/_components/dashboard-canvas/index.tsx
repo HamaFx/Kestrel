@@ -51,8 +51,6 @@ import { useConfirm } from '@/components/ui/confirm-drawer';
 import '@/lib/plugins/register-ui';
 
 import { MissionControlDeck } from '../mission-control-deck';
-import { PreSessionChecklistDrawer } from '../pre-session-checklist-drawer';
-import { QuickLogTradeDrawer } from '../quick-log-trade-drawer';
 import { AddWidgetMenu } from './add-widget-menu';
 import { FetchErrorBanner } from './fetch-error-banner';
 import { LayoutPresetsBar } from './layout-presets-bar';
@@ -105,7 +103,7 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
       <div className="flex flex-col gap-3">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-fg font-display text-xl font-normal tracking-[-0.03em] sm:text-2xl text-[#F4F1EA]">
+            <h1 className="text-fg font-display text-xl font-normal tracking-[-0.03em] sm:text-2xl">
               Dashboard Canvas
             </h1>
           </div>

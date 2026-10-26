@@ -162,10 +162,39 @@ export function ComposerControls({
       <div className="flex shrink-0 items-center gap-2">
         {typeof contextUsagePercent === 'number' && (
           <div
-            title="Conversation History Used"
-            className="text-fg-subtle flex items-center gap-1 font-mono text-xs tabular-nums select-none"
+            title={`Context Window: ${contextUsagePercent}% used`}
+            className="text-fg-subtle flex items-center gap-1.5 font-mono text-[11px] tabular-nums select-none"
           >
-            <span>{contextUsagePercent}%</span>
+            <svg className="size-3.5 -rotate-90" viewBox="0 0 16 16" aria-hidden="true">
+              <circle
+                cx="8"
+                cy="8"
+                r="6"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="text-border"
+              />
+              <circle
+                cx="8"
+                cy="8"
+                r="6"
+                fill="none"
+                stroke={
+                  contextUsagePercent > 85
+                    ? '#ff3616'
+                    : contextUsagePercent > 60
+                      ? '#d98f00'
+                      : '#3f9e3d'
+                }
+                strokeWidth="2"
+                strokeDasharray={37.7}
+                strokeDashoffset={37.7 - (contextUsagePercent / 100) * 37.7}
+                strokeLinecap="round"
+                className="transition-all duration-300"
+              />
+            </svg>
+            <span className="hidden sm:inline">{contextUsagePercent}%</span>
           </div>
         )}
 
@@ -188,7 +217,7 @@ export function ComposerControls({
               type="button"
               onClick={onStop}
               aria-label="Stop generating"
-              className="text-danger border-danger/40 bg-danger/15 inline-flex size-9 shrink-0 items-center justify-center rounded-lg border"
+              className="text-danger border-danger/40 bg-danger/15 inline-flex size-9 shrink-0 items-center justify-center rounded-lg border shadow-sm transition-transform active:scale-95"
             >
               <IconSquare className="size-3.5 fill-current" strokeWidth={0} />
             </m.button>
@@ -203,8 +232,8 @@ export function ComposerControls({
               disabled={!canSend}
               aria-label="Send message"
               className={cn(
-                'bg-fg inline-flex size-9 shrink-0 items-center justify-center rounded-lg font-medium text-black transition-colors hover:bg-white',
-                'disabled:cursor-not-allowed disabled:opacity-30',
+                'bg-brand text-white inline-flex size-9 shrink-0 items-center justify-center rounded-xl font-medium shadow-[0_2px_12px_rgba(255,54,22,0.35)] transition-all hover:brightness-110 active:scale-95',
+                'disabled:cursor-not-allowed disabled:opacity-30 disabled:shadow-none',
               )}
             >
               <IconArrowUp className="size-4" strokeWidth={2.25} />

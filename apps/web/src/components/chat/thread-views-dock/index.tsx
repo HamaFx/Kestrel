@@ -97,10 +97,10 @@ export function ThreadViewsDock({
       animate={{ width: '100%', opacity: 1 }}
       exit={{ width: 0, opacity: 0 }}
       transition={{ duration: 0.24, ease: [0.32, 0.72, 0, 1] }}
-      className="relative hidden h-full shrink-0 flex-col overflow-hidden border-l border-[#F4F1EA]/10 bg-[#09090B] lg:flex lg:w-[420px] xl:w-[480px] 2xl:w-[540px]"
+      className="relative hidden h-full shrink-0 flex-col overflow-hidden border-l border-border/40 bg-bg-elev-1 lg:flex lg:w-[420px] xl:w-[480px] 2xl:w-[540px]"
     >
       {/* Dock Header & Navigation Tabs */}
-      <div className="flex h-12 shrink-0 items-center justify-between border-b border-[#F4F1EA]/10 bg-[#111114] px-3">
+      <div className="flex h-12 shrink-0 items-center justify-between border-b border-border/40 bg-bg-elev-2/80 px-3">
         <div className="flex items-center gap-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -113,14 +113,14 @@ export function ThreadViewsDock({
                 className={cn(
                   'relative flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-mono text-[11px] font-semibold tracking-wider uppercase transition-all',
                   isActive
-                    ? 'bg-[#16161A] text-[#D4AF37] shadow-xs after:absolute after:bottom-0 after:left-1/2 after:h-0.5 after:w-4/5 after:-translate-x-1/2 after:bg-[#D4AF37]'
-                    : 'text-[#F4F1EA]/60 hover:bg-[#16161A] hover:text-[#F4F1EA]',
+                    ? 'bg-bg-elev-3 text-brand shadow-xs after:absolute after:bottom-0 after:left-1/2 after:h-0.5 after:w-4/5 after:-translate-x-1/2 after:bg-brand'
+                    : 'text-fg-muted hover:bg-bg-elev-3/50 hover:text-fg',
                 )}
               >
-                <Icon className={cn('size-3.5', isActive ? 'text-[#D4AF37]' : 'text-[#F4F1EA]/50')} />
+                <Icon className={cn('size-3.5', isActive ? 'text-brand' : 'text-fg-subtle')} />
                 <span>{tab.label}</span>
                 {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className="min-w-[16px] rounded-full bg-[#D4AF37]/20 px-1 font-mono text-[10px] leading-tight font-bold text-[#D4AF37] tabular-nums">
+                  <span className="min-w-[16px] rounded-full bg-brand/20 px-1 font-mono text-[10px] leading-tight font-bold text-brand tabular-nums">
                     {tab.badge}
                   </span>
                 )}
@@ -133,7 +133,7 @@ export function ThreadViewsDock({
           type="button"
           onClick={onClose}
           aria-label="Close Views"
-          className="rounded-lg p-1.5 text-[#F4F1EA]/50 transition-colors hover:bg-[#16161A] hover:text-[#F4F1EA]"
+          className="rounded-lg p-1.5 text-fg-subtle transition-colors hover:bg-bg-elev-3 hover:text-fg"
         >
           <IconX className="size-4" />
         </button>

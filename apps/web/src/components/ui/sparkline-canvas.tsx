@@ -76,7 +76,8 @@ export function SparklineCanvas({ values, tone, label }: SparklineCanvasProps) {
     ctx.strokeStyle = TONE_HEX[tone];
     ctx.lineWidth = STROKE;
     ctx.lineCap = 'square';
-    ctx.lineJoin = 'miter';
+    let lastX = 0;
+    let lastY = 0;
 
     for (let i = 0; i < values.length; i++) {
       const v = values[i]!;
@@ -84,9 +85,31 @@ export function SparklineCanvas({ values, tone, label }: SparklineCanvasProps) {
       const y = PAD + drawH - ((v - min) / range) * drawH;
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
+      if (i === values.length - 1) {
+        lastX = x;
+        lastY = y;
+      }
     }
 
     ctx.stroke();
+
+    // Leading radar pulse dot on newest tick
+    const haloColor =
+      tone === 'bull'
+        ? 'rgba(63, 158, 61, 0.28)'
+        : tone === 'bear'
+          ? 'rgba(224, 44, 16, 0.28)'
+          : 'rgba(138, 138, 138, 0.28)';
+
+    ctx.beginPath();
+    ctx.arc(lastX, lastY, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = haloColor;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(lastX, lastY, 1.5, 0, Math.PI * 2);
+    ctx.fillStyle = TONE_HEX[tone];
+    ctx.fill();
   }, [values, tone]);
 
   return (

@@ -17,14 +17,14 @@ export function AgentNode({ agent, meta }: { agent: AgentProgress; meta: AgentMe
       aria-label={`${meta.label} desk: ${status}`}
       className={cn(
         'flex flex-col justify-between gap-1.5 rounded-lg border p-2.5 transition-colors',
-        status === 'pending' && 'border-[#F4F1EA]/10 bg-[#111114] text-[#F4F1EA]/50',
-        status === 'running' && cn('border-[#D4AF37]/40 bg-[#16161A] text-[#F4F1EA]', meta.activeClass),
-        status === 'done' && 'border-[#F4F1EA]/15 bg-[#111114] text-[#F4F1EA]',
+        status === 'pending' && 'border-border/40 bg-bg-elev-1 text-fg-subtle',
+        status === 'running' && cn('border-brand/40 bg-bg-elev-2 text-fg', meta.activeClass),
+        status === 'done' && 'border-border/60 bg-bg-elev-1 text-fg',
         status === 'error' && 'border-rose-500/40 bg-rose-500/10 text-rose-400',
       )}
     >
       <div className="flex items-center justify-between gap-1">
-        <span className="font-mono text-[9px] font-semibold tracking-wider text-[#D4AF37] uppercase">
+        <span className="font-mono text-[9px] font-semibold tracking-wider text-brand uppercase">
           {meta.code ?? 'DESK'}
         </span>
         {status === 'done' ? (
@@ -36,9 +36,9 @@ export function AgentNode({ agent, meta }: { agent: AgentProgress; meta: AgentMe
             <IconAlertCircle className="size-3.5" />
           </span>
         ) : status === 'running' ? (
-          <span className="size-2 shrink-0 animate-pulse rounded-full bg-[#D4AF37]" />
+          <span className="size-2 shrink-0 animate-pulse rounded-full bg-brand" />
         ) : (
-          <span className="size-1.5 shrink-0 rounded-full bg-[#F4F1EA]/20" />
+          <span className="size-1.5 shrink-0 rounded-full bg-border" />
         )}
       </div>
 

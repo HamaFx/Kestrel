@@ -58,15 +58,15 @@ export function createHologramScene(
   orangeLight.position.set(3, 4, 3);
   scene.add(orangeLight);
 
-  const goldLight = new THREE.PointLight(0xe5a93c, 6, 20);
-  goldLight.position.set(-3, -2, 2);
-  scene.add(goldLight);
+  const amberLight = new THREE.PointLight(0xff5722, 6, 20);
+  amberLight.position.set(-3, -2, 2);
+  scene.add(amberLight);
 
   // 4. 3D Master Group
   const masterGroup = new THREE.Group();
   scene.add(masterGroup);
 
-  // Central Core: Faceted Golden Octahedron / Icosahedron
+  // Central Core: Faceted Obsidian Core
   const coreGeo = new THREE.IcosahedronGeometry(1.1, 1);
   const coreMat = new THREE.MeshStandardMaterial({
     color: 0x18191a,
@@ -103,8 +103,8 @@ export function createHologramScene(
   // Gimbal Ring 2 (Polar)
   const ring2Geo = new THREE.TorusGeometry(2.1, 0.018, 16, 100);
   const ring2Mat = new THREE.MeshStandardMaterial({
-    color: 0xe5a93c,
-    emissive: 0xe5a93c,
+    color: 0xff5722,
+    emissive: 0xff5722,
     emissiveIntensity: 0.5,
     roughness: 0.2,
     metalness: 0.8,

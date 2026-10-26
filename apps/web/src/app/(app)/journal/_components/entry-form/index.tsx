@@ -21,7 +21,7 @@
 // drawer.
 import { SYMBOLS, type Symbol, type TradeSide } from '@kestrel/shared';
 
-import { Button } from '@/components/ui/button';
+import { HoldToExecuteButton } from '@/components/ui/hold-to-execute-button';
 import { Segmented } from '@/components/ui/segmented';
 import { TagInput } from '@/components/ui/tag-input';
 
@@ -103,15 +103,16 @@ export function EntryForm({ onCreated }: EntryFormProps) {
         </p>
       ) : null}
 
-      <Button
-        type="submit"
+      <HoldToExecuteButton
         size="lg"
+        variant="brand"
         disabled={form.busy || !form.entry}
-        loading={form.busy}
-        className="mt-2"
-      >
-        {form.busy ? 'Saving…' : 'Save entry'}
-      </Button>
+        onExecute={() => form.submit()}
+        label={form.busy ? 'Saving…' : 'Hold to Log Trade (1.2s)'}
+        executingLabel="Recording Trade…"
+        completedLabel="Trade Logged"
+        className="mt-2 w-full min-h-[48px]"
+      />
     </form>
   );
 }

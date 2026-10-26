@@ -82,17 +82,17 @@ export function ChatEmptyState({
 
       {/* ── Council Chamber Pediment Header ── */}
       <div className="relative z-10 flex w-full max-w-3xl flex-col items-center text-center">
-        <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-3 py-1 font-mono text-[10px] font-semibold tracking-[0.18em] text-[#D4AF37] uppercase">
+        <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-brand/30 bg-brand/10 px-3 py-1 font-mono text-[10px] font-semibold tracking-[0.18em] text-brand uppercase shadow-[0_0_12px_rgba(255,54,22,0.15)]">
           <IconSparkles className="size-3" />
           <span>INSTITUTIONAL COUNCIL CHAMBER</span>
         </div>
 
-        <h2 className="font-display text-2xl font-normal tracking-[-0.03em] text-[#F4F1EA] sm:text-3xl lg:text-4xl">
+        <h2 className="font-display text-2xl font-normal tracking-[-0.03em] text-fg sm:text-3xl lg:text-4xl">
           Convene the{' '}
-          <span className="font-serif italic text-[#D4AF37]">Council of Strategists</span>
+          <span className="font-serif italic text-brand">Council of Strategists</span>
         </h2>
 
-        <p className="mt-2 max-w-xl text-xs leading-relaxed text-[#F4F1EA]/70 sm:text-sm">
+        <p className="mt-2 max-w-xl text-xs leading-relaxed text-fg-muted sm:text-sm">
           Select an autonomous specialist desk for targeted micro-analysis or commission the
           unified four-desk council for cross-asset synthesis and execution planning.
         </p>
@@ -112,7 +112,7 @@ export function ChatEmptyState({
 
       {/* ── Quick Prompt Affirmation Chips ── */}
       <div className="relative z-10 flex w-full max-w-3xl flex-col items-center gap-2 pt-2">
-        <span className="font-mono text-[10px] font-semibold tracking-wider text-[#F4F1EA]/50 uppercase">
+        <span className="font-mono text-[10px] font-semibold tracking-wider text-fg-subtle uppercase">
           Or dispatch a direct market query
         </span>
         <div className="flex flex-wrap items-center justify-center gap-2">
@@ -122,9 +122,9 @@ export function ChatEmptyState({
               type="button"
               disabled={disabled}
               onClick={() => onSelect(prompt)}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#F4F1EA]/10 bg-[#111114] px-3 py-1.5 font-mono text-xs text-[#F4F1EA]/80 transition-all hover:border-[#D4AF37]/40 hover:text-[#D4AF37] active:translate-y-[0.5px] disabled:pointer-events-none disabled:opacity-50"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border/50 bg-bg-elev-1 px-3 py-1.5 font-mono text-xs text-fg/80 transition-all hover:border-brand/40 hover:text-brand active:translate-y-[0.5px] disabled:pointer-events-none disabled:opacity-50"
             >
-              <span className="text-[#D4AF37]">›</span>
+              <span className="text-brand">›</span>
               <span>{prompt}</span>
             </button>
           ))}
@@ -148,7 +148,7 @@ function DeskQuickCard({
       type="button"
       disabled={disabled}
       onClick={onSelect}
-      className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-[#F4F1EA]/10 bg-[#111114] p-3.5 text-left transition-all duration-200 hover:border-[#D4AF37]/40 hover:bg-[#16161A] active:translate-y-[0.5px] disabled:pointer-events-none disabled:opacity-50"
+      className="group surface-card relative flex flex-col justify-between overflow-hidden rounded-xl border border-border/50 bg-bg-elev-1 p-3.5 text-left transition-all duration-200 hover:border-brand/40 hover:bg-bg-elev-2 active:translate-y-[0.5px] disabled:pointer-events-none disabled:opacity-50"
     >
       <div
         aria-hidden="true"
@@ -159,18 +159,18 @@ function DeskQuickCard({
 
       <div className="relative z-10 flex flex-col gap-1">
         <div className="flex items-center justify-between">
-          <span className="font-mono text-[9px] font-semibold tracking-wider text-[#D4AF37] uppercase">
+          <span className="font-mono text-[9px] font-semibold tracking-wider text-brand uppercase">
             {desk.code}
           </span>
           <span className="size-1.5 rounded-full" style={{ backgroundColor: desk.accentColor }} />
         </div>
-        <div className="font-display text-sm font-normal text-[#F4F1EA]">{desk.title}</div>
-        <div className="font-serif text-xs italic text-[#F4F1EA]/60">&ldquo;{desk.epithet}&rdquo;</div>
+        <div className="font-display text-sm font-normal text-fg">{desk.title}</div>
+        <div className="font-serif text-xs italic text-fg-muted">&ldquo;{desk.epithet}&rdquo;</div>
       </div>
 
-      <div className="relative z-10 mt-3 flex items-center justify-between border-t border-[#F4F1EA]/5 pt-2 font-mono text-[11px] text-[#F4F1EA]/60 group-hover:text-[#D4AF37]">
+      <div className="relative z-10 mt-3 flex items-center justify-between border-t border-border/30 pt-2 font-mono text-[11px] text-fg-muted group-hover:text-brand">
         <span>Deploy Desk</span>
-        <IconArrowRight className="size-3 text-[#D4AF37] transition-transform group-hover:translate-x-0.5" />
+        <IconArrowRight className="size-3 text-brand transition-transform group-hover:translate-x-0.5" />
       </div>
     </button>
   );
