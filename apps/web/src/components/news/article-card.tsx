@@ -38,6 +38,7 @@
 // The card is memoized to avoid re-rendering untouched cards when bookmark updates.
 import type { NewsArticle } from '@kestrel/shared';
 import { IconBolt, IconBookmark, IconExternalLink } from '@tabler/icons-react';
+import { Link } from 'next-view-transitions';
 import { memo } from 'react';
 
 import { cleanNewsText } from '@/lib/formatters/clean-news-text';
@@ -85,8 +86,7 @@ const ArticleCardInner = memo(
     return (
       <article
         className={cn(
-          'group relative overflow-hidden rounded-sm',
-          'border-border bg-bg-elev-1 border',
+          'surface-chip group border-border/80 bg-bg-elev-1 relative overflow-hidden rounded-xl shadow-[var(--shadow-chip)]',
           'md:hover:bg-bg-elev-2 transition-colors duration-200',
         )}
       >
@@ -152,14 +152,14 @@ const ArticleCardInner = memo(
             'hover:bg-bg-elev-2',
           )}
         >
-          <a
+          <Link
             href={`/chat?prompt=${askPrompt}`}
             onClick={(e) => e.stopPropagation()}
             className="bg-bg-elev-2 text-fg-muted hover:text-fg tactile-press inline-flex min-h-10 items-center gap-1.5 rounded-md px-3.5 py-2 text-xs font-medium transition-colors active:translate-y-[0.5px]"
           >
             <IconBolt className="size-3.5" />
             Ask AI
-          </a>
+          </Link>
           <div className="flex items-center gap-1">
             <button
               type="button"

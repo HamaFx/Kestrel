@@ -25,6 +25,7 @@ import { IconCalendarEvent } from '@tabler/icons-react';
 import type { Metadata } from 'next';
 import nextDynamic from 'next/dynamic';
 
+import { MarketSubNav } from '@/components/layout/market-subnav';
 import { PageHeader } from '@/components/layout/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
 
@@ -49,7 +50,9 @@ export default async function CalendarPage() {
       <PageHeader
         title="Calendar"
         description="Upcoming macro events that move XAU / EUR / GBP / USD."
-      />
+      >
+        <MarketSubNav />
+      </PageHeader>
 
       {events.length === 0 ? (
         <EmptyState

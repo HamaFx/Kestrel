@@ -20,6 +20,7 @@ import { listRecentArticles } from '@kestrel/ai';
 import { IconNews } from '@tabler/icons-react';
 import type { Metadata } from 'next';
 
+import { MarketSubNav } from '@/components/layout/market-subnav';
 import { PageHeader } from '@/components/layout/page-header';
 import { BookmarksProvider } from '@/components/news/bookmarks-context';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -43,7 +44,9 @@ export default async function NewsPage() {
       <PageHeader
         title="News"
         description="Live market headlines and sentiment tagged for Gold (XAU), EUR, GBP, and USD."
-      />
+      >
+        <MarketSubNav />
+      </PageHeader>
 
       {articles.length === 0 ? (
         <EmptyState

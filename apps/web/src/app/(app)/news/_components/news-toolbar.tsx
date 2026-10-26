@@ -108,7 +108,7 @@ export function NewsToolbar({
               className={cn(
                 'focus-visible:ring-fg inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-all focus-visible:ring-2 focus-visible:outline-none active:translate-y-[0.5px]',
                 active
-                  ? 'bg-fg border-transparent font-bold text-black shadow-sm'
+                  ? 'border-brand/40 bg-brand/15 text-brand font-bold shadow-xs'
                   : 'surface-chip text-fg-muted hover:text-fg border-white/10 hover:border-white/20',
               )}
             >
@@ -176,7 +176,7 @@ function SymbolChip({
       className={cn(
         'text-body-sm focus-visible:ring-fg inline-flex h-10 shrink-0 items-center rounded-lg border px-3 font-semibold uppercase tabular-nums transition-all focus-visible:ring-2 focus-visible:outline-none active:translate-y-[0.5px]',
         active
-          ? 'bg-fg border-transparent font-bold text-black shadow-sm'
+          ? 'border-brand/40 bg-brand/15 text-brand font-bold shadow-xs'
           : 'surface-chip text-fg-muted hover:text-fg border-white/10 hover:border-white/20',
       )}
     >

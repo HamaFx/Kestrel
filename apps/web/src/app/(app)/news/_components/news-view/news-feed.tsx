@@ -46,9 +46,7 @@ export function NewsFeed({
     <div className="flex flex-col gap-6">
       {buckets.map(([label, items]) => (
         <section key={label} className="flex flex-col gap-3">
-          <h2
-            className="bg-bg-elev-1/95 text-fg-subtle text-caption sticky top-[calc(var(--topbar-h)+env(safe-area-inset-top))] z-10 -mx-4 flex items-baseline gap-2 px-5 py-2 font-semibold tracking-wider uppercase lg:top-0"
-          >
+          <h2 className="bg-bg-elev-1/95 text-fg-subtle text-caption sticky top-[calc(3rem+env(safe-area-inset-top,0px))] z-10 -mx-4 flex items-baseline gap-2 px-5 py-2 font-semibold tracking-wider uppercase lg:top-0">
             {label}
             <span className="text-fg-subtle/60 tabular-nums">{items.length}</span>
           </h2>

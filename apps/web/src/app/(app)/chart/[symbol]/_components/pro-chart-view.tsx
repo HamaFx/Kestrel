@@ -23,6 +23,7 @@ import { Link } from 'next-view-transitions';
 import { TradingViewWidget } from '@/components/chart';
 import { SymbolPicker } from '@/components/chart/symbol-picker';
 import { TimeframePicker } from '@/components/chart/timeframe-picker';
+import { MarketSubNav } from '@/components/layout/market-subnav';
 import { useTimeframe } from '@/hooks/use-tf';
 
 export function ProChartView({ symbol, tf: initialTf }: { symbol: Symbol; tf: Timeframe }) {
@@ -37,6 +38,9 @@ export function ProChartView({ symbol, tf: initialTf }: { symbol: Symbol; tf: Ti
 
   return (
     <div className="animate-in fade-in flex flex-col gap-3 duration-300">
+      {/* Market intelligence sub-navigation — news ⇄ calendar ⇄ live chart */}
+      <MarketSubNav />
+
       {/* Interactive Chart Control Bar */}
       <div className="surface-card border-border/80 flex flex-col gap-3 rounded-[16px] border p-3">
         <div className="flex flex-wrap items-center justify-between gap-3">

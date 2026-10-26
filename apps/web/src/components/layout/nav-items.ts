@@ -69,8 +69,8 @@ export const PRIMARY_NAV_ITEMS: readonly NavItem[] = [
     href: '/news',
     label: 'Market',
     icon: IconNews,
-    match: ['/news', '/calendar'],
-    description: 'Market headlines & economic calendar',
+    match: ['/news', '/calendar', '/chart'],
+    description: 'Market headlines, economic calendar & live charts',
     shortcut: '⌘4',
   },
   {
