@@ -87,7 +87,7 @@ export function CalendarToolbar({
               className={cn(
                 'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-all active:translate-y-[0.5px]',
                 active
-                  ? 'bg-fg border-transparent font-bold text-black shadow-sm'
+                  ? 'border-brand/40 bg-brand/15 text-brand font-bold shadow-xs'
                   : 'surface-chip text-fg-muted hover:text-fg border-white/10 hover:border-white/20',
               )}
             >
@@ -121,7 +121,7 @@ export function CalendarToolbar({
                 className={cn(
                   'text-body-sm inline-flex h-10 shrink-0 items-center rounded-lg border px-3 font-semibold uppercase tabular-nums transition-all active:translate-y-[0.5px]',
                   active
-                    ? 'bg-fg border-transparent font-bold text-black shadow-sm'
+                    ? 'border-brand/40 bg-brand/15 text-brand font-bold shadow-xs'
                     : 'surface-chip text-fg-muted hover:text-fg border-white/10 hover:border-white/20',
                 )}
               >

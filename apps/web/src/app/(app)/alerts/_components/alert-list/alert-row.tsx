@@ -7,7 +7,6 @@
 import type { Alert } from '@kestrel/shared';
 import {
   IconActivity,
-  IconArrowRight,
   IconBell,
   IconBellOff,
   IconBellRinging,
@@ -76,18 +75,11 @@ export function AlertRow({ alert, onToggle, onDelete }: AlertRowProps) {
                   title="Email delivery"
                 />
               )}
-              {alert.channels.includes('telegram') && (
-                <IconArrowRight
-                  className="text-fg size-3.5"
+              {(alert.channels.includes('telegram') || alert.channels.includes('telegram-bot')) && (
+                <IconBrandTelegram
+                  className="text-brand size-3.5"
                   strokeWidth={2}
                   title="Telegram delivery"
-                />
-              )}
-              {alert.channels.includes('telegram-bot') && (
-                <IconBrandTelegram
-                  className="text-fg size-3.5"
-                  strokeWidth={2}
-                  title="Telegram personal bot delivery"
                 />
               )}
             </div>

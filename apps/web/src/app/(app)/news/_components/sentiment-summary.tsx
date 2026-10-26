@@ -54,7 +54,7 @@ export function SentimentSummary({ articles }: SentimentSummaryProps) {
   return (
     <section
       aria-labelledby="news-pulse-heading"
-      className="border-border bg-bg-elev-1 relative flex flex-col gap-3 rounded-sm border p-4"
+      className="surface-chip border-border/80 bg-bg-elev-1 relative flex flex-col gap-3 rounded-xl p-4 shadow-[var(--shadow-chip)]"
     >
       <header className="flex items-baseline justify-between gap-3">
         <div className="flex flex-col gap-0.5">
@@ -117,8 +117,9 @@ function SentimentGauge({
   const tipX = cx + r * Math.cos(angleRad);
   const tipY = cy - r * Math.sin(angleRad);
 
-  // Segments along the 180° arc, left (bear) → right (bull).
-  const arc = (from: number, to: number, color: string, opacity = 1) => {
+  // Geometry for a span of the 180° arc, left (bear) → right (bull).
+  // `from` / `to` are degrees measured from the LEFT end of the dial.
+  const arcPath = (from: number, to: number) => {
     const start = {
       x: cx + r * Math.cos(((180 - from) * Math.PI) / 180),
       y: cy - r * Math.sin(((180 - from) * Math.PI) / 180),
@@ -128,16 +129,7 @@ function SentimentGauge({
       y: cy - r * Math.sin(((180 - to) * Math.PI) / 180),
     };
     const largeArc = to - from > 180 ? 1 : 0;
-    return (
-      <path
-        d={`M ${start.x.toFixed(2)} ${start.y.toFixed(2)} A ${r} ${r} 0 ${largeArc} 0 ${end.x.toFixed(2)} ${end.y.toFixed(2)}`}
-        fill="none"
-        stroke={color}
-        strokeWidth="8"
-        strokeLinecap="round"
-        opacity={opacity}
-      />
-    );
+    return `M ${start.x.toFixed(2)} ${start.y.toFixed(2)} A ${r} ${r} 0 ${largeArc} 0 ${end.x.toFixed(2)} ${end.y.toFixed(2)}`;
   };
 
   const bearShare = pct(counts.negative);
@@ -150,16 +142,64 @@ function SentimentGauge({
   const totalShare = bearShare + neutralShare + bullShare;
   const neutralDeg = totalShare > 0 ? (neutralShare / totalShare) * 180 : 60;
   const bullDeg = totalShare > 0 ? (bullShare / totalShare) * 180 : 60;
+  const bearDeg = totalShare > 0 ? Math.max(0, 180 - neutralDeg - bullDeg) : 60;
+
+  // Interior joins get a taper so the 8px round stroke caps of neighbouring
+  // arcs never overlap (cap extension ≈ half the stroke width = 4px ≈ 4.8° at
+  // r=48, so each side needs ≥4.8° of clearance — 13° total keeps a visible
+  // seam). `from`/`to` are degrees measured from the LEFT end of the dial.
+  const JOIN_GAP_DEG = 13;
+  const segments = [
+    {
+      key: 'bear',
+      deg: bearDeg,
+      from: 0,
+      to: bearDeg,
+      color: 'var(--color-bear)',
+      opacity: 1,
+    },
+    {
+      key: 'neutral',
+      deg: neutralDeg,
+      from: bearDeg,
+      to: bearDeg + neutralDeg,
+      color: 'var(--color-fg-subtle)',
+      opacity: 0.6,
+    },
+    {
+      key: 'bull',
+      deg: bullDeg,
+      from: bearDeg + neutralDeg,
+      to: 180,
+      color: 'var(--color-bull)',
+      opacity: 1,
+    },
+  ];
 
   return (
     <div className="flex justify-center" aria-hidden="true">
       <svg viewBox="0 0 240 76" className="h-16 w-48 max-w-full" focusable="false">
-        {/* Bullish segment (right) — score +1 needle lands here. */}
-        {arc(180, 180 - bullDeg, 'var(--color-bull)')}
-        {/* Neutral segment (middle) */}
-        {arc(180 - bullDeg, 180 - bullDeg - neutralDeg, 'var(--color-fg-subtle)', 0.6)}
-        {/* Bearish segment (left) — score −1 needle lands here. */}
-        {arc(180 - bullDeg - neutralDeg, 0, 'var(--color-bear)')}
+        {segments.map((seg, i) => {
+          if (seg.deg <= 0.5) return null;
+          const prev = segments[i - 1];
+          const next = segments[i + 1];
+          const insetFrom = prev && prev.deg > 0.5 ? JOIN_GAP_DEG / 2 : 0;
+          const insetTo = next && next.deg > 0.5 ? JOIN_GAP_DEG / 2 : 0;
+          const from = seg.from + insetFrom;
+          const to = seg.to - insetTo;
+          if (to - from <= 0.5) return null;
+          return (
+            <path
+              key={seg.key}
+              d={arcPath(from, to)}
+              fill="none"
+              stroke={seg.color}
+              strokeWidth="8"
+              strokeLinecap="round"
+              opacity={seg.opacity}
+            />
+          );
+        })}
         {/* Needle */}
         <line
           x1={cx}
