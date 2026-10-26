@@ -21,7 +21,6 @@ import type { JournalEntry, JournalStats } from '@kestrel/shared';
 import type { Metadata } from 'next';
 
 import { auth } from '@/auth';
-import { PageHeader } from '@/components/layout/page-header';
 
 import { JournalView } from './_components/journal-view';
 
@@ -48,13 +47,7 @@ export default async function JournalPage() {
     }
   }
 
-  return (
-    <div className="flex flex-col gap-4">
-      <PageHeader
-        title="Journal"
-        description="Log, tag, and review your trades with integrated analytics."
-      />
-      <JournalView initialData={initialData} />
-    </div>
-  );
+  // JournalView owns the single page header (with its own action row) — this
+  // route used to stack a second "Trading Journal" banner underneath it.
+  return <JournalView initialData={initialData} />;
 }

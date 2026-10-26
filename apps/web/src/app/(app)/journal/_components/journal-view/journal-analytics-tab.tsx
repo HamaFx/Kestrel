@@ -19,12 +19,10 @@ export function JournalAnalyticsTab({
   entries: JournalEntry[];
   stats: JournalStats;
 }) {
-  const latestClosed = entries.find((e) => e.outcome !== 'open');
-
   return (
     <div className="flex flex-col gap-4">
       <AiCoachCard stats={stats} />
-      {latestClosed ? <AiReviewPanel entry={latestClosed} /> : null}
+      <AiReviewPanel entries={entries} />
       <DrawdownChart entries={entries} stats={stats} />
       <RDistribution stats={stats} />
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
