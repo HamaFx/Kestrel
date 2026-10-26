@@ -27,6 +27,8 @@ import { cn } from '@/lib/formatters/cn';
 interface PasswordFieldProps {
   id?: string;
   name?: string;
+  /** Visible field label; rendered as a real `<label htmlFor={id}>`. */
+  label?: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   autoComplete?: string;
@@ -47,6 +49,7 @@ interface PasswordFieldProps {
 export function PasswordField({
   id = 'password',
   name = 'password',
+  label,
   value,
   onChange,
   autoComplete,
@@ -76,6 +79,11 @@ export function PasswordField({
 
   return (
     <div className="flex flex-col gap-2">
+      {label ? (
+        <label htmlFor={id} className="text-fg text-sm font-semibold">
+          {label}
+        </label>
+      ) : null}
       <div className="relative">
         <Input
           id={id}

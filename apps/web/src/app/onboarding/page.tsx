@@ -61,7 +61,7 @@ export default async function OnboardingPage() {
         <p className="text-brand text-caption mb-2 font-semibold tracking-[0.18em] uppercase">
           Quick Account Setup
         </p>
-        <h1 className="text-fg mb-2 text-2xl font-bold tracking-tight sm:text-3xl">
+        <h1 className="text-fg font-display mb-2 text-2xl font-normal tracking-[-0.03em] sm:text-3xl">
           Welcome to Kestrel
         </h1>
         <p className="text-fg-muted max-w-md leading-relaxed">

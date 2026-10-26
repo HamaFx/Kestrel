@@ -50,7 +50,7 @@ export function WizardStepper({ step }: WizardStepperProps) {
                     isCurrent
                       ? 'bg-brand text-white shadow-[0_0_12px_rgba(255,54,22,0.4)]'
                       : isCompleted
-                        ? 'bg-fg text-black'
+                        ? 'bg-bull/15 text-bull border-bull/30 border'
                         : 'bg-bg-elev-2 text-fg-subtle border border-white/10'
                   }`}
                 >
@@ -71,7 +71,7 @@ export function WizardStepper({ step }: WizardStepperProps) {
               {i < 4 && (
                 <div
                   className={`h-px w-6 transition-colors sm:w-10 ${
-                    isCompleted ? 'bg-fg' : 'bg-bg-elev-2'
+                    isCompleted ? 'bg-bull/50' : 'bg-bg-elev-2'
                   }`}
                 />
               )}

@@ -29,6 +29,10 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <h2 className="font-display text-fg text-lg font-normal tracking-[-0.03em]">
+        Reset your password
+      </h2>
+
       <form action={action} className="flex w-full flex-col gap-5">
         <p className="text-fg-muted text-sm">
           Enter your email address and we&apos;ll send you a link to reset your password.

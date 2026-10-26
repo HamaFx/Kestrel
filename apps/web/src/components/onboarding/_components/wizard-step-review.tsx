@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-import type { ProviderMeta } from '@kestrel/shared';
-import { IconBolt, IconRobot, IconUser } from '@tabler/icons-react';
+import { IconBolt, IconKey, IconRobot, IconUser } from '@tabler/icons-react';
 
 import { Button } from '@/components/ui/button';
 
@@ -27,8 +26,6 @@ interface WizardStepReviewProps {
   tradingStyle: TradingStyle;
   selectedSymbols: string[];
   defaultSymbol: string;
-  selectedProvider?: string | null;
-  providers?: ProviderMeta[];
   isSubmitting: boolean;
   onBack: () => void;
   onSubmit: () => void;
@@ -72,6 +69,16 @@ export function WizardStepReview({
           <span className="text-bull font-medium">Ready (All 4 Specialist Desks Active)</span>
         </li>
       </ul>
+
+      {/* BYOK reminder — provider keys are connected after onboarding. */}
+      <div className="border-border bg-bg-elev-2 flex items-start gap-2.5 rounded-xl border p-3.5">
+        <IconKey className="text-brand mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        <p className="text-fg-subtle text-xs leading-relaxed">
+          Kestrel is bring-your-own-key: connect your AI provider keys anytime in{' '}
+          <span className="text-fg font-medium">Settings → AI &amp; Models</span>. Keys are
+          encrypted at rest with AES-256-GCM and your spend guardrails run locally.
+        </p>
+      </div>
 
       {/* Sample chat preview */}
       <details className="border-border rounded-xl border p-3">
