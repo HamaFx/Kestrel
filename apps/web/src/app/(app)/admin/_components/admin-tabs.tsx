@@ -24,6 +24,7 @@ import dynamic from 'next/dynamic';
 import type { ComponentType } from 'react';
 
 import { AdminTabFallback } from './admin-tab-fallback';
+import type { TabGroupId } from './admin-tab-groups';
 
 const AdminPlatformConfig = dynamic(
   () => import('./admin-platform-config').then((m) => m.AdminPlatformConfig),
@@ -100,140 +101,127 @@ const AdminMastraRuns = dynamic(
   { loading: AdminTabFallback },
 ) as ComponentType;
 
-/**
- * Domain groups for the admin console. The tabs stay in one flat array
- * (keyboard navigation walks `TABS`), but the layout renders them under these
- * four headings so all 16 sections are discoverable without a hidden
- * horizontal-scroll crawl.
- */
-export const TAB_GROUPS = [
-  'Platform & Access',
-  'System Operations',
-  'Observability',
-  'AI Quality & Eval',
-] as const;
-
-export type TabGroup = (typeof TAB_GROUPS)[number];
-
+// Domain grouping lives in `admin-tab-groups.ts` (F02 keeps this file ≤250 LOC).
+// Each tab carries its group id; the layout buckets them for display.
 export const TABS = [
   {
     id: 'platform',
     label: 'AI & Platform',
     icon: IconCpu,
     Component: AdminPlatformConfig,
-    group: 'Platform & Access',
+    group: 'access',
   },
   {
     id: 'health',
     label: 'Health',
     icon: IconHeartbeat,
     Component: AdminSystemHealth,
-    group: 'System Operations',
+    group: 'ops',
   },
   {
     id: 'users',
     label: 'Users',
     icon: IconUsers,
     Component: AdminUserTable,
-    group: 'Platform & Access',
+    group: 'access',
   },
   {
     id: 'features',
     label: 'Features',
     icon: IconFlag,
     Component: AdminFeatureFlags,
-    group: 'Platform & Access',
+    group: 'access',
   },
   {
     id: 'onboarding',
     label: 'Onboarding',
     icon: IconRefresh,
     Component: AdminOnboardingControl,
-    group: 'Platform & Access',
+    group: 'access',
   },
   {
     id: 'cron',
     label: 'Cron',
     icon: IconHistory,
     Component: AdminCronTable,
-    group: 'System Operations',
+    group: 'ops',
   },
   {
     id: 'telemetry',
     label: 'Telemetry',
     icon: IconTool,
     Component: AdminToolTelemetryTable,
-    group: 'Observability',
+    group: 'observability',
   },
   {
     id: 'traces',
     label: 'Traces',
     icon: IconStethoscope,
     Component: AdminDiagnosticTraces,
-    group: 'Observability',
+    group: 'observability',
   },
   {
     id: 'logs',
     label: 'Logs',
     icon: IconTerminal,
     Component: AdminLogViewer,
-    group: 'System Operations',
+    group: 'ops',
   },
   {
     id: 'audit',
     label: 'Audit',
     icon: IconHistory,
     Component: AdminAuditTable,
-    group: 'System Operations',
+    group: 'ops',
   },
   {
     id: 'feedback',
     label: 'Feedback',
     icon: IconMessageReport,
     Component: AdminFeedbackReview,
-    group: 'AI Quality & Eval',
+    group: 'eval',
   },
   {
     id: 'datasets',
     label: 'Datasets',
     icon: IconDatabase,
     Component: AdminDatasetReview,
-    group: 'AI Quality & Eval',
+    group: 'eval',
   },
   {
     id: 'regressions',
     label: 'Regressions',
     icon: IconBug,
     Component: AdminRegressionCases,
-    group: 'AI Quality & Eval',
+    group: 'eval',
   },
   {
     id: 'ai-eval',
     label: 'AI Eval',
     icon: IconFlask,
     Component: AdminAiEval,
-    group: 'AI Quality & Eval',
+    group: 'eval',
   },
   {
     id: 'mastra-runs',
     label: 'Committee Runs',
     icon: IconStethoscope,
     Component: AdminMastraRuns,
-    group: 'Observability',
+    group: 'observability',
   },
   {
     id: 'devtools',
     label: 'Dev Tools',
     icon: IconSettingsBolt,
     Component: AdminDevTools,
-    group: 'AI Quality & Eval',
+    group: 'eval',
   },
 ] as const satisfies ReadonlyArray<{
   id: string;
   label: string;
   icon: typeof IconCpu;
   Component: ComponentType;
-  group: TabGroup;
+  group: TabGroupId;
 }>;
 
 export type TabId = (typeof TABS)[number]['id'];
@@ -241,15 +229,6 @@ export type TabId = (typeof TABS)[number]['id'];
 export const TAB_IDS: readonly string[] = TABS.map((t) => t.id);
 export const DEFAULT_TAB: TabId = 'platform';
 export const TAB_PARAM = 'tab';
-
-/** Tabs grouped by domain, preserving the flat `TABS` order inside a group. */
-export const TAB_GROUP_MEMBERS: ReadonlyArray<{
-  group: TabGroup;
-  tabs: ReadonlyArray<(typeof TABS)[number]>;
-}> = TAB_GROUPS.map((group) => ({
-  group,
-  tabs: TABS.filter((tab) => tab.group === group),
-}));
 
 export function isValidTab(id: string | null): id is TabId {
   return !!id && TAB_IDS.includes(id);

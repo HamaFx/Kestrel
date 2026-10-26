@@ -17,7 +17,8 @@ import { Suspense, type ComponentType, type KeyboardEvent, type RefObject } from
 import { cn } from '@/lib/formatters/cn';
 
 import { AdminTabFallback } from './admin-tab-fallback';
-import { TAB_GROUP_MEMBERS, type TabId } from './admin-tabs';
+import { groupAdminTabs } from './admin-tab-groups';
+import { TABS, type TabId } from './admin-tabs';
 
 interface AdminTabLayoutProps {
   activeTab: TabId;
@@ -41,13 +42,13 @@ export function AdminTabLayout({
         aria-label="Admin sections"
         className="flex flex-col gap-4 lg:sticky lg:top-4 lg:w-[220px] lg:shrink-0"
       >
-        {TAB_GROUP_MEMBERS.map(({ group, tabs }) => (
-          <div key={group} role="presentation" className="flex flex-col gap-1.5">
+        {groupAdminTabs(TABS).map(({ group, tabs }) => (
+          <div key={group.id} role="presentation" className="flex flex-col gap-1.5">
             <p
               role="presentation"
               className="text-fg-subtle px-1 text-[10px] font-semibold tracking-wider uppercase"
             >
-              {group}
+              {group.label}
             </p>
             <div role="presentation" className="flex flex-wrap gap-1 lg:flex-col lg:flex-nowrap">
               {tabs.map((tab) => {
