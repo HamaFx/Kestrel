@@ -44,6 +44,10 @@ export default function RegisterPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <h2 className="font-display text-fg text-lg font-normal tracking-[-0.03em]">
+        Create your operator account
+      </h2>
+
       <OAuthButtons callbackUrl="/onboarding" action="Sign up" disabled={pending || success} />
 
       <form action={action} className="flex w-full flex-col gap-5">
@@ -77,6 +81,7 @@ export default function RegisterPage() {
         </div>
 
         <PasswordField
+          label="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="new-password"
@@ -87,20 +92,17 @@ export default function RegisterPage() {
         />
 
         <div className="flex flex-col gap-2">
-          <label htmlFor="confirm-password" className="text-fg text-sm font-semibold">
-            Confirm Password
-          </label>
-          <Input
+          <PasswordField
             id="confirm-password"
             name="confirmPassword"
-            type="password"
+            label="Confirm Password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
             autoComplete="new-password"
             required
             disabled={pending || success}
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
             error={confirmTouched && !passwordsMatch}
-            aria-describedby={
+            errorId={
               confirmTouched && !passwordsMatch ? 'confirm-password-error' : undefined
             }
           />

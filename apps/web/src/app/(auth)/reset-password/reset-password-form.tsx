@@ -20,7 +20,6 @@ import { useRouter } from 'next/navigation';
 import { useActionState, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 
 import { FormError } from '../_components/form-error';
 import { PasswordField } from '../_components/password-field';
@@ -66,10 +65,15 @@ export function ResetPasswordForm({ token }: { token: string }) {
 
   return (
     <div className="flex flex-col gap-6">
+      <h2 className="font-display text-fg text-lg font-normal tracking-[-0.03em]">
+        Choose a new password
+      </h2>
+
       <form action={action} className="flex w-full flex-col gap-5">
         <input type="hidden" name="token" value={token} />
 
         <PasswordField
+          label="New Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           id="password"
@@ -82,22 +86,20 @@ export function ResetPasswordForm({ token }: { token: string }) {
         />
 
         <div className="flex flex-col gap-2">
-          <label htmlFor="confirm-password" className="text-fg text-sm font-semibold">
-            Confirm New Password
-          </label>
-          <Input
+          <PasswordField
             id="confirm-password"
             name="confirmPassword"
-            type="password"
+            label="Confirm New Password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
             autoComplete="new-password"
             required
             disabled={pending || !!state?.success}
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
             error={confirmTouched && !passwordsMatch}
+            errorId={confirmTouched && !passwordsMatch ? 'confirm-password-error' : undefined}
           />
           {confirmTouched && !passwordsMatch && (
-            <p role="alert" className="text-danger mt-1 text-xs">
+            <p id="confirm-password-error" role="alert" className="text-danger mt-1 text-xs">
               Passwords do not match
             </p>
           )}

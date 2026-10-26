@@ -34,6 +34,10 @@ export function LoginForm() {
 
   return (
     <div className="flex flex-col gap-6">
+      <h2 className="font-display text-fg text-lg font-normal tracking-[-0.03em]">
+        Sign in to your account
+      </h2>
+
       <OAuthButtons
         callbackUrl={next || '/dashboard'}
         action="Sign in"
@@ -77,6 +81,7 @@ export function LoginForm() {
           </div>
 
           <PasswordField
+            label="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
