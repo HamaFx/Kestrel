@@ -23,7 +23,8 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { TAB_GROUP_MEMBERS, TAB_GROUPS, TABS } from '@/app/(app)/admin/_components/admin-tabs';
+import { groupAdminTabs, TAB_GROUPS } from '@/app/(app)/admin/_components/admin-tab-groups';
+import { TABS } from '@/app/(app)/admin/_components/admin-tabs';
 import AdminPage from '@/app/(app)/admin/page';
 
 const mockReplace = vi.fn();
@@ -55,9 +56,11 @@ afterEach(cleanup);
 
 describe('Admin Control Plane grouping (Phase 3)', () => {
   it('assigns every tab to exactly one domain group', () => {
-    const grouped = TAB_GROUP_MEMBERS.flatMap((entry) => entry.tabs.map((tab) => tab.id));
+    const grouped = groupAdminTabs(TABS).flatMap((entry) => entry.tabs.map((tab) => tab.id));
 
-    expect(TAB_GROUP_MEMBERS.map((entry) => entry.group)).toEqual([...TAB_GROUPS]);
+    expect(groupAdminTabs(TABS).map((entry) => entry.group.label)).toEqual(
+      TAB_GROUPS.map((group) => group.label),
+    );
     expect(grouped).toHaveLength(TABS.length);
     expect(new Set(grouped).size).toBe(TABS.length);
   });
@@ -67,7 +70,7 @@ describe('Admin Control Plane grouping (Phase 3)', () => {
 
     expect(screen.getAllByRole('tab')).toHaveLength(16);
     for (const group of TAB_GROUPS) {
-      expect(screen.getByText(group)).toBeTruthy();
+      expect(screen.getByText(group.label)).toBeTruthy();
     }
   });
 
