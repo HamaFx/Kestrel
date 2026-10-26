@@ -61,6 +61,14 @@ export function NavLink({ item, active }: { item: NavItem; active: boolean }) {
             </span>
           ) : null}
         </div>
+        {item.shortcut && (
+          <kbd
+            aria-hidden="true"
+            className="text-fg-subtle/70 bg-white/[0.04] border-white/[0.08] ml-2 shrink-0 rounded border px-1.5 py-0.5 font-mono text-[10px] tracking-wider"
+          >
+            {item.shortcut}
+          </kbd>
+        )}
       </Link>
     </li>
   );

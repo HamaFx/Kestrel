@@ -16,9 +16,11 @@
  * limitations under the License.
  */
 import { IconMenu2 } from '@tabler/icons-react';
+import { m } from 'motion/react';
 import { Link } from 'next-view-transitions';
 import { usePathname } from 'next/navigation';
 
+import { MOTION_PRESETS } from '@/components/ui/motion-config';
 import { cn } from '@/lib/formatters/cn';
 
 import { useNavDrawer } from './nav-drawer-context';
@@ -54,10 +56,18 @@ export function MobileBottomNav() {
             prefetch={true}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'flex min-h-[44px] min-w-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors active:translate-y-[0.5px]',
+              'relative flex min-h-[44px] min-w-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors select-none active:translate-y-[0.5px]',
               active ? 'text-brand font-semibold' : 'text-fg-subtle hover:text-fg',
             )}
           >
+            {active && (
+              <m.span
+                layoutId="bottom-nav-active-pill"
+                aria-hidden="true"
+                className="bg-brand absolute top-1 h-0.5 w-6 rounded-full shadow-[0_0_8px_rgba(255,54,22,0.8)]"
+                transition={MOTION_PRESETS.layout}
+              />
+            )}
             <Icon className="size-5 shrink-0" strokeWidth={active ? 2 : 1.75} aria-hidden="true" />
             <span>{item.label}</span>
           </Link>

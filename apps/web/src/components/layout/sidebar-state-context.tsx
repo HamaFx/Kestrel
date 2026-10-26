@@ -17,7 +17,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, type ReactNode } from 'react';
+
+import { useLocalStorage } from '@/hooks/use-local-storage';
 
 interface SidebarStateContextValue {
   collapsed: boolean;
@@ -27,10 +29,37 @@ interface SidebarStateContextValue {
 
 const SidebarStateContext = createContext<SidebarStateContextValue | null>(null);
 
-export function SidebarStateProvider({ children }: { children: ReactNode }) {
-  const [collapsed, setCollapsed] = useState(true);
+const SIDEBAR_STORAGE_KEY = 'kestrel:sidebar-collapsed:v1';
 
-  const toggle = () => setCollapsed((v) => !v);
+export function SidebarStateProvider({ children }: { children: ReactNode }) {
+  const [collapsed, setCollapsed] = useLocalStorage<boolean>(SIDEBAR_STORAGE_KEY, false);
+
+  const toggle = useCallback(() => {
+    setCollapsed((v) => !v);
+  }, [setCollapsed]);
+
+  // Global standard ⌘B / Ctrl+B shortcut to toggle sidebar collapse
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'b' || e.key === 'B')) {
+        const target = e.target as HTMLElement | null;
+        if (
+          target &&
+          (target.tagName === 'INPUT' ||
+            target.tagName === 'TEXTAREA' ||
+            target.tagName === 'SELECT' ||
+            target.isContentEditable)
+        ) {
+          return;
+        }
+        e.preventDefault();
+        toggle();
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggle]);
 
   return (
     <SidebarStateContext.Provider value={{ collapsed, setCollapsed, toggle }}>
