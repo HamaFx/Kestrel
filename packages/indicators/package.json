@@ -18,7 +18,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build": "tsc -p tsconfig.build.json && test -d dist && node ../../scripts/rewrite-dist-imports.mjs dist",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -d dist && node ../../scripts/rewrite-dist-imports.mjs dist",
     "prepublishOnly": "pnpm build",
     "clean": "rm -rf node_modules .turbo"
   },
