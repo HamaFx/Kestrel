@@ -34,7 +34,7 @@ import {
   canonicalMarketStructureTool,
   canonicalNewsTool,
   canonicalPriceTool,
-  NATIVE_CANONICAL_TOOLS,
+  nativeCanonicalTools,
   resolveNativeCanonicalTool,
 } from '../src/mastra-v2/tools/canonical';
 import { registerAllTools, toolRegistry } from '../src/tools';
@@ -101,7 +101,7 @@ describe('native canonical tools (B-01)', () => {
     expect(resolveNativeCanonicalTool('get_cot')).toBe(canonicalCoTTool);
     expect(resolveNativeCanonicalTool('get_market_structure')).toBe(canonicalMarketStructureTool);
     expect(resolveNativeCanonicalTool('get_calendar')).toBeNull();
-    expect(Object.keys(NATIVE_CANONICAL_TOOLS).sort()).toEqual([
+    expect(Object.keys(nativeCanonicalTools()).sort()).toEqual([
       'get_candles',
       'get_cot',
       'get_indicators',

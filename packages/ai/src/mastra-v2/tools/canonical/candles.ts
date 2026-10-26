@@ -25,30 +25,22 @@
  */
 
 import { getCandles } from '@kestrel/data';
-import {
-  SymbolSchema,
-  TimeframeSchema,
-  type CandlePeriodSummary,
-  type GetCandlesOutput,
-} from '@kestrel/shared';
+import { type CandlePeriodSummary, type GetCandlesOutput } from '@kestrel/shared';
 import { createTool } from '@mastra/core/tools';
-import { z } from 'zod';
+import { type z } from 'zod';
 
 import { maybeGetToolContext } from '@ai/runtime/tool-context';
 
 import { createReadOnlyToolExecute } from '../../agents/xauusd/legacy-tool-adapter';
+import { CANONICAL_CANDLES_DESCRIPTION } from './descriptions';
+import { CanonicalCandlesInputSchema } from './input-schemas';
 
-export const CanonicalCandlesInputSchema = z.object({
-  symbol: SymbolSchema,
-  tf: TimeframeSchema,
-  /** Bars to fetch. Cap kept tight — the model rarely benefits from >200. */
-  count: z.int().min(10).max(500).default(120),
-});
+// Leaf re-exports: the values live in modules with no app-graph imports, so a
+// module-scope read (legacy shims, other consumers) can never land on a binding
+// that is still initialising inside the instance ↔ tools import cycle.
+export { CANONICAL_CANDLES_DESCRIPTION, CanonicalCandlesInputSchema };
 
 export type CanonicalCandlesInput = z.infer<typeof CanonicalCandlesInputSchema>;
-
-export const CANONICAL_CANDLES_DESCRIPTION =
-  'Fetch OHLC candles for one symbol at one timeframe (e.g. XAUUSD 1h). Returns a comprehensive period summary plus the most recent 30 candles to minimize token overhead. For RSI/MACD/EMA/etc. prefer get_indicators.';
 
 const TAIL_BARS = 30;
 

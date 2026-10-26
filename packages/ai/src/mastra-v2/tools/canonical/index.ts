@@ -45,19 +45,32 @@ export { canonicalPriceTool } from './price';
 /**
  * Native canonical tools by their legacy registry name (the key the
  * capability manifest and the agent's domain tool filter use).
+ *
+ * Built lazily on first use rather than as a module-scope literal: this module
+ * sits inside the canonical ↔ legacy-adapter ↔ instance ↔ tools import cycle,
+ * so an eager literal reads sibling tool bindings while they may still be
+ * initialising — `ReferenceError: Cannot access 'canonicalCoTTool' before
+ * initialization`, which production only reports as a masked React error #441
+ * with a digest. Every consumer either resolves by name or enumerates the map
+ * at call time, so deferring construction is invisible to them.
  */
-export const NATIVE_CANONICAL_TOOLS: Readonly<Record<string, unknown>> = {
-  get_price: canonicalPriceTool,
-  get_candles: canonicalCandlesTool,
-  get_indicators: canonicalIndicatorsTool,
-  search_knowledge: canonicalKnowledgeTool,
-  // I-03 second batch (audit 2026-10-18): news, CoT, and market structure.
-  get_news: canonicalNewsTool,
-  get_cot: canonicalCoTTool,
-  get_market_structure: canonicalMarketStructureTool,
-};
+let nativeCanonicalToolsCache: Readonly<Record<string, unknown>> | null = null;
+
+export function nativeCanonicalTools(): Readonly<Record<string, unknown>> {
+  nativeCanonicalToolsCache ??= {
+    get_price: canonicalPriceTool,
+    get_candles: canonicalCandlesTool,
+    get_indicators: canonicalIndicatorsTool,
+    search_knowledge: canonicalKnowledgeTool,
+    // I-03 second batch (audit 2026-10-18): news, CoT, and market structure.
+    get_news: canonicalNewsTool,
+    get_cot: canonicalCoTTool,
+    get_market_structure: canonicalMarketStructureTool,
+  };
+  return nativeCanonicalToolsCache;
+}
 
 /** Resolve a native canonical tool by registry name, or null when not migrated. */
 export function resolveNativeCanonicalTool(name: string): unknown | null {
-  return NATIVE_CANONICAL_TOOLS[name] ?? null;
+  return nativeCanonicalTools()[name] ?? null;
 }

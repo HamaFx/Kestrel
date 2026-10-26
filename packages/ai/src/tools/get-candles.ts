@@ -26,11 +26,11 @@ import type { GetCandlesOutput } from '@kestrel/shared';
 import { tool, type Tool } from 'ai';
 
 import {
-  CANONICAL_CANDLES_DESCRIPTION,
-  CanonicalCandlesInputSchema,
   executeCanonicalCandles,
   type CanonicalCandlesInput,
 } from '../mastra-v2/tools/canonical/candles';
+import { CANONICAL_CANDLES_DESCRIPTION } from '../mastra-v2/tools/canonical/descriptions';
+import { CanonicalCandlesInputSchema } from '../mastra-v2/tools/canonical/input-schemas';
 import { maybeGetToolContext } from '../runtime/tool-context';
 
 declare module '@kestrel/shared' {

@@ -20,7 +20,7 @@ import type { PluginInlineSkill } from '@kestrel/plugin-sdk';
 import { createSkill, type SkillInput } from '@mastra/core/skills';
 
 import { adaptLegacyReadOnlyTool } from '../mastra-v2/agents/xauusd/legacy-tool-adapter';
-import { NATIVE_CANONICAL_TOOLS, resolveNativeCanonicalTool } from '../mastra-v2/tools/canonical';
+import { resolveNativeCanonicalTool } from '../mastra-v2/tools/canonical';
 import {
   buildCatalogContext,
   customAgentCoreTools,
@@ -101,7 +101,7 @@ export async function coreToolsFor(selected: readonly string[]): Promise<Record<
   for (const name of selected) {
     if (!allowed.has(name)) continue;
     if (result[name] !== undefined) continue;
-    const native = resolveNativeCanonicalTool(name) ?? NATIVE_CANONICAL_TOOLS[name] ?? null;
+    const native = resolveNativeCanonicalTool(name) ?? null;
     if (native) {
       result[name] = native;
       continue;

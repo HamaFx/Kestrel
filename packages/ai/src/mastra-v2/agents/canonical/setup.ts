@@ -42,7 +42,7 @@ import { manifestToolsForDomain, type MastraRoutingDomain } from '../../capabili
 import { buildConversationScorers, buildScorersForExecutionPlan } from '../../evals/scorers';
 import { buildGuardrailInputProcessors } from '../../guardrails';
 import { assertExecutionPlanRoute } from '../../planning/execution-plan';
-import { NATIVE_CANONICAL_TOOLS, resolveNativeCanonicalTool } from '../../tools/canonical';
+import { nativeCanonicalTools, resolveNativeCanonicalTool } from '../../tools/canonical';
 import {
   adaptLegacyReadOnlyTool,
   type MastraToolInvocationPart,
@@ -143,7 +143,7 @@ export async function setupCanonicalChat(
   const candidateNames = [
     ...new Set([
       ...Object.keys(legacyTools),
-      ...Object.keys(NATIVE_CANONICAL_TOOLS).filter(
+      ...Object.keys(nativeCanonicalTools()).filter(
         (name) => domainAllowed === null || domainAllowed.has(name),
       ),
     ]),

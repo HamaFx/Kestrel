@@ -26,22 +26,22 @@
  */
 
 import { getPrice, ProviderError } from '@kestrel/data';
-import { ALL_SYMBOLS, SymbolSchema, type GetPriceOutput } from '@kestrel/shared';
+import type { GetPriceOutput } from '@kestrel/shared';
 import { createTool } from '@mastra/core/tools';
-import { z } from 'zod';
+import { type z } from 'zod';
 
 import { maybeGetToolContext } from '@ai/runtime/tool-context';
 
 import { createReadOnlyToolExecute } from '../../agents/xauusd/legacy-tool-adapter';
+import { CANONICAL_PRICE_DESCRIPTION } from './descriptions';
+import { CanonicalPriceInputSchema } from './input-schemas';
 
-export const CanonicalPriceInputSchema = z.object({
-  symbols: z.array(SymbolSchema).min(1).max(ALL_SYMBOLS.length),
-});
+// Leaf re-exports: the values live in modules with no app-graph imports, so a
+// module-scope read (legacy shims, other consumers) can never land on a binding
+// that is still initialising inside the instance ↔ tools import cycle.
+export { CANONICAL_PRICE_DESCRIPTION, CanonicalPriceInputSchema };
 
 export type CanonicalPriceInput = z.infer<typeof CanonicalPriceInputSchema>;
-
-export const CANONICAL_PRICE_DESCRIPTION =
-  'Fetch the most recent mid price for one or more symbols supported by the canonical gold, forex, and crypto catalog. Use only when the LIVE_SNAPSHOT in the system prompt is missing the symbol or older than 10 seconds.';
 
 /**
  * Shared execute core: fetches the latest mid price for one or more symbols.

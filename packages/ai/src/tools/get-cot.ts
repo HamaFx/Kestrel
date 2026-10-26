@@ -26,11 +26,9 @@ import type { GetCoTOutput } from '@kestrel/shared';
 import { tool, type Tool } from 'ai';
 import type { z } from 'zod';
 
-import {
-  CANONICAL_COT_DESCRIPTION,
-  CanonicalCoTInputSchema,
-  executeCanonicalCoT,
-} from '../mastra-v2/tools/canonical/cot';
+import { executeCanonicalCoT } from '../mastra-v2/tools/canonical/cot';
+import { CANONICAL_COT_DESCRIPTION } from '../mastra-v2/tools/canonical/descriptions';
+import { CanonicalCoTInputSchema } from '../mastra-v2/tools/canonical/input-schemas';
 
 declare module '@kestrel/shared' {
   interface ToolIOMap {

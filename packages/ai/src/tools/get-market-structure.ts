@@ -26,11 +26,9 @@ import type { GetMarketStructureOutput } from '@kestrel/shared';
 import { tool, type Tool } from 'ai';
 import type { z } from 'zod';
 
-import {
-  CANONICAL_MARKET_STRUCTURE_DESCRIPTION,
-  CanonicalMarketStructureInputSchema,
-  executeCanonicalMarketStructure,
-} from '../mastra-v2/tools/canonical/market-structure';
+import { CANONICAL_MARKET_STRUCTURE_DESCRIPTION } from '../mastra-v2/tools/canonical/descriptions';
+import { CanonicalMarketStructureInputSchema } from '../mastra-v2/tools/canonical/input-schemas';
+import { executeCanonicalMarketStructure } from '../mastra-v2/tools/canonical/market-structure';
 
 // One-release compatibility re-export: the XAUUSD market-structure tool and
 // other consumers import the pure projection from this historical path.
