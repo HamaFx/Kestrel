@@ -31,14 +31,14 @@ import { z } from 'zod';
 
 import { GenericMacroExtensionSchema } from '../research-packet-macro';
 
-export const RESEARCH_TIMEFRAMES: readonly { timeframe: Timeframe; count: number }[] = [
+export const SYMBOL_RESEARCH_TIMEFRAMES: readonly { timeframe: Timeframe; count: number }[] = [
   { timeframe: '1d', count: 120 },
   { timeframe: '4h', count: 120 },
   { timeframe: '1h', count: 160 },
   { timeframe: '15m', count: 160 },
 ];
 
-export const RESEARCH_INDICATORS: readonly IndicatorRequest[] = [
+export const SYMBOL_RESEARCH_INDICATORS: readonly IndicatorRequest[] = [
   { kind: 'ema', params: { period: 20 } },
   { kind: 'ema', params: { period: 50 } },
   { kind: 'rsi', params: { period: 14 } },
@@ -142,9 +142,6 @@ export const SymbolResearchPacketSchema = z.object({
 export type SymbolResearchPacket = z.infer<typeof SymbolResearchPacketSchema>;
 export type XauusdExtension = z.infer<typeof XauusdExtensionSchema>;
 export type SymbolResearchEvidence = z.infer<typeof EvidenceSchema>;
-
-export const SYMBOL_RESEARCH_TIMEFRAMES = RESEARCH_TIMEFRAMES;
-export const SYMBOL_RESEARCH_INDICATORS = RESEARCH_INDICATORS;
 
 export const SymbolResearchInputSchema = z.object({ symbol: SymbolSchema });
 export const SymbolResearchIndicatorRequestSchema = IndicatorRequestSchema;

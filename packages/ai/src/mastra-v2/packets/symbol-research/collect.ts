@@ -35,8 +35,8 @@ import { computeIndicatorMemo } from './indicator-memo';
 import { computeMarketStructureSummary } from './market-structure';
 import {
   EvidenceSchema,
-  RESEARCH_INDICATORS,
-  RESEARCH_TIMEFRAMES,
+  SYMBOL_RESEARCH_INDICATORS,
+  SYMBOL_RESEARCH_TIMEFRAMES,
   SymbolResearchPacketSchema,
   type SymbolResearchEvidence,
   type SymbolResearchPacket,
@@ -128,7 +128,7 @@ export async function collectSymbolResearchPacket(
     readFeatureFlag('ENABLE_GENERIC_MACRO');
   const [priceSettled, candleResults, macroExtension, genericMacroFetched] = await Promise.all([
     Promise.allSettled([getPriceWithMeta(symbol, signal ? { signal } : {})]),
-    fetchPacketCandles(symbol, RESEARCH_TIMEFRAMES, signal),
+    fetchPacketCandles(symbol, SYMBOL_RESEARCH_TIMEFRAMES, signal),
     wantsMacro ? collectXauusdExtension(packetId, generatedAt, signal) : null,
     wantsGenericMacro
       ? fetchGenericMacroData(symbol, signal).catch((): GenericMacroFetchResult | null => null)
@@ -175,7 +175,7 @@ export async function collectSymbolResearchPacket(
   }
 
   const timeframes: SymbolResearchEvidence[] = [];
-  for (const requested of RESEARCH_TIMEFRAMES) {
+  for (const requested of SYMBOL_RESEARCH_TIMEFRAMES) {
     const result = candleResults.get(requested.timeframe);
     if (!result || result.status === 'rejected') {
       missingData.push(`${symbol} ${requested.timeframe} candles are unavailable.`);
@@ -193,7 +193,7 @@ export async function collectSymbolResearchPacket(
       ...(!latest ? ['No candles were returned'] : []),
     ];
     const indicators = latest
-      ? RESEARCH_INDICATORS.map((request) => {
+      ? SYMBOL_RESEARCH_INDICATORS.map((request) => {
           const computed = computeIndicatorMemo({
             symbol,
             tf: requested.timeframe,
@@ -225,7 +225,7 @@ export async function collectSymbolResearchPacket(
       missingData.push(`${symbol} ${requested.timeframe} returned no candles.`);
   }
 
-  const requiredTimeframesReady = RESEARCH_TIMEFRAMES.every((window) =>
+  const requiredTimeframesReady = SYMBOL_RESEARCH_TIMEFRAMES.every((window) =>
     timeframes.some(
       (evidence) => evidence.timeframe === window.timeframe && evidence.candles.length > 0,
     ),
