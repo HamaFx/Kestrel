@@ -25,9 +25,9 @@
 import type { GetPriceOutput } from '@kestrel/shared';
 import { tool, type Tool } from 'ai';
 
+import { CANONICAL_PRICE_DESCRIPTION } from '../mastra-v2/tools/canonical/descriptions';
+import { CanonicalPriceInputSchema } from '../mastra-v2/tools/canonical/input-schemas';
 import {
-  CANONICAL_PRICE_DESCRIPTION,
-  CanonicalPriceInputSchema,
   executeCanonicalPrice,
   type CanonicalPriceInput,
 } from '../mastra-v2/tools/canonical/price';

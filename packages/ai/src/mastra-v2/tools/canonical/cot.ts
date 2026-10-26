@@ -24,19 +24,22 @@
  * thin read with a templated summary string.
  */
 
-import { GetCoTInputSchema, type CoTSample, type GetCoTOutput, type Symbol } from '@kestrel/shared';
+import type { CoTSample, GetCoTOutput, Symbol } from '@kestrel/shared';
 import { createTool } from '@mastra/core/tools';
 import type { z } from 'zod';
 
 import { countCoTRows, listCoTSamples } from '@ai/cot/persistence';
 
 import { createReadOnlyToolExecute } from '../../agents/xauusd/legacy-tool-adapter';
+import { CANONICAL_COT_DESCRIPTION } from './descriptions';
+import { CanonicalCoTInputSchema } from './input-schemas';
 
-export const CanonicalCoTInputSchema = GetCoTInputSchema;
+// Leaf re-exports: the values live in modules with no app-graph imports, so a
+// module-scope read (legacy shims, other consumers) can never land on a binding
+// that is still initialising inside the instance ↔ tools import cycle.
+export { CANONICAL_COT_DESCRIPTION, CanonicalCoTInputSchema };
+
 export type CanonicalCoTInput = z.infer<typeof CanonicalCoTInputSchema>;
-
-export const CANONICAL_COT_DESCRIPTION =
-  "Last N weeks of CFTC Commitment-of-Traders rows for one symbol (default XAUUSD). Use to answer 'how is leveraged-fund net positioning changing on gold' or 'are dealers net long the dollar'. Returns 4-bucket long/short positions per week (dealer / asset / leveraged / other). Computes net = long - short on the agent side.";
 
 /** Shared execute core: CoT rows plus the deterministic summary. */
 export async function executeCanonicalCoT(input: CanonicalCoTInput): Promise<GetCoTOutput> {

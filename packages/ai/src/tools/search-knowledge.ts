@@ -25,9 +25,9 @@
 import type { SearchKnowledgeOutput } from '@kestrel/shared';
 import { tool, type Tool } from 'ai';
 
+import { CANONICAL_KNOWLEDGE_DESCRIPTION } from '../mastra-v2/tools/canonical/descriptions';
+import { CanonicalKnowledgeInputSchema } from '../mastra-v2/tools/canonical/input-schemas';
 import {
-  CANONICAL_KNOWLEDGE_DESCRIPTION,
-  CanonicalKnowledgeInputSchema,
   executeCanonicalKnowledge,
   type CanonicalKnowledgeInput,
 } from '../mastra-v2/tools/canonical/knowledge';

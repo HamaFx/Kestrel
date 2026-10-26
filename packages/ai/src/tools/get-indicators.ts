@@ -25,12 +25,12 @@
 import type { GetIndicatorsOutput } from '@kestrel/shared';
 import { tool, type Tool } from 'ai';
 
+import { CANONICAL_INDICATORS_DESCRIPTION } from '../mastra-v2/tools/canonical/descriptions';
 import {
-  CANONICAL_INDICATORS_DESCRIPTION,
-  CanonicalIndicatorsInputSchema,
   executeCanonicalIndicators,
   type CanonicalIndicatorsInput,
 } from '../mastra-v2/tools/canonical/indicators';
+import { CanonicalIndicatorsInputSchema } from '../mastra-v2/tools/canonical/input-schemas';
 import { maybeGetToolContext } from '../runtime/tool-context';
 
 declare module '@kestrel/shared' {

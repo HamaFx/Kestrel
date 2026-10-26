@@ -26,35 +26,22 @@
 
 import { getCandles } from '@kestrel/data';
 import { computeIndicator } from '@kestrel/indicators';
-import {
-  IndicatorKindSchema,
-  IndicatorParamsSchema,
-  SymbolSchema,
-  TimeframeSchema,
-  type GetIndicatorsOutput,
-  type IndicatorResult,
-} from '@kestrel/shared';
+import { type GetIndicatorsOutput, type IndicatorResult } from '@kestrel/shared';
 import { createTool } from '@mastra/core/tools';
-import { z } from 'zod';
+import { type z } from 'zod';
 
 import { maybeGetToolContext } from '@ai/runtime/tool-context';
 
 import { createReadOnlyToolExecute } from '../../agents/xauusd/legacy-tool-adapter';
+import { CANONICAL_INDICATORS_DESCRIPTION } from './descriptions';
+import { CanonicalIndicatorsInputSchema } from './input-schemas';
 
-export const CanonicalIndicatorsInputSchema = z.object({
-  symbol: SymbolSchema,
-  tf: TimeframeSchema,
-  count: z.int().min(20).max(500).default(200),
-  indicators: z
-    .array(z.object({ kind: IndicatorKindSchema, params: IndicatorParamsSchema.default({}) }))
-    .min(1)
-    .max(6),
-});
+// Leaf re-exports: the values live in modules with no app-graph imports, so a
+// module-scope read (legacy shims, other consumers) can never land on a binding
+// that is still initialising inside the instance ↔ tools import cycle.
+export { CANONICAL_INDICATORS_DESCRIPTION, CanonicalIndicatorsInputSchema };
 
 export type CanonicalIndicatorsInput = z.infer<typeof CanonicalIndicatorsInputSchema>;
-
-export const CANONICAL_INDICATORS_DESCRIPTION =
-  'Compute indicators (sma, ema, rsi, macd, atr, bollinger, pivots) on a (symbol, timeframe) window. Returns the last 15 points of each series — enough for "current value + recent slope" reasoning while minimizing token overhead.';
 
 const TAIL_POINTS = 15;
 

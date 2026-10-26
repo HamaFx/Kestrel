@@ -29,39 +29,28 @@
 import { getCandles } from '@kestrel/data';
 import { computeStructure } from '@kestrel/indicators';
 import {
-  StructureKindSchema,
-  SymbolSchema,
-  TimeframeSchema,
   type Candle,
   type GetMarketStructureOutput,
+  type StructureKindSchema,
   type StructureResult,
+  type SymbolSchema,
+  type TimeframeSchema,
 } from '@kestrel/shared';
 import { createTool } from '@mastra/core/tools';
-import { z } from 'zod';
+import { type z } from 'zod';
 
 import { maybeGetToolContext } from '@ai/runtime/tool-context';
 
 import { createReadOnlyToolExecute } from '../../agents/xauusd/legacy-tool-adapter';
+import { CANONICAL_MARKET_STRUCTURE_DESCRIPTION } from './descriptions';
+import { CanonicalMarketStructureInputSchema } from './input-schemas';
 
-export const CanonicalMarketStructureInputSchema = z.object({
-  symbol: SymbolSchema,
-  tf: TimeframeSchema,
-  /** Bars to scan. 300 covers ~12 days on 1h, 12 weeks on 4h. */
-  count: z.int().min(50).max(1000).default(300),
-  /**
-   * Which kinds to compute. Skip the ones you don't need to keep the
-   * payload small in the chat history.
-   * Default: all 5 structure kinds.
-   */
-  kinds: z.array(StructureKindSchema).optional(),
-  /** How many most recent events per kind to return. Default 5. */
-  lookback: z.int().min(2).max(10).default(5),
-});
+// Leaf re-exports: the values live in modules with no app-graph imports, so a
+// module-scope read (legacy shims, other consumers) can never land on a binding
+// that is still initialising inside the instance ↔ tools import cycle.
+export { CANONICAL_MARKET_STRUCTURE_DESCRIPTION, CanonicalMarketStructureInputSchema };
 
 export type CanonicalMarketStructureInput = z.infer<typeof CanonicalMarketStructureInputSchema>;
-
-export const CANONICAL_MARKET_STRUCTURE_DESCRIPTION =
-  'Detect SMC market structure on a (symbol, timeframe) window: swing pivots, break-of-structure / change-of-character events, fair value gaps, order blocks, and liquidity sweeps. Use when the user asks about trend bias, structural breaks, FVGs, OBs, or where stops likely got swept.';
 
 const TAIL = 15;
 

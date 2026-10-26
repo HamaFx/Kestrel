@@ -10,7 +10,7 @@
 import { afterAll, describe, expect, it, vi } from 'vitest';
 
 import { resolveSpecialistDeskTools } from '../src/committee/specialists';
-import { NATIVE_CANONICAL_TOOLS } from '../src/mastra-v2/tools/canonical';
+import { nativeCanonicalTools } from '../src/mastra-v2/tools/canonical';
 import { registerJournalTools } from '../src/tools/journal';
 import { NATIVE_MIGRATED_TOOL_NAMES, registerMarketTools } from '../src/tools/market';
 import { ToolRegistry } from '../src/tools/registry';
@@ -28,7 +28,7 @@ afterAll(() => {
 describe('PHASE_TOOLS_SHIMS (P2-01)', () => {
   it('keeps the migrated-name list in sync with the native canonical registrations', () => {
     expect([...NATIVE_MIGRATED_TOOL_NAMES].sort()).toEqual(
-      Object.keys(NATIVE_CANONICAL_TOOLS).sort(),
+      Object.keys(nativeCanonicalTools()).sort(),
     );
   });
 
@@ -63,9 +63,9 @@ describe('PHASE_TOOLS_SHIMS (P2-01)', () => {
       const technical = resolveSpecialistDeskTools('technical');
       // Native-first resolution: the desks hold the exact native objects,
       // so disabling the shims cannot strip their market-data tools.
-      expect(technical.get_price).toBe(NATIVE_CANONICAL_TOOLS.get_price);
-      expect(technical.get_candles).toBe(NATIVE_CANONICAL_TOOLS.get_candles);
-      expect(technical.get_indicators).toBe(NATIVE_CANONICAL_TOOLS.get_indicators);
+      expect(technical.get_price).toBe(nativeCanonicalTools().get_price);
+      expect(technical.get_candles).toBe(nativeCanonicalTools().get_candles);
+      expect(technical.get_indicators).toBe(nativeCanonicalTools().get_indicators);
       // Unmigrated names keep their adapted legacy tool.
       expect(technical.get_session_levels).toBeDefined();
     } finally {

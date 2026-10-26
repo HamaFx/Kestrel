@@ -26,11 +26,9 @@ import type { GetNewsOutput } from '@kestrel/shared';
 import { tool, type Tool } from 'ai';
 import type { z } from 'zod';
 
-import {
-  CANONICAL_NEWS_DESCRIPTION,
-  CanonicalNewsInputSchema,
-  executeCanonicalNews,
-} from '../mastra-v2/tools/canonical/news';
+import { CANONICAL_NEWS_DESCRIPTION } from '../mastra-v2/tools/canonical/descriptions';
+import { CanonicalNewsInputSchema } from '../mastra-v2/tools/canonical/input-schemas';
+import { executeCanonicalNews } from '../mastra-v2/tools/canonical/news';
 
 declare module '@kestrel/shared' {
   interface ToolIOMap {
