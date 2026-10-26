@@ -24,7 +24,7 @@
 
 import { IconChartCandle, IconClock } from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Tooltip } from '@/components/ui/tooltip';
 import { usePrice } from '@/hooks/use-prices';
@@ -47,6 +47,7 @@ export function SidebarTelemetry({ collapsed }: { collapsed: boolean }) {
   const [mounted, setMounted] = useState(false);
   const [utcHour, setUtcHour] = useState(14);
   const { tick } = usePrice('XAUUSD');
+  const prevMidRef = useRef<number | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -57,24 +58,33 @@ export function SidebarTelemetry({ collapsed }: { collapsed: boolean }) {
   }, []);
 
   const session = mounted ? getCurrentSession(utcHour) : { name: 'MARKET LIVE', isKillzone: false };
-  const price = tick?.mid ? tick.mid.toFixed(2) : '2734.50';
-  const isBull = tick ? tick.bid >= (tick.ask || tick.mid) : true;
+  const mid = tick?.mid ?? null;
+
+  // Direction is the current mid vs. the previous mid. The former check
+  // (`tick.bid >= tick.ask`) could never be true for a live quote — bid always
+  // sits below ask — so every live tick rendered bearish red.
+  const prevMid = prevMidRef.current;
+  const isBull = mid === null || prevMid === null ? true : mid >= prevMid;
+
+  useEffect(() => {
+    if (mid !== null) prevMidRef.current = mid;
+  }, [mid]);
 
   if (collapsed) {
     return (
       <div className="py-1">
         <Tooltip
-          label={`XAU/USD $${price} • ${session.name}`}
+          label={`XAU/USD ${mid === null ? '---.--' : `$${mid.toFixed(2)}`} • ${session.name}`}
           side="right"
           className="w-full justify-center"
         >
           <Link
             href="/chart/XAUUSD"
             aria-label="Market benchmark XAU/USD"
-            className="mx-auto flex size-10 flex-col items-center justify-center rounded-lg border border-white/[0.08] bg-black/40 text-fg-muted transition-all hover:border-brand/40 hover:text-brand"
+            className="hover:border-brand/40 hover:text-brand text-fg-muted mx-auto flex size-10 flex-col items-center justify-center rounded-lg border border-white/[0.08] bg-black/40 transition-all"
           >
-            <IconChartCandle className="size-4 text-brand" />
-            <span className="size-1.5 rounded-full bg-bull shadow-[0_0_6px_rgba(0,230,118,0.8)]" />
+            <IconChartCandle className="text-brand size-4" />
+            <span className="bg-bull size-1.5 rounded-full shadow-[0_0_6px_rgba(63,158,61,0.7)]" />
           </Link>
         </Tooltip>
       </div>
@@ -84,13 +94,13 @@ export function SidebarTelemetry({ collapsed }: { collapsed: boolean }) {
   return (
     <div className="rounded-lg border border-white/[0.08] bg-black/40 p-2 font-mono shadow-xs transition-colors hover:border-white/[0.14]">
       {/* Session indicator */}
-      <div className="flex items-center justify-between pb-1.5 text-[9px] text-fg-subtle tracking-wider uppercase">
-        <span className="flex items-center gap-1 font-medium text-fg-muted">
-          <IconClock className="size-3 text-fg-subtle" />
+      <div className="text-fg-subtle flex items-center justify-between pb-1.5 text-[9px] tracking-wider uppercase">
+        <span className="text-fg-muted flex items-center gap-1 font-medium">
+          <IconClock className="text-fg-subtle size-3" />
           <span>{session.name}</span>
         </span>
-        <span className="flex items-center gap-1 font-bold text-bull text-[8px]">
-          <span className="size-1.5 rounded-full bg-bull animate-pulse shadow-[0_0_6px_rgba(0,230,118,0.8)]" />
+        <span className="text-bull flex items-center gap-1 text-[8px] font-bold">
+          <span className="bg-bull size-1.5 animate-pulse rounded-full shadow-[0_0_6px_rgba(63,158,61,0.7)]" />
           {session.isKillzone ? 'KILLZONE' : 'ACTIVE'}
         </span>
       </div>
@@ -99,17 +109,23 @@ export function SidebarTelemetry({ collapsed }: { collapsed: boolean }) {
       <Link
         href="/chart/XAUUSD"
         prefetch={true}
-        className="group flex items-center justify-between rounded border border-white/[0.04] bg-white/[0.02] px-2 py-1 transition-colors hover:border-brand/30 hover:bg-white/[0.04]"
+        className="group hover:border-brand/30 flex items-center justify-between rounded border border-white/[0.04] bg-white/[0.02] px-2 py-1 transition-colors hover:bg-white/[0.04]"
         title="View XAUUSD Chart"
       >
-        <span className="text-xs font-bold tracking-tight text-fg group-hover:text-brand transition-colors">
+        <span className="text-fg group-hover:text-brand text-xs font-bold tracking-tight transition-colors">
           XAU/USD
         </span>
         <div className="flex items-center gap-1.5 tabular-nums">
-          <span className={cn('text-xs font-semibold', isBull ? 'text-bull' : 'text-bear')}>
-            ${price}
+          <span
+            data-testid="sidebar-telemetry-price"
+            className={cn(
+              'text-xs font-semibold',
+              mid === null ? 'text-fg-subtle' : isBull ? 'text-bull' : 'text-bear',
+            )}
+          >
+            {mid === null ? '---.--' : `$${mid.toFixed(2)}`}
           </span>
-          <span className="text-[9px] text-fg-subtle/70">GOLD</span>
+          <span className="text-fg-subtle/70 text-[9px]">GOLD</span>
         </div>
       </Link>
     </div>

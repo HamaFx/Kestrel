@@ -44,7 +44,7 @@ export function MobileBottomNav() {
   return (
     <nav
       aria-label="Mobile primary navigation"
-      className="pb-safe px-safe fixed inset-x-0 bottom-0 z-30 flex h-[calc(3.5rem+env(safe-area-inset-bottom,0px))] items-center justify-around border-t border-white/[0.08] bg-[#0b0c0f]/95 shadow-[0_-8px_30px_rgba(0,0,0,0.8)] backdrop-blur-xl select-none lg:hidden"
+      className="pb-safe px-safe fixed inset-x-0 bottom-0 z-30 flex h-[calc(3.5rem+env(safe-area-inset-bottom,0px))] items-center justify-around border-t border-white/[0.08] bg-bg/95 shadow-[0_-8px_30px_rgba(0,0,0,0.8)] backdrop-blur-xl select-none lg:hidden"
     >
       {BOTTOM_ITEMS.map((item) => {
         const active = isNavItemActive(item, pathname);
@@ -84,7 +84,7 @@ export function MobileBottomNav() {
       >
         <span className="relative">
           <IconAdjustmentsHorizontal className="size-5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
-          <span className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-bull shadow-[0_0_6px_rgba(0,230,118,0.8)]" />
+          <span className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-bull shadow-[0_0_6px_rgba(63,158,61,0.7)]" />
         </span>
         <span>HUD</span>
       </button>

@@ -15,7 +15,6 @@ import { cn } from '@/lib/formatters/cn';
 import '@/lib/plugins/register-ui';
 
 import { isNavItemActive, PRIMARY_NAV_ITEMS } from '../nav-items';
-import { SidebarDeskHud } from './sidebar-desk-hud';
 
 export function SidebarNavGroups({
   collapsed,
@@ -68,7 +67,7 @@ export function SidebarNavGroups({
                   <m.span
                     layoutId="sidebar-active-bg"
                     aria-hidden="true"
-                    className="bg-[#16171d]/95 border-brand/40 pointer-events-none absolute inset-0 rounded-lg border shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_2px_10px_rgba(0,0,0,0.4)]"
+                    className="bg-bg-elev-2/95 border-brand/40 pointer-events-none absolute inset-0 rounded-lg border shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_2px_10px_rgba(0,0,0,0.4)]"
                     transition={MOTION_PRESETS.layout}
                   />
                   {/* Fluid sliding neon brand indicator laser blade */}
@@ -141,16 +140,6 @@ export function SidebarNavGroups({
             content
           );
 
-          // Dock the 4-Desk AI Committee HUD under Research (item index 0)
-          if (index === 0) {
-            return (
-              <div key={item.href} className="flex flex-col gap-1">
-                {renderedItem}
-                <SidebarDeskHud collapsed={collapsed} />
-              </div>
-            );
-          }
-
           return renderedItem;
         })}
       </nav>
@@ -158,9 +147,10 @@ export function SidebarNavGroups({
       {pluginNavItems.length > 0 ? (
         <nav className="flex flex-col gap-1" aria-label="Plugin navigation">
           {!collapsed ? (
-            <p className="text-fg-subtle px-2.5 pt-3 pb-1 text-[10px] font-semibold tracking-wider uppercase">
-              Plugins
-            </p>
+            <div className="text-fg-subtle/70 flex items-center gap-2 px-2.5 pt-3 pb-1 font-mono text-[9px] font-semibold tracking-wider uppercase">
+              <span>// PLUGINS</span>
+              <span className="h-px flex-1 bg-white/[0.06]" />
+            </div>
           ) : (
             <div className="border-border/60 my-1 border-t" aria-hidden />
           )}
