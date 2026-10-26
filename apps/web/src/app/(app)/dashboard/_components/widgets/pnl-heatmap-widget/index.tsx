@@ -90,22 +90,11 @@ export function PnLHeatmapWidget({ entries }: PnLHeatmapWidgetProps) {
 function Legend() {
   return (
     <div className="text-fg-subtle text-caption flex items-center gap-2">
-      <span>Less</span>
+      <span>Loss</span>
       <div className="flex items-center gap-1">
-        {[0.2, 0.4, 0.6, 0.85].map((a) => (
-          <span
-            key={a}
-            className="size-3 rounded-[3px]"
-            style={{
-              backgroundColor: 'var(--color-bull)',
-              opacity: a,
-            }}
-            aria-hidden="true"
-          />
-        ))}
         {[0.85, 0.6, 0.4, 0.2].map((a) => (
           <span
-            key={a}
+            key={`bear-${a}`}
             className="size-3 rounded-[3px]"
             style={{
               backgroundColor: 'var(--color-bear)',
@@ -114,8 +103,23 @@ function Legend() {
             aria-hidden="true"
           />
         ))}
+        <span
+          className="bg-bg-elev-2 border-border/60 size-3 rounded-[3px] border"
+          aria-hidden="true"
+        />
+        {[0.2, 0.4, 0.6, 0.85].map((a) => (
+          <span
+            key={`bull-${a}`}
+            className="size-3 rounded-[3px]"
+            style={{
+              backgroundColor: 'var(--color-bull)',
+              opacity: a,
+            }}
+            aria-hidden="true"
+          />
+        ))}
       </div>
-      <span>More</span>
+      <span>Gain</span>
     </div>
   );
 }

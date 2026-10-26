@@ -47,10 +47,13 @@ import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-drawer';
+import { PageHeader } from '@/components/layout/page-header';
 
 import '@/lib/plugins/register-ui';
 
 import { MissionControlDeck } from '../mission-control-deck';
+import { PreSessionChecklistDrawer } from '../pre-session-checklist-drawer';
+import { QuickLogTradeDrawer } from '../quick-log-trade-drawer';
 import { AddWidgetMenu } from './add-widget-menu';
 import { FetchErrorBanner } from './fetch-error-banner';
 import { LayoutPresetsBar } from './layout-presets-bar';
@@ -91,53 +94,47 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Institutional Mission Control Deck */}
-      <MissionControlDeck
-        alerts={props.alerts}
-        events={props.events}
-        entries={props.entries}
-        briefing={props.briefing}
-      />
-
-      {/* Top Header & Controls */}
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-fg font-display text-xl font-normal tracking-[-0.03em] sm:text-2xl">
-              Dashboard Canvas
-            </h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {editMode && hidden.length > 0 ? (
-              <AddWidgetMenu hidden={hidden} onAdd={addWidget} />
-            ) : null}
-            {editMode ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleReset}
-                className="font-mono text-xs active:translate-y-[0.5px]"
-              >
-                <IconRotate className="size-4" />
-                Reset
-              </Button>
-            ) : null}
+      {/* Single page header: title, description and every page-level action
+          (checklist, log trade, layout customization) in one place. */}
+      <PageHeader
+        title="Overview"
+        description="Live 4-desk command deck, session catalysts, and portfolio telemetry."
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <PreSessionChecklistDrawer />
+          <QuickLogTradeDrawer />
+          {editMode && hidden.length > 0 ? (
+            <AddWidgetMenu hidden={hidden} onAdd={addWidget} />
+          ) : null}
+          {editMode ? (
             <Button
-              variant={editMode ? 'primary' : 'secondary'}
+              variant="ghost"
               size="sm"
-              onClick={() => setEditMode((v) => !v)}
-              aria-pressed={editMode}
-              className="gap-1.5 font-mono text-xs font-semibold active:translate-y-[0.5px]"
+              onClick={handleReset}
+              className="font-mono text-xs active:translate-y-[0.5px]"
             >
-              <IconAdjustmentsHorizontal className="size-4" />
-              {editMode ? 'Done Editing' : 'Customize Layout'}
+              <IconRotate className="size-4" />
+              Reset
             </Button>
-          </div>
+          ) : null}
+          <Button
+            variant={editMode ? 'primary' : 'secondary'}
+            size="sm"
+            onClick={() => setEditMode((v) => !v)}
+            aria-pressed={editMode}
+            className="gap-1.5 font-mono text-xs font-semibold active:translate-y-[0.5px]"
+          >
+            <IconAdjustmentsHorizontal className="size-4" />
+            {editMode ? 'Done Editing' : 'Customize Layout'}
+          </Button>
         </div>
+      </PageHeader>
 
-        {/* Role Presets Bar when in Edit Mode */}
-        {editMode && <LayoutPresetsBar onSelect={persistLayout} />}
-      </div>
+      {/* Role Presets Bar when in Edit Mode */}
+      {editMode && <LayoutPresetsBar onSelect={persistLayout} />}
+
+      {/* Institutional Mission Control Deck */}
+      <MissionControlDeck />
 
       {/* Phase 5.6 — Error banner for failed data fetches */}
       <FetchErrorBanner hasAnyError={props.hasAnyError} fetchErrors={props.fetchErrors} />
