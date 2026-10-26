@@ -28,6 +28,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { MissionControlDeck } from '@/app/(app)/dashboard/_components/mission-control-deck';
 import { EquityCurveWidget } from '@/app/(app)/dashboard/_components/widgets/equity-curve-widget';
 import { PnLHeatmapWidget } from '@/app/(app)/dashboard/_components/widgets/pnl-heatmap-widget';
 import { TodayGlanceWidget } from '@/app/(app)/dashboard/_components/widgets/today-glance-widget';
@@ -233,5 +234,14 @@ describe('EquityCurveWidget — single header', () => {
     expect(screen.getAllByText('Performance')).toHaveLength(1);
     expect(screen.queryByText('Performance Curve')).toBeNull();
     expect(screen.queryByText('Net R-Score')).toBeNull();
+  });
+});
+
+describe('MissionControlDeck — council CTA', () => {
+  it('links to the valid ?mode=full analysis mode, never the ignored ?mode=council', () => {
+    render(<MissionControlDeck />);
+
+    const cta = screen.getByRole('link', { name: /Convene Full Council/i });
+    expect(cta.getAttribute('href')).toBe('/chat?mode=full');
   });
 });
