@@ -60,7 +60,7 @@ export function PixelDeskDeliberation({
       role="region"
       aria-label="Multi-agent committee verdict"
       className={cn(
-        'border-border bg-bg-elev-1 mt-2 flex w-full flex-col gap-3 rounded-xl border p-4 shadow-sm',
+        'surface-panel border-edge/80 bg-bg-elev-1 mt-2 flex w-full flex-col gap-3 rounded-xl border p-4 shadow-sm',
         className,
       )}
     >
@@ -115,51 +115,90 @@ export function PixelDeskDeliberation({
         </div>
       </div>
 
-      {/* 4-Column Desk Scorecard */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {DESK_ORDER.map((deskId) => {
-          const op = opinions.find((o) => o.agentName === deskId);
-          const bias = op?.bias ?? 'neutral';
-          const conf = op ? Math.round((op.confidence ?? 0.8) * 100) : null;
-
-          return (
-            <div
-              key={deskId}
-              className="border-border/80 bg-bg-elev-2/60 flex flex-col gap-1.5 rounded-lg border p-2.5"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-fg text-xs font-semibold">{DESK_DISPLAY_NAMES[deskId]}</span>
-                {conf !== null && (
-                  <span className="text-fg-subtle font-mono text-xs tabular-nums">{conf}%</span>
-                )}
-              </div>
-              <div className="flex items-center justify-between">
-                <span
-                  className={cn(
-                    'font-mono text-xs font-semibold uppercase',
-                    bias === 'bullish'
-                      ? 'text-bull'
-                      : bias === 'bearish'
-                        ? 'text-bear'
-                        : 'text-fg-muted',
-                  )}
-                >
-                  {op ? bias : 'Standby'}
-                </span>
-              </div>
+      {/* Adaptive Scorecard: Full-width specialist card in single mode, 4-column in full mode */}
+      {mode === 'single' || opinions.length === 1 ? (
+        <div className="surface-chip border-edge/80 flex flex-col gap-2 rounded-lg border p-3.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[9px] font-semibold tracking-wider text-brand uppercase">
+                DESK-II // ASTROLABE
+              </span>
+              <span className="text-fg text-xs font-semibold">
+                {DESK_DISPLAY_NAMES[opinions[0]?.agentName as keyof typeof DESK_DISPLAY_NAMES] ??
+                  'Specialist'}{' '}
+                Desk Read
+              </span>
             </div>
-          );
-        })}
-      </div>
-
-      {/* Segmented Conviction Distribution Bar (Clean Replacement for Tug-of-War) */}
-      <div className="flex items-center justify-between gap-4 text-xs">
-        <div className="flex items-center gap-3 font-mono tabular-nums">
-          <span className="text-bull">Bull: {biasCounts.bullish}</span>
-          <span className="text-fg-muted">Neutral: {biasCounts.neutral}</span>
-          <span className="text-bear">Bear: {biasCounts.bearish}</span>
+            <span
+              className={cn(
+                'rounded border px-2 py-0.5 font-mono text-xs font-semibold uppercase',
+                opinions[0]?.bias === 'bullish'
+                  ? 'border-bull/40 bg-bull/10 text-bull'
+                  : opinions[0]?.bias === 'bearish'
+                    ? 'border-bear/40 bg-bear/10 text-bear'
+                    : 'border-border bg-bg-elev-2 text-fg-muted',
+              )}
+            >
+              {opinions[0]?.bias ?? 'neutral'} ·{' '}
+              {Math.round((opinions[0]?.confidence ?? 0.8) * 100)}%
+            </span>
+          </div>
+          {opinions[0]?.reasoning && (
+            <p className="text-fg-muted font-serif text-sm italic leading-relaxed">
+              &ldquo;{opinions[0].reasoning}&rdquo;
+            </p>
+          )}
         </div>
-        {opinions.length > 0 && (
+      ) : (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {DESK_ORDER.map((deskId) => {
+            const op = opinions.find((o) => o.agentName === deskId);
+            const bias = op?.bias ?? 'neutral';
+            const conf = op ? Math.round((op.confidence ?? 0.8) * 100) : null;
+
+            return (
+              <div
+                key={deskId}
+                className="surface-chip border-edge/80 flex flex-col gap-1.5 rounded-lg border p-2.5"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-fg text-xs font-semibold">{DESK_DISPLAY_NAMES[deskId]}</span>
+                  {conf !== null && (
+                    <span className="text-fg-subtle font-mono text-xs tabular-nums">{conf}%</span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span
+                    className={cn(
+                      'font-mono text-xs font-semibold uppercase',
+                      bias === 'bullish'
+                        ? 'text-bull'
+                        : bias === 'bearish'
+                          ? 'text-bear'
+                          : 'text-fg-muted',
+                    )}
+                  >
+                    {op ? bias : 'Standby'}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Conviction Distribution / Desk Notes trigger */}
+      <div className="flex items-center justify-between gap-4 text-xs">
+        {opinions.length > 1 ? (
+          <div className="flex items-center gap-3 font-mono tabular-nums">
+            <span className="text-bull">Bull: {biasCounts.bullish}</span>
+            <span className="text-fg-muted">Neutral: {biasCounts.neutral}</span>
+            <span className="text-bear">Bear: {biasCounts.bearish}</span>
+          </div>
+        ) : (
+          <span className="text-fg-subtle font-mono text-xs">Single Desk Direct Read</span>
+        )}
+        {opinions.length > 1 && (
           <button
             type="button"
             onClick={() => setExpanded(!expanded)}
@@ -183,7 +222,7 @@ export function PixelDeskDeliberation({
             {opinions.map((op) => (
               <div
                 key={op.agentName}
-                className="border-border/80 bg-bg-elev-2/50 flex flex-col gap-1 rounded-lg border p-3"
+                className="surface-chip border-edge/80 flex flex-col gap-1 rounded-lg border p-3"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-fg text-xs font-semibold capitalize">

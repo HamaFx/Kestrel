@@ -19,17 +19,19 @@ export function VerdictCard({ verdict }: { verdict: CommitteeVerdict }) {
   const isBull = verdict.verdict === 'bullish';
   const isBear = verdict.verdict === 'bearish';
   const stancePillStyle = isBull
-    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+    ? 'border-bull/30 bg-bull/10 text-bull'
     : isBear
-      ? 'border-rose-500/30 bg-rose-500/10 text-rose-400'
-      : 'border-amber-500/30 bg-amber-500/10 text-amber-400';
+      ? 'border-bear/30 bg-bear/10 text-bear'
+      : 'border-warn/30 bg-warn/10 text-warn';
 
-  const confidencePct = Math.round(verdict.confidence * 10);
+  const confidencePct = Math.round(
+    verdict.confidence <= 1 ? verdict.confidence * 100 : verdict.confidence,
+  );
 
   return (
     <details
       open
-      className="group surface-card rounded-xl border border-border/40 bg-bg-elev-1 p-3.5 shadow-sm transition-all hover:border-brand/40 [&_summary::-webkit-details-marker]:hidden"
+      className="group surface-chip rounded-xl border border-edge/80 p-3.5 shadow-sm transition-all hover:border-brand/40 [&_summary::-webkit-details-marker]:hidden"
     >
       <summary className="flex cursor-pointer items-center justify-between rounded-lg outline-none select-none">
         <div className="flex flex-col gap-0.5">
@@ -56,9 +58,9 @@ export function VerdictCard({ verdict }: { verdict: CommitteeVerdict }) {
           <span>CONFIDENCE</span>
           <span className="font-semibold tabular-nums text-fg">{confidencePct}%</span>
         </div>
-        <div className="h-0.5 w-full overflow-hidden rounded-full bg-bg-elev-2">
+        <div className="surface-well h-0.5 w-full overflow-hidden rounded-full">
           <div
-            className={`h-full rounded-full ${isBull ? 'bg-emerald-400' : isBear ? 'bg-rose-400' : 'bg-amber-400'}`}
+            className={`h-full rounded-full ${isBull ? 'bg-bull' : isBear ? 'bg-bear' : 'bg-warn'}`}
             style={{ width: `${confidencePct}%` }}
           />
         </div>
@@ -83,8 +85,8 @@ export function VerdictCard({ verdict }: { verdict: CommitteeVerdict }) {
           </div>
         )}
 
-        <div className="rounded-lg border border-border/30 bg-bg-elev-2 p-2">
-          <span className="font-mono text-[10px] font-semibold tracking-wider text-rose-400 uppercase">
+        <div className="surface-well rounded-lg border border-border/30 p-2">
+          <span className="font-mono text-[10px] font-semibold tracking-wider text-bear uppercase">
             Primary Invalidation Risk
           </span>
           <p className="mt-0.5 text-xs text-fg-muted">{verdict.risk}</p>
