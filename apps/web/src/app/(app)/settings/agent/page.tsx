@@ -16,16 +16,16 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Phase 7c — schema-driven tool catalogue page. Lists every registered
-// AI tool with its description and the last-24h invocation telemetry
-// (count, failure count, p50/p95 latency). Server component — single
-// DB read on render.
+// Personal agent preferences for every signed-in user: analysis mode,
+// custom instructions, per-desk model overrides, and the tool on/off
+// switches. Server component — settings read + (admin-only) catalogue
+// read on render.
 //
-// Phase 3 — this page is now user-scoped: analysis mode, custom
-// instructions, per-desk model overrides, and tool access are personal
-// BYOK preferences for every signed-in user. The raw 24h
-// `chat_tool_telemetry` catalogue is operator-only (it aggregates across
-// the whole platform) and links through to /admin?tab=telemetry.
+// Phase 3 — the raw 24h `chat_tool_telemetry` catalogue used to sit at
+// the top of this page even though it aggregates across the whole
+// platform. It is operator-only now and links through to
+// /admin?tab=telemetry, while the user-facing preference forms moved
+// up the page.
 
 import { buildToolCatalogue, BYOK_PROVIDERS_LIST } from '@kestrel/ai';
 import { getUserWithSettings } from '@kestrel/db';
