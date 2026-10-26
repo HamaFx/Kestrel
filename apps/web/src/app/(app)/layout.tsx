@@ -109,7 +109,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <SidebarStateProvider>
         <NavDrawerProvider>
           <ShellRouteProvider>
-            <div className="bg-bg text-fg relative min-h-svh">
+            {/* Landscape cutouts: the shell (and every sticky child: top bars,
+                ticker tape) is inset by the notch/Dynamic Island edges. */}
+            <div className="bg-bg text-fg px-safe relative min-h-svh">
               <DesktopSidebar
                 {...(userName !== undefined ? { userName } : {})}
                 {...(userEmail !== undefined ? { userEmail } : {})}

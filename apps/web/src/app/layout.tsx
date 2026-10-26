@@ -80,16 +80,18 @@ export const metadata: Metadata = {
     email: false,
   },
   // Home-screen web app behaviour. iOS 26 opens every Home Screen entry as a
-  // web app by default, but the title under the icon and the status-bar
-  // treatment still come from here; 'black-translucent' lets the app paint
-  // under the status bar, which the shell already handles with pt-safe/pb-safe
-  // insets. Next 16 renders `capable` as the standardized
-  // `mobile-web-app-capable` meta tag (Chromium + iOS both read it), so no
-  // extra `metadata.other` entry is needed.
+  // web app by default, but the title under the icon still comes from here.
+  //
+  // `statusBarStyle` is deliberately NOT set. With `black-translucent`, iOS
+  // 26.1+/27 draws its Liquid Glass status bar over the top edge of the page
+  // and smears whatever is underneath it — reported as "the top of the app is
+  // blurred" on device. Leaving the style at the default keeps the system bar
+  // opaque and tinted from `theme-color` (#121212), and iOS reserves the strip
+  // for itself; `env(safe-area-inset-top)` still pads the header when the
+  // viewport is extended (viewport-fit=cover), so both layouts are correct.
   appleWebApp: {
     capable: true,
     title: 'Kestrel',
-    statusBarStyle: 'black-translucent',
   },
   icons: {
     icon: [
@@ -114,6 +116,11 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
   colorScheme: 'dark',
   themeColor: PWA_THEME_COLOR,
+  // Chromium only: shrink the layout viewport instead of overlaying it when the
+  // on-screen keyboard opens, so the sticky chat composer stays visible instead
+  // of hiding behind the keyboard. Safari ignores the hint and does its own
+  // scroll-into-view.
+  interactiveWidget: 'resizes-content',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

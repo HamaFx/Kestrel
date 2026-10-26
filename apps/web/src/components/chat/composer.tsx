@@ -144,7 +144,10 @@ export const Composer = memo(function Composer({
             disabled={disabled}
             maxLength={MAX_TEXT_CHARS}
             className={cn(
-              'text-fg placeholder:text-fg-subtle text-body w-full resize-none border-0 bg-transparent p-0 leading-[1.45] shadow-none focus:outline-none focus-visible:ring-0',
+              // 16px on touch/narrow widths: iOS zooms the whole viewport when a
+              // focused field renders below 16px and then leaves the page stuck
+              // at that scale. Desktop keeps the designed type size.
+              'text-fg placeholder:text-fg-subtle lg:text-body w-full resize-none border-0 bg-transparent p-0 text-[16px] leading-[1.45] shadow-none focus:outline-none focus-visible:ring-0',
               '[field-sizing:content] max-h-[4lh] min-h-[36px] sm:max-h-[10lh]',
             )}
             onKeyDown={(e) => {

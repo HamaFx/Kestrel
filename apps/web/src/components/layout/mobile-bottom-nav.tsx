@@ -42,7 +42,7 @@ export function MobileBottomNav() {
   return (
     <nav
       aria-label="Mobile primary navigation"
-      className="border-border/80 bg-bg-elev-1 pb-safe fixed inset-x-0 bottom-0 z-30 flex h-14 items-center justify-around border-t lg:hidden"
+      className="border-border/80 bg-bg-elev-1 pb-safe px-safe fixed inset-x-0 bottom-0 z-30 flex h-[calc(3.5rem+env(safe-area-inset-bottom,0px))] items-center justify-around border-t lg:hidden"
     >
       {BOTTOM_ITEMS.map((item) => {
         const active = isNavItemActive(item, pathname);

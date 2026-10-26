@@ -74,9 +74,18 @@ test.describe('PWA manifest', () => {
       'content',
       'Kestrel',
     );
+    // iOS 26.1+/27 draws its Liquid Glass bar over the top edge of standalone
+    // web apps; `black-translucent` asked for exactly that and smeared the
+    // header underneath it. The default style keeps the system bar opaque and
+    // tinted from theme-color instead.
     await expect(
       page.locator('meta[name="apple-mobile-web-app-status-bar-style"]'),
-    ).toHaveAttribute('content', 'black-translucent');
+    ).toHaveAttribute('content', 'default');
+    // Landscape cutouts (px-safe) and the keyboard-aware chat composer (the
+    // composer scrolls into view instead of hiding behind the keyboard).
+    const viewportMeta = await page.locator('meta[name="viewport"]').getAttribute('content');
+    expect(viewportMeta).toContain('viewport-fit=cover');
+    expect(viewportMeta).toContain('interactive-widget=resizes-content');
     await expect(page.locator('link[rel="apple-touch-icon"]').first()).toBeAttached();
     // One launch image per device matrix entry (portrait + landscape).
     const splashes = page.locator('link[rel="apple-touch-startup-image"]');
