@@ -82,6 +82,8 @@ export function NavDrawer({
           style={{
             paddingTop: 'env(safe-area-inset-top)',
             paddingBottom: 'env(safe-area-inset-bottom)',
+            // Landscape: keep the sheet clear of the Dynamic Island / notch.
+            paddingLeft: 'env(safe-area-inset-left)',
           }}
         >
           <DrawerPrimitive.Title className="sr-only">Primary navigation</DrawerPrimitive.Title>

@@ -150,6 +150,30 @@ Rules:
 
 iOS specifics:
 
+- **Status bar: never set `black-translucent`.** iOS 26.1+/27 draws its Liquid
+  Glass bar over the top edge of standalone web apps; asking for a translucent
+  bar makes that glass smear the header underneath it (the reported "top of the
+  app is blurred" on device). Kestrel leaves the style at the default, so iOS
+  paints an opaque bar tinted from `theme-color` (#121212) and reserves the strip
+  for itself. `viewport-fit=cover` is still declared, and the top bars pad with
+  `pt-safe`, so the layout is correct whether iOS extends the viewport under the
+  bar or not. `test/pwa-manifest`/`tests/e2e/pwa-install.spec.ts` pin this.
+- **Safe areas** are handled on every edge: `pt-safe` + a
+  `calc(3rem + env(safe-area-inset-top))` height on both top bars, `pb-safe` plus
+  the same trick for the bottom nav (so the home indicator never squeezes the
+  icons), `px-safe` on the shell for landscape cutouts, and
+  `pb-[max(env(safe-area-inset-bottom),12px)]` under the chat composer.
+- **Text fields get a 16px floor on WebKit touch devices** ("iOS zooms the whole
+  viewport when a focused field is smaller than 16px and then leaves the page
+  stuck at that scale"). The chat composer is deterministic about it:
+  `text-[16px] lg:text-body`, so the primary mobile input never triggers the
+  zoom regardless of user-agent.
+- `-webkit-tap-highlight-color: transparent`, `-webkit-text-size-adjust: 100%`
+  and `touch-action: manipulation` remove the grey tap flash, landscape text
+  inflation and the 300ms double-tap-zoom delay.
+- `interactive-widget=resizes-content` keeps the sticky composer visible when
+  the keyboard opens (Chromium; Safari ignores it and scrolls the field into
+  view itself).
 - iOS 26 opens every Home Screen entry as a web app by default, so the copy must
   not instruct users to enable "Open as Web App".
 - Home Screen web apps use their own storage container: expect one extra sign-in
