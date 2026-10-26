@@ -29,16 +29,21 @@ export interface NavItem {
   href: string;
   label: string;
   icon: Icon;
+  /** Optional single-line blurb for the drawer. Keep it under ~28 chars. */
   description?: string;
   match?: readonly string[];
-  shortcut?: string;
   badge?: string | number;
 }
 
 /**
  * Unified primary navigation contract.
  * Promotes Research as the core workspace and demotes Dashboard to Overview.
- * Market consolidates News + Calendar. Chart is docked inside Research or reachable via ⌘K.
+ * Market consolidates News + Calendar. Chart is docked inside Research or
+ * reachable via ⌘K.
+ *
+ * No `shortcut` field: the shell only binds ⌘B (rail) and ⌘K (palette), so any
+ * ⌘1–⌘N badge here would advertise a binding that does not exist — and the
+ * browser owns those chords anyway.
  */
 export const PRIMARY_NAV_ITEMS: readonly NavItem[] = [
   {
@@ -46,32 +51,28 @@ export const PRIMARY_NAV_ITEMS: readonly NavItem[] = [
     label: 'Research',
     icon: IconMessageCircle,
     match: ['/chat'],
-    description: 'Ask your 4-desk AI committee & view docked charts',
-    shortcut: '⌘1',
+    description: '4-desk AI committee',
   },
   {
     href: '/dashboard',
     label: 'Overview',
     icon: IconLayoutDashboard,
     match: ['/dashboard'],
-    description: 'Briefing & performance overview',
-    shortcut: '⌘2',
+    description: 'Briefing & performance',
   },
   {
     href: '/journal',
     label: 'Journal',
     icon: IconBook,
     match: ['/journal'],
-    description: 'Trades, R-multiples & equity curve',
-    shortcut: '⌘3',
+    description: 'Trades & R-multiples',
   },
   {
     href: '/news',
     label: 'Market',
     icon: IconNews,
     match: ['/news', '/calendar', '/chart'],
-    description: 'Market headlines, economic calendar & live charts',
-    shortcut: '⌘4',
+    description: 'News, calendar & charts',
   },
   {
     href: '/alerts',
@@ -79,7 +80,6 @@ export const PRIMARY_NAV_ITEMS: readonly NavItem[] = [
     icon: IconBell,
     match: ['/alerts'],
     description: 'Price & indicator triggers',
-    shortcut: '⌘5',
   },
 ];
 
@@ -89,8 +89,7 @@ export const SECONDARY_NAV_ITEMS: readonly NavItem[] = [
     label: 'Settings',
     icon: IconSettings,
     match: ['/settings'],
-    description: 'Subscription, risk & alerts',
-    shortcut: '⌘,',
+    description: 'Preferences & account',
   },
 ];
 
@@ -100,7 +99,7 @@ export const ADMIN_NAV_ITEMS: readonly NavItem[] = [
     label: 'Admin',
     icon: IconShield,
     match: ['/admin'],
-    description: 'Platform controls & system health',
+    description: 'Platform & system health',
   },
 ];
 
