@@ -102,7 +102,7 @@ export function LandingFooter() {
               Trust & Safety
             </h4>
             <span className="text-fg-muted font-sans text-sm">100% Non-Custodial</span>
-            <span className="text-fg-muted font-sans text-sm">Hosted Cloud AI</span>
+            <span className="text-fg-muted font-sans text-sm">AES-256 BYOK Vault</span>
             <span className="text-fg-muted font-sans text-sm">Private Trade Journal</span>
             <span className="text-fg-muted font-sans text-sm">Instant Multi-Channel Alerts</span>
           </div>

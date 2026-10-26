@@ -20,6 +20,7 @@ import type { Metadata } from 'next';
 
 import { auth } from '@/auth';
 import { LandingPageView } from '@/components/landing/landing-page-view';
+import { MotionRoot } from '@/components/ui/motion-config';
 
 export const metadata: Metadata = {
   title: 'Kestrel | The Apex AI Committee for Institutional Gold & Forex',
@@ -35,5 +36,11 @@ export default async function LandingPage() {
     console.warn('[LandingPage] auth() session lookup error:', err);
   }
 
-  return <LandingPageView isAuthenticated={!!session?.user} />;
+  // Wrap in MotionRoot for parity with `/` — the m.* components inside
+  // LandingPageView need the LazyMotion context.
+  return (
+    <MotionRoot>
+      <LandingPageView isAuthenticated={!!session?.user} />
+    </MotionRoot>
+  );
 }

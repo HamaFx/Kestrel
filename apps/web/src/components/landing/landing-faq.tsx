@@ -49,7 +49,7 @@ const FAQS: FAQItem[] = [
     id: '04',
     question: 'Do I need to configure my own AI API keys or market data feeds?',
     answer:
-      'No. Kestrel is a fully hosted subscription platform—all four specialist AI desks, real-time Gold, Forex, and Crypto market data, breaking news wires, economic calendars, and alert delivery channels are included and ready the moment you sign in.',
+      'Yes — Kestrel is self-hosted and bring-your-own-key (BYOK). You connect your own provider keys (OpenAI, Anthropic, Google, OpenRouter, or a local model) plus optional market data adapters; they are encrypted at rest with AES-256-GCM in the local vault and never leave your deployment. Local spend guardrails cap monthly and per-provider usage before a single request is sent. Feature plugins — Backtesting Lab, Paper Trading, Custom Agent Studio, and Telegram Copilot — install with one click from the Plugin Store whenever you want them.',
   },
   {
     id: '05',
@@ -84,8 +84,8 @@ export function LandingFAQ() {
             EVERY DETAIL <span className="font-redaction-35 text-brand italic">Clarified</span>
           </h2>
           <p className="text-fg-muted max-w-xl font-sans text-base">
-            Clear answers on how Kestrel&apos;s 4-desk AI committee, risk guardrails, and hosted
-            subscription work.
+            Clear answers on how Kestrel&apos;s 4-desk AI committee, risk guardrails, BYOK key
+            vault, and 1-click feature plugins work.
           </p>
         </div>
 

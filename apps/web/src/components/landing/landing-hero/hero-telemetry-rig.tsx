@@ -95,7 +95,7 @@ export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTele
           </div>
 
           {/* ── Real-Time Interactive 3D WebGL Hologram ── */}
-          <div className="relative my-3 flex h-[190px] w-full items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/60 shadow-inner sm:h-[220px]">
+          <div className="relative my-3 flex h-[190px] w-full items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/60 shadow-inner sm:h-[180px]">
             <div className="text-fg-subtle absolute top-2.5 left-3 z-10 flex items-center gap-2 font-mono text-[9px] select-none">
               <span className="bg-brand size-1.5 animate-ping rounded-full" />
               <span>MULTI-DESK CONSENSUS ENGINE</span>
@@ -106,50 +106,58 @@ export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTele
             <Landing3DHologram className="h-full w-full" />
           </div>
 
-          {/* 4 Hardware Specialist Desks Row */}
-          <div className="grid grid-cols-4 gap-2 py-2">
+          {/* 4 Hardware Specialist Desks — compact horizontal status strip */}
+          <div className="grid grid-cols-2 gap-2 py-2 sm:grid-cols-4">
             {/* Tech */}
-            <div className="surface-chip hover:border-bull/40 flex flex-col items-center gap-1.5 rounded-lg border border-white/10 bg-[#151617] p-2 shadow-xs transition-colors">
-              <div className="bg-bull/10 border-bull/20 text-bull flex size-7 items-center justify-center rounded border">
-                <IconChartCandle className="size-4" />
+            <div className="surface-chip hover:border-bull/40 flex items-center gap-2 rounded-lg border border-white/10 p-2 py-1.5 shadow-xs transition-colors">
+              <div className="bg-bull/10 border-bull/20 text-bull flex size-6 shrink-0 items-center justify-center rounded border">
+                <IconChartCandle className="size-3.5" />
               </div>
-              <span className="text-bull font-mono text-[10px] font-bold uppercase">Tech</span>
-              <span className="text-fg-subtle max-w-[64px] truncate text-center font-mono text-[9px]">
-                {active.techSignal}
-              </span>
+              <div className="flex min-w-0 flex-col">
+                <span className="text-bull font-mono text-[10px] font-bold uppercase">Tech</span>
+                <span className="text-fg-subtle truncate font-mono text-[9px]">
+                  {active.techSignal}
+                </span>
+              </div>
             </div>
 
             {/* Macro */}
-            <div className="surface-chip hover:border-info/40 flex flex-col items-center gap-1.5 rounded-lg border border-white/10 bg-[#151617] p-2 shadow-xs transition-colors">
-              <div className="bg-info/10 border-info/20 text-info flex size-7 items-center justify-center rounded border">
-                <IconBuildingBank className="size-4" />
+            <div className="surface-chip hover:border-info/40 flex items-center gap-2 rounded-lg border border-white/10 p-2 py-1.5 shadow-xs transition-colors">
+              <div className="bg-info/10 border-info/20 text-info flex size-6 shrink-0 items-center justify-center rounded border">
+                <IconBuildingBank className="size-3.5" />
               </div>
-              <span className="text-info font-mono text-[10px] font-bold uppercase">Macro</span>
-              <span className="text-fg-subtle max-w-[64px] truncate text-center font-mono text-[9px]">
-                {active.macroSignal}
-              </span>
+              <div className="flex min-w-0 flex-col">
+                <span className="text-info font-mono text-[10px] font-bold uppercase">Macro</span>
+                <span className="text-fg-subtle truncate font-mono text-[9px]">
+                  {active.macroSignal}
+                </span>
+              </div>
             </div>
 
             {/* Risk */}
-            <div className="surface-chip hover:border-warn/40 flex flex-col items-center gap-1.5 rounded-lg border border-white/10 bg-[#151617] p-2 shadow-xs transition-colors">
-              <div className="bg-warn/10 border-warn/20 text-warn flex size-7 items-center justify-center rounded border">
-                <IconScale className="size-4" />
+            <div className="surface-chip hover:border-warn/40 flex items-center gap-2 rounded-lg border border-white/10 p-2 py-1.5 shadow-xs transition-colors">
+              <div className="bg-warn/10 border-warn/20 text-warn flex size-6 shrink-0 items-center justify-center rounded border">
+                <IconScale className="size-3.5" />
               </div>
-              <span className="text-warn font-mono text-[10px] font-bold uppercase">Risk</span>
-              <span className="text-fg-subtle max-w-[64px] truncate text-center font-mono text-[9px]">
-                {active.riskSignal}
-              </span>
+              <div className="flex min-w-0 flex-col">
+                <span className="text-warn font-mono text-[10px] font-bold uppercase">Risk</span>
+                <span className="text-fg-subtle truncate font-mono text-[9px]">
+                  {active.riskSignal}
+                </span>
+              </div>
             </div>
 
             {/* Sentinel */}
-            <div className="surface-chip hover:border-brand/40 flex flex-col items-center gap-1.5 rounded-lg border border-white/10 bg-[#151617] p-2 shadow-xs transition-colors">
-              <div className="bg-brand/10 border-brand/20 text-brand flex size-7 items-center justify-center rounded border">
-                <IconRadar className="size-4" />
+            <div className="surface-chip hover:border-brand/40 flex items-center gap-2 rounded-lg border border-white/10 p-2 py-1.5 shadow-xs transition-colors">
+              <div className="bg-brand/10 border-brand/20 text-brand flex size-6 shrink-0 items-center justify-center rounded border">
+                <IconRadar className="size-3.5" />
               </div>
-              <span className="text-brand font-mono text-[10px] font-bold uppercase">Whales</span>
-              <span className="text-fg-subtle max-w-[64px] truncate text-center font-mono text-[9px]">
-                {active.sentimentSignal}
-              </span>
+              <div className="flex min-w-0 flex-col">
+                <span className="text-brand font-mono text-[10px] font-bold uppercase">Whales</span>
+                <span className="text-fg-subtle truncate font-mono text-[9px]">
+                  {active.sentimentSignal}
+                </span>
+              </div>
             </div>
           </div>
 
