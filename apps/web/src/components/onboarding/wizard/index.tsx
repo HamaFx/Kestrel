@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 import type { SymbolCatalogRow } from '@kestrel/db';
-import type { ProviderMeta } from '@kestrel/shared';
 
 import { WizardStepper } from '../_components/wizard-stepper';
 import { useOnboardingPersistence } from './use-onboarding-persistence';
@@ -25,7 +24,6 @@ import { WizardPanels } from './wizard-panels';
 
 interface OnboardingWizardProps {
   initialName: string;
-  providers?: ProviderMeta[];
   symbolsCatalog: SymbolCatalogRow[];
   initialProgress?: Record<string, unknown> | null;
 }
