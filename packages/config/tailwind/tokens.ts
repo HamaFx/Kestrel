@@ -20,40 +20,42 @@
 // to TS code (e.g., chart series colors, dynamic styles) so we have one source
 // of truth.
 //
-// All colors are in OKLCH per docs/05-ui-ux.md. Keep keys stable — components
-// reference them by name.
+// Hex literals (not OKLCH) because canvas-based chart rendering can be flaky
+// with `oklch()` on older iOS Safari. Keep these in lockstep with the
+// `@theme` block in `apps/web/src/app/globals.css` and keep keys stable —
+// components reference them by name.
 
 export const colors = {
   // surfaces (dark theme baseline)
   bg: '#121212',
-  bgElev1: '#141414',
-  bgElev2: '#1E1E1E',
-  bgElev3: '#2A2A2A',
-  border: '#262626',
-  divider: '#1E1E1E',
-  overlay: 'rgba(0, 0, 0, 0.80)',
+  bgElev1: '#161616',
+  bgElev2: '#1d1d1d',
+  bgElev3: '#282828',
+  border: '#2c2c2c',
+  divider: '#1f1f1f',
+  overlay: 'rgba(0, 0, 0, 0.82)',
 
   // text
-  fg: '#F0F0F0',
-  fgMuted: '#808080',
-  fgSubtle: '#737373',
+  fg: '#e5e5e5',
+  fgMuted: 'rgba(229, 229, 229, 0.6)',
+  fgSubtle: 'rgba(229, 229, 229, 0.4)',
 
   // brand
   brand: '#ff3616',
-  brandFg: '#FFFFFF',
-  brandSoft: '#FF9A4D',
-  brandBorder: '#402A18',
+  brandFg: '#ffffff',
+  brandSoft: '#ff632a',
+  brandBorder: '#441c14',
 
   // market states (price/P&L only)
-  bull: '#22C55E',
-  bear: '#EF4444',
-  neutral: '#71717A',
-  warn: '#F59E0B',
-  info: '#3B82F6',
+  bull: '#3f9e3d',
+  bear: '#e02c10',
+  neutral: '#8a8a8a',
+  warn: '#d98f00',
+  info: '#4fa3b5',
 
   // system status
-  success: '#16A34A',
-  danger: '#DC2626',
+  success: '#3f9e3d',
+  danger: '#e02c10',
 } as const;
 
 export type ColorToken = keyof typeof colors;

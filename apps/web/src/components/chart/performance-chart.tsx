@@ -27,31 +27,22 @@ import { IconAward, IconTrendingUp } from '@tabler/icons-react';
 import type { IChartApi, ISeriesApi } from 'lightweight-charts';
 import { useEffect, useMemo, useRef } from 'react';
 
-import { SERIES_BEAR_HEX, SERIES_BULL_HEX } from './chart-colors';
+import {
+  CHART_AXIS_TEXT_HEX,
+  CHART_GRID_HEX,
+  SERIES_BEAR_FILL,
+  SERIES_BEAR_HEX,
+  SERIES_BULL_FILL,
+  SERIES_BULL_HEX,
+} from './chart-colors';
 import { buildEquityCurve } from './performance-chart-data';
 
 interface PerformanceChartProps {
   entries: JournalEntry[];
-  theme?: 'slate' | 'navy' | 'black' | 'classic';
   height?: number;
 }
 
-const PERF_THEME_COLORS: Record<string, { text: string; grid: string }> = {
-  black: { text: '#a1a8b3', grid: '#1f1f1f' },
-  slate: { text: '#94a3b8', grid: '#1e293b' },
-  navy: { text: '#64748b', grid: '#0f172a' },
-  classic: { text: '#a1a8b3', grid: '#262a35' },
-};
-
-function getPerfChartColors(theme: string): { text: string; grid: string } {
-  return PERF_THEME_COLORS[theme] ?? PERF_THEME_COLORS.black!;
-}
-
-export function PerformanceChart({
-  entries,
-  theme = 'black',
-  height = 220,
-}: PerformanceChartProps) {
+export function PerformanceChart({ entries, height = 220 }: PerformanceChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Area'> | null>(null);
@@ -62,9 +53,9 @@ export function PerformanceChart({
   const { data: chartData, totalR } = useMemo(() => buildEquityCurve(entries), [entries]);
 
   // Single chart setup effect: (re)creates the lightweight-charts instance
-  // whenever the data, height, theme, or net R changes. Creation already
-  // applies the current theme + R-signed series colors, so the former
-  // separate color-sync effects are subsumed here.
+  // whenever the data, height, or net R changes. Creation already applies
+  // the Hoplite axis colors + R-signed series colors, so the former separate
+  // color-sync effects are subsumed here.
   useEffect(() => {
     const el = containerRef.current;
     if (!el || chartData.length === 0) return;
@@ -80,8 +71,6 @@ export function PerformanceChart({
 
     void import('lightweight-charts').then((lc) => {
       if (cancelled || !containerRef.current) return;
-
-      const colors = getPerfChartColors(theme);
 
       // Lightweight-charts v5 exposes `createChart` as a named export.
       // The `default` fallback covers CommonJS interop shims that assign
@@ -101,13 +90,13 @@ export function PerformanceChart({
         height,
         layout: {
           background: { color: 'transparent' },
-          textColor: colors.text,
+          textColor: CHART_AXIS_TEXT_HEX,
           fontFamily:
             getComputedStyle(el).getPropertyValue('--font-mono') || 'ui-monospace, monospace',
         },
         grid: {
           vertLines: { color: 'transparent' },
-          horzLines: { color: colors.grid, style: 2 /* Dotted */ },
+          horzLines: { color: CHART_GRID_HEX, style: 2 /* Dotted */ },
         },
         rightPriceScale: {
           borderColor: 'transparent',
@@ -120,8 +109,8 @@ export function PerformanceChart({
         },
         crosshair: {
           mode: 1,
-          vertLine: { color: colors.text, style: 3 /* Dashed */ },
-          horzLine: { color: colors.text, style: 3 },
+          vertLine: { color: CHART_AXIS_TEXT_HEX, style: 3 /* Dashed */ },
+          horzLine: { color: CHART_AXIS_TEXT_HEX, style: 3 },
         },
         autoSize: true,
         handleScroll: false,
@@ -132,7 +121,7 @@ export function PerformanceChart({
 
       const areaSeries = chart.addSeries(lc.AreaSeries, {
         lineColor: totalR >= 0 ? SERIES_BULL_HEX : SERIES_BEAR_HEX,
-        topColor: totalR >= 0 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+        topColor: totalR >= 0 ? SERIES_BULL_FILL : SERIES_BEAR_FILL,
         bottomColor: 'rgba(0, 0, 0, 0)',
         lineWidth: 2,
         priceLineVisible: false,
@@ -152,7 +141,7 @@ export function PerformanceChart({
         seriesRef.current = null;
       }
     };
-  }, [chartData, height, theme, totalR]);
+  }, [chartData, height, totalR]);
 
   if (chartData.length < 2) {
     return (
