@@ -144,24 +144,24 @@ editing this list and `packages/ai/src/mastra-v2/` must happen together:
 mastra-v2/
   agents/
   capabilities/
+  context/
   evals/
   mutation/
+  observability-view/
   packets/
   planning/
   shared/
+  storage/
   tools/
   workflows/
-  context.ts
   guardrails.ts
   index.ts
   instance.ts
   langfuse-link.ts
   logger.ts
   memory.ts
-  observability-view.ts
   registry.ts
   research-context.ts
-  storage.ts
   studio-server.ts
   telemetry.ts
 ```
