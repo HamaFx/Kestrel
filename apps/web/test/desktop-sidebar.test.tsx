@@ -37,6 +37,17 @@ vi.mock('next-auth/react', () => ({
   signOut: vi.fn(),
 }));
 
+vi.mock('@/hooks/use-prices', () => ({
+  usePrice: () => ({
+    tick: { symbol: 'XAUUSD', mid: 2734.5, bid: 2734.4, ask: 2734.6 },
+    isLoading: false,
+  }),
+  usePrices: () => ({
+    data: [{ symbol: 'XAUUSD', mid: 2734.5, bid: 2734.4, ask: 2734.6 }],
+    isLoading: false,
+  }),
+}));
+
 afterEach(() => {
   cleanup();
   localStorage.clear();

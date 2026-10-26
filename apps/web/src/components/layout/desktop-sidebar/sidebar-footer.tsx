@@ -163,10 +163,21 @@ export function SidebarFooter({
   );
 
   return (
-    <div className="border-border/60 flex flex-col gap-1 border-t px-2 pt-2.5">
+    <div className="border-border/60 flex flex-col gap-1 border-t px-2 pt-2">
+      {/* Operator Station Pill Header */}
+      {!collapsed && (
+        <div className="mb-0.5 flex items-center justify-between px-2 pt-1 font-mono text-[9px] text-fg-subtle tracking-wider uppercase">
+          <span className="text-fg-subtle/70">// OPERATOR STATION</span>
+          <span className="flex items-center gap-1 font-semibold text-bull text-[8px]">
+            <span className="size-1.5 rounded-full bg-bull animate-pulse shadow-[0_0_6px_rgba(0,230,118,0.8)]" />
+            LIVE // 24ms
+          </span>
+        </div>
+      )}
+
       {isAdmin &&
         (collapsed ? (
-          <Tooltip label="Admin" side="right" className="w-full justify-center">
+          <Tooltip label="06 // Admin" side="right" className="w-full justify-center">
             {adminLink}
           </Tooltip>
         ) : (
@@ -174,7 +185,7 @@ export function SidebarFooter({
         ))}
 
       {collapsed ? (
-        <Tooltip label="Settings" side="right" shortcut="⌘," className="w-full justify-center">
+        <Tooltip label="07 // Settings" side="right" shortcut="⌘," className="w-full justify-center">
           {settingsLink}
         </Tooltip>
       ) : (
@@ -184,8 +195,8 @@ export function SidebarFooter({
       {/* User profile & Logout */}
       <div
         className={cn(
-          'mt-1 flex items-center justify-between rounded-lg p-1.5 transition-colors',
-          collapsed ? 'flex-col gap-2' : 'gap-2 hover:bg-white/[0.02]',
+          'mt-1 flex items-center justify-between rounded-lg p-1.5 transition-colors border border-white/[0.04] bg-black/30',
+          collapsed ? 'flex-col gap-2 border-0 bg-transparent p-0' : 'gap-2 hover:border-white/[0.1] hover:bg-black/50',
         )}
       >
         <Link
@@ -208,11 +219,16 @@ export function SidebarFooter({
 
           {!collapsed && (
             <div className="flex min-w-0 flex-col">
-              <span className="text-fg group-hover:text-brand truncate font-sans text-xs font-medium transition-colors">
-                {userName || 'Trader'}
-              </span>
-              <span className="text-fg-subtle text-caption truncate font-mono text-[11px]">
-                {userEmail || ''}
+              <div className="flex items-center gap-1.5">
+                <span className="text-fg group-hover:text-brand truncate font-sans text-xs font-semibold tracking-tight transition-colors">
+                  {userName || 'Trader'}
+                </span>
+                <span className="rounded bg-brand/10 border border-brand/25 px-1 py-0.2 font-mono text-[8px] font-bold text-brand uppercase tracking-wider">
+                  BYOK
+                </span>
+              </div>
+              <span className="text-fg-subtle text-caption truncate font-mono text-[10px]">
+                {userEmail || 'operator@kestrel'}
               </span>
             </div>
           )}

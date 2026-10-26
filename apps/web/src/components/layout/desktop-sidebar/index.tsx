@@ -35,6 +35,7 @@ import '@/lib/plugins/register-ui';
 import { useSidebarState } from '../sidebar-state-context';
 import { SidebarFooter } from './sidebar-footer';
 import { SidebarNavGroups } from './sidebar-nav-groups';
+import { SidebarTelemetry } from './sidebar-telemetry';
 
 export function DesktopSidebar({
   userName,
@@ -64,16 +65,23 @@ export function DesktopSidebar({
     <Link
       href="/chat?new=1"
       prefetch={true}
-      aria-label="New thread"
+      aria-label="New thesis"
       className={cn(
-        'group text-fg relative flex items-center justify-center rounded-lg border font-mono text-xs font-medium transition-all select-none',
-        'border-brand/30 bg-gradient-to-r from-brand/20 via-brand/10 to-transparent hover:border-brand/60 hover:from-brand/25 hover:via-brand/15 hover:shadow-[0_0_16px_rgba(255,54,22,0.2)]',
+        'group relative flex items-center justify-between rounded-lg border font-mono text-xs font-semibold transition-all select-none',
+        'border-brand/45 bg-gradient-to-r from-brand/20 via-brand/10 to-transparent hover:border-brand hover:from-brand/30 hover:shadow-[0_0_18px_rgba(255,54,22,0.25)]',
         'active:scale-[0.98] active:translate-y-[0.5px]',
-        collapsed ? 'mx-auto size-10 p-0' : 'w-full gap-2 px-3 py-2',
+        collapsed ? 'mx-auto size-10 justify-center p-0' : 'w-full px-3 py-2 text-fg',
       )}
     >
-      <IconPlus className="text-brand size-4 shrink-0 transition-transform duration-200 group-hover:rotate-90" />
-      {!collapsed && <span>New thread</span>}
+      <div className="flex items-center gap-2">
+        <IconPlus className="text-brand size-3.5 shrink-0 transition-transform duration-200 group-hover:rotate-90" />
+        {!collapsed && <span className="tracking-wide">NEW THESIS</span>}
+      </div>
+      {!collapsed && (
+        <kbd className="rounded bg-brand/15 border border-brand/30 px-1 py-0.5 font-mono text-[9px] font-bold text-brand">
+          ⌘N
+        </kbd>
+      )}
     </Link>
   );
 
@@ -82,7 +90,7 @@ export function DesktopSidebar({
       aria-label="Desktop navigation sidebar"
       className={cn(
         'fixed top-0 bottom-0 left-0 z-40 hidden flex-col justify-between lg:flex',
-        'bg-card/95 backdrop-blur-md border-r border-white/[0.08] transition-[width] duration-200 ease-in-out select-none',
+        'bg-[#0b0c0f]/95 backdrop-blur-xl border-r border-white/[0.08] shadow-[1px_0_20px_rgba(0,0,0,0.5)] transition-[width] duration-200 ease-in-out select-none',
         collapsed ? 'w-16' : 'w-56',
       )}
       style={{
@@ -93,12 +101,19 @@ export function DesktopSidebar({
       {/* Top Header / Brand */}
       <div className="flex flex-col gap-3 px-2">
         <div className="flex h-10 items-center justify-between px-2 pt-1">
-          <KestrelBrand
-            variant={collapsed ? 'mark' : 'lockup'}
-            markSize="sm"
-            href="/dashboard"
-            className="overflow-hidden"
-          />
+          <div className="flex items-center gap-2 overflow-hidden">
+            <KestrelBrand
+              variant={collapsed ? 'mark' : 'lockup'}
+              markSize="sm"
+              href="/dashboard"
+              className="overflow-hidden"
+            />
+            {!collapsed && (
+              <span className="rounded bg-white/[0.04] border border-white/[0.08] px-1 py-0.5 font-mono text-[8px] font-bold tracking-widest text-fg-subtle uppercase">
+                HUD
+              </span>
+            )}
+          </div>
           <Tooltip
             label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             side={collapsed ? 'right' : 'top'}
@@ -107,7 +122,7 @@ export function DesktopSidebar({
             <button
               type="button"
               onClick={toggleCollapsed}
-              className="text-fg-subtle hover:text-fg hover:bg-white/[0.06] rounded-md p-1.5 transition-colors active:scale-95 active:translate-y-[0.5px]"
+              className="text-fg-subtle hover:text-brand hover:bg-brand/10 hover:border-brand/30 border border-transparent rounded-md p-1.5 transition-colors active:scale-95 active:translate-y-[0.5px]"
               aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               aria-expanded={!collapsed}
             >
@@ -120,9 +135,9 @@ export function DesktopSidebar({
           </Tooltip>
         </div>
 
-        {/* New Thread CTA Button */}
+        {/* Tactical New Thesis CTA Button */}
         {collapsed ? (
-          <Tooltip label="New thread" side="right" className="w-full justify-center">
+          <Tooltip label="New thesis" side="right" shortcut="⌘N" className="w-full justify-center">
             {newThreadButton}
           </Tooltip>
         ) : (
@@ -136,16 +151,22 @@ export function DesktopSidebar({
         />
       </div>
 
-      {/* Bottom Footer Items */}
-      <SidebarFooter
-        collapsed={collapsed}
-        pathname={pathname}
-        isAdmin={isAdmin}
-        userName={userName}
-        userEmail={userEmail}
-        initial={initial}
-        onLogout={handleLogout}
-      />
+      {/* Mid/Bottom Telemetry & Operator Station Footer */}
+      <div className="flex flex-col gap-2">
+        <div className="px-2">
+          <SidebarTelemetry collapsed={collapsed} />
+        </div>
+
+        <SidebarFooter
+          collapsed={collapsed}
+          pathname={pathname}
+          isAdmin={isAdmin}
+          userName={userName}
+          userEmail={userEmail}
+          initial={initial}
+          onLogout={handleLogout}
+        />
+      </div>
     </aside>
   );
 }
