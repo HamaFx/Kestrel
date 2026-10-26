@@ -20,15 +20,18 @@ import { QUANT_STATUS_STEPS, renderDeskGlyph } from './pixel-primitives';
  */
 export function PixelDeskThinking({
   agentProgress,
+  fallbackMode,
   className,
 }: {
   agentProgress?: AgentProgress | null;
+  fallbackMode?: string;
   className?: string;
 }) {
   const [stepIdx, setStepIdx] = useState(0);
 
   const liveAgents = agentProgress?.agents ?? [];
-  const isSingle = agentProgress?.mode === 'single' || (liveAgents.length === 1);
+  const effectiveMode = agentProgress?.mode ?? fallbackMode;
+  const isSingle = effectiveMode === 'single' || (liveAgents.length === 1);
   const singleDeskId = (liveAgents[0]?.agentName as DeskId | undefined) ?? 'technical';
 
   const statusSteps = isSingle
