@@ -26,6 +26,7 @@ import { MOTION_PRESETS } from '@/components/ui/motion-config';
 
 import '@/lib/plugins/register-ui';
 
+import { useShellRoute } from '../shell-route-context';
 import { CommandPreview } from './command-preview';
 import { CommandResults } from './command-results';
 import { useCoarsePointer } from './use-coarse-pointer';
@@ -45,6 +46,7 @@ export interface CommandPaletteProps {
 
 export function CommandPalette({ onNewChat, installedPluginIds = [] }: CommandPaletteProps) {
   const isTouch = useCoarsePointer();
+  const { isChat } = useShellRoute();
   const { open, setOpen, query, setQuery, activeIdx, setActiveIdx, inputRef, inputId, runCommand } =
     useCommandPalette({ onNewChat });
   const { grouped, flatRows } = useCommandRegistry(installedPluginIds, query);
@@ -235,7 +237,9 @@ export function CommandPalette({ onNewChat, installedPluginIds = [] }: CommandPa
         </AnimatePresence>
       )}
 
-      {isTouch ? (
+      {/* Touch launcher — hidden on /chat so it never overlaps the sticky
+          composer or the scroll-to-bottom FAB. */}
+      {isTouch && !isChat ? (
         <button
           type="button"
           onClick={() => setOpen(true)}

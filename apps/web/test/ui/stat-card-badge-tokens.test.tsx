@@ -85,12 +85,11 @@ describe('Tier 1: StatCard Cyber-Industrial Tokens (>=5 tests)', () => {
     expect(svg?.getAttribute('role')).toBe('img');
   });
 
-  it('renders clean placeholder spacer when sparkline points < 2', () => {
+  it('omits the sparkline without leaving a dead spacer when points < 2', () => {
     const { container } = render(<StatCard label="Volume" value="45.2K" sparkline={[100]} />);
-    const svg = container.querySelector('svg');
-    expect(svg).toBeNull();
-    const spacer = container.querySelector('.h-6');
-    expect(spacer).not.toBeNull();
+    expect(container.querySelector('svg')).toBeNull();
+    // No `h-6` placeholder void: a card without a sparkline ends after its value.
+    expect(container.querySelector('.h-6')).toBeNull();
   });
 });
 

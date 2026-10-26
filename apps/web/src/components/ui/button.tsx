@@ -21,10 +21,11 @@
 // satisfy steering rule §10 ("@tabler/icons-react exclusively, no inline SVGs").
 //
 // Mobile-first sizes:
+//   xs = 32px (h-8)  — dense chip rows only
 //   sm = 40px (h-10) — fits in dense action rows; 4px below 44pt min so
 //                       only use sm where the button is in a row of icon
 //                       buttons that already have ≥44pt hit areas
-//   md = 48px (h-12) — default. Comfortable thumb-zone target.
+//   md = 44px (h-11) — default. Meets the WCAG 2.2 minimum touch target.
 //   lg = 56px (h-14) — primary CTA on landing/empty states.
 
 import { IconLoader2 } from '@tabler/icons-react';
@@ -57,7 +58,7 @@ const variants: Record<Variant, string> = {
 const sizes: Record<Size, string> = {
   xs: 'h-8 px-2.5 text-xs rounded-md',
   sm: 'h-10 px-3 text-xs sm:text-sm rounded-md',
-  md: 'h-10 px-4 text-sm font-medium rounded-md',
+  md: 'h-11 px-4 text-sm font-medium rounded-md',
   lg: 'h-12 sm:h-14 px-5 text-base font-medium rounded-md',
 };
 
@@ -87,7 +88,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
         aria-busy={loading || false}
         style={inlineStyle}
         className={cn(
-          'group tactile-press relative inline-flex items-center justify-between overflow-hidden rounded-l-[6px] rounded-r-full border border-white/10 bg-[#252525] pr-10 pl-4 leading-none tracking-[-0.02em] text-white active:translate-y-[0.5px]',
+          'group tactile-press relative inline-flex items-center justify-between overflow-hidden rounded-l-[6px] rounded-r-full border border-white/10 bg-[#252525] pr-10 pl-4 leading-none tracking-[-0.02em] text-white',
           sizes[size],
           'focus-visible:ring-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
           'disabled:cursor-not-allowed disabled:opacity-60',
@@ -150,7 +151,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       aria-busy={loading || false}
       style={inlineStyle}
       className={cn(
-        'tactile-press inline-flex items-center justify-center gap-2 rounded-md font-medium active:translate-y-[0.5px]',
+        'tactile-press inline-flex items-center justify-center gap-2 rounded-md font-medium',
         'transition-all duration-150',
         'focus-visible:ring-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
         'disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none',
