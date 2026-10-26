@@ -138,7 +138,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build": "tsc -p tsconfig.build.json && node ../../scripts/rewrite-dist-imports.mjs dist",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && node ../../scripts/rewrite-dist-imports.mjs dist",
     "prepublishOnly": "pnpm build",
     "eval": "tsx src/eval/runner.ts --cases",
     "eval:gate": "tsx --conditions=react-server scripts/eval-gate.ts",

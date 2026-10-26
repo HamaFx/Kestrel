@@ -1,6 +1,17 @@
 @import 'tailwindcss';
 
 /* -------------------------------------------------------------------------
+ * Source scanning — the host app owns the single stylesheet, but bundled
+ * plugin packages (plugins/*) and shared UI packages (packages/*) ship JSX
+ * that uses Tailwind classes too. Without these directives Tailwind v4 only
+ * scans apps/web, so plugin-only utilities (e.g. `lg:col-span-8`,
+ * `xl:grid-cols-2`) never reach the compiled CSS and the plugin layouts
+ * silently collapse. Editing an animation source must be reflected here.
+ * ------------------------------------------------------------------------- */
+@source '../../../../plugins/*/src/**/*.{ts,tsx}';
+@source '../../../../packages/*/src/**/*.{ts,tsx}';
+
+/* -------------------------------------------------------------------------
  * Typography — The Hoplite & Kestrel Typeface System
  * ------------------------------------------------------------------------- */
 @font-face {

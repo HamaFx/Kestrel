@@ -19,10 +19,10 @@ export function ActivitySummaryCard({ stats }: { stats: UsageStats }) {
           <h2 id="usage-summary-heading" className="text-fg text-sm font-semibold tracking-tight">
             Research Session Summary
           </h2>
-          <p className="text-fg-subtle text-xs">Included in your Kestrel subscription</p>
+          <p className="text-fg-subtle text-xs">Your BYOK vault &amp; local spend guardrails</p>
         </div>
         <span className="surface-chip bg-bull/10 text-bull border-bull/30 rounded-md border px-2 py-0.5 font-mono text-xs font-semibold uppercase">
-          Active Plan
+          Self-Hosted
         </span>
       </header>
 
