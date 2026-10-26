@@ -1,14 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-
-// Confirmation card for Mastra mutation drafts (Phase 7).
-//
-// The chat route returns a `mutation-draft` event carrying the suspend
-// payload (single-use token + summary). This card renders that payload and,
-// on Confirm, posts the token to /api/chat/mutations/confirm which resumes
-// the suspended workflow — re-validating the token (timing-safe digest +
-// expiry) and the server-side mutation policy BEFORE the audited write
-// executes. Nothing is written until this card's Confirm succeeds.
-
+// Confirmation card for Mastra mutation drafts. Hoplite Human-in-the-Loop Execution Gate.
 'use client';
 
 /**
@@ -31,6 +22,7 @@ import {
   IconBell,
   IconCheck,
   IconFileText,
+  IconLock,
   IconSettings,
   IconShare,
   IconX,
@@ -39,7 +31,6 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { cn } from '@/lib/formatters/cn';
 import { apiMutate } from '@/lib/http/api-client';
 
 const KIND_LABELS: Record<MutationDraftPayload['mutation'], string> = {
@@ -63,11 +54,7 @@ type CardState =
   | { phase: 'declined' }
   | { phase: 'error'; message: string };
 
-interface MutationConfirmationCardProps {
-  payload: MutationDraftPayload;
-}
-
-export function MutationConfirmationCard({ payload }: MutationConfirmationCardProps) {
+export function MutationConfirmationCard({ payload }: { payload: MutationDraftPayload }) {
   const [state, setState] = useState<CardState>({ phase: 'idle' });
 
   const confirm = useCallback(async () => {
@@ -81,9 +68,7 @@ export function MutationConfirmationCard({ payload }: MutationConfirmationCardPr
         }),
       });
       const parsed = MutationConfirmResultSchema.safeParse(json);
-      if (!parsed.success) {
-        throw new Error('Confirmation returned an unexpected response.');
-      }
+      if (!parsed.success) throw new Error('Confirmation returned an unexpected response.');
       setState({
         phase: 'confirmed',
         summary: parsed.data.output?.summary ?? `${KIND_LABELS[payload.mutation]} confirmed`,
@@ -117,7 +102,6 @@ export function MutationConfirmationCard({ payload }: MutationConfirmationCardPr
     }
   }, [payload]);
 
-  // When the token has expired, stop offering Confirm.
   const expired = payload.expiresAt <= Date.now();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -131,12 +115,14 @@ export function MutationConfirmationCard({ payload }: MutationConfirmationCardPr
 
   if (state.phase === 'confirmed') {
     return (
-      <Card as="section" className="border-border bg-bg-elev-1 p-3" aria-label="Mutation confirmed">
-        <div className="flex items-start gap-2">
-          <IconCheck className="text-bull mt-0.5 size-4.5 shrink-0" aria-hidden />
-          <div className="min-w-0 flex-1">
-            <div className="text-fg-muted text-xs">{KIND_LABELS[payload.mutation]} confirmed</div>
-            <div className="text-fg mt-0.5 text-sm font-medium break-words">{state.summary}</div>
+      <Card as="section" className="rounded-xl border border-emerald-500/30 bg-[#111114] p-4 shadow-sm" aria-label="Mutation confirmed">
+        <div className="flex items-start gap-2.5">
+          <IconCheck className="mt-0.5 size-4.5 shrink-0 text-emerald-400" aria-hidden />
+          <div className="min-w-0 flex-1 font-mono">
+            <div className="text-[11px] font-semibold text-emerald-400 uppercase">
+              {KIND_LABELS[payload.mutation]} Confirmed & Executed
+            </div>
+            <div className="mt-1 font-sans text-sm text-[#F4F1EA] break-words">{state.summary}</div>
           </div>
         </div>
       </Card>
@@ -145,14 +131,13 @@ export function MutationConfirmationCard({ payload }: MutationConfirmationCardPr
 
   if (state.phase === 'declined') {
     return (
-      <Card as="section" className="border-border bg-bg-elev-1 p-3" aria-label="Mutation declined">
-        <div className="flex items-start gap-2">
-          <IconX className="text-danger mt-0.5 size-4.5 shrink-0" aria-hidden />
-          <div className="min-w-0 flex-1">
-            <div className="text-fg-muted text-xs">Not executed</div>
-            <div className="text-fg mt-0.5 text-sm">
-              The {(KIND_LABELS[payload.mutation] ?? 'mutation').toLowerCase()} was cancelled.
-              Nothing was changed.
+      <Card as="section" className="rounded-xl border border-rose-500/30 bg-[#111114] p-4 shadow-sm" aria-label="Mutation declined">
+        <div className="flex items-start gap-2.5">
+          <IconX className="mt-0.5 size-4.5 shrink-0 text-rose-400" aria-hidden />
+          <div className="min-w-0 flex-1 font-mono">
+            <div className="text-[11px] font-semibold text-rose-400 uppercase">Directive Cancelled</div>
+            <div className="mt-1 font-sans text-sm text-[#F4F1EA]/70">
+              The {(KIND_LABELS[payload.mutation] ?? 'mutation').toLowerCase()} was cancelled. Nothing was modified.
             </div>
           </div>
         </div>
@@ -165,37 +150,62 @@ export function MutationConfirmationCard({ payload }: MutationConfirmationCardPr
   return (
     <Card
       as="section"
-      className="border-border bg-bg-elev-1 p-3"
+      className="rounded-xl border border-[#D4AF37]/40 bg-[#111114] p-4 shadow-md transition-all sm:p-5"
       aria-label={`${KIND_LABELS[payload.mutation]} confirmation`}
     >
-      <div className="flex items-start gap-2">
-        <KindIcon className="text-brand mt-0.5 size-4.5 shrink-0" aria-hidden />
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F4F1EA]/10 pb-3">
+        <div className="flex items-center gap-2">
+          <IconLock className="size-4 text-[#D4AF37]" />
+          <span className="font-mono text-[11px] font-semibold tracking-wider text-[#D4AF37] uppercase">
+            HOPLITE EXECUTION GATE // REQUIRES OPERATOR APPROVAL
+          </span>
+        </div>
+        <span className="font-mono text-[10px] text-[#F4F1EA]/50 uppercase">
+          {expired ? 'EXPIRED' : `TTL: ~${remainingMin}m`}
+        </span>
+      </div>
+
+      <div className="mt-3 flex items-start gap-3">
+        <div className="rounded-lg border border-[#F4F1EA]/10 bg-[#16161A] p-2 text-[#D4AF37]">
+          <KindIcon className="size-5" aria-hidden />
+        </div>
         <div className="min-w-0 flex-1">
-          <div className="text-fg-muted text-xs">Confirmation required</div>
-          <div className="text-fg mt-0.5 text-sm font-medium break-words">{payload.summary}</div>
-          <div className="text-fg-muted mt-1 text-xs">
-            {expired
-              ? 'This confirmation has expired. Retry the request to get a fresh one.'
-              : `Expires in ~${remainingMin} min · nothing is written until you confirm`}
+          <div className="font-mono text-[11px] font-semibold text-[#F4F1EA]/50 uppercase">
+            {KIND_LABELS[payload.mutation]} Mutation Request
+          </div>
+          <div className="mt-0.5 font-sans text-sm font-medium text-[#F4F1EA] break-words">
+            {payload.summary}
           </div>
         </div>
       </div>
 
+      <div className="mt-3 overflow-hidden rounded-lg border border-[#F4F1EA]/10 bg-[#09090B] font-mono text-[11px]">
+        <div className="grid grid-cols-3 border-b border-[#F4F1EA]/10 bg-[#16161A] px-3 py-1.5 text-[10px] font-semibold text-[#D4AF37] uppercase">
+          <span>Directive</span>
+          <span className="col-span-2">Execution Payload</span>
+        </div>
+        <div className="grid grid-cols-3 px-3 py-2 text-[#F4F1EA]/80">
+          <span className="text-[#F4F1EA]/50">Action</span>
+          <span className="col-span-2 font-semibold text-[#F4F1EA]">{payload.mutation}</span>
+        </div>
+        <div className="grid grid-cols-3 border-t border-[#F4F1EA]/5 px-3 py-2 text-[#F4F1EA]/80">
+          <span className="text-[#F4F1EA]/50">Run ID</span>
+          <span className="col-span-2 truncate">{payload.runId}</span>
+        </div>
+      </div>
+
       {state.phase === 'error' && (
-        <div
-          role="alert"
-          className="border-danger/30 bg-danger/10 text-danger mt-2 rounded-sm border px-2 py-1.5 text-xs"
-        >
+        <div role="alert" className="mt-3 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 font-mono text-xs text-rose-400">
           {state.message}
         </div>
       )}
 
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-4 flex flex-wrap items-center gap-2.5">
         <Button
           size="sm"
           onClick={confirm}
           disabled={state.phase === 'confirming' || expired}
-          className={cn('min-h-[44px] min-w-[44px]')}
+          className="min-h-[44px] min-w-[44px] border border-[#D4AF37] bg-[#D4AF37] font-mono text-xs font-semibold tracking-wider text-[#09090B] hover:bg-[#F4F1EA]"
         >
           {state.phase === 'confirming'
             ? 'Confirming…'
@@ -206,7 +216,7 @@ export function MutationConfirmationCard({ payload }: MutationConfirmationCardPr
           variant="secondary"
           onClick={decline}
           disabled={state.phase === 'confirming'}
-          className={cn('min-h-[44px] min-w-[44px]')}
+          className="min-h-[44px] min-w-[44px] border border-[#F4F1EA]/10 bg-[#16161A] font-mono text-xs text-[#F4F1EA] hover:border-rose-500/40 hover:text-rose-400"
         >
           {payload.cancelLabel ?? 'Cancel'}
         </Button>

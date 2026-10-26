@@ -95,9 +95,8 @@ export const Composer = memo(function Composer({
     <div className="message-composer-safe-bottom sticky bottom-0 z-20 mx-auto w-full pb-[max(env(safe-area-inset-bottom),12px)]">
       <form
         className={cn(
-          'border-border bg-bg-elev-1 relative z-10 flex w-full flex-col gap-1.5 rounded-xl border p-2.5 shadow-md transition-colors duration-150',
-          focused && 'border-fg-subtle/60',
-          dragOver && 'border-brand ring-brand/40 ring-2',
+          'relative z-10 flex w-full flex-col gap-1.5 rounded-xl border border-[#F4F1EA]/20 bg-[#111114] p-2.5 shadow-md transition-colors duration-150 focus-within:border-[#D4AF37]',
+          dragOver && 'border-[#D4AF37] ring-2 ring-[#D4AF37]/40',
         )}
         onSubmit={(e) => {
           e.preventDefault();
@@ -110,6 +109,32 @@ export const Composer = memo(function Composer({
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
       >
+        {/* Scope Boundary Strip */}
+        <div className="flex flex-wrap items-center justify-between gap-1.5 border-b border-[#F4F1EA]/10 px-1 pb-1.5 font-mono text-[11px]">
+          <button
+            type="button"
+            onClick={() => onAnalysisModeChange?.(analysisMode === 'full' ? 'single' : 'full')}
+            className="inline-flex items-center gap-1.5 rounded border border-[#F4F1EA]/10 bg-[#09090B] px-2 py-0.5 text-[#D4AF37] transition-colors hover:border-[#D4AF37]/40"
+            title="Click to toggle analysis mode"
+          >
+            <span className={cn('size-1.5 rounded-full', analysisMode === 'full' ? 'bg-[#D4AF37]' : 'bg-[#7DD3FC]')} />
+            <span>
+              {analysisMode === 'full' ? 'SCOPE: FULL COUNCIL (4 DESKS)' : 'SCOPE: SINGLE DESK'}
+            </span>
+          </button>
+
+          <div className="flex items-center gap-2 text-[10px] text-[#F4F1EA]/50">
+            <span className="hidden sm:inline-flex items-center gap-1">
+              <span className="size-1 rounded-full bg-emerald-400" />
+              <span>GATE: HUMAN-APPROVAL ENFORCED</span>
+            </span>
+            <span className="hidden md:inline-flex items-center gap-1">
+              <span className="size-1 rounded-full bg-[#D4AF37]" />
+              <span>LEDGER: FULL TRACE</span>
+            </span>
+          </div>
+        </div>
+
         <ComposerAttachments composer={composer} />
         <ComposerMentionMenu composer={composer} />
 

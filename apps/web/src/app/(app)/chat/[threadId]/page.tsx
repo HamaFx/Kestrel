@@ -24,6 +24,7 @@ import { z } from 'zod';
 import { auth } from '@/auth';
 import { ChatScreen } from '@/components/chat/chat-screen';
 import { normalizeAnalysisMode } from '@/lib/analysis-mode';
+import { STRATEGIST_DESKS, type StrategistDeskId } from '@/lib/kestrel-strategist-desks';
 // /chat/[threadId] — full-screen chat surface for a specific thread.
 //
 // Server component: validates the thread, hydrates the message history from
@@ -41,7 +42,12 @@ export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ threadId: string }>;
-  searchParams: Promise<{ prompt?: string; agent?: string }>;
+  searchParams: Promise<{
+    prompt?: string;
+    agent?: string;
+    mode?: string;
+    desk?: string;
+  }>;
 }
 
 const uiMessageSchema = z.object({
@@ -77,11 +83,22 @@ export default async function ChatThreadPage({ params, searchParams }: PageProps
   const customInstructions = settings?.customInstructions;
   if (!thread) notFound();
 
-  // Q2 compat shim: legacy persisted modes (quick/standard/auto) map onto
-  // the two-mode schema before reaching the client.
+  const { prompt, agent, mode, desk } = await searchParams;
+  const initialAgentSlug = agent && /^[a-z][a-z0-9-]{1,31}$/.test(agent) ? agent : null;
+
+  const modeOverride =
+    mode === 'council' || mode === 'full' || desk === 'arbiter'
+      ? 'full'
+      : desk
+        ? 'single'
+        : undefined;
+
   const initialAnalysisMode = normalizeAnalysisMode(
-    thread.analysisMode ?? settings?.defaultAnalysisMode ?? 'single',
+    modeOverride ?? thread.analysisMode ?? settings?.defaultAnalysisMode ?? 'single',
   );
+
+  const deskConfig = desk && desk in STRATEGIST_DESKS ? STRATEGIST_DESKS[desk as StrategistDeskId] : null;
+  const promptToSubmit = prompt ?? (mode === 'council' && dbMessages.length === 0 ? STRATEGIST_DESKS.arbiter.defaultPrompt : deskConfig && dbMessages.length === 0 ? deskConfig.defaultPrompt : null);
 
   const initialMessages = dbMessages
     .map((m) => {
@@ -96,9 +113,6 @@ export default async function ChatThreadPage({ params, searchParams }: PageProps
       return parsed.success ? (parsed.data as UIMessage) : null;
     })
     .filter((m): m is UIMessage => m !== null);
-
-  const { prompt, agent } = await searchParams;
-  const initialAgentSlug = agent && /^[a-z][a-z0-9-]{1,31}$/.test(agent) ? agent : null;
 
   return (
     <ChatScreen
@@ -116,7 +130,7 @@ export default async function ChatThreadPage({ params, searchParams }: PageProps
       initialChatModel={settings?.chatModel ?? null}
       initialShowAgentOpinions={settings?.showAgentOpinions ?? true}
       initialCustomInstructions={customInstructions ?? null}
-      autoSubmitPrompt={prompt ?? null}
+      autoSubmitPrompt={promptToSubmit}
       initialAgentSlug={initialAgentSlug}
     />
   );

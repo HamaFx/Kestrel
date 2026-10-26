@@ -16,14 +16,33 @@ export function AgentNode({ agent, meta }: { agent: AgentProgress; meta: AgentMe
     <div
       aria-label={`${meta.label} desk: ${status}`}
       className={cn(
-        'flex items-center justify-between gap-2 rounded-lg border p-2.5 transition-colors',
-        status === 'pending' && 'bg-bg-elev-2/50 text-fg-subtle border-border/60',
-        status === 'running' && cn('text-fg', meta.activeClass),
-        status === 'done' && 'bg-bg-elev-2 text-fg border-border/80',
-        status === 'error' && 'bg-danger/10 text-danger border-danger/40',
+        'flex flex-col justify-between gap-1.5 rounded-lg border p-2.5 transition-colors',
+        status === 'pending' && 'border-[#F4F1EA]/10 bg-[#111114] text-[#F4F1EA]/50',
+        status === 'running' && cn('border-[#D4AF37]/40 bg-[#16161A] text-[#F4F1EA]', meta.activeClass),
+        status === 'done' && 'border-[#F4F1EA]/15 bg-[#111114] text-[#F4F1EA]',
+        status === 'error' && 'border-rose-500/40 bg-rose-500/10 text-rose-400',
       )}
     >
-      <div className="flex min-w-0 items-center gap-2">
+      <div className="flex items-center justify-between gap-1">
+        <span className="font-mono text-[9px] font-semibold tracking-wider text-[#D4AF37] uppercase">
+          {meta.code ?? 'DESK'}
+        </span>
+        {status === 'done' ? (
+          <span className={cn('shrink-0', meta.tokenClass)}>
+            <IconCircleCheck className="size-3.5 text-emerald-400" />
+          </span>
+        ) : status === 'error' ? (
+          <span className="shrink-0 text-rose-400">
+            <IconAlertCircle className="size-3.5" />
+          </span>
+        ) : status === 'running' ? (
+          <span className="size-2 shrink-0 animate-pulse rounded-full bg-[#D4AF37]" />
+        ) : (
+          <span className="size-1.5 shrink-0 rounded-full bg-[#F4F1EA]/20" />
+        )}
+      </div>
+
+      <div className="flex min-w-0 items-center gap-1.5">
         <span
           className={cn('shrink-0', status !== 'error' && status !== 'pending' && meta.tokenClass)}
         >
@@ -31,20 +50,6 @@ export function AgentNode({ agent, meta }: { agent: AgentProgress; meta: AgentMe
         </span>
         <span className="truncate text-xs font-semibold">{meta.label}</span>
       </div>
-
-      {status === 'done' ? (
-        <span className={cn('shrink-0', meta.tokenClass)}>
-          <IconCircleCheck className="size-3.5" />
-        </span>
-      ) : status === 'error' ? (
-        <span className="text-danger shrink-0">
-          <IconAlertCircle className="size-3.5" />
-        </span>
-      ) : status === 'running' ? (
-        <span className="bg-brand size-2 shrink-0 animate-pulse rounded-full" />
-      ) : (
-        <span className="bg-border size-1.5 shrink-0 rounded-full" />
-      )}
     </div>
   );
 }

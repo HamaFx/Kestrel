@@ -17,7 +17,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { IconChevronDown, IconClock } from '@tabler/icons-react';
+
+import { IconChevronDown, IconCpu } from '@tabler/icons-react';
 import { AnimatePresence, m } from 'motion/react';
 import { useState, type ReactNode } from 'react';
 
@@ -53,49 +54,65 @@ export function ActivityRollup({
     : `Market research (${parts.join(', ')})`;
 
   return (
-    <div className="my-1 w-full select-none">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        className={cn(
-          'group text-fg-subtle hover:text-fg text-body flex items-center gap-2 rounded-md py-1 pr-2 text-left transition-colors active:translate-y-[0.5px]',
-          isRunning && 'text-fg',
-        )}
-      >
-        <span className="grid size-4 shrink-0 place-items-center">
-          {isRunning ? (
-            <span className="border-brand/30 border-t-brand size-3 animate-spin rounded-full border-[1.5px]" />
-          ) : (
-            <IconClock className="text-fg-subtle group-hover:text-fg size-3.5" />
-          )}
-        </span>
-
-        <span className="text-caption text-fg-muted font-mono font-medium">{label}</span>
-
-        <IconChevronDown
+    <div className="my-2 w-full select-none">
+      <div className="rounded-xl border border-[#F4F1EA]/10 bg-[#09090B] p-1 shadow-sm transition-all hover:border-[#D4AF37]/30">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
           className={cn(
-            'text-fg-subtle size-3 shrink-0 transition-transform duration-150',
-            open ? 'rotate-180 opacity-100' : 'opacity-60 group-hover:opacity-100',
+            'flex w-full items-center justify-between rounded-lg px-3 py-2 text-left font-mono text-xs transition-colors',
+            'hover:bg-[#16161A] active:translate-y-[0.5px]',
+            isRunning ? 'text-[#F4F1EA]' : 'text-[#F4F1EA]/70',
           )}
-        />
-      </button>
+        >
+          <div className="flex items-center gap-2.5">
+            <span className="grid size-5 shrink-0 place-items-center rounded bg-[#16161A] border border-[#F4F1EA]/10 text-[#D4AF37]">
+              {isRunning ? (
+                <span className="size-3 animate-spin rounded-full border-[1.5px] border-[#D4AF37]/30 border-t-[#D4AF37]" />
+              ) : (
+                <IconCpu className="size-3.5 text-[#D4AF37]" />
+              )}
+            </span>
 
-      <AnimatePresence initial={false}>
-        {open && (
-          <m.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-            className="overflow-hidden"
-          >
-            <div className="border-border/40 mt-1 flex flex-col gap-0.5 border-l pl-2">
-              {children}
+            <div className="flex items-center gap-2">
+              <span className="font-semibold tracking-wider text-[#D4AF37] uppercase">
+                {isRunning ? 'EXECUTION IN PROGRESS' : 'EXECUTION LEDGER'}
+              </span>
+              <span className="hidden sm:inline text-[#F4F1EA]/30">·</span>
+              <span className="text-[#F4F1EA]/60 font-mono text-[11px]">{label}</span>
             </div>
-          </m.div>
-        )}
-      </AnimatePresence>
+          </div>
+
+          <div className="flex items-center gap-2 text-[11px] text-[#F4F1EA]/60">
+            <span className="hidden md:inline font-mono">
+              {open ? 'Hide Trace ▲' : 'Inspect Ledger ▼'}
+            </span>
+            <IconChevronDown
+              className={cn(
+                'size-3.5 shrink-0 transition-transform duration-150',
+                open ? 'rotate-180 text-[#D4AF37]' : 'text-[#F4F1EA]/40',
+              )}
+            />
+          </div>
+        </button>
+
+        <AnimatePresence initial={false}>
+          {open && (
+            <m.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+              className="overflow-hidden"
+            >
+              <div className="mt-1 border-t border-[#F4F1EA]/10 px-2 py-2 flex flex-col gap-1 font-mono text-xs">
+                {children}
+              </div>
+            </m.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

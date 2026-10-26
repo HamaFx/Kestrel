@@ -12,6 +12,16 @@ import { AgentDeliberation } from '../parts/agent-deliberation';
 export function DockOpinionsPanel({ agentProgress }: { agentProgress?: AgentProgress | null }) {
   return (
     <div className="scrollbar-hide h-full overflow-y-auto p-4">
+      <div className="mb-3.5 flex items-center justify-between border-b border-[#F4F1EA]/10 pb-2.5">
+        <div className="flex items-center gap-2">
+          <span className="size-2 animate-pulse rounded-full bg-[#D4AF37]" />
+          <span className="font-mono text-[10px] font-semibold tracking-wider text-[#D4AF37] uppercase">
+            COUNCIL DELIBERATION CHAMBER
+          </span>
+        </div>
+        <span className="font-mono text-[10px] text-[#F4F1EA]/50 uppercase">4/4 Desks</span>
+      </div>
+
       {agentProgress ? (
         <AgentDeliberation
           agents={agentProgress.agents}
@@ -23,12 +33,11 @@ export function DockOpinionsPanel({ agentProgress }: { agentProgress?: AgentProg
             : {})}
         />
       ) : (
-        <div className="flex min-h-[300px] flex-col items-center justify-center gap-2 text-center">
-          <IconUsers className="text-fg-subtle size-8 stroke-1" />
-          <p className="text-fg-muted text-sm font-medium">4-Desk Committee Ready</p>
-          <p className="text-fg-subtle max-w-xs text-xs">
-            Opinions from the Technical, Macro, Risk, and Sentiment desks appear here during
-            analysis.
+        <div className="flex min-h-[300px] flex-col items-center justify-center gap-2 rounded-xl border border-[#F4F1EA]/10 bg-[#111114] p-6 text-center">
+          <IconUsers className="size-8 stroke-1 text-[#D4AF37]" />
+          <p className="font-display text-sm font-normal text-[#F4F1EA]">4-Desk Committee Ready</p>
+          <p className="max-w-xs font-serif text-xs italic text-[#F4F1EA]/60">
+            Opinions from the Macro, Quant, Risk, and Sentiment desks will synchronize here in real time.
           </p>
         </div>
       )}

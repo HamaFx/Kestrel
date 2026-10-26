@@ -21,6 +21,7 @@
 import type { Symbol } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
 import { AnimatePresence } from 'motion/react';
+import { useEffect } from 'react';
 
 import { ChatThreadView } from './chat-thread-view';
 import { ChatTopBar, type AnalysisMode, type ThreadSummary } from './chat-top-bar';
@@ -76,6 +77,20 @@ export function ChatScreen({
   const { splitMode, setSplitMode, dockTab, setDockTab } = toolbar;
 
   useChatKeyboardShortcuts({ onToggleViews: () => setSplitMode((v) => !v) });
+
+  // Wide-screen default auto-open (Task 4.3): on >=1280px (xl:), auto-open views if content exists
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.innerWidth >= 1280) {
+      const hasActiveContext =
+        session.messages.length > 0 ||
+        session.agentProgress !== null ||
+        toolbar.analysisMode === 'full';
+      if (hasActiveContext && !splitMode) {
+        setSplitMode(true);
+      }
+    }
+  }, [session.messages.length, session.agentProgress, toolbar.analysisMode, splitMode, setSplitMode]);
 
   const composerPlaceholder = session.selectedAgentSlug
     ? `Ask @${session.selectedAgentSlug}…`

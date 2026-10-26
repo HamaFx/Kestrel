@@ -35,7 +35,13 @@ import { createThread, listThreads } from '@/lib/services/api-boundary';
 export const dynamic = 'force-dynamic';
 
 interface PageProps {
-  searchParams: Promise<{ prompt?: string; new?: string; agent?: string }>;
+  searchParams: Promise<{
+    prompt?: string;
+    new?: string;
+    agent?: string;
+    mode?: string;
+    desk?: string;
+  }>;
 }
 
 export default async function ChatLanding({ searchParams }: PageProps) {
@@ -43,22 +49,21 @@ export default async function ChatLanding({ searchParams }: PageProps) {
   const userId = session?.user?.id;
   if (!userId) redirect('/login');
 
-  const { prompt, new: forceNew, agent } = await searchParams;
-  const agentParam = agent ? `agent=${encodeURIComponent(agent)}` : null;
+  const { prompt, new: forceNew, agent, mode, desk } = await searchParams;
 
-  if (prompt && prompt.trim().length > 0) {
-    const fresh = await createThread(userId);
-    const params = new URLSearchParams({ prompt });
-    if (agent) params.set('agent', agent);
-    redirect(`/chat/${fresh.id}?${params.toString()}`);
-  }
+  const params = new URLSearchParams();
+  if (prompt && prompt.trim().length > 0) params.set('prompt', prompt);
+  if (agent) params.set('agent', agent);
+  if (mode) params.set('mode', mode);
+  if (desk) params.set('desk', desk);
+  const queryString = params.toString() ? `?${params.toString()}` : '';
 
-  if (forceNew === '1') {
+  if ((prompt && prompt.trim().length > 0) || mode || desk || forceNew === '1') {
     const fresh = await createThread(userId);
-    redirect(`/chat/${fresh.id}${agentParam ? `?${agentParam}` : ''}`);
+    redirect(`/chat/${fresh.id}${queryString}`);
   }
 
   const { threads } = await listThreads(userId, 1);
   const target = threads[0] ?? (await createThread(userId));
-  redirect(`/chat/${target.id}${agentParam ? `?${agentParam}` : ''}`);
+  redirect(`/chat/${target.id}${queryString}`);
 }

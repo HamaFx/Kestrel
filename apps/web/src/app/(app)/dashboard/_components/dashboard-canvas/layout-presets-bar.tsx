@@ -7,12 +7,12 @@ import { PRESET_LAYOUTS, type LayoutPresetName, type WidgetConfig } from '../wid
 
 export function LayoutPresetsBar({ onSelect }: { onSelect: (layout: WidgetConfig[]) => void }) {
   return (
-    <div className="surface-card border-brand/30 bg-well flex flex-col gap-2 rounded-xl border p-3.5 shadow-md duration-200">
+    <div className="flex flex-col gap-2 rounded-xl border border-[#F4F1EA]/10 bg-[#111114] p-3.5 shadow-md duration-200">
       <div className="flex items-center justify-between">
-        <span className="text-brand font-mono text-xs font-bold tracking-wider uppercase">
+        <span className="font-mono text-xs font-bold tracking-wider text-[#D4AF37] uppercase">
           Role Layout Presets
         </span>
-        <span className="text-fg-subtle font-sans text-xs">
+        <span className="font-sans text-xs text-[#F4F1EA]/60">
           Click a preset to instantly restructure your workspace
         </span>
       </div>
@@ -26,7 +26,7 @@ export function LayoutPresetsBar({ onSelect }: { onSelect: (layout: WidgetConfig
               onClick={() => {
                 onSelect(preset.layout);
               }}
-              className="surface-chip hover:border-brand/40 text-fg inline-flex cursor-pointer touch-manipulation items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 font-mono text-xs font-medium transition-all hover:text-white active:translate-y-[0.5px]"
+              className="inline-flex cursor-pointer touch-manipulation items-center gap-1.5 rounded-lg border border-[#F4F1EA]/10 bg-[#09090B] px-3 py-1.5 font-mono text-xs font-medium text-[#F4F1EA] transition-all hover:border-[#D4AF37]/40 hover:text-[#D4AF37] active:translate-y-[0.5px]"
               title={preset.description}
             >
               <span>{preset.name}</span>
