@@ -41,13 +41,15 @@ interface TooltipProps {
   /** Bubble text. Always provide an `aria-label` on the trigger to match. */
   label: string;
   /** Position relative to the trigger. Default 'top'. */
-  side?: 'top' | 'bottom';
+  side?: 'top' | 'bottom' | 'right' | 'left';
+  /** Optional keyboard shortcut string to render in <kbd> badge */
+  shortcut?: string;
   /** Wrap a single interactive element (button/anchor). */
   children: ReactNode;
   className?: string;
 }
 
-export function Tooltip({ label, side = 'top', children, className }: TooltipProps) {
+export function Tooltip({ label, side = 'top', shortcut, children, className }: TooltipProps) {
   return (
     <span className={cn('group/tooltip relative inline-flex items-center', className)}>
       {children}
@@ -58,16 +60,26 @@ export function Tooltip({ label, side = 'top', children, className }: TooltipPro
         // because the trigger already has an accessible name.
         aria-hidden="true"
         className={cn(
-          'pointer-events-none absolute left-1/2 z-50 -translate-x-1/2',
+          'pointer-events-none absolute z-50',
           'text-body-sm rounded-sm px-2 py-1 font-medium whitespace-nowrap',
           'surface-elevated text-fg shadow-lg',
           'opacity-0 transition-opacity duration-150',
           'group-hover/tooltip:opacity-100 group-hover/tooltip:delay-300',
           'group-focus-within/tooltip:opacity-100 group-focus-within/tooltip:delay-0',
-          side === 'top' ? '-top-9' : 'top-[calc(100%+6px)]',
+          side === 'top' && '-top-9 left-1/2 -translate-x-1/2',
+          side === 'bottom' && 'top-[calc(100%+6px)] left-1/2 -translate-x-1/2',
+          side === 'right' && 'left-[calc(100%+8px)] top-1/2 -translate-y-1/2',
+          side === 'left' && 'right-[calc(100%+8px)] top-1/2 -translate-y-1/2',
         )}
       >
-        {label}
+        <span className="flex items-center gap-1.5">
+          <span>{label}</span>
+          {shortcut && (
+            <kbd className="font-mono text-[9px] text-fg-subtle bg-bg-elev-1/90 border border-white/10 rounded px-1 py-0.2 tracking-wider">
+              {shortcut}
+            </kbd>
+          )}
+        </span>
       </span>
     </span>
   );

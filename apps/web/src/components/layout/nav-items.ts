@@ -31,6 +31,8 @@ export interface NavItem {
   icon: Icon;
   description?: string;
   match?: readonly string[];
+  shortcut?: string;
+  badge?: string | number;
 }
 
 /**
@@ -45,6 +47,7 @@ export const PRIMARY_NAV_ITEMS: readonly NavItem[] = [
     icon: IconMessageCircle,
     match: ['/chat'],
     description: 'Ask your 4-desk AI committee & view docked charts',
+    shortcut: '⌘1',
   },
   {
     href: '/dashboard',
@@ -52,6 +55,7 @@ export const PRIMARY_NAV_ITEMS: readonly NavItem[] = [
     icon: IconLayoutDashboard,
     match: ['/dashboard'],
     description: 'Briefing & performance overview',
+    shortcut: '⌘2',
   },
   {
     href: '/journal',
@@ -59,6 +63,7 @@ export const PRIMARY_NAV_ITEMS: readonly NavItem[] = [
     icon: IconBook,
     match: ['/journal'],
     description: 'Trades, R-multiples & equity curve',
+    shortcut: '⌘3',
   },
   {
     href: '/news',
@@ -66,6 +71,7 @@ export const PRIMARY_NAV_ITEMS: readonly NavItem[] = [
     icon: IconNews,
     match: ['/news', '/calendar'],
     description: 'Market headlines & economic calendar',
+    shortcut: '⌘4',
   },
   {
     href: '/alerts',
@@ -73,6 +79,7 @@ export const PRIMARY_NAV_ITEMS: readonly NavItem[] = [
     icon: IconBell,
     match: ['/alerts'],
     description: 'Price & indicator triggers',
+    shortcut: '⌘5',
   },
 ];
 
@@ -83,6 +90,7 @@ export const SECONDARY_NAV_ITEMS: readonly NavItem[] = [
     icon: IconSettings,
     match: ['/settings'],
     description: 'Subscription, risk & alerts',
+    shortcut: '⌘,',
   },
 ];
 

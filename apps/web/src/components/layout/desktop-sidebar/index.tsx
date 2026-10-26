@@ -27,6 +27,7 @@ import { usePathname } from 'next/navigation';
 import { toast } from 'sonner';
 
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
+import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/formatters/cn';
 
 import '@/lib/plugins/register-ui';
@@ -59,12 +60,29 @@ export function DesktopSidebar({
 
   const initial = userName?.charAt(0)?.toUpperCase() || userEmail?.charAt(0)?.toUpperCase() || 'K';
 
+  const newThreadButton = (
+    <Link
+      href="/chat?new=1"
+      prefetch={true}
+      aria-label="New thread"
+      className={cn(
+        'group text-fg relative flex items-center justify-center rounded-lg border font-mono text-xs font-medium transition-all select-none',
+        'border-brand/30 bg-gradient-to-r from-brand/20 via-brand/10 to-transparent hover:border-brand/60 hover:from-brand/25 hover:via-brand/15 hover:shadow-[0_0_16px_rgba(255,54,22,0.2)]',
+        'active:scale-[0.98] active:translate-y-[0.5px]',
+        collapsed ? 'mx-auto size-10 p-0' : 'w-full gap-2 px-3 py-2',
+      )}
+    >
+      <IconPlus className="text-brand size-4 shrink-0 transition-transform duration-200 group-hover:rotate-90" />
+      {!collapsed && <span>New thread</span>}
+    </Link>
+  );
+
   return (
     <aside
       aria-label="Desktop navigation sidebar"
       className={cn(
         'fixed top-0 bottom-0 left-0 z-40 hidden flex-col justify-between lg:flex',
-        'bg-card border-r border-white/[0.08] transition-all duration-200 select-none',
+        'bg-card/95 backdrop-blur-md border-r border-white/[0.08] transition-[width] duration-200 ease-in-out select-none',
         collapsed ? 'w-16' : 'w-56',
       )}
       style={{
@@ -73,7 +91,7 @@ export function DesktopSidebar({
       }}
     >
       {/* Top Header / Brand */}
-      <div className="flex flex-col gap-4 px-2">
+      <div className="flex flex-col gap-3 px-2">
         <div className="flex h-10 items-center justify-between px-2 pt-1">
           <KestrelBrand
             variant={collapsed ? 'mark' : 'lockup'}
@@ -81,36 +99,35 @@ export function DesktopSidebar({
             href="/dashboard"
             className="overflow-hidden"
           />
-          <button
-            type="button"
-            onClick={toggleCollapsed}
-            className="text-fg-subtle hover:text-fg hover:bg-bg-elev-2 rounded-md p-1 transition-colors active:translate-y-[0.5px]"
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          <Tooltip
+            label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            side={collapsed ? 'right' : 'top'}
+            shortcut="⌘B"
           >
-            {collapsed ? (
-              <IconChevronRight className="size-4" />
-            ) : (
-              <IconChevronLeft className="size-4" />
-            )}
-          </button>
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              className="text-fg-subtle hover:text-fg hover:bg-white/[0.06] rounded-md p-1.5 transition-colors active:scale-95 active:translate-y-[0.5px]"
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-expanded={!collapsed}
+            >
+              {collapsed ? (
+                <IconChevronRight className="size-4" />
+              ) : (
+                <IconChevronLeft className="size-4" />
+              )}
+            </button>
+          </Tooltip>
         </div>
 
         {/* New Thread CTA Button */}
-        <Link
-          href="/chat?new=1"
-          prefetch={true}
-          aria-label="New thread"
-          className={cn(
-            'border-chip-edge group text-fg relative flex items-center justify-center gap-2 rounded-[10px] border px-3 py-2 font-mono text-xs font-medium shadow-(--shadow-chip) transition-all',
-            'from-brand/20 via-brand/10 hover:border-brand/50 bg-gradient-to-r to-transparent active:translate-y-[0.5px]',
-            collapsed ? 'mx-auto size-10 p-0' : 'w-full',
-          )}
-          title={collapsed ? 'New thread' : undefined}
-        >
-          <IconPlus className="text-brand size-4" />
-          {!collapsed && <span>New thread</span>}
-        </Link>
+        {collapsed ? (
+          <Tooltip label="New thread" side="right" className="w-full justify-center">
+            {newThreadButton}
+          </Tooltip>
+        ) : (
+          newThreadButton
+        )}
 
         <SidebarNavGroups
           collapsed={collapsed}

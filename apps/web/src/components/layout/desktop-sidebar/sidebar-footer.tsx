@@ -5,8 +5,11 @@
 // Bottom footer of the desktop sidebar: admin/settings links, profile chip
 // and the sign-out button.
 import { IconLogout, IconSettings, IconShield } from '@tabler/icons-react';
+import { m } from 'motion/react';
 import { Link } from 'next-view-transitions';
 
+import { MOTION_PRESETS } from '@/components/ui/motion-config';
+import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/formatters/cn';
 
 export function SidebarFooter({
@@ -26,97 +29,202 @@ export function SidebarFooter({
   initial: string;
   onLogout: () => void;
 }) {
-  return (
-    <div className="border-border/60 flex flex-col gap-1 border-t px-2 pt-3">
-      {isAdmin && (
-        <Link
-          href="/admin"
-          prefetch={true}
-          aria-label="Admin"
-          aria-current={pathname.startsWith('/admin') ? 'page' : undefined}
-          className={cn(
-            'group relative flex items-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium transition-all active:translate-y-[0.5px]',
-            pathname.startsWith('/admin')
-              ? 'bg-bg-elev-2 text-fg surface-chip border-brand/40 shadow-sm'
-              : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2/50 border border-transparent',
-          )}
-          title={collapsed ? 'Admin' : undefined}
-        >
-          {pathname.startsWith('/admin') && (
-            <span
-              aria-hidden="true"
-              className="bg-brand absolute left-1 h-3.5 w-1 rounded-full shadow-[0_0_8px_rgba(255,54,22,0.6)]"
-            />
-          )}
-          <IconShield
-            className={cn(
-              'size-5 shrink-0',
-              pathname.startsWith('/admin') ? 'text-brand' : 'text-fg-subtle group-hover:text-fg',
-              pathname.startsWith('/admin') && 'ml-1',
-            )}
+  const isAdminActive = pathname.startsWith('/admin');
+  const isSettingsActive = pathname.startsWith('/settings');
+
+  const adminLink = (
+    <Link
+      href="/admin"
+      prefetch={true}
+      aria-label="Admin"
+      aria-current={isAdminActive ? 'page' : undefined}
+      className={cn(
+        'group relative flex items-center rounded-lg px-2.5 py-2 text-sm font-medium transition-colors select-none active:translate-y-[0.5px]',
+        collapsed ? 'mx-auto size-10 justify-center p-0' : 'gap-3',
+        isAdminActive
+          ? 'text-fg font-semibold'
+          : 'text-fg-muted hover:text-fg hover:bg-white/[0.04]',
+      )}
+    >
+      {isAdminActive && (
+        <>
+          <m.span
+            layoutId="sidebar-active-bg"
             aria-hidden="true"
+            className="bg-bg-elev-2/90 border-brand/35 pointer-events-none absolute inset-0 rounded-lg border shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_2px_8px_rgba(0,0,0,0.3)]"
+            transition={MOTION_PRESETS.layout}
           />
-          {!collapsed && <span className="truncate font-sans">Admin</span>}
-        </Link>
+          <m.span
+            layoutId="sidebar-active-pill"
+            aria-hidden="true"
+            className={cn(
+              'bg-brand pointer-events-none absolute rounded-full shadow-[0_0_10px_rgba(255,54,22,0.7)]',
+              collapsed ? 'left-1 top-2.5 bottom-2.5 w-1' : 'left-1.5 h-4 w-1',
+            )}
+            transition={MOTION_PRESETS.layout}
+          />
+        </>
+      )}
+      <IconShield
+        className={cn(
+          'size-5 shrink-0 transition-colors z-10',
+          isAdminActive ? 'text-brand' : 'text-fg-subtle group-hover:text-fg',
+          isAdminActive && !collapsed && 'ml-0.5',
+        )}
+        strokeWidth={isAdminActive ? 2 : 1.75}
+        aria-hidden="true"
+      />
+      {!collapsed && (
+        <span className="z-10 truncate font-sans text-[13px] tracking-tight">Admin</span>
+      )}
+    </Link>
+  );
+
+  const settingsLink = (
+    <Link
+      href="/settings"
+      prefetch={true}
+      aria-label="Settings"
+      aria-current={isSettingsActive ? 'page' : undefined}
+      className={cn(
+        'group relative flex items-center rounded-lg px-2.5 py-2 text-sm font-medium transition-colors select-none active:translate-y-[0.5px]',
+        collapsed ? 'mx-auto size-10 justify-center p-0' : 'gap-3',
+        isSettingsActive
+          ? 'text-fg font-semibold'
+          : 'text-fg-muted hover:text-fg hover:bg-white/[0.04]',
+      )}
+    >
+      {isSettingsActive && (
+        <>
+          <m.span
+            layoutId="sidebar-active-bg"
+            aria-hidden="true"
+            className="bg-bg-elev-2/90 border-brand/35 pointer-events-none absolute inset-0 rounded-lg border shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_2px_8px_rgba(0,0,0,0.3)]"
+            transition={MOTION_PRESETS.layout}
+          />
+          <m.span
+            layoutId="sidebar-active-pill"
+            aria-hidden="true"
+            className={cn(
+              'bg-brand pointer-events-none absolute rounded-full shadow-[0_0_10px_rgba(255,54,22,0.7)]',
+              collapsed ? 'left-1 top-2.5 bottom-2.5 w-1' : 'left-1.5 h-4 w-1',
+            )}
+            transition={MOTION_PRESETS.layout}
+          />
+        </>
+      )}
+      <IconSettings
+        className={cn(
+          'size-5 shrink-0 transition-colors z-10',
+          isSettingsActive ? 'text-brand' : 'text-fg-subtle group-hover:text-fg',
+          isSettingsActive && !collapsed && 'ml-0.5',
+        )}
+        strokeWidth={isSettingsActive ? 2 : 1.75}
+        aria-hidden="true"
+      />
+      {!collapsed && (
+        <span className="z-10 truncate font-sans text-[13px] tracking-tight">Settings</span>
+      )}
+      {!collapsed && (
+        <kbd
+          aria-hidden="true"
+          className={cn(
+            'text-fg-subtle/70 bg-white/[0.04] border-white/[0.06] z-10 ml-auto rounded border px-1.5 py-0.5 font-mono text-[9px] font-normal tracking-wider transition-opacity',
+            isSettingsActive ? 'opacity-90' : 'opacity-0 group-hover:opacity-100',
+          )}
+        >
+          ⌘,
+        </kbd>
+      )}
+    </Link>
+  );
+
+  const profileAvatar = (
+    <div className="surface-chip bg-bg-elev-2 text-fg border-border/80 relative flex size-8 shrink-0 items-center justify-center rounded-lg border font-mono text-xs font-bold shadow-sm transition-transform active:scale-95">
+      {initial}
+      {/* Live connected status ping */}
+      <span className="absolute -right-0.5 -bottom-0.5 flex size-2.5 items-center justify-center">
+        <span className="bg-bull absolute inline-flex h-full w-full animate-ping rounded-full opacity-60" />
+        <span className="bg-bull ring-card relative inline-flex size-2 rounded-full ring-2" />
+      </span>
+    </div>
+  );
+
+  const logoutButton = (
+    <button
+      type="button"
+      onClick={onLogout}
+      className="text-fg-subtle hover:text-danger hover:bg-danger/10 rounded-md p-1.5 transition-all active:scale-95 active:translate-y-[0.5px]"
+      title="Sign out"
+      aria-label="Sign out"
+    >
+      <IconLogout className="size-4" />
+    </button>
+  );
+
+  return (
+    <div className="border-border/60 flex flex-col gap-1 border-t px-2 pt-2.5">
+      {isAdmin &&
+        (collapsed ? (
+          <Tooltip label="Admin" side="right" className="w-full justify-center">
+            {adminLink}
+          </Tooltip>
+        ) : (
+          adminLink
+        ))}
+
+      {collapsed ? (
+        <Tooltip label="Settings" side="right" shortcut="⌘," className="w-full justify-center">
+          {settingsLink}
+        </Tooltip>
+      ) : (
+        settingsLink
       )}
 
-      <Link
-        href="/settings"
-        prefetch={true}
-        aria-label="Settings"
-        aria-current={pathname.startsWith('/settings') ? 'page' : undefined}
-        className={cn(
-          'group relative flex items-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium transition-all active:translate-y-[0.5px]',
-          pathname.startsWith('/settings')
-            ? 'bg-bg-elev-2 text-fg surface-chip border-brand/40 shadow-sm'
-            : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2/50 border border-transparent',
-        )}
-        title={collapsed ? 'Settings' : undefined}
-      >
-        {pathname.startsWith('/settings') && (
-          <span
-            aria-hidden="true"
-            className="bg-brand absolute left-1 h-3.5 w-1 rounded-full shadow-[0_0_8px_rgba(255,54,22,0.6)]"
-          />
-        )}
-        <IconSettings
-          className={cn(
-            'size-5 shrink-0',
-            pathname.startsWith('/settings') ? 'text-brand' : 'text-fg-subtle group-hover:text-fg',
-            pathname.startsWith('/settings') && 'ml-1',
-          )}
-          aria-hidden="true"
-        />
-        {!collapsed && <span className="truncate font-sans">Settings</span>}
-      </Link>
-
       {/* User profile & Logout */}
-      <div className="mt-1 flex items-center justify-between gap-2 px-2 py-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <div className="surface-chip bg-bg-elev-2 text-fg border-border flex size-7 shrink-0 items-center justify-center rounded-md border font-mono text-xs font-bold shadow-sm">
-            {initial}
-          </div>
+      <div
+        className={cn(
+          'mt-1 flex items-center justify-between rounded-lg p-1.5 transition-colors',
+          collapsed ? 'flex-col gap-2' : 'gap-2 hover:bg-white/[0.02]',
+        )}
+      >
+        <Link
+          href="/settings"
+          prefetch={true}
+          className="group flex min-w-0 items-center gap-2.5 overflow-hidden"
+          aria-label="View profile settings"
+        >
+          {collapsed ? (
+            <Tooltip
+              label={`${userName || 'Trader'} (Connected)`}
+              side="right"
+              className="w-full justify-center"
+            >
+              {profileAvatar}
+            </Tooltip>
+          ) : (
+            profileAvatar
+          )}
+
           {!collapsed && (
             <div className="flex min-w-0 flex-col">
-              <span className="text-fg truncate font-sans text-xs font-medium">
+              <span className="text-fg group-hover:text-brand truncate font-sans text-xs font-medium transition-colors">
                 {userName || 'Trader'}
               </span>
-              <span className="text-fg-subtle text-caption truncate font-mono">
+              <span className="text-fg-subtle text-caption truncate font-mono text-[11px]">
                 {userEmail || ''}
               </span>
             </div>
           )}
-        </div>
+        </Link>
 
-        <button
-          type="button"
-          onClick={onLogout}
-          className="text-fg-subtle hover:text-danger rounded-md p-1 transition-colors active:translate-y-[0.5px]"
-          title="Sign out"
-          aria-label="Sign out"
-        >
-          <IconLogout className="size-4" />
-        </button>
+        {collapsed ? (
+          <Tooltip label="Sign out" side="right" className="w-full justify-center">
+            {logoutButton}
+          </Tooltip>
+        ) : (
+          logoutButton
+        )}
       </div>
     </div>
   );

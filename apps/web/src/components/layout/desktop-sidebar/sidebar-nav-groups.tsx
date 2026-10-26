@@ -4,9 +4,12 @@
 
 // Primary + plugin nav groups for the desktop sidebar.
 import { pluginUiRegistry } from '@kestrel/plugin-sdk/ui';
+import { m } from 'motion/react';
 import { Link } from 'next-view-transitions';
 
 import { pluginIcon } from '@/components/plugins/plugin-icon';
+import { MOTION_PRESETS } from '@/components/ui/motion-config';
+import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/formatters/cn';
 
 import '@/lib/plugins/register-ui';
@@ -31,7 +34,8 @@ export function SidebarNavGroups({
         {PRIMARY_NAV_ITEMS.map((item) => {
           const active = isNavItemActive(item, pathname);
           const Icon = item.icon;
-          return (
+
+          const content = (
             <Link
               key={item.href}
               href={item.href}
@@ -39,33 +43,76 @@ export function SidebarNavGroups({
               aria-label={item.label}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'group relative flex items-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium transition-all active:translate-y-[0.5px]',
+                'group relative flex items-center rounded-lg px-2.5 py-2 text-sm font-medium transition-colors select-none active:translate-y-[0.5px]',
+                collapsed ? 'mx-auto size-10 justify-center p-0' : 'gap-3',
                 active
-                  ? 'bg-bg-elev-2 text-fg surface-chip border-brand/40 shadow-sm'
-                  : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2/50 border border-transparent',
+                  ? 'text-fg font-semibold'
+                  : 'text-fg-muted hover:text-fg hover:bg-white/[0.04]',
               )}
-              title={collapsed ? item.label : undefined}
             >
               {active && (
-                <span
-                  aria-hidden="true"
-                  className="bg-brand absolute left-1 h-3.5 w-1 rounded-full shadow-[0_0_8px_rgba(255,54,22,0.6)]"
-                />
+                <>
+                  {/* Fluid sliding background pill */}
+                  <m.span
+                    layoutId="sidebar-active-bg"
+                    aria-hidden="true"
+                    className="bg-bg-elev-2/90 border-brand/35 pointer-events-none absolute inset-0 rounded-lg border shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_2px_8px_rgba(0,0,0,0.3)]"
+                    transition={MOTION_PRESETS.layout}
+                  />
+                  {/* Fluid sliding neon brand indicator */}
+                  <m.span
+                    layoutId="sidebar-active-pill"
+                    aria-hidden="true"
+                    className={cn(
+                      'bg-brand pointer-events-none absolute rounded-full shadow-[0_0_10px_rgba(255,54,22,0.7)]',
+                      collapsed
+                        ? 'left-1 top-2.5 bottom-2.5 w-1'
+                        : 'left-1.5 h-4 w-1',
+                    )}
+                    transition={MOTION_PRESETS.layout}
+                  />
+                </>
               )}
               <Icon
                 className={cn(
-                  'size-5 shrink-0 transition-colors',
+                  'size-5 shrink-0 transition-colors z-10',
                   active ? 'text-brand' : 'text-fg-subtle group-hover:text-fg',
-                  active && 'ml-1',
+                  active && !collapsed && 'ml-0.5',
                 )}
+                strokeWidth={active ? 2 : 1.75}
                 aria-hidden="true"
               />
               {!collapsed && (
-                <span className={cn('truncate font-sans', active && 'font-medium')}>
+                <span className="z-10 truncate font-sans text-[13px] tracking-tight">
                   {item.label}
                 </span>
               )}
+              {!collapsed && item.shortcut && (
+                <kbd
+                  aria-hidden="true"
+                  className={cn(
+                    'text-fg-subtle/70 bg-white/[0.04] border-white/[0.06] z-10 ml-auto rounded border px-1.5 py-0.5 font-mono text-[9px] font-normal tracking-wider transition-opacity',
+                    active ? 'opacity-90' : 'opacity-0 group-hover:opacity-100',
+                  )}
+                >
+                  {item.shortcut}
+                </kbd>
+              )}
             </Link>
+          );
+
+          return collapsed ? (
+            <Tooltip
+              key={item.href}
+              label={item.label}
+              side="right"
+              shortcut={item.shortcut}
+              className="w-full justify-center"
+            >
+              {content}
+            </Tooltip>
+          ) : (
+            content
           );
         })}
       </nav>
@@ -73,7 +120,7 @@ export function SidebarNavGroups({
       {pluginNavItems.length > 0 ? (
         <nav className="flex flex-col gap-1" aria-label="Plugin navigation">
           {!collapsed ? (
-            <p className="text-fg-subtle px-2.5 pt-2 pb-0.5 text-[10px] font-semibold tracking-wider uppercase">
+            <p className="text-fg-subtle px-2.5 pt-3 pb-1 text-[10px] font-semibold tracking-wider uppercase">
               Plugins
             </p>
           ) : (
@@ -85,7 +132,8 @@ export function SidebarNavGroups({
             const active = candidates.some(
               (path) => pathname === path || pathname.startsWith(`${path}/`),
             );
-            return (
+
+            const content = (
               <Link
                 key={`${pluginId}:${item.href}`}
                 href={item.href}
@@ -93,29 +141,62 @@ export function SidebarNavGroups({
                 aria-label={item.label}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'group relative flex items-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium transition-all active:translate-y-[0.5px]',
+                  'group relative flex items-center rounded-lg px-2.5 py-2 text-sm font-medium transition-colors select-none active:translate-y-[0.5px]',
+                  collapsed ? 'mx-auto size-10 justify-center p-0' : 'gap-3',
                   active
-                    ? 'bg-bg-elev-2 text-fg surface-chip border-brand/40 shadow-sm'
-                    : 'text-fg-muted hover:text-fg hover:bg-bg-elev-2/50 border border-transparent',
+                    ? 'text-fg font-semibold'
+                    : 'text-fg-muted hover:text-fg hover:bg-white/[0.04]',
                 )}
-                title={collapsed ? item.label : undefined}
               >
                 {active && (
-                  <span
-                    aria-hidden="true"
-                    className="bg-brand absolute left-1 h-3.5 w-1 rounded-full shadow-[0_0_8px_rgba(255,54,22,0.6)]"
-                  />
+                  <>
+                    <m.span
+                      layoutId="sidebar-active-bg"
+                      aria-hidden="true"
+                      className="bg-bg-elev-2/90 border-brand/35 pointer-events-none absolute inset-0 rounded-lg border shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_2px_8px_rgba(0,0,0,0.3)]"
+                      transition={MOTION_PRESETS.layout}
+                    />
+                    <m.span
+                      layoutId="sidebar-active-pill"
+                      aria-hidden="true"
+                      className={cn(
+                        'bg-brand pointer-events-none absolute rounded-full shadow-[0_0_10px_rgba(255,54,22,0.7)]',
+                        collapsed
+                          ? 'left-1 top-2.5 bottom-2.5 w-1'
+                          : 'left-1.5 h-4 w-1',
+                      )}
+                      transition={MOTION_PRESETS.layout}
+                    />
+                  </>
                 )}
                 <Icon
                   className={cn(
-                    'size-5 shrink-0 transition-colors',
+                    'size-5 shrink-0 transition-colors z-10',
                     active ? 'text-brand' : 'text-fg-subtle group-hover:text-fg',
-                    active && 'ml-1',
+                    active && !collapsed && 'ml-0.5',
                   )}
+                  strokeWidth={active ? 2 : 1.75}
                   aria-hidden="true"
                 />
-                {!collapsed && <span className="truncate font-sans">{item.label}</span>}
+                {!collapsed && (
+                  <span className="z-10 truncate font-sans text-[13px] tracking-tight">
+                    {item.label}
+                  </span>
+                )}
               </Link>
+            );
+
+            return collapsed ? (
+              <Tooltip
+                key={`${pluginId}:${item.href}`}
+                label={item.label}
+                side="right"
+                className="w-full justify-center"
+              >
+                {content}
+              </Tooltip>
+            ) : (
+              content
             );
           })}
         </nav>
