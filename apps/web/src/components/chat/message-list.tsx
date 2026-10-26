@@ -49,6 +49,7 @@ interface MessageListProps {
   isStreaming?: boolean;
   showTypingIndicator?: boolean;
   agentProgress?: AgentProgress | null;
+  analysisMode?: string;
   scrollElement?: HTMLDivElement | null;
   /** Index of the last assistant message — gets the regenerate affordance. */
   lastAssistantId?: string;
@@ -70,6 +71,7 @@ export const MessageList = memo(function MessageList({
   isStreaming,
   showTypingIndicator,
   agentProgress,
+  analysisMode,
   scrollElement,
   lastAssistantId,
   onCopy,
@@ -176,7 +178,10 @@ export const MessageList = memo(function MessageList({
                     />
                   </div>
                 ) : (
-                  <PixelDeskThinking agentProgress={agentProgress} />
+                  <PixelDeskThinking
+                    agentProgress={agentProgress}
+                    fallbackMode={analysisMode}
+                  />
                 )}
               </div>
             </div>

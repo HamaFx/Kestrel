@@ -119,6 +119,7 @@ export function ChatThreadView({
               isStreaming={isStreaming}
               showTypingIndicator={status === 'submitted'}
               agentProgress={showAgentOpinions ? agentProgress : null}
+              analysisMode={analysisMode}
               scrollElement={scrollElement}
               lastAssistantId={lastAssistantId}
               onCopy={onCopy}
