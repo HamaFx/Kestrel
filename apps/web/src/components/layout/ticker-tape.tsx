@@ -122,8 +122,10 @@ export function TickerTape() {
       ) : (
         <span
           className={cn(
-            'rounded-xs px-1 text-xs font-semibold tabular-nums',
-            item.isBull ? 'text-bull bg-bull/10' : 'text-bear bg-bear/10',
+            'rounded-xs px-1.5 py-0.5 text-xs font-semibold tabular-nums transition-colors',
+            item.isBull
+              ? 'text-bull bg-bull/15 ring-1 ring-bull/30 shadow-[0_0_8px_rgba(63,158,61,0.15)]'
+              : 'text-bear bg-bear/15 ring-1 ring-bear/30 shadow-[0_0_8px_rgba(224,44,16,0.15)]',
           )}
         >
           {item.isBull ? '▲' : '▼'} {item.changeStr}

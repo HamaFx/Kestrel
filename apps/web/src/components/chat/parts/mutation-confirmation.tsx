@@ -31,6 +31,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { HoldToExecuteButton } from '@/components/ui/hold-to-execute-button';
 import { apiMutate } from '@/lib/http/api-client';
 
 const KIND_LABELS: Record<MutationDraftPayload['mutation'], string> = {
@@ -115,14 +116,14 @@ export function MutationConfirmationCard({ payload }: { payload: MutationDraftPa
 
   if (state.phase === 'confirmed') {
     return (
-      <Card as="section" className="rounded-xl border border-emerald-500/30 bg-[#111114] p-4 shadow-sm" aria-label="Mutation confirmed">
+      <Card as="section" className="rounded-xl border border-emerald-500/30 bg-bg-elev-1 p-4 shadow-sm" aria-label="Mutation confirmed">
         <div className="flex items-start gap-2.5">
           <IconCheck className="mt-0.5 size-4.5 shrink-0 text-emerald-400" aria-hidden />
           <div className="min-w-0 flex-1 font-mono">
             <div className="text-[11px] font-semibold text-emerald-400 uppercase">
               {KIND_LABELS[payload.mutation]} Confirmed & Executed
             </div>
-            <div className="mt-1 font-sans text-sm text-[#F4F1EA] break-words">{state.summary}</div>
+            <div className="mt-1 font-sans text-sm text-fg break-words">{state.summary}</div>
           </div>
         </div>
       </Card>
@@ -131,12 +132,12 @@ export function MutationConfirmationCard({ payload }: { payload: MutationDraftPa
 
   if (state.phase === 'declined') {
     return (
-      <Card as="section" className="rounded-xl border border-rose-500/30 bg-[#111114] p-4 shadow-sm" aria-label="Mutation declined">
+      <Card as="section" className="rounded-xl border border-rose-500/30 bg-bg-elev-1 p-4 shadow-sm" aria-label="Mutation declined">
         <div className="flex items-start gap-2.5">
           <IconX className="mt-0.5 size-4.5 shrink-0 text-rose-400" aria-hidden />
           <div className="min-w-0 flex-1 font-mono">
             <div className="text-[11px] font-semibold text-rose-400 uppercase">Directive Cancelled</div>
-            <div className="mt-1 font-sans text-sm text-[#F4F1EA]/70">
+            <div className="mt-1 font-sans text-sm text-fg-muted">
               The {(KIND_LABELS[payload.mutation] ?? 'mutation').toLowerCase()} was cancelled. Nothing was modified.
             </div>
           </div>
@@ -150,46 +151,46 @@ export function MutationConfirmationCard({ payload }: { payload: MutationDraftPa
   return (
     <Card
       as="section"
-      className="rounded-xl border border-[#D4AF37]/40 bg-[#111114] p-4 shadow-md transition-all sm:p-5"
+      className="surface-card rounded-xl border border-brand/40 bg-bg-elev-1 p-4 shadow-md transition-all sm:p-5"
       aria-label={`${KIND_LABELS[payload.mutation]} confirmation`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F4F1EA]/10 pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-3">
         <div className="flex items-center gap-2">
-          <IconLock className="size-4 text-[#D4AF37]" />
-          <span className="font-mono text-[11px] font-semibold tracking-wider text-[#D4AF37] uppercase">
+          <IconLock className="size-4 text-brand" />
+          <span className="font-mono text-[11px] font-semibold tracking-wider text-brand uppercase">
             HOPLITE EXECUTION GATE // REQUIRES OPERATOR APPROVAL
           </span>
         </div>
-        <span className="font-mono text-[10px] text-[#F4F1EA]/50 uppercase">
+        <span className="font-mono text-[10px] text-fg-subtle uppercase">
           {expired ? 'EXPIRED' : `TTL: ~${remainingMin}m`}
         </span>
       </div>
 
       <div className="mt-3 flex items-start gap-3">
-        <div className="rounded-lg border border-[#F4F1EA]/10 bg-[#16161A] p-2 text-[#D4AF37]">
+        <div className="rounded-lg border border-border/60 bg-bg-elev-2 p-2 text-brand">
           <KindIcon className="size-5" aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="font-mono text-[11px] font-semibold text-[#F4F1EA]/50 uppercase">
+          <div className="font-mono text-[11px] font-semibold text-fg-subtle uppercase">
             {KIND_LABELS[payload.mutation]} Mutation Request
           </div>
-          <div className="mt-0.5 font-sans text-sm font-medium text-[#F4F1EA] break-words">
+          <div className="mt-0.5 font-sans text-sm font-medium text-fg break-words">
             {payload.summary}
           </div>
         </div>
       </div>
 
-      <div className="mt-3 overflow-hidden rounded-lg border border-[#F4F1EA]/10 bg-[#09090B] font-mono text-[11px]">
-        <div className="grid grid-cols-3 border-b border-[#F4F1EA]/10 bg-[#16161A] px-3 py-1.5 text-[10px] font-semibold text-[#D4AF37] uppercase">
+      <div className="mt-3 overflow-hidden rounded-lg border border-border/60 bg-bg-elev-2 font-mono text-[11px]">
+        <div className="grid grid-cols-3 border-b border-border/40 bg-bg-elev-3 px-3 py-1.5 text-[10px] font-semibold text-brand uppercase">
           <span>Directive</span>
           <span className="col-span-2">Execution Payload</span>
         </div>
-        <div className="grid grid-cols-3 px-3 py-2 text-[#F4F1EA]/80">
-          <span className="text-[#F4F1EA]/50">Action</span>
-          <span className="col-span-2 font-semibold text-[#F4F1EA]">{payload.mutation}</span>
+        <div className="grid grid-cols-3 px-3 py-2 text-fg/80">
+          <span className="text-fg-subtle">Action</span>
+          <span className="col-span-2 font-semibold text-fg">{payload.mutation}</span>
         </div>
-        <div className="grid grid-cols-3 border-t border-[#F4F1EA]/5 px-3 py-2 text-[#F4F1EA]/80">
-          <span className="text-[#F4F1EA]/50">Run ID</span>
+        <div className="grid grid-cols-3 border-t border-border/20 px-3 py-2 text-fg/80">
+          <span className="text-fg-subtle">Run ID</span>
           <span className="col-span-2 truncate">{payload.runId}</span>
         </div>
       </div>
@@ -201,22 +202,21 @@ export function MutationConfirmationCard({ payload }: { payload: MutationDraftPa
       )}
 
       <div className="mt-4 flex flex-wrap items-center gap-2.5">
-        <Button
+        <HoldToExecuteButton
           size="sm"
-          onClick={confirm}
+          onExecute={confirm}
           disabled={state.phase === 'confirming' || expired}
-          className="min-h-[44px] min-w-[44px] border border-[#D4AF37] bg-[#D4AF37] font-mono text-xs font-semibold tracking-wider text-[#09090B] hover:bg-[#F4F1EA]"
-        >
-          {state.phase === 'confirming'
-            ? 'Confirming…'
-            : (payload.confirmLabel ?? `Confirm ${KIND_LABELS[payload.mutation]}`)}
-        </Button>
+          label={payload.confirmLabel ?? `Hold to Confirm ${KIND_LABELS[payload.mutation]}`}
+          executingLabel="Confirming…"
+          completedLabel="Confirmed"
+          variant="brand"
+        />
         <Button
           size="sm"
           variant="secondary"
           onClick={decline}
           disabled={state.phase === 'confirming'}
-          className="min-h-[44px] min-w-[44px] border border-[#F4F1EA]/10 bg-[#16161A] font-mono text-xs text-[#F4F1EA] hover:border-rose-500/40 hover:text-rose-400"
+          className="min-h-[44px] min-w-[44px] border border-border bg-bg-elev-2 font-mono text-xs text-fg hover:border-rose-500/40 hover:text-rose-400"
         >
           {payload.cancelLabel ?? 'Cancel'}
         </Button>

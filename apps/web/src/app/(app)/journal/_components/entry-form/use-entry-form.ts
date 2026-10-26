@@ -150,8 +150,8 @@ export function useEntryForm({ onCreated }: UseEntryFormArgs) {
     setScreenshotUrl(null);
   }
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function submit(e?: React.FormEvent) {
+    e?.preventDefault?.();
     setBusy(true);
     setError(null);
 

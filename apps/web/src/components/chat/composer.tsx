@@ -92,11 +92,14 @@ export const Composer = memo(function Composer({
       : undefined;
 
   return (
-    <div className="message-composer-safe-bottom sticky bottom-0 z-20 mx-auto w-full pb-[max(env(safe-area-inset-bottom),12px)]">
+    <div className="message-composer-safe-bottom sticky bottom-0 z-20 mx-auto w-full px-2 pb-[max(env(safe-area-inset-bottom),12px)] sm:px-4">
       <form
         className={cn(
-          'relative z-10 flex w-full flex-col gap-1.5 rounded-xl border border-[#F4F1EA]/20 bg-[#111114] p-2.5 shadow-md transition-colors duration-150 focus-within:border-[#D4AF37]',
-          dragOver && 'border-[#D4AF37] ring-2 ring-[#D4AF37]/40',
+          'relative z-10 flex w-full flex-col gap-2 rounded-2xl border border-white/[0.08] bg-[#141416]/85 p-3 backdrop-blur-xl transition-all duration-200',
+          'shadow-[0_8px_32px_-8px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.08)]',
+          'focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/20',
+          focused && 'border-brand/50 ring-2 ring-brand/20',
+          dragOver && 'border-brand ring-2 ring-brand/40',
         )}
         onSubmit={(e) => {
           e.preventDefault();
@@ -110,26 +113,36 @@ export const Composer = memo(function Composer({
         onDrop={handleDrop}
       >
         {/* Scope Boundary Strip */}
-        <div className="flex flex-wrap items-center justify-between gap-1.5 border-b border-[#F4F1EA]/10 px-1 pb-1.5 font-mono text-[11px]">
+        <div className="flex flex-wrap items-center justify-between gap-1.5 border-b border-border/40 px-1 pb-2 font-mono text-[11px]">
           <button
             type="button"
             onClick={() => onAnalysisModeChange?.(analysisMode === 'full' ? 'single' : 'full')}
-            className="inline-flex items-center gap-1.5 rounded border border-[#F4F1EA]/10 bg-[#09090B] px-2 py-0.5 text-[#D4AF37] transition-colors hover:border-[#D4AF37]/40"
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all select-none',
+              analysisMode === 'full'
+                ? 'border-brand/40 bg-brand/10 text-brand shadow-[0_0_12px_rgba(255,54,22,0.15)]'
+                : 'border-border/60 bg-bg-elev-2 text-fg-muted hover:text-fg hover:border-border',
+            )}
             title="Click to toggle analysis mode"
           >
-            <span className={cn('size-1.5 rounded-full', analysisMode === 'full' ? 'bg-[#D4AF37]' : 'bg-[#7DD3FC]')} />
+            <span
+              className={cn(
+                'size-1.5 rounded-full',
+                analysisMode === 'full' ? 'bg-brand animate-pulse' : 'bg-bull',
+              )}
+            />
             <span>
               {analysisMode === 'full' ? 'SCOPE: FULL COUNCIL (4 DESKS)' : 'SCOPE: SINGLE DESK'}
             </span>
           </button>
 
-          <div className="flex items-center gap-2 text-[10px] text-[#F4F1EA]/50">
+          <div className="flex items-center gap-2 text-[10px] text-fg-subtle">
             <span className="hidden sm:inline-flex items-center gap-1">
-              <span className="size-1 rounded-full bg-emerald-400" />
+              <span className="size-1 rounded-full bg-bull" />
               <span>GATE: HUMAN-APPROVAL ENFORCED</span>
             </span>
             <span className="hidden md:inline-flex items-center gap-1">
-              <span className="size-1 rounded-full bg-[#D4AF37]" />
+              <span className="size-1 rounded-full bg-brand" />
               <span>LEDGER: FULL TRACE</span>
             </span>
           </div>

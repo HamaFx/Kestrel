@@ -39,15 +39,15 @@ export function VerdictSummary({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
       aria-label={`Desk verdict: ${dissent ? 'mixed' : primaryBias}, ${avgConfidence}% confidence`}
-      className="flex flex-col gap-4 rounded-xl border border-[#F4F1EA]/10 bg-[#111114] p-4 shadow-sm sm:p-5"
+      className="surface-card flex flex-col gap-4 rounded-xl border border-border/40 bg-bg-elev-1 p-4 shadow-sm sm:p-5"
     >
       {/* ── Conviction & Distribution Bar ── */}
-      <div className="flex flex-col gap-2 rounded-lg border border-[#F4F1EA]/5 bg-[#09090B] p-3">
+      <div className="flex flex-col gap-2 rounded-lg border border-border/30 bg-bg-elev-2 p-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-[#F4F1EA]">Committee Conviction</span>
-          <span className="font-mono text-xs font-bold tabular-nums text-[#D4AF37]">{avgConfidence}%</span>
+          <span className="text-xs font-semibold text-fg">Committee Conviction</span>
+          <span className="font-mono text-xs font-bold tabular-nums text-brand">{avgConfidence}%</span>
         </div>
-        <div className="h-1.5 w-full overflow-hidden rounded-sm bg-[#16161A]">
+        <div className="h-1.5 w-full overflow-hidden rounded-sm bg-bg-elev-3">
           <m.div
             className={cn('h-full rounded-sm', confidenceTone)}
             initial={{ width: 0 }}
@@ -84,11 +84,11 @@ export function VerdictSummary({
             return (
               <div
                 key={a.agentName}
-                className="group relative flex flex-col justify-between rounded-xl border border-[#F4F1EA]/10 bg-[#16161A] p-3.5 transition-all hover:border-[#D4AF37]/30"
+                className="group relative flex flex-col justify-between rounded-xl border border-border/40 bg-bg-elev-2 p-3.5 transition-all hover:border-brand/40"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-[9px] font-semibold tracking-wider text-[#D4AF37] uppercase">
+                    <span className="font-mono text-[9px] font-semibold tracking-wider text-brand uppercase">
                       {meta.code ?? 'DESK // SPECIALIST'}
                     </span>
                     <span className={cn('rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase border', pillStyle)}>
@@ -98,15 +98,15 @@ export function VerdictSummary({
 
                   <div className="mt-1 flex items-center gap-1.5">
                     <span className={cn('size-2 rounded-full', isBull ? 'bg-emerald-400' : isBear ? 'bg-rose-400' : 'bg-amber-400')} />
-                    <span className="text-xs font-semibold text-[#F4F1EA]">{meta.label} Desk</span>
+                    <span className="text-xs font-semibold text-fg">{meta.label} Desk</span>
                   </div>
 
                   <div className="mt-2 flex flex-col gap-0.5">
-                    <div className="flex items-center justify-between font-mono text-[9px] text-[#F4F1EA]/50">
+                    <div className="flex items-center justify-between font-mono text-[9px] text-fg-subtle">
                       <span>CONFIDENCE</span>
-                      <span className="font-semibold tabular-nums text-[#F4F1EA]">{opPct}%</span>
+                      <span className="font-semibold tabular-nums text-fg">{opPct}%</span>
                     </div>
-                    <div className="h-0.5 w-full overflow-hidden rounded-full bg-[#111114]">
+                    <div className="h-0.5 w-full overflow-hidden rounded-full bg-bg-elev-1">
                       <div
                         className={cn('h-full', isBull ? 'bg-emerald-400' : isBear ? 'bg-rose-400' : 'bg-amber-400')}
                         style={{ width: `${opPct}%` }}
@@ -114,7 +114,7 @@ export function VerdictSummary({
                     </div>
                   </div>
 
-                  <p className="mt-2.5 font-serif text-sm italic text-[#F4F1EA] leading-relaxed">
+                  <p className="mt-2.5 font-serif text-sm italic text-fg leading-relaxed">
                     &ldquo;{meta.epithet ?? op.summary}&rdquo;
                   </p>
                 </div>
@@ -127,22 +127,22 @@ export function VerdictSummary({
       {/* ── Expandable Specialist Breakdowns (test contract + deep inspection) ── */}
       {opinions.length > 0 && (
         <details className="group/details mt-0.5">
-          <summary className="cursor-pointer text-xs font-medium text-[#F4F1EA]/60 select-none hover:text-[#F4F1EA]">
+          <summary className="cursor-pointer text-xs font-medium text-fg-muted select-none hover:text-fg">
             View Specialist Breakdowns
           </summary>
-          <div className="mt-2 flex flex-col gap-2 border-t border-[#F4F1EA]/10 pt-2">
+          <div className="mt-2 flex flex-col gap-2 border-t border-border/30 pt-2">
             {opinions.map((a) => {
               const meta = AGENT_META[a.agentName] ?? FALLBACK_META;
               const op = a.opinion!;
               return (
-                <div key={a.agentName} className="rounded-md border border-[#F4F1EA]/10 bg-[#09090B] p-2.5">
+                <div key={a.agentName} className="rounded-md border border-border/40 bg-bg-elev-2 p-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-[#F4F1EA]">{meta.label} Desk</span>
+                    <span className="text-xs font-semibold text-fg">{meta.label} Desk</span>
                     <span className={cn('font-mono text-xs font-bold uppercase tabular-nums', BIAS_TOKEN[op.bias])}>
                       {op.bias} · {Math.round(op.confidence * 100)}%
                     </span>
                   </div>
-                  <p className="mt-1 text-xs leading-relaxed text-[#F4F1EA]/70">
+                  <p className="mt-1 text-xs leading-relaxed text-fg-muted">
                     {op.reasoning ?? op.summary}
                   </p>
                 </div>
@@ -153,24 +153,24 @@ export function VerdictSummary({
       )}
 
       {/* ── Arbiter Synthesis Verdict Block ── */}
-      <div className="rounded-xl border-t border-[#D4AF37]/30 bg-gradient-to-b from-[#16161A] to-[#111114] p-5 shadow-md">
-        <div className="flex items-center justify-between border-b border-[#D4AF37]/20 pb-2.5">
+      <div className="rounded-xl border-t border-brand/40 bg-gradient-to-b from-bg-elev-2 to-bg-elev-1 p-5 shadow-md">
+        <div className="flex items-center justify-between border-b border-brand/20 pb-2.5">
           <div className="flex items-center gap-2">
-            <span className="size-2 animate-pulse rounded-full bg-[#D4AF37]" />
-            <span className="font-mono text-xs font-bold tracking-wider text-[#D4AF37] uppercase">
+            <span className="size-2 animate-pulse rounded-full bg-brand" />
+            <span className="font-mono text-xs font-bold tracking-wider text-brand uppercase">
               STAGE II // ARBITER SYNTHESIS VERDICT
             </span>
           </div>
-          <span className="font-mono text-[11px] text-[#F4F1EA]/60">
+          <span className="font-mono text-[11px] text-fg-subtle">
             ALIGNMENT: {avgConfidence}%
           </span>
         </div>
 
         <div className="mt-3">
-          <h4 className="font-serif text-xl italic text-[#F4F1EA]">
+          <h4 className="font-serif text-xl italic text-fg">
             {dissent ? 'Mixed Syndicate Signals: Proceed with Qualified Sizing' : `Unified ${primaryBias.toUpperCase()} Synthesis`}
           </h4>
-          <p className="mt-1.5 text-xs leading-relaxed text-[#F4F1EA]/80 sm:text-sm">
+          <p className="mt-1.5 text-xs leading-relaxed text-fg-muted sm:text-sm">
             {dissent
               ? 'Dissenting viewpoints detected between technical and macro models. Risk desk caps exposure to 0.5% allocation until break of structure confirms alignment.'
               : `Strong alignment across all active desks confirms ${primaryBias} regime. Execution protocols active with standard 1.0% risk parameter.`}

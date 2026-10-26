@@ -29,16 +29,16 @@ export function VerdictCard({ verdict }: { verdict: CommitteeVerdict }) {
   return (
     <details
       open
-      className="group rounded-xl border border-[#F4F1EA]/10 bg-[#111114] p-3.5 shadow-sm transition-all hover:border-[#D4AF37]/30 [&_summary::-webkit-details-marker]:hidden"
+      className="group surface-card rounded-xl border border-border/40 bg-bg-elev-1 p-3.5 shadow-sm transition-all hover:border-brand/40 [&_summary::-webkit-details-marker]:hidden"
     >
       <summary className="flex cursor-pointer items-center justify-between rounded-lg outline-none select-none">
         <div className="flex flex-col gap-0.5">
-          <span className="font-mono text-[9px] font-semibold tracking-wider text-[#D4AF37] uppercase">
+          <span className="font-mono text-[9px] font-semibold tracking-wider text-brand uppercase">
             {meta.code}
           </span>
           <div className="flex items-center gap-1.5">
-            <Icon className="size-4 text-[#F4F1EA]/70" />
-            <span className="text-xs font-semibold text-[#F4F1EA]">{meta.label}</span>
+            <Icon className="size-4 text-fg-muted" />
+            <span className="text-xs font-semibold text-fg">{meta.label}</span>
           </div>
         </div>
 
@@ -46,17 +46,17 @@ export function VerdictCard({ verdict }: { verdict: CommitteeVerdict }) {
           <span className={`rounded-md border px-2 py-0.5 font-mono text-[11px] font-semibold uppercase ${stancePillStyle}`}>
             {verdict.verdict}
           </span>
-          <IconChevronDown className="size-3.5 text-[#F4F1EA]/40 transition-transform group-open:rotate-180" />
+          <IconChevronDown className="size-3.5 text-fg-subtle transition-transform group-open:rotate-180" />
         </div>
       </summary>
 
       {/* Confidence meter */}
       <div className="mt-2.5 flex flex-col gap-1">
-        <div className="flex items-center justify-between font-mono text-[10px] text-[#F4F1EA]/60">
+        <div className="flex items-center justify-between font-mono text-[10px] text-fg-subtle">
           <span>CONFIDENCE</span>
-          <span className="font-semibold tabular-nums text-[#F4F1EA]">{confidencePct}%</span>
+          <span className="font-semibold tabular-nums text-fg">{confidencePct}%</span>
         </div>
-        <div className="h-0.5 w-full overflow-hidden rounded-full bg-[#16161A]">
+        <div className="h-0.5 w-full overflow-hidden rounded-full bg-bg-elev-2">
           <div
             className={`h-full rounded-full ${isBull ? 'bg-emerald-400' : isBear ? 'bg-rose-400' : 'bg-amber-400'}`}
             style={{ width: `${confidencePct}%` }}
@@ -65,17 +65,17 @@ export function VerdictCard({ verdict }: { verdict: CommitteeVerdict }) {
       </div>
 
       {/* Thesis Headline */}
-      <div className="mt-2.5 font-serif text-sm italic text-[#F4F1EA]">
+      <div className="mt-2.5 font-serif text-sm italic text-fg">
         &ldquo;{verdict.recommendation}&rdquo;
       </div>
 
-      <div className="mt-2 space-y-2 border-t border-[#F4F1EA]/10 pt-2 text-xs">
+      <div className="mt-2 space-y-2 border-t border-border/30 pt-2 text-xs">
         {verdict.keyPoints.length > 0 && (
           <div>
-            <span className="font-mono text-[10px] font-semibold tracking-wider text-[#D4AF37] uppercase">
+            <span className="font-mono text-[10px] font-semibold tracking-wider text-brand uppercase">
               Key Evidence:
             </span>
-            <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs leading-relaxed text-[#F4F1EA]/80">
+            <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs leading-relaxed text-fg/80">
               {verdict.keyPoints.map((kp, i) => (
                 <li key={i}>{kp}</li>
               ))}
@@ -83,16 +83,16 @@ export function VerdictCard({ verdict }: { verdict: CommitteeVerdict }) {
           </div>
         )}
 
-        <div className="rounded-lg border border-[#F4F1EA]/5 bg-[#09090B] p-2">
+        <div className="rounded-lg border border-border/30 bg-bg-elev-2 p-2">
           <span className="font-mono text-[10px] font-semibold tracking-wider text-rose-400 uppercase">
             Primary Invalidation Risk
           </span>
-          <p className="mt-0.5 text-xs text-[#F4F1EA]/70">{verdict.risk}</p>
+          <p className="mt-0.5 text-xs text-fg-muted">{verdict.risk}</p>
         </div>
 
         {verdict.sources && verdict.sources.length > 0 && (
           <div className="pt-1">
-            <span className="flex items-center gap-1 font-mono text-[10px] font-semibold text-[#F4F1EA]/50 uppercase">
+            <span className="flex items-center gap-1 font-mono text-[10px] font-semibold text-fg-subtle uppercase">
               <LinkIcon className="size-3" /> Sources
             </span>
             <ul className="mt-1 flex flex-wrap gap-1.5">
@@ -116,12 +116,12 @@ export function VerdictCard({ verdict }: { verdict: CommitteeVerdict }) {
                         href={href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="rounded border border-[#F4F1EA]/10 bg-[#16161A] px-1.5 py-0.5 font-mono text-[10px] text-[#F4F1EA]/80 hover:text-[#D4AF37]"
+                        className="rounded border border-border/40 bg-bg-elev-2 px-1.5 py-0.5 font-mono text-[10px] text-fg/80 hover:text-brand"
                       >
                         {host}
                       </a>
                     ) : (
-                      <span className="rounded border border-[#F4F1EA]/10 bg-[#16161A] px-1.5 py-0.5 font-mono text-[10px] text-[#F4F1EA]/60">
+                      <span className="rounded border border-border/40 bg-bg-elev-2 px-1.5 py-0.5 font-mono text-[10px] text-fg-subtle">
                         {src}
                       </span>
                     )}

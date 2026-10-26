@@ -30,11 +30,25 @@ interface MotionRootProps {
   children: ReactNode;
 }
 
+/**
+ * Emil Kowalski 4-tier motion presets for Kestrel.
+ * Micro: <120ms (keys, toggles, chips)
+ * Panel: ~240ms (drawers, modals, popovers, composer)
+ * Layout: ~200ms (FLIP tab indicators, reordering)
+ * Delight: ~380ms (confirmations, milestones)
+ */
+export const MOTION_PRESETS = {
+  micro: { type: 'spring', stiffness: 650, damping: 38, mass: 0.8 },
+  panel: { type: 'spring', stiffness: 420, damping: 30, mass: 1 },
+  layout: { type: 'spring', stiffness: 350, damping: 32, mass: 1 },
+  delight: { type: 'spring', stiffness: 280, damping: 18, mass: 1 },
+} as const;
+
 export function MotionRoot({ children }: MotionRootProps) {
   return (
     <LazyMotion features={domAnimation} strict>
       <MotionConfig
-        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+        transition={MOTION_PRESETS.panel}
         reducedMotion="user"
       >
         {children}

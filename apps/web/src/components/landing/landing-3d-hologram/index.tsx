@@ -60,7 +60,7 @@ export function Landing3DHologram({ className }: Props) {
     <div
       ref={containerRef}
       className={cn(
-        'relative mx-auto aspect-square w-full max-w-[420px] cursor-grab touch-pan-y select-none active:cursor-grabbing',
+        'relative mx-auto aspect-square w-full max-w-[420px] cursor-grab touch-none select-none active:cursor-grabbing',
         className,
       )}
     />

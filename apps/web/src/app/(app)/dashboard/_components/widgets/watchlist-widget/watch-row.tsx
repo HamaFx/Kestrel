@@ -77,10 +77,10 @@ export function WatchRow({
           </div>
           <span
             className={cn(
-              '-mx-1 inline-flex w-fit items-center rounded-md px-1.5 py-0.5 font-mono text-xs font-medium tabular-nums transition-colors duration-500',
-              flash === 'bull' && 'bg-bull/15 text-bull',
-              flash === 'bear' && 'bg-bear/15 text-bear',
-              flash === null && 'text-fg-subtle',
+              '-mx-1 inline-flex w-fit items-center rounded-md px-1.5 py-0.5 font-mono text-xs font-semibold tabular-nums transition-all duration-300',
+              flash === 'bull' && 'bg-bull/15 text-bull ring-1 ring-bull/40 shadow-[0_0_10px_rgba(63,158,61,0.2)]',
+              flash === 'bear' && 'bg-bear/15 text-bear ring-1 ring-bear/40 shadow-[0_0_10px_rgba(224,44,16,0.2)]',
+              flash === null && 'text-fg-subtle ring-1 ring-transparent',
             )}
           >
             {last.toFixed(decimals)}
