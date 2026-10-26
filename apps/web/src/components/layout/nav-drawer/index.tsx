@@ -77,7 +77,7 @@ export function NavDrawer({
           id="sidebar-nav"
           aria-label="Primary navigation"
           className={cn(
-            'bg-[#0b0c0f]/98 text-fg fixed inset-y-0 left-0 z-[60] flex w-[88vw] max-w-[340px] flex-col',
+            'bg-bg/98 text-fg fixed inset-y-0 left-0 z-[60] flex w-[88vw] max-w-[340px] flex-col',
             'border-r border-white/[0.08] shadow-[20px_0_50px_rgba(0,0,0,0.85)] backdrop-blur-2xl',
             'paint-isolated select-none',
             'focus-visible:outline-none',
@@ -99,7 +99,7 @@ export function NavDrawer({
           <div className="flex items-center justify-between px-5 pt-5 pb-2">
             <KestrelBrand variant="lockup" href="/dashboard" className="w-28" />
             <span className="flex items-center gap-1.5 rounded border border-brand/25 bg-brand/10 px-1.5 py-0.5 font-mono text-[9px] font-bold text-brand uppercase tracking-wider">
-              <span className="size-1.5 rounded-full bg-bull animate-pulse shadow-[0_0_6px_rgba(0,230,118,0.8)]" />
+              <span className="size-1.5 rounded-full bg-bull animate-pulse shadow-[0_0_6px_rgba(63,158,61,0.7)]" />
               HUD v2.4
             </span>
           </div>
@@ -132,8 +132,8 @@ export function NavDrawer({
             <div className="flex items-center justify-between pb-1.5 font-mono text-[9px] text-fg-subtle tracking-wider uppercase">
               <span>// OPERATOR STATION</span>
               <span className="flex items-center gap-1 font-semibold text-bull text-[8px]">
-                <span className="size-1.5 rounded-full bg-bull animate-pulse shadow-[0_0_6px_rgba(0,230,118,0.8)]" />
-                LIVE // 24ms
+                <span className="size-1.5 rounded-full bg-bull animate-pulse shadow-[0_0_6px_rgba(63,158,61,0.7)]" />
+                ONLINE
               </span>
             </div>
             <div className="flex items-center gap-3 pt-0.5">

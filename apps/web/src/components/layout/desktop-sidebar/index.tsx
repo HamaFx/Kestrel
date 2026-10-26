@@ -90,7 +90,7 @@ export function DesktopSidebar({
       aria-label="Desktop navigation sidebar"
       className={cn(
         'fixed top-0 bottom-0 left-0 z-40 hidden flex-col justify-between lg:flex',
-        'bg-[#0b0c0f]/95 backdrop-blur-xl border-r border-white/[0.08] shadow-[1px_0_20px_rgba(0,0,0,0.5)] transition-[width] duration-200 ease-in-out select-none',
+        'bg-bg/95 backdrop-blur-xl border-r border-white/[0.08] shadow-[1px_0_20px_rgba(0,0,0,0.5)] transition-[width] duration-200 ease-in-out select-none',
         collapsed ? 'w-16' : 'w-56',
       )}
       style={{

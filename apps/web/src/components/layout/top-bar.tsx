@@ -19,6 +19,10 @@
 // Top app bar — sticky surface with three slots:
 //   [☰ menu] [brand mark + title] [right slot]
 //
+// Scope: mobile + tablet only (`lg:hidden`). Desktop (`>=1024px`) is served by
+// <DesktopSidebar>, which already renders the Kestrel lockup — showing this bar
+// there produced two logos side by side on every non-chat page.
+//
 // The chat route renders its own <ChatTopBar>; we hide the global TopBar
 // there so we don't have two stacked headers (and so the global TopBar
 // doesn't catch focus or pointer events meant for the chat surface).
@@ -50,7 +54,7 @@ export function TopBar({ title, right }: TopBarProps) {
   return (
     <header
       className={cn(
-        'sticky top-0 z-30 flex h-[calc(3rem+env(safe-area-inset-top,0px))] min-h-12 w-full items-center justify-between',
+        'sticky top-0 z-30 flex h-[calc(3rem+env(safe-area-inset-top,0px))] min-h-12 w-full items-center justify-between lg:hidden',
         'border-border/80 bg-bg pt-safe border-b px-3.5 shadow-[0_1px_0_rgba(255,255,255,0.03)]',
       )}
     >

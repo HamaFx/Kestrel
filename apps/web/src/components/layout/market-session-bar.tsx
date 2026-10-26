@@ -45,7 +45,7 @@ function isSessionActive(s: MarketSession, utcHour: number): boolean {
 
 export function MarketSessionBar() {
   const [mounted, setMounted] = useState(false);
-  const [utcTime, setUtcTime] = useState({ hour: 0, minute: 0, second: 0, str: '--:--:-- UTC' });
+  const [utcTime, setUtcTime] = useState({ hour: 0, minute: 0, str: '--:-- UTC' });
 
   useEffect(() => {
     setMounted(true);
@@ -53,17 +53,14 @@ export function MarketSessionBar() {
       const d = new Date();
       const h = d.getUTCHours();
       const m = d.getUTCMinutes();
-      const s = d.getUTCSeconds();
       const pad = (n: number) => n.toString().padStart(2, '0');
-      setUtcTime({
-        hour: h,
-        minute: m,
-        second: s,
-        str: `${pad(h)}:${pad(m)}:${pad(s)} UTC`,
-      });
+      // Minute resolution is all this bar conveys. The previous 1s tick
+      // re-rendered the entire app shell ~86,400 times a day for a seconds
+      // digit nobody reads; 30s keeps the clock within a half-minute.
+      setUtcTime({ hour: h, minute: m, str: `${pad(h)}:${pad(m)} UTC` });
     }
     update();
-    const interval = setInterval(update, 1000);
+    const interval = setInterval(update, 30_000);
     return () => clearInterval(interval);
   }, []);
 

@@ -169,8 +169,8 @@ export function SidebarFooter({
         <div className="mb-0.5 flex items-center justify-between px-2 pt-1 font-mono text-[9px] text-fg-subtle tracking-wider uppercase">
           <span className="text-fg-subtle/70">// OPERATOR STATION</span>
           <span className="flex items-center gap-1 font-semibold text-bull text-[8px]">
-            <span className="size-1.5 rounded-full bg-bull animate-pulse shadow-[0_0_6px_rgba(0,230,118,0.8)]" />
-            LIVE // 24ms
+            <span className="size-1.5 rounded-full bg-bull animate-pulse shadow-[0_0_6px_rgba(63,158,61,0.7)]" />
+            ONLINE
           </span>
         </div>
       )}
