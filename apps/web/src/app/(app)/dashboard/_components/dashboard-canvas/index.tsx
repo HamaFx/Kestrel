@@ -50,6 +50,7 @@ import { useConfirm } from '@/components/ui/confirm-drawer';
 
 import '@/lib/plugins/register-ui';
 
+import { MissionControlDeck } from '../mission-control-deck';
 import { PreSessionChecklistDrawer } from '../pre-session-checklist-drawer';
 import { QuickLogTradeDrawer } from '../quick-log-trade-drawer';
 import { AddWidgetMenu } from './add-widget-menu';
@@ -92,17 +93,23 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Institutional Mission Control Deck */}
+      <MissionControlDeck
+        alerts={props.alerts}
+        events={props.events}
+        entries={props.entries}
+        briefing={props.briefing}
+      />
+
       {/* Top Header & Controls */}
       <div className="flex flex-col gap-3">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-fg font-display text-2xl font-normal tracking-[-0.03em] sm:text-3xl">
-              Dashboard
+            <h1 className="text-fg font-display text-xl font-normal tracking-[-0.03em] sm:text-2xl text-[#F4F1EA]">
+              Dashboard Canvas
             </h1>
-            <PreSessionChecklistDrawer />
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <QuickLogTradeDrawer />
             {editMode && hidden.length > 0 ? (
               <AddWidgetMenu hidden={hidden} onAdd={addWidget} />
             ) : null}

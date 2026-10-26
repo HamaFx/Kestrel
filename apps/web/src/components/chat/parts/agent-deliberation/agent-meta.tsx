@@ -38,6 +38,8 @@ export interface AgentMeta {
   label: string;
   tokenClass: string;
   activeClass: string;
+  code?: string;
+  epithet?: string;
 }
 
 export const AGENT_META: Record<string, AgentMeta> = {
@@ -46,30 +48,40 @@ export const AGENT_META: Record<string, AgentMeta> = {
     label: 'Technical',
     tokenClass: 'text-bull',
     activeClass: 'border-bull/40 bg-bull/10',
+    code: 'DESK-II // ASTROLABE',
+    epithet: 'The Mathematical Compass',
   },
   fundamental: {
     icon: <IconNews className="size-4" />,
     label: 'Macro',
     tokenClass: 'text-info',
     activeClass: 'border-info/40 bg-info/10',
+    code: 'DESK-I // HORUS',
+    epithet: 'The All-Seeing Horizon',
   },
   risk: {
     icon: <IconShield className="size-4" />,
     label: 'Risk',
     tokenClass: 'text-bear',
     activeClass: 'border-bear/40 bg-bear/10',
+    code: 'DESK-III // HOPLITE',
+    epithet: 'The Impassable Shield',
   },
   sentiment: {
     icon: <IconRobot className="size-4" />,
     label: 'Sentiment',
     tokenClass: 'text-warn',
     activeClass: 'border-warn/40 bg-warn/10',
+    code: 'DESK-IV // SENTIMENT',
+    epithet: 'Whale Positioning',
   },
   decision: {
     icon: <IconCpu className="size-4" />,
     label: 'Consensus',
     tokenClass: 'text-brand',
     activeClass: 'border-brand/40 bg-brand/10',
+    code: 'STAGE II // ARBITER',
+    epithet: 'The Unified Syndicate',
   },
 };
 
@@ -78,6 +90,8 @@ export const FALLBACK_META: AgentMeta = {
   label: 'Specialist',
   tokenClass: 'text-fg-muted',
   activeClass: 'border-border bg-bg-elev-2',
+  code: 'DESK // SPECIALIST',
+  epithet: 'Independent Lens',
 };
 
 export const BIAS_TOKEN: Record<AgentOpinion['bias'], string> = {

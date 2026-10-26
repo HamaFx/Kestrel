@@ -16,8 +16,8 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Bespoke renderer for the `convene_committee` tool part. The desk verdict
-// card, persona labels, and placeholder states live in sibling files.
+// Bespoke renderer for the `convene_committee` tool part. Option 3A multi-desk
+// parallel matrix + Arbiter synthesis verdict.
 
 import type { ConveneCommitteeOutput } from '@kestrel/shared';
 import { IconAlertTriangle, IconCircleCheck, IconCircleX, IconUsers } from '@tabler/icons-react';
@@ -38,13 +38,13 @@ function GradeBadge({
   let icon: ReactNode;
 
   if (goNoGo === 'go') {
-    bgTone = 'bg-bull/10 text-bull border-bull/30';
+    bgTone = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
     icon = <IconCircleCheck className="mr-1 size-3.5" />;
   } else if (goNoGo === 'caution') {
-    bgTone = 'bg-warn/10 text-warn border-warn/30';
+    bgTone = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
     icon = <IconAlertTriangle className="mr-1 size-3.5" />;
   } else {
-    bgTone = 'bg-bear/10 text-bear border-bear/30';
+    bgTone = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
     icon = <IconCircleX className="mr-1 size-3.5" />;
   }
 
@@ -53,7 +53,7 @@ function GradeBadge({
       className={`inline-flex items-center rounded-md border px-2.5 py-0.5 font-mono text-xs font-semibold uppercase ${bgTone}`}
     >
       {icon}
-      Grade {grade}
+      Grade {grade} · {goNoGo.toUpperCase()}
     </div>
   );
 }
@@ -71,48 +71,68 @@ export function ConveneCommitteePart({
   }
 
   return (
-    <div className="border-border bg-bg-elev-1 flex flex-col gap-3.5 rounded-xl border p-4 shadow-sm">
-      <header className="border-border/70 flex flex-col gap-2.5 border-b pb-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <IconUsers className="text-brand size-4" />
-            <h3 className="text-fg text-sm font-semibold">
+    <div className="flex flex-col gap-4 rounded-xl border border-[#F4F1EA]/10 bg-[#09090B] p-4 shadow-md sm:p-5">
+      {/* ── Committee Matrix Header ── */}
+      <header className="flex flex-col gap-2 border-b border-[#F4F1EA]/10 pb-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <IconUsers className="size-4 text-[#D4AF37]" />
+          <div>
+            <span className="font-mono text-[10px] tracking-wider text-[#D4AF37] uppercase">
+              COUNCIL DELIBERATION
+            </span>
+            <h3 className="font-display text-base font-normal text-[#F4F1EA]">
               Committee Review · {output.symbol} {output.side.toUpperCase()}
             </h3>
           </div>
-          <GradeBadge grade={output.grade} goNoGo={output.goNoGo} />
         </div>
-
-        {/* Execution Level Strip */}
-        <div className="grid grid-cols-3 gap-2 font-mono text-xs tabular-nums">
-          <div className="bg-bg-elev-2/70 border-border/60 rounded-lg border px-2.5 py-1.5">
-            <span className="text-fg-subtle block text-xs">Entry</span>
-            <strong className="text-fg">{output.entry}</strong>
-          </div>
-          <div className="bg-bg-elev-2/70 border-border/60 rounded-lg border px-2.5 py-1.5">
-            <span className="text-fg-subtle block text-xs">Invalidation Stop</span>
-            <strong className="text-bear">{output.stop ?? '—'}</strong>
-          </div>
-          <div className="bg-bg-elev-2/70 border-border/60 rounded-lg border px-2.5 py-1.5">
-            <span className="text-fg-subtle block text-xs">Primary Target</span>
-            <strong className="text-bull">{output.target ?? '—'}</strong>
-          </div>
-        </div>
+        <GradeBadge grade={output.grade} goNoGo={output.goNoGo} />
       </header>
 
-      {/* Consensus Executive Summary First */}
-      <div className="border-border/80 bg-bg-elev-2/60 rounded-lg border p-3">
-        <div className="text-fg-subtle mb-1 font-mono text-xs font-semibold uppercase">
-          Committee Synthesis
-        </div>
-        <p className="text-fg text-sm leading-relaxed">{output.consensus}</p>
-      </div>
-
-      {/* Individual Desk Verdicts */}
-      <div className="flex flex-col gap-2">
+      {/* ── Parallel 2x2 Strategist Matrix ── */}
+      <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
         {output.verdicts.map((v) => (
           <VerdictCard key={v.persona} verdict={v} />
         ))}
+      </div>
+
+      {/* ── Arbiter Synthesis Verdict Block (Bottom) ── */}
+      <div className="rounded-xl border border-[#D4AF37]/30 bg-gradient-to-b from-[#16161A] to-[#111114] p-5 shadow-lg">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#D4AF37]/20 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="size-2 animate-pulse rounded-full bg-[#D4AF37]" />
+            <span className="font-mono text-xs font-bold tracking-wider text-[#D4AF37] uppercase">
+              STAGE II // ARBITER SYNTHESIS VERDICT
+            </span>
+          </div>
+          <span className="font-mono text-[11px] text-[#F4F1EA]/70">
+            ALIGNMENT: {output.goNoGo === 'go' ? 'HIGH CONVICTION' : 'QUALIFIED'}
+          </span>
+        </div>
+
+        <div className="mt-3">
+          <h4 className="font-serif text-lg italic text-[#F4F1EA]">
+            Consensus Verdict: {output.goNoGo.toUpperCase()} (Grade {output.grade})
+          </h4>
+          <p className="mt-1.5 text-xs leading-relaxed text-[#F4F1EA]/80 sm:text-sm">
+            {output.consensus}
+          </p>
+        </div>
+
+        {/* Execution Levels */}
+        <div className="mt-4 grid grid-cols-3 gap-2 font-mono text-xs tabular-nums">
+          <div className="rounded-lg border border-[#F4F1EA]/10 bg-[#09090B] px-3 py-2">
+            <span className="block text-[10px] text-[#F4F1EA]/50 uppercase">Entry Anchor</span>
+            <strong className="text-sm font-semibold text-[#F4F1EA]">{output.entry}</strong>
+          </div>
+          <div className="rounded-lg border border-[#F4F1EA]/10 bg-[#09090B] px-3 py-2">
+            <span className="block text-[10px] text-[#F4F1EA]/50 uppercase">Invalidation Stop</span>
+            <strong className="text-sm font-semibold text-rose-400">{output.stop ?? '—'}</strong>
+          </div>
+          <div className="rounded-lg border border-[#F4F1EA]/10 bg-[#09090B] px-3 py-2">
+            <span className="block text-[10px] text-[#F4F1EA]/50 uppercase">Primary Target</span>
+            <strong className="text-sm font-semibold text-emerald-400">{output.target ?? '—'}</strong>
+          </div>
+        </div>
       </div>
     </div>
   );

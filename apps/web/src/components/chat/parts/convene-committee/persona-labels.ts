@@ -10,9 +10,32 @@ import {
   type Icon,
 } from '@tabler/icons-react';
 
-export const PERSONA_LABELS: Record<string, { label: string; Icon: Icon }> = {
-  economist: { label: 'Macro & Rates Desk', Icon: IconBriefcase },
-  technician: { label: 'Technical Structure Desk', Icon: IconTrendingUp },
-  risk_manager: { label: 'Risk & Sizing Desk', Icon: IconAlertTriangle },
-  sentiment: { label: 'Flow & Sentiment Desk', Icon: IconRadar },
+export const PERSONA_LABELS: Record<
+  string,
+  { label: string; code: string; epithet: string; Icon: Icon }
+> = {
+  economist: {
+    label: 'Macro & Rates Desk',
+    code: 'DESK-I // HORUS',
+    epithet: 'The All-Seeing Horizon',
+    Icon: IconBriefcase,
+  },
+  technician: {
+    label: 'Technical Structure Desk',
+    code: 'DESK-II // ASTROLABE',
+    epithet: 'The Mathematical Compass',
+    Icon: IconTrendingUp,
+  },
+  risk_manager: {
+    label: 'Risk & Sizing Desk',
+    code: 'DESK-III // HOPLITE',
+    epithet: 'The Impassable Shield',
+    Icon: IconAlertTriangle,
+  },
+  sentiment: {
+    label: 'Flow & Sentiment Desk',
+    code: 'DESK-IV // COUNCIL',
+    epithet: 'Whale Positioning',
+    Icon: IconRadar,
+  },
 };

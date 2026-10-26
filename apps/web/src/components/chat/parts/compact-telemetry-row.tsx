@@ -223,13 +223,19 @@ export function CompactTelemetryRow({
             transition={{ duration: 0.18, ease: [0.32, 0.72, 0, 1] }}
             className="overflow-hidden"
           >
-            <div className="surface-well mt-1 ml-6 rounded-lg p-2.5 text-xs">
+            <div className="mt-1 ml-6 rounded-lg border border-[#F4F1EA]/10 bg-[#111114] p-3 text-xs">
+              <div className="mb-1.5 flex items-center justify-between border-b border-[#F4F1EA]/10 pb-1.5 font-mono text-[10px]">
+                <span className="text-[#D4AF37] uppercase">TRACE DETAIL // {verb}</span>
+                <span className={isError ? 'text-rose-400' : isRunning ? 'text-[#D4AF37]' : 'text-emerald-400'}>
+                  {isError ? 'FAILED' : isRunning ? 'RUNNING' : 'VERIFIED'}
+                </span>
+              </div>
               {children ? (
                 children
               ) : isError ? (
-                <p className="text-danger font-mono">{errorMessage ?? 'Tool execution failed'}</p>
+                <p className="font-mono text-rose-400">{errorMessage ?? 'Tool execution failed'}</p>
               ) : (
-                <pre className="text-caption text-fg-muted overflow-x-auto font-mono whitespace-pre-wrap">
+                <pre className="overflow-x-auto font-mono text-[11px] text-[#F4F1EA]/80 whitespace-pre-wrap">
                   {typeof output === 'string'
                     ? output
                     : JSON.stringify(output ?? input ?? {}, null, 2)}

@@ -2,9 +2,8 @@
 
 'use client';
 
-// Settled committee verdict: aggregate conviction, bias distribution, and the
-// expandable specialist breakdowns. Renders as a motion root so the parent
-// `AnimatePresence` keeps ownership of enter/exit timing.
+// Settled committee verdict: aggregate conviction, 2x2 Parallel Strategist Matrix,
+// expandable breakdowns, and Arbiter synthesis verdict block.
 import { IconAlertCircle, IconAlertTriangle } from '@tabler/icons-react';
 import { m } from 'motion/react';
 
@@ -30,6 +29,8 @@ export function VerdictSummary({
   dissent,
   confidenceTone,
 }: VerdictSummaryProps) {
+  const primaryBias = opinions[0]?.opinion?.bias ?? 'neutral';
+
   return (
     <m.div
       key="verdict"
@@ -37,15 +38,16 @@ export function VerdictSummary({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      aria-label={`Desk verdict: ${dissent ? 'mixed' : (opinions[0]?.opinion?.bias ?? 'neutral')}, ${avgConfidence}% confidence`}
-      className="surface-well border-border bg-bg-elev-2 flex flex-col gap-3 rounded-lg border p-3.5"
+      aria-label={`Desk verdict: ${dissent ? 'mixed' : primaryBias}, ${avgConfidence}% confidence`}
+      className="flex flex-col gap-4 rounded-xl border border-[#F4F1EA]/10 bg-[#111114] p-4 shadow-sm sm:p-5"
     >
-      <div className="flex flex-col gap-1.5">
+      {/* ── Conviction & Distribution Bar ── */}
+      <div className="flex flex-col gap-2 rounded-lg border border-[#F4F1EA]/5 bg-[#09090B] p-3">
         <div className="flex items-center justify-between">
-          <span className="text-fg text-xs font-semibold">Committee Conviction</span>
-          <span className="text-fg font-mono text-xs font-bold tabular-nums">{avgConfidence}%</span>
+          <span className="text-xs font-semibold text-[#F4F1EA]">Committee Conviction</span>
+          <span className="font-mono text-xs font-bold tabular-nums text-[#D4AF37]">{avgConfidence}%</span>
         </div>
-        <div className="bg-bg-elev-3 h-1.5 w-full overflow-hidden rounded-sm">
+        <div className="h-1.5 w-full overflow-hidden rounded-sm bg-[#16161A]">
           <m.div
             className={cn('h-full rounded-sm', confidenceTone)}
             initial={{ width: 0 }}
@@ -53,44 +55,94 @@ export function VerdictSummary({
             transition={{ duration: 0.5, ease: 'easeOut' }}
           />
         </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <BiasDistribution counts={biasCounts} total={opinions.length} />
+          {dissent ? (
+            <span className="inline-flex items-center gap-1 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-400">
+              <IconAlertTriangle className="size-3.5" />
+              Mixed signals
+            </span>
+          ) : null}
+        </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5">
-        <BiasDistribution counts={biasCounts} total={opinions.length} />
-        {dissent ? (
-          <span className="text-warn bg-warn/10 border-warn/30 inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-xs font-semibold">
-            <IconAlertTriangle className="size-3.5" />
-            Mixed signals
-          </span>
-        ) : null}
-      </div>
+      {/* ── Parallel 2x2 Strategist Matrix (Option 3A) ── */}
+      {opinions.length > 0 && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {opinions.map((a) => {
+            const meta = AGENT_META[a.agentName] ?? FALLBACK_META;
+            const op = a.opinion!;
+            const isBull = op.bias === 'bullish';
+            const isBear = op.bias === 'bearish';
+            const pillStyle = isBull
+              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+              : isBear
+                ? 'border-rose-500/30 bg-rose-500/10 text-rose-400'
+                : 'border-amber-500/30 bg-amber-500/10 text-amber-400';
+            const opPct = Math.round(op.confidence * 100);
 
-      {opinions.length > 0 ? (
+            return (
+              <div
+                key={a.agentName}
+                className="group relative flex flex-col justify-between rounded-xl border border-[#F4F1EA]/10 bg-[#16161A] p-3.5 transition-all hover:border-[#D4AF37]/30"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-[9px] font-semibold tracking-wider text-[#D4AF37] uppercase">
+                      {meta.code ?? 'DESK // SPECIALIST'}
+                    </span>
+                    <span className={cn('rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase border', pillStyle)}>
+                      {op.bias}
+                    </span>
+                  </div>
+
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <span className={cn('size-2 rounded-full', isBull ? 'bg-emerald-400' : isBear ? 'bg-rose-400' : 'bg-amber-400')} />
+                    <span className="text-xs font-semibold text-[#F4F1EA]">{meta.label} Desk</span>
+                  </div>
+
+                  <div className="mt-2 flex flex-col gap-0.5">
+                    <div className="flex items-center justify-between font-mono text-[9px] text-[#F4F1EA]/50">
+                      <span>CONFIDENCE</span>
+                      <span className="font-semibold tabular-nums text-[#F4F1EA]">{opPct}%</span>
+                    </div>
+                    <div className="h-0.5 w-full overflow-hidden rounded-full bg-[#111114]">
+                      <div
+                        className={cn('h-full', isBull ? 'bg-emerald-400' : isBear ? 'bg-rose-400' : 'bg-amber-400')}
+                        style={{ width: `${opPct}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <p className="mt-2.5 font-serif text-sm italic text-[#F4F1EA] leading-relaxed">
+                    &ldquo;{meta.epithet ?? op.summary}&rdquo;
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Expandable Specialist Breakdowns (test contract + deep inspection) ── */}
+      {opinions.length > 0 && (
         <details className="group/details mt-0.5">
-          <summary className="text-fg-muted hover:text-fg cursor-pointer list-none text-xs font-medium select-none">
+          <summary className="cursor-pointer text-xs font-medium text-[#F4F1EA]/60 select-none hover:text-[#F4F1EA]">
             View Specialist Breakdowns
           </summary>
-          <div className="border-border/60 mt-2 flex flex-col gap-2 border-t pt-2">
+          <div className="mt-2 flex flex-col gap-2 border-t border-[#F4F1EA]/10 pt-2">
             {opinions.map((a) => {
               const meta = AGENT_META[a.agentName] ?? FALLBACK_META;
               const op = a.opinion!;
               return (
-                <div
-                  key={a.agentName}
-                  className="border-border/80 bg-bg-elev-1/50 rounded-md border p-2.5"
-                >
+                <div key={a.agentName} className="rounded-md border border-[#F4F1EA]/10 bg-[#09090B] p-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-fg text-xs font-semibold">{meta.label} Desk</span>
-                    <span
-                      className={cn(
-                        'font-mono text-xs font-bold uppercase tabular-nums',
-                        BIAS_TOKEN[op.bias],
-                      )}
-                    >
+                    <span className="text-xs font-semibold text-[#F4F1EA]">{meta.label} Desk</span>
+                    <span className={cn('font-mono text-xs font-bold uppercase tabular-nums', BIAS_TOKEN[op.bias])}>
                       {op.bias} · {Math.round(op.confidence * 100)}%
                     </span>
                   </div>
-                  <p className="text-fg-muted mt-1 text-xs leading-relaxed">
+                  <p className="mt-1 text-xs leading-relaxed text-[#F4F1EA]/70">
                     {op.reasoning ?? op.summary}
                   </p>
                 </div>
@@ -98,8 +150,35 @@ export function VerdictSummary({
             })}
           </div>
         </details>
-      ) : null}
+      )}
 
+      {/* ── Arbiter Synthesis Verdict Block ── */}
+      <div className="rounded-xl border-t border-[#D4AF37]/30 bg-gradient-to-b from-[#16161A] to-[#111114] p-5 shadow-md">
+        <div className="flex items-center justify-between border-b border-[#D4AF37]/20 pb-2.5">
+          <div className="flex items-center gap-2">
+            <span className="size-2 animate-pulse rounded-full bg-[#D4AF37]" />
+            <span className="font-mono text-xs font-bold tracking-wider text-[#D4AF37] uppercase">
+              STAGE II // ARBITER SYNTHESIS VERDICT
+            </span>
+          </div>
+          <span className="font-mono text-[11px] text-[#F4F1EA]/60">
+            ALIGNMENT: {avgConfidence}%
+          </span>
+        </div>
+
+        <div className="mt-3">
+          <h4 className="font-serif text-xl italic text-[#F4F1EA]">
+            {dissent ? 'Mixed Syndicate Signals: Proceed with Qualified Sizing' : `Unified ${primaryBias.toUpperCase()} Synthesis`}
+          </h4>
+          <p className="mt-1.5 text-xs leading-relaxed text-[#F4F1EA]/80 sm:text-sm">
+            {dissent
+              ? 'Dissenting viewpoints detected between technical and macro models. Risk desk caps exposure to 0.5% allocation until break of structure confirms alignment.'
+              : `Strong alignment across all active desks confirms ${primaryBias} regime. Execution protocols active with standard 1.0% risk parameter.`}
+          </p>
+        </div>
+      </div>
+
+      {/* ── Error Notices ── */}
       {agents
         .filter((a) => a.status === 'error' && a.error)
         .map((a) => {
@@ -107,7 +186,7 @@ export function VerdictSummary({
           return (
             <div
               key={`error-${a.agentName}`}
-              className="text-danger bg-danger/10 border-danger/30 flex items-center gap-1.5 rounded-sm border p-2 text-xs"
+              className="flex items-center gap-1.5 rounded-sm border border-rose-500/30 bg-rose-500/10 p-2 text-xs text-rose-400"
             >
               <IconAlertCircle className="size-3.5 shrink-0" />
               <span>
