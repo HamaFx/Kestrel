@@ -108,7 +108,7 @@ describe('Tier 1: Drawer & ConfirmDrawer Cyber-Industrial Tokens (>=5 tests)', (
     expect(dialog.className).toContain('border-border');
   });
 
-  it('ensures ConfirmDrawer action buttons meet >=40px touch targets (w-full size="md")', () => {
+  it('ensures ConfirmDrawer action buttons meet >=44px touch targets (w-full size="md")', () => {
     render(
       <ConfirmDrawer
         open={true}
@@ -122,9 +122,9 @@ describe('Tier 1: Drawer & ConfirmDrawer Cyber-Industrial Tokens (>=5 tests)', (
     const confirmBtn = screen.getByRole('button', { name: 'Execute' });
     const cancelBtn = screen.getByRole('button', { name: 'Abort' });
 
-    expect(confirmBtn.className).toContain('h-10');
+    expect(confirmBtn.className).toContain('h-11');
     expect(confirmBtn.className).toContain('w-full');
-    expect(cancelBtn.className).toContain('h-10');
+    expect(cancelBtn.className).toContain('h-11');
     expect(cancelBtn.className).toContain('w-full');
   });
 });

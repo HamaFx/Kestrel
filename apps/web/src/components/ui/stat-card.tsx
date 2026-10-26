@@ -22,6 +22,9 @@
 // Mobile-first: p-4 (16px) for comfortable thumb tap if/when the cards
 // become interactive, gap-2 (8px) vertical rhythm on the 8-pt grid.
 //
+// Cards without a sparkline simply end after the value — no placeholder void
+// (rows still align because every consumer lays StatCards out in a CSS grid).
+//
 // Per PLAN.md §2.4 + §2.5 — solid bg-elev-1 surface (no surface-panel),
 // R1 numeric scale for the value, R1 type tokens throughout.
 
@@ -92,9 +95,7 @@ export function StatCard({ icon, label, value, tone = 'fg', sparkline }: StatCar
           label={label}
           className={cn('h-6 w-full opacity-70', TONE_CLASS[tone])}
         />
-      ) : (
-        <div className="h-6" />
-      )}
+      ) : null}
     </div>
   );
 }

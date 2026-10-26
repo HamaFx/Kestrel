@@ -33,10 +33,10 @@ describe('Tier 1: Button Touch Targets & Tactile Micro-Press (>=5 tests)', () =>
     expect(button.className).toContain('rounded-md');
   });
 
-  it('ensures size="md" (default) satisfies the 40px touch-accessible target (h-10 px-4)', () => {
+  it('ensures size="md" (default) meets the WCAG 2.2 minimum 44px touch target (h-11 px-4)', () => {
     const { container } = render(<Button>Default Target</Button>);
     const button = container.querySelector('button')!;
-    expect(button.className).toContain('h-10');
+    expect(button.className).toContain('h-11');
     expect(button.className).toContain('px-4');
   });
 
@@ -51,23 +51,19 @@ describe('Tier 1: Button Touch Targets & Tactile Micro-Press (>=5 tests)', () =>
     const { container } = render(<Button variant="tactical">Launch Analysis</Button>);
     const button = container.querySelector('button')!;
     expect(button.className).toContain('tactile-press');
-    expect(button.className).toContain('active:translate-y-[0.5px]');
+    // `tactile-press` owns the 0.5px press travel; a second translate utility
+    // would double the offset (see the neutralize rule in globals.css).
+    expect(button.className).not.toContain('active:translate-y-[0.5px]');
     expect(button.className).not.toContain('active:scale-95');
   });
 
-  it.each([
-    ['primary', 'active:translate-y-[0.5px]'],
-    ['secondary', 'active:translate-y-[0.5px]'],
-    ['surface', 'active:translate-y-[0.5px]'],
-    ['ghost', 'active:translate-y-[0.5px]'],
-    ['danger', 'active:translate-y-[0.5px]'],
-    ['success', 'active:translate-y-[0.5px]'],
-  ] as const)(
-    'applies tactile micro-press travel active:translate-y-[0.5px] to variant "%s"',
-    (variant, expectedClass) => {
+  it.each(['primary', 'secondary', 'surface', 'ghost', 'danger', 'success'] as const)(
+    'applies the shared tactile-press micro-press to variant "%s"',
+    (variant) => {
       const { container } = render(<Button variant={variant}>Press Me</Button>);
       const button = container.querySelector('button')!;
-      expect(button.className).toContain(expectedClass);
+      expect(button.className).toContain('tactile-press');
+      expect(button.className).not.toContain('active:translate-y-[0.5px]');
     },
   );
 });
@@ -118,7 +114,7 @@ describe('Tier 2: Button Boundary & Corner Cases (>=5 tests)', () => {
     const button = container.querySelector('button')!;
     expect(button.className).toContain('w-full');
     expect(button.className).toContain('uppercase');
-    expect(button.className).toContain('h-10');
+    expect(button.className).toContain('h-11');
   });
 
   it('forwards ref directly to underlying HTMLButtonElement for programmatic focus', () => {
