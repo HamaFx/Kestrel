@@ -25,6 +25,7 @@ import {
   IconLoader2,
   IconX,
 } from '@tabler/icons-react';
+import { useEffect } from 'react';
 
 import type { AgentView, CatalogOutput } from '../schemas';
 import { EditorGeneralTab } from './editor-general-tab';
@@ -47,6 +48,16 @@ export function AgentEditor({
 }) {
   const editor = useAgentEditor({ open, agent, catalog, onClose, onSaved });
   const { step, setStep, busy, error, save } = editor;
+
+  // Escape closes the editor unless a save/upload is in flight.
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !busy) onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open, busy, onClose]);
 
   if (!open) return null;
 
@@ -114,7 +125,7 @@ export function AgentEditor({
                 type="button"
                 onClick={() => setStep(step + 1)}
                 disabled={busy}
-                className="bg-fg inline-flex h-8 items-center gap-1 rounded-md px-3 text-[11px] font-semibold text-black disabled:opacity-50"
+                className="bg-brand inline-flex h-9 items-center gap-1 rounded-md px-3.5 text-[11px] font-semibold text-white transition-[filter] hover:brightness-110 disabled:opacity-50"
               >
                 Next
                 <IconChevronRight className="size-3.5" />
@@ -124,7 +135,7 @@ export function AgentEditor({
                 type="button"
                 onClick={() => void save()}
                 disabled={busy}
-                className="bg-fg inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-[11px] font-semibold text-black disabled:opacity-50"
+                className="bg-brand inline-flex h-9 items-center gap-1.5 rounded-md px-3.5 text-[11px] font-semibold text-white transition-[filter] hover:brightness-110 disabled:opacity-50"
               >
                 {busy ? <IconLoader2 className="size-3.5 animate-spin" /> : null}
                 {agent ? 'Save changes' : 'Create agent'}

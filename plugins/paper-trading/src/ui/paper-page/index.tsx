@@ -16,19 +16,14 @@
  * limitations under the License.
  */
 import type { PluginPageProps } from '@kestrel/plugin-sdk/ui';
-import {
-  IconAlertTriangle,
-  IconChartLine,
-  IconLoader2,
-  IconRefresh,
-  IconWallet,
-} from '@tabler/icons-react';
+import { IconAlertTriangle, IconChartLine, IconLoader2 } from '@tabler/icons-react';
+import { useState } from 'react';
 
-import { AccountCards } from '../account-cards';
-import { fmtDate, fmtMoney, fmtNumber, fmtQty, toneClass } from '../format';
 import { PlaceOrderForm } from '../place-order-form';
 import { StrategyRunsTable } from '../strategy-runs-table';
 import { AccountSummary } from './account-summary';
+import { AccountsHistoryPanel } from './accounts-history-panel';
+import { DeskTabs, type PaperDeskTab } from './desk-tabs';
 import { OrdersSection } from './orders-section';
 import { PositionsSection } from './positions-section';
 import { usePaperPage } from './use-paper-page';
@@ -47,6 +42,7 @@ export function PaperTradingPage(_props: PluginPageProps) {
     strategyRunAction,
     deleteStrategyRun,
   } = usePaperPage();
+  const [tab, setTab] = useState<PaperDeskTab>('positions');
 
   if (loading && !summary) {
     return (
@@ -68,116 +64,78 @@ export function PaperTradingPage(_props: PluginPageProps) {
 
       <AccountSummary summary={summary} />
 
-      <section className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <IconWallet className="text-fg-subtle size-4" />
-            <h2 className="text-fg text-sm font-semibold">Accounts</h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => void load()}
-            disabled={loading}
-            className="text-fg-subtle hover:text-fg inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-semibold disabled:opacity-50"
+      {/* Execution desk: books on the left, order ticket always visible on the right. */}
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
+        <div className="flex min-w-0 flex-col gap-4 lg:col-span-8">
+          <DeskTabs
+            active={tab}
+            onSelect={setTab}
+            loading={loading}
+            onRefresh={() => void load()}
+            openCount={(summary?.openPositions.length ?? 0) + (summary?.pendingOrders.length ?? 0)}
+            strategyCount={strategyRuns.length}
+          />
+
+          <div
+            id={`paper-desk-${tab}`}
+            role="tabpanel"
+            aria-labelledby={`paper-desk-${tab}-tab`}
+            tabIndex={0}
+            className="flex flex-col gap-4 outline-none"
           >
-            {loading ? (
-              <IconLoader2 className="size-3.5 animate-spin" />
-            ) : (
-              <IconRefresh className="size-3.5" />
-            )}
-            Refresh
-          </button>
-        </div>
-        <AccountCards
-          accounts={summary?.accounts ?? []}
-          busyId={busyId}
-          onReset={(account) => void resetAccount(account.id)}
-        />
-      </section>
+            {tab === 'positions' ? (
+              <>
+                <PositionsSection
+                  positions={summary?.openPositions ?? []}
+                  busyId={busyId}
+                  onClose={(position, half) => {
+                    const halfQuantity = half
+                      ? Number((position.quantity / 2).toFixed(6))
+                      : undefined;
+                    if (half && (!halfQuantity || halfQuantity <= 0)) return;
+                    void closePosition(position.id, halfQuantity);
+                  }}
+                />
+                <OrdersSection
+                  orders={summary?.pendingOrders ?? []}
+                  busyId={busyId}
+                  onCancel={(order) => void cancelOrder(order.id)}
+                />
+              </>
+            ) : null}
 
-      <section className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <IconChartLine className="text-fg-subtle size-4" />
-          <h2 className="text-fg text-sm font-semibold">Deployed strategies</h2>
-          <span className="text-fg-subtle font-mono text-[10px]">{strategyRuns.length}</span>
-        </div>
-        <StrategyRunsTable
-          runs={strategyRuns}
-          busyId={busyId}
-          onAction={(run, action) => void strategyRunAction(run, action)}
-          onDelete={(run) => void deleteStrategyRun(run)}
-        />
-      </section>
-
-      <PlaceOrderForm accounts={summary?.accounts ?? []} onPlaced={() => void load()} />
-
-      <PositionsSection
-        positions={summary?.openPositions ?? []}
-        busyId={busyId}
-        onClose={(position, half) => {
-          const halfQuantity = half ? Number((position.quantity / 2).toFixed(6)) : undefined;
-          if (half && (!halfQuantity || halfQuantity <= 0)) return;
-          void closePosition(position.id, halfQuantity);
-        }}
-      />
-
-      <OrdersSection
-        orders={summary?.pendingOrders ?? []}
-        busyId={busyId}
-        onCancel={(order) => void cancelOrder(order.id)}
-      />
-
-      <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <div className="surface-panel flex flex-col gap-2 rounded-xl border border-white/10 p-4">
-          <h2 className="text-fg text-sm font-semibold">Recent closes</h2>
-          {(summary?.recentClosed.length ?? 0) === 0 ? (
-            <p className="text-fg-subtle text-xs">No closed trades yet.</p>
-          ) : (
-            <ul className="divide-border/40 flex flex-col divide-y">
-              {summary?.recentClosed.map((position) => (
-                <li key={position.id} className="flex items-center justify-between gap-2 py-1.5">
-                  <div className="flex min-w-0 flex-col">
-                    <span className="text-fg font-mono text-[11px] font-semibold">
-                      {position.symbol} · {position.side} {fmtQty(position.initialQuantity)}
-                    </span>
-                    <span className="text-fg-subtle font-mono text-[10px]">
-                      {position.closeReason ?? 'closed'} ·{' '}
-                      {fmtDate(position.closeTime ?? position.entryTime)}
-                    </span>
-                  </div>
-                  <span className={`font-mono text-xs font-semibold ${toneClass(position.pnl)}`}>
-                    {fmtMoney(position.pnl)}
+            {tab === 'strategies' ? (
+              <section className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <IconChartLine className="text-fg-subtle size-4" />
+                  <h2 className="text-fg text-sm font-semibold">Deployed strategies</h2>
+                  <span className="text-fg-subtle font-mono text-[10px]">
+                    {strategyRuns.length}
                   </span>
-                </li>
-              ))}
-            </ul>
-          )}
+                </div>
+                <StrategyRunsTable
+                  runs={strategyRuns}
+                  busyId={busyId}
+                  onAction={(run, action) => void strategyRunAction(run, action)}
+                  onDelete={(run) => void deleteStrategyRun(run)}
+                />
+              </section>
+            ) : null}
+
+            {tab === 'accounts' ? (
+              <AccountsHistoryPanel
+                summary={summary}
+                busyId={busyId}
+                onReset={(account) => void resetAccount(account.id)}
+              />
+            ) : null}
+          </div>
         </div>
 
-        <div className="surface-panel flex flex-col gap-2 rounded-xl border border-white/10 p-4">
-          <h2 className="text-fg text-sm font-semibold">Execution ledger</h2>
-          {(summary?.recentFills.length ?? 0) === 0 ? (
-            <p className="text-fg-subtle text-xs">No fills yet.</p>
-          ) : (
-            <ul className="divide-border/40 flex max-h-64 flex-col divide-y overflow-auto">
-              {summary?.recentFills.map((fill) => (
-                <li key={fill.id} className="flex items-center justify-between gap-2 py-1.5">
-                  <div className="flex min-w-0 flex-col">
-                    <span className="text-fg font-mono text-[10px] uppercase">{fill.kind}</span>
-                    <span className="text-fg-subtle font-mono text-[10px]">
-                      {fmtNumber(fill.quantity, 4)} @ {fmtNumber(fill.price, 4)} ·{' '}
-                      {fmtDate(fill.ts)}
-                    </span>
-                  </div>
-                  <span className={`font-mono text-[11px] ${toneClass(fill.pnl)}`}>
-                    {fmtMoney(fill.pnl)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
+        <div className="lg:sticky lg:top-4 lg:col-span-4">
+          <PlaceOrderForm accounts={summary?.accounts ?? []} onPlaced={() => void load()} />
         </div>
-      </section>
+      </div>
 
       <footer className="text-fg-subtle text-[10px]">
         Virtual accounts only. Fills use bid/ask + synthetic spread/slippage; no real money or
