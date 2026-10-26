@@ -112,42 +112,6 @@ export const Composer = memo(function Composer({
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
       >
-        {/* Scope Boundary Strip */}
-        <div className="flex flex-wrap items-center justify-between gap-1.5 border-b border-border/40 px-1 pb-2 font-mono text-[11px]">
-          <button
-            type="button"
-            onClick={() => onAnalysisModeChange?.(analysisMode === 'full' ? 'single' : 'full')}
-            className={cn(
-              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all select-none',
-              analysisMode === 'full'
-                ? 'border-brand/40 bg-brand/10 text-brand shadow-[0_0_12px_rgba(255,54,22,0.15)]'
-                : 'border-border/60 bg-bg-elev-2 text-fg-muted hover:text-fg hover:border-border',
-            )}
-            title="Click to toggle analysis mode"
-          >
-            <span
-              className={cn(
-                'size-1.5 rounded-full',
-                analysisMode === 'full' ? 'bg-brand animate-pulse' : 'bg-bull',
-              )}
-            />
-            <span>
-              {analysisMode === 'full' ? 'SCOPE: FULL COUNCIL (4 DESKS)' : 'SCOPE: SINGLE DESK'}
-            </span>
-          </button>
-
-          <div className="flex items-center gap-2 text-[10px] text-fg-subtle">
-            <span className="hidden sm:inline-flex items-center gap-1">
-              <span className="size-1 rounded-full bg-bull" />
-              <span>GATE: HUMAN-APPROVAL ENFORCED</span>
-            </span>
-            <span className="hidden md:inline-flex items-center gap-1">
-              <span className="size-1 rounded-full bg-brand" />
-              <span>LEDGER: FULL TRACE</span>
-            </span>
-          </div>
-        </div>
-
         <ComposerAttachments composer={composer} />
         <ComposerMentionMenu composer={composer} />
 

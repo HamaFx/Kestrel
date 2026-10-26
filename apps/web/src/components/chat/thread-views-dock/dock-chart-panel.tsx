@@ -4,6 +4,8 @@
 
 // Chart tab: live TradingView widget with timeframe switcher.
 import type { Symbol, Timeframe } from '@kestrel/shared';
+import { IconArrowUpRight } from '@tabler/icons-react';
+import { Link } from 'next-view-transitions';
 
 import { TradingViewWidget } from '@/components/chart';
 import { Segmented } from '@/components/ui/segmented';
@@ -19,10 +21,18 @@ export function DockChartPanel({
 }) {
   return (
     <div className="flex h-full flex-col">
-      <div className="border-border bg-bg-elev-1/60 flex items-center justify-between border-b px-3 py-2 text-xs">
-        <div className="flex items-center gap-2 font-mono">
+      <div className="border-border bg-bg-elev-1/60 flex items-center justify-between gap-2 border-b px-3 py-2 text-xs">
+        <div className="flex min-w-0 items-center gap-2 font-mono">
           <span className="text-fg font-bold tracking-tight">{symbol}</span>
-          <span className="text-fg-subtle text-xs">Live Chart</span>
+          <span className="text-fg-subtle hidden truncate text-xs sm:inline">Live Chart</span>
+          {/* Replaces the removed CONTEXT tab's foot-of-panel link. */}
+          <Link
+            href={`/chart/${symbol}?tf=${activeTf}`}
+            className="text-brand hover:text-brand-soft inline-flex shrink-0 items-center gap-0.5 text-[11px] font-semibold transition-colors hover:underline"
+          >
+            <span>Pro Chart</span>
+            <IconArrowUpRight className="size-3" aria-hidden="true" />
+          </Link>
         </div>
         <Segmented
           size="sm"

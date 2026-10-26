@@ -207,7 +207,6 @@ export function ChatThreadView({
 
       <ChatComposerDock
         splitMode={splitMode}
-        error={error}
         analysisMode={analysisMode}
         onAnalysisModeChange={onAnalysisModeChange}
         chatModel={chatModel}
