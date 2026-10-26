@@ -116,11 +116,11 @@ export function MutationConfirmationCard({ payload }: { payload: MutationDraftPa
 
   if (state.phase === 'confirmed') {
     return (
-      <Card as="section" className="rounded-xl border border-emerald-500/30 bg-bg-elev-1 p-4 shadow-sm" aria-label="Mutation confirmed">
+      <Card as="section" className="border-bull/30 bg-bg-elev-1 rounded-xl border p-4 shadow-sm" aria-label="Mutation confirmed">
         <div className="flex items-start gap-2.5">
-          <IconCheck className="mt-0.5 size-4.5 shrink-0 text-emerald-400" aria-hidden />
+          <IconCheck className="text-bull mt-0.5 size-4.5 shrink-0" aria-hidden />
           <div className="min-w-0 flex-1 font-mono">
-            <div className="text-[11px] font-semibold text-emerald-400 uppercase">
+            <div className="text-bull text-[11px] font-semibold uppercase">
               {KIND_LABELS[payload.mutation]} Confirmed & Executed
             </div>
             <div className="mt-1 font-sans text-sm text-fg break-words">{state.summary}</div>
@@ -132,11 +132,11 @@ export function MutationConfirmationCard({ payload }: { payload: MutationDraftPa
 
   if (state.phase === 'declined') {
     return (
-      <Card as="section" className="rounded-xl border border-rose-500/30 bg-bg-elev-1 p-4 shadow-sm" aria-label="Mutation declined">
+      <Card as="section" className="border-danger/30 bg-bg-elev-1 rounded-xl border p-4 shadow-sm" aria-label="Mutation declined">
         <div className="flex items-start gap-2.5">
-          <IconX className="mt-0.5 size-4.5 shrink-0 text-rose-400" aria-hidden />
+          <IconX className="text-danger mt-0.5 size-4.5 shrink-0" aria-hidden />
           <div className="min-w-0 flex-1 font-mono">
-            <div className="text-[11px] font-semibold text-rose-400 uppercase">Directive Cancelled</div>
+            <div className="text-danger text-[11px] font-semibold uppercase">Directive Cancelled</div>
             <div className="mt-1 font-sans text-sm text-fg-muted">
               The {(KIND_LABELS[payload.mutation] ?? 'mutation').toLowerCase()} was cancelled. Nothing was modified.
             </div>
@@ -196,7 +196,7 @@ export function MutationConfirmationCard({ payload }: { payload: MutationDraftPa
       </div>
 
       {state.phase === 'error' && (
-        <div role="alert" className="mt-3 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 font-mono text-xs text-rose-400">
+        <div role="alert" className="border-danger/30 bg-danger/10 text-danger mt-3 rounded-md border px-3 py-2 font-mono text-xs">
           {state.message}
         </div>
       )}
@@ -216,7 +216,7 @@ export function MutationConfirmationCard({ payload }: { payload: MutationDraftPa
           variant="secondary"
           onClick={decline}
           disabled={state.phase === 'confirming'}
-          className="min-h-[44px] min-w-[44px] border border-border bg-bg-elev-2 font-mono text-xs text-fg hover:border-rose-500/40 hover:text-rose-400"
+          className="border-border bg-bg-elev-2 text-fg hover:border-danger/40 hover:text-danger min-h-[44px] min-w-[44px] border font-mono text-xs"
         >
           {payload.cancelLabel ?? 'Cancel'}
         </Button>

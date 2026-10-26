@@ -34,9 +34,9 @@ export function BriefingPanel({ current }: BriefingPanelProps) {
         {/* Workbench Header Bar */}
         <div className="relative z-10 flex items-center justify-between border-b border-white/10 pb-4">
           <div className="flex items-center gap-2">
-            <span className="size-2.5 rounded-full bg-red-500/80" />
-            <span className="size-2.5 rounded-full bg-amber-500/80" />
-            <span className="size-2.5 rounded-full bg-emerald-500/80" />
+            <span className="bg-danger/80 size-2.5 rounded-full" />
+            <span className="bg-warn/80 size-2.5 rounded-full" />
+            <span className="bg-bull/80 size-2.5 rounded-full" />
             <span className="text-fg-subtle ml-2 font-mono text-xs">
               kestrel / briefing / {current.fileName}
             </span>

@@ -112,7 +112,7 @@ export function MissionControlDeck({
 
       {/* ── 2. Tactical Telemetry Strip (4-Column Grid) ── */}
       <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
-        <div className="relative flex flex-col justify-between gap-1.5 rounded-xl border border-white/[0.08] bg-[#141416]/90 p-3.5 backdrop-blur-md transition-colors hover:border-brand/30">
+        <div className="relative flex flex-col justify-between gap-1.5 rounded-xl border border-white/[0.08] bg-bg-elev-1/90 p-3.5 backdrop-blur-md transition-colors hover:border-brand/30">
           <div className="flex items-center justify-between text-xs text-fg-subtle">
             <span className="font-mono text-[10px] tracking-wider uppercase">Market Regime</span>
             <IconCompass className="size-3.5 text-brand" />
@@ -125,7 +125,7 @@ export function MissionControlDeck({
               className={cn(
                 'rounded border px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase',
                 sessionInfo.session !== 'closed' && sessionInfo.session !== 'weekend'
-                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                  ? 'border-bull/30 bg-bull/10 text-bull'
                   : 'border-border/40 bg-bg-elev-2 text-fg-subtle',
               )}
             >
@@ -134,35 +134,35 @@ export function MissionControlDeck({
           </div>
         </div>
 
-        <div className="relative flex flex-col justify-between gap-1.5 rounded-xl border border-white/[0.08] bg-[#141416]/90 p-3.5 backdrop-blur-md transition-colors hover:border-brand/30">
+        <div className="relative flex flex-col justify-between gap-1.5 rounded-xl border border-white/[0.08] bg-bg-elev-1/90 p-3.5 backdrop-blur-md transition-colors hover:border-brand/30">
           <div className="flex items-center justify-between text-xs text-fg-subtle">
             <span className="font-mono text-[10px] tracking-wider uppercase">Council Status</span>
-            <IconBrain className="size-3.5 text-[#7DD3FC]" />
+            <IconBrain className="text-info size-3.5" />
           </div>
           <div className="flex items-baseline justify-between">
             <span className="font-mono text-sm font-semibold text-fg">4/4 Desks</span>
-            <span className="rounded border border-[#7DD3FC]/30 bg-[#7DD3FC]/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-[#7DD3FC] uppercase">
+            <span className="border-info/30 bg-info/10 text-info rounded border px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase">
               Synchronized
             </span>
           </div>
         </div>
 
-        <div className="relative flex flex-col justify-between gap-1.5 rounded-xl border border-white/[0.08] bg-[#141416]/90 p-3.5 backdrop-blur-md transition-colors hover:border-brand/30">
+        <div className="relative flex flex-col justify-between gap-1.5 rounded-xl border border-white/[0.08] bg-bg-elev-1/90 p-3.5 backdrop-blur-md transition-colors hover:border-brand/30">
           <div className="flex items-center justify-between text-xs text-fg-subtle">
             <span className="font-mono text-[10px] tracking-wider uppercase">Risk Governor</span>
-            <IconShieldCheck className="size-3.5 text-[#F87171]" />
+            <IconShieldCheck className="text-danger size-3.5" />
           </div>
           <div className="flex items-baseline justify-between">
             <span className="font-mono text-sm font-semibold tabular-nums text-fg">
               {openEntriesCount} Active {openEntriesCount === 1 ? 'Trade' : 'Trades'}
             </span>
-            <span className="rounded border border-[#F87171]/30 bg-[#F87171]/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-[#F87171] uppercase">
+            <span className="border-danger/30 bg-danger/10 text-danger rounded border px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase">
               1.0% Max Cap
             </span>
           </div>
         </div>
 
-        <div className="relative flex flex-col justify-between gap-1.5 rounded-xl border border-white/[0.08] bg-[#141416]/90 p-3.5 backdrop-blur-md transition-colors hover:border-brand/30">
+        <div className="relative flex flex-col justify-between gap-1.5 rounded-xl border border-white/[0.08] bg-bg-elev-1/90 p-3.5 backdrop-blur-md transition-colors hover:border-brand/30">
           <div className="flex items-center justify-between text-xs text-fg-subtle">
             <span className="font-mono text-[10px] tracking-wider uppercase">Telemetry Pulse</span>
             <IconActivity className="size-3.5 text-brand" />

@@ -69,7 +69,7 @@ export function ToolCard({ name, state, input, output, errorText }: ToolCardProp
       initial={false}
       className={cn(
         'surface-card overflow-hidden rounded-xl border border-border/40 bg-bg-elev-1 p-0 shadow-sm transition-colors hover:border-brand/40',
-        failed && 'border-rose-500/40',
+        failed && 'border-danger/40',
       )}
     >
       <button

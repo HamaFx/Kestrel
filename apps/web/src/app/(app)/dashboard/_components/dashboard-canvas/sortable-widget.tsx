@@ -56,7 +56,7 @@ export function SortableWidget({
       )}
     >
       {editMode ? (
-        <div className="mb-1.5 flex items-center justify-between gap-2 rounded-xl border border-white/[0.08] bg-[#141416]/90 px-3 py-2 shadow-sm backdrop-blur-md">
+        <div className="bg-bg-elev-1/90 mb-1.5 flex items-center justify-between gap-2 rounded-xl border border-white/[0.08] px-3 py-2 shadow-sm backdrop-blur-md">
           <button
             type="button"
             aria-label={`Drag ${label} widget`}
@@ -83,7 +83,7 @@ export function SortableWidget({
               type="button"
               aria-label={`Remove ${label}`}
               onClick={onRemove}
-              className="inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md text-fg-subtle transition-colors hover:bg-rose-500/10 hover:text-rose-400 active:translate-y-[0.5px]"
+              className="text-fg-subtle hover:bg-danger/10 hover:text-danger inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md transition-colors active:translate-y-[0.5px]"
             >
               <IconX className="size-4" />
             </button>
