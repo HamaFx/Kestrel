@@ -140,23 +140,34 @@ function CellSession() {
 
 function CellOpenRisk({ entries }: { entries: JournalEntry[] }) {
   const open = entries.filter((e) => e.outcome === 'open');
-  const totalRRounded = Math.round(open.length * 10) / 10;
+  // Real R-at-risk needs a stop per position; `open.length * 1R` pretended
+  // every open trade was exactly 1R. Surface the position count + symbols
+  // instead, and flag positions that have no invalidation stop at all.
+  const withoutStop = open.filter((e) => e.stop === null).length;
+  const symbols = Array.from(new Set(open.map((e) => e.symbol))).slice(0, 3).join(', ');
 
   return (
     <div className="surface-chip flex flex-col justify-between gap-2.5 rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)] transition-all hover:border-white/20">
-      <div className="text-fg-subtle flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase">
-        <IconAlertTriangle className="text-danger size-4" />
-        <span>Open risk</span>
+      <div className="text-fg-subtle flex items-center justify-between gap-1.5 text-xs font-semibold tracking-wider uppercase">
+        <div className="flex items-center gap-1.5">
+          <IconAlertTriangle className="text-danger size-4" />
+          <span>Open risk</span>
+        </div>
+        {withoutStop > 0 ? (
+          <span className="bg-danger/10 text-danger border-danger/30 rounded-2xs border px-1.5 py-0.5 font-mono text-xs font-bold tabular-nums">
+            {withoutStop} no stop
+          </span>
+        ) : null}
       </div>
       {open.length === 0 ? (
         <span className="text-fg-muted text-xs">No open risk</span>
       ) : (
-        <div className="flex items-baseline justify-between gap-1 font-mono">
+        <div className="flex items-baseline justify-between gap-2">
           <span className="text-fg text-sm font-semibold">
-            {open.length} {open.length === 1 ? 'pos' : 'positions'}
+            {open.length} {open.length === 1 ? 'position' : 'positions'}
           </span>
-          <span className="text-danger text-xs font-bold tabular-nums">
-            {totalRRounded}R at risk
+          <span className="text-fg-subtle truncate font-mono text-xs" title={symbols}>
+            {symbols}
           </span>
         </div>
       )}

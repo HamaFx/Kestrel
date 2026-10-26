@@ -90,7 +90,7 @@ export function EquityCurveWidget({ entries }: EquityCurveWidgetProps) {
         </div>
       </header>
       <div className="border-divider border-t pt-3">
-        <PerformanceChart entries={[...filteredEntries]} height={200} />
+        <PerformanceChart entries={[...filteredEntries]} height={200} bare />
       </div>
     </Card>
   );

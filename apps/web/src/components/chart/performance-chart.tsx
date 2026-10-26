@@ -40,9 +40,15 @@ import { buildEquityCurve } from './performance-chart-data';
 interface PerformanceChartProps {
   entries: JournalEntry[];
   height?: number;
+  /**
+   * Render only the plot area — no outer `surface-panel` and no
+   * "Performance Curve / Net R-Score" header. Used by hosts that already
+   * provide their own card chrome (e.g. the dashboard equity widget).
+   */
+  bare?: boolean;
 }
 
-export function PerformanceChart({ entries, height = 220 }: PerformanceChartProps) {
+export function PerformanceChart({ entries, height = 220, bare = false }: PerformanceChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Area'> | null>(null);
@@ -144,6 +150,19 @@ export function PerformanceChart({ entries, height = 220 }: PerformanceChartProp
   }, [chartData, height, totalR]);
 
   if (chartData.length < 2) {
+    // Bare hosts own their chrome, so the placeholder stays flat and quiet
+    // instead of rendering a pulsing "Performance Curve Loading" panel.
+    if (bare) {
+      return (
+        <div
+          className="text-fg-subtle flex items-center justify-center text-xs"
+          style={{ height }}
+        >
+          Not enough closed trades yet
+        </div>
+      );
+    }
+
     return (
       <div className="surface-panel flex h-[220px] flex-col items-center justify-center gap-2 p-6 text-center">
         <div className="bg-bg-elev-2 text-fg rounded-sm p-3">
@@ -156,6 +175,14 @@ export function PerformanceChart({ entries, height = 220 }: PerformanceChartProp
       </div>
     );
   }
+
+  const plot = (
+    <div className="relative mt-1 w-full overflow-hidden rounded-sm bg-black/10">
+      <div ref={containerRef} className="w-full" />
+    </div>
+  );
+
+  if (bare) return plot;
 
   return (
     <div className="surface-panel relative flex flex-col gap-3 overflow-hidden p-4">
@@ -184,9 +211,7 @@ export function PerformanceChart({ entries, height = 220 }: PerformanceChartProp
         </div>
       </div>
 
-      <div className="relative mt-1 w-full overflow-hidden rounded-sm bg-black/10">
-        <div ref={containerRef} className="w-full" />
-      </div>
+      {plot}
     </div>
   );
 }
