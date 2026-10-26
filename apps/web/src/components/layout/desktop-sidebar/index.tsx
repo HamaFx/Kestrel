@@ -18,11 +18,11 @@
  * limitations under the License.
  */
 
-// <DesktopSidebar> — fixed lg+ sidebar shell: brand header, new-thread CTA,
-// nav groups and footer. Groups live in sidebar-nav-groups/sidebar-footer.
-import { IconChevronLeft, IconChevronRight, IconPlus } from '@tabler/icons-react';
+// <DesktopSidebar> — fixed lg+ rail: brand, new-thesis action, workspace +
+// plugin navigation, market strip, then preferences and identity pinned to the
+// bottom. Every row is the shared <NavRow>; see nav-row.tsx for the contract.
+import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { signOut } from 'next-auth/react';
-import { Link } from 'next-view-transitions';
 import { usePathname } from 'next/navigation';
 import { toast } from 'sonner';
 
@@ -32,6 +32,7 @@ import { cn } from '@/lib/formatters/cn';
 
 import '@/lib/plugins/register-ui';
 
+import { NewThesisButton } from '../new-thesis-button';
 import { useSidebarState } from '../sidebar-state-context';
 import { SidebarFooter } from './sidebar-footer';
 import { SidebarNavGroups } from './sidebar-nav-groups';
@@ -61,36 +62,12 @@ export function DesktopSidebar({
 
   const initial = userName?.charAt(0)?.toUpperCase() || userEmail?.charAt(0)?.toUpperCase() || 'K';
 
-  const newThreadButton = (
-    <Link
-      href="/chat?new=1"
-      prefetch={true}
-      aria-label="New thesis"
-      className={cn(
-        'group relative flex items-center justify-between rounded-lg border font-mono text-xs font-semibold transition-all select-none',
-        'border-brand/45 bg-gradient-to-r from-brand/20 via-brand/10 to-transparent hover:border-brand hover:from-brand/30 hover:shadow-[0_0_18px_rgba(255,54,22,0.25)]',
-        'active:scale-[0.98] active:translate-y-[0.5px]',
-        collapsed ? 'mx-auto size-10 justify-center p-0' : 'w-full px-3 py-2 text-fg',
-      )}
-    >
-      <div className="flex items-center gap-2">
-        <IconPlus className="text-brand size-3.5 shrink-0 transition-transform duration-200 group-hover:rotate-90" />
-        {!collapsed && <span className="tracking-wide">NEW THESIS</span>}
-      </div>
-      {!collapsed && (
-        <kbd className="rounded bg-brand/15 border border-brand/30 px-1 py-0.5 font-mono text-[9px] font-bold text-brand">
-          ⌘N
-        </kbd>
-      )}
-    </Link>
-  );
-
   return (
     <aside
       aria-label="Desktop navigation sidebar"
       className={cn(
-        'fixed top-0 bottom-0 left-0 z-40 hidden flex-col justify-between lg:flex',
-        'bg-bg/95 backdrop-blur-xl border-r border-white/[0.08] shadow-[1px_0_20px_rgba(0,0,0,0.5)] transition-[width] duration-200 ease-in-out select-none',
+        'bg-bg/95 fixed top-0 bottom-0 left-0 z-40 hidden flex-col justify-between backdrop-blur-xl select-none lg:flex',
+        'border-r border-white/[0.08] shadow-[1px_0_20px_rgba(0,0,0,0.5)] transition-[width] duration-200 ease-in-out',
         collapsed ? 'w-16' : 'w-56',
       )}
       style={{
@@ -98,22 +75,20 @@ export function DesktopSidebar({
         paddingBottom: 'max(env(safe-area-inset-bottom), 12px)',
       }}
     >
-      {/* Top Header / Brand */}
+      {/* Brand + collapse control */}
       <div className="flex flex-col gap-3 px-2">
-        <div className="flex h-10 items-center justify-between px-2 pt-1">
-          <div className="flex items-center gap-2 overflow-hidden">
-            <KestrelBrand
-              variant={collapsed ? 'mark' : 'lockup'}
-              markSize="sm"
-              href="/dashboard"
-              className="overflow-hidden"
-            />
-            {!collapsed && (
-              <span className="rounded bg-white/[0.04] border border-white/[0.08] px-1 py-0.5 font-mono text-[8px] font-bold tracking-widest text-fg-subtle uppercase">
-                HUD
-              </span>
-            )}
-          </div>
+        <div
+          className={cn(
+            'flex items-center px-1 pt-1',
+            collapsed ? 'flex-col gap-1' : 'justify-between',
+          )}
+        >
+          <KestrelBrand
+            variant={collapsed ? 'mark' : 'lockup'}
+            markSize="sm"
+            href="/dashboard"
+            className="overflow-hidden"
+          />
           <Tooltip
             label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             side={collapsed ? 'right' : 'top'}
@@ -122,27 +97,20 @@ export function DesktopSidebar({
             <button
               type="button"
               onClick={toggleCollapsed}
-              className="text-fg-subtle hover:text-brand hover:bg-brand/10 hover:border-brand/30 border border-transparent rounded-md p-1.5 transition-colors active:scale-95 active:translate-y-[0.5px]"
+              className="text-fg-subtle hover:text-brand hover:bg-brand/10 hover:border-brand/30 rounded-md border border-transparent p-1.5 transition-colors active:translate-y-[0.5px]"
               aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               aria-expanded={!collapsed}
             >
               {collapsed ? (
-                <IconChevronRight className="size-4" />
+                <IconChevronRight className="size-4" aria-hidden="true" />
               ) : (
-                <IconChevronLeft className="size-4" />
+                <IconChevronLeft className="size-4" aria-hidden="true" />
               )}
             </button>
           </Tooltip>
         </div>
 
-        {/* Tactical New Thesis CTA Button */}
-        {collapsed ? (
-          <Tooltip label="New thesis" side="right" shortcut="⌘N" className="w-full justify-center">
-            {newThreadButton}
-          </Tooltip>
-        ) : (
-          newThreadButton
-        )}
+        <NewThesisButton collapsed={collapsed} />
 
         <SidebarNavGroups
           collapsed={collapsed}
@@ -151,7 +119,7 @@ export function DesktopSidebar({
         />
       </div>
 
-      {/* Mid/Bottom Telemetry & Operator Station Footer */}
+      {/* Ambient market state, preferences, identity */}
       <div className="flex flex-col gap-2">
         <div className="px-2">
           <SidebarTelemetry collapsed={collapsed} />

@@ -20,10 +20,7 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DesktopSidebar } from '@/components/layout/desktop-sidebar';
-import {
-  SidebarStateProvider,
-  useSidebarState,
-} from '@/components/layout/sidebar-state-context';
+import { SidebarStateProvider, useSidebarState } from '@/components/layout/sidebar-state-context';
 import { MotionRoot } from '@/components/ui/motion-config';
 import { Tooltip } from '@/components/ui/tooltip';
 
@@ -124,9 +121,7 @@ describe('Sidebar State & Shortcuts', () => {
 
     // Dispatch event targeted at the input
     act(() => {
-      input.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'b', metaKey: true, bubbles: true }),
-      );
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'b', metaKey: true, bubbles: true }));
     });
 
     // Should remain expanded
@@ -158,7 +153,7 @@ describe('DesktopSidebar Component', () => {
     expect(researchLink.getAttribute('aria-current')).toBeNull();
   });
 
-  it('renders user details, online pulse, and sign out button', () => {
+  it('renders the signed-in identity, BYOK cue, and sign-out button', () => {
     render(
       <MotionRoot>
         <SidebarStateProvider>
@@ -169,7 +164,32 @@ describe('DesktopSidebar Component', () => {
 
     expect(screen.getByText('Trader Joe')).toBeTruthy();
     expect(screen.getByText('joe@example.com')).toBeTruthy();
+    expect(screen.getByText('BYOK')).toBeTruthy();
     expect(screen.getByLabelText('Sign out')).toBeTruthy();
+  });
+
+  it('keeps the rail free of index numbers and fake keyboard hints', () => {
+    const { container } = render(
+      <MotionRoot>
+        <SidebarStateProvider>
+          <DesktopSidebar userName="Trader Joe" userEmail="joe@example.com" isAdmin={true} />
+        </SidebarStateProvider>
+      </MotionRoot>,
+    );
+
+    const rail = container.querySelector('aside[aria-label="Desktop navigation sidebar"]');
+    expect(rail).toBeTruthy();
+    // ⌘1–⌘5 were never bound; ⌘N is owned by the browser. No kbd pills in the
+    // rows, and no 01/02 index decoration on the page rows — the only chord the
+    // rail advertises is ⌘B, which is actually wired up.
+    expect(rail?.querySelectorAll('nav kbd')).toHaveLength(0);
+    expect(Array.from(rail?.querySelectorAll('kbd') ?? []).map((el) => el.textContent)).toEqual([
+      '⌘B',
+    ]);
+    expect(screen.queryByText('01')).toBeNull();
+    expect(screen.queryByText('HUD')).toBeNull();
+    expect(screen.queryByText('// NAVIGATION')).toBeNull();
+    expect(screen.queryByText('// OPERATOR STATION')).toBeNull();
   });
 
   it('conditionally renders Admin link when isAdmin is true', () => {

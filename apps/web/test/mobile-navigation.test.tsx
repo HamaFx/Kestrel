@@ -51,7 +51,7 @@ afterEach(() => {
 });
 
 describe('MobileBottomNav Component', () => {
-  it('renders primary mobile bottom navigation links and HUD trigger', () => {
+  it('renders the four workspace destinations plus the More trigger', () => {
     mockPathname = '/dashboard';
     render(
       <MotionRoot>
@@ -65,7 +65,10 @@ describe('MobileBottomNav Component', () => {
     expect(screen.getByText('Overview')).toBeTruthy();
     expect(screen.getByText('Journal')).toBeTruthy();
     expect(screen.getByText('Alerts')).toBeTruthy();
-    expect(screen.getByText('HUD')).toBeTruthy();
+    expect(screen.getByText('More')).toBeTruthy();
+    expect(screen.getByLabelText('Open navigation menu')).toBeTruthy();
+    // The old shell called this trigger "HUD" and pulsed a fake status dot.
+    expect(screen.queryByText('HUD')).toBeNull();
   });
 });
 
@@ -81,8 +84,8 @@ function DrawerTestConsumer({ userName, userEmail }: { userName?: string; userEm
   );
 }
 
-describe('NavDrawer Mobile Cockpit Component', () => {
-  it('renders brand HUD lockup, New Thesis CTA, and Operator Station when opened', () => {
+describe('NavDrawer Mobile Component', () => {
+  it('mirrors the desktop rail: sections, new-thesis action, identity and sign-out', () => {
     mockPathname = '/dashboard';
     render(
       <MotionRoot>
@@ -92,23 +95,48 @@ describe('NavDrawer Mobile Cockpit Component', () => {
       </MotionRoot>,
     );
 
-    // Click to open drawer
     act(() => {
       fireEvent.click(screen.getByTestId('open-drawer-btn'));
     });
 
-    // Brand and HUD badge
-    expect(screen.getByText(/HUD v2\.4/i)).toBeTruthy();
+    // Navigation, grouped the same way as the desktop rail
+    expect(screen.getByText('Workspace')).toBeTruthy();
+    expect(screen.getByText('Preferences')).toBeTruthy();
+    expect(screen.getByText('Research')).toBeTruthy();
+    expect(screen.getByText('Settings')).toBeTruthy();
 
-    // Tactical CTA
-    expect(screen.getByText('NEW THESIS')).toBeTruthy();
+    // Primary action
+    expect(screen.getByText('New thesis')).toBeTruthy();
 
-    // Operator station
-    expect(screen.getByText('// OPERATOR STATION')).toBeTruthy();
+    // Identity + the way out both live in the footer
     expect(screen.getByText('Alex Trader')).toBeTruthy();
+    expect(screen.getByText('alex@kestrel.io')).toBeTruthy();
     expect(screen.getByText('BYOK')).toBeTruthy();
+    expect(screen.getByLabelText('Sign out')).toBeTruthy();
 
-    // Disconnect session
-    expect(screen.getByText('DISCONNECT SESSION')).toBeTruthy();
+    // Explicit dismiss — the sheet is otherwise only closed by scrim/swipe.
+    expect(screen.getByLabelText('Close navigation')).toBeTruthy();
+  });
+
+  it('drops the terminal cosplay: no HUD badges, index numbers, or fake kbd hints', () => {
+    mockPathname = '/dashboard';
+    const { container } = render(
+      <MotionRoot>
+        <NavDrawerProvider>
+          <DrawerTestConsumer userName="Alex Trader" userEmail="alex@kestrel.io" />
+        </NavDrawerProvider>
+      </MotionRoot>,
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByTestId('open-drawer-btn'));
+    });
+
+    expect(screen.queryByText(/HUD v/i)).toBeNull();
+    expect(screen.queryByText('// OPERATOR STATION')).toBeNull();
+    expect(screen.queryByText('DISCONNECT SESSION')).toBeNull();
+    expect(screen.queryByText('01')).toBeNull();
+    // Every ⌘1–⌘5 / ⌘, hint advertised a binding the app never had.
+    expect(container.querySelectorAll('kbd')).toHaveLength(0);
   });
 });

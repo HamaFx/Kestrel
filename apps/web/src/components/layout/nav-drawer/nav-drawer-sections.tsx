@@ -2,8 +2,8 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Nav groups for the drawer: primary, preferences, installed plugins and
-// (for admins) administration.
+// Section list for the mobile drawer. Same rows as the desktop rail, with the
+// one-line blurb that only the roomier drawer has space for.
 import { pluginUiRegistry } from '@kestrel/plugin-sdk/ui';
 
 import { pluginIcon } from '@/components/plugins/plugin-icon';
@@ -15,7 +15,7 @@ import {
   SECONDARY_NAV_ITEMS,
   type NavItem,
 } from '../nav-items';
-import { NavLink, Section } from './nav-link';
+import { NavRow, NavSection } from '../nav-row';
 
 export function NavDrawerSections({
   pathname,
@@ -29,26 +29,25 @@ export function NavDrawerSections({
   const pluginNavItems = pluginUiRegistry.listNavItems(installedPluginIds);
 
   return (
-    <nav aria-label="Primary" className="scrollbar-hide flex-1 overflow-y-auto px-3 pb-4">
-      <Section label="Workspace">
-        {PRIMARY_NAV_ITEMS.map((item, index) => (
-          <NavLink
+    <nav
+      aria-label="Primary"
+      className="scrollbar-hide flex flex-1 flex-col gap-3 overflow-y-auto px-3 py-2"
+    >
+      <NavSection label="Workspace">
+        {PRIMARY_NAV_ITEMS.map((item) => (
+          <NavRow
             key={item.href}
-            item={item}
+            href={item.href}
+            label={item.label}
+            icon={item.icon}
+            description={item.description}
             active={isNavItemActive(item, pathname)}
-            code={String(index + 1).padStart(2, '0')}
           />
         ))}
-      </Section>
-
-      <Section label="Preferences">
-        {SECONDARY_NAV_ITEMS.map((item) => (
-          <NavLink key={item.href} item={item} active={isNavItemActive(item, pathname)} />
-        ))}
-      </Section>
+      </NavSection>
 
       {pluginNavItems.length > 0 ? (
-        <Section label="Plugins">
+        <NavSection label="Plugins">
           {pluginNavItems.map(({ pluginId, item }) => {
             const navItem: NavItem = {
               href: item.href,
@@ -58,23 +57,31 @@ export function NavDrawerSections({
               ...(item.match ? { match: item.match } : {}),
             };
             return (
-              <NavLink
+              <NavRow
                 key={`${pluginId}:${item.href}`}
-                item={navItem}
+                href={navItem.href}
+                label={navItem.label}
+                icon={navItem.icon}
+                description={navItem.description}
                 active={isNavItemActive(navItem, pathname)}
               />
             );
           })}
-        </Section>
+        </NavSection>
       ) : null}
 
-      {isAdmin ? (
-        <Section label="Administration">
-          {ADMIN_NAV_ITEMS.map((item) => (
-            <NavLink key={item.href} item={item} active={isNavItemActive(item, pathname)} />
-          ))}
-        </Section>
-      ) : null}
+      <NavSection label="Preferences">
+        {[...SECONDARY_NAV_ITEMS, ...(isAdmin ? ADMIN_NAV_ITEMS : [])].map((item) => (
+          <NavRow
+            key={item.href}
+            href={item.href}
+            label={item.label}
+            icon={item.icon}
+            description={item.description}
+            active={isNavItemActive(item, pathname)}
+          />
+        ))}
+      </NavSection>
     </nav>
   );
 }
