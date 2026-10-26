@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 import { IconBrandTelegram, IconExternalLink } from '@tabler/icons-react';
+import Link from 'next/link';
 
 export function BotActions({ botUrl }: { botUrl: string | null }) {
   return (
@@ -40,12 +41,12 @@ export function BotActions({ botUrl }: { botUrl: string | null }) {
               <IconExternalLink className="size-3.5" />
             </a>
           ) : (
-            <a
+            <Link
               href="/settings/plugins"
               className="bg-brand inline-flex h-10 items-center gap-2 rounded-md px-4 text-sm font-medium text-white transition-[filter] hover:brightness-110"
             >
               Finish setup
-            </a>
+            </Link>
           )}
         </div>
       </div>

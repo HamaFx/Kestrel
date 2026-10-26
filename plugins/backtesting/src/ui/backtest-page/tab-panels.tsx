@@ -26,7 +26,13 @@ import type { BacktestPageController } from './use-backtest-page';
 
 export function TabPanels({ page }: { page: BacktestPageController }) {
   return (
-    <>
+    <div
+      id={`backtest-${page.tab}-panel`}
+      role="tabpanel"
+      aria-labelledby={`backtest-${page.tab}-tab`}
+      tabIndex={0}
+      className="focus-visible:ring-brand/50 flex flex-col gap-4 outline-none focus-visible:ring-2"
+    >
       {page.tab === 'new' ? (
         <NewRunForm
           key={page.formKey}
@@ -63,6 +69,6 @@ export function TabPanels({ page }: { page: BacktestPageController }) {
       {page.tab === 'knowledge' ? (
         <KnowledgeBase documents={page.documents} onChanged={() => void page.load()} />
       ) : null}
-    </>
+    </div>
   );
 }

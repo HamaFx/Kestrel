@@ -27,6 +27,7 @@ import {
   IconSend,
   IconUnlink,
 } from '@tabler/icons-react';
+import Link from 'next/link';
 
 import type { StatusResponse } from './use-telegram-page';
 
@@ -177,12 +178,12 @@ export function StatusPanel({
               : 'Off'
           }
           action={
-            <a
+            <Link
               href="/settings/plugins"
               className="text-brand text-xs font-semibold hover:underline"
             >
               Change
-            </a>
+            </Link>
           }
         />
         <Row

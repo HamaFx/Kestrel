@@ -18,6 +18,7 @@
 
 // Run header: identity, net P&L summary and the delete action.
 import { IconArrowLeft, IconLoader2, IconTrash } from '@tabler/icons-react';
+import Link from 'next/link';
 import type { z } from 'zod';
 
 import type { RunDetailSchema } from '../../schemas';
@@ -37,13 +38,13 @@ export function RunHeader({
   return (
     <div className="flex flex-wrap items-start justify-between gap-2">
       <div className="flex items-start gap-3">
-        <a
+        <Link
           href="/plugins/backtesting"
           className="text-fg-subtle hover:text-fg mt-1 inline-flex size-7 items-center justify-center rounded-md"
           aria-label="Back to Backtesting Lab"
         >
           <IconArrowLeft className="size-4" />
-        </a>
+        </Link>
         <div className="flex flex-col gap-0.5">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-fg text-lg font-semibold tracking-tight">{run.name}</h2>

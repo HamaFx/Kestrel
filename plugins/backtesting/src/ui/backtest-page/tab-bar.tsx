@@ -24,29 +24,40 @@ import type { BacktestPageController } from './use-backtest-page';
 
 export function TabBar({ page }: { page: BacktestPageController }) {
   return (
-    <div className="border-border/60 flex flex-wrap items-center gap-1 border-b pb-1">
-      {TABS.map((entry) => (
-        <button
-          key={entry.id}
-          type="button"
-          onClick={() => page.setTab(entry.id)}
-          className={
-            page.tab === entry.id
-              ? 'bg-bg-elev-2 text-fg border-brand/40 rounded-md border px-3 py-1.5 text-xs font-semibold'
-              : 'text-fg-subtle hover:text-fg rounded-md border border-transparent px-3 py-1.5 text-xs font-semibold'
-          }
-        >
-          {entry.label}
-          {entry.id === 'runs' && page.runs.length > 0 ? (
-            <span className="text-fg-subtle ml-1 font-mono text-[10px]">{page.runs.length}</span>
-          ) : null}
-          {entry.id === 'strategies' && page.strategies.length > 0 ? (
-            <span className="text-fg-subtle ml-1 font-mono text-[10px]">
-              {page.strategies.length}
-            </span>
-          ) : null}
-        </button>
-      ))}
+    <div
+      role="tablist"
+      aria-label="Backtesting Lab sections"
+      className="border-border/60 flex flex-wrap items-center gap-1 border-b pb-1"
+    >
+      {TABS.map((entry) => {
+        const isActive = page.tab === entry.id;
+        return (
+          <button
+            key={entry.id}
+            id={`backtest-${entry.id}-tab`}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            aria-controls={`backtest-${entry.id}-panel`}
+            onClick={() => page.setTab(entry.id)}
+            className={
+              isActive
+                ? 'bg-bg-elev-2 text-fg border-brand/40 focus-visible:ring-brand/50 rounded-md border px-3 py-1.5 text-xs font-semibold focus-visible:ring-2 focus-visible:outline-none'
+                : 'text-fg-subtle hover:text-fg focus-visible:ring-brand/50 rounded-md border border-transparent px-3 py-1.5 text-xs font-semibold focus-visible:ring-2 focus-visible:outline-none'
+            }
+          >
+            {entry.label}
+            {entry.id === 'runs' && page.runs.length > 0 ? (
+              <span className="text-fg-subtle ml-1 font-mono text-[10px]">{page.runs.length}</span>
+            ) : null}
+            {entry.id === 'strategies' && page.strategies.length > 0 ? (
+              <span className="text-fg-subtle ml-1 font-mono text-[10px]">
+                {page.strategies.length}
+              </span>
+            ) : null}
+          </button>
+        );
+      })}
       <button
         type="button"
         onClick={() => void page.load()}

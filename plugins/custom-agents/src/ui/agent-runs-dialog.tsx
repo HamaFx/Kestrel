@@ -25,6 +25,15 @@ export function AgentRunsDialog({ agent, onClose }: { agent: AgentView; onClose:
   const [runs, setRuns] = useState<AgentRunView[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Escape closes the run history dialog.
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   useEffect(() => {
     let cancelled = false;
     pluginFetch<{ runs: AgentRunView[] }>(`/agents/${encodeURIComponent(agent.id)}/runs?limit=30`)
