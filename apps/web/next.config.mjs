@@ -128,6 +128,32 @@ const nextConfig = {
           { key: 'Content-Type', value: 'application/javascript; charset=utf-8' },
         ],
       },
+      {
+        // The SW fetches this at install time; it must never come from a stale
+        // HTTP cache or the shell would be precached against an old build.
+        source: '/sw-precache.json',
+        headers: [{ key: 'Cache-Control', value: 'no-store' }],
+      },
+      {
+        source: '/manifest.webmanifest',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=3600, stale-while-revalidate=86400' },
+        ],
+      },
+      {
+        // Home-screen / install-dialog artwork: cheap to revalidate weekly, and
+        // it keeps the OS from re-downloading icons on every launch.
+        source: '/icons/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=604800' }],
+      },
+      {
+        source: '/screenshots/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=604800' }],
+      },
+      {
+        source: '/favicon.ico',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=604800' }],
+      },
     ];
   },
 

@@ -16,41 +16,50 @@
  * limitations under the License.
  */
 
+// SPDX-License-Identifier: Apache-2.0
+
 /**
- * <InstallNudge> — PWA install affordance.
+ * <InstallNudge> — the in-app "Add Kestrel to your home screen" affordance.
  *
- * Phase B — UX_UPGRADE_PLAN.md item 12.
- *
- * Behaviour:
- *   - Chrome / Edge / Android: listens for `beforeinstallprompt`,
- *     stashes the event, renders a one-click "Install Kestrel"
- *     button. Tapping the button calls `event.prompt()` and waits
- *     for the user's choice.
- *   - iOS Safari: no native install prompt. We detect iOS without
- *     standalone mode and show a text instruction: "Tap IconShare →
- *     Add to Home Screen".
- *   - Already installed (standalone mode): nothing rendered.
- *   - User dismisses three times: stop showing (cap in localStorage).
- *   - SSR-safe: all checks live in useEffect.
+ * Rules (docs/pwa.md §install):
+ *   - Nothing to say when the app is already installed or the user opted out.
+ *   - The engagement gate + progressive snooze live in the hook; this component
+ *     only decides *which* card to show.
+ *   - Chromium gets a real `beforeinstallprompt` button; iOS, macOS Safari and
+ *     browsers without the API get numbered instructions instead.
+ *   - Never shown on /chat: the composer owns that screen and an install banner
+ *     above it costs vertical space on every message.
+ *   - `/settings/install` always offers the same surface on demand, so a
+ *     dismissal is never a dead end.
  */
-import { BrowserInstallPrompt, IosInstallHint } from './install-cards';
+import { useShellRoute } from '@/components/layout/shell-route-context';
+
+import { InstallInstructionsCard, InstallPromptCard } from './install-cards';
+import { installPlatform, instructionsFor } from './platform-instructions';
 import { useInstallDetection } from './use-install-detection';
 
 export function InstallNudge() {
-  const { hydrated, deferred, installed, isIOS, dismissed, onInstall, onDismiss } =
+  const { hydrated, installed, canPrompt, offerable, promptInstall, dismiss } =
     useInstallDetection();
+  const { isChat, pathname } = useShellRoute();
 
-  if (!hydrated || installed || dismissed) return null;
+  // The composer owns /chat, and /settings/install is the explicit install
+  // surface that already renders the same card.
+  if (!hydrated || installed || !offerable || isChat) return null;
+  if (pathname.startsWith('/settings/install')) return null;
 
-  // iOS path: text instruction.
-  if (isIOS) {
-    return <IosInstallHint onDismiss={onDismiss} />;
+  if (canPrompt) {
+    return <InstallPromptCard onInstall={promptInstall} onDismiss={dismiss} />;
   }
 
-  // Chrome / Edge / Android path: deferred prompt button.
-  if (deferred) {
-    return <BrowserInstallPrompt onInstall={onInstall} onDismiss={onDismiss} />;
-  }
+  // Without a deferred prompt, only platforms that *never* fire one get
+  // instructions. On Chromium a missing event means the browser has decided the
+  // app is not installable (or the user already said no) — stay quiet there and
+  // let /settings/install do the explaining on demand.
+  const platformId = installPlatform();
+  const instructions =
+    platformId === 'ios' || platformId === 'macos-safari' ? instructionsFor(platformId) : null;
+  if (!instructions) return null;
 
-  return null;
+  return <InstallInstructionsCard instructions={instructions} onDismiss={dismiss} />;
 }

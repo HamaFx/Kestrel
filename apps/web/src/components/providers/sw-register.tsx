@@ -18,10 +18,23 @@
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
+import { isStandalone } from '@/lib/pwa/platform-detect';
+
 /**
- * Registers the service worker once, deferred until the browser is idle so we
- * don't compete with first paint. Fire-and-forget: failures are warned, never
- * thrown — registration is best-effort. See design §6.
+ * Registers the service worker once, deferred until the browser is idle so it
+ * never competes with first paint, and owns the update conversation.
+ *
+ * Update policy (docs/pwa.md):
+ *   - The SW stays in `waiting` until the app explicitly asks for the update,
+ *     so a deploy can never swap chunks underneath a half-typed prompt.
+ *   - Browser tab: a toast offers "Reload"; the reload happens only on click.
+ *   - Installed app: there is no reload button, so the update is applied the
+ *     next time the app resumes from the background and a reload is safe.
+ *   - The first activation never reloads: `clients.claim()` fires
+ *     `controllerchange` for an uncontrolled page too, and reloading on it
+ *     would loop on every first visit.
+ *
+ * Registration is fire-and-forget: failures are warned, never thrown.
  */
 export function SwRegister(): null {
   useEffect(() => {
@@ -29,39 +42,73 @@ export function SwRegister(): null {
     if (!('serviceWorker' in navigator)) return;
     if (!window.isSecureContext) return;
 
+    // Did this page already start under a controller? Only then can a
+    // controllerchange mean "an update took over".
+    const controlledOnLoad = Boolean(navigator.serviceWorker.controller);
+    let registration: ServiceWorkerRegistration | null = null;
+    let lastUpdateCheck = Date.now();
+    let updateOffered = false;
+    let reloading = false;
+
+    const applyWaiting = (): void => {
+      registration?.waiting?.postMessage({ type: 'SKIP_WAITING' });
+    };
+
+    const offerUpdate = (): void => {
+      if (!controlledOnLoad) return;
+      if (isStandalone()) return; // applied on the next background resume
+      if (updateOffered) return;
+      updateOffered = true;
+      toast.info('Update available', {
+        action: { label: 'Reload', onClick: applyWaiting },
+        duration: 10_000,
+      });
+    };
+
+    const handleControllerChange = (): void => {
+      // One reload per page, and only for pages that were already controlled.
+      if (!controlledOnLoad || reloading) return;
+      reloading = true;
+      window.location.reload();
+    };
+
+    const checkForUpdate = (): void => {
+      lastUpdateCheck = Date.now();
+      void registration?.update().catch(() => {});
+    };
+
+    const handleVisibilityChange = (): void => {
+      if (document.visibilityState !== 'visible') return;
+      if (registration?.waiting) {
+        // Installed app resuming with a pending update: the reload is safe
+        // here because the user is looking at a fresh resume, not an edit.
+        if (isStandalone()) {
+          applyWaiting();
+          return;
+        }
+        offerUpdate();
+        return;
+      }
+      // Cheap throttle: at most one update probe per 15 minutes of use.
+      if (Date.now() - lastUpdateCheck > 15 * 60 * 1000) checkForUpdate();
+    };
+
     const register = (): void => {
       navigator.serviceWorker
         .register('/sw.js', { scope: '/' })
         .then((reg) => {
-          // Proactively check for updates on mount
-          reg.update().catch(() => {});
+          registration = reg;
+          checkForUpdate();
+
+          if (reg.waiting) offerUpdate();
 
           reg.addEventListener('updatefound', () => {
-            const newWorker = reg.installing;
-            newWorker?.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // In standalone PWA mode (e.g. iOS Home Screen), auto-activate and refresh
-                // so users without an address bar / refresh button get latest updates
-                const isStandalone =
-                  window.matchMedia('(display-mode: standalone)').matches ||
-                  Boolean((navigator as unknown as { standalone?: boolean }).standalone);
-
-                if (isStandalone) {
-                  newWorker.postMessage({ type: 'SKIP_WAITING' });
-                  window.location.reload();
-                  return;
-                }
-
-                toast.info('Update available', {
-                  action: {
-                    label: 'Reload',
-                    onClick: () => {
-                      newWorker.postMessage({ type: 'SKIP_WAITING' });
-                      window.location.reload();
-                    },
-                  },
-                  duration: 10000,
-                });
+            const incoming = reg.installing;
+            incoming?.addEventListener('statechange', () => {
+              // `installed` + an existing controller means an update is ready
+              // and waiting for permission to activate.
+              if (incoming.state === 'installed' && navigator.serviceWorker.controller) {
+                offerUpdate();
               }
             });
           });
@@ -71,43 +118,24 @@ export function SwRegister(): null {
         });
     };
 
-    // Check for updates when user returns to app (e.g. switching back to iOS Home Screen app)
-    const handleVisibilityChange = (): void => {
-      if (document.visibilityState === 'visible') {
-        navigator.serviceWorker.getRegistration().then((reg) => {
-          reg?.update().catch(() => {});
-        });
-      }
-    };
+    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Auto-reload in standalone PWA when controller changes
-    const handleControllerChange = (): void => {
-      const isStandalone =
-        window.matchMedia('(display-mode: standalone)').matches ||
-        Boolean((navigator as unknown as { standalone?: boolean }).standalone);
-      if (isStandalone) {
-        window.location.reload();
-      }
-    };
-    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
-
+    let cancelIdle: (() => void) | undefined;
     if (typeof window.requestIdleCallback === 'function') {
       const id = window.requestIdleCallback(register);
-      return () => {
-        if (typeof window.cancelIdleCallback === 'function') {
-          window.cancelIdleCallback(id);
-        }
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-        navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
-      };
+      cancelIdle = () => window.cancelIdleCallback(id);
+    } else {
+      const timer = window.setTimeout(register, 200);
+      cancelIdle = () => window.clearTimeout(timer);
     }
-    const t = window.setTimeout(register, 200);
+
     return () => {
-      window.clearTimeout(t);
+      cancelIdle?.();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
     };
   }, []);
+
   return null;
 }

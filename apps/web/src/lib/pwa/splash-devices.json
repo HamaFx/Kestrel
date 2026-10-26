@@ -1,0 +1,114 @@
+{
+  "_comment": [
+    "Apple launch-image (apple-touch-startup-image) device matrix.",
+    "Single source of truth for both sides of the PWA splash surface:",
+    "  - apps/web/scripts/generate-icons.mjs rasterises one PNG per device/orientation",
+    "  - apps/web/src/lib/pwa/splash-links.ts renders the matching <link> media queries",
+    "Sizes are logical CSS points (`widthPt` x `heightPt`) plus the device pixel ratio",
+    "(`scale`). The physical launch image is widthPt*scale x heightPt*scale.",
+    "Keep portrait first; the generator emits both orientations from the same row."
+  ],
+  "devices": [
+    {
+      "id": "iphone-se",
+      "label": "iPhone SE (2nd/3rd gen)",
+      "widthPt": 375,
+      "heightPt": 667,
+      "scale": 2
+    },
+    {
+      "id": "iphone-8-plus",
+      "label": "iPhone 8 Plus",
+      "widthPt": 414,
+      "heightPt": 736,
+      "scale": 3
+    },
+    {
+      "id": "iphone-mini",
+      "label": "iPhone 12/13 mini, X/XS/11 Pro",
+      "widthPt": 375,
+      "heightPt": 812,
+      "scale": 3
+    },
+    { "id": "iphone-xr", "label": "iPhone XR / 11", "widthPt": 414, "heightPt": 896, "scale": 2 },
+    {
+      "id": "iphone-xs-max",
+      "label": "iPhone XS Max / 11 Pro Max",
+      "widthPt": 414,
+      "heightPt": 896,
+      "scale": 3
+    },
+    { "id": "iphone-12", "label": "iPhone 12/13/14", "widthPt": 390, "heightPt": 844, "scale": 3 },
+    {
+      "id": "iphone-14-plus",
+      "label": "iPhone 12/13 Pro Max, 14 Plus",
+      "widthPt": 428,
+      "heightPt": 926,
+      "scale": 3
+    },
+    {
+      "id": "iphone-15",
+      "label": "iPhone 14 Pro / 15 / 16",
+      "widthPt": 393,
+      "heightPt": 852,
+      "scale": 3
+    },
+    {
+      "id": "iphone-15-max",
+      "label": "iPhone 14 Pro Max / 15 Plus / 15 Pro Max",
+      "widthPt": 430,
+      "heightPt": 932,
+      "scale": 3
+    },
+    {
+      "id": "iphone-16-pro",
+      "label": "iPhone 16 Pro",
+      "widthPt": 402,
+      "heightPt": 874,
+      "scale": 3
+    },
+    {
+      "id": "iphone-16-max",
+      "label": "iPhone 16 Plus / 16 Pro Max",
+      "widthPt": 440,
+      "heightPt": 956,
+      "scale": 3
+    },
+    {
+      "id": "ipad-mini",
+      "label": "iPad mini (6th gen)",
+      "widthPt": 744,
+      "heightPt": 1133,
+      "scale": 2
+    },
+    { "id": "ipad-10-2", "label": "iPad 9.7 / 10.2", "widthPt": 810, "heightPt": 1080, "scale": 2 },
+    {
+      "id": "ipad-air",
+      "label": "iPad 10.9 / Air 4-5 / Pro 11",
+      "widthPt": 820,
+      "heightPt": 1180,
+      "scale": 2
+    },
+    {
+      "id": "ipad-pro-11-m4",
+      "label": "iPad Pro 11 (M4)",
+      "widthPt": 834,
+      "heightPt": 1210,
+      "scale": 2
+    },
+    {
+      "id": "ipad-pro-12-9",
+      "label": "iPad Pro 12.9 (3rd-6th gen)",
+      "widthPt": 1024,
+      "heightPt": 1366,
+      "scale": 2
+    },
+    {
+      "id": "ipad-pro-13-m4",
+      "label": "iPad Pro 13 (M4)",
+      "widthPt": 1032,
+      "heightPt": 1376,
+      "scale": 2
+    }
+  ]
+}

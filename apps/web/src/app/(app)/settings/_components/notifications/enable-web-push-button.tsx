@@ -30,11 +30,13 @@
 //   1. registration.pushManager.getSubscription()
 //   2. subscription.unsubscribe()
 //   3. POST /api/push/unsubscribe { endpoint }
+import Link from 'next/link';
 import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { fetchCsrf } from '@/lib/auth/csrf';
+import { isIOS, isStandalone } from '@/lib/pwa/platform-detect';
 
 type Status =
   | { kind: 'idle' }
@@ -156,6 +158,22 @@ export function EnableWebPushButton(): React.JSX.Element {
   }
 
   if (status.kind === 'unsupported') {
+    // iOS/iPadOS only exposes the Push API to Home Screen web apps, so the
+    // honest next step is installing rather than a dead "not supported" line.
+    if (isIOS() && !isStandalone()) {
+      return (
+        <p role="status" className="text-fg-muted text-sm">
+          On iPhone and iPad, alerts need Kestrel on your Home Screen first. See{' '}
+          <Link
+            href="/settings/install"
+            className="text-brand font-medium underline-offset-4 hover:underline"
+          >
+            Install app
+          </Link>
+          .
+        </p>
+      );
+    }
     return (
       <p role="status" className="text-fg-subtle text-xs">
         {status.message}
