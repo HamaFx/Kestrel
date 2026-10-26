@@ -47,7 +47,7 @@ export function AppearanceCard({ initialLocale }: { initialLocale?: string }) {
     >
       <div className="flex items-center justify-between border-b border-white/5 pb-3">
         <div className="flex items-center gap-2.5">
-          <div className="flex size-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-cyan-400">
+          <div className="text-brand flex size-8 items-center justify-center rounded-lg border border-white/10 bg-white/5">
             <IconPalette className="size-4" />
           </div>
           <div>
@@ -71,7 +71,7 @@ export function AppearanceCard({ initialLocale }: { initialLocale?: string }) {
             value={locale}
             onChange={handleLocaleChange}
             aria-label="Locale"
-            className="bg-bg-elev-2 text-fg rounded-lg border border-white/10 px-3 py-2 text-sm transition-colors focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none"
+            className="bg-bg-elev-2 text-fg focus:border-brand/50 focus:ring-brand/20 rounded-lg border border-white/10 px-3 py-2 text-sm transition-colors focus:ring-2 focus:outline-none"
           >
             {LOCALES.map((l) => (
               <option key={l.value} value={l.value}>
@@ -87,7 +87,7 @@ export function AppearanceCard({ initialLocale }: { initialLocale?: string }) {
           description="Kestrel is tuned for dark cyber-industrial trading desks. Light mode is coming in a future update."
           action={
             <span className="surface-chip text-fg-subtle inline-flex items-center gap-1.5 rounded-md border border-white/10 px-3 py-1.5 font-mono text-xs font-medium">
-              <IconMoon className="size-3.5 text-cyan-400" />
+              <IconMoon className="text-brand size-3.5" />
               Dark (Standard)
             </span>
           }

@@ -32,11 +32,11 @@ export async function AgentCard() {
   return (
     <Link
       href="/settings/agent"
-      className="surface-panel tactile-press flex items-center gap-3.5 rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)] transition-all hover:border-cyan-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/30"
+      className="surface-panel tactile-press flex items-center gap-3.5 rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)] hover:border-brand/40 focus-visible:ring-brand/30 transition-all focus:outline-none focus-visible:ring-2"
     >
       <span
         aria-hidden="true"
-        className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-cyan-400"
+        className="text-brand flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5"
       >
         <IconRobot className="size-4" />
       </span>

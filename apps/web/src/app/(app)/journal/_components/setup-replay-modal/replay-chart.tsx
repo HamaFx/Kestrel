@@ -29,7 +29,7 @@ export function ReplayChart({ replay, isLoading, isError, error }: ReplayChartPr
         </div>
       ) : isError ? (
         <div className="flex h-[280px] flex-col items-center justify-center gap-2 p-6 text-center">
-          <span className="text-sm font-semibold text-rose-400">
+          <span className="text-danger text-sm font-semibold">
             Failed to load historical candles
           </span>
           <span className="text-fg-subtle text-xs">

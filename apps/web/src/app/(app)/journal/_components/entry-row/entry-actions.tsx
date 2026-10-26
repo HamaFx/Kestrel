@@ -46,7 +46,7 @@ export function EntryActions({
           type="button"
           aria-label="Replay setup"
           onClick={onReplay}
-          className="surface-chip inline-flex size-9 cursor-pointer items-center justify-center rounded-lg border border-white/10 text-sky-400/80 transition-all hover:border-white/20 hover:bg-sky-500/10 hover:text-sky-400 active:translate-y-[0.5px]"
+          className="surface-chip text-brand/75 hover:border-brand/30 hover:text-brand hover:bg-brand/10 inline-flex size-9 cursor-pointer items-center justify-center rounded-lg border border-white/10 transition-all active:translate-y-[0.5px]"
         >
           <IconHistory className="size-4" />
         </button>

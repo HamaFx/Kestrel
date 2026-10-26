@@ -31,7 +31,7 @@ export function ChatErrorBanner({ error }: { error: Error }) {
   return (
     <div
       role="alert"
-      className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 font-mono text-xs text-rose-400"
+      className="border-danger/30 bg-danger/10 text-danger mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 font-mono text-xs"
     >
       <span>{chatErrorText(error)}</span>
     </div>

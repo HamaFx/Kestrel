@@ -27,6 +27,11 @@ export interface StrategistDeskConfig {
   epithet: string;
   description: string;
   artworkPath: string;
+  /**
+   * CSS color token (from `globals.css`) for the desk identity dot. Keep these
+   * as `var(--color-*)` references so the Hoplite palette stays the single
+   * source of truth instead of re-hardcoding hexes here.
+   */
   accentColor: string;
   analysisMode: AnalysisMode;
   defaultPrompt: string;
@@ -40,7 +45,7 @@ export const STRATEGIST_DESKS: Record<StrategistDeskId, StrategistDeskConfig> = 
     epithet: 'The All-Seeing Horizon',
     description: 'Central bank reaction functions, real yields, sovereign flows, and cross-asset correlations.',
     artworkPath: '/landing/kestrel-horus-statue.webp',
-    accentColor: '#D4AF37',
+    accentColor: 'var(--color-warn)',
     analysisMode: 'single',
     defaultPrompt: 'Conduct a macroeconomic horizon assessment on XAUUSD, evaluating real yields, central bank flows, and DXY correlation.',
   },
@@ -51,7 +56,7 @@ export const STRATEGIST_DESKS: Record<StrategistDeskId, StrategistDeskConfig> = 
     epithet: 'The Mathematical Compass',
     description: 'Multi-timeframe liquidity sweeps, institutional order blocks, fair value gaps, and displacement footprints.',
     artworkPath: '/landing/simulator-astrolabe.webp',
-    accentColor: '#7DD3FC',
+    accentColor: 'var(--color-info)',
     analysisMode: 'single',
     defaultPrompt: 'Map institutional order blocks, Fair Value Gaps (FVG), and session liquidity sweeps on XAUUSD 4H/15m.',
   },
@@ -62,7 +67,7 @@ export const STRATEGIST_DESKS: Record<StrategistDeskId, StrategistDeskConfig> = 
     epithet: 'The Impassable Shield',
     description: 'Immutable 1.0% portfolio drawdown ceiling, ATR-adjusted invalidation stops, and asymmetric expectancy.',
     artworkPath: '/landing/hoplite-spartan-bust.webp',
-    accentColor: '#F87171',
+    accentColor: 'var(--color-danger)',
     analysisMode: 'single',
     defaultPrompt: 'Calculate strict 1% risk-budget parameters, ATR invalidation level, and multi-tier TP targets for XAUUSD.',
   },
@@ -73,7 +78,7 @@ export const STRATEGIST_DESKS: Record<StrategistDeskId, StrategistDeskConfig> = 
     epithet: 'The Unified Syndicate',
     description: 'Full multi-agent deliberation: Macro, Quant, and Risk desks synthesizing into one decisive execution plan.',
     artworkPath: '/landing/desks-council-strategists.webp',
-    accentColor: '#F4F1EA',
+    accentColor: 'var(--color-brand)',
     analysisMode: 'full',
     defaultPrompt: 'Convene the full 4-strategist council to deliver an integrated synthesis and execution plan for XAUUSD.',
   },

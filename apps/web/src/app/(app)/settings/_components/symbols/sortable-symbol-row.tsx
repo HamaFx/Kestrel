@@ -67,9 +67,9 @@ export function SortableSymbolRow({
       className={cn(
         'flex items-center justify-between rounded-xl border p-3 transition-all',
         isDragging
-          ? 'surface-panel z-20 scale-[1.01] border-cyan-500/50 opacity-95 shadow-xl'
+          ? 'surface-panel border-brand/50 z-20 scale-[1.01] opacity-95 shadow-xl'
           : isSelected
-            ? 'surface-panel border-cyan-500/30 bg-cyan-500/5 shadow-sm'
+            ? 'surface-panel border-brand/30 bg-brand/5 shadow-sm'
             : 'surface-well border-white/5 hover:border-white/15',
       )}
     >
@@ -93,7 +93,7 @@ export function SortableSymbolRow({
             checked={isSelected}
             onChange={() => onToggleSelect(item.symbol)}
             aria-label={`Select ${item.symbol}`}
-            className="bg-bg-elev-2 size-4 cursor-pointer rounded-md border-white/15 text-cyan-400 focus:ring-cyan-500/20"
+            className="bg-bg-elev-2 text-brand focus:ring-brand/20 size-4 cursor-pointer rounded-md border-white/15"
           />
         </label>
         <div className="flex min-w-0 flex-col">
@@ -113,7 +113,7 @@ export function SortableSymbolRow({
             {price !== undefined ? price.toFixed(decimals) : '\u2014'}
           </span>
           {price !== undefined && (
-            <span className="font-mono text-[10px] tracking-wider text-cyan-400 uppercase">
+            <span className="text-info font-mono text-[10px] tracking-wider uppercase">
               Live
             </span>
           )}

@@ -156,11 +156,11 @@ export function HoldToExecuteButton({
       accent: 'text-bear',
     },
     danger: {
-      border: 'border-rose-500/60 focus:border-rose-500',
-      fill: 'bg-rose-600',
-      glow: 'shadow-[0_0_16px_rgba(244,63,94,0.25)]',
+      border: 'border-danger/60 focus:border-danger',
+      fill: 'bg-danger',
+      glow: 'shadow-[0_0_16px_rgba(224,44,16,0.25)]',
       text: 'text-white',
-      accent: 'text-rose-400',
+      accent: 'text-danger',
     },
   }[variant];
 
@@ -203,7 +203,7 @@ export function HoldToExecuteButton({
       }}
       className={cn(
         'relative inline-flex items-center justify-center overflow-hidden rounded-xl border font-mono font-semibold tracking-wider transition-all select-none',
-        'bg-[#141416]/90 backdrop-blur-md',
+        'bg-bg-elev-1/90 backdrop-blur-md',
         variantStyles.border,
         isHolding && variantStyles.glow,
         isHolding && 'scale-[0.98]',

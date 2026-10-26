@@ -68,7 +68,7 @@ export function UsageLimitsForm({
     >
       <header className="flex items-center justify-between border-b border-white/5 pb-3">
         <div className="flex items-center gap-3">
-          <div className="flex size-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-amber-400">
+          <div className="text-warn flex size-8 items-center justify-center rounded-lg border border-white/10 bg-white/5">
             <IconAlertTriangle className="size-4" />
           </div>
           <div>
@@ -119,10 +119,10 @@ export function UsageLimitsForm({
               type="checkbox"
               name="emailAlert"
               defaultChecked={!!initialAlertConfig.email}
-              className="bg-bg-elev-2 size-4 cursor-pointer rounded-md border-white/15 text-cyan-400 focus:ring-cyan-500/20"
+              className="bg-bg-elev-2 text-brand focus:ring-brand/20 size-4 cursor-pointer rounded-md border-white/15"
             />
             <div className="flex items-center gap-2.5">
-              <IconMail className="size-4 text-cyan-400" />
+              <IconMail className="text-brand size-4" />
               <div className="flex flex-col">
                 <span className="text-fg text-xs font-semibold">Email Alerts</span>
                 <span className="text-fg-subtle text-[11px]">
@@ -137,10 +137,10 @@ export function UsageLimitsForm({
               type="checkbox"
               name="telegramAlert"
               defaultChecked={!!initialAlertConfig.telegram}
-              className="bg-bg-elev-2 size-4 cursor-pointer rounded-md border-white/15 text-cyan-400 focus:ring-cyan-500/20"
+              className="bg-bg-elev-2 text-brand focus:ring-brand/20 size-4 cursor-pointer rounded-md border-white/15"
             />
             <div className="flex items-center gap-2.5">
-              <IconBrandTelegram className="size-4 text-cyan-400" />
+              <IconBrandTelegram className="text-brand size-4" />
               <div className="flex flex-col">
                 <span className="text-fg text-xs font-semibold">Telegram Alerts</span>
                 <span className="text-fg-subtle text-[11px]">

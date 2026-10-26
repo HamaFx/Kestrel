@@ -28,7 +28,7 @@ export function StrategistDeskCard({ desk }: { desk: StrategistDeskConfig }) {
   const consultHref = `/chat?desk=${desk.id}&prompt=${encodeURIComponent(desk.defaultPrompt)}`;
 
   return (
-    <div className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-white/[0.08] bg-[#141416]/90 p-4 transition-all duration-200 hover:border-brand/40 hover:bg-[#18181b] backdrop-blur-md shadow-sm">
+    <div className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-white/[0.08] bg-bg-elev-1/90 p-4 transition-all duration-200 hover:border-brand/40 hover:bg-bg-elev-2 backdrop-blur-md shadow-sm">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -top-4 -right-4 z-0 size-28 opacity-10 transition-opacity duration-300 mix-blend-luminosity group-hover:opacity-20"

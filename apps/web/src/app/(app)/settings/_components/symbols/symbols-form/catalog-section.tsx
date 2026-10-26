@@ -119,7 +119,7 @@ export function CatalogSection({ controller }: { controller: SymbolsFormControll
               variant="secondary"
               size="sm"
               onClick={() => handleAdd(item.symbol)}
-              className="text-fg-subtle surface-chip tactile-press h-9 w-9 rounded-lg border border-white/10 p-0 hover:border-cyan-500/30 hover:text-cyan-400"
+              className="text-fg-subtle surface-chip tactile-press hover:border-brand/30 hover:text-brand h-9 w-9 rounded-lg border border-white/10 p-0"
               aria-label={`Add ${item.symbol} to watchlist`}
             >
               <IconPlus className="size-4" />

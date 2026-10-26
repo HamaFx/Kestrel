@@ -32,7 +32,7 @@ export function PlatformTelemetryBanner({ controller }: { controller: PlatformCo
     <div className="surface-panel flex flex-col gap-4 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="bg-brand/15 text-brand flex size-10 items-center justify-center rounded-lg border border-amber-400/20">
+          <div className="bg-brand/15 text-brand border-brand/25 flex size-10 items-center justify-center rounded-lg border">
             <IconShieldLock className="size-5" />
           </div>
           <div>

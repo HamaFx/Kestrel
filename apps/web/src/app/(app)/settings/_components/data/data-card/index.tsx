@@ -32,7 +32,7 @@ export function DataCard() {
     >
       <header className="flex items-center justify-between border-b border-white/5 pb-3">
         <div className="flex items-center gap-2.5">
-          <div className="flex size-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-cyan-400">
+          <div className="text-brand flex size-8 items-center justify-center rounded-lg border border-white/10 bg-white/5">
             <IconDatabase className="size-4" />
           </div>
           <div>

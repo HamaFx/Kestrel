@@ -58,7 +58,7 @@ export function VerdictSummary({
         <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
           <BiasDistribution counts={biasCounts} total={opinions.length} />
           {dissent ? (
-            <span className="inline-flex items-center gap-1 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-400">
+            <span className="border-warn/30 bg-warn/10 text-warn inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs font-semibold">
               <IconAlertTriangle className="size-3.5" />
               Mixed signals
             </span>
