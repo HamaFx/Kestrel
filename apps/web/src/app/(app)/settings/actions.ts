@@ -53,7 +53,6 @@ export {
   updateUsageSettingsAction,
   addSymbolAction,
   removeSymbolAction,
-  updateLocaleAction,
 } from './_actions-preferences';
 
 // Data

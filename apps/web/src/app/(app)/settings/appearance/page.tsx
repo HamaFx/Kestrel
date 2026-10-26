@@ -62,7 +62,7 @@ export default async function AppearancePage() {
         </p>
       </div>
 
-      <AppearanceCard initialLocale={settings?.language ?? 'en'} />
+      <AppearanceCard />
       <PreferencesCard watchlist={watchlist} initialPrefs={uiPrefs} />
       <DataCard />
     </div>

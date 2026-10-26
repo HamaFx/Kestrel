@@ -16,30 +16,10 @@
  * limitations under the License.
  */
 import { IconMoon, IconPalette } from '@tabler/icons-react';
-import { useCallback, useState } from 'react';
 
-import { updateLocaleAction } from '../../actions';
 import { SettingsRow } from '../settings-row';
 
-const LOCALES: { value: string; label: string }[] = [
-  { value: 'en', label: 'English' },
-  { value: 'zh-CN', label: '中文' },
-  { value: 'ar-AE', label: 'العربية' },
-  { value: 'es', label: 'Español' },
-  { value: 'fr', label: 'Français' },
-  { value: 'ja', label: '日本語' },
-  { value: 'pt', label: 'Português' },
-  { value: 'ru', label: 'Русский' },
-];
-
-export function AppearanceCard({ initialLocale }: { initialLocale?: string }) {
-  const [locale, setLocale] = useState(initialLocale ?? 'en');
-
-  const handleLocaleChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    setLocale(e.target.value);
-    updateLocaleAction(e.target.value);
-  }, []);
-
+export function AppearanceCard() {
   return (
     <section
       className="surface-panel flex flex-col gap-3 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]"
@@ -65,20 +45,11 @@ export function AppearanceCard({ initialLocale }: { initialLocale?: string }) {
       </div>
       <SettingsRow
         label="Locale"
-        description="Language and date/number formatting"
+        description="Regional date/time formatting follows your browser locale and the 12h/24h preference below."
         action={
-          <select
-            value={locale}
-            onChange={handleLocaleChange}
-            aria-label="Locale"
-            className="bg-bg-elev-2 text-fg focus:border-brand/50 focus:ring-brand/20 rounded-lg border border-white/10 px-3 py-2 text-sm transition-colors focus:ring-2 focus:outline-none"
-          >
-            {LOCALES.map((l) => (
-              <option key={l.value} value={l.value}>
-                {l.label}
-              </option>
-            ))}
-          </select>
+          <span className="surface-chip text-fg-muted border-border/60 inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 font-mono text-xs font-medium">
+            English (US · Auto)
+          </span>
         }
       />
       <div className="mt-1">

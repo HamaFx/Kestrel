@@ -26,4 +26,3 @@ export { updateAiPrefsAction, updateDisabledToolsAction } from './_actions-prefe
 export { updateNotificationPrefsAction } from './_actions-preferences-notifications';
 export { updateUsageSettingsAction } from './_actions-preferences-usage';
 export { addSymbolAction, removeSymbolAction } from './_actions-preferences-symbols';
-export { updateLocaleAction } from './_actions-preferences-locale';

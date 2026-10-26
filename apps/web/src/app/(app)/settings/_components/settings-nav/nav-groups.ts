@@ -5,10 +5,13 @@
 import {
   IconActivity,
   IconBell,
+  IconCpu,
   IconDeviceMobilePlus,
+  IconKey,
   IconList,
   IconPalette,
   IconPuzzle,
+  IconRobot,
   IconSettings,
   IconShield,
 } from '@tabler/icons-react';
@@ -46,6 +49,31 @@ export const BASE_NAV_GROUPS: NavGroup[] = [
         label: 'Plugins',
         shortLabel: 'Plugins',
         icon: IconPuzzle,
+      },
+    ],
+  },
+  {
+    id: 'ai',
+    label: 'AI & Intelligence',
+    shortLabel: 'AI',
+    items: [
+      {
+        href: '/settings/api-keys',
+        label: 'API Keys & Vault',
+        shortLabel: 'API Keys',
+        icon: IconKey,
+      },
+      {
+        href: '/settings/models',
+        label: 'Models & Routing',
+        shortLabel: 'Models',
+        icon: IconCpu,
+      },
+      {
+        href: '/settings/agent',
+        label: 'Agent Preferences',
+        shortLabel: 'Agent',
+        icon: IconRobot,
       },
     ],
   },

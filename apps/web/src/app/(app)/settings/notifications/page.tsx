@@ -21,6 +21,7 @@ import { getUserWithSettings } from '@kestrel/db';
 import type { NoiseConfig } from '@kestrel/shared';
 import { IconBell, IconMail, IconMessageCircle } from '@tabler/icons-react';
 import type { Metadata } from 'next';
+import { Link } from 'next-view-transitions';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
@@ -33,7 +34,6 @@ import { NotificationPrefsCard } from '../_components/notifications/notification
 import { TestEmailButton } from '../_components/notifications/test-email-button';
 import { RowDivider } from '../_components/row-divider';
 import { SettingsRow } from '../_components/settings-row';
-import { TestTelegramButton } from '../_components/telegram/test-telegram-button';
 
 export const metadata: Metadata = {
   title: 'Notifications & Telegram · Settings',
@@ -61,7 +61,10 @@ export default async function NotificationsPage() {
   const env = getServerEnv();
   const emailReady = Boolean(env.RESEND_API_KEY) && Boolean(env.ALERT_FROM_EMAIL);
   const pushReady = Boolean(env.VAPID_PUBLIC_KEY) && Boolean(env.VAPID_PRIVATE_KEY);
-  const telegramReady = Boolean(env.TELEGRAM_BOT_TOKEN) && Boolean(env.TELEGRAM_CHAT_ID);
+  // Per-user Telegram delivery is owned by the Telegram Copilot plugin
+  // (personal bot token + linked chat). The platform bot token only gates
+  // whether the channel is available at all.
+  const telegramReady = Boolean(env.TELEGRAM_BOT_TOKEN);
 
   let pushDevices = 0;
   try {
@@ -126,11 +129,20 @@ export default async function NotificationsPage() {
           description={
             <span className="flex items-center gap-2">
               <StatusPill ready={telegramReady} />
-              <span>Send a test message to your linked Telegram account</span>
+              <span>
+                Link your personal bot and chat, then send a test message from Telegram Copilot
+              </span>
             </span>
           }
           stack
-          action={<TestTelegramButton />}
+          action={
+            <Link
+              href="/plugins/telegram-bot"
+              className="border-border/60 text-fg-muted hover:text-fg inline-flex min-h-11 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold transition-colors hover:border-white/20"
+            >
+              Configure in Telegram Copilot →
+            </Link>
+          }
         />
       </section>
 

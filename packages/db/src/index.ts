@@ -58,6 +58,7 @@ export { checkAndIncrementDailyQuota, type DailyQuotaResult } from './provider-q
 export {
   getPlatformAdminSettings,
   getPlatformAdminUserId,
+  getOwnUserSettings,
   getUserWithSettings,
   updateUserSettingsField,
   listAllUserSettings,

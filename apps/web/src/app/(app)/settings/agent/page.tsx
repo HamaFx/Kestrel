@@ -20,12 +20,19 @@
 // AI tool with its description and the last-24h invocation telemetry
 // (count, failure count, p50/p95 latency). Server component — single
 // DB read on render.
+//
+// Phase 3 — this page is now user-scoped: analysis mode, custom
+// instructions, per-desk model overrides, and tool access are personal
+// BYOK preferences for every signed-in user. The raw 24h
+// `chat_tool_telemetry` catalogue is operator-only (it aggregates across
+// the whole platform) and links through to /admin?tab=telemetry.
 
 import { buildToolCatalogue, BYOK_PROVIDERS_LIST } from '@kestrel/ai';
 import { getUserWithSettings } from '@kestrel/db';
 import { TOOL_NAMES, type ToolName } from '@kestrel/shared';
-import { IconSettings } from '@tabler/icons-react';
+import { IconActivity, IconSettings } from '@tabler/icons-react';
 import type { Metadata } from 'next';
+import { Link } from 'next-view-transitions';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
@@ -41,14 +48,13 @@ export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: 'Agent | Kestrel',
-  description: 'Tool catalogue and recent invocation stats.',
+  description: 'Analysis mode, custom instructions, model overrides, and tool access.',
 };
 
 export default async function AgentCataloguePage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/login');
   const isAdmin = await checkIsAdmin();
-  if (!isAdmin) redirect('/settings');
 
   const { settings } = await getUserWithSettings(session.user.id);
 
@@ -77,7 +83,9 @@ export default async function AgentCataloguePage() {
       ...(m.tier !== undefined ? { tier: m.tier } : {}),
     })),
   }));
-  const entries = await buildToolCatalogue(disabledTools);
+
+  // Operator-only: global 24h invocation telemetry across every user.
+  const entries = isAdmin ? await buildToolCatalogue(disabledTools) : [];
   const totalInvocations = entries.reduce((s, e) => s + e.invocations24h, 0);
   const totalFailures = entries.reduce((s, e) => s + e.failures24h, 0);
 
@@ -86,51 +94,21 @@ export default async function AgentCataloguePage() {
       <div className="flex flex-col gap-1">
         <h2 className="text-fg text-lg font-semibold tracking-tight">AI & Intelligence</h2>
         <p className="text-fg-subtle text-sm">
-          Every tool the agent can call. Counts and latencies come from{' '}
-          <code className="surface-well text-fg rounded-md border border-white/5 px-1.5 py-0.5 font-mono text-xs">
-            chat_tool_telemetry
-          </code>{' '}
-          over the last 24 hours.
+          Choose how the committee analyses markets, write custom instructions, and pin models to
+          individual desks.
         </p>
       </div>
 
       <AISubNav />
 
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="text-fg-subtle text-xs tabular-nums">
-          last 24h · {totalInvocations} invocation{totalInvocations === 1 ? '' : 's'} ·{' '}
-          {totalFailures} failure{totalFailures === 1 ? '' : 's'}
-        </span>
-      </div>
-
-      <ul className="flex flex-col gap-2.5">
-        {entries.map((e) => (
-          <li
-            key={e.name}
-            className="surface-panel flex flex-col gap-2 rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)]"
-          >
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <code className="text-fg font-mono text-sm font-semibold">{e.name}</code>
-              <div className="text-caption flex items-center gap-1.5 tabular-nums">
-                <Pill label={`${e.invocations24h}×`} tone="muted" />
-                {e.failures24h > 0 ? <Pill label={`${e.failures24h} fail`} tone="danger" /> : null}
-                {e.invocations24h > 0 ? <Pill label={`p50 ${e.medianMs}ms`} tone="muted" /> : null}
-                {e.invocations24h > 0 ? <Pill label={`p95 ${e.p95Ms}ms`} tone="muted" /> : null}
-              </div>
-            </div>
-            <p className="text-fg-muted text-xs leading-[1.4]">{e.description}</p>
-          </li>
-        ))}
-      </ul>
-
       <AnalysisModeForm initialMode={analysisMode} showOpinions={showOpinions} />
+
+      <AIPrefsCard initialCustomInstructions={customInstructions} />
 
       <AgentModelOverrideForm
         initialOverrides={agentModelOverrides}
         providers={providerModelList}
       />
-
-      <AIPrefsCard initialCustomInstructions={customInstructions} />
 
       <section aria-labelledby="disabled-tools-heading" className="flex flex-col gap-3">
         <header className="flex items-center gap-2">
@@ -148,6 +126,63 @@ export default async function AgentCataloguePage() {
           initialDisabledTools={disabledTools}
         />
       </section>
+
+      {isAdmin ? (
+        <section aria-labelledby="tool-telemetry-heading" className="flex flex-col gap-3">
+          <header className="flex flex-wrap items-baseline justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <IconActivity className="text-fg-muted size-4" />
+              <h2 id="tool-telemetry-heading" className="text-fg-muted text-sm font-medium">
+                Tool Catalogue · 24h Telemetry
+              </h2>
+            </div>
+            <Link
+              href="/admin?tab=telemetry"
+              className="text-brand text-xs font-semibold hover:underline"
+            >
+              Open in Admin →
+            </Link>
+          </header>
+          <p className="text-fg-muted text-xs">
+            Platform-wide tool invocation counts and latencies from{' '}
+            <code className="surface-well text-fg rounded-md border border-white/5 px-1.5 py-0.5 font-mono text-xs">
+              chat_tool_telemetry
+            </code>
+            . Operator-only.
+          </p>
+
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-fg-subtle text-xs tabular-nums">
+              last 24h · {totalInvocations} invocation{totalInvocations === 1 ? '' : 's'} ·{' '}
+              {totalFailures} failure{totalFailures === 1 ? '' : 's'}
+            </span>
+          </div>
+
+          <ul className="flex flex-col gap-2.5">
+            {entries.map((e) => (
+              <li
+                key={e.name}
+                className="surface-panel flex flex-col gap-2 rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)]"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <code className="text-fg font-mono text-sm font-semibold">{e.name}</code>
+                  <div className="text-caption flex items-center gap-1.5 tabular-nums">
+                    <Pill label={`${e.invocations24h}×`} tone="muted" />
+                    {e.failures24h > 0 ? (
+                      <Pill label={`${e.failures24h} fail`} tone="danger" />
+                    ) : null}
+                    {e.invocations24h > 0 ? (
+                      <Pill label={`p50 ${e.medianMs}ms`} tone="muted" />
+                    ) : null}
+                    {e.invocations24h > 0 ? <Pill label={`p95 ${e.p95Ms}ms`} tone="muted" /> : null}
+                  </div>
+                </div>
+                <p className="text-fg-muted text-xs leading-[1.4]">{e.description}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
 }
