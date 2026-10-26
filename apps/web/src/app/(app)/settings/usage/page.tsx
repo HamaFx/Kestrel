@@ -16,8 +16,13 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { computeUsage, listTelemetry } from '@kestrel/ai';
-import { listMtdAgentOpinions, requireTenantIdForUser, withTenantDbRO } from '@kestrel/db';
+import { BYOK_PROVIDERS_LIST, computeUsage, listTelemetry } from '@kestrel/ai';
+import {
+  getUserWithSettings,
+  listMtdAgentOpinions,
+  requireTenantIdForUser,
+  withTenantDbRO,
+} from '@kestrel/db';
 import { IconChartBar } from '@tabler/icons-react';
 import type { Metadata } from 'next';
 import { Link } from 'next-view-transitions';
@@ -30,10 +35,12 @@ import { ActivitySummaryCard } from './_components/activity-summary-card';
 import { AgentUsageCard } from './_components/agent-usage-card';
 import { DailyActivityChart } from './_components/daily-activity-chart';
 import { RecentTurnsCard } from './_components/recent-turns-card';
+import { UsageLimitsForm } from './_components/usage-limits-form';
 
 export const metadata: Metadata = {
   title: 'Activity & Quota · Settings',
-  description: 'Track your AI research sessions, specialist desk usage, and recent analyses.',
+  description:
+    'Track your AI research sessions, specialist desk usage, spend guardrails, and recent analyses.',
 };
 export const revalidate = 60;
 
@@ -44,13 +51,32 @@ export default async function UsagePage() {
   const startOfMonth = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
 
   const tenantId = await requireTenantIdForUser(session.user.id);
-  const [stats, recent, agentOpinionRows] = await withTenantDbRO(tenantId, () =>
-    Promise.all([
-      computeUsage(session.user.id),
-      listTelemetry(session.user.id, 20),
-      listMtdAgentOpinions(session.user.id, startOfMonth),
-    ]),
-  );
+  const [[stats, recent, agentOpinionRows], { settings }] = await Promise.all([
+    withTenantDbRO(tenantId, () =>
+      Promise.all([
+        computeUsage(session.user.id),
+        listTelemetry(session.user.id, 20),
+        listMtdAgentOpinions(session.user.id, startOfMonth),
+      ]),
+    ),
+    getUserWithSettings(session.user.id),
+  ]);
+
+  // Budget guardrails are personal (never inherited from the platform admin),
+  // so the form is pre-populated from the user's own settings row.
+  const thresholds = settings?.providerSpendingThresholds ?? {};
+  const spendByProvider = new Map<string, number>();
+  for (const p of stats.byProvider) {
+    if (p.byokProviderId) spendByProvider.set(p.byokProviderId, p.costUsd);
+  }
+  const providerSpend = Array.from(new Set([...spendByProvider.keys(), ...Object.keys(thresholds)]))
+    .map((id) => ({
+      id,
+      displayName: BYOK_PROVIDERS_LIST.find((p) => p.id === id)?.displayName ?? id,
+      currentSpend: spendByProvider.get(id) ?? 0,
+      threshold: thresholds[id] ?? null,
+    }))
+    .sort((a, b) => b.currentSpend - a.currentSpend);
 
   return (
     <div className="flex flex-col gap-6">
@@ -63,6 +89,12 @@ export default async function UsagePage() {
 
       <ActivitySummaryCard stats={stats} />
 
+      <UsageLimitsForm
+        initialMonthlyLimit={settings?.monthlyBudgetLimit ?? null}
+        initialAlertConfig={settings?.spendAlertsConfig ?? {}}
+        providers={providerSpend}
+      />
+
       {stats.thirtyDayTurns === 0 ? (
         <EmptyState
           icon={<IconChartBar className="size-6" />}
@@ -71,7 +103,7 @@ export default async function UsagePage() {
           action={
             <Link
               href="/chat"
-              className="bg-fg inline-flex h-10 items-center rounded-sm px-3 text-sm font-medium text-black hover:opacity-90"
+              className="bg-brand inline-flex h-10 items-center rounded-md px-3 text-sm font-medium text-white transition-[filter] hover:brightness-110"
             >
               Open AI Chat
             </Link>

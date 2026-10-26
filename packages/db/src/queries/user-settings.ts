@@ -153,6 +153,28 @@ export async function listAllUserSettings(): Promise<(typeof schema.userSettings
 }
 
 /**
+ * Fetch the user's OWN `user_settings` row with no platform-admin
+ * inheritance merge.
+ *
+ * Credential-bearing surfaces (the BYOK vault editor on
+ * `/settings/api-keys`) must read this instead of {@link getUserWithSettings}:
+ * the merged row substitutes the platform admin's `aiApiKeys` for a
+ * subscriber who has none, and decrypting that into an editable form would
+ * hand every subscriber a copy of the operator's provider secrets.
+ */
+export async function getOwnUserSettings(
+  userId: string,
+): Promise<typeof schema.userSettings.$inferSelect | null> {
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const rows = await db
+    .select()
+    .from(schema.userSettings)
+    .where(and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)));
+  return rows[0] ?? null;
+}
+
+/**
  * Update a single field on the userSettings row for a given userId.
  * Uses a partial update so only the provided field is changed.
  */

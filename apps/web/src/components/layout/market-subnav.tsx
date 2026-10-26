@@ -44,7 +44,7 @@ interface MarketTab {
   match: readonly string[];
 }
 
-export const MARKET_TABS: readonly MarketTab[] = [
+const MARKET_TABS: readonly MarketTab[] = [
   {
     href: '/news',
     label: 'News Wire',
@@ -69,7 +69,7 @@ export const MARKET_TABS: readonly MarketTab[] = [
 ];
 
 /** Whether a market tab owns the current pathname (exact or nested route). */
-export function isMarketTabActive(tab: MarketTab, pathname: string | null): boolean {
+function isMarketTabActive(tab: MarketTab, pathname: string | null): boolean {
   if (!pathname) return false;
   return tab.match.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }

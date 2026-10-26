@@ -20,7 +20,6 @@ import { getUserWithSettings } from '@kestrel/db';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
-import { checkIsAdmin } from '@/lib/auth/admin-check';
 import { buildCatalogForUser } from '@/lib/services/catalog-server';
 
 import { AISubNav } from '../_components/ai-subnav';
@@ -62,10 +61,6 @@ export default async function ModelsSettingsPage() {
   const session = await auth();
   if (!session?.user?.id) {
     redirect('/login');
-  }
-  const isAdmin = await checkIsAdmin();
-  if (!isAdmin) {
-    redirect('/settings');
   }
 
   const { settings: userRow } = await getUserWithSettings(session.user.id);

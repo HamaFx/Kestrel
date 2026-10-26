@@ -19,6 +19,7 @@
 import {
   IconBell,
   IconChevronRight,
+  IconCpu,
   IconInfoCircle,
   IconKey,
   IconPalette,
@@ -41,7 +42,7 @@ import { UsageGlance } from './_components/usage-glance';
 
 export const metadata: Metadata = {
   title: 'Settings',
-  description: 'Manage your subscription, watchlist, risk rules, alerts, and account security.',
+  description: 'Manage your watchlist, risk rules, alerts, AI provider keys, and account security.',
 };
 export const revalidate = 60;
 
@@ -94,6 +95,24 @@ export default async function SettingsPage() {
             title="Appearance & Data"
             description="Theme styling, default chart symbol, and trade journal exports"
           />
+          <QuickLink
+            href="/settings/api-keys"
+            icon={<IconKey className="size-4.5" />}
+            title="API Keys & Vault"
+            description="Connect your personal AI provider keys — encrypted at rest with AES-256-GCM"
+          />
+          <QuickLink
+            href="/settings/models"
+            icon={<IconCpu className="size-4.5" />}
+            title="Model Routing & Fallbacks"
+            description="Default chat, vision, and embedding models plus your fallback chain"
+          />
+          <QuickLink
+            href="/settings/agent"
+            icon={<IconRobot className="size-4.5" />}
+            title="Agent Preferences"
+            description="Committee analysis mode, custom instructions, and per-desk model overrides"
+          />
         </div>
       </div>
 
@@ -109,7 +128,7 @@ export default async function SettingsPage() {
         <SettingsSection
           icon={<IconShield className="size-4" />}
           title="Admin & Platform Controls"
-          description="Operator-only configuration for AI providers, market feeds, and system diagnostics"
+          description="Operator-only configuration for market feeds, system diagnostics, and the platform admin console"
         >
           <div className="flex flex-col gap-3">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -117,25 +136,7 @@ export default async function SettingsPage() {
                 href="/admin"
                 icon={<IconShield className="size-4.5" />}
                 title="Admin Console"
-                description="System health, user management, cron jobs, and audit logs"
-              />
-              <QuickLink
-                href="/settings/api-keys"
-                icon={<IconKey className="size-4.5" />}
-                title="Platform AI & Market Feeds"
-                description="Configure backend AI provider keys and market data adapters"
-              />
-              <QuickLink
-                href="/settings/models"
-                icon={<IconRobot className="size-4.5" />}
-                title="Model Routing & Fallbacks"
-                description="Default chat, vision, and embedding model configuration"
-              />
-              <QuickLink
-                href="/settings/agent"
-                icon={<IconRobot className="size-4.5" />}
-                title="Agent Tool Telemetry"
-                description="24h tool invocation latencies and tool enable/disable toggles"
+                description="System health, user management, cron jobs, audit logs, and platform AI defaults"
               />
             </div>
             <OnboardingResetCard />
