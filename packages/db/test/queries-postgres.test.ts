@@ -534,4 +534,51 @@ describe.skipIf(!enabled || !adminUrl)('query layer — real PostgreSQL integrat
     // Ownership predicate still applies to the newest window.
     await expect(listMessages(OTHER_USER_ID, threadId, 2)).resolves.toEqual([]);
   });
+
+  // 0117 regression — POST /login returned 500 (React #441, digest 1876515799)
+  // because rate_limits.tenant_id defaulted to an EMPTY `app.current_tenant`
+  // GUC and the tenant trigger only replaced NULLs, so the insert violated
+  // rate_limits_tenant_id_fkey before credentials were checked.
+  describe('tenant resolution with an empty app.current_tenant GUC', () => {
+    it('falls back to the user/platform tenant instead of persisting an empty tenant_id', async () => {
+      // Simulate the production condition: the GUC is present but empty
+      // (role/database-level default or pooled-session state).
+      await raw!.unsafe(`SELECT set_config('app.current_tenant', '', false)`);
+      try {
+        // The resolver must treat '' exactly like an unset GUC.
+        const resolved = await raw!.unsafe<{ tenant: string }[]>(
+          `SELECT hamafx_resolve_tenant_id('${USER_ID}') AS tenant`,
+        );
+        expect(resolved[0]?.tenant).toBe(USER_ID);
+
+        // The pre-auth bucket keys on the platform subject; the tenant trigger
+        // must seed a real organization id (never '').
+        await raw!.unsafe(
+          `INSERT INTO "rate_limits" ("user_id","endpoint_group","window_start","request_count")
+           VALUES ('__system__','regression:login-ip',date_trunc('minute', now()),1)
+           ON CONFLICT ("user_id","endpoint_group","window_start")
+           DO UPDATE SET "request_count" = "rate_limits"."request_count" + 1`,
+        );
+        const rows = await raw!.unsafe<{ tenant_id: string }[]>(
+          `SELECT tenant_id FROM "rate_limits" WHERE endpoint_group = 'regression:login-ip'`,
+        );
+        expect(rows).toHaveLength(1);
+        expect(rows[0]?.tenant_id).toBe('__system__');
+
+        // A real user's session insert resolves through the same fallback.
+        await raw!.unsafe(
+          `INSERT INTO "user_sessions" ("id","user_id","device_name","ip")
+           VALUES ('regression-session','${USER_ID}','regression',NULL)`,
+        );
+        const session = await raw!.unsafe<{ tenant_id: string }[]>(
+          `SELECT tenant_id FROM "user_sessions" WHERE id = 'regression-session'`,
+        );
+        expect(session[0]?.tenant_id).toBe(USER_ID);
+      } finally {
+        await raw!.unsafe(`DELETE FROM "rate_limits" WHERE endpoint_group = 'regression:login-ip'`);
+        await raw!.unsafe(`DELETE FROM "user_sessions" WHERE id = 'regression-session'`);
+        await raw!.unsafe(`SELECT set_config('app.current_tenant', '', false)`);
+      }
+    });
+  });
 });
