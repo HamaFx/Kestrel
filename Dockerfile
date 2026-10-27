@@ -57,10 +57,15 @@ ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
 ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY=
 ARG NEXT_PUBLIC_GOOGLE_ENABLED=false
 ARG NEXT_PUBLIC_ENABLE_DEV_LOGIN=false
+# NEXT_BUILD_SKIP_TYPECHECK: `next build` skips its own typecheck because the
+# explicit `turbo run typecheck` step below (tsrs) checks the same commit.
+# Keeping the flag set for the whole stage also stabilizes Turbo task hashes
+# between the typecheck and build steps.
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
     NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY \
     NEXT_PUBLIC_GOOGLE_ENABLED=$NEXT_PUBLIC_GOOGLE_ENABLED \
-    NEXT_PUBLIC_ENABLE_DEV_LOGIN=$NEXT_PUBLIC_ENABLE_DEV_LOGIN
+    NEXT_PUBLIC_ENABLE_DEV_LOGIN=$NEXT_PUBLIC_ENABLE_DEV_LOGIN \
+    NEXT_BUILD_SKIP_TYPECHECK=1
 # OPT-3: --link creates node_modules as a separate reusable layer instead of
 # copying files into the builder's layer. This avoids the 68s copy seen with
 # a plain COPY --from=deps.
@@ -74,6 +79,11 @@ COPY --link . .
 # Runtime authentication is enforced by auth.config.ts/middleware.
 # OPT-4: Cache turbo's .next and .turbo output across rebuilds so source-only
 # changes skip recompiling unchanged packages.
+# Typecheck the exact commit before compiling (tsrs — same command as the CI
+# gate); the shared turbo cache mount lets the build step reuse the package
+# builds this step already produced.
+RUN --mount=type=cache,id=turbo-web,target=/app/.turbo \
+    pnpm turbo run typecheck --filter=@kestrel/web...
 RUN --mount=type=cache,id=turbo-web,target=/app/.turbo \
     --mount=type=cache,id=next-web,target=/app/apps/web/.next/cache \
     AUTH_MODE=normal pnpm turbo run build --filter=@kestrel/web...
