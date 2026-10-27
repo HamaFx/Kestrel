@@ -36,11 +36,13 @@ interface NormalizedOpinion {
   confidence: number;
   reasoning: string;
   summary: string;
+  model?: string;
+  latencyMs?: number;
 }
 
 function normalizeOpinions(raw: unknown[] | undefined): NormalizedOpinion[] {
   if (!Array.isArray(raw)) return [];
-  return raw.filter(
+  const valid = raw.filter(
     (op): op is NormalizedOpinion =>
       typeof (op as NormalizedOpinion)?.agentName === 'string' &&
       ((op as NormalizedOpinion).bias === 'bullish' ||
@@ -49,6 +51,19 @@ function normalizeOpinions(raw: unknown[] | undefined): NormalizedOpinion[] {
       typeof (op as NormalizedOpinion).confidence === 'number' &&
       typeof (op as NormalizedOpinion).reasoning === 'string',
   );
+  return valid.map((op) => ({
+    agentName: op.agentName,
+    bias: op.bias,
+    confidence: op.confidence,
+    reasoning: op.reasoning,
+    summary: op.reasoning,
+    ...(typeof (op as { model?: unknown }).model === 'string'
+      ? { model: (op as { model: string }).model }
+      : {}),
+    ...(typeof (op as { latencyMs?: unknown }).latencyMs === 'number'
+      ? { latencyMs: (op as { latencyMs: number }).latencyMs }
+      : {}),
+  }));
 }
 
 /**

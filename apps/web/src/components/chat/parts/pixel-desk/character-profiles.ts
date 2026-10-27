@@ -61,15 +61,3 @@ export const DESK_ORDER: DeskId[] = FOUR_SPECIALIST_DESKS.map((desk) => desk.id 
 export const DESK_SHORT_LABELS: Record<DeskId, string> = Object.fromEntries(
   FOUR_SPECIALIST_DESKS.map((desk) => [desk.id, desk.chipLabel]),
 ) as Record<DeskId, string>;
-
-/** Full desk names shown in the live status strip and scorecard. */
-export const DESK_DISPLAY_NAMES: Record<DeskId, string> = Object.fromEntries(
-  FOUR_SPECIALIST_DESKS.map((desk) => [desk.id, desk.label]),
-) as Record<DeskId, string>;
-
-export interface PixelAgentOpinion {
-  agentName: string;
-  bias: 'bullish' | 'bearish' | 'neutral';
-  confidence: number;
-  reasoning: string;
-}

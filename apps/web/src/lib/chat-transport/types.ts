@@ -29,6 +29,8 @@ export interface AgentProgress {
       confidence: number;
       reasoning: string;
       summary?: string;
+      model?: string;
+      latencyMs?: number;
     };
     error?: string;
   }>;

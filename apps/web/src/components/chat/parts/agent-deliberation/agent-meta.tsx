@@ -17,11 +17,15 @@ import {
 } from '@/lib/kestrel-strategist-desks';
 
 export interface AgentOpinion {
-  agentName?: string;
+  agentName: string;
   bias: 'bullish' | 'bearish' | 'neutral';
   confidence: number;
   reasoning?: string;
   summary?: string;
+  /** Model that produced the opinion (telemetry badge). */
+  model?: string;
+  /** Generation latency in ms (telemetry badge). */
+  latencyMs?: number;
 }
 
 export interface AgentProgress {
@@ -41,6 +45,20 @@ export interface AgentDeliberationProps {
    * the run as one desk per symbol + cross-symbol synthesis.
    */
   comparisonSymbols?: string[];
+  /** Cross-examination ledger from `data-agent-progress` (full mode). */
+  critiques?: Array<{
+    agentName: string;
+    confirms: boolean;
+    revisedConfidence: number;
+    critique: string;
+  }>;
+  /** Executing workflow stage (`collect-packet` … `fusion`). */
+  stage?: string;
+  /** Symbol the run analyzes (settled dossier header). */
+  symbol?: string | null;
+  /** Desktop War Room is open: collapse duplicate desks/clashes inline. */
+  compactInline?: boolean;
+  onOpenWarRoom?: () => void;
 }
 
 export interface AgentMeta {

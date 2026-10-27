@@ -17,13 +17,18 @@
  */
 import { IconAlertTriangle, IconCircleCheck, IconClock, IconDatabase } from '@tabler/icons-react';
 
+import {
+  type AgentProgress,
+} from './agent-deliberation/agent-meta';
 import { MastraReportScenarios } from './mastra-report-scenarios';
 import {
   MastraReportMetaSchema,
   type MastraReportMetaView,
   type MastraReportView,
 } from './mastra-report-schema';
-import { PixelDeskDeliberation } from './pixel-desk/pixel-desk';
+import { normalizeCritiques } from '@/lib/chat-transport/job-result';
+import { SyndicateDossierCard } from './syndicate-dossier/syndicate-dossier-card';
+import type { SyndicateTradeOpinion } from './syndicate-dossier/extract-trade-levels';
 
 export function MastraReportPart({ data }: { data: unknown }) {
   const parsed = MastraReportMetaSchema.safeParse(data);
@@ -37,19 +42,38 @@ export function MastraReportPart({ data }: { data: unknown }) {
     'agentOpinions' in data &&
     Array.isArray((data as { agentOpinions?: unknown }).agentOpinions)
   ) {
+    // Locked Decision 4A — settled 4-desk payloads render through the one
+    // canonical SyndicateDossierCard (retires PixelDeskDeliberation).
     const multiData = data as {
       mode?: string;
-      agentOpinions: Array<{
-        agentName: string;
-        bias: 'bullish' | 'bearish' | 'neutral';
-        confidence: number;
-        reasoning: string;
-      }>;
+      symbol?: string;
+      dataQuality?: string;
+      agentOpinions: SyndicateTradeOpinion[];
+      committeeCritiques?: unknown[];
     };
+    const agents: AgentProgress[] = multiData.agentOpinions.map((op) => ({
+      agentName: op.agentName,
+      status: 'done',
+      opinion: {
+        agentName: op.agentName,
+        bias: op.bias,
+        confidence: op.confidence,
+        reasoning: op.reasoning,
+        summary: op.reasoning,
+        ...(typeof op.model === 'string' ? { model: op.model } : {}),
+        ...(typeof op.latencyMs === 'number' ? { latencyMs: op.latencyMs } : {}),
+      },
+    }));
     return (
-      <div className="mt-3 w-full">
-        <PixelDeskDeliberation opinions={multiData.agentOpinions} mode={multiData.mode ?? 'full'} />
-      </div>
+      <SyndicateDossierCard
+        agents={agents}
+        opinions={agents}
+        mode={multiData.mode ?? 'full'}
+        critiques={normalizeCritiques(multiData.committeeCritiques)}
+        symbol={multiData.symbol ?? null}
+        tradeOpinions={multiData.agentOpinions}
+        {...(multiData.dataQuality ? { dataQuality: multiData.dataQuality } : {})}
+      />
     );
   }
 
@@ -61,55 +85,71 @@ export function MastraReportCard({ meta }: { meta: MastraReportMetaView }) {
   const isBlocked = meta.researchStatus === 'blocked' || !report;
   const qualityWarning = meta.dataQuality !== 'complete';
 
+  // The briefing is a single-symbol read: its synthetic desk opinion mirrors
+  // the report bias and the ticket wells come from the scenario rows.
+  const tradeOpinions: SyndicateTradeOpinion[] = report
+    ? [
+        {
+          agentName: 'technical',
+          bias: report.bias === 'unclear' ? 'neutral' : report.bias,
+          confidence: report.confidence,
+          reasoning: report.bottomLine,
+          rawData: { scenarios: report.scenarios },
+        },
+      ]
+    : [];
+
   return (
-    <section
-      role="region"
-      aria-label="Verified XAUUSD report"
-      className="border-border/80 bg-bg-elev-1 surface-chip border-edge/80 mt-3 flex flex-col gap-3.5 rounded-xl border p-4 shadow-[var(--shadow-chip)]"
-      data-testid="mastra-report-card"
-      data-mastra-agent="mastra-xauusd"
-      data-packet-id={meta.packetId}
-    >
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <IconDatabase className="text-fg-muted size-4" aria-hidden="true" />
-          <span
-            className="border-bull/30 bg-bull/5 text-bull text-caption rounded-sm border px-1.5 py-0.5 font-semibold tracking-wide uppercase"
-            data-testid="mastra-agent-badge"
+    <div data-mastra-agent="mastra-xauusd" data-packet-id={meta.packetId}>
+      <SyndicateDossierCard
+        regionLabel="Verified XAUUSD report"
+        testId="mastra-report-card"
+        symbol={report?.symbol ?? null}
+        mode="single"
+        opinions={[]}
+        agents={[]}
+        tradeOpinions={tradeOpinions}
+        dataQuality={report?.dataQuality ?? meta.dataQuality}
+        badge={
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <IconDatabase className="text-fg-muted size-4" aria-hidden="true" />
+              <span
+                className="border-bull/30 bg-bull/5 text-bull rounded-sm border px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-wide uppercase"
+                data-testid="mastra-agent-badge"
+              >
+                Verified Brief
+              </span>
+              <h3 className="text-fg text-sm font-semibold">
+                {report?.symbol ? `${report.symbol} Market Briefing` : 'Verified Market Briefing'}
+              </h3>
+            </div>
+          </div>
+        }
+      >
+        {isBlocked || !report ? (
+          <div
+            role="alert"
+            className="border-warn/30 bg-warn/5 text-warn flex items-start gap-2 rounded-sm border p-2 text-xs"
           >
-            Verified Brief
-          </span>
-          <h3 className="text-fg text-sm font-semibold">
-            {report?.symbol ? `${report.symbol} Market Briefing` : 'Verified Market Briefing'}
-          </h3>
-        </div>
-        <div className="text-caption text-fg-subtle flex items-center gap-2">
-          <span>4-Desk AI Committee</span>
-        </div>
-      </header>
+            <IconAlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <span>
+              Live market feed data was temporarily unavailable. Briefing could not be generated.
+            </span>
+          </div>
+        ) : (
+          <ReportBody report={report} qualityWarning={qualityWarning} />
+        )}
 
-      {isBlocked || !report ? (
-        <div
-          role="alert"
-          className="border-warn/30 bg-warn/5 text-warn flex items-start gap-2 rounded-sm border p-2 text-xs"
-        >
-          <IconAlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          <span>
-            Live market feed data was temporarily unavailable. Briefing could not be generated.
+        <footer className="border-border/40 text-fg-subtle flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-2 font-mono text-[10px]">
+          <span className="inline-flex items-center gap-1">
+            <IconClock className="size-3" aria-hidden="true" />
+            Data Check:{' '}
+            {meta.dataQuality === 'complete' ? 'Verified against live feed' : meta.dataQuality}
           </span>
-        </div>
-      ) : (
-        <ReportBody report={report} qualityWarning={qualityWarning} />
-      )}
-
-      <footer className="border-border text-caption text-fg-subtle flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-2">
-        <span className="inline-flex items-center gap-1">
-          <IconClock className="size-3" aria-hidden="true" />
-          Data Check:{' '}
-          {meta.dataQuality === 'complete' ? 'Verified against live feed' : meta.dataQuality}
-        </span>
-      </footer>
-    </section>
+        </footer>
+      </SyndicateDossierCard>
+    </div>
   );
 }
 

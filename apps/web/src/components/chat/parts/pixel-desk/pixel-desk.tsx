@@ -2,11 +2,11 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Public barrel for the pixel-desk parts. The three containers live in their
-// own files; desk data and glyph primitives stay internal to the folder.
+// Public barrel for the pixel-desk parts. The live thinking state delegates to
+// the canonical SyndicateCircuitLive; the deliberation/verdict cards were
+// retired into the unified SyndicateDossierCard (Locked Decision 4A).
 
 export { CHARACTER_PROFILES } from './character-profiles';
-export type { CharacterProfile, PixelAgentOpinion } from './character-profiles';
-export { PixelDeskDeliberation } from './pixel-desk-deliberation';
+export type { CharacterProfile } from './character-profiles';
 export { PixelDeskStandby } from './pixel-desk-standby';
 export { PixelDeskThinking } from './pixel-desk-thinking';
