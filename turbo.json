@@ -1,5 +1,13 @@
 {
-  "globalDependencies": ["packages/config/typescript/*.json", "packages/config/eslint/*.js"],
+  "globalDependencies": [
+    "packages/config/typescript/*.json",
+    "packages/config/eslint/*.js",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "turbo.json",
+    "scripts/predeploy-migrate.mjs"
+  ],
   "globalEnv": ["NODE_ENV", "CI", "VERCEL", "NEXT_BUILD_SKIP_TYPECHECK"],
   "tasks": {
     "build": {

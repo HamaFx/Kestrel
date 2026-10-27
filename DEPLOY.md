@@ -114,6 +114,31 @@ not depend on it.
 ## Where typechecking runs
 
 `pnpm turbo run typecheck` (the Rust `tsrs` compiler) is the type gate: CI runs
-it on every PR. Application builds — `next build` and the web Docker builder —
-skip Next's duplicate built-in typecheck; the Docker build runs the same
-`turbo run typecheck` gate explicitly before compiling.
+it on every PR. Application builds skip Next's duplicate built-in typecheck:
+Vercel builds set `NEXT_BUILD_SKIP_TYPECHECK=1` (the merge gate already
+typechecked the exact commit, and the post-deploy smoke verifies the result),
+and the Docker builder runs the same `turbo run typecheck` gate explicitly
+before compiling.
+
+## Faster Vercel builds
+
+Two mechanisms are configured in the repo; Remote Caching is a one-time
+dashboard step:
+
+- **Unaffected commits skip the build.** `apps/web/vercel.json` sets an
+  Ignored Build Step based on `turbo query affected`: a push that does not
+  touch the web app or any workspace package it depends on (docs-only,
+  worker-only, CI files) skips the build and keeps the previous deployment.
+  Root manifests (`package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`,
+  `turbo.json`) and `scripts/predeploy-migrate.mjs` are declared in
+  `turbo.json` → `globalDependencies`, so dependency or migration changes
+  always rebuild. Note: Vercel still counts skipped builds toward deployment
+  quotas — the win is build time and queueing, not quota.
+- **No duplicate typecheck** — see "Where typechecking runs" above.
+- **Remote Caching** (one-time, in Vercel): enable Turborepo Remote Caching
+  for the project so the workspace package builds are restored across deploys
+  instead of recompiled. A team owner can enable it in the Vercel dashboard;
+  locally, run `pnpm dlx turbo login && pnpm dlx turbo link` from the repo
+  root. Deployments then show a Turborepo "Run Summary" with per-task cache
+  status. To share the cache with GitHub Actions, use Vercel's OIDC-based
+  setup: https://vercel.com/docs/monorepos/remote-caching/external-ci-cd
