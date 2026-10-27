@@ -114,8 +114,6 @@ describe('committeeProgressSnapshot', () => {
     expect(snapshot.status).toBe('complete');
 
     // No critiques → the field is omitted (older emitters stay valid).
-    expect(committeeProgressSnapshot('full', 'fusion', 'complete')).not.toHaveProperty(
-      'critiques',
-    );
+    expect(committeeProgressSnapshot('full', 'fusion', 'complete')).not.toHaveProperty('critiques');
   });
 });

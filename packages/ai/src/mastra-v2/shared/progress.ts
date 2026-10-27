@@ -144,10 +144,7 @@ export interface CommitteeProgressExtras {
  * persisted progress log newest-first and returns the first non-empty set.
  */
 export function extractCommitteeProgressExtras(
-  progress:
-    | ReadonlyArray<{ data?: unknown } | null | undefined>
-    | null
-    | undefined,
+  progress: ReadonlyArray<{ data?: unknown } | null | undefined> | null | undefined,
 ): CommitteeProgressExtras {
   const extras: CommitteeProgressExtras = {};
   for (let i = (progress?.length ?? 0) - 1; i >= 0; i--) {

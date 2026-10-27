@@ -19,6 +19,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { ThreadViewsDock } from '@/components/chat/thread-views-dock';
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
 import { NavDrawer } from '@/components/layout/nav-drawer';
 import { NavDrawerProvider, useNavDrawer } from '@/components/layout/nav-drawer-context';
@@ -32,6 +33,19 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('next-auth/react', () => ({
   signOut: vi.fn(),
+}));
+
+vi.mock('@/hooks/use-tf', () => ({
+  useTimeframe: () => ['15m', vi.fn()],
+}));
+
+vi.mock('next/image', () => ({
+  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => {
+    const { unoptimized, ...rest } = props as React.ImgHTMLAttributes<HTMLImageElement> & {
+      unoptimized?: boolean;
+    };
+    return <img {...rest} alt="" />;
+  },
 }));
 
 vi.mock('@/hooks/use-prices', () => ({
@@ -138,5 +152,55 @@ describe('NavDrawer Mobile Component', () => {
     expect(screen.queryByText('01')).toBeNull();
     // Every ⌘1–⌘5 / ⌘, hint advertised a binding the app never had.
     expect(container.querySelectorAll('kbd')).toHaveLength(0);
+  });
+});
+
+describe('Chat War Room sheet — mobile ergonomics', () => {
+  function renderDock(onClose = vi.fn()) {
+    render(
+      <ThreadViewsDock
+        isOpen
+        onClose={onClose}
+        activeTab="opinions"
+        onTabChange={vi.fn()}
+        symbol="XAUUSD"
+        agentProgress={null}
+        messages={[]}
+      />,
+    );
+    return onClose;
+  }
+
+  it('renders a scrim that closes the sheet on tap', () => {
+    const onClose = renderDock();
+    const scrim = screen.getByLabelText('Close views backdrop');
+    expect(scrim.className).toContain('bg-black/60');
+    expect(scrim.className).toContain('lg:hidden');
+    fireEvent.click(scrim);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes on Escape', () => {
+    const onClose = renderDock();
+    act(() => {
+      fireEvent.keyDown(window, { key: 'Escape' });
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the dock tabs at a 44px minimum touch height on mobile', () => {
+    renderDock();
+    for (const label of ['Chart', 'Council', 'Plan']) {
+      const tab = screen.getByRole('button', { name: new RegExp(label, 'i') });
+      expect(tab.className).toContain('min-h-11');
+      expect(tab.className).toContain('sm:min-h-9');
+    }
+  });
+
+  it('shows the War Room watermark strip and closes via the X affordance', () => {
+    const onClose = renderDock();
+    expect(screen.getByText('KESTREL // SOVEREIGN COUNCIL')).toBeTruthy();
+    fireEvent.click(screen.getByLabelText('Close Views'));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

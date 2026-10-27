@@ -167,14 +167,14 @@ export function ChatTopBar({
               aria-label="Toggle views"
               aria-pressed={isSidecarOpen}
               className={cn(
-                'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors',
+                'inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors sm:h-9 sm:min-w-0 sm:justify-start',
                 isSidecarOpen
                   ? 'border-brand/40 bg-brand/10 text-brand'
                   : 'border-border bg-bg-elev-1 text-fg-muted hover:text-fg hover:bg-bg-elev-2',
               )}
             >
               <IconLayoutSidebarRight className="size-4" />
-              <span>Chart & Desks</span>
+              <span className="hidden sm:inline">Chart &amp; War Room</span>
             </button>
           </Tooltip>
         )}

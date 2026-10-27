@@ -95,6 +95,16 @@ export function ThreadViewsDock({
 
   const isDesktop = useIsDesktop();
 
+  // Mobile sheet: Escape dismisses the slide-over, matching the backdrop tap.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onClose]);
+
   const tabs: Array<{ id: DockTab; label: string; icon: typeof IconChartCandle; badge?: number }> =
     [
       { id: 'chart', label: 'Chart', icon: IconChartCandle },
@@ -119,74 +129,89 @@ export function ThreadViewsDock({
       };
 
   return (
-    <m.aside
-      key="thread-views-dock"
-      {...motionProps}
-      transition={{ duration: 0.24, ease: [0.32, 0.72, 0, 1] }}
-      className="border-border/40 bg-bg-elev-1 fixed inset-y-0 right-0 z-40 flex h-full w-full max-w-md shrink-0 flex-col overflow-hidden border-l shadow-[0_0_50px_rgba(0,0,0,0.6)] lg:static lg:z-auto lg:w-[420px] lg:max-w-none lg:shadow-none xl:w-[480px] 2xl:w-[540px]"
-    >
-      {/* Dock Header & Navigation Tabs */}
-      <div className="border-border/40 bg-bg-elev-2/80 relative flex h-12 shrink-0 items-center justify-between overflow-hidden border-b px-3">
-        <span
-          aria-hidden="true"
-          className="font-bebas text-fg pointer-events-none absolute inset-x-0 top-1/2 -z-0 -translate-y-1/2 text-center text-2xl tracking-[0.22em] opacity-[0.03] select-none"
-        >
-          KESTREL // SOVEREIGN COUNCIL
-        </span>
-        <div className="relative z-10 flex items-center gap-1">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => onTabChange(tab.id)}
-                className={cn(
-                  'relative flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-mono text-[11px] font-semibold tracking-wider uppercase transition-all',
-                  isActive
-                    ? 'bg-bg-elev-3 text-brand after:bg-brand shadow-xs after:absolute after:bottom-0 after:left-1/2 after:h-0.5 after:w-4/5 after:-translate-x-1/2'
-                    : 'text-fg-muted hover:bg-bg-elev-3/50 hover:text-fg',
-                )}
-              >
-                <Icon className={cn('size-3.5', isActive ? 'text-brand' : 'text-fg-subtle')} />
-                <span>{tab.label}</span>
-                {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className="bg-brand/20 text-brand min-w-[16px] rounded-full px-1 font-mono text-[10px] leading-tight font-bold tabular-nums">
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+    <>
+      {/* Mobile slide-over scrim: tap-away closes the sheet. Hidden on the
+          docked desktop layout where the aside pushes the thread pane. */}
+      <m.button
+        key="thread-views-dock-scrim"
+        type="button"
+        aria-label="Close views backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.18 }}
+        onClick={onClose}
+        className="fixed inset-0 z-30 cursor-default bg-black/60 backdrop-blur-xs lg:hidden"
+      />
+      <m.aside
+        key="thread-views-dock"
+        {...motionProps}
+        transition={{ duration: 0.24, ease: [0.32, 0.72, 0, 1] }}
+        className="border-border/40 bg-bg-elev-1 fixed inset-y-0 right-0 z-40 flex h-full w-full max-w-md shrink-0 flex-col overflow-hidden border-l shadow-[0_0_50px_rgba(0,0,0,0.6)] lg:static lg:z-auto lg:w-[420px] lg:max-w-none lg:shadow-none xl:w-[480px] 2xl:w-[540px]"
+      >
+        {/* Dock Header & Navigation Tabs */}
+        <div className="border-border/40 bg-bg-elev-2/80 relative flex h-12 shrink-0 items-center justify-between overflow-hidden border-b px-3">
+          <span
+            aria-hidden="true"
+            className="font-bebas text-fg pointer-events-none absolute inset-x-0 top-1/2 -z-0 -translate-y-1/2 text-center text-2xl tracking-[0.22em] opacity-[0.03] select-none"
+          >
+            KESTREL // SOVEREIGN COUNCIL
+          </span>
+          <div className="relative z-10 flex items-center gap-1">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => onTabChange(tab.id)}
+                  className={cn(
+                    'relative flex min-h-11 items-center gap-1.5 rounded-md px-2.5 font-mono text-[11px] font-semibold tracking-wider uppercase transition-all sm:min-h-9',
+                    isActive
+                      ? 'bg-bg-elev-3 text-brand after:bg-brand shadow-xs after:absolute after:bottom-0 after:left-1/2 after:h-0.5 after:w-4/5 after:-translate-x-1/2'
+                      : 'text-fg-muted hover:bg-bg-elev-3/50 hover:text-fg',
+                  )}
+                >
+                  <Icon className={cn('size-3.5', isActive ? 'text-brand' : 'text-fg-subtle')} />
+                  <span>{tab.label}</span>
+                  {tab.badge !== undefined && tab.badge > 0 && (
+                    <span className="bg-brand/20 text-brand min-w-[16px] rounded-full px-1 font-mono text-[10px] leading-tight font-bold tabular-nums">
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close Views"
+            className="text-fg-subtle hover:bg-bg-elev-3 hover:text-fg relative z-10 rounded-lg p-1.5 transition-colors"
+          >
+            <IconX className="size-4" />
+          </button>
         </div>
 
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close Views"
-          className="text-fg-subtle hover:bg-bg-elev-3 hover:text-fg relative z-10 rounded-lg p-1.5 transition-colors"
-        >
-          <IconX className="size-4" />
-        </button>
-      </div>
+        {/* Dock Content Body */}
+        <div className="relative flex-1 overflow-hidden">
+          {activeTab === 'chart' && (
+            <DockChartPanel
+              symbol={symbol}
+              activeTf={activeTf}
+              onTimeframeChange={handleTimeframeChange}
+            />
+          )}
 
-      {/* Dock Content Body */}
-      <div className="relative flex-1 overflow-hidden">
-        {activeTab === 'chart' && (
-          <DockChartPanel
-            symbol={symbol}
-            activeTf={activeTf}
-            onTimeframeChange={handleTimeframeChange}
-          />
-        )}
+          {activeTab === 'opinions' && (
+            <DockOpinionsPanel agentProgress={agentProgress} messages={messages} />
+          )}
 
-        {activeTab === 'opinions' && (
-          <DockOpinionsPanel agentProgress={agentProgress} messages={messages} />
-        )}
-
-        {activeTab === 'plan' && <DockPlanPanel latestPlan={latestPlan} />}
-      </div>
-    </m.aside>
+          {activeTab === 'plan' && <DockPlanPanel latestPlan={latestPlan} />}
+        </div>
+      </m.aside>
+    </>
   );
 }
