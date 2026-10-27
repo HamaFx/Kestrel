@@ -97,9 +97,13 @@ export const Composer = memo(function Composer({
         className={cn(
           'relative z-10 flex w-full flex-col gap-2 rounded-2xl border border-white/[0.08] bg-[#141416]/85 p-3 backdrop-blur-xl transition-all duration-200',
           'shadow-[0_8px_32px_-8px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.08)]',
-          'focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/20',
-          focused && 'border-brand/50 ring-2 ring-brand/20',
-          dragOver && 'border-brand ring-2 ring-brand/40',
+          'focus-within:border-brand/50 focus-within:ring-brand/20 focus-within:ring-2',
+          // Armed Convene Council: subtle forge flame glow so the 4-desk
+          // council visibly feels primed before dispatch.
+          analysisMode === 'full' &&
+            'border-brand/40 shadow-[0_8px_32px_-8px_rgba(255,54,22,0.18)]',
+          focused && 'border-brand/50 ring-brand/20 ring-2',
+          dragOver && 'border-brand ring-brand/40 ring-2',
         )}
         onSubmit={(e) => {
           e.preventDefault();

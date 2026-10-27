@@ -354,3 +354,42 @@ describe('Composer', () => {
     });
   });
 });
+
+describe('Composer — analysis mode pill', () => {
+  it('renders the Fast Scout / Convene Council segmented control', () => {
+    render(<Composer onSubmit={vi.fn()} analysisMode="single" onAnalysisModeChange={vi.fn()} />);
+    const group = screen.getByRole('group', { name: 'Analysis mode' });
+    expect(group).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Analysis mode: Fast Scout' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Analysis mode: Convene Council' })).toBeTruthy();
+  });
+
+  it('arms Convene Council in one tap and never cycles blindly', () => {
+    const onAnalysisModeChange = vi.fn();
+    render(
+      <Composer
+        onSubmit={vi.fn()}
+        analysisMode="single"
+        onAnalysisModeChange={onAnalysisModeChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Analysis mode: Convene Council' }));
+    expect(onAnalysisModeChange).toHaveBeenCalledWith('full');
+
+    const singleButton = screen.getByRole('button', { name: 'Analysis mode: Fast Scout' });
+    expect(singleButton.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('does not render the mode pill for a standalone custom agent', () => {
+    render(
+      <Composer
+        onSubmit={vi.fn()}
+        analysisMode="single"
+        onAnalysisModeChange={vi.fn()}
+        selectedAgentSlug="gold-desk"
+      />,
+    );
+    expect(screen.queryByRole('group', { name: 'Analysis mode' })).toBeNull();
+  });
+});

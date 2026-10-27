@@ -26,13 +26,13 @@ import { cn } from '@/lib/formatters/cn';
 import { apiMutate } from '@/lib/http/api-client';
 
 import { ThreadSwitcher } from '../_components/thread-switcher';
-import { MODE_DESCRIPTIONS, MODE_LABELS } from './mode-labels';
+import { MODE_DESCRIPTIONS, MODE_LABELS, MODE_LABELS_COMPACT } from './mode-labels';
 import { ChatOverflowMenu } from './overflow-menu';
 import { ThreadContext } from './thread-context';
 import type { ChatTopBarProps } from './types';
 
 export type { AnalysisMode } from './mode-labels';
-export { MODE_DESCRIPTIONS, MODE_LABELS };
+export { MODE_DESCRIPTIONS, MODE_LABELS, MODE_LABELS_COMPACT };
 export type { ThreadSummary } from './types';
 
 export function ChatTopBar({

@@ -23,8 +23,9 @@ import { cn } from '@/lib/formatters/cn';
 
 import { ChatModelSelector } from './_components/chat-model-selector';
 import { CustomAgentSelector } from './_components/custom-agent-selector';
-import { MODE_DESCRIPTIONS, MODE_LABELS, type AnalysisMode } from './chat-top-bar';
+import type { AnalysisMode } from './chat-top-bar';
 import { formatCharCount, getCharCountTone, MAX_TEXT_CHARS } from './composer-helpers';
+import { ComposerModePill } from './composer-mode-pill';
 import type { ComposerController } from './use-composer';
 
 export function ComposerControls({
@@ -114,31 +115,10 @@ export function ComposerControls({
         ) : null}
 
         {analysisMode && onAnalysisModeChange && !selectedAgentSlug ? (
-          <button
-            type="button"
-            onClick={() => {
-              const modes: AnalysisMode[] = ['single', 'full'];
-              const idx = modes.indexOf(analysisMode);
-              const next = modes[(idx + 1) % modes.length];
-              if (next) onAnalysisModeChange(next);
-            }}
-            title={MODE_DESCRIPTIONS[analysisMode]}
-            aria-label={`Analysis mode: ${MODE_LABELS[analysisMode]}`}
-            className={cn(
-              'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors',
-              analysisMode === 'full'
-                ? 'border-brand/40 bg-brand/10 text-brand'
-                : 'border-border bg-bg-elev-2 text-fg-muted hover:text-fg',
-            )}
-          >
-            <span
-              className={cn(
-                'size-1.5 rounded-full',
-                analysisMode === 'full' ? 'bg-brand' : 'bg-bull',
-              )}
-            />
-            <span>{MODE_LABELS[analysisMode]}</span>
-          </button>
+          <ComposerModePill
+            analysisMode={analysisMode}
+            onAnalysisModeChange={onAnalysisModeChange}
+          />
         ) : null}
 
         {onChatModelChange ? (
@@ -232,7 +212,7 @@ export function ComposerControls({
               disabled={!canSend}
               aria-label="Send message"
               className={cn(
-                'bg-brand text-white inline-flex size-9 shrink-0 items-center justify-center rounded-xl font-medium shadow-[0_2px_12px_rgba(255,54,22,0.35)] transition-all hover:brightness-110 active:scale-95',
+                'bg-brand inline-flex size-9 shrink-0 items-center justify-center rounded-xl font-medium text-white shadow-[0_2px_12px_rgba(255,54,22,0.35)] transition-all hover:brightness-110 active:scale-95',
                 'disabled:cursor-not-allowed disabled:opacity-30 disabled:shadow-none',
               )}
             >

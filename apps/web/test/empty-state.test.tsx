@@ -17,11 +17,22 @@
 
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { ChatEmptyState } from '@/components/chat/chat-empty-state';
 import { EmptyState } from '@/components/ui/empty-state';
+
+// Mock next/image to render a plain <img> in jsdom.
+vi.mock('next/image', () => ({
+  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => {
+    const { unoptimized, ...rest } = props as React.ImgHTMLAttributes<HTMLImageElement> & {
+      unoptimized?: boolean;
+    };
+    return <img {...rest} alt="" />;
+  },
+}));
 
 afterEach(cleanup);
 
@@ -98,5 +109,53 @@ describe('EmptyState', () => {
     );
     const div = container.querySelector('[role="status"]');
     expect(div!.classList.contains('my-custom-class')).toBe(true);
+  });
+});
+
+describe('ChatEmptyState — Sovereign Council launcher', () => {
+  it('renders the Convene Full 4-Desk Council hero and all four canonical specialist desks', () => {
+    render(<ChatEmptyState pinnedSymbol="XAUUSD" onSelect={vi.fn()} />);
+
+    expect(screen.getByText('Convene the Full 4-Desk Council')).toBeTruthy();
+    expect(screen.getByText(/Convene 4-Desk Syndicate/i)).toBeTruthy();
+
+    expect(screen.getByText('DESK-I // HORUS')).toBeTruthy();
+    expect(screen.getByText('DESK-II // ASTROLABE')).toBeTruthy();
+    expect(screen.getByText('DESK-III // HOPLITE')).toBeTruthy();
+    expect(screen.getByText('DESK-IV // SENTINEL')).toBeTruthy();
+  });
+
+  it('dispatches the full council prompt with a full mode override', () => {
+    const onSelect = vi.fn();
+    render(<ChatEmptyState pinnedSymbol="XAUUSD" onSelect={onSelect} />);
+
+    fireEvent.click(screen.getByText('Convene the Full 4-Desk Council').closest('button')!);
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    const [prompt, mode] = onSelect.mock.calls[0]!;
+    expect(String(prompt)).toMatch(/full 4-desk council/i);
+    expect(mode).toBe('full');
+  });
+
+  it('routes a specialist desk card through Fast Scout with that desk lens', () => {
+    const onSelect = vi.fn();
+    render(<ChatEmptyState pinnedSymbol="XAUUSD" onSelect={onSelect} />);
+
+    fireEvent.click(screen.getByText('DESK-III // HOPLITE').closest('button')!);
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    const [prompt, mode] = onSelect.mock.calls[0]!;
+    expect(String(prompt)).toMatch(/risk|invalidation/i);
+    expect(mode).toBe('single');
+  });
+
+  it('keeps the sovereign watermark and honours the disabled state', () => {
+    const onSelect = vi.fn();
+    render(<ChatEmptyState pinnedSymbol={null} disabled onSelect={onSelect} />);
+    expect(screen.getByText('KESTREL // SOVEREIGN COUNCIL')).toBeTruthy();
+    expect(
+      (screen.getByText('Convene the Full 4-Desk Council').closest('button') as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
   });
 });
