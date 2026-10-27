@@ -260,19 +260,22 @@ test.describe('Multi-Agent Chat', () => {
     await expect.poll(() => pollCount, { timeout: 15_000 }).toBeGreaterThanOrEqual(2);
   });
 
-  test('analysis mode chip toggles between Quick Read (single) and Full Committee (full)', async ({
+  test('analysis mode pill arms Fast Scout (single) and Convene Council (full)', async ({
     authedPage,
   }) => {
     const page = authedPage;
     await page.goto('/chat');
 
     await selectAnalysisMode(page, 'single');
-    const singleButton = page.getByRole('button', { name: /^Analysis mode: Quick Read$/i });
+    const singleButton = page.getByRole('button', { name: /^Analysis mode: Fast Scout$/i });
     await expect(singleButton).toBeVisible();
+    await expect(singleButton).toHaveAttribute('aria-pressed', 'true');
 
     await selectAnalysisMode(page, 'full');
-    const fullButton = page.getByRole('button', { name: /^Analysis mode: Full Committee$/i });
+    const fullButton = page.getByRole('button', { name: /^Analysis mode: Convene Council$/i });
     await expect(fullButton).toBeVisible();
+    await expect(fullButton).toHaveAttribute('aria-pressed', 'true');
+    await expect(singleButton).toHaveAttribute('aria-pressed', 'false');
   });
 
   test('single mode uses standard chat (no multi-agent)', async ({ authedPage }) => {

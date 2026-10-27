@@ -167,7 +167,7 @@ export function PixelDeskStandby({
               }
               className="bg-brand hover:bg-brand-soft text-brand-fg inline-flex cursor-pointer touch-manipulation items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors disabled:opacity-50"
             >
-              <span>Convene Full Committee on {activeSymbol}</span>
+              <span>Convene Council on {activeSymbol}</span>
             </button>
           </div>
 

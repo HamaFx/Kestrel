@@ -161,7 +161,7 @@ export function RoutingSection({ controller }: { controller: PlatformConfigContr
                       : 'border-border bg-bg-elev-2 text-fg-subtle'
                   }`}
                 >
-                  {mode === 'single' ? 'Quick Read (Single Desk)' : 'Full Committee (4 Desks)'}
+                  {mode === 'single' ? 'Fast Scout (Single Desk)' : 'Convene Council (4 Desks)'}
                 </button>
               ))}
             </div>
@@ -173,7 +173,7 @@ export function RoutingSection({ controller }: { controller: PlatformConfigContr
                 Show Individual Analyst Desk Breakdowns
               </span>
               <p className="text-caption text-fg-subtle">
-                Display Technical, Macro, Sentiment, and Risk cards inside Full Committee reports.
+                Display Technical, Macro, Sentiment, and Risk cards inside Convene Council reports.
               </p>
             </div>
             <Switch

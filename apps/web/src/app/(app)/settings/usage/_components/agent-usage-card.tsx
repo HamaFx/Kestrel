@@ -32,9 +32,9 @@ export function AgentUsageCard({
   const modeRows = [...byMode.entries()].map(([mode, v]) => ({
     mode:
       mode === 'full'
-        ? 'Full Committee (4 Desks)'
+        ? 'Convene Council (4 Desks)'
         : mode === 'single'
-          ? 'Quick Read (1 Desk)'
+          ? 'Fast Scout (1 Desk)'
           : mode,
     turns: v.turns,
   }));
