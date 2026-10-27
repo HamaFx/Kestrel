@@ -240,6 +240,7 @@ export async function executeClaimedFullAnalysisRun(input: ExecuteClaimedRunInpu
             totalCostUsd: modeResult.totalCostUsd,
             totalLatencyMs: modeResult.totalLatencyMs,
             agentOpinions: modeResult.agentOpinions,
+            committeeCritiques: modeResult.committeeCritiques ?? [],
           },
         } as UIMessage['parts'][number],
       ],
@@ -274,6 +275,9 @@ export async function executeClaimedFullAnalysisRun(input: ExecuteClaimedRunInpu
     await coordinator!.complete({
       finalText: modeResult.finalText,
       agentOpinions: modeResult.agentOpinions,
+      committeeCritiques: modeResult.committeeCritiques ?? [],
+      symbol: modeResult.symbol,
+      dataQuality: modeResult.packet.dataQuality,
       mode: modeResult.mode,
       totalCostUsd: observedCost,
       ledgerSnapshot: ledger.snapshot(),

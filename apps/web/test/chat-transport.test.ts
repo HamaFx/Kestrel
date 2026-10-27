@@ -191,6 +191,107 @@ describe('createKestrelChatTransport', () => {
     expect(chunks.some((chunk) => chunk.type === 'data-multi-agent-meta')).toBe(true);
   });
 
+  it('forwards committeeCritiques from a completed background job into progress and meta', async () => {
+    vi.useFakeTimers();
+    const progress = vi.fn();
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            type: 'analysis-queued',
+            jobId: 'job-critique',
+            status: 'queued',
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            status: 'complete',
+            progress: [
+              {
+                type: 'data-agent-progress',
+                data: {
+                  agents: [{ agentName: 'technical', status: 'done' }],
+                  mode: 'full',
+                  stage: 'critique',
+                },
+              },
+            ],
+            result: {
+              finalText: 'council result',
+              messageId: 'message-critique',
+              mode: 'full',
+              symbol: 'XAUUSD',
+              dataQuality: 'complete',
+              agentOpinions: [
+                { agentName: 'technical', bias: 'bullish', confidence: 0.94, reasoning: 'FVG sweep' },
+              ],
+              committeeCritiques: [
+                {
+                  agentName: 'risk',
+                  confirms: false,
+                  revisedConfidence: 0.92,
+                  critique: 'Tight 2,852 stop is inside 1H ATR noise.',
+                },
+                // Malformed entries are dropped, never rendered.
+                { agentName: 'sentiment', confirms: 'yes', critique: 'broken' },
+              ],
+              totalCostUsd: 0.05,
+              totalLatencyMs: 2000,
+            },
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+      );
+
+    const transport = createKestrelChatTransport({ api: '/api/chat', onAgentProgress: progress });
+    const stream = await transport.sendMessages({
+      chatId: 'thread-1',
+      messages: [],
+      abortSignal: new AbortController().signal,
+    });
+    const chunksPromise = readChunks(stream as ReadableStream<Record<string, unknown>>);
+    await vi.advanceTimersByTimeAsync(2_000);
+    const chunks = await chunksPromise;
+
+    // Mid-run polled progress keeps its stage telemetry.
+    expect(progress).toHaveBeenCalledWith(
+      expect.objectContaining({ stage: 'critique', mode: 'full' }),
+    );
+    // Settled progress carries the cross-examination ledger.
+    expect(progress).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        status: 'complete',
+        symbol: 'XAUUSD',
+        critiques: [
+          expect.objectContaining({
+            agentName: 'risk',
+            confirms: false,
+            revisedConfidence: 0.92,
+          }),
+        ],
+      }),
+    );
+
+    const meta = chunks.find((chunk) => chunk.type === 'data-multi-agent-meta');
+    expect(meta).toMatchObject({
+      data: {
+        symbol: 'XAUUSD',
+        dataQuality: 'complete',
+        committeeCritiques: [
+          {
+            agentName: 'risk',
+            confirms: false,
+            revisedConfidence: 0.92,
+            critique: 'Tight 2,852 stop is inside 1H ATR noise.',
+          },
+        ],
+      },
+    });
+  });
+
   it('preserves Mastra report metadata in the AI SDK data stream', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       sseResponse([

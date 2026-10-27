@@ -130,7 +130,10 @@ export function pollJobToStreamResponse(
               finalText?: string;
               messageId?: string | null;
               agentOpinions?: unknown[];
+              committeeCritiques?: unknown[];
               mode?: string;
+              symbol?: string;
+              dataQuality?: string;
               totalCostUsd?: number;
               totalLatencyMs?: number;
             };
@@ -183,6 +186,40 @@ export function pollJobToStreamResponse(
                   reasoning?: string;
                 }>)
               : [];
+            // Full-mode cross-examination ledger (`committeeCritiques` from
+            // `packages/ai/src/committee/critique-steps.ts`). Normalized so a
+            // malformed entry can never break the settled dossier.
+            const rawCritiques = Array.isArray(pollJson.result?.committeeCritiques)
+              ? (pollJson.result?.committeeCritiques as Array<{
+                  agentName?: string;
+                  confirms?: boolean;
+                  revisedConfidence?: number;
+                  critique?: string;
+                }>)
+              : [];
+            const critiques = rawCritiques
+              .filter(
+                (
+                  c,
+                ): c is {
+                  agentName: string;
+                  confirms: boolean;
+                  revisedConfidence: number;
+                  critique: string;
+                } =>
+                  typeof c?.agentName === 'string' &&
+                  typeof c.confirms === 'boolean' &&
+                  typeof c.revisedConfidence === 'number' &&
+                  typeof c.critique === 'string' &&
+                  c.critique.length > 0,
+              )
+              .map((c) => ({
+                agentName: c.agentName,
+                confirms: c.confirms,
+                revisedConfidence: c.revisedConfidence,
+                critique: c.critique,
+              }));
+            const resolvedSymbol = pollJson.result?.symbol;
 
             if (rawOpinions.length > 0) {
               const modeStr = pollJson.result?.mode ?? 'full';
@@ -219,6 +256,7 @@ export function pollJobToStreamResponse(
               );
               const completedProgress: AgentProgress = {
                 mode: modeStr,
+                stage: 'fusion',
                 status: 'complete',
                 agents: defaultDesks.map((agentName) => {
                   const opinion = opinionMap.get(agentName);
@@ -228,6 +266,8 @@ export function pollJobToStreamResponse(
                     ...(opinion ? { opinion } : {}),
                   };
                 }),
+                ...(critiques.length > 0 ? { critiques } : {}),
+                ...(resolvedSymbol ? { symbol: resolvedSymbol } : {}),
               };
               onProgress(completedProgress);
               controller.enqueue(
@@ -253,7 +293,12 @@ export function pollJobToStreamResponse(
                 id: finalId,
                 data: {
                   agentOpinions: pollJson.result?.agentOpinions ?? [],
+                  committeeCritiques: critiques,
                   mode: pollJson.result?.mode ?? 'full',
+                  ...(resolvedSymbol ? { symbol: resolvedSymbol } : {}),
+                  ...(pollJson.result?.dataQuality
+                    ? { dataQuality: pollJson.result.dataQuality }
+                    : {}),
                   totalCostUsd: pollJson.result?.totalCostUsd ?? 0,
                   totalLatencyMs: pollJson.result?.totalLatencyMs ?? 0,
                   messageId: finalId,

@@ -33,8 +33,25 @@ export interface AgentProgress {
     error?: string;
   }>;
   mode: string;
+  /**
+   * The committee stage currently executing (`collect-packet`, a specialist
+   * name, `critique`, `debate`, `verify`, `fusion`) so the live Circuit Spine
+   * can illuminate the right stage.
+   */
+  stage?: string;
   status?: 'complete' | 'failed' | 'retrying';
   error?: string;
+  /** Cross-examination critiques surfaced by the full-mode critique round. */
+  critiques?: Array<{
+    agentName: string;
+    confirms: boolean;
+    revisedConfidence: number;
+    critique: string;
+  }>;
+  /** Symbol the run analyzed (settled snapshots and worker meta). */
+  symbol?: string;
+  /** Packet data-quality marker surfaced in the dossier's data tab. */
+  dataQuality?: string;
   /**
    * M-01 (audit 2026-10-18): requested symbols for a multi-symbol comparison;
    * the deliberation header labels the run as one desk per symbol plus a
