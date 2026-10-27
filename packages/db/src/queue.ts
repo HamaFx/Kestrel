@@ -76,6 +76,29 @@ function queueConnectionString(): string {
   );
 }
 
+/**
+ * pg (node-postgres) lets `sslmode` in the connection string override an
+ * explicit `ssl` option — with pg-connection-string 8.x, `require` means
+ * verify-full against the *system* trust store, so the pinned Supabase CA in
+ * queueSslOptions() was silently ignored and every pg-boss connection failed
+ * with "self-signed certificate in certificate chain" (confirmed by an A/B
+ * repro on 2026-10-27: same URL with sslmode stripped + the CA connects).
+ * TLS for the queue is therefore controlled exclusively via queueSslOptions();
+ * the connection string passed to pg-boss carries no TLS query params.
+ */
+function queueConnectionStringWithoutSslParams(): string {
+  const url = queueConnectionString();
+  if (!url) return url;
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.delete('sslmode');
+    parsed.searchParams.delete('ssl');
+    return parsed.toString();
+  } catch {
+    return url.replace(/[?&](sslmode|ssl)=[^&]*/g, '').replace(/\?$/, '');
+  }
+}
+
 /** True when a database URL is configured (does not start the queue). */
 export function isQueueConfigured(): boolean {
   return queueConnectionString().length > 0;
@@ -95,7 +118,7 @@ export async function getQueue(): Promise<PgBoss> {
 
   starting = (async () => {
     const boss = new PgBoss({
-      connectionString,
+      connectionString: queueConnectionStringWithoutSslParams(),
       schema: process.env['PGBOSS_SCHEMA'] ?? 'pgboss',
       max: 2,
       ssl: queueSslOptions(),
