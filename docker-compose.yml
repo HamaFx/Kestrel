@@ -113,6 +113,11 @@ services:
         NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
         NEXT_PUBLIC_GOOGLE_ENABLED: ${NEXT_PUBLIC_GOOGLE_ENABLED:-false}
         NEXT_PUBLIC_ENABLE_DEV_LOGIN: ${NEXT_PUBLIC_ENABLE_DEV_LOGIN:-false}
+        # Service-worker cache identity for images built without .git.
+        # Defaults to empty (the generator then falls back to .build-id or an
+        # epoch stamp); set it in .env or the shell to pin a release.
+        #   KESTREL_BUILD_ID=$(git rev-parse --short=7 HEAD) docker compose up -d --build
+        KESTREL_BUILD_ID: ${KESTREL_BUILD_ID:-}
     ports:
       # APP_PUBLISHED_PORT lets operators (or the setup wizard) remap the
       # host port when 3000 is already taken. Binds localhost only.

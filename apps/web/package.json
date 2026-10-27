@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev --port 3002",
+    "predev": "node scripts/generate-sw.mjs",
     "build": "node scripts/build.mjs",
     "start": "next start",
     "verify:built-security": "node scripts/verify-built-security.mjs",

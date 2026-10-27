@@ -10,8 +10,16 @@ Everything here is testable from the repository:
 | ------------------------- | ---------------------------------------------------------------------------- |
 | Manifest + asset contract | `apps/web/test/pwa-manifest.test.ts`                                         |
 | Brand-colour drift        | `apps/web/test/pwa-brand-contract.test.ts`                                   |
-| Service worker + precache | `apps/web/test/service-worker.test.ts`                                       |
-| Install nudge preferences | `apps/web/test/pwa-install-preference.test.ts`                               |
+| Service worker behaviour  | `apps/web/test/service-worker-runtime.test.ts` (executes the worker)         |
+| Service worker source     | `apps/web/test/service-worker.test.ts` (generator output + invariants)       |
+| HTTP + public-path policy | `apps/web/test/pwa-http-contract.test.ts`                                    |
+| Platform / display mode   | `apps/web/test/pwa-platform-detect.test.ts`                                  |
+| Push handoff              | `apps/web/test/pwa-push-store.test.ts`                                       |
+| Share target payload      | `apps/web/test/pwa-share-target.test.ts`                                     |
+| Background refresh        | `apps/web/test/pwa-background-sync.test.ts`                                  |
+| Stacked tables on phones  | `apps/web/test/mobile-table-stacking.test.ts`                                |
+| Bottom bar tab state      | `apps/web/test/mobile-bottom-nav.test.tsx`                                   |
+| Install nudge preferences | `apps/web/test/pwa-install-preference.test.ts`, `pwa-install-nudge.test.tsx` |
 | Browser behaviour         | `apps/web/tests/e2e/pwa-install.spec.ts`, `tests/e2e/service-worker.spec.ts` |
 | Asset regeneration        | `pnpm --filter @kestrel/web generate:icons` / `generate:screenshots`         |
 
@@ -67,9 +75,22 @@ tags in `src/app/layout.tsx` are derived from the same file.
 
 ## 3. Service worker
 
-`scripts/sw.template.js` is stamped by `scripts/generate-sw.mjs` (build id +
-VAPID public key) into `public/sw.js`; the precache list lands in
-`public/sw-precache.json`. `/sw.js` is served `no-store`.
+`apps/web/scripts/sw.template.js` is stamped by `apps/web/scripts/generate-sw.mjs`
+(build id + precache digest + VAPID public key) into `public/sw.js`; the precache
+list lands in `public/sw-precache.json`. `/sw.js` is served `no-store` with
+`Service-Worker-Allowed: /` (see `pwa-http-contract.test.ts`). The generator
+checks the template exists **before** writing anything, and
+`KESTREL_SW_OUT_DIR` redirects its output so tests can exercise it without
+touching the served copy. `pnpm dev` runs the generator in its `predev` hook
+(epoch fallback when there is no build id), so a fresh clone registers a real
+worker instead of 404ing on `/sw.js`.
+
+Cache identity is `kestrel-shell-v<buildId>-<assetRev>`, where `assetRev` is a
+digest of the precache list: two deploys of the same commit share a build id, and
+a Docker build has no git metadata at all, so the digest is what still rotates
+the cache when the precached set changes. Stamp a release with
+`--build-arg KESTREL_BUILD_ID=$(git rev-parse --short=7 HEAD)` (Compose reads
+`KESTREL_BUILD_ID` from `.env`).
 
 Install / activate:
 
@@ -77,10 +98,11 @@ Install / activate:
   `cache.addAll` is atomic — it rejected on the first missing URL (there used to
   be no `/favicon.ico` at all), which silently left the app with _no_ offline
   shell.
-- A redirected response (login bounce for `/chat` when the session expired) is
-  never cached as the shell.
-- `activate` drops caches from older build ids, enables **navigation preload**,
-  and claims clients.
+- A redirected response (a login bounce for a private route when the session
+  expired) is never cached.
+- `activate` drops caches from older identities, enables **navigation preload**,
+  repairs the offline document when a partial install left it missing
+  (`ensureOfflineShell`), and claims clients.
 - Updates deliberately **wait**: the app sends `SKIP_WAITING` only when the user
   accepts the reload (see below). This prevents a deploy from swapping JS chunks
   underneath a half-typed prompt.
@@ -89,24 +111,33 @@ Fetch strategies:
 
 | Request                                                                         | Strategy                              |
 | ------------------------------------------------------------------------------- | ------------------------------------- |
-| `/_next/static/`, `/icons/`, `/fonts/`, `/brand/`, favicon, manifest            | cache-first (runtime fill)            |
-| Navigations (`mode: navigate`)                                                  | network-first (preload + 3 s timeout) |
+| `/_next/static/*` (content-hashed)                                              | cache-first                           |
+| `/icons/*`, `/fonts/*`, `/brand/*`, `/favicon.ico`, `/manifest.webmanifest`     | stale-while-revalidate                |
+| Navigations (`text/html`)                                                       | network-first (preload + 3 s timeout) |
 | `/api/auth`, `/api/cron`, `/api/admin`, `/api/chat`, `/api/market`, `/api/push` | bypass (no SW handling)               |
 | everything else (RSC payloads, remaining APIs)                                  | network-only                          |
 
-Failed navigations resolve to an exact cache match, then to the precached
-**`/offline`** page, then to a minimal inline document.
+Stale-while-revalidate is what keeps unhashed artwork current: those URLs do not
+change between builds, so cache-first would pin the first icon or font a device
+ever saw — and when the build id repeats there is no `activate` to purge it.
 
-Two deliberate decisions:
+Failed navigations resolve through the **public allowlist** (`/offline`, `/login`,
+`/landing`) to the precached **`/offline`** page, then to a minimal inline
+document.
 
-1. **No runtime navigation cache.** The app is an authenticated trading
-   terminal; page HTML contains account and journal data and Next marks those
-   responses `no-store`. Caching them in a service worker cache would leak
-   personalised data to the next person who opens the installed app.
+Three deliberate decisions:
+
+1. **No application HTML is ever cached.** The app is an authenticated trading
+   terminal; page HTML contains account and journal data. There is deliberately
+   no "serve whatever HTML we happen to have for this URL" step — that is how one
+   session's journal or research thread ends up on the next person's screen. That
+   is why `/chat` is not precached and why the precache list is public-only.
 2. **`/offline` lives outside the `(app)` route group** so it is public and
    static. The authenticated shell needs a session and database round-trips,
    which do not exist offline. `/offline` is excluded in `src/proxy.ts` and
    `src/auth.config.ts` and precached like any other asset.
+3. **Only `GET` + same-origin requests are handled**; everything else falls
+   through to the browser untouched.
 
 ## 4. Update flow
 
@@ -182,12 +213,92 @@ iOS specifics:
   `EnableWebPushButton` says so and links to `/settings/install` instead of
   showing a bare "not supported".
 
+## 5b. Mobile shell geometry
+
+One token owns the phone bottom bar, so the bar, the page clearance and the
+floating surfaces cannot drift apart (`globals.css`):
+
+| Token                | `< 1024px`                                     | `≥ 1024px`                      |
+| -------------------- | ---------------------------------------------- | ------------------------------- |
+| `--bottom-nav-h`     | `3.5rem + env(safe-area-inset-bottom)`         | `0px`                           |
+| `--shell-bottom-pad` | `--bottom-nav-h + 16px` (page scroll clear)    | `16px`                          |
+| `--toast-bottom`     | `--bottom-nav-h + 16px` (toasts above the bar) | `safe-area-inset-bottom + 16px` |
+
+- `mobile-bottom-nav.tsx` is `h-[var(--bottom-nav-h)]`; `AppShellMain` pads with
+  `pb-[var(--shell-bottom-pad)]`. Before this, the bar grew to ~90px on a
+  home-indicator iPhone while the page cleared only 80px, so the last row of a
+  list could sit underneath it.
+- The offline banner and the toaster both anchor to `--toast-bottom`, so they rise
+  above the bar on phones instead of hiding behind it.
+- The bar is `lg:hidden` and the 1024px media query matches it exactly.
+- **Touch targets**: drawer rows use `min-h-11` (44px) while the mouse-driven
+  desktop rail passes `dense` for its 36px rows; the bottom nav rows are 44px.
+  `pwa-ios-shell.test.ts` pins the geometry contract.
+- `useCoarsePointer` watches `(pointer: coarse)` for changes, so the command
+  launcher appears/disappears when a 2-in-1 is docked or undocked rather than
+  only after a reload.
+
+### Data tables
+
+Wide tables opt into the stacked layout with `table-stack` on the `<table>` plus
+`data-label` on each `<td>` (`globals.css`). Below 768px the header row is hidden
+visually (kept for assistive tech) and every row becomes a labelled card, so a
+phone gets the data instead of a horizontal scrollbar inside a page that never
+scrolls sideways. `mobile-table-stacking.test.ts` fails if a table is added
+without the opt-in or with fewer labels than columns.
+
+The journal's virtualized entry list is bounded by
+`max-h-[min(70svh,750px)]` — a fixed 750px was taller than a phone's whole
+viewport, and `overscroll-contain` stops the list from rubber-banding the page
+underneath it.
+
+## 5c. Share target
+
+The manifest registers `share_target` → `/share/receive` (GET), so another app
+on the device can hand Kestrel a `title` / `text` / `url` triple. The receiver is
+a pure function of the query string:
+
+- `src/lib/pwa/share-target.ts` sanitises and composes; `src/app/share/receive`
+  only redirects to `/chat?new=1&prompt=…`, and the chat landing route creates
+  the thread (so an expired session still ends on the login screen).
+- **GET, not POST**: a POST target would have to parse `multipart/form-data`
+  (the only enctype Chrome accepts) for a text-only hand-off.
+- Strip control characters and bidi overrides, collapse blank runs, cap each
+  field (title 200 / text 4 000 / url 2 048), and accept **absolute http(s) URLs
+  only** — `javascript:`, `data:` and `file:` are dropped.
+- The composed prompt is then cut to fit a **percent-encoded** budget of 3 000
+  characters (`fitToEncodedBudget`), because it travels through two redirects in
+  a query string and CJK/emoji encode to nine bytes per byte of UTF-8.
+- `/share` stays outside the auth matcher, and the receiver is `noindex`.
+
+## 5d. Background refresh (periodic sync)
+
+A PWA that is installed but rarely opened never learns about a deploy: the update
+check lives in the page and the offline document is only refreshed while the app
+runs. On Chromium, `periodicsync` closes that gap:
+
+- `src/lib/pwa/background-sync.ts` registers the `kestrel-shell-refresh` tag
+  (6-hour minimum interval) from `sw-register.tsx`; Safari and Firefox lack the
+  API and no-op, and a denied permission is not an error.
+- The worker's handler calls `registration.update()` (so a changed worker
+  installs and waits for the app, exactly like an in-page check) and revalidates
+  the offline document plus the manifest. Icons and fonts are **not** in that
+  set — stale-while-revalidate already covers them on use.
+- A `kestrel-shell-state` IndexedDB stamp rate-limits the work, so repeated
+  wake-ups and an open app do not double up.
+- The tag, interval and store name are duplicated between the worker and the app
+  module (a worker cannot import app code); `service-worker.test.ts`
+  (`worker ↔ app contracts`) fails if they drift.
+
 ## 6. Push notifications
 
 - Payload contract (sent from `packages/ai/src/alerts/delivery/adapters.ts`):
-  `{ title, body, url, tag?, badge?, icon? }`.
+  `{ title, body, url, tag?, badge?, icon?, actions? }`.
 - `url` is normalized to a same-origin path before a notification is created —
   a push payload can never open an arbitrary origin.
+- `actions` (optional) renders up to two notification buttons on platforms that
+  support them; malformed entries are dropped rather than breaking the
+  notification. An action id of `dismiss` closes silently.
 - `badge` sets the app-icon badge (Badging API); tapping a notification clears it
   and `PwaSignals` clears it again whenever the app becomes visible.
 - `pushsubscriptionchange` (Safari/iOS rotate silently): the worker
@@ -195,7 +306,8 @@ iOS specifics:
   (`kestrel-pwa` / `push-state`), and notifies open clients. `src/lib/pwa/push-store.ts`
   POSTs it to `/api/push/subscribe` on the next foreground visit, because the
   endpoint needs the session cookie **and** the CSRF token, neither of which a
-  service worker can read.
+  service worker can read. A 401/403 keeps the record so the next signed-in visit
+  retries instead of losing the subscription (`pwa-push-store.test.ts`).
 
 ## 7. Manual verification
 
@@ -204,8 +316,8 @@ iOS specifics:
 pnpm --filter @kestrel/web generate:icons --force
 pnpm --filter @kestrel/web generate:screenshots --force
 
-# Contract + generator tests
-pnpm --filter @kestrel/web test -- pwa-manifest pwa-brand-contract service-worker
+# Contract, generator and worker-behaviour tests
+pnpm --filter @kestrel/web test -- pwa- service-worker
 
 # Browser behaviour (needs the local stack)
 pnpm test:e2e -- --grep "PWA|Install nudge"

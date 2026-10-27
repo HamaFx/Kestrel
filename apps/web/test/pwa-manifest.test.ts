@@ -23,13 +23,14 @@
 // OS copies, purely from these fields and files. Asserting them here means a
 // refactor cannot silently break installation.
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
 import manifest from '@/app/manifest';
 import { PWA_BACKGROUND, PWA_THEME_COLOR } from '@/lib/pwa/pwa-theme';
+import { SHARE_TARGET_ACTION } from '@/lib/pwa/share-target';
 import { requiredSplashFiles, SPLASH_DEVICES, SPLASH_LINKS } from '@/lib/pwa/splash-links';
 
 const webRoot = process.cwd();
@@ -149,6 +150,34 @@ describe('web app manifest', () => {
       );
     }
   });
+
+  it('registers a GET share target that resolves to a real receiver', () => {
+    const shareTarget = doc.share_target as
+      | { action: string; method?: string; enctype?: string; params?: Record<string, string> }
+      | undefined;
+
+    expect(shareTarget, 'the manifest must declare a share target').toBeDefined();
+    expect(shareTarget?.action).toBe(SHARE_TARGET_ACTION);
+    // GET keeps the receiver a pure function of the query string. A POST target
+    // would have to parse multipart bodies.
+    expect(shareTarget?.method).toBe('GET');
+    expect(shareTarget?.enctype).toBe('application/x-www-form-urlencoded');
+    expect(shareTarget?.params).toEqual({
+      title: 'title',
+      text: 'text',
+      url: 'url',
+    });
+
+    // Exact file check rather than the first-segment heuristic the shortcuts
+    // use: a typo in the second segment would silently break every share.
+    const receiver = resolve(
+      webRoot,
+      'src/app',
+      SHARE_TARGET_ACTION.replace(/^\//, ''),
+      'page.tsx',
+    );
+    expect(existsSync(receiver), `${SHARE_TARGET_ACTION} needs a page`).toBe(true);
+  });
 });
 
 describe('public asset allowlists', () => {
@@ -197,5 +226,14 @@ describe('iOS launch images', () => {
     for (const file of required) {
       expect(existsSync(resolve(webRoot, 'public/icons', file)), `${file} should exist`).toBe(true);
     }
+
+    // The reverse direction is the one that catches drift: a device removed
+    // from splash-devices.json left its PNGs behind, and the generator only
+    // overwrites what it is asked for. Compare the directory, not just the
+    // matrix, so a stale launch image fails here instead of shipping.
+    const onDisk = readdirSync(resolve(webRoot, 'public/icons'))
+      .filter((file) => file.startsWith('apple-splash-'))
+      .sort();
+    expect(onDisk).toEqual([...required].sort());
   });
 });

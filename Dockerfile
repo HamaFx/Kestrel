@@ -57,6 +57,12 @@ ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
 ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY=
 ARG NEXT_PUBLIC_GOOGLE_ENABLED=false
 ARG NEXT_PUBLIC_ENABLE_DEV_LOGIN=false
+# Service-worker cache identity. `docker build` carries no .git, so without an
+# explicit stamp every image would share the `local00` build id; because sw.js
+# is otherwise byte-identical, browsers would never see an update and the shell
+# cache would pin the first release's assets. CI passes the commit sha:
+#   --build-arg KESTREL_BUILD_ID=$(git rev-parse --short=7 HEAD)
+ARG KESTREL_BUILD_ID=
 # NEXT_BUILD_SKIP_TYPECHECK: `next build` skips its own typecheck because the
 # explicit `turbo run typecheck` step below (tsrs) checks the same commit.
 # Keeping the flag set for the whole stage also stabilizes Turbo task hashes
@@ -65,6 +71,7 @@ ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
     NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY \
     NEXT_PUBLIC_GOOGLE_ENABLED=$NEXT_PUBLIC_GOOGLE_ENABLED \
     NEXT_PUBLIC_ENABLE_DEV_LOGIN=$NEXT_PUBLIC_ENABLE_DEV_LOGIN \
+    KESTREL_BUILD_ID=$KESTREL_BUILD_ID \
     NEXT_BUILD_SKIP_TYPECHECK=1
 # OPT-3: --link creates node_modules as a separate reusable layer instead of
 # copying files into the builder's layer. This avoids the 68s copy seen with

@@ -184,3 +184,45 @@ test.describe('Install nudge (beforeinstallprompt)', () => {
     await expect(page.getByRole('region', { name: 'Install Kestrel' })).toHaveCount(0);
   });
 });
+
+test.describe('Share target', () => {
+  // The receiver is public (it lives under the `/share` prefix that the auth
+  // matcher skips) and does all of its work in the query string, so these tests
+  // never enter the chat surface: the redirect itself is the contract.
+  test('redirects a shared link into a research thread prompt', async ({ request }) => {
+    const response = await request.get(
+      '/share/receive?title=Gold%20spikes%20on%20CPI&text=Print%20came%20in%20hot&url=https%3A%2F%2Fexample.com%2Fgold',
+      { maxRedirects: 0 },
+    );
+
+    expect(response.status()).toBeGreaterThanOrEqual(300);
+    expect(response.status()).toBeLessThan(400);
+    const location = response.headers()['location'] ?? '';
+    expect(location.startsWith('/chat?')).toBe(true);
+
+    const prompt = new URL(location, 'https://kestrel.test').searchParams.get('prompt') ?? '';
+    expect(prompt).toContain('Title: Gold spikes on CPI');
+    expect(prompt).toContain('Shared: Print came in hot');
+    expect(prompt).toContain('https://example.com/gold');
+    // A fresh thread: the share must not land in whatever was open last.
+    expect(location).toContain('new=1');
+  });
+
+  test('refuses to carry a non-http(s) URL into the prompt', async ({ request }) => {
+    const response = await request.get('/share/receive?url=javascript%3Aalert(1)', {
+      maxRedirects: 0,
+    });
+
+    // Nothing usable left → the receiver renders the empty state instead of
+    // redirecting with an executable scheme in the prompt.
+    expect(response.status()).toBe(200);
+    expect(await response.text()).toContain('Nothing to analyse');
+  });
+
+  test('keeps the receiver out of search results', async ({ page }) => {
+    await page.goto('/share/receive');
+
+    await expect(page.getByRole('heading', { name: /nothing to analyse/i })).toBeVisible();
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+  });
+});

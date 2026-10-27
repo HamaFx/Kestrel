@@ -34,6 +34,8 @@ import { join, resolve } from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { resolveBuildId } from '../scripts/set-build-id.mjs';
+
 const buildIdFile = resolve(process.cwd(), '.build-id');
 const envFile = resolve(process.cwd(), '.env.production.local');
 const swFile = resolve(process.cwd(), 'public/sw.js');
@@ -107,11 +109,31 @@ describe('build scripts', () => {
 
     expect(existsSync(precacheFile)).toBe(true);
     const precache = JSON.parse(readFileSync(precacheFile, 'utf8')) as unknown[];
-    expect(precache).toContain('/chat');
+    expect(precache).toContain('/offline');
+    // Auth-gated documents must never be precached (shared-device privacy).
+    expect(precache).not.toContain('/chat');
 
     expect(existsSync(swFile)).toBe(true);
     const sw = readFileSync(swFile, 'utf8');
     expect(sw).toContain(`kestrel-shell-v${buildId}`);
+  });
+
+  it('honours an explicit KESTREL_BUILD_ID stamp (Docker build arg)', () => {
+    // Container builds have no .git, so without an explicit stamp every image
+    // would share the `local00` id and the service worker would never update.
+    const previous = process.env.KESTREL_BUILD_ID;
+    process.env.KESTREL_BUILD_ID = 'abc1234';
+    try {
+      expect(resolveBuildId()).toBe('abc1234');
+      // An explicit programmatic stamp still wins over the environment.
+      expect(resolveBuildId({ buildId: 'override0' })).toBe('override0');
+      // Blank values fall through to the git-derived id instead of stamping ''.
+      process.env.KESTREL_BUILD_ID = '  ';
+      expect(resolveBuildId()).not.toBe('  ');
+    } finally {
+      if (previous === undefined) delete process.env.KESTREL_BUILD_ID;
+      else process.env.KESTREL_BUILD_ID = previous;
+    }
   });
 
   it('generate-sw fails the build when the template is missing', () => {
