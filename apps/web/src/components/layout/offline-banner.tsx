@@ -17,11 +17,15 @@
  */
 import { IconLoader2, IconWifiOff } from '@tabler/icons-react';
 import { AnimatePresence, m } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+/** How long the spinner may sit before the button is usable again. */
+const RETRY_LOCK_MS = 10_000;
 
 export function OfflineBanner() {
   const [online, setOnline] = useState(true);
   const [retrying, setRetrying] = useState(false);
+  const retryTimer = useRef<number | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -39,6 +43,21 @@ export function OfflineBanner() {
       window.removeEventListener('offline', onOffline);
     };
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (retryTimer.current !== null) window.clearTimeout(retryTimer.current);
+    };
+  }, []);
+
+  // A blocked or very slow reload would otherwise leave the button disabled
+  // forever, with no way to try again.
+  const retry = (): void => {
+    setRetrying(true);
+    if (retryTimer.current !== null) window.clearTimeout(retryTimer.current);
+    retryTimer.current = window.setTimeout(() => setRetrying(false), RETRY_LOCK_MS);
+    window.location.reload();
+  };
 
   return (
     <AnimatePresence>
@@ -60,10 +79,7 @@ export function OfflineBanner() {
             <button
               type="button"
               disabled={retrying}
-              onClick={() => {
-                setRetrying(true);
-                window.location.reload();
-              }}
+              onClick={retry}
               className="text-fg-muted hover:text-fg focus-visible:ring-fg text-body-sm inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-sm px-3 font-medium transition-colors focus:outline-none focus-visible:ring-2 disabled:opacity-60"
             >
               {retrying && <IconLoader2 className="size-3 animate-spin" />}

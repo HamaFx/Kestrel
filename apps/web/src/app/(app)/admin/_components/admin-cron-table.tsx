@@ -106,7 +106,7 @@ export function AdminCronTable() {
         )}
       </div>
       <div className="border-border overflow-hidden overflow-x-auto rounded-sm border">
-        <table className="w-full text-sm">
+        <table className="table-stack w-full text-sm">
           <thead className="bg-bg-elev-2 text-fg-subtle">
             <tr>
               <th className="px-4 py-2 text-left font-medium">Job</th>
@@ -129,17 +129,19 @@ export function AdminCronTable() {
               </tr>
             ) : (
               runs.map((run) => (
-                <tr key={run.id} className="border-border border-t">
+                <tr key={run.id} className="row-primary border-border border-t">
                   <td className="text-fg px-4 py-2">{run.jobName}</td>
-                  <td className="px-4 py-2">
+                  <td data-label="Status" className="px-4 py-2">
                     <Badge tone={STATUS_TONE[run.status]}>{run.status}</Badge>
                   </td>
-                  <td className="text-fg-subtle px-4 py-2">
+                  <td data-label="Started" className="text-fg-subtle px-4 py-2">
                     <span title={formatAbsoluteTime(run.startedAt)}>
                       {formatRelativeTime(run.startedAt)}
                     </span>
                   </td>
-                  <td className="text-fg-subtle px-4 py-2">{run.note ?? '—'}</td>
+                  <td data-label="Note" className="text-fg-subtle px-4 py-2">
+                    {run.note ?? '—'}
+                  </td>
                 </tr>
               ))
             )}

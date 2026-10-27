@@ -137,7 +137,7 @@ export function AdminAuditTable() {
       </div>
 
       <div className="border-border overflow-hidden overflow-x-auto rounded-sm border">
-        <table className="w-full min-w-[600px] text-sm">
+        <table className="table-stack w-full min-w-[600px] text-sm">
           <thead className="bg-bg-elev-2 text-fg-subtle">
             <tr>
               <th className="px-4 py-2 text-left font-medium">Action</th>
@@ -161,20 +161,20 @@ export function AdminAuditTable() {
               </tr>
             ) : (
               entries.map((entry) => (
-                <tr key={entry.id} className="border-border border-t">
+                <tr key={entry.id} className="row-primary border-border border-t">
                   <td className="text-fg px-4 py-2 font-medium">{entry.action}</td>
-                  <td className="text-fg-subtle px-4 py-2 font-mono text-xs">
+                  <td data-label="Actor" className="text-fg-subtle px-4 py-2 font-mono text-xs">
                     {entry.actorUserId}
                   </td>
-                  <td className="text-fg-subtle px-4 py-2 font-mono text-xs">
+                  <td data-label="Target" className="text-fg-subtle px-4 py-2 font-mono text-xs">
                     {entry.targetUserId ?? '—'}
                   </td>
-                  <td className="text-fg-subtle px-4 py-2 text-xs">
+                  <td data-label="Details" className="text-fg-subtle px-4 py-2 text-xs">
                     {entry.metadata && Object.keys(entry.metadata).length > 0
                       ? JSON.stringify(entry.metadata)
                       : '—'}
                   </td>
-                  <td className="text-fg-subtle px-4 py-2">
+                  <td data-label="Date" className="text-fg-subtle px-4 py-2">
                     <span title={formatAbsoluteTime(entry.createdAt)}>
                       {formatRelativeTime(entry.createdAt)}
                     </span>

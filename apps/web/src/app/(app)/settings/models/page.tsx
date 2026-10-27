@@ -129,7 +129,7 @@ export default async function ModelsSettingsPage() {
           <span className="text-caption text-fg-subtle font-mono">▾</span>
         </summary>
         <div className="border-border overflow-x-auto border-t">
-          <table className="w-full text-sm">
+          <table className="table-stack w-full text-sm">
             <thead>
               <tr className="border-border border-b">
                 <th className="text-fg-muted px-4 py-2.5 text-left font-medium">Provider</th>
@@ -146,22 +146,30 @@ export default async function ModelsSettingsPage() {
               {allModels.map((m) => (
                 <tr
                   key={`${m.providerName}:${m.modelId}`}
-                  className="border-border/50 hover:bg-bg-elev-2/40 border-b last:border-0"
+                  className="row-primary border-border/50 hover:bg-bg-elev-2/40 border-b last:border-0"
                 >
                   <td className="text-fg px-4 py-2.5 font-medium">{m.providerName}</td>
-                  <td className="text-fg px-4 py-2.5 font-mono text-xs">{m.label ?? m.modelId}</td>
-                  <td className="px-4 py-2.5">
+                  <td data-label="Model" className="text-fg px-4 py-2.5 font-mono text-xs">
+                    {m.label ?? m.modelId}
+                  </td>
+                  <td data-label="Tier" className="px-4 py-2.5">
                     <span className="surface-chip bg-bg-elev-2 text-fg-subtle inline-flex items-center rounded-md border border-white/5 px-2 py-0.5 font-mono text-[11px] font-medium">
                       {m.tier ?? 'flagship'}
                     </span>
                   </td>
-                  <td className="text-fg px-4 py-2.5 text-right font-mono tabular-nums">
+                  <td
+                    data-label="Input / 1M"
+                    className="text-fg px-4 py-2.5 text-right font-mono tabular-nums"
+                  >
                     {m.inputPerMTokUsd != null ? `$${m.inputPerMTokUsd.toFixed(2)}` : '—'}
                   </td>
-                  <td className="text-fg px-4 py-2.5 text-right font-mono tabular-nums">
+                  <td
+                    data-label="Output / 1M"
+                    className="text-fg px-4 py-2.5 text-right font-mono tabular-nums"
+                  >
                     {m.outputPerMTokUsd != null ? `$${m.outputPerMTokUsd.toFixed(2)}` : '—'}
                   </td>
-                  <td className="px-4 py-2.5 text-center">
+                  <td data-label="Capabilities" className="px-4 py-2.5 text-center">
                     <div className="flex items-center justify-center gap-1.5">
                       {m.tier !== 'embedding' ? (
                         <span className="surface-chip bg-success/15 text-success inline-flex items-center rounded-md px-2 py-0.5 font-mono text-[11px] font-medium">

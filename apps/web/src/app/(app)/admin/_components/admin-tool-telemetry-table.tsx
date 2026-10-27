@@ -105,7 +105,7 @@ export function AdminToolTelemetryTable() {
         )}
       </div>
       <div className="border-border overflow-hidden overflow-x-auto rounded-sm border">
-        <table className="w-full text-sm">
+        <table className="table-stack w-full text-sm">
           <thead className="bg-bg-elev-2 text-fg-subtle">
             <tr>
               <th className="px-4 py-2 text-left font-medium">Tool</th>
@@ -130,15 +130,21 @@ export function AdminToolTelemetryTable() {
               </tr>
             ) : (
               rows.map((row) => (
-                <tr key={row.id} className="border-border border-t">
+                <tr key={row.id} className="row-primary border-border border-t">
                   <td className="text-fg px-4 py-2 font-mono text-xs">{row.tool}</td>
-                  <td className="text-fg-subtle px-4 py-2 font-mono text-xs">{row.threadId}</td>
-                  <td className="px-4 py-2">
+                  <td data-label="Thread" className="text-fg-subtle px-4 py-2 font-mono text-xs">
+                    {row.threadId}
+                  </td>
+                  <td data-label="Status" className="px-4 py-2">
                     <Badge tone={row.ok ? 'success' : 'danger'}>{row.ok ? 'OK' : 'FAIL'}</Badge>
                   </td>
-                  <td className="text-fg-subtle px-4 py-2 tabular-nums">{formatMs(row.ms)}</td>
-                  <td className="text-fg-subtle px-4 py-2">{row.errorCode ?? '—'}</td>
-                  <td className="text-fg-subtle px-4 py-2">
+                  <td data-label="Duration" className="text-fg-subtle px-4 py-2 tabular-nums">
+                    {formatMs(row.ms)}
+                  </td>
+                  <td data-label="Error" className="text-fg-subtle px-4 py-2">
+                    {row.errorCode ?? '—'}
+                  </td>
+                  <td data-label="Time" className="text-fg-subtle px-4 py-2">
                     <span title={formatAbsoluteTime(row.createdAt)}>
                       {formatRelativeTime(row.createdAt)}
                     </span>

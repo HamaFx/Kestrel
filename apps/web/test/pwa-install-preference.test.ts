@@ -25,6 +25,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   engagementRemainingMs,
   hasEngaged,
+  INSTALL_STORAGE_KEYS,
   isOfferable,
   markInstalled,
   PERMANENT_DISMISSAL_LIMIT,
@@ -36,8 +37,8 @@ import {
 } from '@/lib/pwa/install-preference';
 
 const DAY = 24 * 60 * 60 * 1000;
-const STORAGE_KEY = 'kestrel:pwa-install';
-const LEGACY_KEY = 'kestrel:install-dismissed';
+const STORAGE_KEY = INSTALL_STORAGE_KEYS.preference;
+const LEGACY_KEY = INSTALL_STORAGE_KEYS.legacyDismissal;
 
 beforeEach(() => {
   window.localStorage.clear();
@@ -98,6 +99,28 @@ describe('install preference', () => {
     expect(window.localStorage.getItem(LEGACY_KEY)).toBeNull();
     // The migration is persisted so it only ever runs once.
     expect(window.localStorage.getItem(STORAGE_KEY)).not.toBeNull();
+  });
+
+  it('migrates the pre-rebrand (V0) dismissal key', () => {
+    // Devices that ran the old HamaFX build still carry `hfx_install_dismissed`;
+    // without this the nudge restarts its ladder for every long-lived install.
+    window.localStorage.setItem(INSTALL_STORAGE_KEYS.legacyDismissalV0, '2');
+    const pref = readInstallPreference();
+    expect(pref.dismissedCount).toBe(2);
+    expect(window.localStorage.getItem(INSTALL_STORAGE_KEYS.legacyDismissalV0)).toBeNull();
+  });
+
+  it('ignores a legacy counter that is zero, negative or not a number', () => {
+    for (const raw of ['0', '-4', 'abc']) {
+      window.localStorage.clear();
+      window.localStorage.setItem(LEGACY_KEY, raw);
+
+      const pref = readInstallPreference();
+      expect(pref.dismissedCount, `legacy value ${raw}`).toBe(0);
+      expect(isOfferable(pref)).toBe(true);
+      // The unusable key is still consumed so it cannot be re-read forever.
+      expect(window.localStorage.getItem(LEGACY_KEY)).toBeNull();
+    }
   });
 
   it('ignores a corrupt stored record', () => {

@@ -44,6 +44,7 @@ export function SidebarNavGroups({
               icon={item.icon}
               active={isNavItemActive(item, pathname)}
               collapsed={collapsed}
+              dense
             />
           ))}
         </NavSection>
@@ -71,6 +72,7 @@ export function SidebarNavGroups({
                   icon={navItem.icon}
                   active={isNavItemActive(navItem, pathname)}
                   collapsed={collapsed}
+                  dense
                 />
               );
             })}

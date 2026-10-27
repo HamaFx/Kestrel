@@ -13,10 +13,26 @@
 // The install *fact* is also recorded, because `appinstalled` / standalone
 // detection is the only way to know the nudge has served its purpose.
 
-const STORAGE_KEY = 'kestrel:pwa-install';
-const LEGACY_DISMISS_KEY = 'kestrel:install-dismissed';
-const LEGACY_DISMISS_KEY_V0 = 'hfx_install_dismissed';
-const ENGAGEMENT_KEY = 'kestrel:pwa-engagement';
+/**
+ * Storage keys. Exported so the contract tests and any future migration read one
+ * definition instead of duplicating the strings (the install-nudge tests used to
+ * hardcode them, so a rename could silently pass).
+ */
+export const INSTALL_STORAGE_KEYS = {
+  /** Current preference record. */
+  preference: 'kestrel:pwa-install',
+  /** Legacy numeric dismissal counter (pre-snooze model). */
+  legacyDismissal: 'kestrel:install-dismissed',
+  /** Pre-rebrand key still present on long-lived devices. */
+  legacyDismissalV0: 'hfx_install_dismissed',
+  /** Engagement gate record (visits + first-seen time). */
+  engagement: 'kestrel:pwa-engagement',
+} as const;
+
+const STORAGE_KEY = INSTALL_STORAGE_KEYS.preference;
+const LEGACY_DISMISS_KEY = INSTALL_STORAGE_KEYS.legacyDismissal;
+const LEGACY_DISMISS_KEY_V0 = INSTALL_STORAGE_KEYS.legacyDismissalV0;
+const ENGAGEMENT_KEY = INSTALL_STORAGE_KEYS.engagement;
 
 const SNOOZE_DAYS = [3, 14] as const;
 export const PERMANENT_DISMISSAL_LIMIT = SNOOZE_DAYS.length + 1;

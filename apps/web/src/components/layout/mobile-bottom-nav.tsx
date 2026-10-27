@@ -47,10 +47,16 @@ export function MobileBottomNav() {
     return null;
   }
 
+  // "More" owns every destination that is not one of the four tabs. Marking it
+  // as current is what tells the user where they are when they land on Market,
+  // Chart or Settings from the drawer — without it the bar highlights nothing
+  // at all.
+  const onPrimaryTab = BOTTOM_ITEMS.some((item) => isNavItemActive(item, pathname));
+
   return (
     <nav
       aria-label="Mobile primary navigation"
-      className="pb-safe px-safe bg-bg/95 fixed inset-x-0 bottom-0 z-30 flex h-[calc(3.5rem+env(safe-area-inset-bottom,0px))] items-center justify-around border-t border-white/[0.08] shadow-[0_-8px_30px_rgba(0,0,0,0.8)] backdrop-blur-xl select-none lg:hidden"
+      className="pb-safe px-safe bg-bg/95 fixed inset-x-0 bottom-0 z-30 flex h-[var(--bottom-nav-h)] items-center justify-around border-t border-white/[0.08] shadow-[0_-8px_30px_rgba(0,0,0,0.8)] backdrop-blur-xl select-none lg:hidden"
     >
       {BOTTOM_ITEMS.map((item) => {
         const active = isNavItemActive(item, pathname);
@@ -92,10 +98,20 @@ export function MobileBottomNav() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Open navigation menu"
-        className="text-fg-subtle hover:text-fg relative flex min-h-[44px] min-w-[56px] flex-1 flex-col items-center justify-center gap-1 rounded-lg py-1 font-sans text-[11px] transition-colors active:translate-y-[0.5px]"
+        aria-current={onPrimaryTab ? undefined : 'true'}
+        className={cn(
+          'relative flex min-h-[44px] min-w-[56px] flex-1 flex-col items-center justify-center gap-1 rounded-lg py-1 font-sans text-[11px] transition-colors active:translate-y-[0.5px]',
+          onPrimaryTab ? 'text-fg-subtle hover:text-fg' : 'text-brand',
+        )}
       >
-        <IconDots className="size-5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
-        <span className="truncate leading-none">More</span>
+        <IconDots
+          className="size-5 shrink-0"
+          strokeWidth={onPrimaryTab ? 1.75 : 2}
+          aria-hidden="true"
+        />
+        <span className={cn('truncate leading-none', onPrimaryTab ? 'font-normal' : 'font-medium')}>
+          More
+        </span>
       </button>
     </nav>
   );

@@ -43,36 +43,30 @@ test.describe('Navigation drawer', () => {
     await expect(page.getByRole('dialog', { name: /primary navigation/i })).toBeVisible();
   });
 
-  test('renders Markets section with all items', async ({ authedPage }) => {
+  test('renders the Workspace section with the primary destinations', async ({ authedPage }) => {
     const page = authedPage;
 
     // Open the nav drawer
     await page.getByRole('button', { name: /open navigation/i }).click();
 
-    // Markets section should be visible
-    await expect(page.getByText('Markets')).toBeAttached();
+    // Workspace section should be visible
+    await expect(page.getByText('Workspace')).toBeAttached();
 
-    // All primary items should be present
-    const marketItems = ['Dashboard', 'Chat', 'Chart', 'News', 'Calendar'];
-    for (const item of marketItems) {
+    // All primary items should be present (labels come from nav-items.ts)
+    const workspaceItems = ['Research', 'Overview', 'Journal', 'Market', 'Alerts'];
+    for (const item of workspaceItems) {
       await expect(page.getByRole('link', { name: new RegExp(item, 'i') }).first()).toBeAttached();
     }
   });
 
-  test('renders Personal section with all items', async ({ authedPage }) => {
+  test('renders the Preferences section with the settings entry', async ({ authedPage }) => {
     const page = authedPage;
 
     // Open the nav drawer
     await page.getByRole('button', { name: /open navigation/i }).click();
 
-    // Workspace section should be visible (Section label="Workspace")
-    await expect(page.getByText('Workspace')).toBeAttached();
-
-    // All secondary items should be present
-    const personalItems = ['Alerts', 'Journal', 'Settings'];
-    for (const item of personalItems) {
-      await expect(page.getByRole('link', { name: new RegExp(item, 'i') }).first()).toBeAttached();
-    }
+    await expect(page.getByText('Preferences')).toBeAttached();
+    await expect(page.getByRole('link', { name: /settings/i }).first()).toBeAttached();
   });
 
   test('active route is highlighted', async ({ authedPage }) => {
@@ -84,9 +78,9 @@ test.describe('Navigation drawer', () => {
     // Open the nav drawer
     await page.getByRole('button', { name: /open navigation/i }).click();
 
-    // The Dashboard link should have aria-current="page"
-    const dashboardLink = page.getByRole('link', { name: /dashboard/i }).first();
-    await expect(dashboardLink).toHaveAttribute('aria-current', 'page');
+    // `/dashboard` is labelled "Overview" in the primary nav.
+    const overviewLink = page.getByRole('link', { name: /overview/i }).first();
+    await expect(overviewLink).toHaveAttribute('aria-current', 'page');
   });
 
   test('shows user identity', async ({ authedPage }) => {
@@ -181,9 +175,9 @@ test.describe('Navigation drawer — responsive', () => {
     // Drawer should be visible
     await expect(page.getByRole('dialog', { name: /primary navigation/i })).toBeVisible();
 
-    // Dashboard link should be accessible
-    const dashboardLink = page.getByRole('link', { name: /dashboard/i }).first();
-    await expect(dashboardLink).toBeAttached();
+    // `/dashboard` is the "Overview" entry in the primary nav.
+    const overviewLink = page.getByRole('link', { name: /overview/i }).first();
+    await expect(overviewLink).toBeAttached();
 
     // The drawer width should be appropriate for mobile (< 90vw)
     const drawer = page.getByRole('dialog', { name: /primary navigation/i });
@@ -203,7 +197,7 @@ test.describe('Navigation drawer — responsive', () => {
     // Navigate to dashboard via drawer
     await page.getByRole('button', { name: /open navigation/i }).click();
     await page
-      .getByRole('link', { name: /dashboard/i })
+      .getByRole('link', { name: /overview/i })
       .first()
       .click();
 
@@ -227,16 +221,7 @@ test.describe('Desktop navigation sidebar', () => {
     await expect(expandBtn).toBeVisible();
     await expandBtn.click();
 
-    for (const label of [
-      'Dashboard',
-      'Chat',
-      'Chart',
-      'News',
-      'Calendar',
-      'Alerts',
-      'Journal',
-      'Settings',
-    ]) {
+    for (const label of ['Overview', 'Research', 'Journal', 'Market', 'Alerts', 'Settings']) {
       await expect(sidebar.getByRole('link', { name: label })).toBeAttached();
     }
   });

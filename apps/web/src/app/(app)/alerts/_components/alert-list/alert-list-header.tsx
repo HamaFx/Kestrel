@@ -27,8 +27,8 @@ export function AlertListHeader({
   isFetching,
 }: AlertListHeaderProps) {
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center gap-3">
         <Segmented<'all' | 'active' | 'past'>
           value={filter}
           onChange={onFilterChange}

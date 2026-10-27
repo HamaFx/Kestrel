@@ -19,7 +19,7 @@ import type { MastraRun } from './mastra-runs-types';
 
 function MastraRunRow({ run }: { run: MastraRun }) {
   return (
-    <tr className="border-border border-t">
+    <tr className="row-primary border-border border-t">
       <td className="px-4 py-2">
         <div className="text-fg font-mono text-xs" title={run.runId}>
           {run.runId.slice(0, 12)}…
@@ -35,12 +35,14 @@ function MastraRunRow({ run }: { run: MastraRun }) {
           </a>
         )}
       </td>
-      <td className="text-fg-subtle px-4 py-2">{run.kind ?? '—'}</td>
-      <td className="text-fg-subtle px-4 py-2">
+      <td data-label="Kind" className="text-fg-subtle px-4 py-2">
+        {run.kind ?? '—'}
+      </td>
+      <td data-label="Model" className="text-fg-subtle px-4 py-2">
         <div>{run.model}</div>
         <div className="text-fg-subtle/70 text-xs">{run.provider}</div>
       </td>
-      <td className="px-4 py-2">
+      <td data-label="Status" className="px-4 py-2">
         <Badge tone={runTone(run)}>{runStatusLabel(run)}</Badge>
         {runTone(run) === 'danger' && runFailureDetail(run) && (
           <div
@@ -51,12 +53,12 @@ function MastraRunRow({ run }: { run: MastraRun }) {
           </div>
         )}
       </td>
-      <td className="text-fg-subtle px-4 py-2">
+      <td data-label="Steps" className="text-fg-subtle px-4 py-2">
         {run.workflow.workflowId
           ? `${run.workflow.completedSteps}/${run.workflow.totalSteps}`
           : '—'}
       </td>
-      <td className="px-4 py-2">
+      <td data-label="Scores" className="px-4 py-2">
         {run.scores.length > 0 ? (
           <div className="flex flex-col gap-1">
             <Badge tone={run.scoreMean !== null && run.scoreMean >= 0.8 ? 'success' : 'warn'}>
@@ -70,9 +72,13 @@ function MastraRunRow({ run }: { run: MastraRun }) {
           <span className="text-fg-subtle">—</span>
         )}
       </td>
-      <td className="text-fg-subtle px-4 py-2">${run.estCostUsd.toFixed(4)}</td>
-      <td className="text-fg-subtle px-4 py-2">{formatNumber(run.ms)} ms</td>
-      <td className="text-fg-subtle px-4 py-2">
+      <td data-label="Cost" className="text-fg-subtle px-4 py-2">
+        ${run.estCostUsd.toFixed(4)}
+      </td>
+      <td data-label="Latency" className="text-fg-subtle px-4 py-2">
+        {formatNumber(run.ms)} ms
+      </td>
+      <td data-label="When" className="text-fg-subtle px-4 py-2">
         <span title={formatAbsoluteTime(run.createdAt)}>{formatRelativeTime(run.createdAt)}</span>
       </td>
     </tr>
@@ -83,7 +89,7 @@ export function MastraRunsTable({ runs }: { runs: MastraRun[] }) {
   return (
     <>
       <div className="border-border overflow-hidden overflow-x-auto rounded-sm border">
-        <table className="w-full text-sm">
+        <table className="table-stack w-full text-sm">
           <thead className="bg-bg-elev-2 text-fg-subtle">
             <tr>
               <th className="px-4 py-2 text-left font-medium">Run</th>

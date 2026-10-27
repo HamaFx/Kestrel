@@ -92,7 +92,7 @@ export const Composer = memo(function Composer({
       : undefined;
 
   return (
-    <div className="message-composer-safe-bottom sticky bottom-0 z-20 mx-auto w-full px-2 pb-[max(env(safe-area-inset-bottom),12px)] sm:px-4">
+    <div className="sticky bottom-0 z-20 mx-auto w-full px-2 pb-[max(env(safe-area-inset-bottom),12px)] sm:px-4">
       <form
         className={cn(
           'relative z-10 flex w-full flex-col gap-2 rounded-2xl border border-white/[0.08] bg-[#141416]/85 p-3 backdrop-blur-xl transition-all duration-200',

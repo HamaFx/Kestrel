@@ -35,23 +35,30 @@ function EventRow({
         }
       }}
     >
-      <td className="px-3 py-2">
+      <td data-label="Source" className="px-3 py-2">
         <Badge tone={sourceTone(event.source)}>{event.source}</Badge>
       </td>
-      <td className="text-fg px-3 py-2 font-mono text-xs">{event.name}</td>
-      <td className="px-3 py-2">
+      <td data-label="Event" className="text-fg px-3 py-2 font-mono text-xs">
+        {event.name}
+      </td>
+      <td data-label="Status" className="px-3 py-2">
         <Badge tone={statusTone(event.status)}>{event.status}</Badge>
       </td>
       <td
+        data-label="Correlation"
         className="text-fg-subtle max-w-36 truncate px-3 py-2 font-mono text-xs"
         title={correlation ?? undefined}
       >
         {correlation ?? '—'}
       </td>
-      <td className="text-fg-subtle px-3 py-2 tabular-nums">
+      <td data-label="Duration" className="text-fg-subtle px-3 py-2 tabular-nums">
         {event.durationMs === null ? '—' : formatMs(event.durationMs)}
       </td>
-      <td className="text-fg-subtle px-3 py-2" title={formatAbsoluteTime(event.timestamp)}>
+      <td
+        data-label="Time"
+        className="text-fg-subtle px-3 py-2"
+        title={formatAbsoluteTime(event.timestamp)}
+      >
         {formatRelativeTime(event.timestamp)}
       </td>
     </tr>
@@ -67,7 +74,7 @@ export function TraceEventsTable({
 }) {
   return (
     <div className="border-border overflow-hidden overflow-x-auto rounded-sm border">
-      <table className="w-full text-sm">
+      <table className="table-stack w-full text-sm">
         <caption className="sr-only">AI execution timeline</caption>
         <thead className="bg-bg-elev-2 text-fg-subtle">
           <tr>

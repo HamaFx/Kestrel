@@ -4,7 +4,6 @@
 // Lightweight bundle-size guard for the web app.
 // Reads apps/web/bundle-size-limits.json, walks .next/static/chunks,
 // and exits non-zero when any file exceeds its matched limit.
-
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -74,9 +73,19 @@ function collectJsFiles(dir) {
   return files;
 }
 
+export function selectLimit(limits, relativePath) {
+  // Config order is the contract (bundle-size-limits.json): patterns are listed
+  // most-specific first and the FIRST match wins. Picking the smallest matching
+  // budget instead would silently override a deliberate, larger allowance for
+  // one known-heavy route.
+  return limits.find((limit) => matchesPattern(relativePath, limit.pattern));
+}
+
 function runGuard({ configPath = DEFAULT_CONFIG_PATH } = {}) {
   if (!fs.existsSync(CHUNKS_DIR)) {
-    console.error(`❌ Chunks directory not found: ${CHUNKS_DIR}\n   Run \`pnpm --filter @kestrel/web build\` first.`);
+    console.error(
+      `❌ Chunks directory not found: ${CHUNKS_DIR}\n   Run \`pnpm --filter @kestrel/web build\` first.`,
+    );
     process.exit(1);
   }
 
@@ -84,7 +93,9 @@ function runGuard({ configPath = DEFAULT_CONFIG_PATH } = {}) {
   try {
     config = loadConfig(configPath);
   } catch (err) {
-    console.error(`❌ Failed to load config at ${configPath}: ${err instanceof Error ? err.message : err}`);
+    console.error(
+      `❌ Failed to load config at ${configPath}: ${err instanceof Error ? err.message : err}`,
+    );
     process.exit(1);
   }
 
@@ -99,8 +110,14 @@ function runGuard({ configPath = DEFAULT_CONFIG_PATH } = {}) {
       console.error(`❌ Limit at index ${i} is missing a non-empty "pattern" field.`);
       process.exit(1);
     }
-    if (typeof limit.maxBytes !== 'number' || !Number.isFinite(limit.maxBytes) || limit.maxBytes <= 0) {
-      console.error(`❌ Limit at index ${i} (${limit.pattern}) has an invalid "maxBytes" value. It must be a positive number.`);
+    if (
+      typeof limit.maxBytes !== 'number' ||
+      !Number.isFinite(limit.maxBytes) ||
+      limit.maxBytes <= 0
+    ) {
+      console.error(
+        `❌ Limit at index ${i} (${limit.pattern}) has an invalid "maxBytes" value. It must be a positive number.`,
+      );
       process.exit(1);
     }
   }
@@ -114,11 +131,7 @@ function runGuard({ configPath = DEFAULT_CONFIG_PATH } = {}) {
     const sizeBytes = stats.size;
     const relativePath = path.relative(CHUNKS_DIR, file).replace(/\\/g, '/');
 
-    const matchedLimits = config.limits
-      .filter((limit) => matchesPattern(relativePath, limit.pattern))
-      .sort((a, b) => (a.maxBytes ?? Infinity) - (b.maxBytes ?? Infinity));
-
-    const winningLimit = matchedLimits[0];
+    const winningLimit = selectLimit(config.limits, relativePath);
     const limitBytes = winningLimit?.maxBytes;
     const exceeded = limitBytes !== undefined && sizeBytes > limitBytes;
 
@@ -150,7 +163,9 @@ function runGuard({ configPath = DEFAULT_CONFIG_PATH } = {}) {
   );
 
   if (hasFailure) {
-    console.error('\n🚨 Bundle-size guard failed: one or more chunks exceed their configured limit.');
+    console.error(
+      '\n🚨 Bundle-size guard failed: one or more chunks exceed their configured limit.',
+    );
     console.error(`   Config: ${configPath}\n`);
     process.exit(1);
   }

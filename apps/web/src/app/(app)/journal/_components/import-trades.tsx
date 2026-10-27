@@ -178,8 +178,8 @@ export function ImportTrades({ onImported }: { onImported?: () => void }) {
                   <IconFileSpreadsheet className="text-fg size-4" />
                   <span className="font-medium">{parsed.length} trades parsed</span>
                 </div>
-                <div className="border-border max-h-48 overflow-y-auto rounded-sm border">
-                  <table className="w-full text-xs tabular-nums">
+                <div className="border-border max-h-[40svh] overflow-y-auto rounded-sm border md:max-h-48">
+                  <table className="table-stack w-full text-xs tabular-nums">
                     <thead>
                       <tr className="bg-bg-elev-2 text-fg-subtle">
                         <th className="p-2 text-left">Symbol</th>
@@ -190,13 +190,20 @@ export function ImportTrades({ onImported }: { onImported?: () => void }) {
                     </thead>
                     <tbody>
                       {parsed.slice(0, 20).map((t, i) => (
-                        <tr key={i} className="border-border border-t">
+                        <tr key={i} className="row-primary border-border border-t">
                           <td className="text-fg p-2">{t.symbol}</td>
-                          <td className={cn('p-2', t.side === 'long' ? 'text-bull' : 'text-bear')}>
+                          <td
+                            data-label="Side"
+                            className={cn('p-2', t.side === 'long' ? 'text-bull' : 'text-bear')}
+                          >
                             {t.side}
                           </td>
-                          <td className="text-fg p-2 text-right">{t.entry}</td>
-                          <td className="text-fg p-2 text-right">{t.exit ?? '—'}</td>
+                          <td data-label="Entry" className="text-fg p-2 text-right">
+                            {t.entry}
+                          </td>
+                          <td data-label="Exit" className="text-fg p-2 text-right">
+                            {t.exit ?? '—'}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

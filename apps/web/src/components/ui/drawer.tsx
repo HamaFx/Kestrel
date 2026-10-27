@@ -29,11 +29,13 @@ import { Drawer as DrawerPrimitive } from 'vaul';
 
 import { cn } from '@/lib/formatters/cn';
 
-const Drawer = ({
-  shouldScaleBackground = true,
-  ...props
-}: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
-  <DrawerPrimitive.Root shouldScaleBackground={shouldScaleBackground} {...props} />
+// `shouldScaleBackground` is deliberately not defaulted to `true`: vaul scales
+// the element marked `[data-vaul-drawer-wrapper]`, and Kestrel's shell is a
+// fixed, full-height chrome that has no such wrapper. The default was inert
+// and implied a behaviour the app does not have. A caller that ever introduces
+// a wrapper can opt in explicitly.
+const Drawer = (props: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
+  <DrawerPrimitive.Root {...props} />
 );
 Drawer.displayName = 'Drawer';
 
