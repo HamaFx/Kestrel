@@ -15,16 +15,16 @@
  */
 
 // Per-iteration VU function: write-path endpoint mix resembling a power user
-// creating alerts, threads, journal entries, portfolio positions, and other
-// stateful operations on the trading copilot surface.
+// creating alerts, threads, journal entries, and other stateful operations on
+// the trading copilot surface.
 //
-// Covers the top 20 highest-priority endpoints that lacked k6 coverage:
+// Covers the top endpoints that lacked k6 coverage:
 //   Tier 1: alerts/preview, chat/threads POST, chat/threads CRUD, alerts CRUD,
-//           portfolio positions, portfolio risk, journal CRUD, journal/review
+//           journal CRUD, journal/review
 //   Tier 2: signal feedback, signal stats, thread summary, thread opinions,
 //           onboarding save-progress, push subscribe
-//   Tier 3: alerts/[id] CRUD, positions/[id] CRUD, journal/[id] CRUD,
-//           journal import, noise config, thread fork
+//   Tier 3: alerts/[id] CRUD, journal/[id] CRUD, journal import, noise config,
+//           thread fork
 //
 // Strategy B users (with ctx.threadId) can hit thread-specific GET/PATCH/DELETE
 // endpoints. Strategy A users exercise only the POST/list endpoints.
@@ -159,6 +159,7 @@ export function writeMix(ctx: SessionCtx): void {
       {
         headers: { 'Content-Type': 'application/json', 'x-csrf-token': ctx.csrfToken },
         tags: { group: 'thread_fork' },
+        responseCallback: http.expectedStatuses(200, 201, 400),
       },
     );
     expectStatus(forkRes, [200, 201, 400]);
@@ -244,28 +245,11 @@ export function writeMix(ctx: SessionCtx): void {
     }
     postJson('/api/journal/import', 'journal_import', { trades });
   }
-  // ── Portfolio operations (10%) ──────────────────────────────────
-  else if (roll < 0.79) {
-    // POST /api/portfolio/positions — create position (4%)
-    postJson('/api/portfolio/positions', 'position_create', {
-      symbol,
-      direction: randomSide(),
-      entryPrice: entryPrice,
-      stopLoss: plausibleStop(symbol, entryPrice, 'long'),
-      takeProfit: plausibleTarget(symbol, entryPrice, 'long'),
-      lotSize: Math.floor(Math.random() * 5) + 1,
-      openedAt: now(),
-    });
-  } else if (roll < 0.83) {
-    // GET /api/portfolio/positions — list positions (4%)
-    getJson('/api/portfolio/positions', 'position_read');
-  } else if (roll < 0.85) {
-    // GET /api/portfolio/risk — risk report (2%)
-    getJson('/api/portfolio/risk', 'risk_read');
-  }
-  // ── Other write operations (15%) ────────────────────────────────
-  else if (roll < 0.91) {
-    // POST /api/onboarding/save-progress — save onboarding (3%)
+  // ── Other write operations (25%) ────────────────────────────────
+  // The former /api/portfolio/* branches were removed when that route was
+  // deleted (commit badad609); their share moved into the surviving writes.
+  else if (roll < 0.85) {
+    // POST /api/onboarding/save-progress — save onboarding (10%)
     postJson('/api/onboarding/save-progress', 'onboarding', {
       step: Math.floor(Math.random() * 5) + 1,
       name: 'k6 load test user',
@@ -274,14 +258,14 @@ export function writeMix(ctx: SessionCtx): void {
       tradingStyle: randomItem(['scalper', 'day_trader', 'swing', 'position']),
       selectedSymbols: symbols.slice(0, 3),
     });
-  } else if (roll < 0.94) {
-    // GET /api/notifications/noise-config — noise control config (3%)
+  } else if (roll < 0.9) {
+    // GET /api/notifications/noise-config — noise control config (5%)
     getJson('/api/notifications/noise-config', 'noise_config');
-  } else if (roll < 0.97) {
-    // GET /api/notifications/route-config — notification routing (3%)
+  } else if (roll < 0.95) {
+    // GET /api/notifications/route-config — notification routing (5%)
     getJson('/api/notifications/route-config', 'noise_config');
-  } else if (roll < 0.99) {
-    // POST /api/push/subscribe — push subscription (2%)
+  } else if (roll < 0.98) {
+    // POST /api/push/subscribe — push subscription (3%)
     // Expected 503 with placeholder VAPID keys in test environments.
     // Uses raw http.post with wide status acceptance to avoid inflating failure rate.
     const pushEndpoint = `https://fcm.googleapis.com/fcm/send/k6-loadtest-${__VU}-${__ITER}`;
@@ -297,13 +281,14 @@ export function writeMix(ctx: SessionCtx): void {
       {
         headers: { 'Content-Type': 'application/json', 'x-csrf-token': ctx.csrfToken },
         tags: { group: 'push_subscribe' },
+        responseCallback: http.expectedStatuses(200, 201, 400, 401, 503),
       },
     );
     expectStatus(pushRes, [200, 201, 400, 401, 503]);
     record429(pushRes);
     recordAuthFailure(pushRes);
   } else {
-    // Fallback (1%) — GET /api/health as a safe round-out
+    // Fallback (2%) — GET /api/health as a safe round-out
     getJson('/api/health', 'health');
   }
 

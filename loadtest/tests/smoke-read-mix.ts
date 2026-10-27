@@ -54,7 +54,6 @@ export function setup() {
       tf: '1h',
       indicators: [{ kind: 'sma', params: { period: 20 } }],
     });
-    postJson('/api/market/structure', 'warmup', { symbol: 'XAUUSD', tf: '1h' });
   }
 
   return ctxs;

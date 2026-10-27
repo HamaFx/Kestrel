@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-// Per-iteration VU function: hits the five market_read GET endpoints in a
-// weighted mix, with randomized think-time between calls.
+// Per-iteration VU function: hits the market_read endpoints in a weighted
+// mix, with randomized think-time between calls.
+// The former `/api/market/structure` branch was removed when the app deleted
+// that route (commit 94bdd6f4); its share moved to indicators and search.
 import { sleep } from 'k6';
 import { SharedArray } from 'k6/data';
 
@@ -38,8 +40,8 @@ export function marketRead(_ctx: SessionCtx): void {
   } else if (roll < 0.6) {
     // Candles (20%)
     getJson(`/api/market/candles?symbol=${symbol}&timeframe=1h`, 'market_read');
-  } else if (roll < 0.75) {
-    // Indicators (15%) — POST required, slower than GET endpoints,
+  } else if (roll < 0.8) {
+    // Indicators (20%) — POST required, slower than GET endpoints,
     // tagged separately so thresholds don't conflate fast & slow populations.
     postJson('/api/market/indicators', 'market_read_slow', {
       symbol,
@@ -49,14 +51,8 @@ export function marketRead(_ctx: SessionCtx): void {
         { kind: 'rsi', params: { period: 14 } },
       ],
     });
-  } else if (roll < 0.9) {
-    // Structure (15%) — POST required, slower than GET endpoints
-    postJson('/api/market/structure', 'market_read_slow', {
-      symbol,
-      tf: '1h',
-    });
   } else {
-    // Search (10%)
+    // Search (20%)
     getJson(`/api/market/search?q=${encodeURIComponent(symbol)}`, 'market_read');
   }
 
