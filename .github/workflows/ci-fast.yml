@@ -15,6 +15,13 @@ jobs:
     name: Lint & Typecheck
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      # Next's built-in typecheck is redundant here: this job runs
+      # `turbo run typecheck` (tsrs) on the same commit. Setting the flag
+      # job-wide also keeps Turbo task hashes identical between the
+      # typecheck and build steps, so package builds are restored from
+      # cache instead of re-executed.
+      NEXT_BUILD_SKIP_TYPECHECK: '1'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
@@ -50,8 +57,6 @@ jobs:
       - run: pnpm audit --audit-level=critical
       # Build all packages and applications.
       - run: pnpm turbo run build
-        env:
-          NEXT_BUILD_SKIP_TYPECHECK: '1'
       # Enforce JS chunk size budgets.
       - name: Bundle Size Guard
         run: pnpm --filter @kestrel/web bundle-size:check
