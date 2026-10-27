@@ -31,6 +31,15 @@ services:
       - '127.0.0.1:8082:8082'
     mem_limit: 700m
     memswap_limit: 2g
+    # C4: Health check — mirrors docker-compose.vm.yml. Compose renders `$$`
+    # to `$` for the container shell (the image-level probe in Dockerfile.worker
+    # keeps its command verbatim and therefore uses a single `$`).
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -H \"Authorization: Bearer $${WORKER_HEALTH_TOKEN}\" http://localhost:8081/health/live || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     logging:
       driver: json-file
       options:
