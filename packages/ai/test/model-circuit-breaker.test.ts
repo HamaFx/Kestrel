@@ -212,6 +212,23 @@ describe('model circuit breaker (§1.6)', () => {
     expect(mocks.execute.mock.calls[0]?.[0]).toBeDefined();
   });
 
+  it('binds ISO strings — never Date objects — into the circuit-state write', async () => {
+    recordModelFailure('provider/model');
+    await vi.waitFor(() => expect(mocks.execute).toHaveBeenCalled());
+
+    // Same ERR_INVALID_ARG_TYPE class as the outbox replay fix: raw `sql`
+    // templates with Date parameters crash in postgres-js before reaching
+    // Postgres, and this write's catch silently degrades to per-instance
+    // breaker state.
+    const values = sqlParams(mocks.execute.mock.calls[0]?.[0]);
+    expect(values.some((value) => value instanceof Date)).toBe(false);
+    expect(
+      values.some(
+        (value) => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value as string),
+      ),
+    ).toBe(true);
+  });
+
   it('writes success resets through to provider_circuit_state after a failure streak', async () => {
     recordModelFailure('provider/model');
     await vi.waitFor(() => expect(mocks.execute).toHaveBeenCalled());
@@ -292,12 +309,20 @@ describe('model circuit breaker (§1.4 — model-id keying)', () => {
     // …but once the previous update is older than the 60s window, the row
     // resets to 1 — the same fresh-window rule L1 applies.
     expect(text).toContain('ELSE 1');
-    // The window boundary is bound as (opened_at − WINDOW_MS).
+    // The window boundary is bound as ISO strings: (opened_at − WINDOW_MS).
+    // Regression (2026-10-27): parameters must be strings — a Date instance
+    // crashes postgres-js (ERR_INVALID_ARG_TYPE) before the query reaches
+    // Postgres, and the write's catch silently degrades the breaker.
     const params = sqlParams(writeSql);
-    const dates = params.filter((p): p is Date => p instanceof Date);
-    expect(dates.length).toBeGreaterThan(0);
-    const openedAt = dates[0] as Date;
-    expect(dates.some((d) => d.getTime() === openedAt.getTime() - 60_000)).toBe(true);
+    expect(params.some((p) => p instanceof Date)).toBe(false);
+    const times = params
+      .filter(
+        (p): p is string => typeof p === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(p),
+      )
+      .map((iso) => new Date(iso).getTime());
+    expect(times.length).toBeGreaterThan(0);
+    const openedAt = Math.max(...times);
+    expect(times.some((t) => t === openedAt - 60_000)).toBe(true);
   });
 });
 

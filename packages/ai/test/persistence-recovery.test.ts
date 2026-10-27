@@ -17,6 +17,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { replayPersistenceFailures } from '../src/persistence/recovery';
+import { markFailed } from '../src/persistence/recovery/claim';
 import type * as TelemetryPersistenceModule from '../src/persistence/telemetry-persistence';
 
 const {
@@ -38,6 +39,26 @@ const {
   mockSaveAgentOpinions: vi.fn(),
   mockPersistTraceStrict: vi.fn(),
 }));
+
+/** Collect values bound into a drizzle raw-SQL object (chunks are raw values). */
+function collectParamValues(sqlArg: unknown): unknown[] {
+  const chunks = (sqlArg as { queryChunks?: unknown[] } | null | undefined)?.queryChunks ?? [];
+  const params: unknown[] = [];
+  for (const chunk of chunks) {
+    if (chunk instanceof Date || ['string', 'number', 'boolean', 'bigint'].includes(typeof chunk)) {
+      params.push(chunk);
+    } else if (
+      chunk !== null &&
+      typeof chunk === 'object' &&
+      'value' in chunk &&
+      !Array.isArray((chunk as { value: unknown }).value)
+    ) {
+      // drizzle `Param` wrapper (defensive: some versions wrap raw values).
+      params.push((chunk as { value: unknown }).value);
+    }
+  }
+  return params;
+}
 
 const mockDb = {
   execute: mockDbExecute,
@@ -119,6 +140,72 @@ describe('persistence outbox replay', () => {
     );
     expect(mockDbExecute).toHaveBeenCalled();
     expect(result).toEqual({ claimed: 1, completed: 1, failed: 0, dead: 0 });
+  });
+
+  it('binds ISO date strings — never Date objects — into raw outbox SQL', async () => {
+    mockTxExecute
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'outbox-iso',
+            operation: 'telemetry.turn',
+            payload: {
+              userId: 'user-1',
+              threadId: 'thread-1',
+              messageId: null,
+              idempotencyKey: 'telemetry.turn:iso',
+              model: 'test/model',
+              inputTokens: 3,
+              outputTokens: 2,
+              toolCalls: 0,
+              ms: 10,
+              traceId: null,
+              runId: null,
+              jobId: null,
+              kind: null,
+            },
+            attempt_count: 0,
+            max_attempts: 8,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [{ id: 'outbox-iso' }] });
+
+    await replayPersistenceFailures(1);
+
+    // Regression (2026-10-27): drizzle's raw `sql` templates do not map
+    // parameters and postgres-js hashes them; a Date instance throws
+    // ERR_INVALID_ARG_TYPE before reaching Postgres, which silently broke
+    // every outbox replay. The claim transaction's SELECT + UPDATE and the
+    // markFailed UPDATE must all carry ISO strings, never Date objects.
+    const claimCallValues = mockTxExecute.mock.calls.map((call) => collectParamValues(call[0]));
+    expect(claimCallValues.some((values) => values.some((v) => v instanceof Date))).toBe(false);
+    expect(
+      claimCallValues.some((values) =>
+        values.some(
+          (value) => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value),
+        ),
+      ),
+    ).toBe(true);
+
+    await markFailed(
+      {
+        id: 'outbox-iso',
+        operation: 'telemetry.turn',
+        payload: {},
+        attemptCount: 1,
+        maxAttempts: 8,
+        lockToken: 'test-lock',
+      },
+      new Error('boom'),
+    );
+    const failValues = collectParamValues(mockDbExecute.mock.calls.at(-1)?.[0]);
+    expect(failValues.some((value) => value instanceof Date)).toBe(false);
+    expect(
+      failValues.some(
+        (value) => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value),
+      ),
+    ).toBe(true);
   });
 
   it('replays messages using their stable idempotency key', async () => {
