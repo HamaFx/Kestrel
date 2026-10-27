@@ -37,7 +37,7 @@ import http from 'k6/http';
 import { env, type SessionCtx } from '../config/environments.js';
 import { expectStatus, record429, recordAuthFailure } from '../lib/checks.js';
 import symbolsData from '../lib/data/symbols.json';
-import { deleteReq, getJson, patchJson, postJson, putJson } from '../lib/http.js';
+import { deleteReq, getJson, getJsonSafe, patchJson, postJson, putJson } from '../lib/http.js';
 import { randomItem } from '../lib/utils.js';
 
 const symbols = new SharedArray('symbols', () => symbolsData as string[]);
@@ -95,10 +95,12 @@ export function configMix(ctx: SessionCtx): void {
     // Uses EURUSD which exists in the seed catalog. Safe to delete/add back.
     deleteReq('/api/settings/symbols/EURUSD', 'symbols_delete');
   } else if (roll < 0.31) {
-    // PATCH /api/settings/symbols — reorder watchlist (5%)
-    patchJson('/api/settings/symbols', 'symbols_reorder', {
-      symbols: ['XAUUSD', 'EURUSD', 'GBPUSD'],
-    });
+    // PATCH /api/settings/symbols — reorder watchlist (5%). The route
+    // requires exactly the user's current watchlist, so read it first and
+    // send that set reversed (an empty watchlist is a valid no-op reorder).
+    const list = getJsonSafe<Array<{ symbol: string }>>('/api/settings/symbols', 'symbols_list');
+    const current = (list ?? []).map((entry) => entry.symbol).reverse();
+    patchJson('/api/settings/symbols', 'symbols_reorder', { symbols: current });
   } else if (roll < 0.35) {
     // GET /api/settings/catalog — full symbol catalog (4%)
     getJson('/api/settings/catalog', 'catalog_list');
@@ -184,6 +186,9 @@ export function configMix(ctx: SessionCtx): void {
       {
         headers: { 'Content-Type': 'application/json', 'x-csrf-token': ctx.csrfToken },
         tags: { group: 'provider_test' },
+        // Declare the wide acceptance so expected 4xx probes do not inflate
+        // the global http_req_failed metric (k6 counts non-2xx by default).
+        responseCallback: http.expectedStatuses(200, 400, 401),
       },
     );
     expectStatus(tpRes, [200, 400, 401]);
@@ -201,6 +206,7 @@ export function configMix(ctx: SessionCtx): void {
       {
         headers: { 'Content-Type': 'application/json', 'x-csrf-token': ctx.csrfToken },
         tags: { group: 'market_provider_test' },
+        responseCallback: http.expectedStatuses(200, 400),
       },
     );
     expectStatus(tmpRes, [200, 400]);
@@ -212,6 +218,7 @@ export function configMix(ctx: SessionCtx): void {
     const btRes = http.post(`${env.baseUrl}/api/settings/bulk-test`, JSON.stringify({}), {
       headers: { 'Content-Type': 'application/json', 'x-csrf-token': ctx.csrfToken },
       tags: { group: 'bulk_test' },
+      responseCallback: http.expectedStatuses(200, 400, 429),
     });
     expectStatus(btRes, [200, 400, 429]);
     record429(btRes);
