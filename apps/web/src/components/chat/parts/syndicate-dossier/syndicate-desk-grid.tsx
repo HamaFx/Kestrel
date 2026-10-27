@@ -70,8 +70,8 @@ export function SyndicateDeskGrid({
       {/* ── 2×2 Parallel Strategist Matrix (mobile-safe; no horizontal scroll) ── */}
       <div
         className={cn(
-          'grid gap-2.5',
-          opinions.length === 1 ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2',
+          'grid gap-2 sm:gap-2.5',
+          opinions.length === 1 ? 'grid-cols-1' : 'grid-cols-2',
         )}
       >
         {opinions.map((a) => {
@@ -87,7 +87,7 @@ export function SyndicateDeskGrid({
           return (
             <div
               key={a.agentName}
-              className="surface-chip border-edge/80 hover:border-brand/40 relative overflow-hidden rounded-xl border p-3.5 transition-all"
+              className="surface-chip border-edge/80 hover:border-brand/40 relative min-w-0 overflow-hidden rounded-xl border p-2.5 transition-all sm:p-3.5"
             >
               {meta.artworkPath ? (
                 <div
@@ -153,7 +153,7 @@ export function SyndicateDeskGrid({
                   </div>
                 </div>
 
-                <p className="text-fg mt-2.5 font-serif text-sm leading-relaxed italic">
+                <p className="text-fg mt-2 font-serif text-xs leading-relaxed italic sm:mt-2.5 sm:text-sm">
                   &ldquo;{op.summary ?? meta.epithet}&rdquo;
                 </p>
 
