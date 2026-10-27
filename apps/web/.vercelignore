@@ -1,0 +1,10 @@
+# Vercel CLI uploads (`vercel --prod`) do not honour .gitignore, so local
+# build outputs and dev state would otherwise be uploaded and can exceed
+# Vercel's upload limits. Git-based deployments are unaffected (none of
+# these paths are tracked in git).
+.next
+.env*
+test-results
+playwright-report
+blob-report
+coverage
