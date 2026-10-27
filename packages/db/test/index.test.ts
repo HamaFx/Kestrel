@@ -28,7 +28,33 @@ vi.mock('../src/client', async (importOriginal) => {
   };
 });
 
+describe('resolveRateLimitTenant', () => {
+  it('seeds the platform tenant for the pre-auth system subject', async () => {
+    const { resolveRateLimitTenant, SYSTEM_RATE_LIMIT_TENANT_ID } = await import(
+      '../src/rate-limit'
+    );
+    // POST /login regression: without an explicit tenant the insert fell back to
+    // an empty `app.current_tenant` GUC and violated rate_limits_tenant_id_fkey.
+    expect(resolveRateLimitTenant('__system__')).toBe(SYSTEM_RATE_LIMIT_TENANT_ID);
+  });
+
+  it('leaves authenticated subjects to the active scope / DB default', async () => {
+    const { resolveRateLimitTenant } = await import('../src/rate-limit');
+    expect(resolveRateLimitTenant('user-1')).toBeUndefined();
+    expect(resolveRateLimitTenant('user-1', 'org-1')).toBe('org-1');
+  });
+});
+
 describe('withRateLimit with mocked client', () => {
+  it('includes tenant_id in the pre-auth insert', async () => {
+    mockExecute.mockResolvedValue([{ request_count: 1 }]);
+    const { withRateLimit } = await import('../src/rate-limit');
+    await withRateLimit('__system__', 'login-ip', 10);
+    const query = JSON.stringify(mockExecute.mock.calls[0]?.[0]);
+    expect(query).toContain('tenant_id');
+    expect(query).toContain('__system__');
+  });
+
   it('returns { allowed: true } when count <= limit', async () => {
     mockExecute.mockResolvedValue([{ request_count: 3 }]);
     const { withRateLimit } = await import('../src/rate-limit');

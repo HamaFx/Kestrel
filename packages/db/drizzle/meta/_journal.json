@@ -813,6 +813,13 @@
       "when": 1793000002000,
       "tag": "0116_drop_legacy_portfolio_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 116,
+      "version": "7",
+      "when": 1793110959087,
+      "tag": "0117_fix_empty_tenant_guc_fallback",
+      "breakpoints": true
     }
   ]
 }
