@@ -30,6 +30,7 @@ import { sql } from 'drizzle-orm';
 import { fromDrizzle, PgBoss, type Job, type JobWithMetadata } from 'pg-boss';
 
 import { getDb, getTenantDbScope } from './client';
+import { SUPABASE_ROOT_CA_2021 } from './connection/supabase-ca';
 
 export const BACKTEST_RUN_QUEUE = 'backtest-run';
 export const BACKTEST_SWEEP_QUEUE = 'backtest-sweep';
@@ -54,6 +55,13 @@ function queueSslOptions(): false | { rejectUnauthorized: boolean; ca?: string }
   if (ca) return { ca, rejectUnauthorized: true };
 
   const url = queueConnectionString();
+  // Mirror the drizzle pool's behaviour: Supabase connections chain to the
+  // pinned 2021 root CA, which is not in the system trust store. Omitting
+  // this is what silently broke the backtest queue in production
+  // (node-postgres: "self-signed certificate in certificate chain").
+  if (url.includes('supabase.co') || url.includes('supabase.com')) {
+    return { ca: SUPABASE_ROOT_CA_2021, rejectUnauthorized: true };
+  }
   if (/@(?:localhost|127\.0\.0\.1)(?::|\/)/.test(url)) return false;
   return { rejectUnauthorized: process.env['NODE_ENV'] === 'production' };
 }
