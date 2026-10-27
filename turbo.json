@@ -73,6 +73,10 @@
         "NEXT_PUBLIC_ENABLE_DEV_LOGIN",
         "COOKIE_SECURE_MODE",
         "KESTREL_FORCE_EPOCH_BUILD_ID",
+        "KESTREL_BUILD_ID",
+        "GITHUB_SHA",
+        "GIT_COMMIT_SHA",
+        "VERCEL_GIT_COMMIT_SHA",
         "ANALYZE"
       ],
       "outputs": [

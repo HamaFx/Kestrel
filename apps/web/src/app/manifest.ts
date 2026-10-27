@@ -35,6 +35,7 @@
 import type { MetadataRoute } from 'next';
 
 import { PWA_BACKGROUND, PWA_THEME_COLOR } from '@/lib/pwa/pwa-theme';
+import { SHARE_TARGET_ACTION, SHARE_TARGET_PARAMS } from '@/lib/pwa/share-target';
 
 const SHORTCUT_ICON = { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' } as const;
 
@@ -58,6 +59,20 @@ export default function manifest(): MetadataRoute.Manifest {
     categories: ['finance', 'productivity'],
     prefer_related_applications: false,
     launch_handler: { client_mode: ['navigate-existing', 'auto'] },
+    // Share another app's text/link straight into a research thread. GET (not
+    // POST) keeps the receiver to a pure function of the query string: no
+    // multipart parsing, no files, nothing to store. `/share/receive`
+    // sanitises and truncates before it hands the prompt to the chat route.
+    share_target: {
+      action: SHARE_TARGET_ACTION,
+      method: 'GET',
+      enctype: 'application/x-www-form-urlencoded',
+      params: {
+        title: SHARE_TARGET_PARAMS.title,
+        text: SHARE_TARGET_PARAMS.text,
+        url: SHARE_TARGET_PARAMS.url,
+      },
+    },
     icons: [
       { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
       { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },

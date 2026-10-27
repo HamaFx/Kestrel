@@ -14,9 +14,7 @@ const ENV_KEY = 'NEXT_PUBLIC_BUILD_ID';
 
 export function resolveGitSha() {
   const fromEnv =
-    process.env.VERCEL_GIT_COMMIT_SHA ??
-    process.env.GITHUB_SHA ??
-    process.env.GIT_COMMIT_SHA;
+    process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GITHUB_SHA ?? process.env.GIT_COMMIT_SHA;
   if (fromEnv && /^[0-9a-f]{7,}$/i.test(fromEnv)) {
     return fromEnv.slice(0, 7).toLowerCase();
   }
@@ -75,6 +73,15 @@ export function upsertEnvLine(path, key, value) {
 }
 
 export function resolveBuildId(opts = {}) {
+  // Highest priority: an explicit operator/CI stamp (release pipeline, Docker
+  // build arg). Container builds carry no git metadata, so without this every
+  // image would share the `local00` fallback — and because `sw.js` is otherwise
+  // byte-identical, the browser would never see a worker update and the shell
+  // cache would pin the first release's assets forever.
+  const explicit = opts.buildId ?? process.env.KESTREL_BUILD_ID;
+  if (typeof explicit === 'string' && explicit.trim().length > 0) {
+    return explicit.trim();
+  }
   const sha = opts.sha ?? resolveGitSha();
   const forceEpoch = opts.forceEpoch ?? process.env.KESTREL_FORCE_EPOCH_BUILD_ID === '1';
   if (forceEpoch) {

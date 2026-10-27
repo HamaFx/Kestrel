@@ -18,6 +18,7 @@
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
+import { registerShellRefresh } from '@/lib/pwa/background-sync';
 import { isStandalone } from '@/lib/pwa/platform-detect';
 
 /**
@@ -33,6 +34,9 @@ import { isStandalone } from '@/lib/pwa/platform-detect';
  *   - The first activation never reloads: `clients.claim()` fires
  *     `controllerchange` for an uncontrolled page too, and reloading on it
  *     would loop on every first visit.
+ *   - On Chromium the registration also asks for a periodic background sync
+ *     (`src/lib/pwa/background-sync.ts`), so an install that is rarely opened
+ *     still discovers deploys and refreshes its offline document.
  *
  * Registration is fire-and-forget: failures are warned, never thrown.
  */
@@ -98,6 +102,11 @@ export function SwRegister(): null {
         .register('/sw.js', { scope: '/' })
         .then((reg) => {
           registration = reg;
+
+          // Best-effort: only Chromium implements this, and only for installed
+          // apps. It is what lets a rarely-opened install notice a deploy.
+          void registerShellRefresh(reg);
+
           checkForUpdate();
 
           if (reg.waiting) offerUpdate();
