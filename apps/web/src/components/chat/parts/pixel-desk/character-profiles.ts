@@ -27,10 +27,19 @@ export interface CharacterProfile {
 }
 
 const DESK_STYLES: Record<DeskId, { badgeClass: string; glowColor: string }> = {
-  technical: { badgeClass: 'text-bull border-bull/30 bg-bull/10', glowColor: 'rgba(63, 158, 61, 0.14)' },
-  fundamental: { badgeClass: 'text-info border-info/30 bg-info/10', glowColor: 'rgba(79, 163, 181, 0.14)' },
+  technical: {
+    badgeClass: 'text-bull border-bull/30 bg-bull/10',
+    glowColor: 'rgba(63, 158, 61, 0.14)',
+  },
+  fundamental: {
+    badgeClass: 'text-info border-info/30 bg-info/10',
+    glowColor: 'rgba(79, 163, 181, 0.14)',
+  },
   risk: { badgeClass: 'text-warn border-warn/30 bg-warn/10', glowColor: 'rgba(217, 143, 0, 0.14)' },
-  sentiment: { badgeClass: 'text-brand border-brand/30 bg-brand/10', glowColor: 'rgba(255, 54, 22, 0.14)' },
+  sentiment: {
+    badgeClass: 'text-brand border-brand/30 bg-brand/10',
+    glowColor: 'rgba(255, 54, 22, 0.14)',
+  },
 };
 
 function profileFromRegistry(desk: StrategistDeskConfig, index: number): CharacterProfile {

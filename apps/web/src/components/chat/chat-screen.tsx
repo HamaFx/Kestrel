@@ -79,23 +79,33 @@ export function ChatScreen({
   useChatKeyboardShortcuts({ onToggleViews: () => setSplitMode((v) => !v) });
 
   // Wide-screen default auto-open (Task 4.3): on >=1280px (xl:), auto-open the
-  // views dock once content exists. Guarded by a per-thread ref: the old
-  // unconditional effect re-opened the dock the instant the user closed it
-  // (closing flips `splitMode`, which re-ran the effect and saw messages), so
-  // the sidecar could never be dismissed on xl screens.
+  // views dock once a Council context exists (`Convene Council` armed or a
+  // committee run in flight) — never for a casual Fast Scout message. Guarded
+  // by a per-thread ref: the old unconditional effect re-opened the dock the
+  // instant the user closed it (closing flips `splitMode`, which re-ran the
+  // effect and saw messages), so the sidecar could never be dismissed on xl
+  // screens. Below `xl` the sidecar must never auto-open (review focus 4).
   const autoOpenedThreadRef = useRef<string | null>(null);
   useEffect(() => {
     if (typeof window === 'undefined' || window.innerWidth < 1280) return;
     if (autoOpenedThreadRef.current === threadId) return;
-    const hasActiveContext =
-      session.messages.length > 0 ||
-      session.agentProgress !== null ||
-      toolbar.analysisMode === 'full';
-    if (hasActiveContext) {
+    const hasCouncilContext = toolbar.analysisMode === 'full' || session.agentProgress !== null;
+    if (hasCouncilContext) {
       autoOpenedThreadRef.current = threadId;
       setSplitMode(true);
     }
-  }, [threadId, session.messages.length, session.agentProgress, toolbar.analysisMode, setSplitMode]);
+  }, [threadId, session.agentProgress, toolbar.analysisMode, setSplitMode]);
+
+  // When a Council run actually starts, surface the War Room tab so the live
+  // Circuit Spine is where the user is already looking.
+  const previousProgressRef = useRef(session.agentProgress);
+  useEffect(() => {
+    const started = session.agentProgress !== null && previousProgressRef.current === null;
+    previousProgressRef.current = session.agentProgress;
+    if (started) setDockTab('opinions');
+  }, [session.agentProgress, setDockTab]);
+
+  const warRoomOpen = splitMode && dockTab === 'opinions';
 
   const composerPlaceholder = session.selectedAgentSlug
     ? `Ask @${session.selectedAgentSlug}…`
@@ -130,6 +140,7 @@ export function ChatScreen({
           threadId={threadId}
           pinnedSymbol={pinnedSymbol}
           splitMode={splitMode}
+          warRoomOpen={warRoomOpen}
           messages={session.messages}
           status={session.status}
           isStreaming={session.isStreaming}

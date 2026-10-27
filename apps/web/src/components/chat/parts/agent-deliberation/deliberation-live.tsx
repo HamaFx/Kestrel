@@ -11,13 +11,8 @@ import { AnimatePresence, m } from 'motion/react';
 import { cn } from '@/lib/formatters/cn';
 
 import { SyndicateCircuitLive } from '../syndicate-dossier/syndicate-circuit-live';
+import { AGENT_META, FALLBACK_META, formatPlainModeLabel, type AgentProgress } from './agent-meta';
 import { AgentNode } from './agent-node';
-import {
-  AGENT_META,
-  FALLBACK_META,
-  formatPlainModeLabel,
-  type AgentProgress,
-} from './agent-meta';
 import { ConnectorLines } from './connector-lines';
 import { TelemetryLog } from './telemetry-log';
 

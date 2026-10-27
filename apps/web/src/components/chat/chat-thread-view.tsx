@@ -37,6 +37,7 @@ export function ChatThreadView({
   threadId,
   pinnedSymbol,
   splitMode,
+  warRoomOpen,
   messages,
   status,
   isStreaming,
@@ -116,6 +117,7 @@ export function ChatThreadView({
             <MessageList
               threadId={threadId}
               messages={messages}
+              warRoomOpen={warRoomOpen}
               isStreaming={isStreaming}
               showTypingIndicator={status === 'submitted'}
               agentProgress={showAgentOpinions ? agentProgress : null}

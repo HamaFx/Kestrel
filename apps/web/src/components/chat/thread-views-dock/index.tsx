@@ -34,6 +34,7 @@ import { DockChartPanel } from './dock-chart-panel';
 import { DockOpinionsPanel } from './dock-opinions-panel';
 import { DockPlanPanel } from './dock-plan-panel';
 import { useLatestPlan } from './use-latest-plan';
+import { useLatestSyndicateMeta } from './use-latest-syndicate-meta';
 
 export type DockTab = 'chart' | 'opinions' | 'plan';
 
@@ -87,18 +88,17 @@ export function ThreadViewsDock({
     onTimeframeChange?.(nextTf);
   };
   const latestPlan = useLatestPlan(messages);
+  const latestSyndicate = useLatestSyndicateMeta(messages, agentProgress);
+  const councilBadge = Array.isArray(latestSyndicate?.agents)
+    ? latestSyndicate?.agents.length
+    : undefined;
 
   const isDesktop = useIsDesktop();
 
   const tabs: Array<{ id: DockTab; label: string; icon: typeof IconChartCandle; badge?: number }> =
     [
       { id: 'chart', label: 'Chart', icon: IconChartCandle },
-      {
-        id: 'opinions',
-        label: 'Council',
-        icon: IconUsers,
-        badge: Array.isArray(agentProgress?.agents) ? agentProgress.agents.length : undefined,
-      },
+      { id: 'opinions', label: 'Council', icon: IconUsers, badge: councilBadge },
       { id: 'plan', label: 'Plan', icon: IconListCheck, badge: latestPlan?.steps.length },
     ];
 
@@ -126,8 +126,14 @@ export function ThreadViewsDock({
       className="border-border/40 bg-bg-elev-1 fixed inset-y-0 right-0 z-40 flex h-full w-full max-w-md shrink-0 flex-col overflow-hidden border-l shadow-[0_0_50px_rgba(0,0,0,0.6)] lg:static lg:z-auto lg:w-[420px] lg:max-w-none lg:shadow-none xl:w-[480px] 2xl:w-[540px]"
     >
       {/* Dock Header & Navigation Tabs */}
-      <div className="flex h-12 shrink-0 items-center justify-between border-b border-border/40 bg-bg-elev-2/80 px-3">
-        <div className="flex items-center gap-1">
+      <div className="border-border/40 bg-bg-elev-2/80 relative flex h-12 shrink-0 items-center justify-between overflow-hidden border-b px-3">
+        <span
+          aria-hidden="true"
+          className="font-bebas text-fg pointer-events-none absolute inset-x-0 top-1/2 -z-0 -translate-y-1/2 text-center text-2xl tracking-[0.22em] opacity-[0.03] select-none"
+        >
+          KESTREL // SOVEREIGN COUNCIL
+        </span>
+        <div className="relative z-10 flex items-center gap-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -139,14 +145,14 @@ export function ThreadViewsDock({
                 className={cn(
                   'relative flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-mono text-[11px] font-semibold tracking-wider uppercase transition-all',
                   isActive
-                    ? 'bg-bg-elev-3 text-brand shadow-xs after:absolute after:bottom-0 after:left-1/2 after:h-0.5 after:w-4/5 after:-translate-x-1/2 after:bg-brand'
+                    ? 'bg-bg-elev-3 text-brand after:bg-brand shadow-xs after:absolute after:bottom-0 after:left-1/2 after:h-0.5 after:w-4/5 after:-translate-x-1/2'
                     : 'text-fg-muted hover:bg-bg-elev-3/50 hover:text-fg',
                 )}
               >
                 <Icon className={cn('size-3.5', isActive ? 'text-brand' : 'text-fg-subtle')} />
                 <span>{tab.label}</span>
                 {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className="min-w-[16px] rounded-full bg-brand/20 px-1 font-mono text-[10px] leading-tight font-bold text-brand tabular-nums">
+                  <span className="bg-brand/20 text-brand min-w-[16px] rounded-full px-1 font-mono text-[10px] leading-tight font-bold tabular-nums">
                     {tab.badge}
                   </span>
                 )}
@@ -159,7 +165,7 @@ export function ThreadViewsDock({
           type="button"
           onClick={onClose}
           aria-label="Close Views"
-          className="rounded-lg p-1.5 text-fg-subtle transition-colors hover:bg-bg-elev-3 hover:text-fg"
+          className="text-fg-subtle hover:bg-bg-elev-3 hover:text-fg relative z-10 rounded-lg p-1.5 transition-colors"
         >
           <IconX className="size-4" />
         </button>
@@ -175,7 +181,9 @@ export function ThreadViewsDock({
           />
         )}
 
-        {activeTab === 'opinions' && <DockOpinionsPanel agentProgress={agentProgress} />}
+        {activeTab === 'opinions' && (
+          <DockOpinionsPanel agentProgress={agentProgress} messages={messages} />
+        )}
 
         {activeTab === 'plan' && <DockPlanPanel latestPlan={latestPlan} />}
       </div>

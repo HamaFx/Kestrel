@@ -12,6 +12,8 @@ export interface ChatThreadViewProps {
   threadId: string;
   pinnedSymbol: Symbol | null;
   splitMode: boolean;
+  /** Desktop War Room (`Council` dock tab) is open: collapse duplicate inline cards. */
+  warRoomOpen: boolean;
   messages: UIMessage[];
   status: string;
   isStreaming: boolean;

@@ -12,11 +12,7 @@ import Image from 'next/image';
 
 import { cn } from '@/lib/formatters/cn';
 
-import {
-  AGENT_META,
-  FALLBACK_META,
-  type AgentProgress,
-} from '../agent-deliberation/agent-meta';
+import { AGENT_META, FALLBACK_META, type AgentProgress } from '../agent-deliberation/agent-meta';
 import { BiasDistribution } from '../agent-deliberation/bias-distribution';
 
 export interface SyndicateDeskGridProps {
@@ -96,9 +92,15 @@ export function SyndicateDeskGrid({
               {meta.artworkPath ? (
                 <div
                   aria-hidden="true"
-                  className="mix-blend-luminosity pointer-events-none absolute -right-3 -bottom-3 z-0 size-20 opacity-[0.12]"
+                  className="pointer-events-none absolute -right-3 -bottom-3 z-0 size-20 opacity-[0.12] mix-blend-luminosity"
                 >
-                  <Image src={meta.artworkPath} alt="" fill unoptimized className="object-contain" />
+                  <Image
+                    src={meta.artworkPath}
+                    alt=""
+                    fill
+                    unoptimized
+                    className="object-contain"
+                  />
                 </div>
               ) : null}
 
@@ -140,7 +142,11 @@ export function SyndicateDeskGrid({
                     <div
                       className={cn(
                         'h-full',
-                        op.bias === 'bullish' ? 'bg-bull' : op.bias === 'bearish' ? 'bg-bear' : 'bg-warn',
+                        op.bias === 'bullish'
+                          ? 'bg-bull'
+                          : op.bias === 'bearish'
+                            ? 'bg-bear'
+                            : 'bg-warn',
                       )}
                       style={{ width: `${opPct}%` }}
                     />
@@ -175,7 +181,10 @@ export function SyndicateDeskGrid({
             const meta = AGENT_META[a.agentName] ?? FALLBACK_META;
             const op = a.opinion!;
             return (
-              <div key={a.agentName} className="surface-chip border-edge/80 rounded-md border p-2.5">
+              <div
+                key={a.agentName}
+                className="surface-chip border-edge/80 rounded-md border p-2.5"
+              >
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-fg text-xs font-semibold">{meta.label} Desk</span>
                   <span

@@ -2,8 +2,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { FOUR_SPECIALIST_DESKS, resolveStrategistDesk } from '@/lib/kestrel-strategist-desks';
 import { MODE_LABELS } from '@/components/chat/chat-top-bar/mode-labels';
+import { FOUR_SPECIALIST_DESKS, resolveStrategistDesk } from '@/lib/kestrel-strategist-desks';
 
 describe('canonical 4-desk strategist registry', () => {
   it('exposes all 4 specialist desks in canonical order with distinct artwork and codes', () => {

@@ -72,7 +72,10 @@ function asPriceString(value: unknown): string | null {
     return value.toLocaleString('en-US', { maximumFractionDigits: 5 });
   }
   if (typeof value !== 'string') return null;
-  const trimmed = value.trim().replace(/[*_`$€£¥]/g, '').replace(/\s+/g, '');
+  const trimmed = value
+    .trim()
+    .replace(/[*_`$€£¥]/g, '')
+    .replace(/\s+/g, '');
   return /^[0-9][0-9,]*(?:\.[0-9]+)?$/.test(trimmed) ? trimmed : null;
 }
 
@@ -200,14 +203,8 @@ function levelsFromText(text: string): PartialLevels {
       clean,
       /\b(?:invalidation(?:\s*(?:level|price|sl))?|stop\s*loss|\bsl\b|\bstop)\b/i,
     ),
-    tp1: findNumberAfterLabel(
-      clean,
-      /\b(?:tp\s*1|take\s*profit\s*1|target\s*1|tp1)\b/i,
-    ),
-    tp2: findNumberAfterLabel(
-      clean,
-      /\b(?:tp\s*2|take\s*profit\s*2|target\s*2|tp2)\b/i,
-    ),
+    tp1: findNumberAfterLabel(clean, /\b(?:tp\s*1|take\s*profit\s*1|target\s*1|tp1)\b/i),
+    tp2: findNumberAfterLabel(clean, /\b(?:tp\s*2|take\s*profit\s*2|target\s*2|tp2)\b/i),
     rr: rrMatch?.[1] ? rrMatch[1].replace(/\s|\//g, (c) => (c === '/' ? ':' : '')) : null,
   };
 }

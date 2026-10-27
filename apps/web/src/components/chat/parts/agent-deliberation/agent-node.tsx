@@ -37,10 +37,7 @@ export function AgentNode({
       )}
     >
       <div
-        className={cn(
-          'flex items-center gap-2',
-          isSingle ? 'min-w-0 flex-1' : 'justify-between',
-        )}
+        className={cn('flex items-center gap-2', isSingle ? 'min-w-0 flex-1' : 'justify-between')}
       >
         <div className="flex items-center gap-2">
           <span
@@ -52,14 +49,14 @@ export function AgentNode({
             {meta.icon}
           </span>
           <div className="flex min-w-0 flex-col">
-            <span className="font-mono text-[9px] font-semibold tracking-wider text-brand uppercase">
+            <span className="text-brand font-mono text-[9px] font-semibold tracking-wider uppercase">
               {meta.code ?? 'DESK'}
             </span>
-            <span className="truncate text-xs font-semibold text-fg">{meta.label} Desk</span>
+            <span className="text-fg truncate text-xs font-semibold">{meta.label} Desk</span>
           </div>
         </div>
         {isSingle && meta.epithet ? (
-          <span className="ml-4 hidden truncate font-serif text-xs italic text-fg-muted sm:inline-block">
+          <span className="text-fg-muted ml-4 hidden truncate font-serif text-xs italic sm:inline-block">
             {meta.epithet}
           </span>
         ) : null}
@@ -69,7 +66,7 @@ export function AgentNode({
         {status === 'done' && agent.opinion ? (
           <span
             className={cn(
-              'rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase border',
+              'rounded border px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase',
               agent.opinion.bias === 'bullish'
                 ? 'border-bull/30 bg-bull/10 text-bull'
                 : agent.opinion.bias === 'bearish'
@@ -82,16 +79,16 @@ export function AgentNode({
         ) : null}
         {status === 'done' ? (
           <span className={cn('shrink-0', meta.tokenClass)}>
-            <IconCircleCheck className="size-3.5 text-bull" />
+            <IconCircleCheck className="text-bull size-3.5" />
           </span>
         ) : status === 'error' ? (
-          <span className="shrink-0 text-danger">
+          <span className="text-danger shrink-0">
             <IconAlertCircle className="size-3.5" />
           </span>
         ) : status === 'running' ? (
-          <span className="size-2 shrink-0 animate-pulse rounded-full bg-brand" />
+          <span className="bg-brand size-2 shrink-0 animate-pulse rounded-full" />
         ) : (
-          <span className="size-1.5 shrink-0 rounded-full bg-border" />
+          <span className="bg-border size-1.5 shrink-0 rounded-full" />
         )}
       </div>
     </div>

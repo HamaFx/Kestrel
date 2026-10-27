@@ -24,8 +24,9 @@ import { IconAlertTriangle, IconCircleCheck, IconCircleX, IconUsers } from '@tab
 import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/formatters/cn';
-import { InstrumentWells } from '../syndicate-dossier/syndicate-instrument-wells';
+
 import type { ToolPartProps } from '../registry';
+import { InstrumentWells } from '../syndicate-dossier/syndicate-instrument-wells';
 import { ErrorCard, SkeletonCard } from './convene-states';
 import { VerdictCard } from './verdict-card';
 
@@ -75,16 +76,16 @@ export function ConveneCommitteePart({
   const isSingle = output.verdicts.length === 1;
 
   return (
-    <div className="surface-panel flex flex-col gap-4 rounded-xl border border-edge/80 bg-bg-elev-1 p-4 shadow-md sm:p-5">
+    <div className="surface-panel border-edge/80 bg-bg-elev-1 flex flex-col gap-4 rounded-xl border p-4 shadow-md sm:p-5">
       {/* ── Committee Matrix Header ── */}
-      <header className="flex flex-col gap-2 border-b border-border/40 pb-3 sm:flex-row sm:items-center sm:justify-between">
+      <header className="border-border/40 flex flex-col gap-2 border-b pb-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
-          <IconUsers className="size-4 text-brand" />
+          <IconUsers className="text-brand size-4" />
           <div>
-            <span className="font-mono text-[10px] tracking-wider text-brand uppercase">
+            <span className="text-brand font-mono text-[10px] tracking-wider uppercase">
               {isSingle ? 'SPECIALIST DELIBERATION' : 'COUNCIL DELIBERATION'}
             </span>
-            <h3 className="font-display text-base font-normal text-fg">
+            <h3 className="font-display text-fg text-base font-normal">
               {isSingle ? 'Specialist Review' : 'Committee Review'} · {output.symbol}{' '}
               {output.side.toUpperCase()}
             </h3>
@@ -101,27 +102,27 @@ export function ConveneCommitteePart({
       </div>
 
       {/* ── Arbiter Synthesis Verdict Block (Bottom) ── */}
-      <div className="surface-chip rounded-xl border border-edge/80 p-5 shadow-lg">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/30 pb-3">
+      <div className="surface-chip border-edge/80 rounded-xl border p-5 shadow-lg">
+        <div className="border-border/30 flex flex-wrap items-center justify-between gap-2 border-b pb-3">
           <div className="flex items-center gap-2">
-            <span className="size-2 animate-pulse rounded-full bg-brand" />
-            <span className="font-mono text-xs font-bold tracking-wider text-brand uppercase">
+            <span className="bg-brand size-2 animate-pulse rounded-full" />
+            <span className="text-brand font-mono text-xs font-bold tracking-wider uppercase">
               {isSingle
                 ? 'STAGE II // SPECIALIST EXECUTION DIRECTIVE'
                 : 'STAGE II // ARBITER SYNTHESIS VERDICT'}
             </span>
           </div>
-          <span className="font-mono text-[11px] text-fg-subtle">
+          <span className="text-fg-subtle font-mono text-[11px]">
             ALIGNMENT: {output.goNoGo === 'go' ? 'HIGH CONVICTION' : 'QUALIFIED'}
           </span>
         </div>
 
         <div className="mt-3">
-          <h4 className="font-serif text-lg italic text-fg">
+          <h4 className="text-fg font-serif text-lg italic">
             {isSingle ? 'Specialist Verdict' : 'Consensus Verdict'}: {output.goNoGo.toUpperCase()}{' '}
             (Grade {output.grade})
           </h4>
-          <p className="mt-1.5 text-xs leading-relaxed text-fg-muted sm:text-sm">
+          <p className="text-fg-muted mt-1.5 text-xs leading-relaxed sm:text-sm">
             {output.consensus}
           </p>
         </div>

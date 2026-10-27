@@ -35,7 +35,7 @@ export function InstrumentWells({
         <div
           key={level.label}
           className={cn(
-            'surface-well bg-[#0a0b0c] rounded-lg border border-white/5 p-3 text-center',
+            'surface-well rounded-lg border border-white/5 bg-[#0a0b0c] p-3 text-center',
             level.tone === 'bear' && 'border-bear/20',
           )}
         >
@@ -57,11 +57,7 @@ export function InstrumentWells({
           <span
             className={cn(
               'mt-0.5 block text-sm font-bold',
-              level.tone === 'bull'
-                ? 'text-bull'
-                : level.tone === 'bear'
-                  ? 'text-bear'
-                  : 'text-fg',
+              level.tone === 'bull' ? 'text-bull' : level.tone === 'bear' ? 'text-bear' : 'text-fg',
             )}
           >
             {level.value}

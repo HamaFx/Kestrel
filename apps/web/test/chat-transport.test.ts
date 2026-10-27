@@ -226,7 +226,12 @@ describe('createKestrelChatTransport', () => {
               symbol: 'XAUUSD',
               dataQuality: 'complete',
               agentOpinions: [
-                { agentName: 'technical', bias: 'bullish', confidence: 0.94, reasoning: 'FVG sweep' },
+                {
+                  agentName: 'technical',
+                  bias: 'bullish',
+                  confidence: 0.94,
+                  reasoning: 'FVG sweep',
+                },
               ],
               committeeCritiques: [
                 {

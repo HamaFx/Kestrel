@@ -42,7 +42,8 @@ export function AgentDeliberation({
 
   const isFailed = status === 'failed';
   const isRetrying = status === 'retrying';
-  const allDone = agents.length > 0 && agents.every((a) => a.status === 'done' || a.status === 'error');
+  const allDone =
+    agents.length > 0 && agents.every((a) => a.status === 'done' || a.status === 'error');
   const opinions = agents.filter((a) => a.opinion);
 
   if (allDone && !isFailed && !isRetrying) {

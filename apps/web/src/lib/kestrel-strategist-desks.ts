@@ -108,7 +108,8 @@ const TECHNICAL_DESK: StrategistDeskConfig = {
   epithet: 'The Mathematical Compass',
   description:
     'Multi-timeframe liquidity sweeps, institutional order blocks, fair value gaps, and displacement footprints.',
-  domainMetrics: '4H/1H/15m SMC Structure · Order Blocks · Fair Value Gaps (FVG) · Liquidity Sweeps',
+  domainMetrics:
+    '4H/1H/15m SMC Structure · Order Blocks · Fair Value Gaps (FVG) · Liquidity Sweeps',
   artworkPath: '/landing/simulator-astrolabe.webp',
   accentColor: 'var(--color-bull)',
   analysisMode: 'single',
@@ -128,7 +129,8 @@ const RISK_DESK: StrategistDeskConfig = {
   epithet: 'The Impassable Shield',
   description:
     'Immutable 1.0% portfolio drawdown ceiling, ATR-adjusted invalidation stops, and asymmetric expectancy.',
-  domainMetrics: 'Immutable 1.0% Drawdown Ceiling · ATR-14 Invalidation Stops · R:R Asymmetry & Veto',
+  domainMetrics:
+    'Immutable 1.0% Drawdown Ceiling · ATR-14 Invalidation Stops · R:R Asymmetry & Veto',
   artworkPath: '/landing/hoplite-spartan-bust.webp',
   accentColor: 'var(--color-warn)',
   analysisMode: 'single',
@@ -233,7 +235,10 @@ export const FALLBACK_STRATEGIST_DESK: StrategistDeskConfig = {
 };
 
 function normalizeDeskKey(key: string): string {
-  return key.trim().toLowerCase().replace(/[\s-]+/g, '_');
+  return key
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
 }
 
 /**
@@ -262,6 +267,4 @@ export function findStrategistDesk(key: string): StrategistDeskConfig | null {
  * {@link STRATEGIST_DESKS}. Kept for the desktop dashboard deck, which renders
  * the four specialist desks under its own "Convene Full Council" CTA.
  */
-export const STRATEGIST_DESK_LIST: readonly StrategistDeskConfig[] = [
-  ...FOUR_SPECIALIST_DESKS,
-];
+export const STRATEGIST_DESK_LIST: readonly StrategistDeskConfig[] = [...FOUR_SPECIALIST_DESKS];
