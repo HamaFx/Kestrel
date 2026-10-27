@@ -76,3 +76,44 @@ BYOK keys through `/settings/models`; model spend is tracked locally in USD.
   `ENFORCE_BUDGET=true` to reject over-cap turns with HTTP 429.
 - `ai_budget_reservations` and `daily_ai_spend` are swept by the standard
   retention job; no billing cron or webhook is needed.
+
+---
+
+## Post-deploy verification (automatic)
+
+The optional `post-deploy-smoke` workflow verifies a live deployment:
+
+- **After each Vercel production deploy** — Vercel posts GitHub deployment
+  events, and the workflow verifies the deployed URL immediately.
+- **Daily (06:41 UTC)** — a scheduled run re-checks the configured target as a
+  safety net for self-hosted/Docker deployments that publish no GitHub events.
+- **Manual** — `gh workflow run post-deploy-smoke`, or locally:
+  `PRODUCTION_URL=https://… pnpm verify:production`.
+
+It runs `scripts/verify-production.mjs` read-only: web health
+(`/api/health/public`), the worker `/health` and SLO alert contract when
+configured, and migration status when a direct database URL is configured. It
+never applies migrations. A failed run shows up in the Actions tab (GitHub
+notifies watchers). Roll back with Vercel Instant Rollback, or by redeploying
+the previous image tag (`scripts/docker-prune-safe.mjs` keeps 7 days of tags).
+
+One-time setup — GitHub → **Settings → Secrets and variables → Actions**:
+
+| Name                          | Kind     | Purpose                                                                        |
+| :---------------------------- | :------- | :----------------------------------------------------------------------------- |
+| `KESTREL_PRODUCTION_URL`      | Variable | e.g. `https://hamafx-ai.vercel.app`; falls back to the Vercel event URL.       |
+| `KESTREL_WORKER_HEALTH_URL`   | Variable | Only if the worker health port is reachable from runners (private by default). |
+| `KESTREL_WORKER_HEALTH_TOKEN` | Secret   | Bearer token for the worker health check.                                      |
+| `KESTREL_CRON_SECRET`         | Secret   | Enables the `/api/health/alerts` SLO contract check.                           |
+| `KESTREL_DIRECT_URL`          | Secret   | Supabase direct (non-pooler) connection for the migration-status check.        |
+
+Until a production URL is configured (variable or deployment event), the
+workflow exits with a notice instead of failing — the $0 deployment path does
+not depend on it.
+
+## Where typechecking runs
+
+`pnpm turbo run typecheck` (the Rust `tsrs` compiler) is the type gate: CI runs
+it on every PR. Application builds — `next build` and the web Docker builder —
+skip Next's duplicate built-in typecheck; the Docker build runs the same
+`turbo run typecheck` gate explicitly before compiling.
