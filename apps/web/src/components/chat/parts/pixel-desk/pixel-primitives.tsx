@@ -2,8 +2,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Shared pixel-desk primitives: desk glyph dispatch, quick symbols, and the
-// rotating status lines used while the committee deliberates.
+// Shared pixel-desk primitives: desk glyph dispatch and quick symbols for the
+// standby launcher. (The live thinking card now renders the Hoplite Plasma
+// Circuit Spine — see `../syndicate-dossier/syndicate-circuit-live`.)
 import {
   ChartWizardSprite,
   KestrelFalconSprite,
@@ -12,14 +13,6 @@ import {
 } from './pixel-sprites';
 
 import './pixel-desk-animations.css';
-
-export const QUANT_STATUS_STEPS = [
-  'Reading 15m, 1h & 4h market structure…',
-  'Evaluating macro catalysts, real yields & DXY…',
-  'Auditing 1% risk sizing & ATR invalidation levels…',
-  'Scanning CFTC COT positioning & order flow…',
-  'Synthesizing 4-desk committee consensus…',
-];
 
 export const QUICK_SYMBOLS = ['XAUUSD', 'EURUSD', 'GBPUSD', 'BTCUSD', 'USDJPY'] as const;
 

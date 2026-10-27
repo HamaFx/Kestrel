@@ -270,4 +270,6 @@ export function findStrategistDesk(key: string): StrategistDeskConfig | null {
  * {@link STRATEGIST_DESKS}. Kept for the desktop dashboard deck, which renders
  * the four specialist desks under its own "Convene Full Council" CTA.
  */
-export const STRATEGIST_DESK_LIST: readonly StrategistDeskConfig[] = FOUR_SPECIALIST_DESKS;
+export const STRATEGIST_DESK_LIST: readonly StrategistDeskConfig[] = [
+  ...FOUR_SPECIALIST_DESKS,
+];
