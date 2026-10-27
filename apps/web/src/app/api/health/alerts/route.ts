@@ -39,6 +39,13 @@ export async function GET(request: Request): Promise<Response> {
   let snapshot: Awaited<ReturnType<typeof computeHealthSloService>> | undefined;
   const authResponse = await withCronAuth(request, async () => {
     snapshot = await computeHealthSloService(getAdminDb(), {
+      // NOTE: the shared env schema validates ALERT_WINDOW_HOURS and caps it
+      // at 24 (whole days are the monitoring unit). An out-of-range value
+      // fails instance boot for every route that loads the shared env
+      // module — 2026-10-27: a 25 was set on Vercel and the whole site
+      // 500'd until it was corrected, because warm instances keep the old
+      // env while fresh instances refuse to start. Raise the schema bound
+      // before using a larger window.
       hours: Number.parseInt(process.env.ALERT_WINDOW_HOURS ?? '1', 10) || 1,
     });
     return {
