@@ -10,7 +10,9 @@
 
 set -euo pipefail
 
-readonly CONTAINER="kestrel-worker"
+# The GCP compose files name the container `hamafx-worker` (historic name);
+# the root self-host compose may rename it, so allow an override.
+readonly CONTAINER="${KESTREL_WORKER_CONTAINER:-hamafx-worker}"
 readonly STATE_FILE="/opt/kestrel/.autoheal-state"
 readonly MAX_UNHEALTHY=3
 

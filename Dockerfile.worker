@@ -26,8 +26,14 @@ COPY plugins/telegram-bot/package.json plugins/telegram-bot/
 COPY patches/ patches/
 
 # OPT-2: pnpm store cache mount persists across builds.
+# OPT-7: Install only the worker's dependency graph. The previous full
+# workspace install pulled every web dependency (Next.js/React tooling,
+# Playwright, Tailwind, jsdom, ...) that this image never uses — the dominant
+# cost of a cold build on small VMs. `--filter "@kestrel/worker..."` selects
+# the worker plus the workspace packages it depends on (plugins included);
+# `--filter .` keeps the root tooling (`turbo`) the builder stage needs.
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile
+    pnpm install --frozen-lockfile --filter "@kestrel/worker..." --filter .
 
 # OPT-6: Prune to the production dependency tree here, in the deps stage,
 # where it only re-runs when package.json/lockfile change. Placing it after
