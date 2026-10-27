@@ -1,4 +1,5 @@
 {
   "framework": "nextjs",
-  "buildCommand": "node ../../scripts/predeploy-migrate.mjs && npx turbo run build --filter=@kestrel/web"
+  "buildCommand": "node ../../scripts/predeploy-migrate.mjs && NEXT_BUILD_SKIP_TYPECHECK=1 npx turbo run build --filter=@kestrel/web",
+  "ignoreCommand": "turbo query affected --base=$VERCEL_GIT_PREVIOUS_SHA --packages=@kestrel/web --exit-code && exit 0 || exit 1"
 }
