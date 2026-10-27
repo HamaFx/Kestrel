@@ -101,7 +101,7 @@ One-time setup — GitHub → **Settings → Secrets and variables → Actions**
 
 | Name                          | Kind     | Purpose                                                                        |
 | :---------------------------- | :------- | :----------------------------------------------------------------------------- |
-| `KESTREL_PRODUCTION_URL`      | Variable | e.g. `https://hamafx-ai.vercel.app`; falls back to the Vercel event URL.       |
+| `KESTREL_PRODUCTION_URL`      | Variable | e.g. `https://www.kestrelai.tech`; falls back to the Vercel event URL.         |
 | `KESTREL_WORKER_HEALTH_URL`   | Variable | Only if the worker health port is reachable from runners (private by default). |
 | `KESTREL_WORKER_HEALTH_TOKEN` | Secret   | Bearer token for the worker health check.                                      |
 | `KESTREL_CRON_SECRET`         | Secret   | Enables the `/api/health/alerts` SLO contract check.                           |
@@ -122,8 +122,9 @@ before compiling.
 
 ## Faster Vercel builds
 
-Two mechanisms are configured in the repo; Remote Caching is a one-time
-dashboard step:
+Two mechanisms are configured in the repo; Remote Caching is already enabled
+on the team (verified — production build logs show `cache hit, replaying logs`
+for every workspace package):
 
 - **Unaffected commits skip the build.** `apps/web/vercel.json` sets an
   Ignored Build Step based on `turbo query affected`: a push that does not
@@ -135,10 +136,8 @@ dashboard step:
   always rebuild. Note: Vercel still counts skipped builds toward deployment
   quotas — the win is build time and queueing, not quota.
 - **No duplicate typecheck** — see "Where typechecking runs" above.
-- **Remote Caching** (one-time, in Vercel): enable Turborepo Remote Caching
-  for the project so the workspace package builds are restored across deploys
-  instead of recompiled. A team owner can enable it in the Vercel dashboard;
-  locally, run `pnpm dlx turbo login && pnpm dlx turbo link` from the repo
-  root. Deployments then show a Turborepo "Run Summary" with per-task cache
-  status. To share the cache with GitHub Actions, use Vercel's OIDC-based
+- **Remote Caching** — enabled for the team, and used automatically by Vercel
+  builds and by any machine running `pnpm dlx turbo login && pnpm dlx turbo
+link` in the repo root. A team owner can check it under Vercel team
+  settings. To share the cache with GitHub Actions, use Vercel's OIDC-based
   setup: https://vercel.com/docs/monorepos/remote-caching/external-ci-cd
