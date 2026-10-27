@@ -135,9 +135,9 @@ function packageJson({ id, name, description }) {
       },
       scripts: {
         lint: 'eslint .',
-        typecheck: 'tsc --noEmit',
+        typecheck: 'tsrs --noEmit',
         test: 'vitest run',
-        build: 'tsc -p tsconfig.build.json && node ../../scripts/rewrite-dist-imports.mjs dist',
+        build: 'tsrs -p tsconfig.build.json && node ../../scripts/rewrite-dist-imports.mjs dist',
         clean: 'rm -rf node_modules .turbo dist',
       },
       dependencies: {
@@ -150,6 +150,7 @@ function packageJson({ id, name, description }) {
         '@types/node': '^22.20.5',
         '@types/react': '^19.3.0',
         eslint: '^10.13.0',
+        tsrs: '0.20.0-ts7.1.0-beta',
         typescript: '^7.0.2',
         vitest: '^5.0.5',
       },

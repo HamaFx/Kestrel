@@ -29,3 +29,12 @@ pnpm install
 pnpm setup          # generates .env and secrets
 pnpm dev            # starts local dev environment
 ```
+
+### Type checking and package builds
+
+`typecheck` and package `build` scripts run through **tsrs**, the Rust port of
+the TypeScript 7 compiler (pinned exactly per workspace so compiler behavior
+changes arrive as reviewed bumps). Run it directly with `pnpm exec tsrs
+--noEmit`. The stock `typescript` package stays installed for Next.js's own
+build-time type checking; `pnpm exec tsc --noEmit` remains available as a
+fallback when you suspect a tsrs conformance gap.

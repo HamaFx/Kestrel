@@ -31,9 +31,9 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsrs --noEmit",
     "test": "vitest run",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && node ../../scripts/rewrite-dist-imports.mjs dist",
+    "build": "rm -rf dist && tsrs -p tsconfig.build.json && node ../../scripts/rewrite-dist-imports.mjs dist",
     "prepublishOnly": "pnpm build",
     "clean": "rm -rf node_modules .turbo"
   },
@@ -48,6 +48,7 @@
     "@kestrel/config": "workspace:*",
     "@types/node": "^22.20.5",
     "eslint": "^10.13.0",
+    "tsrs": "0.20.0-ts7.1.0-beta",
     "typescript": "^7.0.2",
     "vitest": "^5.0.5"
   },

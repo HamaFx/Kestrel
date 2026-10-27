@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/bundle.mjs",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsrs --noEmit",
     "smoke": "pnpm build && k6 run dist/tests/smoke-read-mix.js",
     "smoke:all": "pnpm build && k6 run dist/tests/smoke-all.js",
     "smoke:market": "pnpm build && k6 run dist/tests/smoke-market-read.js",
@@ -37,6 +37,7 @@
     "@types/k6": "^2.3.0",
     "@types/node": "^22.20.5",
     "esbuild": "^0.28.2",
+    "tsrs": "0.20.0-ts7.1.0-beta",
     "typescript": "^7.0.2"
   }
 }
