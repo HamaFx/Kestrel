@@ -28,7 +28,7 @@ export function DockPlanPanel({ latestPlan }: { latestPlan: LatestPlan }) {
           <IconListCheck className="text-brand size-8 stroke-1" />
           <p className="font-display text-fg text-sm font-normal">No Active Action Plan</p>
           <p className="text-fg-muted max-w-xs font-serif text-xs italic">
-            Run a Full Committee review to generate a step-by-step trade checklist, key price
+            Run a Convene Council review to generate a step-by-step trade checklist, key price
             levels, and risk milestones here.
           </p>
         </div>

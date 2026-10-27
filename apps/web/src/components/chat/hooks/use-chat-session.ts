@@ -218,7 +218,7 @@ export function useChatSession({
     (text: string, images: ComposerImage[]) => {
       lastUserTextRef.current = text;
       if (analysisModeRef.current !== 'single' && images.length > 0) {
-        toast('Chart image analysis runs in Quick Read mode for this message.');
+        toast('Chart image analysis runs in Fast Scout mode for this message.');
         singleTurnOverrideRef.current = 'single';
       }
       if (images.length === 0) {

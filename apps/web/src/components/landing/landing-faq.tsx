@@ -37,7 +37,7 @@ const FAQS: FAQItem[] = [
     id: '02',
     question: 'How does the 4-Desk Committee resolve conflicting market signals?',
     answer:
-      'Quick Read mode runs a single analyst for a fast 5-second check. In Full Committee mode, all four specialist desks (Technical, Macro, Risk, and Sentiment) evaluate the market independently. If Technicals spots a bullish setup right before a high-impact Fed release or hawkish macro shift, the desks flag the conflict openly and the Risk Desk warns you to stand down or reduce size instead of forcing a weak trade.',
+      'Fast Scout mode runs a single analyst for a fast 5-second check. In Convene Council mode, all four specialist desks (Technical, Macro, Risk, and Sentiment) evaluate the market independently. If Technicals spots a bullish setup right before a high-impact Fed release or hawkish macro shift, the desks flag the conflict openly and the Risk Desk warns you to stand down or reduce size instead of forcing a weak trade.',
   },
   {
     id: '03',

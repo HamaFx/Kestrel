@@ -152,12 +152,17 @@ export async function ensureTestUser(
 }
 
 export async function selectAnalysisMode(page: Page, targetMode: 'single' | 'full'): Promise<void> {
+  // The composer ships a 2-segment tactile pill: `⚡ Fast Scout` (single) and
+  // `🏛️ Convene Council` (full). Each segment is an independent, idempotent
+  // button (`aria-pressed`), never a blind cycling toggle.
   const expectedLabel =
-    targetMode === 'full' ? 'Analysis mode: Full Committee' : 'Analysis mode: Quick Read';
-  const modeButton = page.getByRole('button', { name: /^Analysis mode:/i });
+    targetMode === 'full' ? 'Analysis mode: Convene Council' : 'Analysis mode: Fast Scout';
+  const modeButton = page.getByRole('button', {
+    name: new RegExp(`^${expectedLabel}$`, 'i'),
+  });
   await modeButton.waitFor({ state: 'visible', timeout: 15_000 });
-  const currentLabel = await modeButton.getAttribute('aria-label');
-  if (currentLabel !== expectedLabel) {
+  const pressed = await modeButton.getAttribute('aria-pressed');
+  if (pressed !== 'true') {
     await modeButton.click();
   }
 }

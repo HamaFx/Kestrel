@@ -73,7 +73,7 @@ export const LAYERS: LayerSpec[] = [
     telemetry: [
       { label: 'SPECIALIST DESKS', value: '4 Parallel AI Analysts' },
       { label: 'CONSENSUS METHOD', value: 'Weighted Conviction Score' },
-      { label: 'ANALYSIS MODES', value: 'Quick Read or Full Committee' },
+      { label: 'ANALYSIS MODES', value: 'Fast Scout or Convene Council' },
       { label: 'SIGNAL INTEGRITY', value: 'Cross-Checked Against Live Data' },
     ],
   },

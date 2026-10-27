@@ -80,7 +80,7 @@ export function HeroCopy({ isAuthenticated }: HeroCopyProps) {
             1 or 4 Desks
           </div>
           <div className="text-fg-subtle font-sans text-[11px] leading-tight sm:text-xs">
-            Quick Read or Full Committee
+            Fast Scout or Convene Council
           </div>
         </div>
         <div className="min-w-0">
