@@ -108,7 +108,10 @@ export function ChatThreadView({
             <ChatEmptyState
               pinnedSymbol={pinnedSymbol}
               disabled={isStreaming}
-              onSelect={(text) => {
+              onSelect={(text, modeOverride) => {
+                if (modeOverride && modeOverride !== analysisMode) {
+                  onAnalysisModeChange(modeOverride);
+                }
                 lastUserTextRef.current = text;
                 onSubmit(text, []);
               }}
