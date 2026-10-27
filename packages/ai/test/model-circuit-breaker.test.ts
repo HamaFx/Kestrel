@@ -224,7 +224,8 @@ describe('model circuit breaker (§1.6)', () => {
     expect(values.some((value) => value instanceof Date)).toBe(false);
     expect(
       values.some(
-        (value) => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value as string),
+        (value) =>
+          typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value as string),
       ),
     ).toBe(true);
   });
@@ -316,9 +317,7 @@ describe('model circuit breaker (§1.4 — model-id keying)', () => {
     const params = sqlParams(writeSql);
     expect(params.some((p) => p instanceof Date)).toBe(false);
     const times = params
-      .filter(
-        (p): p is string => typeof p === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(p),
-      )
+      .filter((p): p is string => typeof p === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(p))
       .map((iso) => new Date(iso).getTime());
     expect(times.length).toBeGreaterThan(0);
     const openedAt = Math.max(...times);
