@@ -19,6 +19,7 @@
 // Background Full-analysis job → synthesized AI SDK data stream.
 import { getCsrfToken } from '@/lib/auth/csrf';
 
+import { projectCompletedJob, type PolledJobResult } from './job-result';
 import { encodeChunk } from './sse-parser';
 import type { AgentProgress } from './types';
 
@@ -126,17 +127,7 @@ export function pollJobToStreamResponse(
           let pollJson: {
             status?: string;
             progress?: Array<Record<string, unknown>>;
-            result?: {
-              finalText?: string;
-              messageId?: string | null;
-              agentOpinions?: unknown[];
-              committeeCritiques?: unknown[];
-              mode?: string;
-              symbol?: string;
-              dataQuality?: string;
-              totalCostUsd?: number;
-              totalLatencyMs?: number;
-            };
+            result?: PolledJobResult;
             error?: string;
           } = {};
           try {
@@ -176,99 +167,10 @@ export function pollJobToStreamResponse(
           }
 
           if (pollJson.status === 'succeeded' || pollJson.status === 'complete') {
-            const finalId = pollJson.result?.messageId ?? id;
-            const finalText = pollJson.result?.finalText ?? '';
-            const rawOpinions = Array.isArray(pollJson.result?.agentOpinions)
-              ? (pollJson.result?.agentOpinions as Array<{
-                  agentName?: string;
-                  bias?: 'bullish' | 'bearish' | 'neutral';
-                  confidence?: number;
-                  reasoning?: string;
-                }>)
-              : [];
-            // Full-mode cross-examination ledger (`committeeCritiques` from
-            // `packages/ai/src/committee/critique-steps.ts`). Normalized so a
-            // malformed entry can never break the settled dossier.
-            const rawCritiques = Array.isArray(pollJson.result?.committeeCritiques)
-              ? (pollJson.result?.committeeCritiques as Array<{
-                  agentName?: string;
-                  confirms?: boolean;
-                  revisedConfidence?: number;
-                  critique?: string;
-                }>)
-              : [];
-            const critiques = rawCritiques
-              .filter(
-                (
-                  c,
-                ): c is {
-                  agentName: string;
-                  confirms: boolean;
-                  revisedConfidence: number;
-                  critique: string;
-                } =>
-                  typeof c?.agentName === 'string' &&
-                  typeof c.confirms === 'boolean' &&
-                  typeof c.revisedConfidence === 'number' &&
-                  typeof c.critique === 'string' &&
-                  c.critique.length > 0,
-              )
-              .map((c) => ({
-                agentName: c.agentName,
-                confirms: c.confirms,
-                revisedConfidence: c.revisedConfidence,
-                critique: c.critique,
-              }));
-            const resolvedSymbol = pollJson.result?.symbol;
+            const projection = projectCompletedJob(pollJson.result, id);
+            const { finalId, finalText, completedProgress, metaData } = projection;
 
-            if (rawOpinions.length > 0) {
-              const modeStr = pollJson.result?.mode ?? 'full';
-              const defaultDesks =
-                modeStr === 'single'
-                  ? ['technical']
-                  : ['technical', 'fundamental', 'risk', 'sentiment'];
-              const opinionMap = new Map(
-                rawOpinions
-                  .filter(
-                    (
-                      op,
-                    ): op is {
-                      agentName: string;
-                      bias: 'bullish' | 'bearish' | 'neutral';
-                      confidence: number;
-                      reasoning: string;
-                    } =>
-                      typeof op?.agentName === 'string' &&
-                      (op.bias === 'bullish' || op.bias === 'bearish' || op.bias === 'neutral') &&
-                      typeof op.confidence === 'number' &&
-                      typeof op.reasoning === 'string',
-                  )
-                  .map((op) => [
-                    op.agentName,
-                    {
-                      agentName: op.agentName,
-                      bias: op.bias,
-                      confidence: op.confidence,
-                      reasoning: op.reasoning,
-                      summary: op.reasoning,
-                    },
-                  ]),
-              );
-              const completedProgress: AgentProgress = {
-                mode: modeStr,
-                stage: 'fusion',
-                status: 'complete',
-                agents: defaultDesks.map((agentName) => {
-                  const opinion = opinionMap.get(agentName);
-                  return {
-                    agentName,
-                    status: 'done',
-                    ...(opinion ? { opinion } : {}),
-                  };
-                }),
-                ...(critiques.length > 0 ? { critiques } : {}),
-                ...(resolvedSymbol ? { symbol: resolvedSymbol } : {}),
-              };
+            if (completedProgress) {
               onProgress(completedProgress);
               controller.enqueue(
                 encodeChunk({
@@ -291,18 +193,7 @@ export function pollJobToStreamResponse(
               encodeChunk({
                 type: 'data-multi-agent-meta',
                 id: finalId,
-                data: {
-                  agentOpinions: pollJson.result?.agentOpinions ?? [],
-                  committeeCritiques: critiques,
-                  mode: pollJson.result?.mode ?? 'full',
-                  ...(resolvedSymbol ? { symbol: resolvedSymbol } : {}),
-                  ...(pollJson.result?.dataQuality
-                    ? { dataQuality: pollJson.result.dataQuality }
-                    : {}),
-                  totalCostUsd: pollJson.result?.totalCostUsd ?? 0,
-                  totalLatencyMs: pollJson.result?.totalLatencyMs ?? 0,
-                  messageId: finalId,
-                },
+                data: metaData,
                 transient: true,
               }),
             );
