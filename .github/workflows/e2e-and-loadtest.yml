@@ -41,6 +41,9 @@ jobs:
       KESTREL_ENABLE_RLS: '1'
       REGISTRATION_MODE: open
       DB_DISABLE_SSL: 'true'
+      # Explicit local-plain-TCP boundary for the SSL gate (mirrors
+      # loadtest/docker-compose.loadtest.yml).
+      KESTREL_LOCAL_DOCKER: 'true'
       ALLOW_INSECURE_LOCAL_TLS: '1'
       NEXT_BUILD_SKIP_TYPECHECK: '1'
       # The webServer command builds inside its readiness window only when no
