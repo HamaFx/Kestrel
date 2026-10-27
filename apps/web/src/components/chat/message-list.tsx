@@ -27,6 +27,7 @@ import type { AgentProgress } from '@/lib/chat-transport';
 import { Message } from './message';
 import { AgentDeliberation } from './parts/agent-deliberation';
 import { PixelDeskThinking } from './parts/pixel-desk/pixel-desk';
+import { WarRoomOpenProvider } from './war-room-context';
 
 function StreamingLiveRegion({ text }: { text: string }) {
   const [debouncedText, setDebouncedText] = useState(text);
@@ -46,6 +47,11 @@ function StreamingLiveRegion({ text }: { text: string }) {
 interface MessageListProps {
   threadId: string;
   messages: UIMessage[];
+  /**
+   * Desktop War Room is open on the `Council` tab — inline settled dossiers
+   * collapse their duplicate 4-desk grid into the "open in War Room" pill.
+   */
+  warRoomOpen?: boolean;
   isStreaming?: boolean;
   showTypingIndicator?: boolean;
   agentProgress?: AgentProgress | null;
@@ -68,6 +74,7 @@ interface MessageListProps {
 export const MessageList = memo(function MessageList({
   threadId,
   messages,
+  warRoomOpen = false,
   isStreaming,
   showTypingIndicator,
   agentProgress,
@@ -138,18 +145,64 @@ export const MessageList = memo(function MessageList({
   }, [isStreaming, lastAssistantId, messages]);
 
   return (
-    <div
-      ref={containerRef}
-      className="relative w-full px-4 py-4"
-      style={{
-        height: `${totalSize}px`,
-      }}
-    >
-      {isStreaming && streamingText ? <StreamingLiveRegion text={streamingText} /> : null}
-      {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-        const isFooterRow = virtualRow.index === messages.length;
+    <WarRoomOpenProvider open={warRoomOpen}>
+      <div
+        ref={containerRef}
+        className="relative w-full px-4 py-4"
+        style={{
+          height: `${totalSize}px`,
+        }}
+      >
+        {isStreaming && streamingText ? <StreamingLiveRegion text={streamingText} /> : null}
+        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+          const isFooterRow = virtualRow.index === messages.length;
 
-        if (isFooterRow) {
+          if (isFooterRow) {
+            return (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={rowVirtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: 'calc(100% - 2rem)',
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+                className="py-2"
+              >
+                <div className="flex w-full justify-start">
+                  {hasLiveDeliberation && agentProgress ? (
+                    <div className="w-full max-w-2xl">
+                      <AgentDeliberation
+                        agents={agentProgress.agents}
+                        mode={agentProgress.mode}
+                        status={agentProgress.status}
+                        error={agentProgress.error}
+                        compactInline={warRoomOpen}
+                        {...(agentProgress.comparisonSymbols
+                          ? { comparisonSymbols: agentProgress.comparisonSymbols }
+                          : {})}
+                        {...(agentProgress.critiques ? { critiques: agentProgress.critiques } : {})}
+                        {...(agentProgress.stage ? { stage: agentProgress.stage } : {})}
+                        {...(agentProgress.symbol ? { symbol: agentProgress.symbol } : {})}
+                      />
+                    </div>
+                  ) : (
+                    <PixelDeskThinking agentProgress={agentProgress} fallbackMode={analysisMode} />
+                  )}
+                </div>
+              </div>
+            );
+          }
+
+          const m = messages[virtualRow.index];
+          if (!m) return null;
+
+          const isLastAssistant = m.id === lastAssistantId;
+          const isRowStreaming = Boolean(isStreaming && isLastAssistant);
+
           return (
             <div
               key={virtualRow.key}
@@ -162,66 +215,23 @@ export const MessageList = memo(function MessageList({
                 width: 'calc(100% - 2rem)',
                 transform: `translateY(${virtualRow.start}px)`,
               }}
-              className="py-2"
             >
-              <div className="flex w-full justify-start">
-                {hasLiveDeliberation && agentProgress ? (
-                  <div className="w-full max-w-2xl">
-                    <AgentDeliberation
-                      agents={agentProgress.agents}
-                      mode={agentProgress.mode}
-                      status={agentProgress.status}
-                      error={agentProgress.error}
-                      {...(agentProgress.comparisonSymbols
-                        ? { comparisonSymbols: agentProgress.comparisonSymbols }
-                        : {})}
-                    />
-                  </div>
-                ) : (
-                  <PixelDeskThinking
-                    agentProgress={agentProgress}
-                    fallbackMode={analysisMode}
-                  />
-                )}
-              </div>
+              <Message
+                threadId={threadId}
+                message={m}
+                isStreaming={isRowStreaming}
+                isLastAssistant={isLastAssistant}
+                onCopy={onCopy}
+                onRegenerate={
+                  onRegenerate && isLastAssistant && !isStreaming ? onRegenerate : undefined
+                }
+                onEdit={onEdit}
+                onFollowUpSelect={onFollowUpSelect}
+              />
             </div>
           );
-        }
-
-        const m = messages[virtualRow.index];
-        if (!m) return null;
-
-        const isLastAssistant = m.id === lastAssistantId;
-        const isRowStreaming = Boolean(isStreaming && isLastAssistant);
-
-        return (
-          <div
-            key={virtualRow.key}
-            data-index={virtualRow.index}
-            ref={rowVirtualizer.measureElement}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: 'calc(100% - 2rem)',
-              transform: `translateY(${virtualRow.start}px)`,
-            }}
-          >
-            <Message
-              threadId={threadId}
-              message={m}
-              isStreaming={isRowStreaming}
-              isLastAssistant={isLastAssistant}
-              onCopy={onCopy}
-              onRegenerate={
-                onRegenerate && isLastAssistant && !isStreaming ? onRegenerate : undefined
-              }
-              onEdit={onEdit}
-              onFollowUpSelect={onFollowUpSelect}
-            />
-          </div>
-        );
-      })}
-    </div>
+        })}
+      </div>
+    </WarRoomOpenProvider>
   );
 });

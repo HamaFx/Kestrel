@@ -64,7 +64,10 @@ function DataPanel({
     ['Symbol', symbol ?? '—'],
     ['Mode', mode === 'single' ? 'Fast Scout (single-pass)' : 'Convene Council (4-desk)'],
     ['Desks', `${deskCount} specialist desk${deskCount === 1 ? '' : 's'}`],
-    ['Packet', dataQuality === 'complete' || !dataQuality ? 'Verified against live feed' : dataQuality],
+    [
+      'Packet',
+      dataQuality === 'complete' || !dataQuality ? 'Verified against live feed' : dataQuality,
+    ],
   ];
   return (
     <div className="border-border/30 flex flex-col gap-1.5 border-t pt-2.5">
@@ -124,7 +127,9 @@ export function SyndicateDossierCard({
         [
           symbol ?? '',
           mode,
-          ...opinions.map((a) => `${a.agentName}:${a.opinion?.bias ?? '?'}:${a.opinion?.confidence ?? 0}`),
+          ...opinions.map(
+            (a) => `${a.agentName}:${a.opinion?.bias ?? '?'}:${a.opinion?.confidence ?? 0}`,
+          ),
           levels.entry,
           levels.invalidation,
         ].join('|'),
@@ -133,8 +138,7 @@ export function SyndicateDossierCard({
   );
 
   const clashCount =
-    (critiques ?? []).filter((clash) => !clash.confirms).length ||
-    (levels.dissent ? 1 : 0);
+    (critiques ?? []).filter((clash) => !clash.confirms).length || (levels.dissent ? 1 : 0);
   const doneDesks = opinions.length;
 
   const tabs: Array<{ id: DossierTab; label: string; icon: typeof IconUsers }> = [
@@ -175,7 +179,11 @@ export function SyndicateDossierCard({
           ) : null}
         </div>
       ) : (
-        <div role="tablist" aria-label="Dossier views" className="flex flex-wrap items-center gap-1.5">
+        <div
+          role="tablist"
+          aria-label="Dossier views"
+          className="flex flex-wrap items-center gap-1.5"
+        >
           {tabs.map(({ id, label, icon: Icon }) => {
             const isActive = tab === id;
             return (
@@ -205,8 +213,7 @@ export function SyndicateDossierCard({
           agents={agents}
           opinions={opinions}
           avgConfidence={Math.round(
-            (opinions.reduce((sum, a) => sum + (a.opinion?.confidence ?? 0), 0) /
-              opinions.length) *
+            (opinions.reduce((sum, a) => sum + (a.opinion?.confidence ?? 0), 0) / opinions.length) *
               100,
           )}
           biasCounts={{

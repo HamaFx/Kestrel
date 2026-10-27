@@ -178,17 +178,13 @@ describe('SyndicateDossierCard', () => {
     expect(screen.getByText('⚔️ CHALLENGED')).toBeTruthy();
     expect(screen.getByText('✓ CONFIRMED')).toBeTruthy();
     expect(screen.getByText('CONF 92%')).toBeTruthy();
-    expect(
-      screen.getByText(/Tight 2,852 stop is inside 1H ATR noise/i),
-    ).toBeTruthy();
+    expect(screen.getByText(/Tight 2,852 stop is inside 1H ATR noise/i)).toBeTruthy();
     expect(screen.getByText(/Real-yield compression confirms/i)).toBeTruthy();
   });
 
   it('renders the Hoplite Risk Guardrail when desks dissent', () => {
     const agents = dissentingDesks();
-    render(
-      <SyndicateDossierCard agents={agents} opinions={agents} mode="full" symbol="XAUUSD" />,
-    );
+    render(<SyndicateDossierCard agents={agents} opinions={agents} mode="full" symbol="XAUUSD" />);
     expect(screen.getByText(/HOPLITE RISK GUARDRAIL — DESKS DISSENT/i)).toBeTruthy();
     expect(screen.getByText(/0\.5% UNTIL DESKS RE-ALIGN/i)).toBeTruthy();
     expect(screen.getByText(/0\.5% Cap/i)).toBeTruthy();
@@ -210,9 +206,7 @@ describe('SyndicateDossierCard', () => {
         },
       },
     ];
-    render(
-      <SyndicateDossierCard agents={agents} opinions={agents} mode="full" symbol="XAUUSD" />,
-    );
+    render(<SyndicateDossierCard agents={agents} opinions={agents} mode="full" symbol="XAUUSD" />);
     expect(screen.getByText(/SETUP BLOCKED BY RISK GUARDRAIL/i)).toBeTruthy();
     expect(screen.getByText(/RISK VETO ACTIVE/i)).toBeTruthy();
     expect(screen.getByText(/HOPLITE · DESK-III · IMMUTABLE 1\.0% CEILING/i)).toBeTruthy();

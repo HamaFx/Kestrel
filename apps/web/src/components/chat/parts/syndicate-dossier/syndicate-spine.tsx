@@ -7,13 +7,7 @@
 // `#ff3616 → #e5a93c` gradient fill, glowing runner bead, and node rings.
 import { m } from 'motion/react';
 
-export function SyndicateSpine({
-  activeIndex,
-  count,
-}: {
-  activeIndex: number;
-  count: number;
-}) {
+export function SyndicateSpine({ activeIndex, count }: { activeIndex: number; count: number }) {
   const span = 432;
   const nodeYs = Array.from({ length: count }, (_, i) => 24 + (span / Math.max(1, count - 1)) * i);
   const activeY = nodeYs[Math.min(activeIndex, count - 1)] ?? 24;
@@ -75,7 +69,11 @@ export function SyndicateSpine({
             r="6"
             fill="#0c0d0e"
             stroke={
-              idx === activeIndex ? '#ff3616' : idx < activeIndex ? '#3f9e3d' : 'rgba(255,255,255,0.15)'
+              idx === activeIndex
+                ? '#ff3616'
+                : idx < activeIndex
+                  ? '#3f9e3d'
+                  : 'rgba(255,255,255,0.15)'
             }
             strokeWidth="1.5"
           />

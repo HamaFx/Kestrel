@@ -67,7 +67,9 @@ export function LiveDeskTile({
           </span>
         )}
       </div>
-      <div className="text-fg relative z-10 mt-1 truncate text-[11px] font-semibold">{desk.label}</div>
+      <div className="text-fg relative z-10 mt-1 truncate text-[11px] font-semibold">
+        {desk.label}
+      </div>
       <div className="bg-bg-elev-3 relative z-10 mt-1.5 h-0.5 w-full overflow-hidden rounded-full">
         <div
           className={cn('h-full', bias === 'bearish' ? 'bg-bear' : bias ? 'bg-bull' : 'bg-brand')}

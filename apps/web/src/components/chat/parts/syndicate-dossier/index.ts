@@ -12,9 +12,5 @@ export {
   type ExtractedTradeLevels,
   type SyndicateTradeOpinion,
 } from './extract-trade-levels';
-export {
-  InstrumentWells,
-  TugOfWarBar,
-  type InstrumentWell,
-} from './syndicate-instrument-wells';
+export { InstrumentWells, TugOfWarBar, type InstrumentWell } from './syndicate-instrument-wells';
 export { SyndicateDossierCard, type SyndicateDossierCardProps } from './syndicate-dossier-card';

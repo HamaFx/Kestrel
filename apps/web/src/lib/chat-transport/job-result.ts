@@ -5,7 +5,6 @@
 // Completed background-analysis job → UI projection. Kept separate from
 // `job-stream.ts` so the polling state machine stays under the 350-LOC gate
 // and the opinion/critique normalization is unit-testable in isolation.
-
 import type { AgentProgress } from './types';
 
 /** Raw `result` payload a completed analysis job stores in the queue row. */
@@ -112,9 +111,7 @@ export function projectCompletedJob(
   if (opinions.length > 0) {
     const modeStr = result?.mode ?? 'full';
     const defaultDesks =
-      modeStr === 'single'
-        ? ['technical']
-        : ['technical', 'fundamental', 'risk', 'sentiment'];
+      modeStr === 'single' ? ['technical'] : ['technical', 'fundamental', 'risk', 'sentiment'];
     const opinionMap = new Map(opinions.map((op) => [op.agentName, op]));
     completedProgress = {
       mode: modeStr,
