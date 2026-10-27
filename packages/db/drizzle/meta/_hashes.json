@@ -463,6 +463,10 @@
     {
       "tag": "0116_drop_legacy_portfolio_tables",
       "hash": "77b30a6ef9995012da73efc8b2250c2b1f6fe75e485e270ca76546f4c51ceeed"
+    },
+    {
+      "tag": "0117_fix_empty_tenant_guc_fallback",
+      "hash": "37a71063e24d0956ef8bc0642b71e5306bbb16667c8f4cdb5f335655ef527bb0"
     }
   ]
 }

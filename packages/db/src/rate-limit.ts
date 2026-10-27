@@ -32,6 +32,7 @@
 import { sql } from 'drizzle-orm';
 
 import { getDb } from './client';
+import { getTenantDbScope } from './connection/scope';
 
 export interface RateLimitResult {
   /** True iff the request is within the limit. */
@@ -40,6 +41,41 @@ export interface RateLimitResult {
   count: number;
   /** Configured ceiling for context (e.g. for the `X-RateLimit-Limit` header). */
   limit: number;
+}
+
+export interface RateLimitOptions {
+  /**
+   * Tenant that owns the bucket. Defaults to the active tenant transaction's
+   * tenant, then to the platform tenant for the pre-auth `__system__` subject.
+   * `undefined` leaves the column to the database default.
+   */
+  tenantId?: string;
+}
+
+/** Platform subject used for unauthenticated buckets (login, register, reset). */
+export const SYSTEM_RATE_LIMIT_USER_ID = '__system__';
+
+/** Platform tenant that owns those buckets (seeded by migrations 0009/0035). */
+export const SYSTEM_RATE_LIMIT_TENANT_ID = '__system__';
+
+/**
+ * Tenant that owns a rate-limit row.
+ *
+ * Pre-auth buckets key on `__system__`; resolving their tenant explicitly keeps
+ * the insert independent of `app.current_tenant` session state. A connection
+ * whose GUC was present but empty historically produced `tenant_id = ''`,
+ * violating `rate_limits_tenant_id_fkey` and turning POST /login into a 500
+ * (digest 1876515799, React #441). Authenticated callers keep the tenant
+ * transaction's tenant (or the database default when unscoped).
+ */
+export function resolveRateLimitTenant(
+  userId: string,
+  tenantId?: string,
+): string | undefined {
+  if (tenantId) return tenantId;
+  const scoped = getTenantDbScope()?.tenantId;
+  if (scoped) return scoped;
+  return userId === SYSTEM_RATE_LIMIT_USER_ID ? SYSTEM_RATE_LIMIT_TENANT_ID : undefined;
 }
 
 /**
@@ -53,16 +89,20 @@ export async function withRateLimit(
   userId: string,
   endpointGroup: string,
   limit: number,
+  opts: RateLimitOptions = {},
 ): Promise<RateLimitResult> {
   const db = getDb();
   // Fixed 1-minute window — the rate_limits PK is keyed on a minute-aligned
   // window_start. Longer/shorter windows require a schema change.
   const bucket = sql`date_trunc('minute', now())`;
+  const tenantId = resolveRateLimitTenant(userId, opts.tenantId);
+  const tenantColumn = tenantId ? sql`, "tenant_id"` : sql``;
+  const tenantValue = tenantId ? sql`, ${tenantId}` : sql``;
 
   // Use the `rate_limits` table via schema export.
   const rows = await db.execute<{ request_count: number }>(sql`
-    INSERT INTO "rate_limits" ("user_id", "endpoint_group", "window_start", "request_count")
-    VALUES (${userId}, ${endpointGroup}, ${bucket}, 1)
+    INSERT INTO "rate_limits" ("user_id"${tenantColumn}, "endpoint_group", "window_start", "request_count")
+    VALUES (${userId}${tenantValue}, ${endpointGroup}, ${bucket}, 1)
     ON CONFLICT ("user_id", "endpoint_group", "window_start")
     DO UPDATE SET "request_count" = "rate_limits"."request_count" + 1
     RETURNING "request_count"
