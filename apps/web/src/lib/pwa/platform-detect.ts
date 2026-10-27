@@ -19,23 +19,36 @@ function hasWindow(): boolean {
   return typeof window !== 'undefined';
 }
 
-function isTouchCapable(): boolean {
-  if (!hasWindow()) return false;
-  return (
-    'ontouchend' in window || (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0)
-  );
+function maxTouchPoints(): number {
+  if (typeof navigator === 'undefined') return 0;
+  const points = navigator.maxTouchPoints;
+  return typeof points === 'number' && Number.isFinite(points) && points > 0 ? points : 0;
 }
+
+function isIPadOS(): boolean {
+  return /Macintosh/.test(ua()) && maxTouchPoints() > 1;
+}
+
+/**
+ * iPadOS 13+ reports itself as "Macintosh", so the user agent alone cannot
+ * separate an iPad from a Mac. The discriminator is the touch-point count: a
+ * Mac reports 0, an iPad reports 5.
+ *
+ * `'ontouchend' in window` must NOT be used here: every modern desktop browser
+ * defines that handler attribute, so the old check classified macOS as iPadOS,
+ * hid the "Add to Dock" instructions from desktop Safari, and showed iPad steps
+ * to Mac users.
+ */
 
 /** iPhone/iPod, or iPadOS 13+ which reports itself as "Macintosh" + touch. */
 export function isIOS(): boolean {
   const agent = ua();
   if (/iPhone|iPod/.test(agent)) return true;
-  return /iPad/.test(agent) || (/Macintosh/.test(agent) && isTouchCapable());
+  return isIPad();
 }
 
 export function isIPad(): boolean {
-  const agent = ua();
-  return /iPad/.test(agent) || (/Macintosh/.test(agent) && isTouchCapable());
+  return /iPad/.test(ua()) || isIPadOS();
 }
 
 export function isAndroid(): boolean {

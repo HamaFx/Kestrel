@@ -103,7 +103,7 @@ export function BreakdownTable({ title, data, sortBy = 'totalR' }: BreakdownTabl
       <div className="border-border border-b px-3 py-2">
         <span className="text-body-sm text-fg font-semibold">{title}</span>
       </div>
-      <table className="w-full text-sm">
+      <table className="table-stack w-full text-sm">
         <thead className="bg-bg-elev-2">
           <tr>
             {header('label', 'Label', false)}
@@ -115,10 +115,13 @@ export function BreakdownTable({ title, data, sortBy = 'totalR' }: BreakdownTabl
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.label} className="border-divider border-b last:border-b-0">
+            <tr key={row.label} className="row-primary border-divider border-b last:border-b-0">
               <td className="text-fg px-3 py-2 font-medium">{row.label}</td>
-              <td className="text-fg-muted px-3 py-2 text-right tabular-nums">{row.trades}</td>
+              <td data-label="Trades" className="text-fg-muted px-3 py-2 text-right tabular-nums">
+                {row.trades}
+              </td>
               <td
+                data-label="Win rate"
                 className={cn(
                   'px-3 py-2 text-right font-medium tabular-nums',
                   row.winRate > 0.55
@@ -131,6 +134,7 @@ export function BreakdownTable({ title, data, sortBy = 'totalR' }: BreakdownTabl
                 {(row.winRate * 100).toFixed(0)}%
               </td>
               <td
+                data-label="Total R"
                 className={cn(
                   'px-3 py-2 text-right font-medium tabular-nums',
                   row.totalR > 0 ? 'text-bull' : row.totalR < 0 ? 'text-bear' : 'text-fg-muted',
@@ -139,7 +143,10 @@ export function BreakdownTable({ title, data, sortBy = 'totalR' }: BreakdownTabl
                 {row.totalR > 0 ? '+' : ''}
                 {row.totalR.toFixed(2)}R
               </td>
-              <td className="text-fg-muted px-3 py-2 text-right tabular-nums">
+              <td
+                data-label="Expectancy"
+                className="text-fg-muted px-3 py-2 text-right tabular-nums"
+              >
                 {row.expectancy !== undefined
                   ? `${row.expectancy > 0 ? '+' : ''}${row.expectancy.toFixed(2)}R`
                   : '—'}

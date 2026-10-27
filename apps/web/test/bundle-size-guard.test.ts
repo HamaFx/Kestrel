@@ -16,7 +16,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { matchesPattern } from '../scripts/bundle-size-guard.mjs';
+import { matchesPattern, selectLimit } from '../scripts/bundle-size-guard.mjs';
 
 describe('bundle-size-guard matcher', () => {
   it('matches exact paths', () => {
@@ -53,5 +53,27 @@ describe('bundle-size-guard matcher', () => {
   it('does not over-match extra trailing segments', () => {
     expect(matchesPattern('app/page.js', 'app/*.js')).toBe(true);
     expect(matchesPattern('app/foo/page.js', 'app/*.js')).toBe(false);
+  });
+});
+
+describe('bundle-size-guard limit selection', () => {
+  // Config order is the contract: most-specific first, first match wins.
+  const limits = [
+    { pattern: 'app/(app)/chat/**/*.js', maxBytes: 900_000, description: 'deliberately larger' },
+    { pattern: 'app/**/*.js', maxBytes: 768_000 },
+    { pattern: '**/*.js', maxBytes: 870_000 },
+  ];
+
+  it('takes the first matching pattern, not the smallest budget', () => {
+    // Regression: the guard used to sort matches by budget and pick the
+    // smallest, so a specific pattern asking for a *larger* allowance than the
+    // fallback was silently overridden.
+    expect(selectLimit(limits, 'app/(app)/chat/page-abc.js')).toBe(limits[0]);
+    expect(selectLimit(limits, 'app/(app)/dashboard/page-abc.js')).toBe(limits[1]);
+    expect(selectLimit(limits, 'vendor-abc.js')).toBe(limits[2]);
+  });
+
+  it('returns undefined when nothing matches', () => {
+    expect(selectLimit([{ pattern: 'app/**/*.js', maxBytes: 1 }], 'vendor.js')).toBeUndefined();
   });
 });

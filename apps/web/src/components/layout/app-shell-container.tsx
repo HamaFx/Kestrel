@@ -52,7 +52,7 @@ export function AppShellMain({ children }: { children: ReactNode }) {
         'focus:outline-none',
         isChat
           ? 'flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden p-0'
-          : 'mx-auto w-full max-w-2xl px-4 pt-4 pb-20 md:max-w-4xl lg:max-w-5xl lg:pb-6 xl:max-w-7xl xl:px-6',
+          : 'mx-auto w-full max-w-2xl px-4 pt-4 pb-[var(--shell-bottom-pad)] md:max-w-4xl lg:max-w-5xl lg:pb-6 xl:max-w-7xl xl:px-6',
       )}
       style={{
         viewTransitionName: 'main-content',

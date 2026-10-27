@@ -129,7 +129,11 @@ export default defineConfig({
         storageState: 'tests/e2e/.auth/user.json',
       },
       testIgnore: /auth-setup\.ts/,
-      testMatch: /navigation\.spec\.ts|responsive\.spec\.ts|auth\.spec\.ts/,
+      // navigation/responsive/auth are the cross-viewport smoke set; the nav
+      // drawer is added because it is the one naively-touch surface (a left
+      // sheet with a 44px row target) and it never ran under a real touch
+      // profile before.
+      testMatch: /navigation\.spec\.ts|responsive\.spec\.ts|auth\.spec\.ts|nav-drawer\.spec\.ts/,
     },
 
     // Secondary browsers: run locally or when PLAYWRIGHT_ALL_BROWSERS=1

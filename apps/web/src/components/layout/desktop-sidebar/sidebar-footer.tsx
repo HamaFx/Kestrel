@@ -58,6 +58,7 @@ export function SidebarFooter({
             icon={item.icon}
             active={isNavItemActive(item, pathname)}
             collapsed={collapsed}
+            dense
           />
         ))}
       </NavSection>

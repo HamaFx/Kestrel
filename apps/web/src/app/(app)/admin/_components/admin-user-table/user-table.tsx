@@ -37,7 +37,7 @@ export function UserTable({ users, sort, onSort, pendingUserId, onRoleChange }: 
 
   return (
     <div className="border-border overflow-x-auto rounded-sm border">
-      <table className="w-full min-w-[600px] text-sm">
+      <table className="table-stack w-full min-w-[600px] text-sm">
         <thead className="bg-bg-elev-2 text-fg-subtle">
           <tr>
             <th className="px-4 py-2">{headerCell('email', 'Email')}</th>
@@ -61,25 +61,29 @@ export function UserTable({ users, sort, onSort, pendingUserId, onRoleChange }: 
             </tr>
           ) : (
             users.map((user) => (
-              <tr key={user.id} className="border-border border-t">
+              <tr key={user.id} className="row-primary border-border border-t">
                 <td className="text-fg px-4 py-2">
                   <div className="flex flex-col">
                     <span>{user.email}</span>
                     {user.name && <span className="text-fg-subtle text-xs">{user.name}</span>}
                   </div>
                 </td>
-                <td className="px-4 py-2">
+                <td data-label="Role" className="px-4 py-2">
                   <Badge tone={ROLE_TONE[user.role] ?? 'neutral'}>{user.role}</Badge>
                 </td>
-                <td className="px-4 py-2">
+                <td data-label="Onboarding" className="px-4 py-2">
                   <Badge tone={user.onboardingCompleted ? 'success' : 'warn'}>
                     {user.onboardingCompleted ? 'Done' : 'Pending'}
                   </Badge>
                 </td>
-                <td className="text-fg-subtle px-4 py-2" title={formatAbsoluteTime(user.createdAt)}>
+                <td
+                  data-label="Created"
+                  className="text-fg-subtle px-4 py-2"
+                  title={formatAbsoluteTime(user.createdAt)}
+                >
                   {new Date(user.createdAt).toLocaleDateString()}
                 </td>
-                <td className="px-4 py-2 text-right">
+                <td data-label="Actions" className="px-4 py-2 text-right">
                   {user.role === 'admin' ? (
                     <Button
                       variant="secondary"

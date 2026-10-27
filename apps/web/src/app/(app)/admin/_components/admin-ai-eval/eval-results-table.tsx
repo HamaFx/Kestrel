@@ -10,7 +10,7 @@ import type { EvalRow } from './eval-runner';
 export function EvalResultsTable({ rows }: { rows: EvalRow[] }) {
   return (
     <div className="border-border mt-4 overflow-x-auto rounded-sm border">
-      <table className="w-full min-w-[640px] text-sm">
+      <table className="table-stack w-full min-w-[640px] text-sm">
         <thead className="bg-bg-elev-2 text-fg-subtle">
           <tr>
             <th className="px-3 py-2 text-left">Case</th>
@@ -23,10 +23,12 @@ export function EvalResultsTable({ rows }: { rows: EvalRow[] }) {
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.id} className="border-border border-t">
+            <tr key={row.id} className="row-primary border-border border-t">
               <td className="text-fg-subtle px-3 py-2 font-mono text-xs">{row.id}</td>
-              <td className="text-fg-subtle px-3 py-2 text-xs">{row.prompt}</td>
-              <td className="px-3 py-2">
+              <td data-label="Prompt" className="text-fg-subtle px-3 py-2 text-xs">
+                {row.prompt}
+              </td>
+              <td data-label="Status" className="px-3 py-2">
                 {row.status === 'ok' ? (
                   <span className="text-bull inline-flex items-center gap-1 text-xs font-semibold">
                     <IconCheck className="size-3.5" aria-hidden="true" /> ok
@@ -43,13 +45,13 @@ export function EvalResultsTable({ rows }: { rows: EvalRow[] }) {
                   <span className="text-fg-subtle text-xs">pending</span>
                 )}
               </td>
-              <td className="text-fg-subtle px-3 py-2 text-xs tabular-nums">
+              <td data-label="Time" className="text-fg-subtle px-3 py-2 text-xs tabular-nums">
                 {row.totalMs === undefined ? '—' : `${Math.round(row.totalMs / 1000)}s`}
               </td>
-              <td className="text-fg-subtle px-3 py-2 text-xs tabular-nums">
+              <td data-label="Chars" className="text-fg-subtle px-3 py-2 text-xs tabular-nums">
                 {row.chars === undefined ? '—' : row.chars}
               </td>
-              <td className="text-fg-subtle px-3 py-2 text-xs">
+              <td data-label="Detail" className="text-fg-subtle px-3 py-2 text-xs">
                 {row.error ?? (row.status === 'ok' ? 'Mastra report generated' : '')}
               </td>
             </tr>

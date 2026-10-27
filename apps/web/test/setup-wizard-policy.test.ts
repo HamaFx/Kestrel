@@ -280,6 +280,10 @@ describe('secret template — single source of truth', () => {
       // bundle at build time (compose supplies safe `:-` defaults for them).
       if (key === 'POSTGRES_PUBLISHED_PORT' || key === 'APP_PUBLISHED_PORT') continue;
       if (key.startsWith('NEXT_PUBLIC_')) continue;
+      // Service-worker cache identity for image builds: also a public build-time
+      // flag (compose defaults it to empty, `.env.example` documents it, and
+      // check-env-contract.mjs guards it against drift).
+      if (key === 'KESTREL_BUILD_ID') continue;
       expect(template, `docker-compose.yml references ${key}`).toHaveProperty(key);
     }
   });

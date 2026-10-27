@@ -29,6 +29,13 @@ export interface NavRowProps {
   active: boolean;
   /** Icon-only rail: the whole row collapses to a 40px target + tooltip. */
   collapsed?: boolean;
+  /**
+   * Compact 36px row for the mouse-driven desktop rail. The default is a 44px
+   * row, because the same component renders inside the touch-only drawer and
+   * 36px is below every mobile tap-target guideline (and the rest of the app:
+   * bottom nav, command results, hold-to-execute all use 44px).
+   */
+  dense?: boolean;
   /** Optional second line. Kept short — it renders inside a 224–340px rail. */
   description?: string;
 }
@@ -39,6 +46,7 @@ export function NavRow({
   icon: RowIcon,
   active,
   collapsed = false,
+  dense = false,
   description,
 }: NavRowProps) {
   const row = (
@@ -49,7 +57,8 @@ export function NavRow({
       aria-current={active ? 'page' : undefined}
       className={cn(
         'group relative flex items-center rounded-lg transition-colors select-none',
-        collapsed ? 'mx-auto size-10 justify-center' : 'min-h-9 gap-2.5 px-2.5 py-1.5',
+        collapsed ? 'mx-auto size-10 justify-center' : 'gap-2.5 px-2.5 py-1.5',
+        !collapsed && (dense ? 'min-h-9' : 'min-h-11'),
         active ? 'text-fg' : 'text-fg-muted hover:text-fg hover:bg-white/[0.04]',
       )}
     >

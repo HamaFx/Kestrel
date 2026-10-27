@@ -245,7 +245,15 @@ html {
 :root {
   color-scheme: dark;
   --topbar-h: 48px;
-  --fab-bottom: calc(env(safe-area-inset-bottom) + 16px);
+  /* Height of the phone bottom bar. Zero from `lg` up, where the bar itself is
+     hidden (`lg:hidden` in mobile-bottom-nav.tsx), so every consumer collapses
+     automatically on desktop. One token means the bar height, the scroll
+     clearance and the floating-surface offset can never drift apart. */
+  --bottom-nav-h: 0px;
+  /* Bottom padding a scrolling page needs so its last row is never parked
+     under the fixed bar. */
+  --shell-bottom-pad: 16px;
+  /* Floating surfaces (toasts, the offline banner) sit above the bar. */
   --toast-bottom: calc(env(safe-area-inset-bottom) + 16px);
 
   --space-1: 4px;
@@ -258,6 +266,17 @@ html {
   --space-8: 64px;
   --space-9: 80px;
   --space-10: 96px;
+}
+
+/* Phone/tablet portrait: the bottom bar is on screen, so its height feeds the
+   scroll clearance and every floating surface. `lg` (1024px) matches the
+   bar's `lg:hidden` breakpoint. */
+@media (max-width: 1023.98px) {
+  :root {
+    --bottom-nav-h: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+    --shell-bottom-pad: calc(var(--bottom-nav-h) + 16px);
+    --toast-bottom: calc(var(--bottom-nav-h) + 16px);
+  }
 }
 
 /* -------------------------------------------------------------------------
@@ -1018,19 +1037,97 @@ html[data-reduce-motion='force'] *::after {
 }
 
 /* -------------------------------------------------------------------------
- * Touch-Only Swipe Hints (alert rows, etc.)
- * ------------------------------------------------------------------------- */
-@media (hover: none) and (pointer: coarse) {
-  .touch-swipe-hint {
-    display: flex !important;
+ * Stacked tables (phones)
+ * -------------------------------------------------------------------------
+ * Opt-in via `table-stack` on the <table> element plus `data-label` on each
+ * <td>. Below `md` the header row is visually hidden and every row becomes a
+ * labelled card, so a wide data table stays readable on a phone instead of
+ * forcing horizontal scroll inside a page that never scrolls sideways.
+ *
+ * The label text is the column header, duplicated on the cell — which is also
+ * what a screen reader announces when the real header row is hidden behind a
+ * horizontal scroller. Cells without `data-label` (empty states, colSpan rows,
+ * action rows) render as plain blocks.
+ *
+ * These rules are intentionally unlayered so they win over the Tailwind
+ * utilities already on the cells; the per-table markup stays two attributes
+ * instead of a second set of responsive classes on every cell.
+ */
+@media (max-width: 767.98px) {
+  .table-stack {
+    display: block;
+    width: 100%;
+    min-width: 0;
   }
-}
-@media not all and (hover: none) and (pointer: coarse) {
-  .touch-swipe-hint {
-    display: none;
+
+  .table-stack thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .table-stack tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .table-stack tbody tr {
+    display: block;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-elev-1);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .table-stack tbody tr + tr {
+    margin-top: var(--space-2);
+  }
+
+  .table-stack td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    border: 0;
+    padding: var(--space-1) 0;
+    text-align: left;
+  }
+
+  .table-stack td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    color: var(--color-fg-subtle);
+    font-size: var(--text-caption);
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .table-stack td:not([data-label])::before {
+    content: none;
+  }
+
+  .table-stack td[colspan] {
+    display: block;
+    text-align: center;
+  }
+
+  /* The row's identity cell (a symbol, a user, a run id) reads as a title. */
+  .table-stack tr.row-primary td:first-child {
+    padding-top: 0;
+    padding-bottom: var(--space-2);
   }
 }
 
+/* -------------------------------------------------------------------------
+ * Keyframes
+ * ------------------------------------------------------------------------- */
 @keyframes landing-cycle-progress {
   0% {
     width: 0%;

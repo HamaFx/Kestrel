@@ -35,7 +35,7 @@ export function ProviderCapabilityMatrix() {
         <span className="text-caption text-fg-subtle font-mono">▾</span>
       </summary>
       <div className="border-border/50 max-w-full min-w-0 overflow-x-auto border-t p-0">
-        <table className="w-full min-w-[500px] border-collapse text-left">
+        <table className="table-stack w-full min-w-[500px] border-collapse text-left">
           <thead>
             <tr className="border-border/50 text-caption text-fg-muted bg-bg-elev-2/50 border-b font-semibold">
               <th className="p-3">Provider</th>
@@ -49,26 +49,32 @@ export function ProviderCapabilityMatrix() {
           </thead>
           <tbody className="divide-border/40 text-caption divide-y">
             {BYOK_PROVIDERS_LIST.map((p) => (
-              <tr key={p.id} className="hover:bg-bg-elev-2/20">
+              <tr key={p.id} className="row-primary hover:bg-bg-elev-2/20">
                 <td className="text-fg p-3 font-medium">{p.displayName}</td>
-                <td className="text-success p-3 text-center">✓</td>
-                <td className="p-3 text-center">
+                <td data-label="Chat" className="text-success p-3 text-center">
+                  ✓
+                </td>
+                <td data-label="Vision" className="p-3 text-center">
                   {p.supports.vision ? (
                     <span className="text-success">✓</span>
                   ) : (
                     <span className="text-fg-muted">—</span>
                   )}
                 </td>
-                <td className="p-3 text-center">
+                <td data-label="Embedding" className="p-3 text-center">
                   {p.supports.embedding ? (
                     <span className="text-success">✓</span>
                   ) : (
                     <span className="text-fg-muted">—</span>
                   )}
                 </td>
-                <td className="text-success p-3 text-center">✓</td>
-                <td className="text-success p-3 text-center">✓</td>
-                <td className="p-3 text-center">
+                <td data-label="Streaming" className="text-success p-3 text-center">
+                  ✓
+                </td>
+                <td data-label="Tool calls" className="text-success p-3 text-center">
+                  ✓
+                </td>
+                <td data-label="Free tier" className="p-3 text-center">
                   {p.pricingTier === 'free' ? (
                     <span className="surface-chip bg-success/15 text-success rounded-md px-2 py-0.5 font-mono text-xs font-semibold">
                       Free

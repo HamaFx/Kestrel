@@ -141,7 +141,7 @@ export function AdminDatasetReview() {
         />
       ) : (
         <div className="border-border overflow-x-auto rounded-sm border">
-          <table className="w-full min-w-[800px] text-sm">
+          <table className="table-stack w-full min-w-[800px] text-sm">
             <thead className="bg-bg-elev-2 text-fg-subtle">
               <tr>
                 <th className="px-3 py-2 text-left">Version</th>
@@ -154,20 +154,25 @@ export function AdminDatasetReview() {
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.id} className="border-border border-t align-top">
+                <tr key={row.id} className="row-primary border-border border-t align-top">
                   <td className="text-fg px-3 py-3 font-mono text-xs">{row.version}</td>
-                  <td className="px-3 py-3">
+                  <td data-label="Status" className="px-3 py-3">
                     <Badge tone={statusTone(row.status)}>{row.status}</Badge>
                   </td>
-                  <td className="text-fg-subtle px-3 py-3 tabular-nums">{row.recordCount}</td>
-                  <td className="text-fg-subtle px-3 py-3">{row.source}</td>
+                  <td data-label="Records" className="text-fg-subtle px-3 py-3 tabular-nums">
+                    {row.recordCount}
+                  </td>
+                  <td data-label="Source" className="text-fg-subtle px-3 py-3">
+                    {row.source}
+                  </td>
                   <td
+                    data-label="Content hash"
                     className="text-fg-subtle max-w-48 truncate px-3 py-3 font-mono text-xs"
                     title={row.contentSha256}
                   >
                     {row.contentSha256}
                   </td>
-                  <td className="px-3 py-3">
+                  <td data-label="Actions" className="px-3 py-3">
                     <div className="flex flex-wrap gap-1">
                       {row.status === 'draft' && (
                         <Button

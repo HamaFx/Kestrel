@@ -101,7 +101,7 @@ export function NotificationPrefsCard({
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="table-stack w-full text-sm">
           <thead>
             <tr className="border-border border-b">
               <th className="text-fg-muted py-2 pr-4 text-left font-medium">Event type</th>
@@ -118,10 +118,10 @@ export function NotificationPrefsCard({
           </thead>
           <tbody>
             {(Object.keys(DEFAULT_PREFS) as EventType[]).map((event) => (
-              <tr key={event} className="border-border/50 border-b last:border-0">
+              <tr key={event} className="row-primary border-border/50 border-b last:border-0">
                 <td className="text-fg py-3 pr-4">{EVENT_LABELS[event]}</td>
                 {CHANNELS.map((ch) => (
-                  <td key={ch.key} className="px-3 py-3 text-center">
+                  <td key={ch.key} data-label={ch.label} className="px-3 py-3 text-center">
                     <Switch
                       checked={prefs[event]?.[ch.key] ?? false}
                       onCheckedChange={(v) => toggle(event, ch.key, v)}

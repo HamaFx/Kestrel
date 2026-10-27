@@ -41,8 +41,11 @@ export function VirtualEntryList({
   return (
     <div
       ref={parentRef}
-      className="scrollbar-thumb-divider scrollbar-thin overflow-y-auto pr-1"
-      style={{ maxHeight: '750px' }}
+      // Viewport-bounded so the list never asks for more height than the phone
+      // has between the top bar and the bottom nav; 750px only makes sense on a
+      // desktop viewport. `overscroll-contain` keeps the end of the list from
+      // rubber-banding the page underneath it.
+      className="scrollbar-thumb-divider no-overscroll max-h-[min(70svh,750px)] scrollbar-thin overflow-y-auto pr-1 lg:max-h-[750px]"
     >
       <div
         style={{

@@ -51,9 +51,26 @@ describe('iOS shell contracts', () => {
     const nav = read('src/components/layout/mobile-bottom-nav.tsx');
     expect(nav).toContain('pb-safe');
     // Height must grow with the inset; a fixed height + padding squeezes the
-    // nav icons instead of adding space.
-    expect(nav).toContain('calc(3.5rem+env(safe-area-inset-bottom');
+    // nav icons instead of adding space. The inset lives in a single token
+    // (globals.css) so the bar, the page clearance and the floating surfaces
+    // cannot drift apart.
+    expect(nav).toContain('h-[var(--bottom-nav-h)]');
     expect(nav).toContain('px-safe');
+
+    const css = read('src/app/globals.css');
+    expect(css).toContain('--bottom-nav-h: calc(3.5rem + env(safe-area-inset-bottom, 0px))');
+    // The token must collapse on desktop, where the bar is hidden.
+    expect(css).toMatch(/--bottom-nav-h: 0px/);
+    expect(css).toContain('@media (max-width: 1023.98px)');
+  });
+
+  it('clears the page content and floating surfaces above the bottom bar', () => {
+    const shell = read('src/components/layout/app-shell-container.tsx');
+    expect(shell).toContain('pb-[var(--shell-bottom-pad)]');
+
+    const css = read('src/app/globals.css');
+    expect(css).toContain('--shell-bottom-pad: calc(var(--bottom-nav-h) + 16px)');
+    expect(css).toContain('--toast-bottom: calc(var(--bottom-nav-h) + 16px)');
   });
 
   it('keeps both top bars padded by the top inset', () => {
