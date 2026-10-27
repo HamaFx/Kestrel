@@ -9,7 +9,7 @@
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsrs --noEmit",
     "test": "vitest run",
     "clean": "rm -rf node_modules .turbo dist"
   },
@@ -37,6 +37,7 @@
     "esbuild": "^0.28.2",
     "eslint": "^10.13.0",
     "tsx": "^4.23.15",
+    "tsrs": "0.20.0-ts7.1.0-beta",
     "typescript": "^7.0.2",
     "vitest": "^5.0.5"
   },
