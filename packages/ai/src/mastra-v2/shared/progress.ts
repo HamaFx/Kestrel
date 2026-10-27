@@ -20,11 +20,32 @@ export interface CommitteeAgentProgress {
   opinion?: CommitteeAgentOpinionSummary;
 }
 
+/**
+ * One cross-examination outcome surfaced to the UI: the desk that audited its
+ * peers, whether it confirmed their assumptions, its revised confidence, and
+ * the critique text.
+ */
+export interface CommitteeCritiqueSummary {
+  agentName: string;
+  confirms: boolean;
+  revisedConfidence: number;
+  critique: string;
+}
+
 /** The `data-agent-progress` payload the chat transport and deliberation panel consume. */
 export interface CommitteeProgressSnapshot {
   agents: CommitteeAgentProgress[];
   mode: string;
+  /**
+   * The `CommitteeStepId` currently executing — `collect-packet`,
+   * `technical`/`fundamental`/`risk`/`sentiment`, `critique`, `debate`,
+   * `verify`, or `fusion` — so the UI can illuminate the correct circuit
+   * stage (`SyndicateCircuitLive`) instead of guessing from desk statuses.
+   */
+  stage?: string;
   status?: 'complete' | 'failed' | 'retrying';
+  /** Cross-examination critiques (full mode, after the critique round). */
+  critiques?: CommitteeCritiqueSummary[];
   /**
    * M-01 (audit 2026-10-18) — for a multi-symbol comparison this carries the
    * requested symbols so the UI labels the run honestly: "one desk per
@@ -41,6 +62,8 @@ export interface CommitteeProgressSnapshot {
  * When `opinions` are provided (e.g., on completion), each finished specialist
  * entry carries its structured opinion so `AgentDeliberation` can render
  * Desk Confidence, bias distribution, and specialist breakdowns.
+ * `critiques` (full mode) carry the cross-examination ledger the War Room
+ * renders; both fields default off so older emitters stay valid.
  * Shared by the sync web path and the durable worker path so they cannot drift.
  */
 export function committeeProgressSnapshot(
@@ -54,6 +77,7 @@ export function committeeProgressSnapshot(
     reasoning: string;
   }>,
   comparisonSymbols?: readonly string[],
+  critiques?: ReadonlyArray<CommitteeCritiqueSummary>,
 ): CommitteeProgressSnapshot {
   const specialists = committeeProgressStages(mode).filter(
     (stage): stage is MastraSpecialistName =>
@@ -98,9 +122,47 @@ export function committeeProgressSnapshot(
       };
     }),
     mode,
+    stage: step,
     ...(terminalStatus ? { status: terminalStatus } : {}),
+    ...(critiques && critiques.length > 0 ? { critiques: [...critiques] } : {}),
     ...(comparisonSymbols && comparisonSymbols.length >= 2
       ? { comparisonSymbols: [...comparisonSymbols] }
       : {}),
   };
+}
+
+/** Structured extras a progress update can carry forward to the next stage. */
+export interface CommitteeProgressExtras {
+  opinions?: CommitteeAgentOpinionSummary[];
+  critiques?: CommitteeCritiqueSummary[];
+}
+
+/**
+ * Durable worker path: a late stage update (`critique` → `verify` → `fusion`)
+ * is built from the stage id alone, so opinions/critiques delivered by an
+ * earlier update must be carried forward instead of being dropped. Scans the
+ * persisted progress log newest-first and returns the first non-empty set.
+ */
+export function extractCommitteeProgressExtras(
+  progress:
+    | ReadonlyArray<{ data?: unknown } | null | undefined>
+    | null
+    | undefined,
+): CommitteeProgressExtras {
+  const extras: CommitteeProgressExtras = {};
+  for (let i = (progress?.length ?? 0) - 1; i >= 0; i--) {
+    const data = progress?.[i]?.data as Partial<CommitteeProgressSnapshot> | undefined;
+    if (!data || typeof data !== 'object') continue;
+    if (!extras.critiques && Array.isArray(data.critiques) && data.critiques.length > 0) {
+      extras.critiques = data.critiques;
+    }
+    if (!extras.opinions && Array.isArray(data.agents)) {
+      const opinions = data.agents
+        .map((agent) => agent?.opinion)
+        .filter((opinion): opinion is CommitteeAgentOpinionSummary => Boolean(opinion));
+      if (opinions.length > 0) extras.opinions = opinions;
+    }
+    if (extras.opinions && extras.critiques) break;
+  }
+  return extras;
 }

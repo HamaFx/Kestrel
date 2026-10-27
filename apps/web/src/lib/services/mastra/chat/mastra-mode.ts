@@ -184,6 +184,7 @@ export async function runMastraModeChatStream(input: RunMastraModeChatInput): Pr
                     memoryBackfill: result.memoryBackfill,
                     modelSnapshot: result.modelSnapshot,
                     agentOpinions: result.agentOpinions,
+                    committeeCritiques: result.committeeCritiques ?? [],
                   },
                 } as UIMessage['parts'][number],
               ],
@@ -206,6 +207,7 @@ export async function runMastraModeChatStream(input: RunMastraModeChatInput): Pr
             'complete',
             result.agentOpinions,
             input.symbols,
+            result.committeeCritiques,
           ),
         });
         emit({
@@ -231,6 +233,7 @@ export async function runMastraModeChatStream(input: RunMastraModeChatInput): Pr
             memoryBackfill: result.memoryBackfill,
             modelSnapshot: result.modelSnapshot,
             agentOpinions: result.agentOpinions,
+            committeeCritiques: result.committeeCritiques ?? [],
             messageId: execution.messageId,
           },
         });

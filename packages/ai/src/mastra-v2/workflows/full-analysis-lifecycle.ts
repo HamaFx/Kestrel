@@ -29,7 +29,11 @@ import {
 
 import type { GenerationLedgerSnapshot } from '../../persistence/generation-ledger';
 import { getDb } from '../../runtime/db';
-import { committeeProgressSnapshot } from '../shared/progress';
+import {
+  committeeProgressSnapshot,
+  extractCommitteeProgressExtras,
+  type CommitteeCritiqueSummary,
+} from '../shared/progress';
 import {
   flog,
   isFullAnalysisCancellation,
@@ -55,13 +59,33 @@ export async function updateFullAnalysisProgress(
   workerRunId: string,
   step: string,
   mode: MastraAnalysisMode = 'full',
+  extras?: {
+    opinions?: ReadonlyArray<{
+      agentName: string;
+      bias: 'bullish' | 'bearish' | 'neutral';
+      confidence: number;
+      reasoning: string;
+    }>;
+    critiques?: ReadonlyArray<CommitteeCritiqueSummary>;
+  },
 ): Promise<void> {
   try {
+    const row = await getFullAnalysisQueueRow(runId, undefined, getDb());
+    // Stage-only updates would otherwise blank the opinions/critiques that an
+    // earlier update already surfaced — carry them forward so the War Room's
+    // 4-desk grid and Cross-Examination strip stay populated mid-run.
+    const carried = extractCommitteeProgressExtras(row?.progress);
     const entry = {
       type: 'data-agent-progress',
-      data: committeeProgressSnapshot(mode, step),
+      data: committeeProgressSnapshot(
+        mode,
+        step,
+        undefined,
+        extras?.opinions ?? carried.opinions,
+        undefined,
+        extras?.critiques ?? carried.critiques,
+      ),
     };
-    const row = await getFullAnalysisQueueRow(runId, undefined, getDb());
     const progress = [...(row?.progress ?? []), entry].slice(-50);
     await projectQueueRow(
       await updateFullAnalysisQueueProgress({
