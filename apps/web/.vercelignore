@@ -8,3 +8,6 @@ test-results
 playwright-report
 blob-report
 coverage
+
+# TypeScript incremental build cache — not needed in uploads.
+*.tsbuildinfo
