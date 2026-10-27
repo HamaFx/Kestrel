@@ -11,12 +11,22 @@
 import { IconSwords } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 
-import type { AgentProgress } from '@/lib/chat-transport';
 import { cn } from '@/lib/formatters/cn';
 import { FOUR_SPECIALIST_DESKS, resolveStrategistDesk } from '@/lib/kestrel-strategist-desks';
 
 import { LiveDeskTile } from './syndicate-live-desk-tile';
 import { SyndicateSpine } from './syndicate-spine';
+
+/** Minimal structural shape both transport and deliberation progress satisfy. */
+export interface CircuitAgentProgress {
+  mode?: string;
+  stage?: string;
+  agents?: ReadonlyArray<{
+    agentName: string;
+    status: 'pending' | 'running' | 'done' | 'error';
+    opinion?: { bias: 'bullish' | 'bearish' | 'neutral'; confidence: number } | undefined;
+  }>;
+}
 
 interface StageDef {
   id: string;
@@ -91,7 +101,7 @@ export function SyndicateCircuitLive({
   fallbackMode,
   className,
 }: {
-  agentProgress?: AgentProgress | null;
+  agentProgress?: CircuitAgentProgress | null;
   fallbackMode?: string;
   className?: string;
 }) {

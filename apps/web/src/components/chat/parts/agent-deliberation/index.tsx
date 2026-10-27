@@ -18,23 +18,13 @@
  * limitations under the License.
  */
 
-// 4-desk deliberation panel shell. Desk metadata lives in `agent-meta.tsx`
-// and every section below the header is its own component.
-import { IconCpu } from '@tabler/icons-react';
-import { AnimatePresence, m } from 'motion/react';
-
-import { cn } from '@/lib/formatters/cn';
-
-import {
-  AGENT_META,
-  FALLBACK_META,
-  formatPlainModeLabel,
-  type AgentDeliberationProps,
-} from './agent-meta';
-import { AgentNode } from './agent-node';
-import { ConnectorLines } from './connector-lines';
-import { TelemetryLog } from './telemetry-log';
-import { VerdictSummary } from './verdict-summary';
+// Canonical committee surface dispatcher (Locked Decision 4A): delegates to
+// the live Hoplite Plasma Circuit Spine while the council deliberates, and to
+// the settled `SyndicateDossierCard` once every desk has reported. Desk
+// metadata lives in `agent-meta.tsx`; the live phalanx in `deliberation-live`.
+import { SyndicateDossierCard } from '../syndicate-dossier/syndicate-dossier-card';
+import type { AgentDeliberationProps, AgentProgress } from './agent-meta';
+import { DeliberationLive } from './deliberation-live';
 
 export function AgentDeliberation({
   agents,
@@ -42,148 +32,44 @@ export function AgentDeliberation({
   status,
   error,
   comparisonSymbols,
+  critiques,
+  stage,
+  symbol,
+  compactInline,
+  onOpenWarRoom,
 }: AgentDeliberationProps) {
   if (!Array.isArray(agents) || agents.length === 0) return null;
-  const hasDone = agents.some((a) => a.status === 'done');
+
   const isFailed = status === 'failed';
   const isRetrying = status === 'retrying';
-  const allDone =
-    agents.length > 0 && agents.every((a) => a.status === 'done' || a.status === 'error');
-  const doneCount = agents.filter((a) => a.status === 'done').length;
-  const progressPct = agents.length > 0 ? Math.round((doneCount / agents.length) * 100) : 0;
-
+  const allDone = agents.length > 0 && agents.every((a) => a.status === 'done' || a.status === 'error');
   const opinions = agents.filter((a) => a.opinion);
-  const avgConfidence =
-    opinions.length > 0
-      ? Math.round(
-          (opinions.reduce((s, a) => s + (a.opinion?.confidence ?? 0), 0) / opinions.length) * 100,
-        )
-      : 0;
-  const biasCounts = {
-    bullish: opinions.filter((a) => a.opinion?.bias === 'bullish').length,
-    bearish: opinions.filter((a) => a.opinion?.bias === 'bearish').length,
-    neutral: opinions.filter((a) => a.opinion?.bias === 'neutral').length,
-  };
-  const dissent = biasCounts.bullish > 0 && biasCounts.bearish > 0;
-  const confidenceTone =
-    avgConfidence > 75 ? 'bg-bull' : avgConfidence >= 50 ? 'bg-warn' : 'bg-bear';
+
+  if (allDone && !isFailed && !isRetrying) {
+    return (
+      <SyndicateDossierCard
+        agents={agents}
+        opinions={opinions}
+        mode={mode}
+        {...(status ? { status } : {})}
+        {...(critiques ? { critiques } : {})}
+        {...(symbol ? { symbol } : {})}
+        {...(compactInline ? { compactInline: true } : {})}
+        {...(onOpenWarRoom ? { onOpenWarRoom } : {})}
+      />
+    );
+  }
 
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="surface-panel border-border/80 bg-bg-elev-1 flex flex-col gap-3 rounded-xl border p-4 shadow-sm"
-    >
-      {/* Header & Step Progress */}
-      <div className="border-border/60 flex items-center justify-between gap-2 border-b pb-2.5">
-        <div className="text-fg flex items-center gap-2 text-xs font-semibold">
-          <IconCpu className="text-brand size-3.5" />
-          <span>{formatPlainModeLabel(mode, comparisonSymbols)}</span>
-        </div>
-
-        {!allDone && (
-          <div className="flex items-center gap-2">
-            <span className="text-fg-subtle font-mono text-xs tabular-nums">
-              {doneCount}/{agents.length} Ready
-            </span>
-            <div className="bg-bg-elev-3 h-1.5 w-16 overflow-hidden rounded-full">
-              <m.div
-                className="bg-brand h-full rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${progressPct}%` }}
-                transition={{ duration: 0.3 }}
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Adaptive Desk Status Cards (Horizontal phalanx in full mode, full-width chip in single mode) */}
-      <div
-        className={cn(
-          'grid gap-2',
-          agents.length === 1
-            ? 'grid-cols-1'
-            : agents.length === 2
-              ? 'grid-cols-1 sm:grid-cols-2'
-              : 'grid-cols-2 sm:grid-cols-4',
-        )}
-      >
-        {agents.map((a) => {
-          const meta = AGENT_META[a.agentName] ?? FALLBACK_META;
-          return (
-            <AgentNode
-              key={a.agentName}
-              agent={a}
-              meta={meta}
-              isSingle={agents.length === 1}
-            />
-          );
-        })}
-      </div>
-
-      {/* Subtle SVG Progress Connector when partially complete */}
-      <AnimatePresence>
-        {hasDone && !allDone ? (
-          <m.div
-            key="fusion"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="flex flex-col items-center"
-          >
-            <ConnectorLines agents={agents} />
-          </m.div>
-        ) : null}
-      </AnimatePresence>
-
-      {/* Compact Live Committee Progress Trace */}
-      {!allDone ? <TelemetryLog agents={agents} /> : null}
-
-      {!hasDone ? (
-        <div className="text-fg-subtle flex items-center justify-between text-xs">
-          <span>Analyzing live market data…</span>
-        </div>
-      ) : null}
-
-      {/* Settled Verdict Summary */}
-      <AnimatePresence>
-        {allDone && !isFailed && !isRetrying ? (
-          <VerdictSummary
-            agents={agents}
-            opinions={opinions}
-            avgConfidence={avgConfidence}
-            biasCounts={biasCounts}
-            dissent={dissent}
-            confidenceTone={confidenceTone}
-          />
-        ) : null}
-      </AnimatePresence>
-
-      {isFailed || isRetrying ? (
-        <div
-          role="status"
-          className={cn(
-            'rounded-md p-3 text-xs',
-            isFailed
-              ? 'border-danger/30 bg-danger/10 text-danger border'
-              : 'border-warn/30 bg-warn/10 text-warn border',
-          )}
-        >
-          <div className="font-semibold">
-            {isRetrying
-              ? 'Retrying Full Committee analysis…'
-              : 'Full Committee analysis incomplete'}
-          </div>
-          <p className="mt-1 leading-relaxed">
-            {error ??
-              (isRetrying
-                ? 'A temporary issue occurred. Retrying the Full Committee analysis automatically…'
-                : 'One of the specialist desks could not complete its check, so an incomplete trade plan was withheld.')}
-          </p>
-        </div>
-      ) : null}
+    <div role="status" aria-live="polite" className="flex w-full">
+      <DeliberationLive
+        agents={agents as AgentProgress[]}
+        mode={mode}
+        {...(status ? { status } : {})}
+        {...(error ? { error } : {})}
+        {...(comparisonSymbols ? { comparisonSymbols } : {})}
+        {...(stage ? { stage } : {})}
+      />
     </div>
   );
 }

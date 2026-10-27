@@ -17,6 +17,10 @@ export interface SyndicateTradeOpinion {
   reasoning?: string;
   summary?: string;
   rawData?: Record<string, unknown>;
+  /** Model that produced the opinion (telemetry badge). */
+  model?: string;
+  /** Generation latency in ms (telemetry badge). */
+  latencyMs?: number;
 }
 
 export interface ExtractedTradeLevels {
@@ -35,7 +39,7 @@ export interface ExtractedTradeLevels {
   dissent: boolean;
 }
 
-export const EMPTY_LEVEL = '—';
+const EMPTY_LEVEL = '—';
 
 const VETO_PATTERNS: RegExp[] = [
   /\brisk\s+veto\b/i,
@@ -58,14 +62,18 @@ function normalizeKey(key: string): string {
   return key.toLowerCase().replace(/[\s_-]+/g, '');
 }
 
-function asLevelString(value: unknown): string | null {
+/**
+ * Coerce a value to a displayable price. Only genuine price-shaped values
+ * survive: report scenarios store prose ("Break above the recent high.") in
+ * their level fields and a well must never render a sentence.
+ */
+function asPriceString(value: unknown): string | null {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value.toLocaleString('en-US', { maximumFractionDigits: 5 });
   }
-  if (typeof value === 'string' && value.trim().length > 0) {
-    return value.trim().replace(/[*_`]/g, '');
-  }
-  return null;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim().replace(/[*_`$€£¥]/g, '').replace(/\s+/g, '');
+  return /^[0-9][0-9,]*(?:\.[0-9]+)?$/.test(trimmed) ? trimmed : null;
 }
 
 /** Find a labeled number, tolerating emphasis, "(SL)" suffixes, and tables. */
@@ -121,10 +129,10 @@ function levelsFromKeyLevelArray(items: unknown[], direction: string): PartialLe
       ? magnetic.filter((p) => p < trigger).reverse()
       : magnetic.filter((p) => trigger === undefined || p > trigger);
   return {
-    entry: trigger !== undefined ? asLevelString(trigger) : null,
-    invalidation: invalidation !== undefined ? asLevelString(invalidation) : null,
-    tp1: targets[0] !== undefined ? asLevelString(targets[0]) : null,
-    tp2: targets[1] !== undefined ? asLevelString(targets[1]) : null,
+    entry: trigger !== undefined ? asPriceString(trigger) : null,
+    invalidation: invalidation !== undefined ? asPriceString(invalidation) : null,
+    tp1: targets[0] !== undefined ? asPriceString(targets[0]) : null,
+    tp2: targets[1] !== undefined ? asPriceString(targets[1]) : null,
   };
 }
 
@@ -134,8 +142,17 @@ function levelsFromKeyLevelObject(obj: Record<string, unknown>): PartialLevels {
   for (const [key, value] of Object.entries(obj)) flat.set(normalizeKey(key), value);
   const pick = (...keys: string[]): string | null => {
     for (const key of keys) {
-      const value = asLevelString(flat.get(normalizeKey(key)));
+      const value = asPriceString(flat.get(normalizeKey(key)));
       if (value) return value;
+    }
+    return null;
+  };
+  const pickText = (...keys: string[]): string | null => {
+    for (const key of keys) {
+      const value = flat.get(normalizeKey(key));
+      if (typeof value === 'string' && value.trim().length > 0) {
+        return value.trim().replace(/[*_`]/g, '');
+      }
     }
     return null;
   };
@@ -143,9 +160,9 @@ function levelsFromKeyLevelObject(obj: Record<string, unknown>): PartialLevels {
   return {
     entry: pick('entry', 'entryZone', 'entryPrice', 'zone'),
     invalidation: pick('invalidation', 'invalidationLevel', 'stop', 'stopLoss', 'sl'),
-    tp1: pick('tp1', 'target1', 'takeProfit1') ?? asLevelString(targets[0]),
-    tp2: pick('tp2', 'target2', 'takeProfit2') ?? asLevelString(targets[1]),
-    rr: pick('rr', 'riskReward', 'riskRewardRatio'),
+    tp1: pick('tp1', 'target1', 'takeProfit1') ?? asPriceString(targets[0]),
+    tp2: pick('tp2', 'target2', 'takeProfit2') ?? asPriceString(targets[1]),
+    rr: pickText('rr', 'riskReward', 'riskRewardRatio'),
   };
 }
 
@@ -162,11 +179,11 @@ function levelsFromScenarios(scenarios: unknown[], direction: string): PartialLe
   };
   const targets = Array.isArray(record.targets) ? record.targets : [];
   return {
-    entry: asLevelString(record.trigger),
-    invalidation: asLevelString(record.invalidation),
-    tp1: asLevelString(targets[0]),
-    tp2: asLevelString(targets[1]),
-    rr: asLevelString(record.rr),
+    entry: asPriceString(record.trigger),
+    invalidation: asPriceString(record.invalidation),
+    tp1: asPriceString(targets[0]),
+    tp2: asPriceString(targets[1]),
+    rr: typeof record.rr === 'string' && record.rr.trim().length > 0 ? record.rr.trim() : null,
   };
 }
 

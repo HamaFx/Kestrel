@@ -24,6 +24,7 @@ import { IconAlertTriangle, IconCircleCheck, IconCircleX, IconUsers } from '@tab
 import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/formatters/cn';
+import { InstrumentWells } from '../syndicate-dossier/syndicate-instrument-wells';
 import type { ToolPartProps } from '../registry';
 import { ErrorCard, SkeletonCard } from './convene-states';
 import { VerdictCard } from './verdict-card';
@@ -125,20 +126,15 @@ export function ConveneCommitteePart({
           </p>
         </div>
 
-        {/* Execution Levels */}
-        <div className="mt-4 grid grid-cols-3 gap-2 font-mono text-xs tabular-nums">
-          <div className="surface-well rounded-lg border border-border/40 px-3 py-2">
-            <span className="block text-[10px] text-fg-subtle uppercase">Entry Anchor</span>
-            <strong className="text-sm font-semibold text-fg">{output.entry}</strong>
-          </div>
-          <div className="surface-well rounded-lg border border-border/40 px-3 py-2">
-            <span className="block text-[10px] text-fg-subtle uppercase">Invalidation Stop</span>
-            <strong className="text-sm font-semibold text-bear">{output.stop ?? '—'}</strong>
-          </div>
-          <div className="surface-well rounded-lg border border-border/40 px-3 py-2">
-            <span className="block text-[10px] text-fg-subtle uppercase">Primary Target</span>
-            <strong className="text-sm font-semibold text-bull">{output.target ?? '—'}</strong>
-          </div>
+        {/* Execution Levels — shared dossier instrument wells */}
+        <div className="mt-4">
+          <InstrumentWells
+            levels={[
+              { label: 'ENTRY ANCHOR', value: output.entry },
+              { label: 'INVALIDATION STOP', value: output.stop ?? '—', tone: 'bear' },
+              { label: 'PRIMARY TARGET', value: output.target ?? '—', tone: 'bull' },
+            ]}
+          />
         </div>
       </div>
     </div>

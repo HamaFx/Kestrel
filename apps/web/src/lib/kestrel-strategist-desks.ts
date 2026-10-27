@@ -213,14 +213,6 @@ export const FOUR_SPECIALIST_DESKS: readonly StrategistDeskConfig[] = [
 /** The `STAGE II // ARBITER` synthesizer. */
 export const ARBITER_DESK: StrategistDeskConfig = ARBITER_DESK_CONFIG;
 
-/** Canonical specialist desk ids in deliberation order. */
-export const CANONICAL_DESK_ORDER: readonly CanonicalDeskId[] = [
-  'fundamental',
-  'technical',
-  'risk',
-  'sentiment',
-];
-
 /** Fallback shown when an unknown agent name reaches a desk renderer. */
 export const FALLBACK_STRATEGIST_DESK: StrategistDeskConfig = {
   id: 'technical',
