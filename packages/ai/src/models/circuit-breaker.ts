@@ -95,6 +95,13 @@ async function writeThrough(
     } else {
       const openedAt = new Date();
       const tripped = options?.tripped === true;
+      // ISO strings: raw `sql` templates do not map parameters and the
+      // postgres-js driver hashes them — a Date instance throws
+      // ERR_INVALID_ARG_TYPE before the query reaches Postgres, which this
+      // function's catch then absorbs (the DB-backed breaker was silently
+      // per-instance only until 2026-10-27).
+      const openedAtIso = openedAt.toISOString();
+      const windowStartIso = new Date(openedAt.getTime() - WINDOW_MS).toISOString();
       // Audit plan §1.4 (P0-4) — mirror the L1 window semantics in the
       // shared row: failures inside the 60s window increment the counter
       // while keeping the window start in `updated_at`; a failure after the
@@ -102,30 +109,29 @@ async function writeThrough(
       // TRIP time once the threshold is reached (NULL before), so readers
       // measure the open duration from the trip like L1 does. A success
       // write (above) resets the row to 0.
-      const windowStart = new Date(openedAt.getTime() - WINDOW_MS);
       await db.execute(sql`
         INSERT INTO provider_circuit_state (model_id, consecutive_failures, opened_at, updated_at)
-        VALUES (${modelId}, 1, ${tripped ? openedAt : null}, ${openedAt})
+        VALUES (${modelId}, 1, ${tripped ? openedAtIso : null}, ${openedAtIso})
         ON CONFLICT (model_id) DO UPDATE
           SET consecutive_failures =
                 CASE
-                  WHEN provider_circuit_state.updated_at >= ${windowStart}
+                  WHEN provider_circuit_state.updated_at >= ${windowStartIso}
                     THEN provider_circuit_state.consecutive_failures + 1
                   ELSE 1
                 END,
               opened_at =
                 CASE
-                  WHEN provider_circuit_state.updated_at >= ${windowStart}
+                  WHEN provider_circuit_state.updated_at >= ${windowStartIso}
                     AND provider_circuit_state.opened_at IS NOT NULL
                     THEN provider_circuit_state.opened_at
-                  WHEN provider_circuit_state.updated_at >= ${windowStart}
+                  WHEN provider_circuit_state.updated_at >= ${windowStartIso}
                     AND provider_circuit_state.consecutive_failures + 1 >= ${FAILURE_THRESHOLD}
-                    THEN ${openedAt}
+                    THEN ${openedAtIso}
                   WHEN ${tripped}
-                    THEN ${openedAt}
+                    THEN ${openedAtIso}
                   ELSE NULL
                 END,
-              updated_at = ${openedAt}
+              updated_at = ${openedAtIso}
       `);
     }
     dbWriteBroken = false;

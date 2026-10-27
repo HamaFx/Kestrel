@@ -47,7 +47,11 @@ export function resultRows<T>(result: unknown): T[] {
 
 export async function claimOne(): Promise<ClaimedFailure | null> {
   const lockToken = randomUUID();
-  const lockedUntil = new Date(Date.now() + LOCK_TTL_MS);
+  // ISO strings, not Date objects: drizzle's raw `sql` templates do not map
+  // parameters, and the postgres-js driver hashes them — a Date instance
+  // crashes the query with ERR_INVALID_ARG_TYPE before it reaches Postgres
+  // (this silently broke every outbox replay until 2026-10-27).
+  const lockedUntil = new Date(Date.now() + LOCK_TTL_MS).toISOString();
   return getDb().transaction(async (tx) => {
     const rows = resultRows<{
       id: string;
@@ -120,7 +124,8 @@ export async function markCompleted(item: ClaimedFailure): Promise<void> {
 export async function markFailed(item: ClaimedFailure, error: unknown): Promise<void> {
   const invalidPayload = error instanceof Error && error.message.startsWith('Invalid ');
   const delayMs = Math.min(MAX_BACKOFF_MS, 1_000 * 2 ** Math.min(item.attemptCount - 1, 10));
-  const nextAttemptAt = new Date(Date.now() + delayMs);
+  // ISO string for the same reason as claimOne's lockedUntil above.
+  const nextAttemptAt = new Date(Date.now() + delayMs).toISOString();
   const message = error instanceof Error ? error.message : String(error);
   // Payload/schema failures are permanent and should not burn all retry
   // attempts or keep resurfacing as noisy transient failures.
