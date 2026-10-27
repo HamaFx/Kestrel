@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # infra/cron-vm/deploy-worker.sh — Deploy worker from GitHub to Docker.
 #
+# LEGACY: builds the image on the VM itself, which takes hours on an
+# e2-micro (npm downloads at tens of KiB/s). Prefer
+# `infra/cron-vm/deploy-worker-image.sh`, which builds on a workstation or
+# CI and ships the finished image. Keep this path for emergencies only.
+#
 # Runs inside a systemd-run scope so it survives SSH disconnect.
 # Usage:
 #   sudo bash /opt/kestrel/scripts/deploy-worker.sh
