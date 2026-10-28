@@ -86,7 +86,7 @@ export function KestrelBrand({
       </span>
     ) : (
       <div className="group/brand flex items-center gap-2.5">
-        <span className="icon-housing-brand surface-chip relative flex items-center justify-center overflow-hidden rounded-lg border p-1.5 shadow-sm transition-all duration-200 group-hover/brand:border-brand/60 group-hover/brand:shadow-[0_0_16px_rgba(255,54,22,0.28)]">
+        <span className="icon-housing-brand surface-chip group-hover/brand:border-brand/60 relative flex items-center justify-center overflow-hidden rounded-lg border p-1.5 shadow-sm transition-all duration-200 group-hover/brand:shadow-[0_0_16px_rgba(255,54,22,0.28)]">
           <img
             src="/brand/kestrel-falcon.svg"
             alt={isDecorative ? '' : 'Kestrel'}

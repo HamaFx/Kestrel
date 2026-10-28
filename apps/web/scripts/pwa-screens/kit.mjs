@@ -60,7 +60,9 @@ export const esc = (value) =>
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;');
 
-/** Raster logo in an SVG — sized to the 3:2 source aspect. */
+/** Raster logo in an SVG. The source mark is taller than it is wide, so the
+ * box is a slot: the mark is fitted by height and centred rather than
+ * stretched to fill it. */
 export function logoImage(x, y, width, height) {
   return `<image href="${LOGO_DATA_URI}" x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="xMidYMid meet"/>`;
 }
