@@ -39,6 +39,8 @@ const mocks = vi.hoisted(() => ({
   collectSymbolResearchPacket: vi.fn(),
   /** Captured agent model ids by agent id. */
   agentModels: new Map<string, string>(),
+  /** Agent ids that ran a generation (order of first call). */
+  generateCalls: [] as string[],
   /** Overrides per agent-id suffix; when set, generate() rejects with it. */
   rejectFor: new Map<string, Error>(),
   /** Debate agent-id suffixes whose revision hallucinates a fabricated price. */
@@ -72,6 +74,7 @@ vi.mock('@mastra/core/agent', () => ({
     }
 
     async generate(): Promise<unknown> {
+      mocks.generateCalls.push(this.id);
       for (const [suffix, error] of mocks.rejectFor) {
         if (this.id.includes(suffix)) throw error;
       }
@@ -180,6 +183,7 @@ function requestContext(): RequestContext<ModeRequestContext> {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.agentModels.clear();
+  mocks.generateCalls.length = 0;
   mocks.rejectFor.clear();
   mocks.hallucinateFor.clear();
   mocks.recordCost.mockReset();
@@ -191,6 +195,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   delete process.env.ENABLE_COMMITTEE_CRITIQUE;
   delete process.env.ENABLE_COMMITTEE_DEBATE;
 });
@@ -302,8 +307,11 @@ describe('committee workflow debate round (§3.3, flag-gated)', () => {
     fusionCallOptions: {} as never,
   };
 
-  async function runWorkflow(runId: string) {
-    const workflow = createCommitteeWorkflow(baseDeps, 'full');
+  async function runWorkflow(
+    runId: string,
+    extraDeps: Record<string, unknown> = {},
+  ) {
+    const workflow = createCommitteeWorkflow({ ...baseDeps, ...extraDeps } as never, 'full');
     const run = await workflow.createRun({ runId });
     return (await run.start({
       inputData: { prompt: 'Full committee analysis', symbol: 'EURUSD', mode: 'full' },
@@ -357,6 +365,60 @@ describe('committee workflow debate round (§3.3, flag-gated)', () => {
       expect(result.status).toBe('failed');
     } finally {
       mocks.hallucinateFor.clear();
+    }
+  });
+
+  it('skips both waves when the Jev consensus gate finds high consensus (Phase 2)', async () => {
+    process.env.ENABLE_COMMITTEE_CRITIQUE = '1';
+    process.env.ENABLE_COMMITTEE_DEBATE = '1';
+    const jevFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        model: 'jev-1.13-free',
+        answers: {
+          // Packet calibration answers.
+          technical_bias: {
+            type: 'choice',
+            choice: 'bullish',
+            probabilities: { bullish: 0.8, bearish: 0.1, neutral: 0.1 },
+          },
+          fundamental_bias: {
+            type: 'choice',
+            choice: 'neutral',
+            probabilities: { bullish: 0.3, bearish: 0.2, neutral: 0.5 },
+          },
+          volatility_regime: { type: 'score', probabilities: [0.2, 0.6, 0.2] },
+          setup_clarity: { type: 'score', probabilities: [0.1, 0.2, 0.7] },
+          // Consensus gate answers: no contradiction, strong consensus.
+          has_material_contradiction: { type: 'noul', noul: 0.05 },
+          needs_debate_round: { type: 'noul', noul: 0.04 },
+          consensus_strength: { type: 'score', probabilities: [0.02, 0.08, 0.9] },
+        },
+        usage: { input_tokens: 200, output_tokens: 16 },
+      }),
+    });
+    vi.stubGlobal('fetch', jevFetch);
+    try {
+      const result = await runWorkflow('wf-gate-skip', {
+        jevEnv: { OPENCODE_API_KEY: 'oc-free' },
+      });
+      expect(result.status).toBe('success');
+      // Neither the critique nor the debate agent ever generated.
+      expect(
+        mocks.generateCalls.some((id) => id.includes('-critique') || id.includes('-debate')),
+      ).toBe(false);
+      // One calibration call + one consensus gate call.
+      expect(jevFetch).toHaveBeenCalledTimes(2);
+      const opinions = result.result?.opinions ?? [];
+      expect(opinions).toHaveLength(4);
+      // Round-1 opinions were fused (no debate revision applied).
+      for (const opinion of opinions) {
+        expect(opinion.reasoning).toContain('opinion');
+        expect(opinion.reasoning).not.toContain('REVISED');
+      }
+    } finally {
+      vi.unstubAllGlobals();
     }
   });
 });

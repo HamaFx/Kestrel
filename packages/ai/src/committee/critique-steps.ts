@@ -28,6 +28,7 @@
  * context so the single workflow file stays under the size budget.
  */
 
+import { metrics } from '@kestrel/shared';
 import type { RequestContext } from '@mastra/core/request-context';
 import { createStep } from '@mastra/core/workflows';
 import { z } from 'zod';
@@ -43,6 +44,10 @@ import {
   type CritiqueStepResult,
   type DebateStepResult,
 } from './critique';
+import {
+  shouldRunCommitteeDeliberation,
+  type CommitteeDeliberationDecision,
+} from './jev-consensus-gate';
 import { readCollectPacketResult, readSpecialistStepResult } from './specialist-runner';
 import { recordCommitteeStepSpan } from './step-spans';
 import {
@@ -66,10 +71,42 @@ export interface CritiqueStepContext {
   runSignal: AbortSignal | undefined;
 }
 
+/**
+ * Phase 2 (Jev) — read the consensus-gate decision the critique step wrote to
+ * the request context. The debate step reuses it instead of paying a second
+ * Jev call; a persisted/resumed run that lost the value simply recomputes.
+ */
+function readDeliberationDecision(
+  requestContext: RequestContext<ModeRequestContext>,
+): CommitteeDeliberationDecision | undefined {
+  const raw = requestContext.get('committeeDeliberationDecision');
+  if (!raw || typeof raw !== 'object') return undefined;
+  const candidate = raw as Partial<CommitteeDeliberationDecision>;
+  return typeof candidate.shouldCritique === 'boolean' &&
+    typeof candidate.shouldDebate === 'boolean' &&
+    typeof candidate.reason === 'string'
+    ? (candidate as CommitteeDeliberationDecision)
+    : undefined;
+}
+
+function writeDeliberationDecision(
+  requestContext: RequestContext<ModeRequestContext>,
+  decision: CommitteeDeliberationDecision,
+): void {
+  (requestContext as unknown as { set?: (k: string, v: unknown) => void }).set?.(
+    'committeeDeliberationDecision',
+    decision,
+  );
+}
+
 /** One cross-critique round step (no-op when `enabled` is false). */
-export function createCritiqueStep(ctx: CritiqueStepContext, options: { enabled: boolean }) {
+export function createCritiqueStep(
+  ctx: CritiqueStepContext,
+  options: { enabled: boolean; debateEnabled?: boolean },
+) {
   const { deps, specialists, mode, generationLedger, maxSteps, runSignals, runSignal } = ctx;
   const critiqueEnabled = options.enabled;
+  const debateEnabled = options.debateEnabled ?? options.enabled;
   const specialistDeps = specialistRunnerDepsFor(deps, generationLedger, maxSteps);
 
   const critiqueStep = createStep({
@@ -105,6 +142,35 @@ export function createCritiqueStep(ctx: CritiqueStepContext, options: { enabled:
         }
       }
       if (peers.length < 2) return { critiques: [], failedAgents: [] };
+
+      // Phase 2 (Jev) — adaptive consensus gate. One Jev evaluation per run:
+      // when the four desks are in high consensus, skip the Critique wave
+      // (and, via the shared decision, the Debate wave). Any Jev failure
+      // falls back to running the full deliberation exactly as before.
+      let deliberation = readDeliberationDecision(
+        requestContext as RequestContext<ModeRequestContext>,
+      );
+      if (!deliberation) {
+        deliberation = await shouldRunCommitteeDeliberation(peers, {
+          critiqueEnabled: true,
+          debateEnabled,
+          settings: deps.jevSettings ?? null,
+          env: deps.jevEnv ?? null,
+          signal,
+          ledger: generationLedger,
+          ledgerEntryId: `${(requestContext.get('runId') as string | undefined) ?? 'run'}:consensus-gate`,
+        });
+        writeDeliberationDecision(
+          requestContext as RequestContext<ModeRequestContext>,
+          deliberation,
+        );
+      }
+      if (!deliberation.shouldCritique) {
+        metrics.increment('committee_deliberation_skipped_total', {
+          tags: { wave: 'critique', reason: deliberation.reason },
+        });
+        return { critiques: [], failedAgents: [] };
+      }
 
       const results = await Promise.all(
         peers.map((peer) =>
@@ -173,7 +239,22 @@ export function createDebateStep(ctx: CritiqueStepContext, options: { enabled: b
       const collect = readCollectPacketResult(getStepResult);
       const critiqueOutput = readCritiqueStepResult(getStepResult);
       const critiques = critiqueOutput?.critiques ?? [];
-      if (!collect || critiques.length === 0) return { revisions: [], failedAgents: [] };
+      if (!collect) return { revisions: [], failedAgents: [] };
+
+      // Phase 2 (Jev) — the debate wave reuses the critique step's consensus
+      // decision (one Jev gate call per run), so a skipped run records its
+      // debate skip explicitly instead of relying on the empty-critiques path.
+      const deliberation = readDeliberationDecision(
+        requestContext as RequestContext<ModeRequestContext>,
+      );
+      if (deliberation && !deliberation.shouldDebate) {
+        metrics.increment('committee_deliberation_skipped_total', {
+          tags: { wave: 'debate', reason: deliberation.reason },
+        });
+        return { revisions: [], failedAgents: [] };
+      }
+
+      if (critiques.length === 0) return { revisions: [], failedAgents: [] };
       const signal = runSignal ?? abortSignal;
       const startedAt = Date.now();
       const revisable: MastraModeOpinion[] = [];

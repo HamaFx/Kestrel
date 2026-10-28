@@ -104,7 +104,10 @@ export function createSingleCommitteeWorkflow(
     runSignals,
     runSignal,
   };
-  const critiqueStep = createCritiqueStep(critiqueRoundContext, { enabled: critiqueEnabled });
+  const critiqueStep = createCritiqueStep(critiqueRoundContext, {
+    enabled: critiqueEnabled,
+    debateEnabled,
+  });
   const debateStep = createDebateStep(critiqueRoundContext, { enabled: debateEnabled });
 
   const verifyContext: SingleVerifyStepContext = { ...stepContext, critiqueEnabled, debateEnabled };

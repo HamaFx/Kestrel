@@ -53,6 +53,11 @@ export const REQUEST_CONTEXT_SCHEMA = z.object({
    * is unconfigured or the packet is not ready.
    */
   jevCalibration: z.unknown().optional(),
+  /**
+   * Phase 2 (Jev) — the consensus-gate decision written by the critique step
+   * and reused by the debate step (one Jev gate call per run).
+   */
+  committeeDeliberationDecision: z.unknown().optional(),
 });
 
 export type ModeRequestContext = z.infer<typeof REQUEST_CONTEXT_SCHEMA>;
