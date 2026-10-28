@@ -30,11 +30,12 @@
 
 import type { UIMessage } from 'ai';
 
+import { evaluateJevTurnRouting, type JevTurnRoutingDecision } from '../../jev/turn-router';
 import type { ResolveModelEnv } from '../../models/env-factory';
 import type { MastraModelPurpose } from '../../models/model';
 import type { RoutingDecision, RoutingDomain } from '../../routing';
 import { isHighConfidenceMutationIntent } from '../../routing/keywords';
-import { classifyMutationRequest } from '../mutation/mutation-detect';
+import { classifyMutationRequestWithJev } from '../mutation/mutation-detect';
 import {
   decideMastraExecution,
   type MastraExecutionDecision,
@@ -44,7 +45,7 @@ import {
 import { isInjectionAttempt, messageText } from './routing-policy';
 
 /** Mutation kinds the model-based classifier can detect. */
-export type UnifiedMutationKind = NonNullable<ReturnType<typeof classifyMutationRequest>>;
+export type UnifiedMutationKind = NonNullable<ReturnType<typeof classifyMutationRequestWithJev>>;
 
 export interface UnifiedRoutingDecision {
   /** Semantic/keyword domain from `routeTurn`. */
@@ -81,6 +82,12 @@ export interface UnifiedRouterInput extends MastraExecutionDecisionInput {
    * the LLM call twice.
    */
   classifiedMutationKind?: UnifiedMutationKind | null;
+  /**
+   * Phase 1 (Jev) — a pre-computed turn-routing decision. Callers that
+   * already evaluated the parallel Jev request pass it here; when omitted the
+   * router evaluates it once itself.
+   */
+  jevDecision?: JevTurnRoutingDecision | null;
 }
 
 /**
@@ -89,19 +96,46 @@ export interface UnifiedRouterInput extends MastraExecutionDecisionInput {
  * so the boundary can 422 cheaply; the heavy `decideMastraExecution` pass
  * (semantic routing + capability + model resolution) runs once and is embedded
  * in the result for the execution plan.
+ *
+ * Phase 1 (Jev): one parallel `/v1/systemone` evaluation resolves domain,
+ * XAUUSD chat kind, report follow-up, mutation intent, and injection risk.
+ * The deterministic lexical gates still run and are OR-ed with the Jev
+ * verdicts, so a Jev call can only ever tighten the read-only boundary —
+ * never weaken it. With no Jev provider configured the network call is
+ * skipped and the previous regex/keyword behavior is preserved.
  */
 export async function routeUnified(input: UnifiedRouterInput): Promise<UnifiedRoutingDecision> {
   const promptText = messageText(input.userMessage);
 
+  const jevDecision =
+    input.jevDecision !== undefined
+      ? input.jevDecision
+      : await evaluateJevTurnRouting({
+          userText: promptText,
+          priorReportAvailable: input.priorReportAvailable === true,
+          settings: input.settings,
+          env: input.env,
+          signal: input.signal ?? null,
+        });
+
   // Zero-cost safety gates first — no model should ever see an injection
   // attempt, and high-confidence trade commands are rejected before routing.
-  const injectionBlocked = isInjectionAttempt(promptText);
+  // Jev can only add a block on top of the zero-cost verdicts.
+  const injectionBlocked = isInjectionAttempt(promptText) || jevDecision?.injectionBlocked === true;
   const highConfidenceMutationIntent = isHighConfidenceMutationIntent(promptText);
-  const mutationKind = input.classifiedMutationKind ?? classifyMutationRequest(promptText);
+  const mutationKind =
+    input.classifiedMutationKind ?? classifyMutationRequestWithJev(promptText, jevDecision);
 
   const decision = await decideMastraExecution({
     ...input,
     mutationRequested: mutationKind !== null,
+    jevHints: jevDecision
+      ? {
+          domain: jevDecision.domain,
+          xauusdChatKind: jevDecision.xauusdChatKind,
+          reportFollowup: jevDecision.isReportFollowup,
+        }
+      : null,
   });
 
   const routing = decision.routing;
@@ -109,6 +143,7 @@ export async function routeUnified(input: UnifiedRouterInput): Promise<UnifiedRo
     `domain=${routing.domain}`,
     decision.symbol ? `symbol=${decision.symbol}` : 'symbol=none',
     `route=${decision.route}`,
+    jevDecision ? `jev=${jevDecision.providerId}@${jevDecision.latencyMs}ms` : 'jev=off',
     injectionBlocked ? 'injection=blocked' : null,
     mutationKind ? `mutation=${mutationKind}` : null,
     highConfidenceMutationIntent ? 'high-confidence-mutation' : null,

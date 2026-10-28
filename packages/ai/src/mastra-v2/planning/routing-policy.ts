@@ -32,29 +32,6 @@ export type AnalysisMode = 'single' | 'full';
 export type ResolvedMode = 'single' | 'full';
 
 /**
- * Two-mode heuristic detector (`single` vs `full`). Exported utility only —
- * no live input path feeds it since the Q8 shim removal removed the legacy
- * `auto` value.
- */
-export function autoDetectMode(message: string): ResolvedMode {
-  const lower = message.toLowerCase().trim();
-  if (/^(hi|hello|hey|thanks|thank you|ok|okay|yes|no|bye|good morning|good night)\b/.test(lower))
-    return 'single';
-  if (/(what'?s the price|current price|quote|how much is)/.test(lower)) return 'single';
-  if (/^(price|quote|rate)\s+(for|of)?\s*\w{3,6}\??$/i.test(lower)) return 'single';
-  if (/should i (buy|sell|enter|go long|go short|trade)/.test(lower)) return 'full';
-  if (/(is it (a )?good time (to|for)|is now (a )?good time)/.test(lower)) return 'full';
-  if (/(buy or sell|long or short|bullish or bearish)/.test(lower)) return 'full';
-  if (
-    /(full|complete|comprehensive|deep dive|all four|committee)/.test(lower) &&
-    /(analysis|analy[sz]e|review|read|outlook|assessment|committee)/.test(lower)
-  )
-    return 'full';
-  if (/(deep dive|full analysis|comprehensive analysis)/.test(lower)) return 'full';
-  return 'single';
-}
-
-/**
  * Q2 two-mode contract boundary. The Q8 shim removal (audit plan §4.6)
  * retired the `quick`→`single` / `standard`→`full` / `auto`→detector maps:
  * HTTP schemas reject legacy values upstream, and JS callers that bypass
