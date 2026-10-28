@@ -23,6 +23,7 @@ import type { MastraModelConfig } from '@mastra/core/llm';
 import { RequestContext } from '@mastra/core/request-context';
 
 import { estimateCostUsd } from '@ai/budget/cost';
+import { pruneToolsWithJev } from '@ai/jev/tool-pruner';
 import { createGenerationLedger } from '@ai/persistence/generation-ledger';
 import {
   buildCustomAgentSubagents,
@@ -159,6 +160,23 @@ export async function setupCanonicalChat(
       })
       .filter((entry): entry is [string, unknown] => entry !== null),
   );
+  // Phase 1 (Jev System One) — per-turn fine-grained tool pruning
+  // ("When2Call"). The request starts here and is awaited after the memory
+  // and plugin promises, so it overlaps them and adds zero serial latency.
+  // Pruning can only remove tools and is bounded by READ_ONLY_TOOL_NAMES; with
+  // no Jev provider configured it is a no-op.
+  const prunedToolsPromise = pruneToolsWithJev({
+    userText: getMessageText(args.userMessage),
+    domain: routing.domain,
+    candidateTools: registeredTools,
+    allowedToolNames: READ_ONLY_TOOL_NAMES,
+    disabledTools: args.settings.disabledTools ?? [],
+    settings: { aiApiKeys: args.settings.aiApiKeys },
+    env: args.env,
+    signal: args.signal ?? null,
+    ledger: generationLedger,
+    ledgerEntryId: `${runId}:tool-prune`,
+  });
 
   // §2.4: the memory promise started alongside routeTurn; await it now.
   const memoryOutcome = await memoryPromise;
@@ -174,6 +192,9 @@ export async function setupCanonicalChat(
   metrics.observe('mastra_setup_latency_ms', Date.now() - setupStartedAt, {
     tags: { phase: 'plugins' },
   });
+  // Phase 1 (Jev) — the pruned tool subset (or the unchanged candidate set
+  // when Jev is unconfigured). Overlapped with the memory/plugin awaits above.
+  const prunedTools = await prunedToolsPromise;
 
   const toolPartsBuffer: MastraToolInvocationPart[] = [];
   const contextEntries: Array<[string, unknown]> = [
@@ -202,7 +223,7 @@ export async function setupCanonicalChat(
     ...(args.signal ? { signal: args.signal } : {}),
     requestContext,
   });
-  const agentTools = mergePluginTools(registeredTools, pluginTools);
+  const agentTools = mergePluginTools(prunedTools, pluginTools);
   const pluginSkills = resolvePluginSkills(pluginRuntime);
   // Optional user-authored agents (custom-agents plugin). Only delegatable
   // agents are built, read-only, and without remote MCP connections so the

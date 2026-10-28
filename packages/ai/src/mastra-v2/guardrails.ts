@@ -36,10 +36,17 @@
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import { metrics } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
-import { PromptInjectionDetector, UnicodeNormalizer } from '@mastra/core/processors';
+import {
+  PromptInjectionDetector,
+  UnicodeNormalizer,
+  type InputProcessor,
+} from '@mastra/core/processors';
 import type { LanguageModel } from 'ai';
 
 import { hashLogValue } from '../diagnostics/redact';
+import { createJevGuardrailProcessor } from '../jev/guardrail-processor';
+import { resolveJevEndpoint } from '../jev/resolve-endpoint';
+import type { JevEnv, ResolvedJevEndpoint } from '../jev/types';
 import type { ResolveModelEnv } from '../models/env-factory';
 import { resolveChatModel } from '../models/model';
 
@@ -83,18 +90,30 @@ export interface GuardrailOptions {
   mode?: GuardrailMode;
   /** Confidence threshold (0–1). Default: 0.7. */
   threshold?: number;
+  /**
+   * Phase 1 (Jev System One) — a pre-resolved Jev endpoint. When omitted the
+   * builder resolves one from `settings.aiApiKeys` / `env`; passing `null`
+   * explicitly forces the generative fallback path (tests / hermetic runs).
+   */
+  jevEndpoint?: ResolvedJevEndpoint | null | undefined;
 }
 
 /**
  * Build the Mastra input processors for a chat agent. The outer array places
  * the UnicodeNormalizer first so the detector sees clean text.
  *
+ * Phase 1 (Jev): when any Jev provider can be resolved, the fast
+ * non-generative `kestrel-jev-guardrail` processor replaces the generative
+ * `PromptInjectionDetector` (no prefill/decode, 100% turn coverage). With no
+ * Jev provider the previous behavior is unchanged.
+ *
  * In `availability` mode (default), returns the normalizer only when no BYOK
- * model is available.  In `strict` mode, throws `GuardrailUnavailableError`
- * so the caller can reject the turn.
+ * model and no Jev endpoint are available. In `strict` mode, throws
+ * `GuardrailUnavailableError` when neither Jev nor a generative detector
+ * model can be resolved, so the caller can reject the turn.
  */
 export function buildGuardrailInputProcessors(options: GuardrailOptions): {
-  processors: Array<UnicodeNormalizer | PromptInjectionDetector>;
+  processors: InputProcessor[];
   warnings: string[];
   mode: GuardrailMode;
 } {
@@ -106,6 +125,31 @@ export function buildGuardrailInputProcessors(options: GuardrailOptions): {
     collapseWhitespace: true,
     trim: true,
   });
+
+  // Phase 1 (Jev System One) — free-first endpoint resolution. Any resolved
+  // endpoint (OpenCode free, Vercel Gateway credits, TypeSafe/OpenRouter
+  // BYOK) makes the generative detector unnecessary.
+  const jevEndpoint =
+    options.jevEndpoint !== undefined
+      ? options.jevEndpoint
+      : resolveJevEndpoint(options.settings, options.env);
+  if (jevEndpoint) {
+    const env: JevEnv = options.env;
+    return {
+      processors: [
+        normalizer,
+        createJevGuardrailProcessor({
+          settings: options.settings,
+          env,
+          strategy: options.strategy,
+          threshold: options.threshold ?? 0.7,
+          endpoint: jevEndpoint,
+        }),
+      ],
+      warnings,
+      mode,
+    };
+  }
 
   let resolution: { model: LanguageModel } | null = options.model ? { model: options.model } : null;
   if (!resolution) {
@@ -182,7 +226,7 @@ export function buildConversationGuardrails(
   settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>,
   env: ResolveModelEnv,
 ): {
-  processors: Array<UnicodeNormalizer | PromptInjectionDetector>;
+  processors: InputProcessor[];
   warnings: string[];
   mode: GuardrailMode;
 } {
@@ -209,7 +253,7 @@ export function buildResearchGuardrails(
   env: ResolveModelEnv,
   mode: GuardrailMode = 'strict',
 ): {
-  processors: Array<UnicodeNormalizer | PromptInjectionDetector>;
+  processors: InputProcessor[];
   warnings: string[];
   mode: GuardrailMode;
 } {
@@ -229,7 +273,7 @@ export function buildResearchGuardrailsAvailability(
   settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>,
   env: ResolveModelEnv,
 ): {
-  processors: Array<UnicodeNormalizer | PromptInjectionDetector>;
+  processors: InputProcessor[];
   warnings: string[];
   mode: GuardrailMode;
 } {
