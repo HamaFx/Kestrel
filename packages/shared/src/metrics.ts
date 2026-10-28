@@ -119,6 +119,14 @@ export const METRIC_NAMES = [
   // Phase 1 (Jev) — fast input-guardrail verdicts and runtime availability.
   'guardrail_jev_flagged_total',
   'guardrail_jev_unavailable_total',
+  // Phase 2 (Jev) — adaptive committee consensus gate, tagged by decision
+  // ({decision}=run|skip, {reason}) and by skipped wave ({wave}=critique|debate).
+  'committee_consensus_gate_total',
+  'committee_deliberation_skipped_total',
+  // Phase 2 (Jev) — RAG/web-search indirect-injection quarantine and rerank.
+  'jev_rag_quarantine_total',
+  // Phase 2 (Jev) — semantic disclosure verifier verdicts.
+  'committee_disclosure_verification_total',
 ] as const;
 
 export type MetricName = (typeof METRIC_NAMES)[number];
