@@ -28,6 +28,7 @@ import {
   evaluateJev,
   resolveJevEndpoint,
 } from '../src/jev';
+import { _resetCircuits, isCircuitOpen, recordModelFailure } from '../src/models/circuit-breaker';
 
 describe('Jev calibration formulas & provider resolution', () => {
   it('computes exact TypeSafe/Wikipedia choice concentration confidence', () => {
@@ -104,6 +105,31 @@ describe('Jev calibration formulas & provider resolution', () => {
   it('returns null when no Jev provider is configured', () => {
     expect(resolveJevEndpoint(null, {})).toBeNull();
     expect(resolveJevEndpoint(null, {})).toBeNull();
+  });
+
+  it('skips an endpoint whose circuit is open and falls through to the next provider', () => {
+    _resetCircuits();
+    try {
+      const endpoint = resolveJevEndpoint(null, { OPENCODE_API_KEY: 'oc-123' });
+      expect(endpoint?.providerId).toBe('opencode-free');
+
+      // Three failures inside the window trip the shared L1 breaker.
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        recordModelFailure('jev:opencode-free:jev-1.13-free');
+      }
+      expect(isCircuitOpen('jev:opencode-free:jev-1.13-free')).toBe(true);
+
+      // Only OpenCode is configured → every candidate is skipped → null.
+      expect(resolveJevEndpoint(null, { OPENCODE_API_KEY: 'oc-123' })).toBeNull();
+
+      // With a second provider configured, resolution falls through to it.
+      expect(
+        resolveJevEndpoint(null, { OPENCODE_API_KEY: 'oc-123', TYPESAFE_API_KEY: 'ts-123' })
+          ?.providerId,
+      ).toBe('typesafe');
+    } finally {
+      _resetCircuits();
+    }
   });
 
   it('executes POST /v1/systemone and parses parallel noul, choice, and score answers', async () => {
