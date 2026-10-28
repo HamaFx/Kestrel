@@ -35,6 +35,7 @@ export type AiEnvKeys =
   | 'DPHN_API_KEY'
   | 'OPENCODE_API_KEY'
   | 'TYPESAFE_API_KEY'
+  | 'LIQUID_API_KEY'
   | 'JEV_BASE_URL'
   | 'AI_DEFAULT_MODEL'
   | 'AI_TITLE_MODEL'
@@ -61,6 +62,7 @@ export function pickAiEnv(env: Pick<ServerEnv, AiEnvKeys>) {
     DPHN_API_KEY: env.DPHN_API_KEY,
     OPENCODE_API_KEY: env.OPENCODE_API_KEY,
     TYPESAFE_API_KEY: env.TYPESAFE_API_KEY,
+    LIQUID_API_KEY: env.LIQUID_API_KEY,
     JEV_BASE_URL: env.JEV_BASE_URL,
     AI_DEFAULT_MODEL: env.AI_DEFAULT_MODEL,
     AI_TITLE_MODEL: env.AI_TITLE_MODEL,

@@ -80,6 +80,13 @@ export interface ByokPayload {
   opencode?: string;
   /** Direct TypeSafe AI key for `/v1/systemone` (`jev-latest`). */
   typesafe?: string;
+  /**
+   * Liquid AI key for the d1 decision models. Complex tasks resolve to
+   * `d1-ultra` ($0.042/1M in) and simple tasks to `d1.1` ($0.02/1M in).
+   * Like the other decision-model keys, deliberately NOT in `PROVIDER_IDS`:
+   * d1 is a non-generative decision model, not a chat LLM.
+   */
+  liquid?: string;
 }
 
 /**

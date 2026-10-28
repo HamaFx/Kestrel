@@ -54,4 +54,14 @@ describe('AiEnv & ByokPayload Jev keys', () => {
     expect(payload.opencode).toBe('oc-key');
     expect(payload.typesafe).toBe('ts-key');
   });
+
+  it('accepts an optional LIQUID_API_KEY in AiEnv', () => {
+    const parsed = AiEnv.parse({ LIQUID_API_KEY: 'liquid_test-key' });
+    expect(parsed.LIQUID_API_KEY).toBe('liquid_test-key');
+  });
+
+  it('allows a liquid field on ByokPayload', () => {
+    const payload: ByokPayload = { liquid: 'liquid-byok-key' };
+    expect(payload.liquid).toBe('liquid-byok-key');
+  });
 });
