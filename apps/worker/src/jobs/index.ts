@@ -28,6 +28,7 @@ import { runEmbeddingBackfill } from './embedding-backfill.js';
 import { runFredActuals } from './fred-actuals.js';
 import { runMetricsFlush } from './metrics-flush.js';
 import { runDurableResearchJob } from './multi-agent-analysis.js';
+import { runOpinionCalibration } from './opinion-calibration.js';
 import { runPersistenceRecovery } from './persistence-recovery.js';
 import { runResonanceSync } from './resonance-sync.js';
 import { runRetention } from './retention.js';
@@ -155,6 +156,14 @@ export const JOBS: Record<JobName, JobRegistration> = {
     description:
       'Nightly governed training-dataset export (eval reports + reviewed feedback → JSONL + manifest → B2).',
     schedule: '30 3 * * *',
+  },
+  'opinion-calibration': {
+    name: 'opinion-calibration',
+    run: runOpinionCalibration,
+    description:
+      'Grades agent opinions older than 4h against realized candles_1m outcomes (Brier calibration for committee fusion weights).',
+    schedule: '40 * * * *',
+    hcUuidEnvVar: 'HC_JOB_OPINION_CALIBRATION_UUID',
   },
 };
 

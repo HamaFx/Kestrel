@@ -58,6 +58,12 @@ export const REQUEST_CONTEXT_SCHEMA = z.object({
    * and reused by the debate step (one Jev gate call per run).
    */
   committeeDeliberationDecision: z.unknown().optional(),
+  /**
+   * Phase 3 — empirical per-desk reliability weights (graded historical
+   * opinions) loaded by the run context and embedded in the fusion
+   * instructions. Absent when the user has no graded history.
+   */
+  deskReliability: z.unknown().optional(),
 });
 
 export type ModeRequestContext = z.infer<typeof REQUEST_CONTEXT_SCHEMA>;
@@ -87,6 +93,12 @@ export function contextWithPacket(
   const jevCalibration = base.get('jevCalibration');
   if (jevCalibration !== undefined) {
     entries.push(['jevCalibration', jevCalibration]);
+  }
+  // Phase 3: the empirical desk reliability weights travel into the fusion
+  // call so its instructions can weigh the desks by calibrated accuracy.
+  const deskReliability = base.get('deskReliability');
+  if (deskReliability !== undefined) {
+    entries.push(['deskReliability', deskReliability]);
   }
   if (opinions) entries.push(['opinions', opinions]);
   if (critiques) entries.push(['critiques', critiques]);

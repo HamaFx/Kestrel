@@ -29,6 +29,7 @@ import {
   serializeSymbolResearchPacket,
   type SymbolResearchPacket,
 } from '../../mastra-v2/packets/symbol-research';
+import { deskReliabilityBlock, type DeskReliabilityWeights } from '../calibration-weights';
 import type { CommitteeCritique, MastraModeOpinion, ModeRequestContext } from '../types';
 import { optionalContextBlock, serializedPacket } from './packet-context';
 
@@ -45,6 +46,11 @@ export function fusionInstructionsForRequest({
   const packet = requestContext.get('packet') as SymbolResearchPacket | undefined;
   const opinions = (requestContext.get('opinions') as MastraModeOpinion[] | undefined) ?? [];
   const critiques = (requestContext.get('critiques') as CommitteeCritique[] | undefined) ?? [];
+  // Phase 3 — empirical desk reliability from graded historical calls. Present
+  // only when the run context loaded it (full mode with enough Brier samples).
+  const deskReliability = requestContext.get('deskReliability') as
+    DeskReliabilityWeights | undefined;
+  const reliabilityBlock = deskReliability ? `\n\n${deskReliabilityBlock(deskReliability)}` : '';
   const opinionBlock = opinions
     .map((opinion) =>
       [
@@ -72,7 +78,7 @@ export function fusionInstructionsForRequest({
 Use only the trusted packet and specialist opinions below. Write in clear, simple, everyday trader language that is easy for non-technical traders to scan. State where the experts agree and where they disagree, and when peer reviews are present, explain how the experts responded to each other's arguments (e.g. "3 of 4 experts lean bullish after peer review"). Disclose missing or degraded data, and use scenario language. Do not promise outcomes or invent numbers. Do not place trades. Return a concise user-facing answer with a clear bottom line, why the team agrees or disagrees, bull/base/bear scenarios, key risks, and the price level where this idea is wrong (invalidation).
 
 ${packet ? `PACKET:\n${serializedPacket(packet)}\n\n${optionalContextBlock(packet)}\n\n` : ''}SPECIALIST OPINIONS:
-${opinionBlock}${critiqueBlock ? `\n\nSPECIALIST PEER REVIEWS:\n${critiqueBlock}` : ''}`;
+${opinionBlock}${critiqueBlock ? `\n\nSPECIALIST PEER REVIEWS:\n${critiqueBlock}` : ''}${reliabilityBlock}`;
 }
 
 /** @deprecated Build-time fusion prompt retained for one release (§2.2). */

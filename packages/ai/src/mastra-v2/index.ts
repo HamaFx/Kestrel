@@ -267,6 +267,7 @@ export * from './agents/xauusd/agent';
 export * from './agents/xauusd/tools';
 export * from './agents/xauusd/background-text';
 export * from '../committee/verifier';
+export * from '../committee/calibration-weights';
 export * from './workflows/full-analysis';
 export * from './workflows/full-analysis-retry';
 export * from './planning/routing-policy';
