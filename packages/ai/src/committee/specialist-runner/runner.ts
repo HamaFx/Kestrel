@@ -40,6 +40,11 @@ import {
 import { withRetry } from '../../runtime/retry';
 import { maybeGetToolContext, withToolContext } from '../../runtime/tool-context';
 import { extractNumbersFromToolOutput } from '../grounding';
+import {
+  blendSpecialistConfidence,
+  deskJevConfidence,
+  type JevPacketCalibration,
+} from '../jev-packet-scorer';
 import { specialistInstructionsForRequest } from '../prompts';
 import {
   createCommitteeAgent,
@@ -86,6 +91,9 @@ export async function runSpecialistGeneration(
   };
   try {
     const toolPartsBuffer: MastraToolInvocationPart[] = [];
+    // Phase 2 (Jev) — the calibrated anchor published by the collect step.
+    // Restored onto the agent's context copy so the desk prompt includes it.
+    const jevCalibration = requestContext.get('jevCalibration') as JevPacketCalibration | undefined;
     const packetContext = contextWithPacket(requestContext, packet);
     (packetContext as unknown as { set?: (k: string, v: unknown) => void }).set?.(
       'toolParts',
@@ -175,13 +183,26 @@ export async function runSpecialistGeneration(
         ...rawOpinion,
         details: enrichedDetails,
       };
+      // Phase 2 (Jev) — "Jev Scores, LLM Explains": the desk's reported
+      // confidence blends the calibrated Jev confidence (70%) with the LLM's
+      // self-reported confidence (30%). The raw LLM value is preserved in
+      // details for auditability. Without a calibration this is a no-op.
+      const jevDeskConfidence = jevCalibration ? deskJevConfidence(jevCalibration, name) : null;
+      const finalOpinion =
+        jevDeskConfidence === null
+          ? opinion
+          : {
+              ...opinion,
+              confidence: blendSpecialistConfidence(opinion.confidence, jevDeskConfidence),
+              details: { ...enrichedDetails, llmConfidence: opinion.confidence, jevDeskConfidence },
+            };
       const candidateOpinion: MastraModeOpinion = {
         agentName: name,
         ...(args.symbol ? { symbol: args.symbol } : {}),
-        bias: opinion.bias,
-        confidence: opinion.confidence,
-        reasoning: opinion.reasoning,
-        rawData: opinion.details,
+        bias: finalOpinion.bias,
+        confidence: finalOpinion.confidence,
+        reasoning: finalOpinion.reasoning,
+        rawData: finalOpinion.details,
         ...committeeModelMetadata(
           agentModel.modelId,
           agentModel.providerId,
@@ -191,7 +212,7 @@ export async function runSpecialistGeneration(
         ),
       };
       const costUsd = estimateCostUsd(agentModel.modelId, stats.inputTokens, stats.outputTokens);
-      return { opinion, candidateOpinion, stats, costUsd };
+      return { opinion: finalOpinion, candidateOpinion, stats, costUsd };
     };
 
     // P1-01: max one verification-driven retry; the spend of every attempt is

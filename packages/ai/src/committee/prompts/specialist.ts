@@ -25,6 +25,7 @@
 import type { RequestContext } from '@mastra/core/request-context';
 
 import type { SymbolResearchPacket } from '../../mastra-v2/packets/symbol-research';
+import { jevCalibrationBlock, type JevPacketCalibration } from '../jev-packet-scorer';
 import type { MastraSpecialistName, ModeRequestContext } from '../types';
 import { optionalContextBlock, serializedPacket } from './packet-context';
 
@@ -186,6 +187,8 @@ ${COMMITTEE_HARD_RULES}`;
 /**
  * Instructions function for a specialist agent: reads the packet from the
  * request context (injected once per run) and appends its compact view.
+ * Phase 2 (Jev): when the collect step published a calibrated packet anchor,
+ * it is appended as a statistical reference the desk must reason against.
  */
 export function specialistInstructionsForRequest({
   name,
@@ -197,10 +200,12 @@ export function specialistInstructionsForRequest({
   const packet = requestContext.get('packet') as SymbolResearchPacket | undefined;
   if (!packet) return specialistInstructions(name);
   const macroBlock = deskUsesGenericMacro(name) ? genericMacroBlock(packet) : '';
+  const calibration = requestContext.get('jevCalibration') as JevPacketCalibration | undefined;
+  const calibrationBlock = calibration ? `\n\n${jevCalibrationBlock(calibration)}` : '';
   return `${specialistInstructions(name)}
 
 PACKET:
 ${serializedPacket(packet)}
 
-${optionalContextBlock(packet)}${macroBlock}`;
+${optionalContextBlock(packet)}${macroBlock}${calibrationBlock}`;
 }
