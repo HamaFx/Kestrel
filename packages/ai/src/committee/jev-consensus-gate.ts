@@ -136,14 +136,17 @@ export async function shouldRunCommitteeDeliberation(
   if (!wave1Complete) return runBoth('incomplete-wave1');
 
   const result = await evaluateJev({
-    state: {
+    state: JSON.stringify({
       opinions: opinions.map((opinion) => ({
         desk: opinion.agentName,
         bias: opinion.bias,
         confidence: opinion.confidence,
         summary: sanitizeExternalText(opinion.reasoning, OPINION_SUMMARY_CHARS),
       })),
-    },
+    }),
+    // Contradiction detection across desks is judgement, not classification —
+    // complex tier (d1-ultra).
+    tier: 'complex',
     questions: {
       has_material_contradiction: {
         type: 'noul',

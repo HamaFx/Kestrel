@@ -131,7 +131,7 @@ export async function verifySemanticDisclosureWithJev(
   }
 
   const result = await evaluateJev({
-    state: {
+    state: JSON.stringify({
       symbol: packet.symbol,
       status: packet.status,
       dataQuality: packet.dataQuality,
@@ -139,7 +139,10 @@ export async function verifySemanticDisclosureWithJev(
       missingDataCount: Array.isArray(packet.missingData) ? packet.missingData.length : 0,
       // The model's own sanitized output — a designated prose call site.
       text: candidate.slice(0, VERIFIER_TEXT_CHARS),
-    },
+    }),
+    // Judging whether a disclosure is honest is semantic reasoning — complex
+    // tier (d1-ultra).
+    tier: 'complex',
     questions: {
       honestly_discloses_degraded_data: {
         type: 'noul',

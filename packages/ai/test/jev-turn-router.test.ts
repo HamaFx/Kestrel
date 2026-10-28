@@ -20,12 +20,12 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import * as routingPolicy from '../src/mastra-v2/planning/routing-policy';
 import {
   _resetJevRoutingCache,
   evaluateJevTurnRouting,
   JEV_MUTATION_PROBABILITY_THRESHOLD,
 } from '../src/jev/turn-router';
+import * as routingPolicy from '../src/mastra-v2/planning/routing-policy';
 
 function jevResponse(answers: Record<string, unknown>) {
   return {
@@ -113,7 +113,13 @@ describe('Jev unified turn routing & dead autoDetectMode removal', () => {
         mutation_kind: {
           type: 'choice',
           choice: 'set_alert',
-          probabilities: { none: 0.2, set_alert: 0.72, log_journal: 0.04, share_snapshot: 0.02, run_system_action: 0.02 },
+          probabilities: {
+            none: 0.2,
+            set_alert: 0.72,
+            log_journal: 0.04,
+            share_snapshot: 0.02,
+            run_system_action: 0.02,
+          },
         },
         xauusd_kind: {
           type: 'choice',
@@ -147,7 +153,13 @@ describe('Jev unified turn routing & dead autoDetectMode removal', () => {
         mutation_kind: {
           type: 'choice',
           choice: 'none',
-          probabilities: { none: 0.99, set_alert: 0.005, log_journal: 0.003, share_snapshot: 0.001, run_system_action: 0.001 },
+          probabilities: {
+            none: 0.99,
+            set_alert: 0.005,
+            log_journal: 0.003,
+            share_snapshot: 0.001,
+            run_system_action: 0.001,
+          },
         },
         xauusd_kind: {
           type: 'choice',
@@ -189,7 +201,13 @@ describe('Jev unified turn routing & dead autoDetectMode removal', () => {
         mutation_kind: {
           type: 'choice',
           choice: 'none',
-          probabilities: { none: 0.98, set_alert: 0.01, log_journal: 0.005, share_snapshot: 0.003, run_system_action: 0.002 },
+          probabilities: {
+            none: 0.98,
+            set_alert: 0.01,
+            log_journal: 0.005,
+            share_snapshot: 0.003,
+            run_system_action: 0.002,
+          },
         },
         xauusd_kind: {
           type: 'choice',
@@ -216,5 +234,45 @@ describe('Jev unified turn routing & dead autoDetectMode removal', () => {
     });
     expect(absent).toBeNull();
     expect(noProvider).not.toHaveBeenCalled();
+  });
+
+  it('routes on the simple Liquid tier (d1.1) rather than the complex tier', async () => {
+    _resetJevRoutingCache();
+    const fetchMock = vi.fn().mockResolvedValue(
+      jevResponse({
+        domain: {
+          type: 'choice',
+          choice: 'technical',
+          probabilities: { technical: 0.9, fundamental: 0.05, summary: 0.03, generic: 0.02 },
+        },
+        mutation_kind: {
+          type: 'choice',
+          choice: 'none',
+          probabilities: {
+            none: 0.98,
+            set_alert: 0.01,
+            log_journal: 0.005,
+            share_snapshot: 0.003,
+            run_system_action: 0.002,
+          },
+        },
+        xauusd_kind: {
+          type: 'choice',
+          choice: 'research',
+          probabilities: { research: 0.8, conversation: 0.2 },
+        },
+        is_report_followup: { type: 'noul', noul: 0.1 },
+        injection_attempt: { type: 'noul', noul: 0.02 },
+      }),
+    );
+
+    await evaluateJevTurnRouting({
+      userText: 'Where is XAUUSD support on the 4h chart right now?',
+      env: { LIQUID_API_KEY: 'liquid-test' },
+      fetchImpl: fetchMock as unknown as typeof fetch,
+    });
+
+    const body = JSON.parse(String(fetchMock.mock.calls[0]![1].body)) as { model: string };
+    expect(body.model).toBe('d1.1');
   });
 });

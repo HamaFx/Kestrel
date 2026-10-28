@@ -93,7 +93,10 @@ export async function evaluateJevGuardrail(
   if (!input.trim()) return null;
 
   const result = await evaluateJev({
-    state: { userText: input },
+    state: JSON.stringify({ userText: input }),
+    // Safety gates are judged at the complex tier: a missed injection is far
+    // costlier than the ~$0.000007 the stronger model adds per call.
+    tier: 'complex',
     questions: {
       injection: { type: 'noul', instructions: GUARDRAIL_INSTRUCTIONS.injection },
       jailbreak: { type: 'noul', instructions: GUARDRAIL_INSTRUCTIONS.jailbreak },

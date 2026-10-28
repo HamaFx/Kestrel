@@ -199,6 +199,76 @@ describe('Jev calibration formulas & provider resolution', () => {
     expect(result).toBeNull();
   });
 
+  it('resolves Liquid AI at the complex tier to d1-ultra by default', async () => {
+    const resolved = resolveJevEndpoint(null, { LIQUID_API_KEY: 'liquid-test' });
+    expect(resolved).toEqual({
+      providerId: 'liquid',
+      endpointUrl: 'https://api.liquid.ai/decisions/v1/systemone',
+      modelId: 'd1-ultra',
+      apiKey: 'liquid-test',
+      inputCostPerMTokUsd: 0.042,
+    });
+  });
+
+  it('resolves Liquid AI at the simple tier to d1.1', () => {
+    const resolved = resolveJevEndpoint(null, { LIQUID_API_KEY: 'liquid-test' }, 'simple');
+    expect(resolved?.providerId).toBe('liquid');
+    expect(resolved?.modelId).toBe('d1.1');
+    expect(resolved?.inputCostPerMTokUsd).toBe(0.02);
+  });
+
+  it('prefers the free tiers over Liquid but Liquid over the paid BYOK endpoints', () => {
+    expect(
+      resolveJevEndpoint(null, { OPENCODE_API_KEY: 'oc', LIQUID_API_KEY: 'liquid' })?.providerId,
+    ).toBe('opencode-free');
+    expect(
+      resolveJevEndpoint(null, { AI_GATEWAY_API_KEY: 'vg', LIQUID_API_KEY: 'liquid' })?.providerId,
+    ).toBe('vercel-gateway');
+    expect(
+      resolveJevEndpoint(null, { LIQUID_API_KEY: 'liquid', TYPESAFE_API_KEY: 'ts' }, 'simple')
+        ?.providerId,
+    ).toBe('liquid');
+  });
+
+  it('sends the tier-selected Liquid model and charges the matching rate', async () => {
+    const answer = {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        model: 'd1.1',
+        answers: { q: { type: 'noul', noul: 0.9 } },
+        usage: { input_tokens: 1_000_000, output_tokens: 0 },
+      }),
+    };
+    const complexFetch = vi.fn().mockResolvedValue(answer);
+    const simpleFetch = vi.fn().mockResolvedValue(answer);
+
+    const complex = await evaluateJev({
+      state: '{"a":1}',
+      questions: { q: { type: 'noul', instructions: 'ok?' } },
+      env: { LIQUID_API_KEY: 'liquid-test' },
+      fetchImpl: complexFetch as unknown as typeof fetch,
+    });
+    const simple = await evaluateJev({
+      state: '{"a":1}',
+      questions: { q: { type: 'noul', instructions: 'ok?' } },
+      env: { LIQUID_API_KEY: 'liquid-test' },
+      tier: 'simple',
+      fetchImpl: simpleFetch as unknown as typeof fetch,
+    });
+
+    const complexBody = JSON.parse(String(complexFetch.mock.calls[0]![1].body)) as {
+      model: string;
+    };
+    const simpleBody = JSON.parse(String(simpleFetch.mock.calls[0]![1].body)) as { model: string };
+    expect(complexBody.model).toBe('d1-ultra');
+    expect(simpleBody.model).toBe('d1.1');
+    expect(complex!.providerId).toBe('liquid');
+    // 1M input tokens: $0.042 complex vs $0.02 simple; output is always $0.
+    expect(complex!.costUsd).toBeCloseTo(0.042, 6);
+    expect(simple!.costUsd).toBeCloseTo(0.02, 6);
+  });
+
   it('returns null when no provider is configured (zero-key degradation)', async () => {
     const fetchMock = vi.fn();
     const result = await evaluateJev({
