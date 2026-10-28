@@ -155,8 +155,13 @@ describe('Tier 2: Drawer Boundary & Corner Cases (>=5 tests)', () => {
       />,
     );
     const dialog = screen.getByRole('dialog');
-    const dangerIcon = dialog.querySelector('span.text-danger');
+    // The danger tone renders through <IconBadge tone="danger">, whose tint comes
+    // from the `icon-housing-danger` utility. That utility owns its own
+    // background, border and color, so layering `bg-danger/10` + `text-danger`
+    // on top of it would be silently overridden — select the housing directly.
+    const dangerIcon = dialog.querySelector('span[class*="icon-housing-"]');
     expect(dangerIcon).not.toBeNull();
+    expect(dangerIcon?.className).toContain('icon-housing-danger');
     expect(dangerIcon?.className).toContain('rounded-md');
     expect(dangerIcon?.className).toContain('h-10');
     expect(dangerIcon?.className).toContain('w-10');
