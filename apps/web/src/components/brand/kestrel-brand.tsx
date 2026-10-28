@@ -70,12 +70,15 @@ export function KestrelBrand({
           aria-hidden={isDecorative || undefined}
           width={24}
           height={24}
-          className={cn('text-brand relative z-10 shrink-0', markSize === 'xs' ? 'size-3.5' : 'size-5')}
+          className={cn(
+            'text-brand relative z-10 shrink-0',
+            markSize === 'xs' ? 'size-3.5' : 'size-5',
+          )}
         />
       </span>
     ) : (
       <div className="group/brand flex items-center gap-2.5">
-        <span className="icon-housing-brand relative flex items-center justify-center overflow-hidden rounded-lg p-1.5 transition-all duration-200 group-hover/brand:border-brand/60 group-hover/brand:shadow-[0_0_16px_rgba(255,54,22,0.28)]">
+        <span className="icon-housing-brand group-hover/brand:border-brand/60 relative flex items-center justify-center overflow-hidden rounded-lg p-1.5 transition-all duration-200 group-hover/brand:shadow-[0_0_16px_rgba(255,54,22,0.28)]">
           <img
             src="/brand/kestrel-falcon.svg"
             alt={isDecorative ? '' : 'Kestrel'}

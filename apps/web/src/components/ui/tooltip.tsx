@@ -65,8 +65,8 @@ export function Tooltip({ label, side = 'top', shortcut, children, className }: 
           'group-focus-within/tooltip:opacity-100 group-focus-within/tooltip:delay-0',
           side === 'top' && '-top-9 left-1/2 -translate-x-1/2',
           side === 'bottom' && 'top-[calc(100%+6px)] left-1/2 -translate-x-1/2',
-          side === 'right' && 'left-[calc(100%+8px)] top-1/2 -translate-y-1/2',
-          side === 'left' && 'right-[calc(100%+8px)] top-1/2 -translate-y-1/2',
+          side === 'right' && 'top-1/2 left-[calc(100%+8px)] -translate-y-1/2',
+          side === 'left' && 'top-1/2 right-[calc(100%+8px)] -translate-y-1/2',
         )}
       >
         <span className="flex items-center gap-1.5">

@@ -96,7 +96,9 @@ export function CommandPalette({ onNewChat, installedPluginIds = [] }: CommandPa
                   aria-expanded={open}
                   aria-controls="command-listbox"
                   aria-activedescendant={
-                    activeIdx >= 0 && flatRows.length > 0 ? `command-option-${activeIdx}` : undefined
+                    activeIdx >= 0 && flatRows.length > 0
+                      ? `command-option-${activeIdx}`
+                      : undefined
                   }
                   type="search"
                   value={query}
@@ -169,7 +171,9 @@ export function CommandPalette({ onNewChat, installedPluginIds = [] }: CommandPa
                     aria-expanded={open}
                     aria-controls="command-listbox"
                     aria-activedescendant={
-                      activeIdx >= 0 && flatRows.length > 0 ? `command-option-${activeIdx}` : undefined
+                      activeIdx >= 0 && flatRows.length > 0
+                        ? `command-option-${activeIdx}`
+                        : undefined
                     }
                     type="search"
                     value={query}
@@ -189,7 +193,7 @@ export function CommandPalette({ onNewChat, installedPluginIds = [] }: CommandPa
                       type="button"
                       onClick={() => setOpen(false)}
                       aria-label="Close command palette"
-                      className="tactile-press text-fg-subtle hover:text-fg hover:bg-white/5 rounded-md p-1 transition-colors"
+                      className="tactile-press text-fg-subtle hover:text-fg rounded-md p-1 transition-colors hover:bg-white/5"
                     >
                       <IconX className="size-4" strokeWidth={1.75} />
                     </button>

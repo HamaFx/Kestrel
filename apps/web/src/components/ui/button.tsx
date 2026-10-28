@@ -48,8 +48,7 @@ const variants: Record<Variant, string> = {
     'bg-brand text-white font-medium border border-brand/60 shadow-[0_4px_14px_rgba(255,54,22,0.32),inset_0_1px_0_rgba(255,255,255,0.32),inset_0_-1px_0_rgba(0,0,0,0.35)] hover:brightness-110 hover:shadow-[0_6px_20px_rgba(255,54,22,0.44),inset_0_1px_0_rgba(255,255,255,0.38)]',
   secondary:
     'surface-button text-fg border border-white/[0.09] hover:border-white/[0.18] hover:brightness-110',
-  surface:
-    'surface-chip-dark text-white hover:border-brand/40 hover:brightness-120',
+  surface: 'surface-chip-dark text-white hover:border-brand/40 hover:brightness-120',
   ghost:
     'text-fg-muted border border-transparent hover:text-fg hover:bg-bg-elev-2/80 hover:border-white/[0.06]',
   danger:
@@ -93,7 +92,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
         aria-busy={loading || false}
         style={inlineStyle}
         className={cn(
-          'group tactile-press relative inline-flex items-center justify-between overflow-hidden rounded-l-[6px] rounded-r-full border border-white/12 bg-[#222326] pr-10 pl-4 leading-none tracking-[-0.02em] text-white shadow-[0_6px_20px_-4px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.12)] transition-colors hover:border-brand/45',
+          'group tactile-press hover:border-brand/45 relative inline-flex items-center justify-between overflow-hidden rounded-l-[6px] rounded-r-full border border-white/12 bg-[#222326] pr-10 pl-4 leading-none tracking-[-0.02em] text-white shadow-[0_6px_20px_-4px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.12)] transition-colors',
           sizes[size],
           'focus-visible:ring-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
           'disabled:cursor-not-allowed disabled:opacity-60',
