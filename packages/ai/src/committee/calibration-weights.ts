@@ -33,7 +33,10 @@
 import { requireTenantIdForUser, schema, type DbClient } from '@kestrel/db';
 import { and, desc, eq, gte } from 'drizzle-orm';
 
-import { computeBrierScore, type ConfidenceObservation } from '../mastra-v2/shared/confidence';
+import {
+  summarizeConfidenceCalibration,
+  type ConfidenceObservation,
+} from '../mastra-v2/shared/confidence';
 import { getDb } from '../runtime/db';
 import type { MastraSpecialistName } from './types';
 
@@ -126,18 +129,29 @@ export function computeDeskReliabilityWeights(
 
   for (const desk of SPECIALIST_DESKS) {
     const observations = byDesk[desk] ?? [];
-    const sampleSize = observations.length;
-    const brierScore = computeBrierScore(observations);
-    const accuracy =
-      sampleSize > 0
-        ? observations.filter((observation) => observation.correct).length / sampleSize
-        : 0;
+    // Reuse the shared calibration summary so mean confidence, accuracy, and
+    // the Brier error are computed exactly once per desk in one place.
+    const summary = summarizeConfidenceCalibration(observations);
+    const sampleSize = summary.count;
     if (sampleSize >= MIN_DESK_SAMPLES) {
-      sampled.push({ desk, reliability: Math.max(MIN_DESK_RELIABILITY, 1 - brierScore) });
-      report[desk] = { weight: 0, brierScore, accuracy, sampleSize };
+      sampled.push({
+        desk,
+        reliability: Math.max(MIN_DESK_RELIABILITY, 1 - summary.brierScore),
+      });
+      report[desk] = {
+        weight: 0,
+        brierScore: summary.brierScore,
+        accuracy: summary.accuracy,
+        sampleSize,
+      };
     } else {
       priorCount += 1;
-      report[desk] = { weight: PRIOR_DESK_WEIGHT, brierScore, accuracy, sampleSize };
+      report[desk] = {
+        weight: PRIOR_DESK_WEIGHT,
+        brierScore: summary.brierScore,
+        accuracy: summary.accuracy,
+        sampleSize,
+      };
     }
   }
 
