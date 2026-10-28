@@ -104,6 +104,11 @@ export async function startModeWorkflow(
       mastra: getKestrelMastra().instance,
       toolContext: params.toolContext,
       disabledTools: (args.settings as UserSettingsRow)?.disabledTools,
+      // Phase 2 (Jev System One) — BYOK settings/env for the pre-specialist
+      // packet calibration and consensus gate. Absent keys degrade cleanly to
+      // the uncalibrated LLM-only committee flow.
+      jevSettings: { aiApiKeys: args.settings.aiApiKeys },
+      jevEnv: args.env,
       // A-01: comparison runs execute the cross-symbol graph.
       ...(isComparison ? { comparisonSymbols } : {}),
       // Audit plan §1.7: synchronous web runs get a 45s committee deadline

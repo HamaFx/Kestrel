@@ -40,6 +40,7 @@ import type { InputProcessorOrWorkflow } from '@mastra/core/processors';
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
 
+import type { JevEnv, JevSettings } from '../jev/types';
 import { SymbolResearchPacketSchema } from '../mastra-v2/packets/packet-cache';
 import type { GenerationLedger } from '../persistence/generation-ledger';
 import type { ToolContext } from '../runtime/tool-context';
@@ -170,6 +171,14 @@ export interface CommitteeWorkflowDeps {
   deadlineMs?: number;
   toolContext?: ToolContext;
   disabledTools?: readonly string[] | null;
+  /**
+   * Phase 2 (Jev System One) — BYOK settings/env for the pre-specialist packet
+   * calibration and the committee consensus gate. When absent (or no Jev
+   * provider key is configured) every Jev integration degrades to the
+   * uncalibrated LLM-only flow.
+   */
+  jevSettings?: JevSettings | null | undefined;
+  jevEnv?: JevEnv | null | undefined;
 }
 
 /** Progress stage id accepted by `CommitteeWorkflowDeps.onProgress`. */

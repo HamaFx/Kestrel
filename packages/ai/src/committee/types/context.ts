@@ -47,6 +47,12 @@ export const REQUEST_CONTEXT_SCHEMA = z.object({
   blockedMissingData: z.unknown().optional(),
   /** Phase 1 plugins — installed + enabled plugin ids for this request. */
   installedPlugins: z.array(z.string()).optional(),
+  /**
+   * Phase 2 (Jev) — "Jev Scores, LLM Explains" calibration written by the
+   * collect step and read by every specialist prompt/runner. Absent when Jev
+   * is unconfigured or the packet is not ready.
+   */
+  jevCalibration: z.unknown().optional(),
 });
 
 export type ModeRequestContext = z.infer<typeof REQUEST_CONTEXT_SCHEMA>;
@@ -70,6 +76,12 @@ export function contextWithPacket(
   const installedPlugins = base.get('installedPlugins');
   if (installedPlugins !== undefined) {
     entries.push(['installedPlugins', installedPlugins]);
+  }
+  // Phase 2 (Jev): the calibrated packet anchor travels into every desk's
+  // agent call so its instructions include the statistical reference.
+  const jevCalibration = base.get('jevCalibration');
+  if (jevCalibration !== undefined) {
+    entries.push(['jevCalibration', jevCalibration]);
   }
   if (opinions) entries.push(['opinions', opinions]);
   if (critiques) entries.push(['critiques', critiques]);

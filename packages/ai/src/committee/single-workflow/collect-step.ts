@@ -22,13 +22,14 @@
 import { createStep } from '@mastra/core/workflows';
 
 import { enrichPacketForUser } from '../../plugins/enrichers';
+import { scorePacketWithJev } from '../jev-packet-scorer';
 import { recordCommitteeStepSpan } from '../step-spans';
 import { CollectPacketOutputSchema, zeroStats } from '../types';
 import { CommitteeWorkflowInputSchema } from '../workflow-shared';
 import type { SingleStepContext } from './context';
 
 export function createSingleCollectStep(ctx: SingleStepContext) {
-  const { deps, collectPacket, runSignal, progressStages } = ctx;
+  const { deps, collectPacket, generationLedger, runSignal, progressStages } = ctx;
 
   return createStep({
     id: 'collect-packet',
@@ -60,6 +61,23 @@ export function createSingleCollectStep(ctx: SingleStepContext) {
           failedAgents: [],
           totalCostUsd: 0,
         });
+      }
+      // Phase 2 (Jev) — "Jev Scores, LLM Explains": calibrate the deterministic
+      // packet before any specialist LLM runs, then publish the anchor on the
+      // request context so every desk prompt and confidence blend can read it.
+      // Best-effort: no Jev provider / timeout leaves the run uncalibrated.
+      const calibration = await scorePacketWithJev(packet, {
+        settings: deps.jevSettings ?? null,
+        env: deps.jevEnv ?? null,
+        signal,
+        ledger: generationLedger,
+        ledgerEntryId: `${(requestContext.get('runId') as string | undefined) ?? 'run'}:packet-calibration`,
+      });
+      if (calibration) {
+        (requestContext as unknown as { set?: (k: string, v: unknown) => void }).set?.(
+          'jevCalibration',
+          calibration,
+        );
       }
       return { packet, prompt: inputData.prompt, mode: inputData.mode };
     },
