@@ -16,23 +16,7 @@
  * limitations under the License.
  */
 
-// <Tooltip> — minimal CSS-only tooltip primitive. We deliberately don't
-// pull in Radix Tooltip here: it would add ~12KB gz for a single feature
-// the entire codebase needs to be sprinkled with. The native `title`
-// attribute fails focus-visible (only shown on hover), so we render a
-// styled bubble that appears on both `hover` and `focus-within`.
-//
-// Behaviour:
-//   - Pointer hover → bubble fades in after 350ms
-//   - Keyboard focus on the trigger → bubble fades in immediately
-//   - Touch devices → no hover state; the trigger should still have
-//     `aria-label`, which screen readers read aloud
-//   - prefers-reduced-motion → instant fade
-//
-// Usage:
-//   <Tooltip label="Pause alert">
-//     <button aria-label="Pause alert">…</button>
-//   </Tooltip>
+// <Tooltip> — minimal CSS-only tooltip primitive.
 import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/formatters/cn';
@@ -55,13 +39,10 @@ export function Tooltip({ label, side = 'top', shortcut, children, className }: 
       {children}
       <span
         role="tooltip"
-        // Bubble is a sibling of the trigger so the trigger keeps its own DOM
-        // contract; we surface it via group-hover/focus-within. aria-hidden
-        // because the trigger already has an accessible name.
         aria-hidden="true"
         className={cn(
           'pointer-events-none absolute z-50',
-          'text-body-sm rounded-sm px-2 py-1 font-medium whitespace-nowrap',
+          'text-body-sm rounded-lg px-2.5 py-1 font-medium whitespace-nowrap',
           'surface-elevated text-fg shadow-lg',
           'opacity-0 transition-opacity duration-150',
           'group-hover/tooltip:opacity-100 group-hover/tooltip:delay-300',
@@ -74,11 +55,7 @@ export function Tooltip({ label, side = 'top', shortcut, children, className }: 
       >
         <span className="flex items-center gap-1.5">
           <span>{label}</span>
-          {shortcut && (
-            <kbd className="font-mono text-[9px] text-fg-subtle bg-bg-elev-1/90 border border-white/10 rounded px-1 py-0.2 tracking-wider">
-              {shortcut}
-            </kbd>
-          )}
+          {shortcut && <kbd className="kbd-keycap">{shortcut}</kbd>}
         </span>
       </span>
     </span>

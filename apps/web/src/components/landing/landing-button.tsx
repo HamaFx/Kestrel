@@ -37,15 +37,15 @@ export function TacticalFlameButton({
       {/* Triple-Layer Expanding Orange Flame Glow (Hoplite Signature) */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute top-[0.45em] right-[0.45em] h-[1.45em] w-[5.2em] rounded-full bg-[#ff4800]/20 blur-[0.45em] transition-[width] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:w-[9em]"
+        className="pointer-events-none absolute top-[0.45em] right-[0.45em] h-[1.45em] w-[5.2em] rounded-full bg-[#ff4800]/22 blur-[0.45em] transition-[width] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:w-[9.2em]"
       />
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute top-[0.45em] right-[0.45em] h-[1.45em] w-[3.4em] rounded-full bg-[#ff632a]/60 blur-[0.45em] transition-[width] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:w-[9em]"
+        className="pointer-events-none absolute top-[0.45em] right-[0.45em] h-[1.45em] w-[3.4em] rounded-full bg-[#ff632a]/60 blur-[0.42em] transition-[width] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:w-[9.2em]"
       />
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute top-[0.45em] right-[0.45em] h-[1.45em] w-[1.85em] rounded-full bg-[#ff3616] blur-[0.45em] transition-[width] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:w-[9em]"
+        className="pointer-events-none absolute top-[0.45em] right-[0.45em] h-[1.45em] w-[1.85em] rounded-full bg-[#ff3616] blur-[0.36em] transition-[width] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:w-[9.2em]"
       />
 
       {/* Button Text */}
@@ -84,7 +84,7 @@ export function TacticalFlameButton({
   );
 
   const sharedClasses = cn(
-    'group relative inline-flex items-center overflow-hidden rounded-l-[6px] rounded-r-full bg-[#202224] py-[0.72em] pr-[3.4em] pl-[1.25em] text-[14px] font-sans font-medium leading-none tracking-[-0.02em] text-white border border-white/10 transition-transform duration-300 active:scale-[0.98] shadow-lg hover:border-brand/40',
+    'group tactile-press relative inline-flex items-center overflow-hidden rounded-l-[6px] rounded-r-full border border-white/12 bg-[#222326] py-[0.72em] pr-[3.4em] pl-[1.25em] font-sans text-[14px] font-medium leading-none tracking-[-0.02em] text-white shadow-[0_8px_24px_-4px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.14)] transition-all duration-300 hover:border-brand/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 select-none',
     className,
   );
 

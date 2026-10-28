@@ -92,10 +92,13 @@ export function MessageActionsBar({
     };
   }, [hasPopoverSupport, isOpenFallback]);
 
+  const actionButtonClass =
+    'surface-chip tactile-press bg-bg-elev-2/90 border-border/80 text-fg-muted hover:text-fg hover:border-brand/40 focus-visible:ring-brand inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-md border transition-colors focus:outline-none focus-visible:ring-2 sm:size-8';
+
   return (
     <div
       className={
-        'flex items-center gap-1 opacity-100 transition-opacity duration-150 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100'
+        'flex items-center gap-1.5 opacity-100 transition-opacity duration-150 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100'
       }
     >
       {plainText.length > 0 ? (
@@ -104,12 +107,12 @@ export function MessageActionsBar({
             type="button"
             onClick={onCopy}
             aria-label={copied ? 'Copied' : 'Copy message'}
-            className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-sm border transition-colors focus:outline-none focus-visible:ring-2 sm:size-8"
+            className={actionButtonClass}
           >
             {copied ? (
-              <IconCheck className="text-success size-4 sm:size-3.5" />
+              <IconCheck className="text-success size-4 sm:size-3.5" strokeWidth={2} />
             ) : (
-              <IconCopy className="size-4 sm:size-3.5" />
+              <IconCopy className="size-4 sm:size-3.5" strokeWidth={1.75} />
             )}
           </button>
         </Tooltip>
@@ -120,22 +123,22 @@ export function MessageActionsBar({
             type="button"
             onClick={onEditStart}
             aria-label="Edit prompt"
-            className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-sm border transition-colors focus:outline-none focus-visible:ring-2 sm:size-8"
+            className={actionButtonClass}
           >
-            <IconEdit className="size-4 sm:size-3.5" />
+            <IconEdit className="size-4 sm:size-3.5" strokeWidth={1.75} />
           </button>
         </Tooltip>
       ) : null}
       {onRegenerate ? (
-        <div className="relative inline-flex">
+        <div className="surface-chip bg-bg-elev-2/90 border-border/80 relative inline-flex overflow-hidden rounded-md border">
           <Tooltip label="Regenerate">
             <button
               type="button"
               onClick={() => onRegenerate()}
               aria-label="Regenerate response"
-              className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-sm border transition-colors focus:outline-none focus-visible:ring-2 sm:size-8"
+              className="tactile-press text-fg-muted hover:text-fg hover:bg-white/[0.04] focus-visible:ring-brand inline-flex min-h-[36px] min-w-[36px] items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 sm:size-8"
             >
-              <IconArrowBackUp className="size-4 sm:size-3.5" />
+              <IconArrowBackUp className="size-4 sm:size-3.5" strokeWidth={1.75} />
             </button>
           </Tooltip>
           <Tooltip label="Regenerate with…">
@@ -145,21 +148,21 @@ export function MessageActionsBar({
               onClick={hasPopoverSupport ? undefined : () => setIsOpenFallback(!isOpenFallback)}
               aria-label="Regenerate with a different model"
               data-action={REGEN_MENU_TRIGGER}
-              className="bg-bg-elev-1 border-border text-fg-muted hover:text-fg focus-visible:ring-fg border-divider inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-sm border border-l transition-colors focus:outline-none focus-visible:ring-2 sm:size-8"
+              className="tactile-press text-fg-muted hover:text-fg hover:bg-white/[0.04] focus-visible:ring-brand border-border/70 inline-flex min-h-[36px] min-w-[30px] items-center justify-center border-l px-1.5 transition-colors focus:outline-none focus-visible:ring-2 sm:h-8 sm:min-w-[26px]"
               style={
                 hasPopoverSupport
                   ? ({ anchorName: `--regen-btn-${message.id}` } as CSSProperties)
                   : undefined
               }
             >
-              <IconChevronDown className="size-3.5" />
+              <IconChevronDown className="size-3.5" strokeWidth={1.75} />
             </button>
           </Tooltip>
           <div
             id={`regen-menu-${message.id}`}
             popover={hasPopoverSupport ? 'auto' : undefined}
             role="menu"
-            className={`bg-bg-elev-1 border-border m-0 rounded-sm border p-1 shadow-xl ${
+            className={`surface-panel border-border m-0 rounded-xl border p-1 shadow-xl ${
               !hasPopoverSupport ? 'absolute right-0 bottom-full z-50 mb-2' : ''
             } ${!hasPopoverSupport && !isOpenFallback ? 'hidden' : ''}`}
             style={

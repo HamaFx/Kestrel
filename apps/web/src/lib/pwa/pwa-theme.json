@@ -18,11 +18,11 @@
     "border": "#2c2c2c",
     "fg": "#e5e5e5",
     "fgMuted": "#919191",
-    "fgSubtle": "#666666",
+    "fgSubtle": "#808080",
     "brand": "#ff3616",
     "brandSoft": "#ff632a",
     "bull": "#3f9e3d",
-    "bear": "#e02c10",
+    "bear": "#f03e3e",
     "info": "#4fa3b5",
     "warn": "#d98f00"
   }

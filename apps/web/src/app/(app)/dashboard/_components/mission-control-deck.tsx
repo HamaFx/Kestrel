@@ -20,26 +20,85 @@
 
 // Institutional command deck for /dashboard: the archival pediment banner with
 // the Convene Full Council CTA, and the four strategist desk cards.
-//
-// The live status metrics (session, open risk, alert pulse, AI nudge) live in
-// `TodayGlanceWidget` — this deck previously repeated them in a second
-// telemetry strip, so one screen showed the same four values twice.
-import { IconArrowRight } from '@tabler/icons-react';
+// Supports a persisted compact "Quick-Dispatch Strip" mode so daily operators
+// can collapse the full pediment banner and bring live widgets above the fold.
+import { IconArrowRight, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
+import { useLocalStorage } from '@/hooks/use-local-storage';
 import { STRATEGIST_DESK_LIST } from '@/lib/kestrel-strategist-desks';
 
 import { StrategistDeskCard } from './strategist-desk-card';
 
+const DECK_COLLAPSED_KEY = 'kestrel:mission-control-collapsed:v1';
+
 export function MissionControlDeck() {
+  const [collapsed, setCollapsed] = useLocalStorage<boolean>(DECK_COLLAPSED_KEY, false);
+
+  if (collapsed) {
+    return (
+      <section
+        aria-label="Mission Control Deck"
+        className="surface-panel mb-1 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 px-4 py-2.5"
+      >
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex items-center gap-2">
+            <span className="bg-brand size-1.5 animate-pulse rounded-full shadow-[0_0_8px_#ff3616]" />
+            <span className="label-eyebrow">4-DESK COUNCIL</span>
+          </div>
+
+          <div className="bg-border hidden h-3.5 w-px sm:block" aria-hidden="true" />
+
+          <div className="flex flex-wrap items-center gap-1.5">
+            {STRATEGIST_DESK_LIST.map((desk) => (
+              <Link
+                key={desk.id}
+                href={`/chat?desk=${desk.id}&prompt=${encodeURIComponent(desk.defaultPrompt)}`}
+                className="surface-chip tactile-press text-fg-muted hover:text-fg hover:border-brand/40 inline-flex items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1 font-mono text-[11px] font-medium transition-colors"
+                title={`${desk.title} — ${desk.epithet}`}
+              >
+                <span
+                  className="size-1.5 rounded-full"
+                  style={{ backgroundColor: desk.accentColor }}
+                />
+                <span>{desk.title}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Link
+            href="/chat?mode=full"
+            className="tactile-press border-brand/60 bg-brand inline-flex h-8 items-center gap-1.5 rounded-md border px-3 font-mono text-[11px] font-semibold tracking-wider text-white uppercase shadow-[0_2px_10px_rgba(255,54,22,0.3),inset_0_1px_0_rgba(255,255,255,0.28)] transition-all hover:brightness-110"
+          >
+            <span>Convene Full Council</span>
+            <IconArrowRight className="size-3.5" strokeWidth={2} />
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setCollapsed(false)}
+            aria-label="Expand Mission Control Deck"
+            aria-expanded="false"
+            className="surface-chip tactile-press text-fg-subtle hover:text-fg inline-flex h-8 items-center gap-1 rounded-md border border-white/10 px-2 font-mono text-[11px] transition-colors"
+          >
+            <span className="hidden sm:inline">Expand</span>
+            <IconChevronDown className="size-3.5" strokeWidth={1.75} />
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section
       aria-label="Mission Control Deck"
       className="relative mb-2 flex flex-col gap-4 overflow-hidden rounded-2xl"
     >
       {/* ── 1. Archival Pediment Header Banner ── */}
-      <div className="bg-bg-elev-1/90 relative flex flex-col justify-between overflow-hidden rounded-xl border border-white/[0.08] p-5 shadow-md backdrop-blur-md sm:p-6 md:flex-row md:items-center">
+      <div className="surface-panel relative flex flex-col justify-between overflow-hidden rounded-xl border border-white/[0.09] p-5 backdrop-blur-md sm:p-6 md:flex-row md:items-center">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -top-12 -right-12 z-0 h-64 w-96 opacity-15 mix-blend-luminosity select-none"
@@ -56,10 +115,8 @@ export function MissionControlDeck() {
 
         <div className="relative z-10 flex max-w-2xl flex-col gap-2">
           <div className="flex items-center gap-2">
-            <span className="text-brand font-mono text-[11px] font-semibold tracking-[0.18em] uppercase">
-              INSTITUTIONAL MULTI-AGENT COMMAND DECK
-            </span>
-            <span className="bg-brand size-1.5 animate-pulse rounded-full" />
+            <span className="label-eyebrow">INSTITUTIONAL MULTI-AGENT COMMAND DECK</span>
+            <span className="bg-brand size-1.5 animate-pulse rounded-full shadow-[0_0_8px_#ff3616]" />
           </div>
 
           <h2 className="font-display text-fg text-2xl font-normal tracking-[-0.03em] sm:text-3xl">
@@ -79,11 +136,22 @@ export function MissionControlDeck() {
               `?mode=council` was silently ignored. */}
           <Link
             href="/chat?mode=full"
-            className="border-brand/60 bg-brand inline-flex items-center gap-2 rounded-lg border px-4 py-2 font-mono text-xs font-semibold tracking-wider text-white uppercase shadow-md transition-all hover:brightness-110 active:translate-y-[0.5px]"
+            className="tactile-press border-brand/60 bg-brand inline-flex h-10 items-center gap-2 rounded-md border px-4 font-mono text-xs font-semibold tracking-wider text-white uppercase shadow-[0_4px_14px_rgba(255,54,22,0.32),inset_0_1px_0_rgba(255,255,255,0.32),inset_0_-1px_0_rgba(0,0,0,0.35)] transition-all hover:brightness-110"
           >
             <span>Convene Full Council</span>
-            <IconArrowRight className="size-3.5" />
+            <IconArrowRight className="size-3.5" strokeWidth={2} />
           </Link>
+
+          <button
+            type="button"
+            onClick={() => setCollapsed(true)}
+            aria-label="Collapse Mission Control Deck to compact strip"
+            aria-expanded="true"
+            className="text-fg-subtle hover:text-fg inline-flex items-center gap-1 rounded px-2 py-1 font-mono text-[11px] transition-colors"
+          >
+            <span>Compact strip</span>
+            <IconChevronUp className="size-3.5" strokeWidth={1.75} />
+          </button>
         </div>
       </div>
 

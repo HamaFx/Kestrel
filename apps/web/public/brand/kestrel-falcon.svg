@@ -1,19 +1,32 @@
 <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <!-- Sovereign Kestrel Falcon: Geometric Heraldic Raptor -->
+  <!-- Sovereign Kestrel Falcon: Symmetrical Milled Heraldic Raptor & Horus Pediment -->
   <g fill="currentColor">
-    <!-- Crest / Crown -->
-    <path d="M60 12 L68 26 L76 20 L73 34 L88 32 L78 44 L92 48 L76 56 L86 64 L70 68 L78 80 L62 76 L66 92 L54 84 L50 96 L46 84 L34 92 L38 76 L22 80 L30 68 L14 64 L24 56 L8 48 L22 44 L12 32 L27 34 L24 20 L32 26 Z" opacity="0.08"/>
-    
-    <!-- Primary Head & Beak -->
-    <path d="M58 16 C66 16 74 20 80 27 L96 29 C99 29.5 101 32 99 34 L88 42 C89 44 89 47 88 50 L104 53 C106 53.5 107 56 105 58 L94 65 C92 72 87 79 80 84 L80 94 L72 94 L72 88 C68 90 63 91 58 91 C53 91 48 90 44 88 L44 94 L36 94 L36 84 C29 79 24 72 22 65 L11 58 C9 56 10 53.5 12 53 L28 50 C27 47 27 44 28 42 L17 34 C15 32 17 29.5 20 29 L36 27 C42 20 50 16 58 16 Z M58 24 C51 24 45 28 42 34 L30 35 L38 41 C36 44 35 48 35 52 L23 54 L31 59 C33 66 38 72 44 76 L44 82 L50 82 L50 78 C53 79 55.5 79.5 58 79.5 C60.5 79.5 63 79 66 78 L66 82 L72 82 L72 76 C78 72 83 66 85 59 L93 54 L81 52 C81 48 80 44 78 41 L86 35 L74 34 C71 28 65 24 58 24 Z"/>
-    
-    <!-- Eye of Horus / Predatory Focus -->
-    <circle cx="50" cy="42" r="4"/>
-    <circle cx="66" cy="42" r="4"/>
-    <path d="M42 36 L58 39 L74 36 L66 40 L58 40 L50 40 Z"/>
-    
-    <!-- Sovereign Talons & Bullion Ingot Base -->
-    <rect x="28" y="98" width="60" height="8" rx="2"/>
-    <rect x="34" y="108" width="48" height="4" rx="1" opacity="0.6"/>
+    <!-- Outer Solar Halo / Phalanx Shield Rays (Subtle Architectural Backdrop) -->
+    <path
+      d="M60 8 L67 22 L80 14 L77 29 L94 26 L84 40 L102 44 L86 54 L98 64 L80 69 L88 82 L70 78 L72 94 L60 85 L48 94 L50 78 L32 82 L40 69 L22 64 L34 54 L18 44 L36 40 L26 26 L43 29 L40 14 L53 22 Z"
+      opacity="0.09"
+    />
+
+    <!-- Swept Milled Primary Wings (Symmetrical Center X=60) -->
+    <path
+      d="M60 14 L72 24 L108 20 L94 37 L112 42 L92 54 L104 64 L80 68 L74 84 L60 76 L46 84 L40 68 L16 64 L28 54 L8 42 L26 37 L12 20 L48 24 Z M60 22 L49 31 L24 28 L35 40 L20 44 L37 53 L28 60 L46 63 L50 75 L60 69 L70 75 L74 63 L92 60 L83 53 L100 44 L85 40 L96 28 L71 31 Z"
+    />
+
+    <!-- Inner Raptor Crown, Brow Ridge & Predatory Beak -->
+    <path
+      d="M60 26 L71 35 L68 51 L60 64 L52 51 L49 35 Z M60 32 L54 37 L55 47 L60 56 L65 47 L66 37 Z"
+    />
+
+    <!-- Eye of Horus Angular Ocular Slits (Mathematically Centered around X=60) -->
+    <polygon points="44,39 54,42 52,46 42,43" />
+    <polygon points="76,39 66,42 68,46 78,43" />
+
+    <!-- Center Crest Diamond -->
+    <polygon points="60,35 63,40 60,49 57,40" />
+
+    <!-- Stepped Bullion Ingot Pedestal Base -->
+    <rect x="28" y="92" width="64" height="7" rx="2" />
+    <rect x="36" y="103" width="48" height="4" rx="1.5" opacity="0.68" />
+    <rect x="46" y="110" width="28" height="2.5" rx="1" opacity="0.38" />
   </g>
 </svg>

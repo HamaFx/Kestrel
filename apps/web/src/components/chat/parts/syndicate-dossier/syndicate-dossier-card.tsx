@@ -77,7 +77,7 @@ function DataPanel({
           <span className="text-fg truncate text-right tabular-nums">{value}</span>
         </div>
       ))}
-      <p className="text-fg-subtle mt-1 font-mono text-[10px] leading-relaxed">
+      <p className="text-fg-subtle mt-1 font-mono text-[11px] leading-relaxed">
         Numerically audited against the locked market packet; no unverified levels are certified.
       </p>
     </div>
@@ -141,10 +141,11 @@ export function SyndicateDossierCard({
     (critiques ?? []).filter((clash) => !clash.confirms).length || (levels.dissent ? 1 : 0);
   const doneDesks = opinions.length;
 
+  // Clean vector iconography without redundant OS emoji prefixes.
   const tabs: Array<{ id: DossierTab; label: string; icon: typeof IconUsers }> = [
-    { id: 'desks', label: `🏛️ 4 Desks (${doneDesks}/${doneDesks || 4})`, icon: IconUsers },
-    { id: 'clash', label: `⚔️ Cross-Examination (${clashCount})`, icon: IconSwords },
-    { id: 'data', label: '📊 Data & Sources', icon: IconDatabase },
+    { id: 'desks', label: `4 Desks (${doneDesks}/${doneDesks || 4})`, icon: IconUsers },
+    { id: 'clash', label: `Cross-Examination (${clashCount})`, icon: IconSwords },
+    { id: 'data', label: 'Data & Sources', icon: IconDatabase },
   ];
 
   return (
@@ -165,14 +166,15 @@ export function SyndicateDossierCard({
 
       {compactInline ? (
         <div className="border-brand/30 bg-brand/[0.04] flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2">
-          <span className="text-brand font-mono text-[10px] font-semibold tracking-wider uppercase">
-            🏛️ 4 Desks &amp; Cross-Examination open in War Room
+          <span className="text-brand inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold tracking-wider uppercase">
+            <IconUsers className="size-3.5" strokeWidth={1.85} />
+            <span>4 Desks &amp; Cross-Examination open in War Room</span>
           </span>
           {onOpenWarRoom ? (
             <button
               type="button"
               onClick={onOpenWarRoom}
-              className="text-brand hover:text-brand-fg min-h-11 font-mono text-[10px] font-bold uppercase transition-colors sm:min-h-9"
+              className="text-brand hover:text-brand-fg min-h-11 font-mono text-[11px] font-bold uppercase transition-colors sm:min-h-9"
             >
               View →
             </button>
@@ -194,13 +196,13 @@ export function SyndicateDossierCard({
                 aria-selected={isActive}
                 onClick={() => setTab(id)}
                 className={cn(
-                  'inline-flex min-h-11 items-center gap-1.5 rounded-lg border px-2.5 font-mono text-[10px] font-semibold tracking-wide uppercase transition-all sm:min-h-9',
+                  'tactile-press inline-flex min-h-11 items-center gap-1.5 rounded-lg border px-3 font-mono text-[11px] font-semibold tracking-wide uppercase transition-all sm:min-h-9',
                   isActive
-                    ? 'border-brand/40 bg-brand/10 text-brand'
-                    : 'border-border/50 bg-bg-elev-2 text-fg-muted hover:text-fg',
+                    ? 'border-brand/50 bg-brand/12 text-brand shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_2px_8px_rgba(255,54,22,0.15)]'
+                    : 'surface-chip border-border/60 bg-bg-elev-2 text-fg-muted hover:text-fg hover:border-white/15',
                 )}
               >
-                <Icon className="size-3.5" />
+                <Icon className="size-3.5" strokeWidth={isActive ? 2 : 1.75} />
                 {label}
               </button>
             );
