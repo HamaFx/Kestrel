@@ -127,6 +127,8 @@ export const METRIC_NAMES = [
   'jev_rag_quarantine_total',
   // Phase 2 (Jev) — semantic disclosure verifier verdicts.
   'committee_disclosure_verification_total',
+  // Phase 3 (Jev) — market-regime memory writes (JEPA-style recall corpus).
+  'market_regime_memory_failed_total',
 ] as const;
 
 export type MetricName = (typeof METRIC_NAMES)[number];

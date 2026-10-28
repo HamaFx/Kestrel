@@ -29,6 +29,7 @@
 
 import { assetClassForSymbol, metrics } from '@kestrel/shared';
 
+import { rememberMarketRegime } from '@ai/memory/memory-index';
 import { createGenerationLedger } from '@ai/persistence/generation-ledger';
 
 import { logWorkflowError } from '../../logger';
@@ -189,6 +190,36 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
       memoryBackfill: prepared.backfillAttempted,
       ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
     });
+
+    // Phase 3 (Jev roadmap) — record the JEPA-style market-regime descriptor for
+    // this run's packet so later recalls can compare similar regimes. Best-effort:
+    // a memory failure is telemetry-only and never fails the answer path.
+    try {
+      await rememberMarketRegime({
+        packet: output.packet,
+        userId: args.userId,
+        env: {
+          ...(args.env.AI_GATEWAY_API_KEY
+            ? { AI_GATEWAY_API_KEY: args.env.AI_GATEWAY_API_KEY }
+            : {}),
+          ...(args.env.GOOGLE_GENERATIVE_AI_API_KEY
+            ? { GOOGLE_GENERATIVE_AI_API_KEY: args.env.GOOGLE_GENERATIVE_AI_API_KEY }
+            : {}),
+          ...(args.env.AI_EMBEDDING_MODEL
+            ? { AI_EMBEDDING_MODEL: args.env.AI_EMBEDDING_MODEL }
+            : {}),
+        },
+        userSettings: {
+          aiApiKeys: args.settings.aiApiKeys,
+          embeddingModel: args.settings.embeddingModel ?? null,
+        },
+        signal: args.signal ?? null,
+      });
+    } catch (error) {
+      metrics.increment('market_regime_memory_failed_total', {
+        tags: { reason: error instanceof Error ? error.name : 'unknown' },
+      });
+    }
 
     return mapReadyResult({
       output: output as ModeWorkflowOutput & { finalText: string },
