@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/kestrel-logo.png" alt="Kestrel Logo" width="440" style="max-width: 100%; border-radius: 12px;">
+<img src="docs/assets/kestrel-logo.png" alt="Kestrel Logo" width="280" style="max-width: 100%; border-radius: 12px;">
 
 # Kestrel
 

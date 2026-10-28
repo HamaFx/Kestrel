@@ -47,6 +47,12 @@ interface KestrelBrandProps {
  *   solidified feather blades and an enlarged #FF3616 diamond pupil.
  * - `/brand/kestrel-falcon.svg` for `markSize="sm"` and `variant="lockup"`
  *   where the full Eye of Horus spiral and feather geometry are visible.
+ *
+ * Both cuts carry their own fills — a #E5E5E5 body with the #FF3616 pupil — so
+ * the mark's colour is intrinsic. An `<img>`-referenced SVG renders as its own
+ * document and cannot inherit this page's CSS, so a `text-brand` utility here
+ * would be inert; tint the mark by editing the SVG, not the class list. The app
+ * is dark-only, so that fixed light fill is what we want on every surface.
  */
 export function KestrelBrand({
   variant = 'lockup',
@@ -78,10 +84,7 @@ export function KestrelBrand({
           aria-hidden={isDecorative || undefined}
           width={24}
           height={24}
-          className={cn(
-            'text-brand relative z-10 shrink-0',
-            markSize === 'xs' ? 'size-3.5' : 'size-5',
-          )}
+          className={cn('relative z-10 shrink-0', markSize === 'xs' ? 'size-3.5' : 'size-5')}
         />
       </span>
     ) : (
@@ -93,7 +96,7 @@ export function KestrelBrand({
             aria-hidden={isDecorative || undefined}
             width={26}
             height={26}
-            className="text-brand relative z-10 size-6 transition-transform duration-200 group-hover/brand:scale-[1.04]"
+            className="relative z-10 size-6 transition-transform duration-200 group-hover/brand:scale-[1.04]"
           />
         </span>
         <span className="font-display text-fg text-[18px] font-normal tracking-[-0.02em]">
