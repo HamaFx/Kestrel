@@ -40,7 +40,7 @@ export function MissionControlDeck() {
     return (
       <section
         aria-label="Mission Control Deck"
-        className="surface-panel mb-1 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 px-4 py-2.5"
+        className="surface-panel mb-1 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-2.5"
       >
         <div className="flex flex-wrap items-center gap-2.5">
           <div className="flex items-center gap-2">
@@ -55,7 +55,7 @@ export function MissionControlDeck() {
               <Link
                 key={desk.id}
                 href={`/chat?desk=${desk.id}&prompt=${encodeURIComponent(desk.defaultPrompt)}`}
-                className="surface-chip tactile-press text-fg-muted hover:text-fg hover:border-brand/40 inline-flex items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1 font-mono text-[11px] font-medium transition-colors"
+                className="surface-chip tactile-press text-fg-muted hover:text-fg hover:border-brand/40 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 font-mono text-[11px] font-medium transition-colors"
                 title={`${desk.title} — ${desk.epithet}`}
               >
                 <span
@@ -82,7 +82,7 @@ export function MissionControlDeck() {
             onClick={() => setCollapsed(false)}
             aria-label="Expand Mission Control Deck"
             aria-expanded="false"
-            className="surface-chip tactile-press text-fg-subtle hover:text-fg inline-flex h-8 items-center gap-1 rounded-md border border-white/10 px-2 font-mono text-[11px] transition-colors"
+            className="surface-chip tactile-press text-fg-subtle hover:text-fg inline-flex h-8 items-center gap-1 rounded-md px-2 font-mono text-[11px] transition-colors"
           >
             <span className="hidden sm:inline">Expand</span>
             <IconChevronDown className="size-3.5" strokeWidth={1.75} />
@@ -98,7 +98,7 @@ export function MissionControlDeck() {
       className="relative mb-2 flex flex-col gap-4 overflow-hidden rounded-2xl"
     >
       {/* ── 1. Archival Pediment Header Banner ── */}
-      <div className="surface-panel relative flex flex-col justify-between overflow-hidden rounded-xl border border-white/[0.09] p-5 backdrop-blur-md sm:p-6 md:flex-row md:items-center">
+      <div className="surface-panel relative flex flex-col justify-between overflow-hidden rounded-xl p-5 sm:p-6 md:flex-row md:items-center">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -top-12 -right-12 z-0 h-64 w-96 opacity-15 mix-blend-luminosity select-none"

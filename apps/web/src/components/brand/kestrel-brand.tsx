@@ -60,7 +60,7 @@ export function KestrelBrand({
     variant === 'mark' ? (
       <span
         className={cn(
-          'icon-housing-brand surface-chip relative flex items-center justify-center overflow-hidden border transition-all duration-200',
+          'icon-housing-brand relative flex items-center justify-center overflow-hidden transition-all duration-200',
           markSize === 'xs' ? 'rounded-md p-1' : 'rounded-lg p-1.5',
         )}
       >
@@ -75,7 +75,7 @@ export function KestrelBrand({
       </span>
     ) : (
       <div className="group/brand flex items-center gap-2.5">
-        <span className="icon-housing-brand surface-chip relative flex items-center justify-center overflow-hidden rounded-lg border p-1.5 shadow-sm transition-all duration-200 group-hover/brand:border-brand/60 group-hover/brand:shadow-[0_0_16px_rgba(255,54,22,0.28)]">
+        <span className="icon-housing-brand relative flex items-center justify-center overflow-hidden rounded-lg p-1.5 transition-all duration-200 group-hover/brand:border-brand/60 group-hover/brand:shadow-[0_0_16px_rgba(255,54,22,0.28)]">
           <img
             src="/brand/kestrel-falcon.svg"
             alt={isDecorative ? '' : 'Kestrel'}

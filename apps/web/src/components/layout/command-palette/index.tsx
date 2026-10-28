@@ -108,7 +108,7 @@ export function CommandPalette({ onNewChat, installedPluginIds = [] }: CommandPa
                   placeholder="Jump to page or action…"
                   autoComplete="off"
                   spellCheck={false}
-                  className="surface-well text-fg placeholder:text-fg-subtle focus:border-brand/60 border-border h-11 w-full rounded-lg border pr-4 pl-10 text-sm focus:outline-none"
+                  className="surface-well text-fg placeholder:text-fg-subtle focus:border-brand/60 h-11 w-full rounded-lg pr-4 pl-10 text-sm focus:outline-none"
                 />
               </div>
             </div>
@@ -149,7 +149,7 @@ export function CommandPalette({ onNewChat, installedPluginIds = [] }: CommandPa
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: -8 }}
                 transition={MOTION_PRESETS.panel}
-                className="surface-panel relative z-10 flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-white/10 backdrop-blur-2xl"
+                className="surface-panel relative z-10 flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl"
               >
                 <h2 id="desktop-cmd-title" className="sr-only">
                   Quick switch

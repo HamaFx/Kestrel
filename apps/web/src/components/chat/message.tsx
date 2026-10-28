@@ -99,7 +99,7 @@ function MessageImpl({
   if (isUser && isEditing) {
     return (
       <div className="mt-1 mb-2 flex w-full justify-end">
-        <div className="surface-well border-border focus-within:border-brand/60 focus-within:ring-brand/20 flex w-full max-w-[88%] flex-col gap-2.5 rounded-xl border p-3.5 focus-within:ring-2">
+        <div className="surface-well focus-within:border-brand/60 focus-within:ring-brand/20 flex w-full max-w-[88%] flex-col gap-2.5 rounded-xl p-3.5 focus-within:ring-2">
           <textarea
             className="text-fg [field-sizing:content] w-full resize-none bg-transparent text-sm leading-relaxed outline-none"
             value={editValue}
@@ -170,7 +170,7 @@ function MessageImpl({
             className={cn(
               'relative flex flex-col gap-2',
               isUser
-                ? 'group/bubble surface-chip bg-bg-elev-2/90 text-fg ml-auto max-w-[82%] rounded-xl border border-white/10 px-3.5 py-2.5 font-medium backdrop-blur-[2px]'
+                ? 'group/bubble surface-chip text-fg ml-auto max-w-[82%] rounded-xl px-3.5 py-2.5 font-medium'
                 : 'w-full',
               !isUser && !isSystem ? 'py-1' : 'py-3',
             )}

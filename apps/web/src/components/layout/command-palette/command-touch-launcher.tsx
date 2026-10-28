@@ -14,7 +14,7 @@ export function CommandTouchLauncher({ onOpen }: { onOpen: () => void }) {
       onClick={onOpen}
       aria-label="Open command palette"
       style={{ bottom: 'calc(env(safe-area-inset-bottom) + 96px)' }}
-      className="surface-chip-dark tactile-press text-fg hover:border-brand/50 hover:text-brand focus-visible:ring-brand fixed right-4 z-30 inline-flex size-12 items-center justify-center rounded-xl border border-white/15 shadow-xl transition-colors focus-visible:ring-2 focus-visible:outline-none"
+      className="surface-chip-dark tactile-press text-fg hover:border-brand/50 hover:text-brand focus-visible:ring-brand fixed right-4 z-30 inline-flex size-12 items-center justify-center rounded-xl transition-colors focus-visible:ring-2 focus-visible:outline-none"
     >
       <IconCommand className="size-5" strokeWidth={1.85} aria-hidden="true" />
     </button>

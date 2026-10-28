@@ -19,6 +19,14 @@
 // <IconBadge> — Shared neo-skeuomorphic hardware housing for icons across
 // PageHeader, ConfirmDrawer, EmptyState, MutationConfirmationCard, and widgets.
 // Eliminates ad-hoc span/div icon wrappers with drifting border-radii and borders.
+//
+// Every tone maps to exactly one `icon-housing*` utility that owns its own
+// background, border, colour and box-shadow. That is deliberate: Tailwind v4
+// emits custom `@utility` rules *after* the core colour utilities inside
+// `@layer utilities`, so a flat `bg-danger/10` + `border-danger/30` layered on
+// top of a housing utility is silently overridden and every tone renders as the
+// neutral surface. Adding a tint here means adding a housing utility too — see
+// the semantic tone housings in apps/web/src/app/globals.css.
 
 import type { HTMLAttributes, ReactNode } from 'react';
 
@@ -36,16 +44,13 @@ export interface IconBadgeProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 const TONE_STYLES: Record<IconBadgeTone, string> = {
-  brand:
-    'icon-housing-brand text-brand border-brand/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_2px_10px_rgba(255,54,22,0.16)]',
-  neutral:
-    'icon-housing text-fg-muted border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_2px_6px_rgba(0,0,0,0.4)]',
-  bull: 'bg-bull/10 text-bull border-bull/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_2px_8px_rgba(63,158,61,0.14)]',
-  bear: 'bg-bear/10 text-bear border-bear/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_2px_8px_rgba(240,62,62,0.14)]',
-  danger:
-    'bg-danger/10 text-danger border-danger/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_2px_8px_rgba(240,62,62,0.14)]',
-  warn: 'bg-warn/10 text-warn border-warn/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_2px_8px_rgba(217,143,0,0.14)]',
-  info: 'bg-info/10 text-info border-info/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_2px_8px_rgba(79,163,181,0.14)]',
+  brand: 'icon-housing-brand',
+  neutral: 'icon-housing',
+  bull: 'icon-housing-bull',
+  bear: 'icon-housing-bear',
+  danger: 'icon-housing-danger',
+  warn: 'icon-housing-warn',
+  info: 'icon-housing-info',
 };
 
 const SIZE_STYLES: Record<IconBadgeSize, string> = {
@@ -68,7 +73,7 @@ export function IconBadge({
     <span
       aria-hidden="true"
       className={cn(
-        'surface-chip relative inline-flex shrink-0 items-center justify-center overflow-hidden border transition-colors duration-150',
+        'relative inline-flex shrink-0 items-center justify-center overflow-hidden transition-colors duration-150',
         TONE_STYLES[tone],
         SIZE_STYLES[size],
         className,

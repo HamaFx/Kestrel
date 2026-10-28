@@ -163,7 +163,7 @@ export function MutationConfirmationCard({ payload }: { payload: MutationDraftPa
   return (
     <Card
       as="section"
-      className="surface-card border-brand/40 bg-bg-elev-1 rounded-xl border p-4 shadow-md transition-all sm:p-5"
+      className="bg-bg-elev-1 border-brand/40 rounded-xl border p-4 shadow-md transition-all sm:p-5"
       aria-label={`${KIND_LABELS[payload.mutation]} confirmation`}
     >
       <div className="border-border/40 flex flex-wrap items-center justify-between gap-2 border-b pb-3">
@@ -192,7 +192,7 @@ export function MutationConfirmationCard({ payload }: { payload: MutationDraftPa
         </div>
       </div>
 
-      <div className="surface-well border-border/60 mt-3 overflow-hidden rounded-lg border font-mono text-[11px]">
+      <div className="surface-well mt-3 overflow-hidden rounded-lg font-mono text-[11px]">
         <div className="border-border/40 bg-bg-elev-3 text-brand grid grid-cols-3 border-b px-3 py-1.5 text-[11px] font-semibold uppercase">
           <span>Directive</span>
           <span className="col-span-2">Execution Payload</span>
