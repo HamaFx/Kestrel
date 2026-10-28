@@ -310,14 +310,8 @@ export async function getCoachInsights(args: CoachInsightsArgs): Promise<CoachIn
     // leaks into Mastra's resource-scoped working memory so chat turns are
     // aware of the trader's personal profile. Best-effort: a memory failure is
     // logged and never fails the review response.
-    await syncCoachInsightsToWorkingMemory({
-      userId,
-      threadId,
-      userSettings,
-      env,
-      insights,
-      stats,
-    });
+    const coachMemorySyncArgs = { userId, threadId, userSettings, env, insights, stats };
+    await syncCoachInsightsToWorkingMemory(coachMemorySyncArgs);
 
     return insights;
   } catch (err) {
