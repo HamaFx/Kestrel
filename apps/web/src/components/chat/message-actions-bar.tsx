@@ -93,7 +93,7 @@ export function MessageActionsBar({
   }, [hasPopoverSupport, isOpenFallback]);
 
   const actionButtonClass =
-    'surface-chip tactile-press bg-bg-elev-2/90 border-border/80 text-fg-muted hover:text-fg hover:border-brand/40 focus-visible:ring-brand inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-md border transition-colors focus:outline-none focus-visible:ring-2 sm:size-8';
+    'surface-chip tactile-press text-fg-muted hover:text-fg hover:border-brand/40 focus-visible:ring-brand inline-flex size-9 items-center justify-center rounded-md transition-colors focus:outline-none focus-visible:ring-2 sm:size-8';
 
   return (
     <div
@@ -130,13 +130,13 @@ export function MessageActionsBar({
         </Tooltip>
       ) : null}
       {onRegenerate ? (
-        <div className="surface-chip bg-bg-elev-2/90 border-border/80 relative inline-flex overflow-hidden rounded-md border">
+        <div className="surface-chip relative inline-flex overflow-hidden rounded-md">
           <Tooltip label="Regenerate">
             <button
               type="button"
               onClick={() => onRegenerate()}
               aria-label="Regenerate response"
-              className="tactile-press text-fg-muted hover:text-fg hover:bg-white/[0.04] focus-visible:ring-brand inline-flex min-h-[36px] min-w-[36px] items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 sm:size-8"
+              className="tactile-press text-fg-muted hover:text-fg hover:bg-white/[0.04] focus-visible:ring-brand inline-flex size-9 items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset sm:size-8"
             >
               <IconArrowBackUp className="size-4 sm:size-3.5" strokeWidth={1.75} />
             </button>
@@ -148,7 +148,7 @@ export function MessageActionsBar({
               onClick={hasPopoverSupport ? undefined : () => setIsOpenFallback(!isOpenFallback)}
               aria-label="Regenerate with a different model"
               data-action={REGEN_MENU_TRIGGER}
-              className="tactile-press text-fg-muted hover:text-fg hover:bg-white/[0.04] focus-visible:ring-brand border-border/70 inline-flex min-h-[36px] min-w-[30px] items-center justify-center border-l px-1.5 transition-colors focus:outline-none focus-visible:ring-2 sm:h-8 sm:min-w-[26px]"
+              className="tactile-press text-fg-muted hover:text-fg hover:bg-white/[0.04] focus-visible:ring-brand border-border/70 inline-flex h-9 min-w-[30px] items-center justify-center border-l px-1.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset sm:h-8 sm:min-w-[26px]"
               style={
                 hasPopoverSupport
                   ? ({ anchorName: `--regen-btn-${message.id}` } as CSSProperties)
@@ -162,7 +162,7 @@ export function MessageActionsBar({
             id={`regen-menu-${message.id}`}
             popover={hasPopoverSupport ? 'auto' : undefined}
             role="menu"
-            className={`surface-panel border-border m-0 rounded-xl border p-1 shadow-xl ${
+            className={`surface-panel m-0 rounded-xl p-1 ${
               !hasPopoverSupport ? 'absolute right-0 bottom-full z-50 mb-2' : ''
             } ${!hasPopoverSupport && !isOpenFallback ? 'hidden' : ''}`}
             style={

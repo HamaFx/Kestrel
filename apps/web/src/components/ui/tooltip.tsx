@@ -43,7 +43,7 @@ export function Tooltip({ label, side = 'top', shortcut, children, className }: 
         className={cn(
           'pointer-events-none absolute z-50',
           'text-body-sm rounded-lg px-2.5 py-1 font-medium whitespace-nowrap',
-          'surface-elevated text-fg shadow-lg',
+          'surface-elevated text-fg',
           'opacity-0 transition-opacity duration-150',
           'group-hover/tooltip:opacity-100 group-hover/tooltip:delay-300',
           'group-focus-within/tooltip:opacity-100 group-focus-within/tooltip:delay-0',

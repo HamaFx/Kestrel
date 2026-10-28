@@ -199,7 +199,7 @@ export function SyndicateDossierCard({
                   'tactile-press inline-flex min-h-11 items-center gap-1.5 rounded-lg border px-3 font-mono text-[11px] font-semibold tracking-wide uppercase transition-all sm:min-h-9',
                   isActive
                     ? 'border-brand/50 bg-brand/12 text-brand shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_2px_8px_rgba(255,54,22,0.15)]'
-                    : 'surface-chip border-border/60 bg-bg-elev-2 text-fg-muted hover:text-fg hover:border-white/15',
+                    : 'surface-chip text-fg-muted hover:text-fg hover:border-white/15',
                 )}
               >
                 <Icon className="size-3.5" strokeWidth={isActive ? 2 : 1.75} />
