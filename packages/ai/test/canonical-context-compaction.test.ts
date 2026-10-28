@@ -71,4 +71,28 @@ describe('Anchor-preserving context compaction in messageHistory', () => {
     expect(serialized).toContain('...[compacted tool/context output]');
     expect(serialized.length).toBeLessThanOrEqual(65_000);
   });
+
+  it('retains the most recent six messages even when they exceed the tail budget', async () => {
+    const anchor: UIMessage = {
+      id: 'msg-anchor',
+      role: 'user',
+      parts: [{ type: 'text', text: 'Setup thesis anchor for this thread.' }],
+    };
+    const messages: UIMessage[] = Array.from({ length: 8 }, (_, i) => ({
+      id: `msg-${i}`,
+      role: i % 2 === 0 ? 'user' : 'assistant',
+      parts: [{ type: 'text', text: `RECENT ${i}: ` + 'Z'.repeat(12_000) }],
+    }));
+    const latest = messages[messages.length - 1]!;
+
+    const modelMessages = await messageHistory([anchor, ...messages], latest);
+    const serialized = JSON.stringify(modelMessages);
+
+    // The window may exceed the soft tail budget, but never by dropping the
+    // thread anchor or any of the most recent six turns.
+    expect(serialized).toContain('Setup thesis anchor for this thread.');
+    expect(serialized).toContain('RECENT 7: ');
+    expect(serialized).toContain('RECENT 2: ');
+    expect(serialized).not.toContain('RECENT 0: ');
+  });
 });
