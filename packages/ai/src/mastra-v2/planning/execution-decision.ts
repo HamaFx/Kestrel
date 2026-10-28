@@ -13,7 +13,8 @@ import {
   type MastraModelPurpose,
   type MastraResolvedModel,
 } from '../../models/model';
-import { resolveSemanticRoutingConfig, routeTurn, type RoutingDecision } from '../../routing';
+import { resolveSemanticRoutingConfig, routeTurn, type RoutingDecision, type RoutingDomain } from '../../routing';
+import { isHighConfidenceMutationIntent } from '../../routing/keywords';
 import {
   evaluateMastraCapability,
   getMastraCapability,
@@ -23,6 +24,7 @@ import {
 import { classifyMutationRequest } from '../mutation/mutation-detect';
 import {
   extractMastraSymbol,
+  isInjectionAttempt,
   isMastraSymbolCandidate,
   isMastraXauusdCandidate,
   isMastraXauusdFollowupCandidate,
@@ -40,6 +42,21 @@ export type MastraExecutionRoute =
   | 'symbol-research'
   | 'canonical-chat';
 
+/**
+ * Phase 1 (Jev System One) — confident routing hints from the parallel Jev
+ * turn router. Hints may only *add* information: the deterministic lexical
+ * gates (`isInjectionAttempt`, `isHighConfidenceMutationIntent`, symbol
+ * candidates) always run and can never be weakened by a hint.
+ */
+export interface MastraJevRoutingHints {
+  /** Confident domain classification (vision stays deterministic). */
+  domain?: RoutingDomain | null;
+  /** Confident XAUUSD report path hint. */
+  xauusdChatKind?: 'research' | 'conversation' | null;
+  /** True when a prior report exists AND Jev cleared the follow-up threshold. */
+  reportFollowup?: boolean;
+}
+
 export interface MastraExecutionDecisionInput {
   userMessage: UIMessage;
   priorReportAvailable?: boolean;
@@ -52,6 +69,8 @@ export interface MastraExecutionDecisionInput {
   mutationRequested?: boolean;
   capabilityId?: MastraCapabilityId;
   signal?: AbortSignal | null;
+  /** Phase 1 (Jev) — optional confident routing hints. */
+  jevHints?: MastraJevRoutingHints | null;
 }
 
 export interface MastraExecutionDecision {
@@ -82,14 +101,39 @@ export async function decideMastraExecution(
   input: MastraExecutionDecisionInput,
 ): Promise<MastraExecutionDecision> {
   const semanticRouting = resolveSemanticRoutingConfig(input.settings, input.env, input.signal);
-  const routing = await routeTurn({
+  const jevDomain = input.jevHints?.domain ?? null;
+  const hasModelOverride = Boolean(input.modelOverride && input.modelOverride.length > 0);
+  const baseRouting = await routeTurn({
     userMessage: input.userMessage,
     ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
-    ...(semanticRouting ? { semanticRouting } : {}),
+    // Phase 1 (Jev): a confident domain hint already answered this turn, so
+    // the generative semantic classifier is skipped entirely. When no hint is
+    // present the previous semantic path runs unchanged.
+    ...(semanticRouting && !jevDomain ? { semanticRouting } : {}),
   });
+  // Vision attachments and explicit model overrides stay deterministic; a Jev
+  // hint may fill the domain for every other turn but can never override
+  // either of those boundaries.
+  const routing: RoutingDecision =
+    jevDomain && baseRouting.domain !== 'vision' && !hasModelOverride
+      ? {
+          domain: jevDomain,
+          planRequired: jevDomain === 'fundamental' || jevDomain === 'technical',
+          rationale: `jev: domain=${jevDomain} (systemone)`,
+        }
+      : baseRouting;
   const promptText = messageText(input.userMessage);
   const priorReportAvailable = input.priorReportAvailable === true;
-  const reportFollowup = priorReportAvailable && isMastraXauusdFollowupCandidate(promptText);
+  // Phase 1 (Jev): a Jev report-follow-up hint upgrades an implicit follow-up
+  // ("does that still hold?") into a report conversation — but only when the
+  // deterministic safety gates (injection / high-confidence mutation) agree.
+  const jevReportFollowup =
+    priorReportAvailable &&
+    input.jevHints?.reportFollowup === true &&
+    !isInjectionAttempt(promptText) &&
+    !isHighConfidenceMutationIntent(promptText);
+  const reportFollowup =
+    (priorReportAvailable && isMastraXauusdFollowupCandidate(promptText)) || jevReportFollowup;
   const symbol =
     input.symbol ?? extractMastraSymbol(promptText) ?? (reportFollowup ? 'XAUUSD' : null);
   // A-01 (B-01/B-08): a prompt naming 2–3 symbols is a bounded comparison —
@@ -100,7 +144,7 @@ export async function decideMastraExecution(
   const symbolCandidate = isMastraSymbolCandidate(promptText);
   const detectedXauusdChatKind =
     !comparisonActive && symbol === 'XAUUSD' && (xauusdCandidate || reportFollowup)
-      ? mastraXauusdChatKind(promptText, priorReportAvailable)
+      ? (input.jevHints?.xauusdChatKind ?? mastraXauusdChatKind(promptText, priorReportAvailable))
       : null;
   // Mutation classification belongs to the planner boundary. Callers may
   // provide an explicit server-side decision, but never rely on route code to

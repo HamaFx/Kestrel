@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-// P3-13 — Unit tests for autoDetectMode and resolveMode.
+// P3-13 — Unit tests for resolveMode (the dead `autoDetectMode` heuristic was
+// removed in Phase 1: single/full mode is strictly manual).
 // P1-12 — Unit tests for the injection lexicon variants.
 
 import { describe, expect, it } from 'vitest';
 
 import {
-  autoDetectMode,
   extractMastraSymbol,
   extractMastraSymbols,
   isInjectionAttempt,
@@ -34,57 +34,6 @@ import {
   ROUTING_KEYWORD_REGISTRY,
   XAUUSD_TERMS,
 } from '../src/routing/keywords';
-
-describe('autoDetectMode', () => {
-  it('returns single for greetings and thanks', () => {
-    expect(autoDetectMode('hi')).toBe('single');
-    expect(autoDetectMode('hello')).toBe('single');
-    expect(autoDetectMode('hey')).toBe('single');
-    expect(autoDetectMode('thanks')).toBe('single');
-    expect(autoDetectMode('thank you')).toBe('single');
-    expect(autoDetectMode('ok')).toBe('single');
-    expect(autoDetectMode('okay')).toBe('single');
-    expect(autoDetectMode('yes')).toBe('single');
-    expect(autoDetectMode('no')).toBe('single');
-    expect(autoDetectMode('bye')).toBe('single');
-    expect(autoDetectMode('good morning')).toBe('single');
-    expect(autoDetectMode('good night')).toBe('single');
-  });
-
-  it('returns single for simple price checks', () => {
-    expect(autoDetectMode("what's the price of gold")).toBe('single');
-    expect(autoDetectMode("what's the price")).toBe('single');
-    expect(autoDetectMode('current price of XAUUSD')).toBe('single');
-    expect(autoDetectMode('quote for EURUSD')).toBe('single');
-    expect(autoDetectMode('how much is gold')).toBe('single');
-  });
-
-  it('returns full for trading decision questions', () => {
-    expect(autoDetectMode('should i buy gold here')).toBe('full');
-    expect(autoDetectMode('should i sell EURUSD')).toBe('full');
-    expect(autoDetectMode('is it a good time to buy XAUUSD')).toBe('full');
-    expect(autoDetectMode('is now a good time for GBPUSD')).toBe('full');
-    expect(autoDetectMode('buy or sell gold')).toBe('full');
-  });
-
-  it('returns single for analysis questions (Q2: two-mode collapse)', () => {
-    expect(autoDetectMode('analyze XAUUSD 1h chart')).toBe('single');
-    expect(autoDetectMode('analysis of EURUSD')).toBe('single');
-    expect(autoDetectMode('what do you think about gold')).toBe('single');
-    expect(autoDetectMode('forecast XAUUSD this week')).toBe('single');
-    expect(autoDetectMode('outlook on GBPUSD')).toBe('single');
-  });
-
-  it('returns single for short ambiguous prompts', () => {
-    expect(autoDetectMode('?')).toBe('single');
-    expect(autoDetectMode('go')).toBe('single');
-    expect(autoDetectMode('xau')).toBe('single');
-  });
-
-  it('returns single for longer ambiguous messages (Q2: two-mode collapse)', () => {
-    expect(autoDetectMode('tell me something interesting about the gold market')).toBe('single');
-  });
-});
 
 describe('resolveMode', () => {
   it('passes through explicit modes', () => {

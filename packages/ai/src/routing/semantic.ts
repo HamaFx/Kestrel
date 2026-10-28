@@ -35,6 +35,8 @@ import { createCategorizedLogger } from '@kestrel/shared/logger';
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
 
+import { evaluateJevTurnRouting } from '../jev/turn-router';
+import { resolveJevEndpoint } from '../jev/resolve-endpoint';
 import { runMastraStructured } from '../mastra-v2/agents/xauusd/text-runner';
 import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
 import { resolveModel, type ResolveModelEnv } from '../models/model';
@@ -124,6 +126,45 @@ export async function classifyTurnLLM(
   const startedAt = Date.now();
   const cached = cacheGet(cacheKey);
   if (cached) return cached;
+
+  // Phase 1 (Jev System One) — when any Jev provider is configured, one
+  // parallel `/v1/systemone` evaluation replaces the generative classifier.
+  // The Jev turn router keeps its own 60s LRU, so `routeUnified`'s pass and
+  // this call share a single request. On null (timeout / unconfigured /
+  // low-confidence) the generative path below still runs.
+  if (resolveJevEndpoint(null, env)) {
+    const jev = await evaluateJevTurnRouting({
+      userText,
+      priorReportAvailable: false,
+      env,
+      signal,
+    });
+    if (jev?.domain) {
+      const classification: SemanticClassification = {
+        domain: jev.domain,
+        confidence: jev.confidence.domain,
+        rationale: `jev systemone domain=${jev.domain} (confidence=${jev.confidence.domain.toFixed(2)})`,
+      };
+      cacheSet(cacheKey, classification);
+      if (accounting?.onComplete) {
+        try {
+          await accounting.onComplete({
+            modelId,
+            inputChars: normalizedText.length,
+            outputChars: JSON.stringify(classification).length,
+            cached: false,
+            success: true,
+            latencyMs: Date.now() - startedAt,
+          });
+        } catch (error) {
+          semanticLog.warn('semantic routing accounting failed', {
+            err: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+      return classification;
+    }
+  }
 
   // 2-second timeout — the call should take <500ms with a flash-lite
   // model, so 2s is generous. Falls back to keyword scoring on timeout.
