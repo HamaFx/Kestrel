@@ -44,6 +44,7 @@ const {
   mockResolveMastraModel,
   mockAppendUserMessage,
   mockAppendAssistantMessage,
+  mockSaveAgentOpinionsBestEffort,
   mockCreateExecutionLifecycle,
   mockCreateGenerationLedger,
 } = vi.hoisted(() => ({
@@ -91,6 +92,8 @@ const {
   mockResolveMastraModel: vi.fn(),
   mockAppendUserMessage: vi.fn(),
   mockAppendAssistantMessage: vi.fn(),
+  // Phase 3 — post-persist opinion bookkeeping (non-fatal by contract).
+  mockSaveAgentOpinionsBestEffort: vi.fn(async () => true),
   mockCreateGenerationLedger: vi.fn(() => ({
     record: vi.fn(() => true),
     recordCost: vi.fn(() => true),
@@ -195,6 +198,7 @@ vi.mock('@kestrel/ai', () => ({
   resolveMastraModel: mockResolveMastraModel,
   appendUserMessage: mockAppendUserMessage,
   appendAssistantMessage: mockAppendAssistantMessage,
+  saveAgentOpinionsBestEffort: mockSaveAgentOpinionsBestEffort,
   DEFAULT_MAX_DAILY_USD: 5,
   reserveTurnBudget: mockReserveTurnBudget,
   withDiagnostics: async (_userId: string, _threadId: string, fn: () => Promise<unknown>) => fn(),
@@ -336,6 +340,17 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
       type: 'data-multi-agent-meta',
       data: { memoryMode: 'degraded', memoryBackfill: true },
     });
+    // Phase 3 (Jev) — desk opinions are persisted after the assistant message
+    // so the scheduled calibration job can grade them against realized prices.
+    expect(mockSaveAgentOpinionsBestEffort).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        threadId: 'thread-1',
+        messageId: 'assistant-message-1',
+        analysisMode: 'full',
+        symbol: 'XAUUSD',
+      }),
+    );
     expect(mockCompleteFullAnalysisRun).toHaveBeenCalledWith(
       'run-1',
       expect.any(String),

@@ -19,17 +19,26 @@
 import { requireTenantIdForUser, schema } from '@kestrel/db';
 import type { AgentOpinionRow } from '@kestrel/db/schema';
 import { container } from '@kestrel/shared';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { and, asc, eq } from 'drizzle-orm';
 
 import { getDiagnosticContext } from '../diagnostics/run-context';
 import { enqueuePersistenceFailure } from '../persistence/outbox';
 import { DB } from '../runtime/tokens';
 
+const plog = createCategorizedLogger('ai', { component: 'multi-agent-persistence' });
+
 export interface SaveOpinionsArgs {
   userId: string;
   threadId: string;
   messageId: string;
   analysisMode: string;
+  /**
+   * Run symbol. Recorded inside `raw_data.symbol` so the scheduled
+   * opinion-calibration job can resolve realized `candles_1m` outcomes
+   * without relying on thread pins or queue-row joins (Phase 3).
+   */
+  symbol?: string | undefined;
   opinions: Array<{
     agentName: string;
     bias: string;
@@ -40,6 +49,38 @@ export interface SaveOpinionsArgs {
     costUsd: number;
     latencyMs: number;
   }>;
+}
+
+/** Merge the run symbol into the opinion's raw payload without clobbering one already present. */
+function withRunSymbol(
+  rawData: Record<string, unknown>,
+  symbol: string | undefined,
+): Record<string, unknown> {
+  if (!symbol) return rawData;
+  return typeof rawData.symbol === 'string' && rawData.symbol.length > 0
+    ? rawData
+    : { ...rawData, symbol };
+}
+
+/**
+ * Best-effort write of one run's specialist opinions. Never throws: a failure
+ * is already queued for outbox replay by `saveAgentOpinions`, so the caller
+ * (a chat turn or a durable analysis run) must never fail because opinion
+ * bookkeeping did.
+ */
+export async function saveAgentOpinionsBestEffort(args: SaveOpinionsArgs): Promise<boolean> {
+  try {
+    await saveAgentOpinions(args);
+    return true;
+  } catch (error) {
+    plog.warn('Agent-opinion persistence failed; queued for recovery replay', {
+      userId: args.userId,
+      threadId: args.threadId,
+      messageId: args.messageId,
+      err: error instanceof Error ? error.message : String(error),
+    });
+    return false;
+  }
 }
 
 export async function saveAgentOpinions(args: SaveOpinionsArgs): Promise<void> {
@@ -86,7 +127,7 @@ export async function saveAgentOpinions(args: SaveOpinionsArgs): Promise<void> {
           bias: op.bias,
           confidence: op.confidence,
           reasoning: op.reasoning,
-          rawData: op.rawData,
+          rawData: withRunSymbol(op.rawData, args.symbol),
           model: op.model,
           costUsd: op.costUsd,
           latencyMs: op.latencyMs,
