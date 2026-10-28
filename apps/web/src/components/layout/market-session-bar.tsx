@@ -54,6 +54,9 @@ export function MarketSessionBar() {
       const h = d.getUTCHours();
       const m = d.getUTCMinutes();
       const pad = (n: number) => n.toString().padStart(2, '0');
+      // Minute resolution is all this bar conveys. The previous 1s tick
+      // re-rendered the entire app shell ~86,400 times a day for a seconds
+      // digit nobody reads; 30s keeps the clock within a half-minute.
       setUtcTime({ hour: h, minute: m, str: `${pad(h)}:${pad(m)} UTC` });
     }
     update();

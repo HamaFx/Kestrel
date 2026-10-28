@@ -1207,7 +1207,21 @@ html[data-reduce-motion='force'] *::after {
 
 /* -------------------------------------------------------------------------
  * Stacked tables (phones)
- * ------------------------------------------------------------------------- */
+ * -------------------------------------------------------------------------
+ * Opt-in via `table-stack` on the <table> element plus `data-label` on each
+ * <td>. Below `md` the header row is visually hidden and every row becomes a
+ * labelled card, so a wide data table stays readable on a phone instead of
+ * forcing horizontal scroll inside a page that never scrolls sideways.
+ *
+ * The label text is the column header, duplicated on the cell — which is also
+ * what a screen reader announces when the real header row is hidden behind a
+ * horizontal scroller. Cells without `data-label` (empty states, colSpan rows,
+ * action rows) render as plain blocks.
+ *
+ * These rules are intentionally unlayered so they win over the Tailwind
+ * utilities already on the cells; the per-table markup stays two attributes
+ * instead of a second set of responsive classes on every cell.
+ */
 @media (max-width: 767.98px) {
   .table-stack {
     display: block;
