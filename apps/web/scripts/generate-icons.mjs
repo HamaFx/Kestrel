@@ -22,9 +22,9 @@
  * generate-icons.mjs
  *
  * Generates the complete Kestrel home-screen asset set in
- * `apps/web/public/icons/` (plus `public/favicon.ico`) from the brand logo.
- * Idempotent: by default it skips targets that already exist on disk; pass
- * `--force` to regenerate.
+ * `apps/web/public/icons/` (plus `public/favicon.ico`) from the vector brand
+ * mark, `public/brand/kestrel-falcon.svg`. Idempotent: by default it skips
+ * targets that already exist on disk; pass `--force` to regenerate.
  *
  * Targets:
  *   - icon-192/512/1024.png            (purpose: any; 1024 is what iOS 17.2+
@@ -35,8 +35,14 @@
  *   - apple-splash-<w>x<h>.png         (one per device + orientation, from
  *                                       src/lib/pwa/splash-devices.json)
  *
- * Colours come from `src/lib/pwa/pwa-theme.json` so the icon plate, the
- * manifest chrome and the splash background all match `--color-bg`.
+ * Colours come from `src/lib/pwa/pwa-theme.json` so the icon plate, the brand
+ * glow, the manifest chrome and the splash background all match `--color-bg`
+ * and `--color-brand`.
+ *
+ * The launcher targets (icon / maskable) composite a soft brand-red glow
+ * behind the mark; the splash images and the favicon frames are a bare mark on
+ * a flat plate. Both are what the approved reference set in `public/icons/`
+ * shows — see MARK_BOX_RATIO and GLOW below.
  *
  * `sharp` is loaded dynamically so this script never crashes a `next build`
  * when the dep is not present yet — it just logs a hint and exits 0.
@@ -65,17 +71,64 @@ const SPLASH_DEVICES = JSON.parse(
   readFileSync(resolve(WEB_ROOT, 'src/lib/pwa/splash-devices.json'), 'utf8'),
 ).devices;
 
-/** Source logo — uploaded kestrel bird mark (1536x1024), used as-is.
- * The reversible two-tone design reads on the dark icon background: white
- * strokes show on dark, black strokes show on light. */
-const LOGO_PATH = resolve(WEB_ROOT, 'public/brand/kestrel-logo.png');
+/** Source mark — the vector falcon. Rendering the SVG directly (rather than
+ * downscaling a raster logo) is what keeps the thin feather blades crisp and
+ * the pupil sharp at every icon size. */
+const MARK_PATH = resolve(WEB_ROOT, 'public/brand/kestrel-falcon.svg');
+
+/** sharp rasterises an SVG's 256-unit viewBox as 256px at 72 DPI, so the
+ * density needed for an N-pixel render is `N * MARK_DPI / MARK_VIEWBOX`. */
+const MARK_VIEWBOX = 256;
+const MARK_DPI = 72;
+
+/**
+ * The mark is rendered into a square box sized to this fraction of the icon's
+ * short side. The falcon's visible ink sits inside that box with its own
+ * margins (it spans ~79% x ~86% of the viewBox), so the box is always larger
+ * than the bird you see.
+ *
+ * These three numbers are measured from the approved reference set already in
+ * `public/icons/` — they reproduce those files, and are what the Android/iOS
+ * safe-zone percentages were retuned to when the mark changed. They are not
+ * free parameters: changing one changes every generated asset.
+ */
+const MARK_BOX_RATIO = Object.freeze({
+  icon: 0.7227,
+  maskable: 0.5625,
+  splash: 0.2275,
+  // Favicons have no home-screen safe zone to respect, so the mark runs
+  // larger there — it is the only thing legible at 16px.
+  favicon: 0.75,
+});
+
+/**
+ * Brand glow — a brand-red disc centred on the falcon's pupil and Gaussian
+ * blurred, composited behind the mark.
+ *
+ * Every value is a fraction of the short side, except the anchor which is
+ * relative to the mark's box (the value below is the pupil's centroid measured
+ * from the vector mark itself). Because the anchor is mark-relative and the
+ * radius is plate-relative, the glow lands identically on every size.
+ *
+ * `KINDS` excludes `splash`: a glow behind a mark that small on a full-screen
+ * launch image reads as a smudge, so splashes take the bare mark, exactly as
+ * the reference set does.
+ */
+const GLOW = Object.freeze({
+  radius: 0.185,
+  sigma: 0.075,
+  alpha: 0.104,
+  anchorX: 0.59885,
+  anchorY: 0.40718,
+  KINDS: Object.freeze(['icon', 'maskable']),
+});
 
 /**
  * @typedef {Object} IconTarget
  * @property {string} file
  * @property {number} width
  * @property {number} height
- * @property {'icon' | 'maskable' | 'splash'} kind
+ * @property {'icon' | 'maskable' | 'splash' | 'favicon'} kind
  * @property {boolean} [palette] PNG-8 output (flat artwork → much smaller)
  */
 
@@ -113,14 +166,75 @@ function hexToRgb(hex) {
   };
 }
 
-const BRAND_RGB = hexToRgb(BRAND_BG);
+const PLATE_RGB = hexToRgb(BRAND_BG);
+
+/** Brand accent — the glow tint, from the same theme JSON. */
+const GLOW_RGB = hexToRgb(THEME.palette.brand);
 
 /**
- * Composite the logo onto the brand background for a target.
- * The logo is 3:2, so it is sized by width relative to the short side:
- *   - icon / apple-touch: 78% (fills the square, leaves breathing room)
- *   - maskable:           60% (inside the iOS/Android safe zone)
- *   - splash:             26% (small mark on a flat background)
+ * Render the brand mark from the vector source at `box` px square.
+ *
+ * @param {number} box
+ * @param {typeof import('sharp')} sharp
+ * @returns {Promise<Buffer>} PNG buffer with alpha
+ */
+async function renderMark(box, sharp) {
+  const size = Math.max(1, Math.round(box));
+  const density = Math.max(1, Math.round((size * MARK_DPI) / MARK_VIEWBOX));
+  return sharp(MARK_PATH, { density })
+    .resize(size, size, { fit: 'fill' })
+    .ensureAlpha()
+    .png()
+    .toBuffer();
+}
+
+/**
+ * Build the brand glow layer for a target.
+ *
+ * The colour channels are filled edge-to-edge with the brand red *before*
+ * blurring, so the blur only ever redistributes alpha — it can never smear
+ * dark pixels into the halo and the tint stays exact.
+ *
+ * @param {number} width
+ * @param {number} height
+ * @param {number} short
+ * @param {number} markBox
+ * @param {typeof import('sharp')} sharp
+ * @returns {Promise<Buffer>} PNG buffer with alpha
+ */
+async function buildGlow(width, height, short, markBox, sharp) {
+  const radius = GLOW.radius * short;
+  const cx = (width - markBox) / 2 + GLOW.anchorX * markBox;
+  const cy = (height - markBox) / 2 + GLOW.anchorY * markBox;
+
+  const raw = Buffer.alloc(width * height * 4);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const i = (y * width + x) * 4;
+      raw[i] = GLOW_RGB.r;
+      raw[i + 1] = GLOW_RGB.g;
+      raw[i + 2] = GLOW_RGB.b;
+      raw[i + 3] = Math.hypot(x + 0.5 - cx, y + 0.5 - cy) <= radius ? 255 : 0;
+    }
+  }
+
+  const blurred = await sharp(raw, { raw: { width, height, channels: 4 } })
+    .blur(GLOW.sigma * short)
+    .raw()
+    .toBuffer();
+
+  for (let i = 3; i < blurred.length; i += 4) {
+    blurred[i] = Math.round(blurred[i] * GLOW.alpha);
+  }
+
+  return sharp(blurred, { raw: { width, height, channels: 4 } })
+    .png()
+    .toBuffer();
+}
+
+/**
+ * Composite the mark, and where the kind calls for it the brand glow, onto the
+ * brand background for a target.
  *
  * @param {IconTarget} t
  * @param {typeof import('sharp')} sharp
@@ -129,28 +243,29 @@ const BRAND_RGB = hexToRgb(BRAND_BG);
 async function buildPng(t, sharp) {
   const { width, height, kind } = t;
   const short = Math.min(width, height);
-  const ratio = kind === 'maskable' ? 0.6 : kind === 'splash' ? 0.26 : 0.78;
-  const logoW = Math.round(short * ratio);
-  // Derive height from the live source dimensions so the aspect stays exact.
-  const meta = await sharp(LOGO_PATH).metadata();
-  const logoAspect = (meta.width ?? 1536) / (meta.height ?? 1024);
-  const logoH = Math.round(logoW / logoAspect);
+  const box = Math.max(1, Math.round(short * MARK_BOX_RATIO[kind]));
+  const logo = await renderMark(box, sharp);
 
-  const logo = await sharp(LOGO_PATH).resize(logoW, logoH, { fit: 'fill' }).png().toBuffer();
+  /** @type {import('sharp').OverlayOptions[]} */
+  const layers = [];
+
+  if (GLOW.KINDS.includes(kind)) {
+    layers.push({ input: await buildGlow(width, height, short, box, sharp), left: 0, top: 0 });
+  }
+
+  layers.push({
+    input: logo,
+    left: Math.round((width - box) / 2),
+    top: Math.round((height - box) / 2),
+  });
 
   return sharp({
-    create: { width, height, channels: 4, background: BRAND_RGB },
+    create: { width, height, channels: 4, background: PLATE_RGB },
   })
-    .composite([
-      {
-        input: logo,
-        left: Math.round((width - logoW) / 2),
-        top: Math.round((height - logoH) / 2),
-      },
-    ])
+    .composite(layers)
     .png({
       compressionLevel: 9,
-      // Splashes are flat colour + one raster mark: a small palette keeps
+      // Splashes are flat colour + one vector mark: a small palette keeps
       // ~30 device images from bloating the repository.
       ...(t.palette ? { palette: true, colours: 64 } : {}),
     })
@@ -194,7 +309,9 @@ function buildIco(entries) {
 async function buildFavicon(sharp) {
   const entries = [];
   for (const size of [16, 32, 48]) {
-    const png = await buildPng({ file: '', width: size, height: size, kind: 'icon' }, sharp);
+    // `favicon` carries no glow: at these sizes a halo is invisible and only
+    // muddies the bird. This matches the shipped frames in `public/favicon.ico`.
+    const png = await buildPng({ file: '', width: size, height: size, kind: 'favicon' }, sharp);
     entries.push({ size, png });
   }
   return buildIco(entries);

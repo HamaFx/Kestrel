@@ -50,9 +50,11 @@ are easy to break:
 inputs shared by the app and the build scripts.
 
 - `scripts/generate-icons.mjs` writes `public/icons/*` and `public/favicon.ico`
-  from `public/brand/kestrel-logo.png`: 192/512/1024 (`purpose: any`), a 512
-  maskable icon, three `apple-touch-icon` sizes, and **one launch image per
-  device and orientation** from the splash matrix. Splashes are PNG-8 (flat
+  from the vector mark `public/brand/kestrel-falcon.svg`: 192/512/1024
+  (`purpose: any`), a 512 maskable icon, three `apple-touch-icon` sizes, and
+  **one launch image per device and orientation** from the splash matrix. The
+  launcher icons composite the brand glow behind the mark; the favicon frames
+  and launch images are a bare mark on a flat plate. Splashes are PNG-8 (flat
   colour + one mark) so the ~34 files stay small.
 - `scripts/pwa-screens/` renders the install-dialog screenshots
   (`portrait.mjs` → 1080×1920 narrow, `wide.mjs` → 1920×1080 wide). The artwork
