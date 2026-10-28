@@ -18,7 +18,8 @@
 
 // Milled Hoplite hardware button primitive — no scale/whileTap that can cause
 // layout shift. Specular top edge, machined bottom bevel, and 0.5px physical
-// depression via `tactile-press`.
+// depression via `tactile-press`. Spinner uses lucide's IconLoader2 to satisfy
+// steering rule §10 ("@tabler/icons-react exclusively, no inline SVGs").
 //
 // Mobile-first sizes:
 //   xs = 32px (h-8)  — dense chip rows only

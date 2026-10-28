@@ -16,7 +16,23 @@
  * limitations under the License.
  */
 
-// <Tooltip> — minimal CSS-only tooltip primitive.
+// <Tooltip> — minimal CSS-only tooltip primitive. We deliberately don't
+// pull in Radix Tooltip here: it would add ~12KB gz for a single feature
+// the entire codebase needs to be sprinkled with. The native `title`
+// attribute fails focus-visible (only shown on hover), so we render a
+// styled bubble that appears on both `hover` and `focus-within`.
+//
+// Behaviour:
+//   - Pointer hover → bubble fades in after 350ms
+//   - Keyboard focus on the trigger → bubble fades in immediately
+//   - Touch devices → no hover state; the trigger should still have
+//     `aria-label`, which screen readers read aloud
+//   - prefers-reduced-motion → instant fade
+//
+// Usage:
+//   <Tooltip label="Pause alert">
+//     <button aria-label="Pause alert">…</button>
+//   </Tooltip>
 import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/formatters/cn';

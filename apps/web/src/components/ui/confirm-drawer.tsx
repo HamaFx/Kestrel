@@ -19,6 +19,23 @@
 // <ConfirmDrawer> — drawer-based confirmation dialog. Replaces native
 // `window.confirm()` calls so destructive actions stay within the app's
 // clean aesthetic.
+//
+// Two ways to use it:
+//
+// 1. Controlled — pass `open` + `onOpenChange`, render trigger separately:
+//      <ConfirmDrawer
+//        open={open}
+//        onOpenChange={setOpen}
+//        title="Delete conversation?"
+//        description="This permanently removes the thread and all messages."
+//        confirmLabel="Delete"
+//        tone="danger"
+//        onConfirm={() => deleteThread()}
+//      />
+//
+// 2. Imperative via the `useConfirm()` hook — returns a `confirm(opts)`
+//    promise that resolves `true` on confirm, `false` otherwise. Renders
+//    its own portal-mounted drawer.
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -130,6 +147,9 @@ export function useConfirm(): readonly [
   const [options, setOptions] = useState<ConfirmOptions>({ title: '' });
   const resolveRef = useRef<((v: boolean) => void) | null>(null);
 
+  // STAB-20: Resolve any pending promise on unmount so callers that
+  // `await confirm(...)` don't hang forever if the component is torn down
+  // before the user dismisses the drawer.
   useEffect(() => {
     return () => {
       resolveRef.current?.(false);
