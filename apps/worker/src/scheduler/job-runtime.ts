@@ -29,7 +29,8 @@ import { tenantRouter } from '../tenant-router.js';
 import { SKIP_DAILY_LOCK } from './skip-daily-lock.js';
 
 // Maximum wall-clock time any scheduled job may run.
-// Overridable via JOB_TIMEOUT_MS env var for jobs that need more time.
+// Overridable via JOB_TIMEOUT_MS env var, or per job through
+// `JobRegistration.timeoutMs` for long-lived durable work.
 export const JOB_TIMEOUT_MS = Number(process.env.JOB_TIMEOUT_MS) || 120_000;
 
 // PERF-7: In-flight guard — ensures no two invocations of the same job
@@ -44,15 +45,60 @@ const _jobStartedAt = new Map<keyof typeof JOBS, number>();
 // well-behaved jobs stop their work before the database connection closes.
 const _activeControllers = new Set<AbortController>();
 
+/** Wall-clock budget for one invocation of a job (per-job override wins). */
+export function effectiveJobTimeoutMs(name: keyof typeof JOBS): number {
+  return JOBS[name]?.timeoutMs ?? JOB_TIMEOUT_MS;
+}
+
+// A job is wedged when it overruns its own budget plus a grace period.  The
+// grace keeps ordinary slow runs from tripping the container healthcheck the
+// moment they cross their timeout.
+const STUCK_GRACE_MS = 5 * 60_000;
+
+export interface StuckJobSummary {
+  stuck: Array<{ name: string; stuckForMs: number }>;
+  oldestStuckMs: number | null;
+}
+
+/**
+ * Pure stuck-detection over start timestamps. A job counts as stuck when it
+ * has been running longer than its own timeout plus the grace period — the
+ * in-flight guard only releases when the job's promise settles, so a wedged
+ * job blocks every future run of that job until the process restarts.
+ */
+export function summarizeStuckJobs(
+  entries: Iterable<[string, number]>,
+  now: number,
+  timeoutFor: (name: string) => number,
+): StuckJobSummary {
+  const stuck: StuckJobSummary['stuck'] = [];
+  let oldest = 0;
+  for (const [name, startedAt] of entries) {
+    const stuckForMs = now - startedAt;
+    if (stuckForMs > timeoutFor(name) + STUCK_GRACE_MS) {
+      stuck.push({ name, stuckForMs });
+      if (stuckForMs > oldest) oldest = stuckForMs;
+    }
+  }
+  stuck.sort((a, b) => b.stuckForMs - a.stuckForMs);
+  return { stuck, oldestStuckMs: stuck.length > 0 ? oldest : null };
+}
+
+/** Current wedged jobs, for the health endpoint and self-healing. */
+export function getStuckJobSummary(now: number = Date.now()): StuckJobSummary {
+  return summarizeStuckJobs(_jobStartedAt.entries(), now, (name) =>
+    effectiveJobTimeoutMs(name as keyof typeof JOBS),
+  );
+}
+
 /**
  * Periodic cleanup hook — log jobs that remain in flight beyond the
  * scheduler safety window (2× the job timeout). Runs from the timer
  * installed by `startScheduler`.
  */
 export function reportStuckJobs(log: Logger, now: number): void {
-  const cutoff = 2 * JOB_TIMEOUT_MS;
   for (const [name, startedAt] of _jobStartedAt) {
-    if (now - startedAt > cutoff) {
+    if (now - startedAt > 2 * effectiveJobTimeoutMs(name)) {
       // Do not remove the guard while the original promise may still be
       // executing. The timeout only regains scheduler control; deleting
       // this entry here would permit overlapping side effects from an
@@ -153,7 +199,7 @@ export async function runJobSafely(
   // after JOB_TIMEOUT_MS regardless of the job's behaviour.
   const ac = new AbortController();
   _activeControllers.add(ac);
-  const timeoutMs = JOB_TIMEOUT_MS;
+  const timeoutMs = effectiveJobTimeoutMs(name);
   let timedOut = false;
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const timeoutPromise = new Promise<never>((_, reject) => {

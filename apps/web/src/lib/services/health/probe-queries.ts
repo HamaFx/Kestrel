@@ -210,26 +210,35 @@ export async function queryOperationalAggregate(
   }
 }
 
+/**
+ * Full-analysis backlog health, read from the durable queue itself.
+ *
+ * This used to read `mastra_workflow_snapshot`, which is only written once a
+ * worker starts a run — a job waiting in the queue (the exact shape of the
+ * 2026-10-28 worker outage) never produced a snapshot, so the probe reported
+ * zero and no alert fired. The queue table is the source of truth:
+ *   stale  — pending > 10 minutes (the worker polls every ~3s)
+ *   stuck  — running with an expired or missing lease
+ */
 export async function queryAnalysisAggregate(
   db: HealthSloDb,
-  since: string,
+  _since: string,
 ): Promise<AnalysisAggregate | null> {
   try {
     const result = await db.execute(sql`
       SELECT
         COUNT(*) FILTER (
-          WHERE workflow_name = 'full-analysis'
-          AND snapshot ->> 'status' = 'pending'
-          AND "createdAt" >= ${since}
-          AND "createdAt" < NOW() - INTERVAL '10 minutes'
+          WHERE status = 'pending'
+          AND created_at < NOW() - INTERVAL '10 minutes'
         )::text AS stale,
         COUNT(*) FILTER (
-          WHERE workflow_name = 'full-analysis'
-          AND snapshot ->> 'status' = 'running'
-          AND "createdAt" >= ${since}
-          AND "updatedAt" < NOW() - INTERVAL '30 seconds'
+          WHERE status = 'running'
+          AND (
+            lease_expires_at <= NOW()
+            OR (lease_expires_at IS NULL AND updated_at < NOW() - INTERVAL '30 seconds')
+          )
         )::text AS stuck
-      FROM mastra_workflow_snapshot
+      FROM full_analysis_queue
     `);
     const rows = extractRows(result);
     const row = rows[0] as { stale: string; stuck: string } | undefined;

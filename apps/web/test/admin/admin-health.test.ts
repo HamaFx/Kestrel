@@ -33,6 +33,7 @@ function createMockDb(
     | 'stale-tick'
     | 'silent'
     | 'spend-over-threshold'
+    | 'stale-analysis'
     | 'missing-daily-spend' = 'healthy',
 ) {
   let callIndex = 0;
@@ -74,6 +75,9 @@ function createMockDb(
       }
 
       if (callIndex === 6) {
+        if (scenario === 'stale-analysis') {
+          return { rows: [{ stale: '2', stuck: '1' }] };
+        }
         return { rows: [{ stale: '0', stuck: '0' }] };
       }
 
@@ -203,6 +207,21 @@ describe('computeHealthSloService', () => {
 
     expect(result.anomalies.some((a) => a.includes('stale'))).toBe(true);
     expect(result.overall).toBe('degraded');
+  });
+
+  it('flags stalled Full-mode queue rows, not just Mastra snapshots', async () => {
+    const db = createMockDb('stale-analysis');
+    const result = await computeHealthSloService(db, { hours: 24 });
+
+    // The 2026-10-28 outage: a job sat `pending` in full_analysis_queue with
+    // no Mastra snapshot, so the snapshot-based probe reported zero and no
+    // alert fired. The queue-based probe now catches exactly that shape.
+    expect(result.anomalies).toContain(
+      '2 analysis job(s) pending > 10 minutes — worker may be down',
+    );
+    expect(result.anomalies).toContain(
+      '1 analysis job(s) running with an expired lease — worker may be wedged',
+    );
   });
 
   it('flags silent AI telemetry instead of reporting an unverified healthy window', async () => {

@@ -135,6 +135,46 @@ describe('worker health server', () => {
     await expect(response.json()).resolves.toMatchObject({ status: 'ok', ready: true });
   });
 
+  it('reports no wedged jobs on a healthy worker', async () => {
+    const response = await request(createServer(Date.now(), true), '/health/jobs');
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      status: 'ok',
+      jobsHealthy: true,
+      stuckJobs: [],
+      oldestStuckJobMs: null,
+    });
+  });
+
+  it('fails /health/jobs and readiness when a scheduled job is wedged', async () => {
+    const wedged = createHealthServer({
+      log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), with: vi.fn() },
+      getLastTickAt: () => 0,
+      isSignalRConnected: () => false,
+      isTickStreamEnabled: () => false,
+      getStuckJobs: () => [{ name: 'multi-agent-analysis', stuckForMs: 1_260_000 }],
+    });
+
+    const jobs = await request(wedged, '/health/jobs');
+    expect(jobs.status).toBe(503);
+    await expect(jobs.json()).resolves.toMatchObject({
+      status: 'degraded',
+      jobsHealthy: false,
+      stuckJobs: [{ name: 'multi-agent-analysis', stuckForMs: 1_260_000 }],
+      oldestStuckJobMs: 1_260_000,
+    });
+
+    // Readiness folds the wedged job in, so orchestrators and the
+    // production verifier see the worker as unavailable for new work.
+    const ready = await request(wedged, '/health');
+    expect(ready.status).toBe(503);
+    await expect(ready.json()).resolves.toMatchObject({ ready: false, jobsHealthy: false });
+
+    // Liveness stays green: the process answers, the autoheal probe decides.
+    const live = await request(wedged, '/health/live');
+    expect(live.status).toBe(200);
+  });
+
   it('does not expose an unauthenticated catch-all route on the health listener', async () => {
     const response = await request(createServer(Date.now(), true), '/internal');
     expect(response.status).toBe(404);

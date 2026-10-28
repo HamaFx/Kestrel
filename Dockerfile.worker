@@ -95,6 +95,6 @@ USER node
 # expands at runtime. `$$` — the compose-file convention — would stay literal,
 # send "Bearer <pid>{WORKER_HEALTH_TOKEN}", and 401 forever.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD curl -fsS -H "Authorization: Bearer ${WORKER_HEALTH_TOKEN}" http://localhost:8081/health/live
+  CMD curl -fsS -H "Authorization: Bearer ${WORKER_HEALTH_TOKEN}" http://localhost:8081/health/live && curl -fsS -H "Authorization: Bearer ${WORKER_HEALTH_TOKEN}" http://localhost:8081/health/jobs
 
 CMD ["node", "dist/index.js"]

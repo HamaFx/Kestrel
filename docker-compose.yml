@@ -204,7 +204,7 @@ services:
       test:
         [
           'CMD-SHELL',
-          'curl -fsS -H "Authorization: Bearer $${WORKER_HEALTH_TOKEN}" http://localhost:8081/health/live || exit 1',
+          'curl -fsS -H "Authorization: Bearer $${WORKER_HEALTH_TOKEN}" http://localhost:8081/health/live && curl -fsS -H "Authorization: Bearer $${WORKER_HEALTH_TOKEN}" http://localhost:8081/health/jobs || exit 1',
         ]
       interval: 30s
       timeout: 10s

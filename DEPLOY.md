@@ -144,14 +144,32 @@ link` in the repo root. A team owner can check it under Vercel team
 
 ### Applying env-var changes
 
-The Ignored Build Step also applies to redeploys, so changing an environment
-variable and pressing "Redeploy" skips the build (the code did not change).
-Use one of:
+Vercel snapshots environment variables into each deployment: existing
+deployments keep the old values, so any env change needs a **new
+deployment**. The project's Root Directory is `apps/web`
+(Settings → Build & Development), which shapes the options:
 
-- Uncheck **Use project's Ignore Build Step** in the redeploy dialog, or
-- push any change that touches `apps/web/`, or
-- deploy from a linked CLI: `pnpm exec vercel --prod` inside `apps/web` (the
-  checked-in `.vercelignore` keeps the upload small).
+- **Dashboard:** Deployments → Redeploy → **uncheck "Use project's Ignore
+  Build Step"** (the ignored-build step would otherwise skip the rebuild,
+  because the source did not change).
+- **Git:** push any commit that touches `apps/web/` (or a root manifest, which
+  `turbo.json` declares as a global dependency).
+- **CLI:** deploy a repo-root snapshot. `vercel --prod` from inside
+  `apps/web` fails with `The specified Root Directory "apps/web" does not
+exist` — the CLI uploads the current directory as the project root, and the
+  configured Root Directory is looked up _inside_ that upload:
+
+  ```bash
+  git archive HEAD | tar -x -C /tmp/kestrel-deploy
+  cd /tmp/kestrel-deploy
+  vercel link --yes --project hamafx-ai --scope mahamad-ahmads-projects
+  vercel --prod --yes
+  ```
+
+  A CLI deployment carries no `VERCEL_GIT_PREVIOUS_SHA`, so the Ignored Build
+  Step exits non-zero and the build always proceeds. The upload is the tracked
+  tree only (~24 MB), which avoids Vercel CLI's habit of uploading
+  `node_modules` when a repo-root build is not linked.
 
 ## Worker deployments (GCP VM)
 
@@ -175,7 +193,7 @@ back automatically on failure.
 Cache and cleanup rules installed on the VM (systemd timers):
 
 - `kestrel-docker-prune.timer` — weekly `docker image prune --all
-  --filter until=168h` (keeps the current image plus week-old rollbacks).
+--filter until=168h` (keeps the current image plus week-old rollbacks).
 - `kestrel-disk-check.timer` — hourly alert when disk usage exceeds 85%.
 - `kestrel-docker-autoheal.timer` — restarts the worker after three
   consecutive unhealthy checks.

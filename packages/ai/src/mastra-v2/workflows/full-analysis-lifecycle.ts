@@ -244,3 +244,31 @@ export async function purgeOldFullAnalysisRuns(retentionCutoff: Date): Promise<n
   }
   return deletedRunIds.length;
 }
+
+/**
+ * Delete the durable Mastra workflow run for a queue run.
+ *
+ * A requeued attempt must never resume the failed attempt's snapshot: the
+ * committee reuses persisted specialist step results, so a retry of a failed
+ * run immediately re-throws the previous strict failure (or silently reuses
+ * agents that failed on a now-recovered provider). Clearing the snapshot
+ * makes every retry start the committee from scratch. A worker crash (no
+ * requeue) keeps its snapshot, so crash resumption stays durable.
+ */
+export async function clearFullAnalysisWorkflowState(runId: string): Promise<void> {
+  const store = await workflowsStore();
+  if (!store) return;
+  try {
+    await store.deleteWorkflowRunById({
+      runId,
+      workflowName: FULL_ANALYSIS_WORKFLOW_ID,
+    });
+  } catch (error) {
+    // A missing snapshot is fine; anything else is logged and non-fatal —
+    // the retry still runs, it just risks resuming stale step results.
+    flog.warn('Full-analysis workflow state clear failed', {
+      runId,
+      error: serializeError(error),
+    });
+  }
+}

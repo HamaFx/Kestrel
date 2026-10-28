@@ -31,4 +31,12 @@ describe('JOBS registry', () => {
       expect(typeof def.description, `${name} missing description`).toBe('string');
     }
   });
+
+  it('gives the durable Full-analysis job its own long budget, others the default', () => {
+    // Committee runs take minutes; the 120s default would abort them mid-call.
+    expect(JOBS['multi-agent-analysis']?.timeoutMs).toBe(15 * 60_000);
+    // Minute-cadence jobs stay on the tight default so a wedge is detected fast.
+    expect(JOBS.alerts?.timeoutMs).toBeUndefined();
+    expect(JOBS['persistence-recovery']?.timeoutMs).toBeUndefined();
+  });
 });

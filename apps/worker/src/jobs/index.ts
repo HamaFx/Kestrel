@@ -117,6 +117,11 @@ export const JOBS: Record<JobName, JobRegistration> = {
       'U2 — Claims Mastra durable full-analysis workflow runs (replacing analysis_jobs), executes the Full committee, writes terminal results back into the run records.',
     // Uses setTimeout-based scheduling, not cron.
     schedule: null,
+    // Durable committee runs take minutes, and one invocation may process up
+    // to MAX_JOBS_PER_RUN claimed runs; the default 120s budget aborts a run
+    // mid-LLM-call (losing the lease and burning a retry). Give this job its
+    // own long budget instead of raising the global timeout for every job.
+    timeoutMs: 15 * 60_000,
   },
   'budget-recovery': {
     name: 'budget-recovery',

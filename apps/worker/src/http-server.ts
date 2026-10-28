@@ -15,6 +15,13 @@ export interface HealthServerDeps {
   getDroppedTicks?: () => number;
   isProxyConfigured?: () => boolean;
   getRequestId?: () => string;
+  /**
+   * Jobs that have overrun their scheduler budget. A wedged job holds its
+   * in-flight guard until its promise settles, which can block the job
+   * forever; reporting it here makes readiness fail so the container
+   * healthcheck trips and the autoheal loop restarts the process.
+   */
+  getStuckJobs?: () => Array<{ name: string; stuckForMs: number }>;
 }
 
 export interface WorkerHttpServers {
@@ -54,6 +61,7 @@ function createHealthHandler(deps: HealthServerDeps): http.RequestListener {
       req.url !== '/api/health' &&
       req.url !== '/health/live' &&
       req.url !== '/health/ready' &&
+      req.url !== '/health/jobs' &&
       req.url !== '/health/dependencies'
     ) {
       res.writeHead(404);
@@ -67,30 +75,50 @@ function createHealthHandler(deps: HealthServerDeps): http.RequestListener {
 
     const liveOnly = req.url === '/health/live';
     const dependenciesOnly = req.url === '/health/dependencies';
+    const jobsOnly = req.url === '/health/jobs';
     const tickStreamEnabled = deps.isTickStreamEnabled?.() ?? true;
     const lastTickAt = getLastTickAt();
     const ageMs = lastTickAt > 0 ? Date.now() - lastTickAt : null;
-    const ready =
+    const feedReady =
       !tickStreamEnabled ||
       (lastTickAt > 0 && ageMs !== null && ageMs < 120_000 && isSignalRConnected());
-    const healthy = liveOnly || dependenciesOnly || ready;
+    // A job wedged past its budget holds its in-flight guard forever (the
+    // scheduler only releases it when the promise settles), so every future
+    // run of that job is skipped. `/health/jobs` exposes exactly that signal
+    // so the container healthcheck can fail without also depending on tick
+    // freshness, and the VM autoheal loop can restart the process.
+    const stuckJobs = deps.getStuckJobs?.() ?? [];
+    const jobsHealthy = stuckJobs.length === 0;
+    const jobsBody = {
+      jobsHealthy,
+      stuckJobs,
+      oldestStuckJobMs:
+        stuckJobs.length > 0
+          ? stuckJobs.reduce((max, job) => Math.max(max, job.stuckForMs), 0)
+          : null,
+    };
+    const ready = feedReady && jobsHealthy;
+    const healthy = liveOnly || dependenciesOnly || (jobsOnly ? jobsHealthy : ready);
     sendJson(res, healthy ? 200 : 503, {
-      status: liveOnly || dependenciesOnly ? 'ok' : ready ? 'ok' : 'degraded',
+      status: liveOnly || dependenciesOnly ? 'ok' : healthy ? 'ok' : 'degraded',
       ...(liveOnly
         ? { live: true }
         : dependenciesOnly
           ? { capabilities: getCapabilityReport(process.env) }
-          : {
-              ready,
-              tickStreamEnabled,
-              lastTickAgeMs: ageMs,
-              signalrConnected: isSignalRConnected(),
-              ...(deps.isBinanceConnected ? { binanceConnected: deps.isBinanceConnected() } : {}),
-              droppedTicks: deps.getDroppedTicks?.() ?? 0,
-              proxyConfigured:
-                deps.isProxyConfigured?.() ?? Boolean(process.env.BIQUOTE_PROXY_TOKEN),
-              capabilities: getCapabilityReport(process.env),
-            }),
+          : jobsOnly
+            ? jobsBody
+            : {
+                ready,
+                ...jobsBody,
+                tickStreamEnabled,
+                lastTickAgeMs: ageMs,
+                signalrConnected: isSignalRConnected(),
+                ...(deps.isBinanceConnected ? { binanceConnected: deps.isBinanceConnected() } : {}),
+                droppedTicks: deps.getDroppedTicks?.() ?? 0,
+                proxyConfigured:
+                  deps.isProxyConfigured?.() ?? Boolean(process.env.BIQUOTE_PROXY_TOKEN),
+                capabilities: getCapabilityReport(process.env),
+              }),
       uptimeMs: process.uptime() * 1000,
     });
   };
