@@ -24,6 +24,7 @@ import type { PromptResult } from './runner';
 
 export const TRAINING_RECORD_SCHEMA = 'kestrel.eval-record.v1' as const;
 export const DATASET_MANIFEST_SCHEMA = 'kestrel.eval-manifest.v1' as const;
+export const JEV_RLCD_RECORD_SCHEMA = 'kestrel.jev-rlcd.v1' as const;
 
 export type EvaluationLabel = 'pass' | 'fail' | 'needs_review';
 export type DatasetSplit = 'train' | 'validation' | 'test';
@@ -97,6 +98,113 @@ export interface DatasetManifest {
     approvedBy: string;
     approvedAt: string;
   };
+}
+
+/**
+ * Phase 3 (Jev roadmap) — RLCD (Reinforcement Learning from Contrastive
+ * Data / critique-feedback distillation) export for the Jev decision model.
+ *
+ * Unlike the eval-record export, RLCD training needs the *state* the decision
+ * model saw, so the redacted prompt is always included; assistant text remains
+ * gated behind an explicit approval. `targetNoul` is the calibrated target for
+ * the `pass_quality` question: `1` when the reviewer (or transport + assertion
+ * evidence) approves the turn, `0` otherwise.
+ */
+export interface JevRlcdTrainingRecord {
+  schemaVersion: typeof JEV_RLCD_RECORD_SCHEMA;
+  datasetVersion: string;
+  caseId: string;
+  createdAt: string;
+  state: {
+    /** Redacted user prompt the decision model must analyse. */
+    prompt: string;
+    /** Redacted assistant answer, only for approved text exports. */
+    assistantText?: string;
+  };
+  questions: {
+    pass_quality: {
+      type: 'noul';
+      instructions: string;
+      targetNoul: 0 | 1;
+    };
+    /** Deterministic tool names observed in the turn (`[]` when none ran). */
+    tools_used: string[];
+  };
+  annotation: EvaluationAnnotation;
+  split?: DatasetSplit;
+  approval?: {
+    approvedBy: string;
+    approvedAt: string;
+  };
+}
+
+/**
+ * Build `kestrel.jev-rlcd.v1` records for the Jev decision model.
+ *
+ * Every exported state field runs through `redactString` and
+ * `findSensitiveTrainingContent` — the same PII/credential guard as
+ * `buildTrainingRecords` — and the export refuses rather than emitting a
+ * record whose sanitized state still contains sensitive content.
+ */
+export function buildJevRlcdTrainingRecords(
+  results: readonly PromptResult[],
+  options: TrainingExportOptions,
+): JevRlcdTrainingRecord[] {
+  const includeAssistantText = options.includeAssistantText ?? false;
+  if (includeAssistantText && !options.approvedBy?.trim()) {
+    throw new Error('approvedBy is required when including assistant text in an RLCD export');
+  }
+
+  const now = (options.now ?? new Date()).toISOString();
+  return results.map((result) => {
+    const explicitAnnotation = options.annotations?.[result.id];
+    if (options.requireApprovedAnnotations && !explicitAnnotation) {
+      throw new Error(`Record ${result.id} is missing an explicit reviewer annotation`);
+    }
+    const annotation = explicitAnnotation ?? {
+      label: result.ok && (result.assertions?.length ?? 0) === 0 ? 'pass' : 'needs_review',
+    };
+
+    const record: JevRlcdTrainingRecord = {
+      schemaVersion: JEV_RLCD_RECORD_SCHEMA,
+      datasetVersion: options.datasetVersion,
+      caseId: result.id,
+      createdAt: now,
+      state: {
+        prompt: sanitizeRlcdState(result.prompt, 'Prompt'),
+      },
+      questions: {
+        pass_quality: {
+          type: 'noul',
+          instructions:
+            'Did this turn pass quality review — grounded, relevant, non-hallucinated, and safe to serve?',
+          targetNoul: annotation.label === 'pass' ? 1 : 0,
+        },
+        tools_used: [...new Set(result.toolCalls.map((toolCall) => toolCall.name))],
+      },
+      annotation,
+      ...(options.splitByCaseId ? { split: options.splitByCaseId(result.id) } : {}),
+    };
+
+    if (includeAssistantText) {
+      record.state.assistantText = sanitizeRlcdState(result.text, 'Assistant text');
+      record.approval = {
+        approvedBy: options.approvedBy!.trim(),
+        approvedAt: now,
+      };
+    }
+    return record;
+  });
+}
+
+/** Redact first, then refuse if a sensitive category still survives. */
+function sanitizeRlcdState(value: string, label: string): string {
+  const sanitized = redactString(value);
+  const sensitiveMatch = findSensitiveTrainingContent(sanitized);
+  if (sensitiveMatch) {
+    throw new Error(`${label} contains sensitive content (${sensitiveMatch})`);
+  }
+  return sanitized;
 }
 
 export function buildTrainingRecords(

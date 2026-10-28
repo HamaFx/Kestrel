@@ -36,6 +36,7 @@
 //   - remember-journal.ts        — journal writer (+ text composition)
 //   - remember-briefing.ts       — briefing writer
 //   - remember-thread-synopsis.ts— thread-synopsis writer
+//   - remember-regime.ts         — JEPA-style market-regime writer (Phase 3)
 //   - search.ts                  — cosine-similarity search
 //   - count.ts                   — tenant-scoped corpus probe
 
@@ -50,5 +51,11 @@ export {
   rememberThreadSynopsis,
   type RememberThreadSynopsisArgs,
 } from './remember-thread-synopsis';
+export {
+  composeRegimeStateText,
+  rememberMarketRegime,
+  type RegimeOutcome,
+  type RememberMarketRegimeArgs,
+} from './remember-regime';
 export { searchMemory, type SearchMemoryArgs } from './search';
 export { countMemory } from './count';

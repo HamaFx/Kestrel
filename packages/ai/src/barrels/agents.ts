@@ -87,10 +87,15 @@ export {
   rememberJournalEntry,
   rememberBriefing,
   rememberThreadSynopsis,
+  // Phase 3 (Jev roadmap) — JEPA-style market-regime memories.
+  composeRegimeStateText,
+  rememberMarketRegime,
   searchMemory,
   countMemory,
   type MemoryKind,
   type MemoryRow,
+  type RegimeOutcome,
+  type RememberMarketRegimeArgs,
 } from '../memory/memory-index';
 export { runMemoryQuery, memoryRowToItem, type RunMemoryQueryArgs } from '../models/rag';
 
