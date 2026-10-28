@@ -134,6 +134,7 @@ export {
 export { resolveMode, type AnalysisMode, type ResolvedMode } from '../mastra-v2/planning/routing-policy';
 export {
   saveAgentOpinions,
+  saveAgentOpinionsBestEffort,
   listAgentOpinions,
   listMessageOpinions,
   type SaveOpinionsArgs,

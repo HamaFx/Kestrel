@@ -22,6 +22,7 @@ import {
   createGenerationLedger,
   DEFAULT_MAX_DAILY_USD,
   reserveTurnBudget,
+  saveAgentOpinionsBestEffort,
   terminalMetadata,
 } from '@kestrel/ai';
 import {
@@ -192,6 +193,19 @@ export async function runMastraModeChatStream(input: RunMastraModeChatInput): Pr
             return { result, observedCost, assistantMessage };
           },
           buildAssistantMessage: ({ assistantMessage }) => assistantMessage!,
+          // Phase 3 (Jev roadmap) — record one `agent_opinions` row per desk
+          // after the assistant message is durable, so the scheduled
+          // opinion-calibration job can grade desk accuracy. Best-effort.
+          afterPersist: async ({ messageId: persistedMessageId, result }) => {
+            await saveAgentOpinionsBestEffort({
+              userId: input.userId,
+              threadId: input.threadId,
+              messageId: persistedMessageId,
+              analysisMode: result.mode,
+              symbol: result.symbol,
+              opinions: result.agentOpinions,
+            });
+          },
           isCancelled: () => input.signal?.aborted === true,
         });
 

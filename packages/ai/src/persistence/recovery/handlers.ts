@@ -50,6 +50,11 @@ const OpinionsReplaySchema = z.strictObject({
   threadId: z.string().min(1),
   messageId: z.string().min(1),
   analysisMode: z.string().min(1),
+  /**
+   * Phase 3 — run symbol recorded into `raw_data.symbol` for the scheduled
+   * opinion-calibration job. Optional: pre-Phase-3 queued payloads omit it.
+   */
+  symbol: z.string().min(1).optional(),
   opinions: z
     .array(
       z.strictObject({

@@ -6,7 +6,10 @@ import {
   createExecutionLifecycle,
   type BudgetHandle,
 } from '@kestrel/ai';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
 import type { UIMessage } from 'ai';
+
+const llog = createCategorizedLogger('api', { component: 'mastra-chat-lifecycle' });
 
 export interface BufferedExecutionResult<T> {
   result: T;
@@ -58,6 +61,12 @@ export async function runBufferedExecution<T>(options: {
     observedCost: number;
     assistantMessage?: UIMessage;
   }) => UIMessage;
+  /**
+   * Phase 3 — post-persist side effects (e.g. `agent_opinions` bookkeeping)
+   * that need the persisted assistant message id. Must be non-throwing; the
+   * turn is already durable when this runs.
+   */
+  afterPersist?: (execution: { messageId: string; result: T }) => void | Promise<void>;
   isCancelled?: () => boolean;
 }): Promise<BufferedExecutionResult<T>> {
   const lifecycle = createExecutionLifecycle(options.budget);
@@ -78,6 +87,17 @@ export async function runBufferedExecution<T>(options: {
       options.buildAssistantMessage(completed),
       { idempotencyKey: options.assistantMessageIdempotencyKey },
     );
+    if (options.afterPersist) {
+      try {
+        await options.afterPersist({ messageId: persisted.messageId, result: completed.result });
+      } catch (error) {
+        // Post-persist bookkeeping (opinion rows, outbox replays) must never
+        // fail a turn whose assistant message is already durable.
+        llog.warn('Post-persist side effect failed (non-fatal)', {
+          err: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
     await lifecycle.complete(completed.observedCost);
     return { ...completed, messageId: persisted.messageId };
   } catch (error) {

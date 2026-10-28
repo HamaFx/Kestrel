@@ -28,6 +28,7 @@ import {
   reserveTurnBudget,
   restoreGenerationLedger,
   resumeTurnBudget,
+  saveAgentOpinionsBestEffort,
   withDiagnostics,
   type BudgetHandle,
   type GenerationLedgerSnapshot,
@@ -251,6 +252,20 @@ export async function executeClaimedFullAnalysisRun(input: ExecuteClaimedRunInpu
       assistant,
       { idempotencyKey: `analysis-job:${runId}:assistant` },
     );
+
+    // Phase 3 (Jev roadmap) — persist one `agent_opinions` row per desk so the
+    // scheduled opinion-calibration job can grade them against realized
+    // candles_1m outcomes and feed empirical reliability weights into fusion.
+    // Best-effort: a failed write is queued for outbox replay and must never
+    // fail a completed analysis run.
+    await saveAgentOpinionsBestEffort({
+      userId: payload.userId,
+      threadId: payload.threadId,
+      messageId: persistedAssistant.messageId,
+      analysisMode: modeResult.mode,
+      symbol: modeResult.symbol,
+      opinions: modeResult.agentOpinions,
+    });
 
     try {
       await maybeGenerateThreadTitle({
