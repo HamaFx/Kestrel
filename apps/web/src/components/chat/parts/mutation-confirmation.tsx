@@ -173,7 +173,7 @@ export function MutationConfirmationCard({ payload }: { payload: MutationDraftPa
             HOPLITE EXECUTION GATE // REQUIRES OPERATOR APPROVAL
           </span>
         </div>
-        <span className="text-fg-subtle font-mono text-[11px] tabular-nums uppercase">
+        <span className="text-fg-subtle font-mono text-[11px] uppercase tabular-nums">
           {expired ? 'EXPIRED' : `TTL: ~${remainingMin}m`}
         </span>
       </div>

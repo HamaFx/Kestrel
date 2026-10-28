@@ -136,7 +136,7 @@ export function MessageActionsBar({
               type="button"
               onClick={() => onRegenerate()}
               aria-label="Regenerate response"
-              className="tactile-press text-fg-muted hover:text-fg hover:bg-white/[0.04] focus-visible:ring-brand inline-flex size-9 items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset sm:size-8"
+              className="tactile-press text-fg-muted hover:text-fg focus-visible:ring-brand inline-flex size-9 items-center justify-center transition-colors hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset sm:size-8"
             >
               <IconArrowBackUp className="size-4 sm:size-3.5" strokeWidth={1.75} />
             </button>
@@ -148,7 +148,7 @@ export function MessageActionsBar({
               onClick={hasPopoverSupport ? undefined : () => setIsOpenFallback(!isOpenFallback)}
               aria-label="Regenerate with a different model"
               data-action={REGEN_MENU_TRIGGER}
-              className="tactile-press text-fg-muted hover:text-fg hover:bg-white/[0.04] focus-visible:ring-brand border-border/70 inline-flex h-9 min-w-[30px] items-center justify-center border-l px-1.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset sm:h-8 sm:min-w-[26px]"
+              className="tactile-press text-fg-muted hover:text-fg focus-visible:ring-brand border-border/70 inline-flex h-9 min-w-[30px] items-center justify-center border-l px-1.5 transition-colors hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset sm:h-8 sm:min-w-[26px]"
               style={
                 hasPopoverSupport
                   ? ({ anchorName: `--regen-btn-${message.id}` } as CSSProperties)

@@ -76,7 +76,7 @@ export function ComposerControls({
           onClick={() => fileInputRef.current?.click()}
           disabled={disabled || images.length >= MAX_IMAGES}
           className={cn(
-            'tactile-press text-fg-subtle hover:text-fg hover:bg-bg-elev-2 hover:border-white/10 inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-transparent transition-all',
+            'tactile-press text-fg-subtle hover:text-fg hover:bg-bg-elev-2 inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-transparent transition-all hover:border-white/10',
             'focus-visible:ring-brand focus:outline-none focus-visible:ring-2',
             disabled || images.length >= MAX_IMAGES ? 'cursor-not-allowed opacity-50' : '',
           )}
@@ -104,7 +104,7 @@ export function ComposerControls({
             onClick={() => (voice.active ? voice.stop() : voice.start())}
             disabled={disabled}
             className={cn(
-              'tactile-press text-fg-subtle hover:text-fg hover:bg-bg-elev-2 hover:border-white/10 inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-transparent transition-all',
+              'tactile-press text-fg-subtle hover:text-fg hover:bg-bg-elev-2 inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-transparent transition-all hover:border-white/10',
               'focus-visible:ring-brand focus:outline-none focus-visible:ring-2',
               voice.active ? 'text-danger bg-danger/15 border-danger/40 mic-pulse' : '',
               disabled ? 'cursor-not-allowed opacity-50' : '',

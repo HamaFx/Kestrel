@@ -41,7 +41,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         'h-12 w-full rounded-lg border px-4 text-[16px] shadow-[var(--shadow-well)] sm:text-sm',
         error
           ? 'border-danger/60 focus:ring-danger/30 focus:ring-2 focus-visible:outline-none'
-          : 'border-border hover:border-white/20 focus:border-brand/60',
+          : 'border-border focus:border-brand/60 hover:border-white/20',
         'transition-all duration-150 ease-in-out',
         'focus:bg-[#121316]',
         'disabled:cursor-not-allowed disabled:opacity-60',

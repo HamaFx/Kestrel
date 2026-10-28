@@ -36,7 +36,7 @@ export function NavTrigger({ className }: { className?: string }) {
       aria-controls="sidebar-nav"
       onClick={() => setOpen(true)}
       className={cn(
-        'tactile-press text-fg-muted hover:text-fg hover:bg-bg-elev-2 hover:border-white/10 inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-transparent transition-all',
+        'tactile-press text-fg-muted hover:text-fg hover:bg-bg-elev-2 inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-transparent transition-all hover:border-white/10',
         className,
       )}
     >

@@ -23,7 +23,9 @@ export function NewThesisButton({ collapsed = false }: { collapsed?: boolean }) 
         'from-brand/[0.18] via-brand/[0.08] to-brand/[0.03] bg-gradient-to-b',
         'shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_2px_10px_rgba(0,0,0,0.4)]',
         'hover:border-brand/75 hover:from-brand/[0.26] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_0_20px_rgba(255,54,22,0.22)]',
-        collapsed ? 'mx-auto size-10 justify-center' : 'min-h-10 justify-between gap-2.5 px-2.5 py-1.5',
+        collapsed
+          ? 'mx-auto size-10 justify-center'
+          : 'min-h-10 justify-between gap-2.5 px-2.5 py-1.5',
       )}
     >
       <span className="flex items-center gap-2.5">
