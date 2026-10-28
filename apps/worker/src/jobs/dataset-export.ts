@@ -25,6 +25,7 @@ import { promisify } from 'node:util';
 
 import {
   assembleTrainingDataset,
+  buildJevRlcdTrainingRecords,
   getDb,
   publishTrainingDatasetToLangfuse,
   resolveEvaluationAnnotations,
@@ -220,6 +221,30 @@ export async function runDatasetExport(ctx: JobContext): Promise<JobResult> {
     'utf8',
   );
 
+  // 5b — Phase 3 (Jev roadmap) — opt-in RLCD export for the Jev decision
+  // model. Unlike the hashes-only eval dataset, RLCD training needs the state
+  // the decision model saw (redacted prompt), so this file is written only
+  // when the operator sets RLCD_EXPORT_ENABLED=true. Assistant text stays
+  // excluded: approved text exports run through the explicit API instead.
+  let rlcdRecords = 0;
+  const rlcdEnabled = (process.env.RLCD_EXPORT_ENABLED ?? 'false') === 'true';
+  if (rlcdEnabled) {
+    try {
+      const rlcd = buildJevRlcdTrainingRecords(approved, {
+        datasetVersion: version,
+        annotations,
+      });
+      await writeFile(
+        join(outDir, 'jev-rlcd.jsonl'),
+        `${rlcd.map((record) => JSON.stringify(record)).join('\n')}\n`,
+        'utf8',
+      );
+      rlcdRecords = rlcd.length;
+    } catch (err) {
+      log.warn('RLCD export failed (nightly eval dataset unaffected)', { err: String(err) });
+    }
+  }
+
   // 6 — Register the content-addressed version (needs a real users.id).
   let registered = false;
   try {
@@ -275,6 +300,6 @@ export async function runDatasetExport(ctx: JobContext): Promise<JobResult> {
       `version=${version} records=${assembled.manifest.recordCount} ` +
       `evalReports=${reportFiles} evalCases=${evalResults.length} ` +
       `feedback=${pairs.length} registered=${registered} b2=${b2Uploaded} ` +
-      `langfuse=${langfuseStatus}`,
+      `langfuse=${langfuseStatus} rlcd=${rlcdRecords}`,
   };
 }
