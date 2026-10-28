@@ -38,14 +38,17 @@
 
 import { createHash } from 'node:crypto';
 
-import type { MutationKind } from '../mastra-v2/workflows/mutation';
 import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
+import type { MutationKind } from '../mastra-v2/workflows/mutation';
 import type { RoutingDomain } from '../routing';
 import { evaluateJev } from './client';
 import type { JevEnv, JevGenerationLedger, JevSettings } from './types';
 
 /** Domains the turn router can return (vision is resolved deterministically). */
-export type JevTurnDomain = Extract<RoutingDomain, 'fundamental' | 'technical' | 'summary' | 'generic'>;
+export type JevTurnDomain = Extract<
+  RoutingDomain,
+  'fundamental' | 'technical' | 'summary' | 'generic'
+>;
 
 /** Accepted domain classification threshold. */
 export const JEV_DOMAIN_CONFIDENCE_THRESHOLD = 0.65;
@@ -152,7 +155,12 @@ export async function evaluateJevTurnRouting(
   if (cached) return cached;
 
   const result = await evaluateJev({
-    state: { prompt: text, hasPriorReport: priorReportAvailable },
+    state: JSON.stringify({
+      prompt: text,
+      hasPriorReport: priorReportAvailable,
+    }),
+    // Routing is short-text classification — the simple Liquid tier (d1.1).
+    tier: 'simple',
     questions: {
       domain: {
         type: 'choice',
@@ -175,7 +183,8 @@ export async function evaluateJevTurnRouting(
           set_alert: 'Set, create, schedule, or notify about a price/condition alert',
           log_journal: 'Log or record a trade, journal entry, or position',
           share_snapshot: 'Share, export, or publish a snapshot, report, or analysis link',
-          run_system_action: 'Run, trigger, or execute a system action, maintenance, backup, or diagnostic',
+          run_system_action:
+            'Run, trigger, or execute a system action, maintenance, backup, or diagnostic',
         },
       },
       xauusd_kind: {

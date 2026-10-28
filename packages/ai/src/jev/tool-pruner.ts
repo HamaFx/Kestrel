@@ -65,7 +65,8 @@ export const TOOL_SHORT_CRITERIA: Readonly<Record<string, string>> = {
   get_price: 'the current live price of a symbol',
   get_candles: 'OHLC candle history for a timeframe',
   get_indicators: 'indicator values such as RSI, MACD, EMA, ATR, or Bollinger bands',
-  get_market_structure: 'swing structure, break-of-structure, FVGs, order blocks, or liquidity sweeps',
+  get_market_structure:
+    'swing structure, break-of-structure, FVGs, order blocks, or liquidity sweeps',
   get_session_levels: 'session highs/lows or key intraday levels',
   get_news: 'recent news headlines',
   get_calendar: 'economic-calendar events',
@@ -134,7 +135,9 @@ export async function pruneToolsWithJev<T extends Record<string, unknown>>(
   }
 
   const result = await evaluateJev({
-    state: { prompt: text, domain: args.domain ?? null },
+    state: JSON.stringify({ prompt: text, domain: args.domain ?? null }),
+    // Per-tool relevance is simple enumeration — the simple Liquid tier (d1.1).
+    tier: 'simple',
     questions,
     ...(args.settings !== undefined ? { settings: args.settings } : {}),
     ...(args.env !== undefined ? { env: args.env } : {}),

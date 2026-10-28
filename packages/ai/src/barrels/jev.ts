@@ -27,7 +27,15 @@ export {
   type JevNoulConfidence,
   type JevScoreConfidence,
 } from '../jev/calibration';
-export { JEV_ENDPOINTS, jevCircuitKey, resolveJevEndpoint } from '../jev/resolve-endpoint';
+export {
+  JEV_ENDPOINTS,
+  LIQUID_COST_PER_MTOK_COMPLEX,
+  LIQUID_COST_PER_MTOK_SIMPLE,
+  LIQUID_MODEL_COMPLEX,
+  LIQUID_MODEL_SIMPLE,
+  jevCircuitKey,
+  resolveJevEndpoint,
+} from '../jev/resolve-endpoint';
 export {
   DEFAULT_JEV_TIMEOUT_MS,
   estimateJevCostUsd,
@@ -51,6 +59,7 @@ export type {
   JevScoreAnswer,
   JevScoreQuestion,
   JevSettings,
+  JevTaskTier,
   JevUsage,
   ResolvedJevEndpoint,
 } from '../jev/types';

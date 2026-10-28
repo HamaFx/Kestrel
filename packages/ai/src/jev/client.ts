@@ -32,7 +32,12 @@ import { metrics } from '@kestrel/shared';
 import { z } from 'zod';
 
 import { isCircuitOpen, recordModelFailure, recordModelSuccess } from '../models/circuit-breaker';
-import { clamp01, computeChoiceConfidence, computeNoulConfidence, computeScoreConfidence } from './calibration';
+import {
+  clamp01,
+  computeChoiceConfidence,
+  computeNoulConfidence,
+  computeScoreConfidence,
+} from './calibration';
 import { jevCircuitKey, resolveJevEndpoint } from './resolve-endpoint';
 import type {
   JevAnswer,
@@ -42,6 +47,7 @@ import type {
   JevGenerationLedger,
   JevQuestion,
   JevSettings,
+  JevTaskTier,
   JevUsage,
   ResolvedJevEndpoint,
 } from './types';
@@ -58,9 +64,7 @@ const JevAnswerEnvelopeSchema = z.object({
   type: z.string().optional(),
   noul: z.number().optional(),
   choice: z.string().optional(),
-  probabilities: z
-    .union([z.array(z.number()), z.record(z.string(), z.number())])
-    .optional(),
+  probabilities: z.union([z.array(z.number()), z.record(z.string(), z.number())]).optional(),
   confidence: z.number().optional(),
 });
 
@@ -93,6 +97,12 @@ export interface EvaluateJevArgs<Q extends Record<string, JevQuestion>> {
   fetchImpl?: typeof fetch;
   /** Pre-resolved endpoint (skips resolution; still circuit-checked). */
   endpoint?: ResolvedJevEndpoint | null;
+  /**
+   * Task complexity tier for providers with tiered models (Liquid AI):
+   * `complex` → d1-ultra, `simple` → d1.1. Defaults to `complex` so an
+   * undeclared call site never silently downgrades decision quality.
+   */
+  tier?: JevTaskTier;
   /** Optional generation ledger the request cost is recorded into. */
   ledger?: JevGenerationLedger | null;
   /** Stable id for the ledger entry (idempotency key). */
@@ -120,7 +130,9 @@ function toNumberRecord(value: unknown): Record<string, number> | null {
 
 function toNumberArray(value: unknown): number[] | null {
   if (Array.isArray(value)) {
-    const arr = value.filter((item): item is number => typeof item === 'number' && Number.isFinite(item));
+    const arr = value.filter(
+      (item): item is number => typeof item === 'number' && Number.isFinite(item),
+    );
     return arr.length === value.length && arr.length > 0 ? arr : null;
   }
   const record = toNumberRecord(value);
@@ -189,7 +201,7 @@ export function parseJevAnswer(question: JevQuestion, raw: unknown): JevAnswer |
 export async function evaluateJev<Q extends Record<string, JevQuestion>>(
   args: EvaluateJevArgs<Q>,
 ): Promise<JevEvaluationResult<Q> | null> {
-  const endpoint = args.endpoint ?? resolveJevEndpoint(args.settings, args.env);
+  const endpoint = args.endpoint ?? resolveJevEndpoint(args.settings, args.env, args.tier);
   if (!endpoint) return null;
 
   const circuitKey = jevCircuitKey(endpoint.providerId, endpoint.modelId);

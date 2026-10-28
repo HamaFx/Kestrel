@@ -126,13 +126,16 @@ export async function quarantineAndRerankSnippets<T extends QuarantineRerankItem
   });
 
   const result = await evaluateJev({
-    state: {
+    state: JSON.stringify({
       query: sanitizeExternalText(args.query, JEV_RAG_QUERY_CHARS),
       snippets: scored.map((item, index) => ({
         index,
         text: sanitizeExternalText(item.text, JEV_RAG_SNIPPET_CHARS),
       })),
-    },
+    }),
+    // Injection screening plus relevance ranking over up to 12 snippets is
+    // security-relevant judgement — complex tier (d1-ultra).
+    tier: 'complex',
     questions,
     ...(args.settings !== undefined ? { settings: args.settings } : {}),
     ...(args.env !== undefined ? { env: args.env } : {}),
@@ -169,7 +172,9 @@ export async function quarantineAndRerankSnippets<T extends QuarantineRerankItem
   if (aboveBar.length === 0 && candidates.length > 0) {
     // Never let the gate turn a non-empty candidate set into zero results:
     // keep the single most relevant non-quarantined snippet.
-    aboveBar = [candidates.reduce((best, current) => (current.relevance > best.relevance ? current : best))];
+    aboveBar = [
+      candidates.reduce((best, current) => (current.relevance > best.relevance ? current : best)),
+    ];
   }
   aboveBar.sort((a, b) => b.relevance - a.relevance);
 

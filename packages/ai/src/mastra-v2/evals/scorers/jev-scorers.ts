@@ -50,6 +50,7 @@ import type {
   JevSettings,
 } from '@ai/jev/types';
 import type { ResolveModelEnv } from '@ai/models/env-factory';
+
 import type { BuiltScorers } from './types';
 
 const slog = createCategorizedLogger('ai', { component: 'mastra:jev-scorers' });
@@ -104,7 +105,12 @@ export async function evaluateJevRubricScores(
   if (!input || !output) return null;
 
   const result = await evaluateJev({
-    state: { userInput: input.slice(0, 4_000), assistantOutput: output.slice(0, 6_000) },
+    state: JSON.stringify({
+      userInput: input.slice(0, 4_000),
+      assistantOutput: output.slice(0, 6_000),
+    }),
+    // Rubric judging is complex reasoning — complex tier (d1-ultra).
+    tier: 'complex',
     questions: {
       faithfulness: {
         type: 'score',

@@ -42,6 +42,12 @@ export interface JevEnv extends ResolveModelEnv {
   OPENCODE_API_KEY?: string | undefined;
   /** Direct TypeSafe AI key for `/v1/systemone` (`jev-latest`). */
   TYPESAFE_API_KEY?: string | undefined;
+  /**
+   * Liquid AI key for the d1 decision models
+   * (`api.liquid.ai/decisions/v1/systemone`). Complex tasks resolve to
+   * `d1-ultra` ($0.042/1M in) and simple tasks to `d1.1` ($0.02/1M in).
+   */
+  LIQUID_API_KEY?: string | undefined;
   /** Optional operator-configured endpoint override (OpenCode/TypeSafe). */
   JEV_BASE_URL?: string | undefined;
 }
@@ -51,8 +57,19 @@ export interface JevSettings {
   aiApiKeys?: string | null | undefined;
 }
 
+/**
+ * Decision-task complexity tier. Simple calls (short-text classification,
+ * enumeration, pruning) resolve to Liquid's `d1.1`; complex calls (structured
+ * judgement over a dense packet, consensus/debate reasoning, semantic
+ * verification, evaluation rubrics) resolve to `d1-ultra`. Providers without
+ * tiered models ignore it; the default is `complex` so quality-first is the
+ * fallback when a call site does not declare a tier.
+ */
+export type JevTaskTier = 'complex' | 'simple';
+
 /** Canonical Jev provider ids, in resolution priority order. */
-export type JevProviderId = 'opencode-free' | 'vercel-gateway' | 'typesafe' | 'openrouter';
+export type JevProviderId =
+  'opencode-free' | 'vercel-gateway' | 'liquid' | 'typesafe' | 'openrouter';
 
 /** One resolved Jev endpoint (decrypted key + model + price). */
 export interface ResolvedJevEndpoint {

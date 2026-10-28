@@ -18,9 +18,8 @@
 // calibrated packet scorer and its untrusted-prose stripping invariant
 // (Check Point indirect evidence-poisoning hardening).
 
-import { describe, expect, it, vi } from 'vitest';
-
 import { RequestContext } from '@mastra/core/request-context';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   blendSpecialistConfidence,
@@ -122,6 +121,48 @@ describe('Committee Jev packet scorer & untrusted-prose stripping', () => {
     const blended = blendSpecialistConfidence(0.9, calibration!.technicalBias.confidence);
     expect(blended).toBeLessThan(0.9);
     expect(blended).toBeGreaterThan(0.7);
+  });
+
+  it('sends the packet as a JSON string state on the complex Liquid tier', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        model: 'd1-ultra',
+        answers: {
+          technical_bias: {
+            type: 'choice',
+            choice: 'bullish',
+            probabilities: { bullish: 0.82, bearish: 0.1, neutral: 0.08 },
+          },
+          fundamental_bias: {
+            type: 'choice',
+            choice: 'bullish',
+            probabilities: { bullish: 0.78, bearish: 0.12, neutral: 0.1 },
+          },
+          volatility_regime: { type: 'score', probabilities: [0.1, 0.7, 0.2] },
+          setup_clarity: { type: 'score', probabilities: [0.05, 0.15, 0.8] },
+        },
+        usage: { input_tokens: 240, output_tokens: 0 },
+      }),
+    });
+
+    await scorePacketWithJev(samplePacket, {
+      env: { LIQUID_API_KEY: 'liquid-test' },
+      fetchImpl: fetchMock as unknown as typeof fetch,
+    });
+
+    const body = JSON.parse(String(fetchMock.mock.calls[0]![1].body)) as {
+      model: string;
+      state: unknown;
+    };
+    // Complex tier → d1-ultra; state serialized as a JSON string (measured
+    // ~44% fewer billed input tokens than the nested-object form).
+    expect(body.model).toBe('d1-ultra');
+    expect(typeof body.state).toBe('string');
+    expect(body.state as string).toContain('2750');
+    // The untrusted-prose stripping invariant survives serialization.
+    expect(body.state as string).not.toContain('PonziCorp');
   });
 
   const sampleCalibration: JevPacketCalibration = {
