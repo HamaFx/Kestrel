@@ -19,6 +19,7 @@
 // `./execute-run.ts`, and settlement only commits through the live lease.
 
 import {
+  clearFullAnalysisWorkflowState,
   failFullAnalysisRun,
   FullAnalysisCancelledError,
   FullAnalysisHeartbeatError,
@@ -121,6 +122,11 @@ export async function processClaimedFullAnalysisRun(
         });
       }
       if (decision.action === 'requeue') {
+        // The retry must start a fresh committee run: resuming the failed
+        // attempt's durable snapshot reuses its failed specialist results and
+        // turns every retry into an instant strict failure. (Crash recovery
+        // without a requeue keeps its snapshot for legitimate resumption.)
+        await clearFullAnalysisWorkflowState(runId);
         await requeueFullAnalysisRun(
           runId,
           workerRunId,

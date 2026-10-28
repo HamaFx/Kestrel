@@ -21,6 +21,7 @@ export * from './full-analysis-types';
 export { enqueueFullAnalysis } from './full-analysis-enqueue';
 export { claimNextFullAnalysisRun } from './full-analysis-claim';
 export {
+  clearFullAnalysisWorkflowState,
   completeFullAnalysisRun,
   failFullAnalysisRun,
   purgeOldFullAnalysisRuns,

@@ -102,6 +102,13 @@ export interface JobRegistration {
   /** Cron expression for node-cron scheduling. `null` = no cron schedule. */
   schedule: string | null;
   /**
+   * Wall-clock budget for one invocation, overriding the global
+   * `JOB_TIMEOUT_MS`. Only long-lived durable jobs (e.g. the Full-analysis
+   * committee) should need this; the default stays tight so a wedged job
+   * cannot hold its in-flight guard for long.
+   */
+  timeoutMs?: number;
+  /**
    * Env var key on the WorkerEnv that holds the healthchecks.io UUID
    * for this job. When set, the runner CLI reads `env[hcUuidEnvVar]`
    * instead of using a switch statement.

@@ -34,8 +34,10 @@ services:
     # C4: Health check — mirrors docker-compose.vm.yml. Compose renders `$$`
     # to `$` for the container shell (the image-level probe in Dockerfile.worker
     # keeps its command verbatim and therefore uses a single `$`).
+    # `/health/live` = process liveness; `/health/jobs` = no wedged job holds
+    # its scheduler guard (autoheal restarts a wedged worker).
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -H \"Authorization: Bearer $${WORKER_HEALTH_TOKEN}\" http://localhost:8081/health/live || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS -H \"Authorization: Bearer $${WORKER_HEALTH_TOKEN}\" http://localhost:8081/health/live && curl -fsS -H \"Authorization: Bearer $${WORKER_HEALTH_TOKEN}\" http://localhost:8081/health/jobs || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

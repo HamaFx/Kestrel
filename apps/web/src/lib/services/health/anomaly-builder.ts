@@ -149,7 +149,9 @@ export function buildHealthAssessment(input: HealthAssessmentInput): HealthAsses
       anomalies.push(`${analysis.stale} analysis job(s) pending > 10 minutes — worker may be down`);
     }
     if (analysis.stuck > 0) {
-      anomalies.push(`${analysis.stuck} analysis job(s) stuck in 'running' > 30 seconds`);
+      anomalies.push(
+        `${analysis.stuck} analysis job(s) running with an expired lease — worker may be wedged`,
+      );
     }
   }
 

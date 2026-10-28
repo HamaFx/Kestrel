@@ -14,9 +14,37 @@
  * limitations under the License.
  */
 
-import { describe, expect, it } from 'vitest';
+import type * as SharedLoggerModule from '@kestrel/shared/logger';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { MastraPinoLogger } from '../src/mastra-v2';
+
+const logMocks = vi.hoisted(() => {
+  const makeLogger = () => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    with: vi.fn(() => makeLogger()),
+  });
+  return {
+    logger: makeLogger(),
+    logErrorContext: vi.fn(),
+  };
+});
+
+vi.mock('@kestrel/shared/logger', async (importOriginal) => {
+  const actual = await importOriginal<typeof SharedLoggerModule>();
+  return {
+    ...actual,
+    createCategorizedLogger: () => logMocks.logger,
+    logErrorContext: logMocks.logErrorContext,
+  };
+});
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe('mastra-v2 MastraPinoLogger adapter', () => {
   it('forwards all levels without throwing', () => {
@@ -41,6 +69,27 @@ describe('mastra-v2 MastraPinoLogger adapter', () => {
     expect(() => {
       adapter.trackException(new Error('mastra failure'), { runId: 'run-1' });
     }).not.toThrow();
+    expect(logMocks.logErrorContext).toHaveBeenCalledTimes(1);
+  });
+
+  it('downgrades Mastra span-attribution lookup misses to debug', () => {
+    const adapter = new MastraPinoLogger();
+
+    // Committee agents and per-run scorers are intentionally not registered
+    // on the shared Mastra instance; the trace pipeline probes those ids on
+    // every run and routes the misses through trackException.
+    adapter.trackException(new Error('Agent with id kestrel-mastra-decision not found'));
+    adapter.trackException(new Error('Scorer with id kestrel-citation not found'));
+
+    expect(logMocks.logErrorContext).not.toHaveBeenCalled();
+    expect(logMocks.logger.debug).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps unrelated exceptions at error level', () => {
+    const adapter = new MastraPinoLogger();
+    adapter.trackException(new Error('Agent with id x not found, but something else broke'));
+
+    expect(logMocks.logErrorContext).toHaveBeenCalledTimes(1);
   });
 
   it('exposes empty log surfaces (Kestrel owns log persistence)', async () => {

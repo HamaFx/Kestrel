@@ -25,6 +25,7 @@ import {
 
 const {
   mockClaimNextFullAnalysisRun,
+  mockClearFullAnalysisWorkflowState,
   mockCompleteFullAnalysisRun,
   mockFailFullAnalysisRun,
   mockRequeueFullAnalysisRun,
@@ -47,6 +48,7 @@ const {
   mockCreateGenerationLedger,
 } = vi.hoisted(() => ({
   mockClaimNextFullAnalysisRun: vi.fn(),
+  mockClearFullAnalysisWorkflowState: vi.fn(async () => undefined),
   mockCompleteFullAnalysisRun: vi.fn(),
   mockFailFullAnalysisRun: vi.fn(),
   mockRequeueFullAnalysisRun: vi.fn(),
@@ -166,6 +168,7 @@ vi.mock('@kestrel/db', () => ({
 
 vi.mock('@kestrel/ai/mastra-v2', () => ({
   claimNextFullAnalysisRun: mockClaimNextFullAnalysisRun,
+  clearFullAnalysisWorkflowState: mockClearFullAnalysisWorkflowState,
   completeFullAnalysisRun: mockCompleteFullAnalysisRun,
   failFullAnalysisRun: mockFailFullAnalysisRun,
   requeueFullAnalysisRun: mockRequeueFullAnalysisRun,
@@ -385,6 +388,8 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
     const result = await runMultiAgentAnalysis(ctx);
 
     expect(result).toEqual({ processed: 1, note: 'processed=1' });
+    // The retry must not resume the failed attempt's durable snapshot.
+    expect(mockClearFullAnalysisWorkflowState).toHaveBeenCalledWith('run-1');
     expect(mockRequeueFullAnalysisRun).toHaveBeenCalledWith(
       'run-1',
       expect.any(String),
@@ -402,6 +407,7 @@ describe('runMultiAgentAnalysis Mastra durable boundary', () => {
     const result = await runMultiAgentAnalysis(ctx);
 
     expect(result).toEqual({ processed: 1, note: 'processed=1' });
+    expect(mockClearFullAnalysisWorkflowState).toHaveBeenCalledWith('run-1');
     expect(mockRequeueFullAnalysisRun).toHaveBeenCalledWith(
       'run-1',
       expect.any(String),

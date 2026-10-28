@@ -22,6 +22,7 @@ import type http from 'node:http';
 import type { WorkerEnv } from '../env.js';
 import { createHealthServer, createProxyServer } from '../http-server.js';
 import type { Logger } from '../log.js';
+import { getStuckJobSummary } from '../scheduler/job-runtime.js';
 import type { WorkerRuntime } from './feed-worker';
 
 export interface WorkerHttpServers {
@@ -75,6 +76,7 @@ export function createWorkerHttpServers({
     isTickStreamEnabled: () => tickStreamEnabled,
     getDroppedTicks: worker.getDroppedTicks,
     getRequestId: () => env.DEPLOYED_SHA,
+    getStuckJobs: () => getStuckJobSummary().stuck,
   });
 
   let proxyServer: http.Server | null = null;

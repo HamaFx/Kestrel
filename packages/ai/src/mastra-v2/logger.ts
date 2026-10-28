@@ -33,6 +33,21 @@ import {
 import type { BaseLogMessage, IMastraLogger, LoggerTransport, LogLevel } from '@mastra/core/logger';
 
 /**
+ * Mastra's tracing pipeline attributes spans by resolving agent/scorer ids on
+ * the shared Mastra instance. The committee builds its agents per run (dynamic
+ * BYOK models) and its scorers per run, so those ids are deliberately never
+ * registered on the instance. Their lookups always miss, and Mastra routes
+ * every miss through `trackException` — expected noise, not a failure.
+ * Downgrade exactly those two messages so real exceptions stay visible at
+ * error level.
+ */
+const MASTRA_LOOKUP_MISS = /^(?:Agent|Scorer) with id .+ not found$/;
+
+function isMastraLookupMiss(error: Error): boolean {
+  return MASTRA_LOOKUP_MISS.test(error.message);
+}
+
+/**
  * Adapter that forwards Mastra logger calls into the shared categorized pino
  * logger. Mastra's `listLogs`/`listLogsByRunId` surfaces are intentionally
  * empty: Kestrel owns log persistence and streaming (see the admin log
@@ -61,6 +76,12 @@ export class MastraPinoLogger implements IMastraLogger {
   }
 
   trackException(error: Error, metadata?: Record<string, unknown>): void {
+    if (isMastraLookupMiss(error)) {
+      this.log.debug('Mastra span attribution skipped an unregistered id', {
+        err: error.message,
+      });
+      return;
+    }
     logErrorContext(error, 'mastra.trackException', metadata ?? {}, 'ai');
   }
 
