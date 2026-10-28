@@ -72,6 +72,14 @@ export interface ByokPayload {
   iamhc?: string;
   /** HCNSEC OpenAI-compatible gateway API key. */
   hcnsec?: string;
+  /**
+   * OpenCode Console API key. Serves the free `jev-1.13-free` System One
+   * endpoint ($0.00 in / $0.00 out) — deliberately NOT in PROVIDER_IDS
+   * because Jev is a non-generative decision model, not a chat LLM.
+   */
+  opencode?: string;
+  /** Direct TypeSafe AI key for `/v1/systemone` (`jev-latest`). */
+  typesafe?: string;
 }
 
 /**
