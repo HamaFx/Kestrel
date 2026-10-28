@@ -82,6 +82,17 @@ vi.mock('@kestrel/ai', () => ({
     return out;
   },
   assembleTrainingDataset: mockAssemble,
+  // Phase 3 — faithful stand-in for the RLCD record builder.
+  buildJevRlcdTrainingRecords: (
+    results: Array<{ id: string }>,
+    options: { datasetVersion: string },
+  ) =>
+    results.map((result) => ({
+      schemaVersion: 'kestrel.jev-rlcd.v1',
+      datasetVersion: options.datasetVersion,
+      caseId: result.id,
+      questions: { pass_quality: { type: 'noul', targetNoul: 1 }, tools_used: [] },
+    })),
   publishTrainingDatasetToLangfuse: mockPublishLangfuse,
 }));
 
@@ -130,12 +141,14 @@ describe('runDatasetExport', () => {
       B2_BUCKET: process.env.B2_BUCKET,
       B2_KEY_ID: process.env.B2_KEY_ID,
       B2_APPLICATION_KEY: process.env.B2_APPLICATION_KEY,
+      RLCD_EXPORT_ENABLED: process.env.RLCD_EXPORT_ENABLED,
     };
     process.env.DATASETS_DIR = datasetsDir;
     process.env.EVAL_REPORTS_DIR = reportsDir;
     delete process.env.B2_BUCKET;
     delete process.env.B2_KEY_ID;
     delete process.env.B2_APPLICATION_KEY;
+    delete process.env.RLCD_EXPORT_ENABLED;
     mockAssemble.mockClear();
     mockListPairs.mockReset();
     mockRegister.mockClear();
@@ -233,5 +246,38 @@ describe('runDatasetExport', () => {
     });
     expect(result.processed).toBe(0);
     expect(result.note).toContain('nothing to export');
+  });
+
+  it('writes the opted-in Jev RLCD export alongside the eval dataset', async () => {
+    process.env.RLCD_EXPORT_ENABLED = 'true';
+    mockListPairs.mockResolvedValue([pair(msg1, 'fail'), pair(msg2, 'pass')]);
+
+    const result = await runDatasetExport({
+      log,
+      signal: new AbortController().signal,
+      tenantRouter: testRouter,
+    });
+
+    const version = `nightly-${new Date().toISOString().slice(0, 10)}`;
+    const rlcdPath = join(datasetsDir, version, 'jev-rlcd.jsonl');
+    expect(existsSync(rlcdPath)).toBe(true);
+    const records = readFileSync(rlcdPath, 'utf8').trim().split('\n');
+    expect(records).toHaveLength(2);
+    expect(JSON.parse(records[0]!)).toMatchObject({ schemaVersion: 'kestrel.jev-rlcd.v1' });
+    expect(result.note).toContain('rlcd=2');
+  });
+
+  it('skips the RLCD export unless the operator opts in', async () => {
+    mockListPairs.mockResolvedValue([pair(msg2, 'pass')]);
+
+    const result = await runDatasetExport({
+      log,
+      signal: new AbortController().signal,
+      tenantRouter: testRouter,
+    });
+
+    const version = `nightly-${new Date().toISOString().slice(0, 10)}`;
+    expect(existsSync(join(datasetsDir, version, 'jev-rlcd.jsonl'))).toBe(false);
+    expect(result.note).toContain('rlcd=0');
   });
 });
