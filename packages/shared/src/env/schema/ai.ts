@@ -31,6 +31,12 @@ export const AiEnv = z.object({
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1).optional(),
   /** Dolphin Inference Network key (OpenAI-compatible DeepSeek endpoint). */
   DPHN_API_KEY: z.string().min(1).optional(),
+  /** OpenCode Console API key (serves jev-1.13-free at $0.00). */
+  OPENCODE_API_KEY: z.string().min(1).optional(),
+  /** Direct TypeSafe AI API key for /v1/systemone (jev-latest). */
+  TYPESAFE_API_KEY: z.string().min(1).optional(),
+  /** Optional operator-configured Jev System One endpoint override. */
+  JEV_BASE_URL: z.string().url().optional(),
   AI_DEFAULT_MODEL: z.string().default('google/gemini-2.5-flash'),
   /**
    * Auto-title generator (first-turn thread title) and operator-set
