@@ -42,8 +42,11 @@ interface KestrelBrandProps {
 /**
  * Kestrel's single source of truth for product identity in the UI.
  *
- * Launcher icons stay square and compact; the transparent lockup is reserved
- * for auth, onboarding, navigation, and empty-state identity moments.
+ * Uses optical scaling across two vector cuts of the Base 3E ocular falcon mark:
+ * - `/brand/kestrel-falcon-xs.svg` for `markSize="xs"` (14px-16px slots) with
+ *   solidified feather blades and an enlarged #FF3616 diamond pupil.
+ * - `/brand/kestrel-falcon.svg` for `markSize="sm"` and `variant="lockup"`
+ *   where the full Eye of Horus spiral and feather geometry are visible.
  */
 export function KestrelBrand({
   variant = 'lockup',
@@ -56,16 +59,21 @@ export function KestrelBrand({
   className,
 }: KestrelBrandProps) {
   const isDecorative = decorative && !href;
+  const markSrc =
+    variant === 'mark' && markSize === 'xs'
+      ? '/brand/kestrel-falcon-xs.svg'
+      : '/brand/kestrel-falcon.svg';
+
   const image =
     variant === 'mark' ? (
       <span
         className={cn(
-          'icon-housing-brand relative flex items-center justify-center overflow-hidden transition-all duration-200',
+          'icon-housing-brand surface-chip relative flex items-center justify-center overflow-hidden border transition-all duration-200',
           markSize === 'xs' ? 'rounded-md p-1' : 'rounded-lg p-1.5',
         )}
       >
         <img
-          src="/brand/kestrel-falcon.svg"
+          src={markSrc}
           alt={isDecorative ? '' : 'Kestrel'}
           aria-hidden={isDecorative || undefined}
           width={24}
@@ -78,7 +86,7 @@ export function KestrelBrand({
       </span>
     ) : (
       <div className="group/brand flex items-center gap-2.5">
-        <span className="icon-housing-brand group-hover/brand:border-brand/60 relative flex items-center justify-center overflow-hidden rounded-lg p-1.5 transition-all duration-200 group-hover/brand:shadow-[0_0_16px_rgba(255,54,22,0.28)]">
+        <span className="icon-housing-brand surface-chip relative flex items-center justify-center overflow-hidden rounded-lg border p-1.5 shadow-sm transition-all duration-200 group-hover/brand:border-brand/60 group-hover/brand:shadow-[0_0_16px_rgba(255,54,22,0.28)]">
           <img
             src="/brand/kestrel-falcon.svg"
             alt={isDecorative ? '' : 'Kestrel'}
