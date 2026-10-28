@@ -40,16 +40,16 @@ import {
   getUserMessageFromRunInput,
 } from '@mastra/evals/scorers/utils';
 
-import { resolveJevEndpoint } from '../../../jev/resolve-endpoint';
-import { evaluateJev } from '../../../jev/client';
+import { evaluateJev } from '@ai/jev/client';
+import { resolveJevEndpoint } from '@ai/jev/resolve-endpoint';
 import type {
   JevEnv,
   JevGenerationLedger,
   JevProviderId,
   JevScoreAnswer,
   JevSettings,
-} from '../../../jev/types';
-import type { ResolveModelEnv } from '../../../models/env-factory';
+} from '@ai/jev/types';
+import type { ResolveModelEnv } from '@ai/models/env-factory';
 import type { BuiltScorers } from './types';
 
 const slog = createCategorizedLogger('ai', { component: 'mastra:jev-scorers' });
