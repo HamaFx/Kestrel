@@ -37,13 +37,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       ref={ref}
       aria-invalid={error ? 'true' : undefined}
       className={cn(
-        'bg-bg-elev-1/60 text-fg placeholder:text-fg-subtle',
-        'h-12 w-full rounded-sm border px-4 text-[16px] sm:text-sm',
+        'text-fg placeholder:text-fg-subtle bg-[#0e0f11]/90',
+        'h-12 w-full rounded-lg border px-4 text-[16px] shadow-[var(--shadow-well)] sm:text-sm',
         error
           ? 'border-danger/60 focus:ring-danger/30 focus:ring-2 focus-visible:outline-none'
-          : 'border-border',
+          : 'border-border hover:border-white/20 focus:border-brand/60',
         'transition-all duration-150 ease-in-out',
-        'focus:bg-bg-elev-1/80',
+        'focus:bg-[#121316]',
         'disabled:cursor-not-allowed disabled:opacity-60',
         className,
       )}

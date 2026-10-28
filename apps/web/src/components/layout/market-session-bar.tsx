@@ -54,9 +54,6 @@ export function MarketSessionBar() {
       const h = d.getUTCHours();
       const m = d.getUTCMinutes();
       const pad = (n: number) => n.toString().padStart(2, '0');
-      // Minute resolution is all this bar conveys. The previous 1s tick
-      // re-rendered the entire app shell ~86,400 times a day for a seconds
-      // digit nobody reads; 30s keeps the clock within a half-minute.
       setUtcTime({ hour: h, minute: m, str: `${pad(h)}:${pad(m)} UTC` });
     }
     update();
@@ -67,15 +64,16 @@ export function MarketSessionBar() {
   const isLondonNyOverlap = mounted && utcTime.hour >= 12 && utcTime.hour < 16;
   const isNyOpenKillzone = mounted && utcTime.hour >= 12 && utcTime.hour < 15;
   const isLondonOpenKillzone = mounted && utcTime.hour >= 7 && utcTime.hour < 10;
+  const isKillzoneActive = isLondonNyOverlap || isNyOpenKillzone || isLondonOpenKillzone;
 
   return (
     <div
       aria-label="Global market trading sessions"
-      className="bg-bg-elev-1/60 flex h-6 items-center justify-between px-3 font-mono text-[11px]"
+      className="bg-bg-elev-1/75 border-divider relative flex h-6 items-center justify-between border-b px-3 font-mono text-[11px]"
     >
       <div className="scrollbar-hide flex items-center gap-3 overflow-x-auto py-0.5">
         <div className="text-fg-subtle flex shrink-0 items-center gap-1.5">
-          <IconClock className="text-fg-subtle size-3.5" />
+          <IconClock className="text-fg-subtle size-3.5" strokeWidth={1.75} />
           <span className="text-fg-muted font-medium tabular-nums">{utcTime.str}</span>
         </div>
 
@@ -88,10 +86,10 @@ export function MarketSessionBar() {
               <span
                 key={s.id}
                 className={cn(
-                  'inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-xs font-semibold tracking-wider transition-colors',
+                  'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] leading-none font-semibold tracking-wider transition-colors',
                   active
-                    ? 'bg-bull/15 text-bull border-bull/30 border'
-                    : 'bg-bg-elev-2 text-fg-subtle/70 border-border/40 border',
+                    ? 'bg-bull/15 text-bull border-bull/30 border shadow-[0_0_8px_rgba(63,158,61,0.12)]'
+                    : 'bg-bg-elev-2 text-fg-subtle/80 border-border/50 border',
                 )}
                 title={`${s.name} Session (${s.startHourUtc}:00 - ${s.endHourUtc}:00 UTC)`}
               >
@@ -107,23 +105,31 @@ export function MarketSessionBar() {
           })}
         </div>
 
-        {(isLondonNyOverlap || isNyOpenKillzone || isLondonOpenKillzone) && (
+        {isKillzoneActive && (
           <>
             <div className="bg-border h-3 w-px shrink-0" />
             <span
-              className="bg-brand/15 border-brand/40 text-brand text-caption inline-flex shrink-0 items-center gap-1 rounded-sm border px-1.5 py-0.5 font-semibold tracking-wider"
+              className="bg-brand/15 border-brand/40 text-brand inline-flex shrink-0 items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] leading-none font-semibold tracking-wider shadow-[0_0_10px_rgba(255,54,22,0.16)]"
               title="High volatility killzone window"
             >
-              <IconFlame className="text-brand size-3 animate-pulse" />
+              <IconFlame className="text-brand size-3 animate-pulse" strokeWidth={2} />
               {isLondonNyOverlap ? 'OVERLAP KILLZONE' : isNyOpenKillzone ? 'NY OPEN' : 'LON OPEN'}
             </span>
           </>
         )}
       </div>
 
-      <div className="text-fg-subtle/80 text-caption hidden shrink-0 items-center gap-2 sm:flex">
+      <div className="text-fg-subtle hidden shrink-0 items-center gap-2 text-[11px] sm:flex">
         <span>24H FX/GOLD</span>
       </div>
+
+      {/* Ambient Killzone Horizon Line */}
+      {isKillzoneActive ? (
+        <span
+          aria-hidden="true"
+          className="brand-signal-line pointer-events-none absolute inset-x-0 bottom-0 h-px opacity-80"
+        />
+      ) : null}
     </div>
   );
 }

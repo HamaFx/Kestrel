@@ -73,7 +73,7 @@ export function CommandPalette({ onNewChat, installedPluginIds = [] }: CommandPa
             <DrawerHeader>
               <DrawerTitle>
                 <span className="flex items-center gap-2">
-                  <IconCommand className="size-4" aria-hidden="true" />
+                  <IconCommand className="text-brand size-4" aria-hidden="true" />
                   Quick switch
                 </span>
               </DrawerTitle>
@@ -108,7 +108,7 @@ export function CommandPalette({ onNewChat, installedPluginIds = [] }: CommandPa
                   placeholder="Jump to page or action…"
                   autoComplete="off"
                   spellCheck={false}
-                  className="bg-bg-elev-1/60 text-fg placeholder:text-fg-subtle focus:border-border border-border h-11 w-full rounded-sm border pr-4 pl-10 text-sm focus:outline-none"
+                  className="surface-well text-fg placeholder:text-fg-subtle focus:border-brand/60 border-border h-11 w-full rounded-lg border pr-4 pl-10 text-sm focus:outline-none"
                 />
               </div>
             </div>
@@ -149,7 +149,7 @@ export function CommandPalette({ onNewChat, installedPluginIds = [] }: CommandPa
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: -8 }}
                 transition={MOTION_PRESETS.panel}
-                className="relative z-10 flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#141416]/95 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl"
+                className="surface-panel relative z-10 flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-white/10 backdrop-blur-2xl"
               >
                 <h2 id="desktop-cmd-title" className="sr-only">
                   Quick switch
@@ -157,7 +157,7 @@ export function CommandPalette({ onNewChat, installedPluginIds = [] }: CommandPa
 
                 {/* Search Bar */}
                 <div className="flex items-center gap-3 border-b border-white/[0.08] px-4 py-3.5">
-                  <IconSearch className="size-5 shrink-0 text-brand" strokeWidth={2} />
+                  <IconSearch className="text-brand size-5 shrink-0" strokeWidth={1.85} />
                   <label htmlFor={inputId} className="sr-only">
                     Search commands
                   </label>
@@ -181,25 +181,23 @@ export function CommandPalette({ onNewChat, installedPluginIds = [] }: CommandPa
                     placeholder="Type a command, symbol, or search…"
                     autoComplete="off"
                     spellCheck={false}
-                    className="w-full bg-transparent text-base text-fg placeholder:text-fg-subtle focus:outline-none"
+                    className="text-fg placeholder:text-fg-subtle w-full bg-transparent text-base focus:outline-none"
                   />
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <kbd className="rounded bg-bg-elev-2 px-1.5 py-0.5 font-mono text-[10px] text-fg-subtle border border-white/[0.06]">
-                      ESC
-                    </kbd>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <kbd className="kbd-keycap">ESC</kbd>
                     <button
                       type="button"
                       onClick={() => setOpen(false)}
                       aria-label="Close command palette"
-                      className="rounded p-1 text-fg-subtle hover:text-fg transition-colors"
+                      className="tactile-press text-fg-subtle hover:text-fg hover:bg-white/5 rounded-md p-1 transition-colors"
                     >
-                      <IconX className="size-4" />
+                      <IconX className="size-4" strokeWidth={1.75} />
                     </button>
                   </div>
                 </div>
 
                 {/* Dual-Pane Body */}
-                <div className="grid grid-cols-12 min-h-[380px] max-h-[55vh]">
+                <div className="grid max-h-[55vh] min-h-[380px] grid-cols-12">
                   {/* Left Results Column */}
                   <div className="col-span-7 overflow-y-auto border-r border-white/[0.06] p-2">
                     <CommandResults
@@ -212,25 +210,27 @@ export function CommandPalette({ onNewChat, installedPluginIds = [] }: CommandPa
                   </div>
 
                   {/* Right Live-Preview Column */}
-                  <div className="col-span-5 bg-bg-elev-1/30">
+                  <div className="bg-bg-elev-1/30 col-span-5">
                     <CommandPreview command={activeCommand} />
                   </div>
                 </div>
 
                 {/* Footer Navigation Hints */}
-                <div className="flex items-center justify-between border-t border-white/[0.06] bg-bg-elev-1/60 px-4 py-2 text-[11px] font-mono text-fg-subtle">
+                <div className="bg-bg-elev-1/60 text-fg-subtle flex items-center justify-between border-t border-white/[0.06] px-4 py-2 font-mono text-[11px]">
                   <div className="flex items-center gap-3">
                     <span className="flex items-center gap-1">
-                      <kbd className="rounded bg-bg-elev-3 px-1 py-0.5 text-[9px] text-fg border border-white/[0.06]">↑</kbd>
-                      <kbd className="rounded bg-bg-elev-3 px-1 py-0.5 text-[9px] text-fg border border-white/[0.06]">↓</kbd>
+                      <kbd className="kbd-keycap">↑</kbd>
+                      <kbd className="kbd-keycap">↓</kbd>
                       <span>Navigate</span>
                     </span>
                     <span className="flex items-center gap-1">
-                      <kbd className="rounded bg-bg-elev-3 px-1.5 py-0.5 text-[9px] text-fg border border-white/[0.06]">↵</kbd>
+                      <kbd className="kbd-keycap">↵</kbd>
                       <span>Select</span>
                     </span>
                   </div>
-                  <span className="text-brand font-semibold">KESTREL COMMAND // ⌘K</span>
+                  <span className="text-brand font-semibold tracking-wider">
+                    KESTREL COMMAND // ⌘K
+                  </span>
                 </div>
               </m.div>
             </div>

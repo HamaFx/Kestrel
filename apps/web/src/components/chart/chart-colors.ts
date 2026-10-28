@@ -22,7 +22,7 @@
 // literals on older iOS Safari.
 
 export const SERIES_BULL_HEX = '#3f9e3d'; // mirrors --color-bull
-export const SERIES_BEAR_HEX = '#e02c10'; // mirrors --color-bear
+export const SERIES_BEAR_HEX = '#f03e3e'; // mirrors --color-bear
 
 // Area-chart chrome (lightweight-charts canvas options are not styleable via
 // CSS, so the axis text + grid lines live here next to the series colors).
@@ -31,4 +31,4 @@ export const CHART_GRID_HEX = '#1f1f1f'; // mirrors --color-divider
 
 // Translucent fills for area-series gradients over the dark canvas.
 export const SERIES_BULL_FILL = 'rgba(63, 158, 61, 0.22)';
-export const SERIES_BEAR_FILL = 'rgba(224, 44, 16, 0.22)';
+export const SERIES_BEAR_FILL = 'rgba(240, 62, 62, 0.22)';

@@ -48,14 +48,14 @@ test.describe('Theme tokens — Hoplite Dark root custom properties', () => {
     });
 
     expect(tokens).toEqual({
-      bear: '#e02c10',
+      bear: '#f03e3e',
       bull: '#3f9e3d',
       brand: '#ff3616',
       bg: '#121212',
-      surface: '#1a1a1a',
+      surface: '#161616',
       border: '#2c2c2c',
-      fg: '#f0f0f0',
-      fgMuted: '#8e8e8e',
+      fg: '#e5e5e5',
+      fgMuted: 'rgba(229, 229, 229, 0.6)',
       radiusSm: '4px',
       // rgb(18, 18, 18) = #121212 (--color-bg)
       bodyBg: 'rgb(18, 18, 18)',

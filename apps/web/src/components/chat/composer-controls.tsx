@@ -76,8 +76,8 @@ export function ComposerControls({
           onClick={() => fileInputRef.current?.click()}
           disabled={disabled || images.length >= MAX_IMAGES}
           className={cn(
-            'text-fg-subtle hover:text-fg hover:bg-bg-elev-2 inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors',
-            'focus-visible:ring-fg/60 focus:outline-none focus-visible:ring-2',
+            'tactile-press text-fg-subtle hover:text-fg hover:bg-bg-elev-2 hover:border-white/10 inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-transparent transition-all',
+            'focus-visible:ring-brand focus:outline-none focus-visible:ring-2',
             disabled || images.length >= MAX_IMAGES ? 'cursor-not-allowed opacity-50' : '',
           )}
         >
@@ -104,9 +104,9 @@ export function ComposerControls({
             onClick={() => (voice.active ? voice.stop() : voice.start())}
             disabled={disabled}
             className={cn(
-              'text-fg-subtle hover:text-fg hover:bg-bg-elev-2 inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors',
-              'focus-visible:ring-fg/60 focus:outline-none focus-visible:ring-2',
-              voice.active ? 'text-danger bg-danger/10' : '',
+              'tactile-press text-fg-subtle hover:text-fg hover:bg-bg-elev-2 hover:border-white/10 inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-transparent transition-all',
+              'focus-visible:ring-brand focus:outline-none focus-visible:ring-2',
+              voice.active ? 'text-danger bg-danger/15 border-danger/40 mic-pulse' : '',
               disabled ? 'cursor-not-allowed opacity-50' : '',
             )}
           >
@@ -162,7 +162,7 @@ export function ComposerControls({
                 fill="none"
                 stroke={
                   contextUsagePercent > 85
-                    ? '#ff3616'
+                    ? '#f03e3e'
                     : contextUsagePercent > 60
                       ? '#d98f00'
                       : '#3f9e3d'
@@ -197,7 +197,7 @@ export function ComposerControls({
               type="button"
               onClick={onStop}
               aria-label="Stop generating"
-              className="text-danger border-danger/40 bg-danger/15 inline-flex size-9 shrink-0 items-center justify-center rounded-lg border shadow-sm transition-transform active:scale-95"
+              className="tactile-press text-danger border-danger/50 bg-danger/15 hover:bg-danger/25 inline-flex size-9 shrink-0 items-center justify-center rounded-xl border shadow-[0_2px_10px_rgba(240,62,62,0.25),inset_0_1px_0_rgba(255,255,255,0.18)] transition-all"
             >
               <IconSquare className="size-3.5 fill-current" strokeWidth={0} />
             </m.button>
@@ -212,7 +212,7 @@ export function ComposerControls({
               disabled={!canSend}
               aria-label="Send message"
               className={cn(
-                'bg-brand inline-flex size-9 shrink-0 items-center justify-center rounded-xl font-medium text-white shadow-[0_2px_12px_rgba(255,54,22,0.35)] transition-all hover:brightness-110 active:scale-95',
+                'tactile-press bg-brand border-brand/60 inline-flex size-9 shrink-0 items-center justify-center rounded-xl border font-medium text-white shadow-[0_4px_14px_rgba(255,54,22,0.38),inset_0_1px_0_rgba(255,255,255,0.32),inset_0_-1px_0_rgba(0,0,0,0.35)] transition-all hover:brightness-110',
                 'disabled:cursor-not-allowed disabled:opacity-30 disabled:shadow-none',
               )}
             >

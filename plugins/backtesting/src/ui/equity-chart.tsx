@@ -28,9 +28,9 @@ const AXIS_COLOR = '#8a8a8a'; // mirrors --color-neutral
 const GRID_COLOR = 'rgba(255,255,255,0.06)';
 const BASELINE_COLOR = 'rgba(255,255,255,0.18)';
 const BULL_COLOR = '#3f9e3d'; // mirrors --color-bull
-const BEAR_COLOR = '#e02c10'; // mirrors --color-bear
+const BEAR_COLOR = '#f03e3e'; // mirrors --color-bear
 const BULL_FILL = 'rgba(63,158,61,0.14)';
-const BEAR_FILL = 'rgba(224,44,16,0.14)';
+const BEAR_FILL = 'rgba(240,62,62,0.14)';
 
 /**
  * Interactive equity curve (uPlot).
@@ -117,13 +117,13 @@ export function EquityChart({
             stroke: AXIS_COLOR,
             grid: { stroke: GRID_COLOR, width: 1 },
             ticks: { stroke: 'rgba(255,255,255,0.12)', width: 1 },
-            font: '10px ui-monospace, SFMono-Regular, monospace',
+            font: '11px ui-monospace, SFMono-Regular, monospace',
           },
           {
             stroke: AXIS_COLOR,
             grid: { stroke: GRID_COLOR, width: 1 },
             ticks: { stroke: 'rgba(255,255,255,0.12)', width: 1 },
-            font: '10px ui-monospace, SFMono-Regular, monospace',
+            font: '11px ui-monospace, SFMono-Regular, monospace',
             size: 64,
           },
         ],
@@ -183,7 +183,7 @@ export function EquityChart({
   return (
     <figure className="flex flex-col gap-1" aria-label={label}>
       <div ref={containerRef} className="w-full" style={{ height }} />
-      <figcaption className="text-fg-subtle flex justify-between font-mono text-[10px]">
+      <figcaption className="text-fg-subtle flex justify-between font-mono text-[11px]">
         <span>drag to zoom · double-click to reset</span>
         <span>{points.length} points</span>
       </figcaption>

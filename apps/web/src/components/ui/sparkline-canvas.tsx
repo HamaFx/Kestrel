@@ -42,7 +42,7 @@ const STROKE = 1;
 
 const TONE_HEX: Record<SparklineCanvasProps['tone'], string> = {
   bull: '#3f9e3d',
-  bear: '#e02c10',
+  bear: '#f03e3e',
   neutral: '#8a8a8a',
 };
 
@@ -98,7 +98,7 @@ export function SparklineCanvas({ values, tone, label }: SparklineCanvasProps) {
       tone === 'bull'
         ? 'rgba(63, 158, 61, 0.28)'
         : tone === 'bear'
-          ? 'rgba(224, 44, 16, 0.28)'
+          ? 'rgba(240, 62, 62, 0.28)'
           : 'rgba(138, 138, 138, 0.28)';
 
     ctx.beginPath();

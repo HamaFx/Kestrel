@@ -30,6 +30,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer';
+import { IconBadge } from '@/components/ui/icon-badge';
 import { cn } from '@/lib/formatters/cn';
 
 import { MindsetSection } from './mindset-section';
@@ -65,21 +66,21 @@ export function PreSessionChecklistDrawer() {
         <button
           type="button"
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 font-mono text-xs font-semibold transition-all active:translate-y-[0.5px]',
+            'tactile-press inline-flex h-10 items-center gap-1.5 rounded-md border px-3 font-mono text-xs font-semibold transition-all select-none',
             isCompleted
-              ? 'border-brand/40 bg-brand/10 text-brand hover:bg-brand/20 shadow-[0_0_8px_rgba(255,54,22,0.15)]'
-              : 'border-border bg-bg-elev-1 text-fg-subtle hover:text-fg hover:border-border-hover',
+              ? 'border-brand/50 bg-brand/12 text-brand hover:bg-brand/20 shadow-[0_0_12px_rgba(255,54,22,0.18),inset_0_1px_0_rgba(255,255,255,0.12)]'
+              : 'surface-button text-fg border-white/[0.09] hover:border-white/[0.18] hover:brightness-110',
           )}
           title={isCompleted ? 'Session Gameplan is Active' : 'Start Pre-Session Checklist'}
         >
           {isCompleted ? (
             <>
-              <IconShieldCheck className="text-brand size-3.5" />
+              <IconShieldCheck className="text-brand size-4" strokeWidth={1.85} />
               <span>Gameplan: {plan.maxDailyR}R Max</span>
             </>
           ) : (
             <>
-              <IconListCheck className="text-fg-subtle size-3.5" />
+              <IconListCheck className="text-brand size-4" strokeWidth={1.85} />
               <span>Pre-Session Checklist</span>
             </>
           )}
@@ -87,12 +88,12 @@ export function PreSessionChecklistDrawer() {
       </DrawerTrigger>
       <DrawerContent className="max-h-[92vh] overflow-y-auto">
         <DrawerHeader>
-          <div className="flex items-center gap-2">
-            <div className="bg-brand/10 border-brand/30 text-brand flex size-8 items-center justify-center rounded-lg border">
-              <IconListCheck className="size-5" />
-            </div>
+          <div className="flex items-center gap-3">
+            <IconBadge tone="brand" size="md" reticle>
+              <IconListCheck className="size-5" strokeWidth={1.85} />
+            </IconBadge>
             <div>
-              <DrawerTitle>Pre-Session Gameplan & Discipline Ritual</DrawerTitle>
+              <DrawerTitle>Pre-Session Gameplan &amp; Discipline Ritual</DrawerTitle>
               <DrawerDescription>
                 Lock in your session parameters before touching the charts to prevent FOMO and
                 emotional overtrading.
@@ -133,7 +134,7 @@ export function PreSessionChecklistDrawer() {
               onClick={handleSavePlan}
               className="gap-2 font-semibold"
             >
-              <IconShieldCheck className="size-4" />
+              <IconShieldCheck className="size-4" strokeWidth={1.85} />
               Lock In Daily Gameplan
             </Button>
           </div>

@@ -58,26 +58,31 @@ export function KestrelBrand({
   const isDecorative = decorative && !href;
   const image =
     variant === 'mark' ? (
-      <span className="surface-chip bg-bg-elev-2 border-edge/60 text-brand flex items-center justify-center rounded-md border p-1.5">
+      <span
+        className={cn(
+          'icon-housing-brand surface-chip relative flex items-center justify-center overflow-hidden border transition-all duration-200',
+          markSize === 'xs' ? 'rounded-md p-1' : 'rounded-lg p-1.5',
+        )}
+      >
         <img
           src="/brand/kestrel-falcon.svg"
           alt={isDecorative ? '' : 'Kestrel'}
           aria-hidden={isDecorative || undefined}
           width={24}
           height={24}
-          className={cn('text-brand shrink-0', markSize === 'xs' ? 'size-3.5' : 'size-5')}
+          className={cn('text-brand relative z-10 shrink-0', markSize === 'xs' ? 'size-3.5' : 'size-5')}
         />
       </span>
     ) : (
-      <div className="flex items-center gap-2.5">
-        <span className="surface-chip bg-bg-elev-2 border-edge/60 text-brand flex items-center justify-center rounded-md border p-1.5 shadow-sm">
+      <div className="group/brand flex items-center gap-2.5">
+        <span className="icon-housing-brand surface-chip relative flex items-center justify-center overflow-hidden rounded-lg border p-1.5 shadow-sm transition-all duration-200 group-hover/brand:border-brand/60 group-hover/brand:shadow-[0_0_16px_rgba(255,54,22,0.28)]">
           <img
             src="/brand/kestrel-falcon.svg"
             alt={isDecorative ? '' : 'Kestrel'}
             aria-hidden={isDecorative || undefined}
             width={26}
             height={26}
-            className="text-brand size-6"
+            className="text-brand relative z-10 size-6 transition-transform duration-200 group-hover/brand:scale-[1.04]"
           />
         </span>
         <span className="font-display text-fg text-[18px] font-normal tracking-[-0.02em]">

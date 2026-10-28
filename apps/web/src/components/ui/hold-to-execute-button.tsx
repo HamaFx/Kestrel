@@ -18,7 +18,8 @@
 
 // <HoldToExecuteButton> — Tactile press-and-hold confirmation control.
 // Prevents fat-finger execution errors on critical trades and agent mutations.
-// Features: 1.2s spring-progress bar, zero audio, and tactile mobile haptics.
+// Features: 1.2s spring-progress bar with machined hazard-stripe texture,
+// zero audio, and tactile mobile haptics.
 import { IconCheck, IconShieldLock } from '@tabler/icons-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -137,28 +138,28 @@ export function HoldToExecuteButton({
     brand: {
       border: 'border-brand/60 focus:border-brand',
       fill: 'bg-brand',
-      glow: 'shadow-[0_0_16px_rgba(255,54,22,0.25)]',
+      glow: 'shadow-[0_0_20px_rgba(255,54,22,0.32)]',
       text: 'text-white',
       accent: 'text-brand',
     },
     bull: {
       border: 'border-bull/60 focus:border-bull',
       fill: 'bg-bull',
-      glow: 'shadow-[0_0_16px_rgba(63,158,61,0.25)]',
+      glow: 'shadow-[0_0_20px_rgba(63,158,61,0.32)]',
       text: 'text-white',
       accent: 'text-bull',
     },
     bear: {
       border: 'border-bear/60 focus:border-bear',
       fill: 'bg-bear',
-      glow: 'shadow-[0_0_16px_rgba(224,44,16,0.25)]',
+      glow: 'shadow-[0_0_20px_rgba(240,62,62,0.32)]',
       text: 'text-white',
       accent: 'text-bear',
     },
     danger: {
       border: 'border-danger/60 focus:border-danger',
       fill: 'bg-danger',
-      glow: 'shadow-[0_0_16px_rgba(224,44,16,0.25)]',
+      glow: 'shadow-[0_0_20px_rgba(240,62,62,0.32)]',
       text: 'text-white',
       accent: 'text-danger',
     },
@@ -202,8 +203,8 @@ export function HoldToExecuteButton({
         }
       }}
       className={cn(
-        'relative inline-flex items-center justify-center overflow-hidden rounded-xl border font-mono font-semibold tracking-wider transition-all select-none',
-        'bg-bg-elev-1/90 backdrop-blur-md',
+        'relative inline-flex items-center justify-center overflow-hidden rounded-xl border font-mono font-semibold tracking-wider tabular-nums transition-all select-none',
+        'bg-bg-elev-2/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_2px_8px_rgba(0,0,0,0.45)] backdrop-blur-md',
         variantStyles.border,
         isHolding && variantStyles.glow,
         isHolding && 'scale-[0.98]',
@@ -212,16 +213,18 @@ export function HoldToExecuteButton({
         className,
       )}
     >
-      {/* Background Fill Progress Bar */}
+      {/* Background Fill Progress Bar with Milled Diagonal Hatch Texture */}
       <span
         aria-hidden="true"
         className={cn(
           'absolute inset-y-0 left-0 transition-opacity',
           variantStyles.fill,
-          isHolding ? 'opacity-85' : 'opacity-0',
+          isHolding ? 'opacity-90' : 'opacity-0',
         )}
         style={{
           width: `${progress * 100}%`,
+          backgroundImage:
+            'repeating-linear-gradient(-45deg, rgba(255,255,255,0.12) 0px, rgba(255,255,255,0.12) 6px, transparent 6px, transparent 12px)',
           transition: isHolding ? 'none' : 'width 0.2s ease-out, opacity 0.2s ease-out',
         }}
       />
@@ -235,6 +238,7 @@ export function HoldToExecuteButton({
         ) : (
           <IconShieldLock
             className={cn('size-4', isHolding ? 'text-white' : variantStyles.accent)}
+            strokeWidth={1.85}
           />
         )}
         <span className={cn('truncate', isHolding ? 'text-white' : 'text-fg')}>{currentLabel}</span>

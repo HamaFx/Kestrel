@@ -24,6 +24,7 @@ import { m, useReducedMotion } from 'motion/react';
 import { memo, useMemo, useState } from 'react';
 
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
+import { Button } from '@/components/ui/button';
 import { useCopied } from '@/hooks/use-copied';
 import { cn } from '@/lib/formatters/cn';
 
@@ -98,9 +99,9 @@ function MessageImpl({
   if (isUser && isEditing) {
     return (
       <div className="mt-1 mb-2 flex w-full justify-end">
-        <div className="border-border bg-bg-elev-2 focus-within:ring-fg flex w-full max-w-[88%] flex-col gap-2 rounded-sm border p-3 focus-within:ring-2">
+        <div className="surface-well border-border focus-within:border-brand/60 focus-within:ring-brand/20 flex w-full max-w-[88%] flex-col gap-2.5 rounded-xl border p-3.5 focus-within:ring-2">
           <textarea
-            className="text-fg [field-sizing:content] w-full resize-none bg-transparent text-sm outline-none"
+            className="text-fg [field-sizing:content] w-full resize-none bg-transparent text-sm leading-relaxed outline-none"
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
             maxLength={MAX_TEXT_CHARS}
@@ -117,24 +118,21 @@ function MessageImpl({
               }
             }}
           />
-          <div className="mt-1 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setIsEditing(false)}
-              className="bg-bg-elev-2 text-fg-muted hover:text-fg rounded-sm px-3 py-1 text-xs transition-colors"
-            >
+          <div className="border-border/50 mt-1 flex items-center justify-end gap-2 border-t pt-2.5">
+            <Button type="button" variant="secondary" size="xs" onClick={() => setIsEditing(false)}>
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="primary"
+              size="xs"
               onClick={() => {
                 setIsEditing(false);
                 onEdit?.(message.id, editValue);
               }}
-              className="bg-fg hover:bg-fg-muted rounded-sm px-3 py-1 text-xs text-black transition-colors"
             >
               Save
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -155,13 +153,13 @@ function MessageImpl({
         {!isUser && !isSystem ? (
           <span
             aria-hidden="true"
-            className="mt-1 inline-flex size-4 shrink-0 items-center justify-center"
+            className="mt-1 inline-flex size-5 shrink-0 items-center justify-center"
           >
             <KestrelBrand
               variant="mark"
               markSize="xs"
               decorative
-              className={cn(isStreaming ? 'opacity-100' : 'opacity-80')}
+              className={cn(isStreaming ? 'opacity-100' : 'opacity-85')}
             />
           </span>
         ) : null}
@@ -172,13 +170,13 @@ function MessageImpl({
             className={cn(
               'relative flex flex-col gap-2',
               isUser
-                ? 'group/bubble border-border/40 text-fg ml-auto max-w-[82%] rounded-xl border bg-white/[0.04] px-3.5 py-2 font-medium shadow-xs backdrop-blur-[2px]'
+                ? 'group/bubble surface-chip bg-bg-elev-2/90 text-fg ml-auto max-w-[82%] rounded-xl border border-white/10 px-3.5 py-2.5 font-medium backdrop-blur-[2px]'
                 : 'w-full',
               !isUser && !isSystem ? 'py-1' : 'py-3',
             )}
           >
             {isUser && formattedTime ? (
-              <span className="text-fg-subtle pointer-events-none absolute bottom-2 -left-14 font-mono text-[10px] opacity-0 transition-opacity duration-150 select-none group-hover/bubble:opacity-100">
+              <span className="text-fg-subtle pointer-events-none absolute bottom-2 -left-14 font-mono text-[11px] opacity-0 transition-opacity duration-150 select-none group-hover/bubble:opacity-100">
                 {formattedTime}
               </span>
             ) : null}
@@ -228,15 +226,18 @@ function MessageImpl({
 }
 
 export const Message = memo(MessageImpl, (prev, next) => {
-  if (prev.threadId !== next.threadId) return false;
-  if (prev.message.id !== next.message.id) return false;
-  if (prev.onRegenerate !== next.onRegenerate) return false;
-  if (prev.onEdit !== next.onEdit) return false;
-  if (prev.onCopy !== next.onCopy) return false;
-  if (prev.isStreaming !== next.isStreaming) return false;
-  if (prev.isLastAssistant !== next.isLastAssistant) return false;
-  if (prev.onFollowUpSelect !== next.onFollowUpSelect) return false;
-
+  if (
+    prev.threadId !== next.threadId ||
+    prev.message.id !== next.message.id ||
+    prev.onRegenerate !== next.onRegenerate ||
+    prev.onEdit !== next.onEdit ||
+    prev.onCopy !== next.onCopy ||
+    prev.isStreaming !== next.isStreaming ||
+    prev.isLastAssistant !== next.isLastAssistant ||
+    prev.onFollowUpSelect !== next.onFollowUpSelect
+  ) {
+    return false;
+  }
   if (prev.message.parts !== next.message.parts) {
     if (!prev.message.parts || !next.message.parts) return false;
     if (prev.message.parts.length !== next.message.parts.length) return false;

@@ -136,7 +136,7 @@ export function ChatTopBar({
     <header
       className={cn(
         'sticky top-0 z-30 flex h-[calc(3rem+env(safe-area-inset-top,0px))] min-h-12 w-full shrink-0 items-center justify-between gap-2',
-        'border-border bg-bg pt-safe border-b px-3 sm:px-4',
+        'border-border bg-bg/95 pt-safe border-b px-3 backdrop-blur-md sm:px-4',
       )}
     >
       {/* Left: Mobile Nav + Thread Title & Active Symbol */}
@@ -167,13 +167,13 @@ export function ChatTopBar({
               aria-label="Toggle views"
               aria-pressed={isSidecarOpen}
               className={cn(
-                'inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors sm:h-9 sm:min-w-0 sm:justify-start',
+                'tactile-press inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-all sm:h-9 sm:min-w-0 sm:justify-start',
                 isSidecarOpen
-                  ? 'border-brand/40 bg-brand/10 text-brand'
-                  : 'border-border bg-bg-elev-1 text-fg-muted hover:text-fg hover:bg-bg-elev-2',
+                  ? 'border-brand/50 bg-brand/12 text-brand shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_12px_rgba(255,54,22,0.16)]'
+                  : 'surface-chip border-border bg-bg-elev-2 text-fg-muted hover:text-fg hover:border-white/15',
               )}
             >
-              <IconLayoutSidebarRight className="size-4" />
+              <IconLayoutSidebarRight className="size-4" strokeWidth={isSidecarOpen ? 2 : 1.75} />
               <span className="hidden sm:inline">Chart &amp; War Room</span>
             </button>
           </Tooltip>
@@ -185,12 +185,12 @@ export function ChatTopBar({
             onClick={newChat}
             disabled={pending}
             aria-label="New chat"
-            className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-transparent transition-colors disabled:opacity-50"
+            className="tactile-press surface-chip text-fg-muted hover:text-fg hover:border-brand/40 inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.08] transition-colors disabled:opacity-50"
           >
             {pending ? (
               <IconLoader2 className="size-4 animate-spin" />
             ) : (
-              <IconPlus className="size-4" />
+              <IconPlus className="size-4" strokeWidth={1.85} />
             )}
           </button>
         </Tooltip>

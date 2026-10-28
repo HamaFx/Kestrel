@@ -36,11 +36,11 @@ export function NavTrigger({ className }: { className?: string }) {
       aria-controls="sidebar-nav"
       onClick={() => setOpen(true)}
       className={cn(
-        'text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 inline-flex size-11 shrink-0 items-center justify-center rounded-sm transition-all active:scale-95',
+        'tactile-press text-fg-muted hover:text-fg hover:bg-bg-elev-2 hover:border-white/10 inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-transparent transition-all',
         className,
       )}
     >
-      <IconMenu2 className="size-5" />
+      <IconMenu2 className="size-5" strokeWidth={1.75} aria-hidden="true" />
     </button>
   );
 }

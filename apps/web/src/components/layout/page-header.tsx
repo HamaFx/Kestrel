@@ -18,6 +18,8 @@
 
 import type { ReactNode } from 'react';
 
+import { IconBadge } from '@/components/ui/icon-badge';
+
 interface PageHeaderProps {
   title: string;
   description?: string;
@@ -31,18 +33,15 @@ export function PageHeader({ title, description, icon, children }: PageHeaderPro
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           {icon ? (
-            <span
-              aria-hidden="true"
-              className="text-brand surface-chip bg-bg-elev-2 border-edge/60 inline-flex size-11 items-center justify-center rounded-xl border shadow-xs"
-            >
+            <IconBadge tone="brand" size="lg" reticle>
               {icon}
-            </span>
+            </IconBadge>
           ) : null}
           <h1 className="text-fg font-display text-2xl font-normal tracking-[-0.02em] sm:text-3xl">
             {title}
           </h1>
         </div>
-        {children ? <div className="flex items-center gap-2">{children}</div> : null}
+        {children ? <div className="flex flex-wrap items-center gap-2">{children}</div> : null}
       </div>
       {description ? (
         <p className="text-fg-muted font-sans text-sm leading-normal">{description}</p>
