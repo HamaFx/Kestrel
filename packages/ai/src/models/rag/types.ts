@@ -18,6 +18,7 @@
 
 import type { Symbol } from '@kestrel/shared';
 
+import type { JevEnv, JevSettings } from '../../jev/types';
 import type { MemoryKind } from '../../memory/memory-index';
 
 /** Exported for testing — RAG result row shape. */
@@ -50,6 +51,13 @@ export interface RunRagQueryArgs {
   symbol?: Symbol | undefined;
   /** Halflife in days for time-decay. */
   halflifeDays?: number;
+  /**
+   * Phase 2 (Jev) — settings/env for the snippet quarantine & rerank pass.
+   * When both are omitted the RRF result is returned untouched (no call).
+   */
+  jevSettings?: JevSettings | null | undefined;
+  jevEnv?: JevEnv | null | undefined;
+  jevSignal?: AbortSignal | null | undefined;
 }
 
 export interface RunMemoryQueryArgs {

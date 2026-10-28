@@ -18,6 +18,7 @@
 // Hybrid news retrieval (DEC-05 split of rag.ts): dense + lexical, fused.
 // ---------------------------------------------------------------------------
 
+import { quarantineAndRerankSnippets } from '../../jev/rag-quarantine';
 import { decayRow, rrfFuse } from './fusion';
 import { runDenseNewsQuery, runFtsNewsQuery } from './queries';
 import { DEFAULT_HALFLIFE_DAYS_NEWS, type RagRow, type RunRagQueryArgs } from './types';
@@ -25,6 +26,11 @@ import { DEFAULT_HALFLIFE_DAYS_NEWS, type RagRow, type RunRagQueryArgs } from '.
 /**
  * Hybrid news retrieval (dense + FTS) with time-decay. Returns at most
  * `limit` rows, RRF-fused.
+ *
+ * Phase 2 (Jev): when the caller provides Jev settings/env, the fused rows
+ * pass through the indirect-injection quarantine & rerank batch. Quarantined
+ * or irrelevant rows are dropped; any Jev failure returns the RRF order
+ * unchanged.
  */
 export async function runRagQuery(args: RunRagQueryArgs): Promise<RagRow[]> {
   const halflife = args.halflifeDays ?? DEFAULT_HALFLIFE_DAYS_NEWS;
@@ -44,5 +50,25 @@ export async function runRagQuery(args: RunRagQueryArgs): Promise<RagRow[]> {
   const fused = rrfFuse([dense, lexical]);
   const decayed = fused.map((r) => decayRow(r, halflife));
   decayed.sort((a, b) => b.similarity - a.similarity);
-  return decayed.slice(0, args.limit);
+  const top = decayed.slice(0, args.limit);
+
+  // No Jev configuration → the deployer chose the uncalibrated path.
+  if (args.jevEnv === undefined && args.jevSettings === undefined) return top;
+
+  const { kept } = await quarantineAndRerankSnippets({
+    query: args.query ?? '',
+    items: top.map((row) => ({
+      id: row.id,
+      text: [row.title, row.summary ?? ''].filter((part) => part.length > 0).join(' — '),
+    })),
+    settings: args.jevSettings ?? null,
+    env: args.jevEnv ?? null,
+    ...(args.jevSignal !== undefined ? { signal: args.jevSignal } : {}),
+    ledgerEntryId: 'rag-query',
+  });
+  const byId = new Map(top.map((row) => [row.id, row]));
+  return kept.flatMap((item) => {
+    const row = byId.get(item.id);
+    return row ? [row] : [];
+  });
 }

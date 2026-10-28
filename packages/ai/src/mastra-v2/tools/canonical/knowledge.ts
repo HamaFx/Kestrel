@@ -123,6 +123,13 @@ export async function executeCanonicalKnowledge(
           ...(since !== undefined ? { since } : {}),
           ...(symbol !== undefined ? { symbol } : {}),
           ...(halflifeDays !== undefined ? { halflifeDays } : {}),
+          // Phase 2 (Jev) — indirect-injection quarantine & rerank for the
+          // untrusted news snippets before they can enter the context window.
+          ...(ctx ? { jevEnv: ctx.env } : {}),
+          ...(ctx?.userSettings
+            ? { jevSettings: { aiApiKeys: ctx.userSettings.aiApiKeys } }
+            : {}),
+          ...(ctx?.signal ? { jevSignal: ctx.signal } : {}),
         })
       : Promise.resolve([]),
     memoryKinds.length > 0 && memoryCount > 0

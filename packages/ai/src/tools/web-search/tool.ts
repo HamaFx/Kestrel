@@ -27,6 +27,7 @@ import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { tool, type Tool } from 'ai';
 
 import { completeStep, recordStep } from '../../diagnostics';
+import { quarantineAndRerankSnippets } from '../../jev/rag-quarantine';
 import { maybeGetToolContext } from '../../runtime/tool-context';
 import { buildSearchCacheKey, readCache, writeCache } from './cache';
 import { orderedConfiguredProviders, readSearchConfig } from './config';
@@ -147,7 +148,32 @@ export const webSearchTool: Tool<SearchInput, WebSearchOutput> = tool({
 
       try {
         const items = await searchProvider(provider, query, effectiveInput, config, parentSignal);
-        const sources = normalizeWebSearchResults(provider, items, effectiveInput.maxResults);
+        const normalized = normalizeWebSearchResults(provider, items, effectiveInput.maxResults);
+        // Phase 2 (Jev) — Check Point indirect-injection quarantine & rerank:
+        // score every snippet for embedded instructions and relevance before
+        // it can reach the model (or the cache). Jev unavailable → unchanged.
+        const screened = await quarantineAndRerankSnippets({
+          query,
+          items: normalized.map((source) => ({
+            id: source.id,
+            text: [source.title, source.snippet, source.content ?? '']
+              .filter((part) => part.length > 0)
+              .join('\n'),
+          })),
+          env: ctx?.env ?? null,
+          ...(ctx?.userSettings ? { settings: { aiApiKeys: ctx.userSettings.aiApiKeys } } : {}),
+          signal: parentSignal ?? null,
+          ...(ctx?.ledger ? { ledger: ctx.ledger } : {}),
+          ledgerEntryId: `web-search:${provider}`,
+        });
+        const byId = new Map(normalized.map((source) => [source.id, source]));
+        const sources = screened.degraded
+          ? normalized
+          : screened.kept.flatMap((item) => {
+              const source = byId.get(item.id);
+              return source ? [source] : [];
+            });
+        const quarantinedByJev = screened.degraded ? 0 : screened.quarantinedIds.length;
         const quarantinedCount = sources.filter((source) =>
           [source.title, source.snippet, source.content ?? ''].some((value) =>
             value.startsWith('[External content quarantined:'),
@@ -159,6 +185,7 @@ export const webSearchTool: Tool<SearchInput, WebSearchOutput> = tool({
           latencyMs: Date.now() - providerStartedAt,
         };
         providerAttempts.push(attempt);
+        const totalQuarantined = quarantinedByJev + quarantinedCount;
         const result: WebSearchOutput = {
           contentTrust: 'untrusted',
           status: sources.length > 0 ? 'success' : 'empty',
@@ -168,10 +195,15 @@ export const webSearchTool: Tool<SearchInput, WebSearchOutput> = tool({
           cacheHit: false,
           providerAttempts,
           ...(sources.length === 0
-            ? { message: 'The live web search returned no usable sources.' }
-            : quarantinedCount > 0
+            ? {
+                message:
+                  quarantinedByJev > 0
+                    ? `All ${quarantinedByJev} web source(s) were quarantined as deceptive or injection-like.`
+                    : 'The live web search returned no usable sources.',
+              }
+            : totalQuarantined > 0
               ? {
-                  message: `${quarantinedCount} web source(s) contained instruction-like text and were quarantined.`,
+                  message: `${totalQuarantined} web source(s) contained instruction-like or deceptive text and were quarantined.`,
                 }
               : {}),
         };
