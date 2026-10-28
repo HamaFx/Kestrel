@@ -112,6 +112,13 @@ export const METRIC_NAMES = [
   // Audit 2026-10-18 C-02 — committee executions tagged by asset class so
   // cost/latency are attributable per asset instead of XAUUSD-only.
   'committee_execution_total',
+  // Phase 1 (Jev System One) — per-endpoint request health and latency for
+  // the `/v1/systemone` decision-model calls ({provider} tag).
+  'jev_request_failed_total',
+  'jev_request_latency_ms',
+  // Phase 1 (Jev) — fast input-guardrail verdicts and runtime availability.
+  'guardrail_jev_flagged_total',
+  'guardrail_jev_unavailable_total',
 ] as const;
 
 export type MetricName = (typeof METRIC_NAMES)[number];
