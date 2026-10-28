@@ -100,6 +100,12 @@ export function observationalMemoryAllowanceUsd(messageCount = 1): number {
  * Default working-memory template; seeded from Drizzle by `./context.ts`.
  * Model-visible user preferences only — runtime configuration (model picks,
  * provider, budget, limits) is deliberately absent (Phase 9).
+ *
+ * Phase 3: the resource-scoped block may additionally carry a
+ * `# Trader Edge & Risk Profile` section written by
+ * `syncTraderProfileToWorkingMemory()` from `journal/coach-insights.ts`. The
+ * seed never writes or clears that section, so subsequent chat turns preserve
+ * the trader's journal edge and behavioral leaks.
  */
 export const KESTREL_WORKING_MEMORY_TEMPLATE = `# User Preferences
 - **Default symbol**:

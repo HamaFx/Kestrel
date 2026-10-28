@@ -44,6 +44,15 @@ vi.mock('../src/models/model', () => ({
   resolveChatModel: vi.fn().mockReturnValue({ model: {}, modelId: 'google:gemini-2.5-flash' }),
 }));
 
+// Phase 3 — the coach review mirrors the trader profile into Mastra working
+// memory; the memory instance is faked so the test stays hermetic.
+vi.mock('../src/mastra-v2/memory', () => ({
+  createKestrelMemory: vi.fn(() => ({
+    getWorkingMemory: vi.fn().mockResolvedValue(null),
+    updateWorkingMemory: vi.fn().mockResolvedValue(undefined),
+  })),
+}));
+
 vi.mock('../src/journal/persistence', () => ({
   computeStats: vi.fn().mockResolvedValue({
     count: 10,
