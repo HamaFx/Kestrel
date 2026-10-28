@@ -12,6 +12,8 @@ describe('confidence calibration', () => {
     expect(summary.meanConfidence).toBeCloseTo(0.7);
     expect(summary.accuracy).toBe(0.5);
     expect(summary.calibrationError).toBeCloseTo(0.2);
+    // (0.8 - 1)^2 = 0.04 and (0.6 - 0)^2 = 0.36 → 0.2
+    expect(summary.brierScore).toBeCloseTo(0.2);
   });
 
   it('returns a neutral empty summary', () => {
@@ -20,6 +22,7 @@ describe('confidence calibration', () => {
       meanConfidence: 0,
       accuracy: 0,
       calibrationError: 0,
+      brierScore: 0,
     });
   });
 });

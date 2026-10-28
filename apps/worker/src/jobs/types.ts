@@ -81,7 +81,8 @@ export type JobName =
   | 'persistence-recovery'
   | 'retention'
   | 'metrics-flush'
-  | 'dataset-export';
+  | 'dataset-export'
+  | 'opinion-calibration';
 
 /**
  * PF-04 — Registered job with schedule and healthchecks.io metadata.

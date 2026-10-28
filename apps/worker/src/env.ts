@@ -93,6 +93,7 @@ const WorkerEnvSchema = z.object({
   HC_JOB_PERSISTENCE_RECOVERY_UUID: optionalNonEmpty,
   HC_JOB_RETENTION_UUID: optionalNonEmpty,
   HC_JOB_DATASET_EXPORT_UUID: optionalNonEmpty,
+  HC_JOB_OPINION_CALIBRATION_UUID: optionalNonEmpty,
   HC_DISK_CHECK_UUID: optionalNonEmpty,
   HC_TENANT_DELETE_UUID: optionalNonEmpty,
   HC_TENANT_EXPORT_UUID: optionalNonEmpty,
