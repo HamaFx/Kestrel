@@ -25,11 +25,11 @@
 // validates its structured opinion via `verifyMastraOpinion`.
 
 import { estimateCostUsd } from '../../budget/cost';
+import { packetNeedsDisclosure, verifySemanticDisclosureWithJev } from '../../jev/semantic-verifier';
 import {
   extractToolPartsFromMessages,
   type MastraToolInvocationPart,
-} from '../../mastra-v2/agents/xauusd/legacy-tool-adapter';
-import { getMastraGenerationStats } from '../../mastra-v2/shared/telemetry';
+} from '../../mastra-v2/agents/xauusd/legacy-tool-adapter';import { getMastraGenerationStats } from '../../mastra-v2/shared/telemetry';
 import {
   buildPluginMastraTools,
   getInstalledPluginRuntime,
@@ -227,6 +227,24 @@ export async function runSpecialistGeneration(
       totalCostUsd += costUsd;
       const opinionVerification = verifyMastraOpinion(candidateOpinion, packet);
       if (opinionVerification.ok) {
+        // Phase 2 (Jev) — semantic disclosure verification. Deterministic
+        // terms can be echoed superficially ("data is not stale"); for ready
+        // packets that demand a disclosure, one Jev batch checks the claim is
+        // honest. Blocking findings feed the same bounded retry as
+        // deterministic ones; unavailable Jev leaves the verdict untouched.
+        if (packet.status === 'ready' && packetNeedsDisclosure(packet)) {
+          const semantic = await verifySemanticDisclosureWithJev(opinion.reasoning, packet, {
+            settings: deps.jevSettings ?? null,
+            env: deps.jevEnv ?? null,
+            signal,
+            ledger: deps.ledger,
+            ledgerEntryId: `specialist:${name}:disclosure:${attemptIndex}`,
+          });
+          if (semantic && !semantic.ok) {
+            lastFindings = semantic.findings;
+            continue;
+          }
+        }
         deps.ledger.recordCost(`specialist:${name}`, 'specialist', totalCostUsd);
         return {
           ok: true,

@@ -31,3 +31,4 @@ export * from './turn-router';
 export * from './tool-pruner';
 export * from './guardrail-processor';
 export * from './rag-quarantine';
+export * from './semantic-verifier';
