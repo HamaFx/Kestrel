@@ -19,7 +19,7 @@
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { ServerEnv, Symbol } from '@kestrel/shared';
 
-export type MemoryKind = 'journal' | 'briefing' | 'thread_synopsis';
+export type MemoryKind = 'journal' | 'briefing' | 'thread_synopsis' | 'market_regime';
 
 export interface MemoryRow {
   id: string;

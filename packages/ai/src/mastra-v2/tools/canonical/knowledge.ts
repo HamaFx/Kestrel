@@ -72,8 +72,12 @@ export async function executeCanonicalKnowledge(
   const { query, since, symbol, limit, kinds, halflifeDays } = input;
   const kindSet = new Set<string>(kinds ?? ['news']);
   const wantsNews = kindSet.has('news');
-  const memoryKinds: MemoryKind[] = (kinds ?? []).filter(
-    (k): k is MemoryKind => k === 'journal' || k === 'briefing' || k === 'thread_synopsis',
+  // `search_knowledge` deliberately exposes only the user-facing kinds; the
+  // agent-internal `market_regime` memories are never searched from here.
+  type SearchableMemoryKind = Extract<MemoryKind, 'journal' | 'briefing' | 'thread_synopsis'>;
+  const memoryKinds: SearchableMemoryKind[] = (kinds ?? []).filter(
+    (k): k is SearchableMemoryKind =>
+      k === 'journal' || k === 'briefing' || k === 'thread_synopsis',
   );
 
   if (!wantsNews && memoryKinds.length === 0) {
@@ -126,9 +130,7 @@ export async function executeCanonicalKnowledge(
           // Phase 2 (Jev) — indirect-injection quarantine & rerank for the
           // untrusted news snippets before they can enter the context window.
           ...(ctx ? { jevEnv: ctx.env } : {}),
-          ...(ctx?.userSettings
-            ? { jevSettings: { aiApiKeys: ctx.userSettings.aiApiKeys } }
-            : {}),
+          ...(ctx?.userSettings ? { jevSettings: { aiApiKeys: ctx.userSettings.aiApiKeys } } : {}),
           ...(ctx?.signal ? { jevSignal: ctx.signal } : {}),
         })
       : Promise.resolve([]),

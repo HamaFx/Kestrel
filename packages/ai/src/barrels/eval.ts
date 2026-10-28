@@ -20,12 +20,15 @@
 
 export {
   buildTrainingRecords,
+  buildJevRlcdTrainingRecords,
   buildDatasetManifest,
   writeTrainingExport,
   TRAINING_RECORD_SCHEMA,
   DATASET_MANIFEST_SCHEMA,
+  JEV_RLCD_RECORD_SCHEMA,
   type EvaluationAnnotation,
   type EvaluationLabel,
+  type JevRlcdTrainingRecord,
   type TrainingExportOptions,
   type TrainingExportRecord,
   type DatasetManifest,
