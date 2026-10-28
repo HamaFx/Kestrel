@@ -162,6 +162,30 @@ describe('Mastra opinion verifier temporal disclosure (P1-01)', () => {
     ).toEqual({ ok: true, findings: [] });
   });
 
+  it('rejects a NEGATED disclosure that asserts the opposite of the packet metadata (Phase 2)', () => {
+    const verification = verifyMastraOpinion(
+      {
+        ...opinion,
+        reasoning: 'The packet data is not stale or degraded; structure remains constructive.',
+      } as never,
+      degradedPacket,
+    );
+    expect(verification.ok).toBe(false);
+    expect(verification.findings.join(' ')).toContain('does not disclose');
+  });
+
+  it('still accepts a genuine disclosure that mentions the degraded series (Phase 2)', () => {
+    expect(
+      verifyMastraOpinion(
+        {
+          ...opinion,
+          reasoning: 'The 15m candle series is degraded, so conviction is reduced.',
+        } as never,
+        degradedPacket,
+      ),
+    ).toEqual({ ok: true, findings: [] });
+  });
+
   it('leaves complete, warning-free packets unchanged', () => {
     expect(verifyMastraOpinion(opinion, packet)).toEqual({ ok: true, findings: [] });
   });

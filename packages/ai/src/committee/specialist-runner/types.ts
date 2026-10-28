@@ -27,6 +27,7 @@ import type { RequestContext } from '@mastra/core/request-context';
 import type { LanguageModel } from 'ai';
 
 import type { SymbolResearchPacket } from '../../mastra-v2/packets/symbol-research';
+import type { JevEnv, JevSettings } from '../../jev/types';
 import type { GenerationLedger } from '../../persistence/generation-ledger';
 import type { ToolContext } from '../../runtime/tool-context';
 import type { MastraSpecialistName, ModeRequestContext } from '../types';
@@ -56,6 +57,12 @@ export interface SpecialistRunnerDeps {
   maxSteps: number;
   toolContext?: ToolContext;
   disabledTools?: readonly string[] | null;
+  /**
+   * Phase 2 (Jev) — BYOK settings/env for the semantic disclosure verifier.
+   * Absent (or no Jev provider key) → deterministic verification only.
+   */
+  jevSettings?: JevSettings | null | undefined;
+  jevEnv?: JevEnv | null | undefined;
 }
 
 export interface RunSpecialistGenerationArgs {

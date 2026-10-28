@@ -245,6 +245,10 @@ export function specialistRunnerDepsFor(
     maxSteps,
     ...(deps.toolContext ? { toolContext: deps.toolContext } : {}),
     ...(deps.disabledTools ? { disabledTools: deps.disabledTools } : {}),
+    // Phase 2 (Jev) — semantic disclosure verification keys travel with the
+    // specialist deps so the runner never re-resolves them per desk.
+    ...(deps.jevSettings ? { jevSettings: deps.jevSettings } : {}),
+    ...(deps.jevEnv ? { jevEnv: deps.jevEnv } : {}),
   };
 }
 

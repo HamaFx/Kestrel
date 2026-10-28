@@ -26,6 +26,7 @@
 
 import { metrics } from '@kestrel/shared';
 
+import { hasNegatedDisclosure, packetNeedsDisclosure } from '../jev/semantic-verifier';
 import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
 import {
   isSupportedByEvidence,
@@ -111,10 +112,14 @@ export function verifyMastraOpinion(
   // carries warnings, missing data, or a non-complete quality, the opinion
   // must say so (reasoning disclosure or an explicit missingEvidence list);
   // otherwise fusion can present a degraded read as complete.
+  //
+  // Phase 2 (Jev) — a NEGATED disclosure ("the data is not stale") asserts the
+  // opposite of the packet metadata and must never satisfy the requirement;
+  // the naive DISCLOSURE_TERMS regex previously accepted it.
   if (packet.status === 'ready' && packetNeedsDisclosure(packet)) {
     const reason = opinion.reasoning;
     const missingEvidence = opinion.rawData?.missingEvidence;
-    const disclosedInReasoning = DISCLOSURE_TERMS.test(reason);
+    const disclosedInReasoning = DISCLOSURE_TERMS.test(reason) && !hasNegatedDisclosure(reason);
     const disclosedInRawData = Array.isArray(missingEvidence) && missingEvidence.length > 0;
     if (!disclosedInReasoning && !disclosedInRawData) {
       findings.push(
@@ -125,21 +130,6 @@ export function verifyMastraOpinion(
 
   emitVerificationMetrics(findings.length === 0, findings);
   return { ok: findings.length === 0, findings };
-}
-
-/**
- * True when the packet's own metadata demands a disclosure sentence.
- * Defensive against injected/test packets that predate these fields.
- */
-function packetNeedsDisclosure(packet: SymbolResearchPacket): boolean {
-  const warnings = Array.isArray(packet.warnings) ? packet.warnings : [];
-  const missingData = Array.isArray(packet.missingData) ? packet.missingData : [];
-  const dataQuality = (packet as { dataQuality?: string }).dataQuality;
-  return (
-    warnings.length > 0 ||
-    missingData.length > 0 ||
-    (dataQuality !== undefined && dataQuality !== 'complete')
-  );
 }
 
 /** Words that count as a disclosure of degraded/missing packet context. */

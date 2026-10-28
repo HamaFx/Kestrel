@@ -25,6 +25,7 @@ import type { ResolveModelEnv } from '@ai/models/env-factory';
 
 import type { ExecutionPlan } from '../../planning/execution-plan';
 import { createCitationScorer } from '../custom';
+import { buildJevRubricScorers } from './jev-scorers';
 import { buildPrebuiltScorers } from './prebuilt';
 import type { AgentScorerProfile, BuiltScorers, ScorerSampling } from './types';
 
@@ -64,13 +65,22 @@ function mergeScorers(a: BuiltScorers, b: BuiltScorers): BuiltScorers {
 function buildAgentScorers(
   settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>,
   env: ResolveModelEnv,
-  profile: AgentScorerProfile,
+  profileName: 'conversation' | 'research',
+  samplingOverride?: ScorerSampling,
 ): BuiltScorers {
+  // Phase 2 (Jev System One) — when a Jev endpoint resolves, the fast
+  // non-generative rubric scorer runs on 100% of turns at ~$0 and replaces
+  // the 5%/10% sampled generative LLM judges. No Jev provider → unchanged
+  // sampled prebuilt behavior below.
+  const jevScorers = buildJevRubricScorers(profileName, env, settings);
+  if (jevScorers) return mergeScorers(jevScorers, buildCitationScorers());
+
+  const profile = AGENT_SCORER_PROFILES[profileName];
   const prebuilt = buildPrebuiltScorers({
     settings,
     env,
     enabled: profile.enabled,
-    sampling: profile.sampling,
+    sampling: samplingOverride ?? profile.sampling,
   });
   // The grounding scorer requires a report + packet input and is therefore
   // not attached to a generic agent run (where Mastra supplies prompt/output
@@ -111,38 +121,32 @@ export function buildScorersForExecutionPlan(
   return buildAgentScorers(
     settings,
     env,
-    plan.evidencePolicy.required
-      ? AGENT_SCORER_PROFILES.research
-      : AGENT_SCORER_PROFILES.conversation,
+    plan.evidencePolicy.required ? 'research' : 'conversation',
   );
 }
 
 /**
  * Convenience — conversation-capable scorer set at the default 5% sampling,
- * plus the always-on deterministic custom scorers.
+ * plus the always-on deterministic custom scorers. With a Jev endpoint the
+ * Jev rubric replaces the sampled prebuilt judges at 100% coverage.
  */
 export function buildConversationScorers(
   settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>,
   env: ResolveModelEnv,
   sampling: ScorerSampling = AGENT_SCORER_PROFILES.conversation.sampling,
 ): BuiltScorers {
-  return buildAgentScorers(settings, env, {
-    enabled: AGENT_SCORER_PROFILES.conversation.enabled,
-    sampling,
-  });
+  return buildAgentScorers(settings, env, 'conversation', sampling);
 }
 
 /**
  * Convenience — research/report scorer set at the default 10% sampling, plus
- * the always-on deterministic custom scorers.
+ * the always-on deterministic custom scorers. With a Jev endpoint the Jev
+ * rubric replaces the sampled prebuilt judges at 100% coverage.
  */
 export function buildResearchScorers(
   settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>,
   env: ResolveModelEnv,
   sampling: ScorerSampling = AGENT_SCORER_PROFILES.research.sampling,
 ): BuiltScorers {
-  return buildAgentScorers(settings, env, {
-    enabled: AGENT_SCORER_PROFILES.research.enabled,
-    sampling,
-  });
+  return buildAgentScorers(settings, env, 'research', sampling);
 }
