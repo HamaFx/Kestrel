@@ -26,6 +26,7 @@ import {
   releaseBudgetReservation,
 } from '../budget/cost';
 import * as textRunner from '../mastra-v2/agents/xauusd/text-runner';
+import { syncTraderProfileToWorkingMemory } from '../mastra-v2/context/working-memory-seed';
 import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
 import {
   beginMastraRun,
@@ -291,7 +292,7 @@ export async function getCoachInsights(args: CoachInsightsArgs): Promise<CoachIn
       }
     }
 
-    return {
+    const insights: CoachInsightsResult = {
       summary: parsed.summary ?? 'Performance evaluation completed based on recent journal data.',
       disciplineGrade: parsed.disciplineGrade ?? 'B',
       strengths: parsed.strengths ?? ['Consistent logging'],
@@ -304,6 +305,21 @@ export async function getCoachInsights(args: CoachInsightsArgs): Promise<CoachIn
       costUsd,
       latencyMs,
     };
+
+    // Phase 3 (Jev roadmap) — mirror the quantitative edge and behavioral
+    // leaks into Mastra's resource-scoped working memory so chat turns are
+    // aware of the trader's personal profile. Best-effort: a memory failure is
+    // logged and never fails the review response.
+    await syncCoachInsightsToWorkingMemory({
+      userId,
+      threadId,
+      userSettings,
+      env,
+      insights,
+      stats,
+    });
+
+    return insights;
   } catch (err) {
     await finishMastraRun({
       userId,
@@ -332,5 +348,48 @@ export async function getCoachInsights(args: CoachInsightsArgs): Promise<CoachIn
       clog.error({ err: releaseErr }, 'journal budget release failed; reservation remains open');
     }
     throw err;
+  }
+}
+
+/**
+ * Phase 3 (Jev roadmap) — mirror the coach review into the resource-scoped
+ * working-memory block under the `journal-coach:<userId>` thread. Guarded end
+ * to end: memory construction, the read, and the write are all non-fatal so a
+ * degraded memory service never fails the user's journal review.
+ */
+async function syncCoachInsightsToWorkingMemory(args: {
+  userId: string;
+  threadId: string;
+  userSettings: UserSettingsRow;
+  env: CoachInsightsArgs['env'];
+  insights: CoachInsightsResult;
+  stats: JournalStats;
+}): Promise<void> {
+  try {
+    const { createKestrelMemory } = await import('../mastra-v2/memory');
+    const memory = createKestrelMemory({
+      settings: args.userSettings,
+      env: args.env,
+    });
+    await syncTraderProfileToWorkingMemory({
+      memory,
+      userId: args.userId,
+      threadId: args.threadId,
+      settings: {
+        defaultSymbol: args.userSettings.defaultSymbol,
+        language: args.userSettings.language,
+        timezone: args.userSettings.timezone,
+      },
+      profile: {
+        disciplineGrade: args.insights.disciplineGrade,
+        winRatePct: args.stats.winRate * 100,
+        avgR: args.stats.avgR,
+        strengths: args.insights.strengths,
+        leaks: args.insights.leaks,
+        actionRules: args.insights.actionRules,
+      },
+    });
+  } catch (error) {
+    clog.warn({ err: error }, 'Trader-profile working-memory sync skipped (non-fatal)');
   }
 }
