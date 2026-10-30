@@ -34,7 +34,7 @@
     "@kestrel/shared": "workspace:*",
     "@mastra/core": "^1.78.0",
     "@mastra/mcp": "^1.18.0",
-    "@tabler/icons-react": "^3.49.0",
+    "@tabler/icons-react": "^3.50.0",
     "drizzle-orm": "^0.45.4",
     "quickjs-emscripten": "^0.32.0",
     "react": "^19.3.1",

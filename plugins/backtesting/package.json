@@ -44,7 +44,7 @@
     "@kestrel/indicators": "workspace:*",
     "@kestrel/plugin-sdk": "workspace:*",
     "@kestrel/shared": "workspace:*",
-    "@tabler/icons-react": "^3.49.0",
+    "@tabler/icons-react": "^3.50.0",
     "drizzle-orm": "^0.45.4",
     "quickjs-emscripten": "^0.32.0",
     "react": "^19.3.1",
