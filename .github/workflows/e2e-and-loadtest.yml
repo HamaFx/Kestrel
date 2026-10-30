@@ -59,7 +59,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Cache Turborepo and Next.js build cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             .turbo
@@ -69,7 +69,7 @@ jobs:
             ${{ runner.os }}-turbo-e2e-
             ${{ runner.os }}-turbo-
       - name: Cache Playwright Chromium
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}

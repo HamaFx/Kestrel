@@ -31,7 +31,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Cache Turborepo and Next.js build cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             .turbo
@@ -83,7 +83,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Cache Turborepo cache (test results)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           # The unit-tests job never runs Next, so it only needs .turbo; the
           # build job above owns apps/web/.next/cache (identical immutable
