@@ -16,7 +16,7 @@
 - **🟠** = high-impact correctness/reliability issue.
 - **🟡** = real but lower blast radius.
 - Every finding names the files to look at. Findings marked "suspected" depend on runtime configuration or library behaviour and need empirical confirmation.
-- **Scope limitations:** (1) No live database was reachable — schema statements describe what the 118 migrations *say* the schema is, not an introspected database. (2) This was a static read: no load testing, no runtime probing, no dependency-vulnerability scan. (3) The repo's own documentation was treated as untrusted per the brief; some findings below contradict it.
+- **Scope limitations:** (1) No live database was reachable — schema statements describe what the 118 migrations _say_ the schema is, not an introspected database. (2) This was a static read: no load testing, no runtime probing, no dependency-vulnerability scan. (3) The repo's own documentation was treated as untrusted per the brief; some findings below contradict it.
 
 **A note on the framing:** Kestrel is not a Supabase-first application. Supabase appears in exactly two roles — Storage for uploaded chart images (raw `fetch` with a `service_role` key) and, in cloud deploys, as the hosted Postgres vendor. There is no Supabase Auth, no `@supabase/supabase-js`, no edge functions, no PostgREST, and no Realtime integration. Auth is Auth.js v5 against the same Postgres.
 
@@ -30,7 +30,7 @@
 
 1. **Market data** (`packages/data`): BiQuote REST (primary), Binance, Finnhub, plus FRED / CFTC / Marketaux for macro. Failover is sequential with health scoring, per-provider timeouts (8–10s) and self-throttling. Responses are cached in-memory/Redis with a 3s/10s stale-while-revalidate envelope.
    An opt-in worker pipeline (SignalR + Binance websockets → `live_ticks` / `candles_1m`) exists but is **off by default** (`WORKER_ENABLE_TICK_STREAM=0`). The shipped default is on-demand REST.
-2. **AI** (`packages/ai`): Mastra (on the Vercel AI SDK). A chat turn carries the user's BYOK credentials, an execution plan routes it to a *canonical* single agent or the *committee* (technical / fundamental / risk / sentiment specialists plus a synthesizer). Output passes a numeric "evidence gate" that rejects numbers not present in tool output. Chat text, tool calls, opinions and cost telemetry persist to Postgres; long "full" runs go through a durable job queue (`full_analysis_queue`).
+2. **AI** (`packages/ai`): Mastra (on the Vercel AI SDK). A chat turn carries the user's BYOK credentials, an execution plan routes it to a _canonical_ single agent or the _committee_ (technical / fundamental / risk / sentiment specialists plus a synthesizer). Output passes a numeric "evidence gate" that rejects numbers not present in tool output. Chat text, tool calls, opinions and cost telemetry persist to Postgres; long "full" runs go through a durable job queue (`full_analysis_queue`).
 3. **User data:** trading journal, alerts, watchlists, settings, chat threads, plus an autonomous paper-trading sandbox (accounts / positions / orders / fills) and a backtesting engine with parameter sweeps.
 4. **Worker:** node-cron jobs (alerts every minute, briefings, snapshots, retention …), pg-boss queues for backtests and sweeps, and the optional websocket feeds. Schedulers also exist as Vercel cron routes and VM systemd timers; the Botkeep profile pokes the web cron endpoints from inside the worker.
 
@@ -70,18 +70,18 @@ What remains half-dead: **two parallel AI tool systems** — legacy `packages/ai
 
 ### 🔴 R2 — Every price, balance, P&L and fee is a floating-point number; there is not one `numeric` column in the database
 
-`grep -i "numeric\|decimal"` over all 119 migrations matches only a column *named* `price_decimals`.
+`grep -i "numeric\|decimal"` over all 119 migrations matches only a column _named_ `price_decimals`.
 
-| Area | Columns | Type |
-|---|---|---|
-| Trading journal | `entry, stop, target, exit, size, r_multiple` | `double precision` |
-| Paper trading | `balance`, `realized_pnl`, `unrealized_pnl`, `entry_fee`, `exit_fee`, `quantity`, `close_price` | `double precision` |
-| Backtesting | `initial_balance`, `final_equity`, `risk_pct`, `best_score` | `double precision` |
-| Market data | `live_ticks.bid/ask/mid`, `candles_1m.o/h/l/c/v` | `double precision` |
-| AI cost | `chat_telemetry.est_cost_usd` (`double precision`); `agent_opinions.cost_usd` (**`real`**) | float4/float8 |
-| Symbol metadata | `symbol_catalog.pip_size` | **`real`** |
+| Area            | Columns                                                                                         | Type               |
+| --------------- | ----------------------------------------------------------------------------------------------- | ------------------ |
+| Trading journal | `entry, stop, target, exit, size, r_multiple`                                                   | `double precision` |
+| Paper trading   | `balance`, `realized_pnl`, `unrealized_pnl`, `entry_fee`, `exit_fee`, `quantity`, `close_price` | `double precision` |
+| Backtesting     | `initial_balance`, `final_equity`, `risk_pct`, `best_score`                                     | `double precision` |
+| Market data     | `live_ticks.bid/ask/mid`, `candles_1m.o/h/l/c/v`                                                | `double precision` |
+| AI cost         | `chat_telemetry.est_cost_usd` (`double precision`); `agent_opinions.cost_usd` (**`real`**)      | float4/float8      |
+| Symbol metadata | `symbol_catalog.pip_size`                                                                       | **`real`**         |
 
-**Why it matters.** Float OHLC is industry-standard and defensible. Float *accumulation* — balances, lifetime P&L, aggregated R-multiples, `SUM(cost_usd)` — drifts and cannot be compared exactly. The project already knows the correct pattern: AI spend was deliberately migrated to integer cents (`0057` → `0089`) after hitting summation drift. Paper-trading balances and fees should follow that precedent. `cost_usd real` (≈7 significant digits) is the clearest error, and it is summed in SQL (`/api/settings/usage-by-agent` computes `sum(cost_usd)::float8` and derives a synthetic remainder row by subtraction — float cancellation).
+**Why it matters.** Float OHLC is industry-standard and defensible. Float _accumulation_ — balances, lifetime P&L, aggregated R-multiples, `SUM(cost_usd)` — drifts and cannot be compared exactly. The project already knows the correct pattern: AI spend was deliberately migrated to integer cents (`0057` → `0089`) after hitting summation drift. Paper-trading balances and fees should follow that precedent. `cost_usd real` (≈7 significant digits) is the clearest error, and it is summed in SQL (`/api/settings/usage-by-agent` computes `sum(cost_usd)::float8` and derives a synthetic remainder row by subtraction — float cancellation).
 
 **Where:** `packages/db/drizzle/0109_paper_trading_plugin_tables.sql:26-29,64-78,120-129,172-175`; `0108:32-33`; `0000:35-41,105`; `0025_multi_agent_orchestration.sql:15`; `packages/db/src/schema/ops/journal.ts:40-48`.
 
@@ -95,7 +95,7 @@ Three settings compound:
 2. `ENFORCE_BUDGET` defaults to off; effective daily cap becomes `$1,000,000` and no turn is ever rejected. Spend is recorded, never blocked.
 3. `getUserWithSettings` lets non-admin users inherit the **operator's** configured provider keys as fallback.
 
-**Why it matters.** On an internet-facing instance this is an open credit card: an attacker registers, chats at up to 30 turns/min per account, and the operator pays. The ledger correctly prevents draining *another user's* budget, but the shared operator key is the exposure. There are no global concurrency caps on AI turns or on `/api/market/stream` (a 1-hour SSE).
+**Why it matters.** On an internet-facing instance this is an open credit card: an attacker registers, chats at up to 30 turns/min per account, and the operator pays. The ledger correctly prevents draining _another user's_ budget, but the shared operator key is the exposure. There are no global concurrency caps on AI turns or on `/api/market/stream` (a 1-hour SSE).
 
 **Where:** `packages/shared/src/env/schema/runtime.ts:89,143-146`; `packages/ai/src/budget/index.ts:53-72`; `packages/db/src/queries/user-settings.ts:117-139`.
 
@@ -130,7 +130,7 @@ quantity: args.position.quantity - closeQuantity,   // computed from the stale r
 realizedPnl: args.position.realizedPnl + pnl,
 ```
 
-The comment claims the claim protects against double fills — true for a *full* close (which flips status), but two concurrent **partial** closes both still see `status='open'`, both update, both insert a fill, and both credit the balance. The second write overwrites the first's quantity/P&L: filled quantity can exceed position size and realized P&L is lost or double-counted. Concurrency is realistic — a tick subscriber and the once-a-minute market-watch job can evaluate the same stop simultaneously.
+The comment claims the claim protects against double fills — true for a _full_ close (which flips status), but two concurrent **partial** closes both still see `status='open'`, both update, both insert a fill, and both credit the balance. The second write overwrites the first's quantity/P&L: filled quantity can exceed position size and realized P&L is lost or double-counted. Concurrency is realistic — a tick subscriber and the once-a-minute market-watch job can evaluate the same stop simultaneously.
 
 **Why it matters.** It is simulated money, so no real loss — but the paper sandbox is the stated basis for trusting a strategy ("deploy backtest to paper"), and corrupted fills quietly invalidate that signal. This bug class gets copied into real broker integrations later.
 
@@ -150,7 +150,7 @@ Uploads use the Supabase **service-role key** server-side and the bucket is requ
 
 ### 🟠 R8 — Stale prices silently flow into the AI, alerts, and paper fills
 
-The data layer has rich (`getPriceWithMeta`) and plain (`getPrice`) getters. The **canonical AI tools use the plain form**, discarding `stale` and quote age before the model sees them. The alert evaluator has no staleness check. The backtester consumes stale-while-revalidate candles (a window up to 1 day old can be accepted). Two paths *fabricate* values: the DXY proxy returns `{value: 0, change24h: 0}` on missing inputs, and `forecast_volatility` substitutes ATR = 0 and prints "expected ±0.0 pips". Both zeros are then valid grounding for the numeric evidence gate.
+The data layer has rich (`getPriceWithMeta`) and plain (`getPrice`) getters. The **canonical AI tools use the plain form**, discarding `stale` and quote age before the model sees them. The alert evaluator has no staleness check. The backtester consumes stale-while-revalidate candles (a window up to 1 day old can be accepted). Two paths _fabricate_ values: the DXY proxy returns `{value: 0, change24h: 0}` on missing inputs, and `forecast_volatility` substitutes ATR = 0 and prints "expected ±0.0 pips". Both zeros are then valid grounding for the numeric evidence gate.
 
 **Why it matters.** The model can present a stale price as current, an alert can fire on yesterday's candle, and a fabricated zero can pass as evidence-backed. The research-packet path does this correctly (`freshness: 'stale'`, warnings, stale packets rejected) — the right pattern exists and wasn't applied to the chat tools.
 
@@ -160,7 +160,7 @@ The data layer has rich (`getPriceWithMeta`) and plain (`getPrice`) getters. The
 
 ### 🟠 R9 — The realtime pipeline is off by default, and bar writes fail silently
 
-`WORKER_ENABLE_TICK_STREAM` defaults to `'0'`: the SignalR consumer, Binance consumer, candle aggregator, tick buffer and `live_ticks` flusher are all inert, so paper fills run off the once-a-minute REST job. Separately, a closed bar's DB write is fire-and-forget with a 10s timeout and **no retry** — a failure or shutdown silently drops that minute forever. There is no gap backfill, and a replayed same-minute tick can *regress* the open bar's close price (close is overwritten unconditionally).
+`WORKER_ENABLE_TICK_STREAM` defaults to `'0'`: the SignalR consumer, Binance consumer, candle aggregator, tick buffer and `live_ticks` flusher are all inert, so paper fills run off the once-a-minute REST job. Separately, a closed bar's DB write is fire-and-forget with a 10s timeout and **no retry** — a failure or shutdown silently drops that minute forever. There is no gap backfill, and a replayed same-minute tick can _regress_ the open bar's close price (close is overwritten unconditionally).
 
 **Why it matters.** Claims about streaming do not match a default install. Dropped bars accumulate quiet holes that indicators then compute over.
 
@@ -180,7 +180,7 @@ Alert delivery is serial, unbounded (`listEvaluable` has no `LIMIT`) and not wir
 
 ### 🟠 R11 — Migration apply can silently skip migrations
 
-Drizzle applies a migration only if its `when` is greater than the newest recorded `created_at` — it does not follow journal order. `0111`, `0112` and `0113` share the identical `when=1792900506784` in `_journal.json`; they applied here only because the baseline predates them. Any *future* migration with a `when` at or below the applied maximum is silently skipped on upgraded databases. Supporting gaps: `migration-reconcile.mjs` has a no-op missing-table check (`const requiredTables = []`), and `migrate-status` reports edited files as "pending" while the migrator will skip them. `0038`'s RLS cutover is a run of unguarded `CREATE POLICY` statements, and while `0041` exists because migrations were once silently dropped by the Supabase pooler, `0041` re-applies **no RLS** — so that failure mode would leave tenant tables unprotected undetected.
+Drizzle applies a migration only if its `when` is greater than the newest recorded `created_at` — it does not follow journal order. `0111`, `0112` and `0113` share the identical `when=1792900506784` in `_journal.json`; they applied here only because the baseline predates them. Any _future_ migration with a `when` at or below the applied maximum is silently skipped on upgraded databases. Supporting gaps: `migration-reconcile.mjs` has a no-op missing-table check (`const requiredTables = []`), and `migrate-status` reports edited files as "pending" while the migrator will skip them. `0038`'s RLS cutover is a run of unguarded `CREATE POLICY` statements, and while `0041` exists because migrations were once silently dropped by the Supabase pooler, `0041` re-applies **no RLS** — so that failure mode would leave tenant tables unprotected undetected.
 
 **Why it matters.** You can deploy believing a schema change is live when it is not, with nothing in the repo to detect it.
 
@@ -198,7 +198,7 @@ Coach insights parse the LLM response with bare `JSON.parse` (no schema) and, on
 
 ### 🟡 R14 — No provider failover within a turn
 
-`shouldFallback()` / `makeFallbackPart()` exist with a UI renderer, but **no production caller** — only tests. Circuit-breaker state is consulted when a model is *resolved*, so a 429/5xx mid-turn fails the turn (502) instead of continuing elsewhere. The breaker also misses deadline-induced failures: any abort is classified `cancelled` and cancelled runs record no failure, so a provider that reliably hangs at 55s never trips it. Custom-agent streams and XAUUSD conversation/research runs have **no retry**; Mastra-native tools do not get the 25s per-tool timeout that the legacy registry applies.
+`shouldFallback()` / `makeFallbackPart()` exist with a UI renderer, but **no production caller** — only tests. Circuit-breaker state is consulted when a model is _resolved_, so a 429/5xx mid-turn fails the turn (502) instead of continuing elsewhere. The breaker also misses deadline-induced failures: any abort is classified `cancelled` and cancelled runs record no failure, so a provider that reliably hangs at 55s never trips it. Custom-agent streams and XAUUSD conversation/research runs have **no retry**; Mastra-native tools do not get the 25s per-tool timeout that the legacy registry applies.
 
 ### 🟡 R15 — Prompt-injection defenses inspect only the last user message
 
@@ -238,28 +238,33 @@ The QuickJS strategy sandbox runs synchronously on the event loop (up to 5s per 
 - **Dead schema:** `chat_telemetry.credits_charged` / `wallet_balance_after` are read but never written (credits permanently 0); `organization.plan` has no plans table; eight enum types created and never applied to a column (`user_role`, `journal_outcome`, `briefing_kind`, `bot_platform`, `portfolio_status`, `payment_status`, `plan_interval`, `subscription_status`); dead function `hamafx_set_decision_signal_outcome_tenant_id()` re-created by the newest migration (`0117`) while referencing a table dropped in `0052`.
 - **Config/flag duplication:** the `feature_flags` DB table is admin-manageable but never consulted (`readFeatureFlag` is env-only). `WORKER_MODE` defaults to `systemd`, but no job units exist in the repo, so a systemd-mode install gets no core or plugin jobs.
 - **Comment rot:** `scope.ts` / `pools.ts` reference a `kestrel_admin` role that does not exist; `fork/route.ts` claims rate limiting it does not have; `storage.ts` describes a signed-URL design it does not implement; several schema comments say "ms epoch" for `timestamptz` columns. The README still links deleted docs (`docs/pwa.md`, `docs/audit/`).
-- **Process gap:** `scripts/check-route-security.mjs` (a CI gate) is a text grep for wrapper names — a route whose *comment* mentions `withAuth` passes. That is how nine unguarded cron routes passed CI. Harden or replace with a per-route manifest.
+- **Process gap:** `scripts/check-route-security.mjs` (a CI gate) is a text grep for wrapper names — a route whose _comment_ mentions `withAuth` passes. That is how nine unguarded cron routes passed CI. Harden or replace with a per-route manifest.
 
 ---
 
 ## 5. Action plan
 
 ### Phase 0 — Stop the bleeding (small, contained, ~a day)
+
 1. Require `CRON_SECRET` or an admin session on **every** cron route; make the bearer check fail closed when the secret is empty (R4).
 2. Enable the budget cap and set `REGISTRATION_MODE=disabled` if the instance is public (R3).
 3. Make API-key inputs write-only (R5).
 4. Add a host allowlist to the market-provider tester (R12).
 
 ### Phase 1 — Make isolation real
+
 Create a login-enabled `kestrel_app`, point `DATABASE_URL` at it on a scratch database, run `pnpm test:postgres-rls` plus the app integration tests, fix whatever surfaces, then settle the tenant model decision (R1).
 
 ### Phase 2 — Money and trade-data integrity
+
 Atomic partial closes and fills; money-type migration for balances/P&L/fees; liquidation floor (R6, R2).
 
 ### Phase 3 — Data honesty
+
 Freshness propagation; remove fabricated zeros; staleness gates in alerts/fills/backtests; per-tool and per-provider timeouts; alert abort/timeout; restore mid-turn fallback (R8, R9, R10, R14).
 
 ### Phase 4 — Platform hygiene
+
 Migration-ledger preflight and `when` de-duplication (R11); dead-letter queue; index cleanup; `update_updated_at()` fix; private-bucket or signed-URL uploads (R7); dead-code sweep; AI tool-stack consolidation before the December target.
 
 ---
@@ -285,3 +290,25 @@ These claims were re-checked directly against source, not accepted from a subage
 3. **Instance exposure**: is the deployed URL publicly reachable, and is `REGISTRATION_MODE` actually `open` there? This determines the urgency of R3 and R4.
 4. **`WORKER_ENABLE_TICK_STREAM`** in the live `.env` — if `1`, R9's bar-loss path is live.
 5. **Which cron scheduler is active in production** (worker node-cron, Vercel cron, VM systemd, Botkeep poker, or several) — determines the R16 double-scheduling scope.
+
+## Appendix C — Remediation status (updated 2026-10-31)
+
+Commit messages reference this document's finding ids.
+
+### Phase 0 — complete
+
+R4 (cron authorisation), R3 (budget enforcement), R5 (write-only BYOK fields) and R12 (SSRF in the market-provider tester) are implemented and committed, each with a test.
+
+### Phase 1 — implemented, cutover pending
+
+- **Schema.** Migration `0119` grants the non-bypass application role (`kestrel_app`) every table and re-arms default privileges for whichever role executes migrations — closing the `provider_circuit_state` gap and stopping the next table from repeating it. Guarded by `packages/db/test/postgres-app-role.test.ts`, which migrates a disposable database and asserts _as that role_: non-superuser/non-bypass, every table granted, tenant isolation, cross-tenant write rejection, and fail-closed unscoped reads and writes.
+- **Per-user scope.** `withUserTenant` (and a read-only variant) is applied across the server components that read tenant data, and across the cron fan-out jobs, which scope each user individually.
+- **System-wide work** moved to the admin (BYPASSRLS) connection: `alerts`, `cleanup-telemetry`, `health-alerts`, and the user discovery in `briefings` / `weekly-review`.
+- **Cutover still pending.** `DATABASE_URL` must point at `kestrel_app`; until it does, the app still connects as a superuser and **RLS is not enforced**. Provisioning is in place: `pnpm --filter @kestrel/db provision:app-role`.
+
+### Found while implementing (not in the original findings)
+
+- **`docker/postgres/init-admin-role.sh` never provisioned `hamafx_admin`.** Its heredoc (`<<-EOSQL`) was unquoted, so `DO $$` expanded to `DO <pid>`; with `ON_ERROR_STOP=1` psql aborted before the `ALTER ROLE … WITH PASSWORD`, and no other file in the repo sets that password. On a fresh volume the role exists (created by migration `0037`) but cannot authenticate, so `ADMIN_DATABASE_URL` fails. Fixed by escaping the delimiters; verified on fresh containers.
+- **`@kestrel/ai`'s DI-backed `getDb()` ignored the admin scope**, so `withAdminDb` never reached AI code — a cron route could open an admin scope and still read zero rows. Fixed (`hasAdminDbScope()`), covered by `packages/ai/test/runtime-db-scope.test.ts`.
+- **Two classes of tenant read remain unscoped** and are tracked rather than fixed: `(app)/chat/page.tsx` reads through `@/lib/services` (invisible to the static guard, which sees only direct `@kestrel/db` access), and the `'use server'` action files under `(app)/settings/` — server actions are separate requests and do not inherit the page's scope, so under the hardened role a key save would read no existing keys and write nothing.
+- `cleanup-tokens` purges only `verificationToken`, which has no RLS policy: it needs the `expires` index noted above, not a tenant scope.
