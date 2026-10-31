@@ -30,6 +30,7 @@ import {
   buildJevRubricScorers,
   evaluateJevRubricScores,
 } from '../src/mastra-v2/evals/scorers/jev-scorers';
+import { checkJevRubricRecord, recordsToGateObserved } from '../src/mastra-v2/evals/gate';
 import type { SymbolResearchPacket } from '../src/mastra-v2/packets/symbol-research';
 
 const degradedPacket = {
@@ -168,5 +169,70 @@ describe('Jev semantic disclosure verifier & 100% live eval rubric scorers', () 
     expect(built).not.toBeNull();
     expect(Object.keys(built!.entries)).toContain('kestrel-jev-rubric');
     expect(built!.entries['kestrel-jev-rubric']!.sampling).toEqual({ type: 'ratio', rate: 1 });
+  });
+
+  it('fails recordsToGateObserved when kestrel-jev-rubric has high faithfulness but low noHallucination or nonToxic in reason JSON', () => {
+    const gate = recordsToGateObserved([
+      {
+        id: 's1',
+        scorerId: 'kestrel-jev-rubric',
+        runId: 'run-1',
+        entityId: 'agent-1',
+        score: 0.98, // faithfulness is high
+        reason: JSON.stringify({
+          faithfulness: 0.98,
+          answerRelevancy: 0.9,
+          noHallucination: 0.35, // hallucinated!
+          unbiasedScenarios: 0.95,
+          nonToxic: 0.99,
+          provider: 'opencode-free',
+        }),
+        createdAt: new Date(),
+        source: 'LIVE',
+      },
+    ]);
+
+    expect(gate.passed).toBe(false);
+    expect(gate.observed.overallPassRate).toBe(0);
+  });
+
+  it('names every failing Jev rubric dimension and passes a fully green batch', () => {
+    const record = (reason: string, score = 0.98) =>
+      ({
+        id: 's1',
+        scorerId: 'kestrel-jev-rubric',
+        runId: 'run-1',
+        entityId: 'agent-1',
+        score,
+        reason,
+        createdAt: new Date(),
+        source: 'LIVE',
+      }) as const;
+
+    const failing = checkJevRubricRecord(
+      record(
+        JSON.stringify({
+          faithfulness: 0.98,
+          answerRelevancy: 0.9,
+          noHallucination: 0.35,
+          unbiasedScenarios: 0.95,
+          nonToxic: 0.4,
+        }),
+      ),
+      0.95,
+    );
+    expect(failing.ok).toBe(false);
+    expect(failing.failures.join(' ')).toContain('noHallucination=0.35 < 0.80');
+    expect(failing.failures.join(' ')).toContain('nonToxic=0.40 < 0.90');
+
+    const greenReason = JSON.stringify({
+      faithfulness: 0.98,
+      answerRelevancy: 0.9,
+      noHallucination: 0.9,
+      unbiasedScenarios: 0.95,
+      nonToxic: 0.99,
+    });
+    expect(checkJevRubricRecord(record(greenReason), 0.95).ok).toBe(true);
+    expect(recordsToGateObserved([record(greenReason)]).passed).toBe(true);
   });
 });
