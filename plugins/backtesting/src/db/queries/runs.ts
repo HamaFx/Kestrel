@@ -29,7 +29,48 @@ import type {
   EquityPoint,
   RejectedSignal,
 } from '../../engine/types';
-import { backtestRuns, backtestStrategies, type BacktestRunRow } from '../tables';
+import { backtestRuns, backtestStrategies, backtestSweeps, type BacktestRunRow } from '../tables';
+
+export interface ListRunsOptions {
+  limit?: number;
+  /** Filter to one instrument; normalised to upper case before matching. */
+  symbol?: string;
+}
+
+/** Row shape returned by `listBacktestRunSummaryRows` (no chart blobs). */
+export type BacktestRunSummaryRow = Pick<
+  BacktestRunRow,
+  | 'id'
+  | 'tenantId'
+  | 'userId'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'name'
+  | 'symbol'
+  | 'timeframe'
+  | 'status'
+  | 'engineVersion'
+  | 'bars'
+  | 'fromTs'
+  | 'toTs'
+  | 'initialBalance'
+  | 'finalEquity'
+  | 'metrics'
+  | 'durationMs'
+  | 'error'
+>;
+
+function runFilters(userId: string, opts: ListRunsOptions) {
+  const filters = [eq(backtestRuns.userId, userId)];
+  if (opts.symbol) {
+    filters.push(eq(backtestRuns.symbol, opts.symbol.trim().toUpperCase()));
+  }
+  return filters;
+}
+
+function clampLimit(limit: number | undefined, fallback: number): number {
+  return Math.max(1, Math.min(limit ?? fallback, 100));
+}
 
 export interface PersistBacktestRunInput {
   userId: string;
@@ -92,15 +133,54 @@ export async function persistBacktestRun(input: PersistBacktestRunInput): Promis
 
 export async function listBacktestRuns(
   userId: string,
-  opts: { limit?: number } = {},
+  opts: ListRunsOptions = {},
 ): Promise<BacktestRunRow[]> {
   const db = getDb();
   return db
     .select()
     .from(backtestRuns)
-    .where(eq(backtestRuns.userId, userId))
+    .where(and(...runFilters(userId, opts)))
     .orderBy(desc(backtestRuns.createdAt))
-    .limit(Math.max(1, Math.min(opts.limit ?? 20, 100)));
+    .limit(clampLimit(opts.limit, 20));
+}
+
+/**
+ * List run summaries without transferring the multi-megabyte JSONB columns
+ * (`trades`, `equity_curve`, `source`, `logs`, `rejected_signals`).
+ *
+ * `symbol` is filtered in SQL before `LIMIT` is applied, so asking for the
+ * three most recent XAUUSD runs cannot be shadowed by ten newer EURUSD runs.
+ */
+export async function listBacktestRunSummaryRows(
+  userId: string,
+  opts: ListRunsOptions = {},
+): Promise<BacktestRunSummaryRow[]> {
+  const db = getDb();
+  return db
+    .select({
+      id: backtestRuns.id,
+      tenantId: backtestRuns.tenantId,
+      userId: backtestRuns.userId,
+      createdAt: backtestRuns.createdAt,
+      updatedAt: backtestRuns.updatedAt,
+      name: backtestRuns.name,
+      symbol: backtestRuns.symbol,
+      timeframe: backtestRuns.timeframe,
+      status: backtestRuns.status,
+      engineVersion: backtestRuns.engineVersion,
+      bars: backtestRuns.bars,
+      fromTs: backtestRuns.fromTs,
+      toTs: backtestRuns.toTs,
+      initialBalance: backtestRuns.initialBalance,
+      finalEquity: backtestRuns.finalEquity,
+      metrics: backtestRuns.metrics,
+      durationMs: backtestRuns.durationMs,
+      error: backtestRuns.error,
+    })
+    .from(backtestRuns)
+    .where(and(...runFilters(userId, opts)))
+    .orderBy(desc(backtestRuns.createdAt))
+    .limit(clampLimit(opts.limit, 20));
 }
 
 export async function getBacktestRun(
@@ -154,9 +234,10 @@ export async function deleteBacktestRun(userId: string, runId: string): Promise<
   return rows.length > 0;
 }
 
-/** Hard-delete every run and saved strategy for a user (uninstall + wipe). */
+/** Hard-delete every run, sweep and saved strategy for a user (uninstall + wipe). */
 export async function deleteAllBacktestData(userId: string): Promise<void> {
   const db = getDb();
   await db.delete(backtestRuns).where(eq(backtestRuns.userId, userId));
+  await db.delete(backtestSweeps).where(eq(backtestSweeps.userId, userId));
   await db.delete(backtestStrategies).where(eq(backtestStrategies.userId, userId));
 }

@@ -27,9 +27,10 @@ import {
   deleteBacktestRun,
   getBacktestRun,
   getBacktestStrategy,
-  listBacktestRuns,
+  listBacktestRunSummaryRows,
   persistBacktestRun,
   pruneBacktestRuns,
+  type BacktestRunSummaryRow,
   type PersistBacktestRunInput,
 } from '../db/queries';
 import type { BacktestRunRow } from '../db/tables';
@@ -292,7 +293,7 @@ export function toRunDetail(row: BacktestRunRow): RunDetail {
   };
 }
 
-export function toRunSummary(row: BacktestRunRow): RunSummary {
+export function toRunSummary(row: BacktestRunSummaryRow): RunSummary {
   return {
     id: row.id,
     name: row.name,
@@ -317,9 +318,14 @@ export async function listRunSummaries(
   userId: string,
   opts: { limit?: number; symbol?: string } = {},
 ): Promise<RunSummary[]> {
-  const rows = await listBacktestRuns(userId, { limit: opts.limit ?? 10 });
-  const filtered = opts.symbol ? rows.filter((row) => row.symbol === opts.symbol) : rows;
-  return filtered.map(toRunSummary);
+  // The query layer applies `symbol` in SQL before LIMIT and selects only
+  // summary columns, so recent EURUSD runs can never shadow older XAUUSD runs
+  // and multi-megabyte chart blobs stay in Postgres.
+  const rows = await listBacktestRunSummaryRows(userId, {
+    limit: opts.limit ?? 10,
+    ...(opts.symbol ? { symbol: opts.symbol } : {}),
+  });
+  return rows.map(toRunSummary);
 }
 
 export async function getRunDetail(userId: string, runId: string): Promise<RunDetail | null> {

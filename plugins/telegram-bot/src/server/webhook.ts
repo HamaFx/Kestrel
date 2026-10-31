@@ -26,6 +26,7 @@
 // Updates are deduplicated in plugin_storage for 24h-ish (pruned by the
 // nightly job) so Telegram retries cannot double-charge AI tokens.
 
+import { withTenantDb } from '@kestrel/db';
 import type { PluginPublicApiRouteContext, PluginStorage } from '@kestrel/plugin-sdk';
 import { z } from 'zod';
 
@@ -107,40 +108,66 @@ export async function handleTelegramWebhookRoute(
   }
 
   const idempotencyKey = String(update.update_id);
-  const seen = await install.storage.get<{ processedAt?: string }>(
-    UPDATE_COLLECTION,
-    idempotencyKey,
-  );
-  if (seen) {
-    ctx.log.info('Skipping duplicate Telegram update', {
-      userId: verified.userId,
-      updateId: update.update_id,
-    });
-    return ok();
-  }
 
   try {
-    await handleTelegramUpdate(
-      {
-        userId: install.userId,
-        tenantId: install.tenantId,
-        settings: settings as unknown as Record<string, unknown>,
-        storage: install.storage,
+    // Public plugin routes carry no ambient tenant transaction (no
+    // `withAuth`), and the bot's commands read RLS-protected tables
+    // (alerts, trade_journal, plg_paper_trading_*) plus `plugin_storage`.
+    // Everything below must run inside the install's tenant scope.
+    const response = await withTenantDb(
+      install.tenantId,
+      async () => {
+        const seen = await install.storage.get<{ processedAt?: string }>(
+          UPDATE_COLLECTION,
+          idempotencyKey,
+        );
+        if (seen) {
+          ctx.log.info('Skipping duplicate Telegram update', {
+            userId: verified.userId,
+            updateId: update.update_id,
+          });
+          return ok();
+        }
+
+        await handleTelegramUpdate(
+          {
+            userId: install.userId,
+            tenantId: install.tenantId,
+            settings: settings as unknown as Record<string, unknown>,
+            storage: install.storage,
+          },
+          update,
+          AbortSignal.timeout(85_000),
+        );
+
+        // The reply is already in the Telegram chat. A failed ledger write
+        // must not become a 5xx — Telegram would retry the update and the
+        // same prompt would run (and answer) again.
+        try {
+          await install.storage.set(UPDATE_COLLECTION, idempotencyKey, {
+            processedAt: new Date().toISOString(),
+          });
+        } catch (storageErr) {
+          ctx.log.warn('Telegram webhook dedupe write failed after handling update', {
+            userId: install.userId,
+            updateId: update.update_id,
+            err: storageErr instanceof Error ? storageErr.message : String(storageErr),
+          });
+        }
+
+        return ok();
       },
-      update,
-      AbortSignal.timeout(85_000),
+      { userId: install.userId },
     );
 
-    await install.storage.set(UPDATE_COLLECTION, idempotencyKey, {
-      processedAt: new Date().toISOString(),
-    });
-
     // Opportunistic pruning so a single hot install never grows unbounded.
+    // Runs after the tenant transaction commits; each storage call opens its
+    // own short scope when no ambient one is active.
     if (update.update_id % 50 === 0) {
       void pruneUpdates(install.storage, ctx).catch(() => undefined);
     }
 
-    return ok();
+    return response;
   } catch (err) {
     await install.storage.delete(UPDATE_COLLECTION, idempotencyKey).catch(() => undefined);
     ctx.log.error('Telegram update failed', {

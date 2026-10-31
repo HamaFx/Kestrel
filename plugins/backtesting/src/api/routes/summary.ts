@@ -18,7 +18,11 @@
 
 import type { PluginApiRouteHandler } from '@kestrel/plugin-sdk';
 
-import { countBacktestRuns, countBacktestStrategies, listBacktestRuns } from '../../db/queries';
+import {
+  countBacktestRuns,
+  countBacktestStrategies,
+  listBacktestRunSummaryRows,
+} from '../../db/queries';
 import { listKnowledge } from '../../knowledge';
 import { ENGINE_VERSION, toRunSummary } from '../../services/run-service';
 import { byMethod, execCtx, json, wrap } from './shared';
@@ -27,7 +31,7 @@ import { byMethod, execCtx, json, wrap } from './shared';
 
 const summary = wrap(async (ctx) => {
   const [runs, runCount, strategyCount, documents] = await Promise.all([
-    listBacktestRuns(ctx.userId, { limit: 1 }),
+    listBacktestRunSummaryRows(ctx.userId, { limit: 1 }),
     countBacktestRuns(ctx.userId),
     countBacktestStrategies(ctx.userId),
     listKnowledge(execCtx(ctx)),

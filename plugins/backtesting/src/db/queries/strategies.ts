@@ -17,9 +17,11 @@
 // Backtesting persistence helpers — saved strategy library.
 
 import { getDb, requireTenantIdForUser } from '@kestrel/db';
-import { and, count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, or } from 'drizzle-orm';
 
 import { backtestStrategies, type BacktestStrategyRow } from '../tables';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface UpsertStrategyInput {
   userId: string;
@@ -59,11 +61,16 @@ export async function getBacktestStrategy(
   idOrSlug: string,
 ): Promise<BacktestStrategyRow | undefined> {
   const db = getDb();
+  const key = idOrSlug.trim();
+  const match = UUID_RE.test(key)
+    ? or(eq(backtestStrategies.id, key), eq(backtestStrategies.slug, key))
+    : eq(backtestStrategies.slug, key);
   const rows = await db
     .select()
     .from(backtestStrategies)
-    .where(eq(backtestStrategies.userId, userId));
-  return rows.find((row) => row.id === idOrSlug || row.slug === idOrSlug);
+    .where(and(eq(backtestStrategies.userId, userId), match))
+    .limit(1);
+  return rows[0];
 }
 
 export async function upsertBacktestStrategy(

@@ -16,6 +16,7 @@
 
 // Minute job: evaluate every active deployed strategy for installed users.
 
+import { withTenantDb } from '@kestrel/db';
 import type { PluginJobRegistration } from '@kestrel/plugin-sdk';
 
 import { normaliseSettings } from '../settings';
@@ -41,7 +42,13 @@ export const paperStrategyRunnerJob: PluginJobRegistration = {
         if (ctx.signal.aborted) break;
         try {
           const settings = normaliseSettings(user.settings);
-          const result = await runStrategyRunsForUser(user.userId, settings, ctx.signal);
+          // Every write below (plg_paper_trading_*, trade_journal) is FORCE ROW
+          // LEVEL SECURITY; the worker has no ambient tenant transaction.
+          const result = await withTenantDb(
+            user.tenantId,
+            () => runStrategyRunsForUser(user.userId, settings, ctx.signal),
+            { userId: user.userId },
+          );
           processed += 1;
           entered += result.entered;
           closed += result.closed;
