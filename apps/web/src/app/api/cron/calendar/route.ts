@@ -34,28 +34,35 @@ export const maxDuration = 60;
 
 export async function GET(req: Request): Promise<Response> {
   const log = createScopedLoggerWithContext({ component: 'cron', job: 'calendar' });
-  return withCronAuth(req, async () => {
-    try {
-      const events = await fetchUpcomingEvents();
-      const { inserted } = await upsertEvents(events);
-      return {
-        processed: events.length,
-        note: `upserted=${inserted}`,
-      };
-    } catch (err) {
-      if (err instanceof ProviderError) {
-        // Upstream blip — log once, skip this tick, return 200 with note.
-        log.warn('provider skipped', {
-          provider: err.provider,
-          code: err.code,
-          message: err.message,
-        });
+  return withCronAuth(
+    req,
+    async () => {
+      try {
+        const events = await fetchUpcomingEvents();
+        const { inserted } = await upsertEvents(events);
         return {
-          processed: 0,
-          note: `provider ${err.provider} unavailable (${err.code})`,
+          processed: events.length,
+          note: `upserted=${inserted}`,
         };
+      } catch (err) {
+        if (err instanceof ProviderError) {
+          // Upstream blip — log once, skip this tick, return 200 with note.
+          log.warn('provider skipped', {
+            provider: err.provider,
+            code: err.code,
+            message: err.message,
+          });
+          return {
+            processed: 0,
+            note: `provider ${err.provider} unavailable (${err.code})`,
+          };
+        }
+        throw err;
       }
-      throw err;
-    }
-  });
+    },
+    // Audit 2026-10-31 (R4): the Calendar page's Refresh button calls this
+    // route from a normal user session, so it opts into any-session access
+    // and carries its own per-user limit to protect the shared provider quota.
+    { session: 'any', sessionRateLimit: { group: 'cron_calendar_refresh', perMinute: 4 } },
+  );
 }

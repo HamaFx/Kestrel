@@ -63,44 +63,51 @@ const MAX_PAGES = 4;
 
 export async function GET(req: Request): Promise<Response> {
   const log = createScopedLoggerWithContext({ component: 'cron', job: 'news' });
-  return withCronAuth(req, async () => {
-    let publishedAfter = await highWaterMarkIso(log);
-    let totalProcessed = 0;
-    let totalInserted = 0;
-    let totalSkipped = 0;
-    let pages = 0;
+  return withCronAuth(
+    req,
+    async () => {
+      let publishedAfter = await highWaterMarkIso(log);
+      let totalProcessed = 0;
+      let totalInserted = 0;
+      let totalSkipped = 0;
+      let pages = 0;
 
-    try {
-      while (pages < MAX_PAGES) {
-        const articles = await fetchNews({ publishedAfter, limit: PAGE_LIMIT });
-        if (articles.length === 0) break;
+      try {
+        while (pages < MAX_PAGES) {
+          const articles = await fetchNews({ publishedAfter, limit: PAGE_LIMIT });
+          if (articles.length === 0) break;
 
-        const { inserted, skipped } = await upsertArticles(articles);
-        totalProcessed += articles.length;
-        totalInserted += inserted;
-        totalSkipped += skipped;
+          const { inserted, skipped } = await upsertArticles(articles);
+          totalProcessed += articles.length;
+          totalInserted += inserted;
+          totalSkipped += skipped;
 
-        // Bump the floor to the freshest article we just stored. The
-        // articles array isn't guaranteed sort-order from the upstream,
-        // so take max manually.
-        const freshestMs = articles.reduce((acc, a) => Math.max(acc, a.publishedAt), 0);
-        if (freshestMs <= 0) break;
-        const next = new Date(freshestMs + 1).toISOString();
-        if (next === publishedAfter) break; // no progress; bail
-        publishedAfter = next;
-        pages += 1;
+          // Bump the floor to the freshest article we just stored. The
+          // articles array isn't guaranteed sort-order from the upstream,
+          // so take max manually.
+          const freshestMs = articles.reduce((acc, a) => Math.max(acc, a.publishedAt), 0);
+          if (freshestMs <= 0) break;
+          const next = new Date(freshestMs + 1).toISOString();
+          if (next === publishedAfter) break; // no progress; bail
+          publishedAfter = next;
+          pages += 1;
+        }
+
+        return {
+          processed: totalProcessed,
+          note: `pages=${pages} inserted=${totalInserted} skipped=${totalSkipped} since=${publishedAfter}`,
+        };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        log.errorContext(err, 'fetchNews', { message });
+        throw new Error(`news fetch failed: ${message}`, { cause: err });
       }
-
-      return {
-        processed: totalProcessed,
-        note: `pages=${pages} inserted=${totalInserted} skipped=${totalSkipped} since=${publishedAfter}`,
-      };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      log.errorContext(err, 'fetchNews', { message });
-      throw new Error(`news fetch failed: ${message}`, { cause: err });
-    }
-  });
+    },
+    // Audit 2026-10-31 (R4): the News page's Refresh button calls this route
+    // from a normal user session, so it opts into any-session access and
+    // carries its own per-user limit to protect the shared provider quota.
+    { session: 'any', sessionRateLimit: { group: 'cron_news_refresh', perMinute: 4 } },
+  );
 }
 
 /**
