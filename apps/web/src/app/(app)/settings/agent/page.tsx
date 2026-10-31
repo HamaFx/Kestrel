@@ -28,7 +28,7 @@
 // up the page.
 
 import { buildToolCatalogue, BYOK_PROVIDERS_LIST } from '@kestrel/ai';
-import { getInstalledPluginIdsForUser, getUserWithSettings } from '@kestrel/db';
+import { getInstalledPluginIdsForUser, getUserWithSettings, withUserTenant } from '@kestrel/db';
 import { pluginHost } from '@kestrel/plugin-sdk';
 import { ensureBundledPluginsRegistered } from '@kestrel/plugins';
 import { TOOL_NAMES } from '@kestrel/shared';
@@ -62,19 +62,28 @@ export const metadata: Metadata = {
 export default async function AgentCataloguePage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/login');
+  const userId = session.user.id;
   const isAdmin = await checkIsAdmin();
 
-  const { settings } = await getUserWithSettings(session.user.id);
+  // Audit 2026-10-31 (R1): this RSC starts outside the API boundary, so the
+  // user_settings and user_installed_plugins reads below must run in the
+  // user's tenant scope — unscoped they return no rows under the non-bypass
+  // application role.
+  const { settings, installedPluginIds } = await withUserTenant(userId, async () => {
+    const { settings } = await getUserWithSettings(userId);
 
-  // Installed plugin tools join the disabled-tools list so users can switch
-  // them off exactly like core tools (P2-2). A plugin-table outage degrades
-  // to the core tool list only.
-  let installedPluginIds: string[] = [];
-  try {
-    installedPluginIds = await getInstalledPluginIdsForUser(session.user.id, { enabledOnly: true });
-  } catch (err) {
-    console.error('[AgentSettingsPage] installed plugin lookup failed:', err);
-  }
+    // Installed plugin tools join the disabled-tools list so users can switch
+    // them off exactly like core tools (P2-2). A plugin-table outage degrades
+    // to the core tool list only.
+    let installedPluginIds: string[] = [];
+    try {
+      installedPluginIds = await getInstalledPluginIdsForUser(userId, { enabledOnly: true });
+    } catch (err) {
+      console.error('[AgentSettingsPage] installed plugin lookup failed:', err);
+    }
+
+    return { settings, installedPluginIds };
+  });
   const pluginToolNames = pluginHost
     .getInstalledPlugins(installedPluginIds)
     .flatMap((plugin) => plugin.tools.map((tool) => tool.name));

@@ -17,12 +17,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { BYOK_PROVIDERS_LIST, computeUsage, listTelemetry } from '@kestrel/ai';
-import {
-  getUserWithSettings,
-  listMtdAgentOpinions,
-  requireTenantIdForUser,
-  withTenantDbRO,
-} from '@kestrel/db';
+import { getUserWithSettings, listMtdAgentOpinions, withUserTenant } from '@kestrel/db';
 import { IconChartBar } from '@tabler/icons-react';
 import type { Metadata } from 'next';
 import { Link } from 'next-view-transitions';
@@ -48,19 +43,24 @@ export default async function UsagePage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/login');
 
+  const userId = session.user.id;
   const startOfMonth = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
 
-  const tenantId = await requireTenantIdForUser(session.user.id);
-  const [[stats, recent, agentOpinionRows], { settings }] = await Promise.all([
-    withTenantDbRO(tenantId, () =>
+  // Audit 2026-10-31 (R1): this RSC starts outside the API boundary, so every
+  // tenant read below — chat_telemetry, daily_ai_spend, agent_opinions, and
+  // the user's own user_settings — must run in the user's tenant scope. A
+  // single `withUserTenant` now covers the settings read too; before, the
+  // read-only tenant wrapper only covered the usage aggregates.
+  const [[stats, recent, agentOpinionRows], { settings }] = await withUserTenant(userId, () =>
+    Promise.all([
       Promise.all([
-        computeUsage(session.user.id),
-        listTelemetry(session.user.id, 20),
-        listMtdAgentOpinions(session.user.id, startOfMonth),
+        computeUsage(userId),
+        listTelemetry(userId, 20),
+        listMtdAgentOpinions(userId, startOfMonth),
       ]),
-    ),
-    getUserWithSettings(session.user.id),
-  ]);
+      getUserWithSettings(userId),
+    ]),
+  );
 
   // Budget guardrails are personal (never inherited from the platform admin),
   // so the form is pre-populated from the user's own settings row.

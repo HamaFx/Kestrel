@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { getUserWithSettings, listUserSymbols } from '@kestrel/db';
+import { getUserWithSettings, listUserSymbols, withUserTenant } from '@kestrel/db';
 import { DEFAULT_WATCHLIST_SYMBOLS } from '@kestrel/shared';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
@@ -39,10 +39,17 @@ export default async function AppearancePage() {
 
   const userId = session.user.id;
 
-  const [{ settings }, symbolRows] = await Promise.all([
-    getUserWithSettings(userId),
-    listUserSymbols(userId),
-  ]);
+  // Audit 2026-10-31 (R1): this RSC starts outside the API boundary, so the
+  // user_settings and user_symbols reads must run in a tenant scope — unscoped
+  // they return no rows under the non-bypass application role.
+  const { settings, symbolRows } = await withUserTenant(userId, async () => {
+    const [{ settings }, symbolRows] = await Promise.all([
+      getUserWithSettings(userId),
+      listUserSymbols(userId),
+    ]);
+
+    return { settings, symbolRows };
+  });
 
   const watchlist: string[] =
     symbolRows.length > 0 ? symbolRows.map((item) => item.symbol) : [...DEFAULT_WATCHLIST_SYMBOLS];

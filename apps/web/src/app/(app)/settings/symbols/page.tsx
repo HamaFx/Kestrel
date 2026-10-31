@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { getDb, getWatchlistWithCatalog, schema } from '@kestrel/db';
+import { getDb, getWatchlistWithCatalog, schema, withUserTenant } from '@kestrel/db';
 import { and, eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 
@@ -28,9 +28,11 @@ export default async function SymbolsSettingsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/login');
 
+  const userId = session.user.id;
   const db = getDb();
 
-  // Fetch the active symbol catalog for the search/combobox options
+  // Fetch the active symbol catalog for the search/combobox options. The
+  // catalog is a global table with no RLS policy, so this read stays unscoped.
   const catalog = await db
     .select()
     .from(schema.symbolCatalog)
@@ -39,8 +41,11 @@ export default async function SymbolsSettingsPage() {
     )
     .orderBy(schema.symbolCatalog.sortOrder);
 
-  // Fetch the user's watchlist with catalog metadata
-  const rawSymbols = await getWatchlistWithCatalog(session.user.id);
+  // Fetch the user's watchlist with catalog metadata. Audit 2026-10-31 (R1):
+  // this RSC starts outside the API boundary, so the `user_symbols` read must
+  // run in a tenant scope — unscoped it returns no rows under the non-bypass
+  // application role and the watchlist renders empty.
+  const rawSymbols = await withUserTenant(userId, () => getWatchlistWithCatalog(userId));
   // Map to the component's expected shape — WatchlistEntry has nullable fields
   const symbols = rawSymbols.map((s) => ({
     ...s,

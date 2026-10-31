@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { getUserWithSettings } from '@kestrel/db';
+import { getUserWithSettings, withUserTenant } from '@kestrel/db';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
@@ -63,9 +63,18 @@ export default async function ModelsSettingsPage() {
     redirect('/login');
   }
 
-  const { settings: userRow } = await getUserWithSettings(session.user.id);
+  const userId = session.user.id;
 
-  const catalog = await buildCatalogForUser(session.user.id);
+  // Audit 2026-10-31 (R1): this RSC starts outside the API boundary, so the
+  // user_settings and provider-health reads below must run in a tenant scope —
+  // unscoped they return no rows under the non-bypass application role.
+  const { userRow, catalog } = await withUserTenant(userId, async () => {
+    const { settings: userRow } = await getUserWithSettings(userId);
+
+    const catalog = await buildCatalogForUser(userId);
+
+    return { userRow, catalog };
+  });
 
   // The pickers only render for providers the user has a key for.
   // Showing "pick a Google model" when the user has no Google key

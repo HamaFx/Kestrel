@@ -21,6 +21,7 @@ import {
   getUserWithSettings,
   requireTenantIdForUser,
   withTenantDb,
+  withUserTenant,
 } from '@kestrel/db';
 import { redirect } from 'next/navigation';
 import { cache, Suspense } from 'react';
@@ -89,8 +90,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     userEmail = session.user.email ?? undefined;
     let onboardingCompleted = true;
     try {
+      // Audit 2026-10-31 (R1): the layout renders outside the API boundary, so
+      // the `user_settings` read behind `getOnboardingStatus` needs its own
+      // tenant scope. `getInstalledPlugins` already opens one, and
+      // `checkIsAdmin` reads only the non-RLS `user` table.
       const [onboarding, admin, plugins] = await Promise.all([
-        getOnboardingStatus(session.user.id),
+        withUserTenant(session.user.id, () => getOnboardingStatus(session.user.id)),
         checkIsAdmin(),
         getInstalledPlugins(session.user.id),
       ]);

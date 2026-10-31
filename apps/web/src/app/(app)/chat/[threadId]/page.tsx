@@ -16,6 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
+import { withUserTenant } from '@kestrel/db';
 import type { UIMessage } from 'ai';
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
@@ -63,7 +64,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return { title: 'Chat' };
-  const thread = await getThread(userId, threadId);
+  // Audit 2026-10-31 (R1): `getThread` reads the RLS-protected `chat_threads`
+  // table; metadata generation starts outside the API boundary.
+  const thread = await withUserTenant(userId, () => getThread(userId, threadId));
   return { title: thread?.title ?? 'Chat' };
 }
 
@@ -74,12 +77,20 @@ export default async function ChatThreadPage({ params, searchParams }: PageProps
 
   const { threadId } = await params;
 
-  const [thread, dbMessages, { threads: allThreads }, { settings }] = await Promise.all([
-    getThread(userId, threadId),
-    listMessages(userId, threadId, 200),
-    listThreads(userId, 50),
-    getUserWithSettings(userId),
-  ]);
+  // Audit 2026-10-31 (R1): this server component starts outside the API
+  // boundary, and every read below touches an RLS-protected table
+  // (`chat_threads`, `chat_messages`, `user_settings`). One tenant scope
+  // covers the batch; the helpers inherit it.
+  const [thread, dbMessages, { threads: allThreads }, { settings }] = await withUserTenant(
+    userId,
+    () =>
+      Promise.all([
+        getThread(userId, threadId),
+        listMessages(userId, threadId, 200),
+        listThreads(userId, 50),
+        getUserWithSettings(userId),
+      ]),
+  );
   const customInstructions = settings?.customInstructions;
   if (!thread) notFound();
 
@@ -97,8 +108,15 @@ export default async function ChatThreadPage({ params, searchParams }: PageProps
     modeOverride ?? thread.analysisMode ?? settings?.defaultAnalysisMode ?? 'single',
   );
 
-  const deskConfig = desk && desk in STRATEGIST_DESKS ? STRATEGIST_DESKS[desk as StrategistDeskId] : null;
-  const promptToSubmit = prompt ?? (mode === 'council' && dbMessages.length === 0 ? STRATEGIST_DESKS.arbiter.defaultPrompt : deskConfig && dbMessages.length === 0 ? deskConfig.defaultPrompt : null);
+  const deskConfig =
+    desk && desk in STRATEGIST_DESKS ? STRATEGIST_DESKS[desk as StrategistDeskId] : null;
+  const promptToSubmit =
+    prompt ??
+    (mode === 'council' && dbMessages.length === 0
+      ? STRATEGIST_DESKS.arbiter.defaultPrompt
+      : deskConfig && dbMessages.length === 0
+        ? deskConfig.defaultPrompt
+        : null);
 
   const initialMessages = dbMessages
     .map((m) => {

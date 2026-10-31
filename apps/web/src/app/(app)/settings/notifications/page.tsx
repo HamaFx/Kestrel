@@ -17,7 +17,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { listPushSubscriptions } from '@kestrel/ai';
-import { getUserWithSettings } from '@kestrel/db';
+import { getUserWithSettings, withUserTenant } from '@kestrel/db';
 import type { NoiseConfig } from '@kestrel/shared';
 import { IconBell, IconMail, IconMessageCircle } from '@tabler/icons-react';
 import type { Metadata } from 'next';
@@ -47,7 +47,22 @@ export default async function NotificationsPage() {
 
   const userId = session.user.id;
 
-  const { settings } = await getUserWithSettings(userId);
+  // Audit 2026-10-31 (R1): this RSC starts outside the API boundary, so the
+  // user_settings and push_subscriptions reads must run in the user's tenant
+  // scope — unscoped they return no rows under the non-bypass application role.
+  const { settings, pushDevices } = await withUserTenant(userId, async () => {
+    const { settings } = await getUserWithSettings(userId);
+
+    let pushDevices = 0;
+    try {
+      const subs = await listPushSubscriptions(userId);
+      pushDevices = subs.length;
+    } catch {
+      // silently skip
+    }
+
+    return { settings, pushDevices };
+  });
 
   const notificationPrefs = settings?.notificationPreferences as Record<
     string,
@@ -65,14 +80,6 @@ export default async function NotificationsPage() {
   // (personal bot token + linked chat). The platform bot token only gates
   // whether the channel is available at all.
   const telegramReady = Boolean(env.TELEGRAM_BOT_TOKEN);
-
-  let pushDevices = 0;
-  try {
-    const subs = await listPushSubscriptions(userId);
-    pushDevices = subs.length;
-  } catch {
-    // silently skip
-  }
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">

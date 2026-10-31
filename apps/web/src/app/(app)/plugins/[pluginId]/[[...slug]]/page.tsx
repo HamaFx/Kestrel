@@ -21,7 +21,7 @@
 // Installed plugins can register pages in their `definePluginUi()` definition.
 // The core owns auth + install gating; the plugin owns the page body.
 
-import { getInstalledPlugin, requireTenantIdForUser, withTenantDb } from '@kestrel/db';
+import { getInstalledPlugin, withUserTenant } from '@kestrel/db';
 import { pluginHost } from '@kestrel/plugin-sdk';
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
@@ -55,10 +55,12 @@ export default async function PluginPage({ params }: PluginPageRouteProps) {
 
   let installed = false;
   try {
-    const tenantId = await requireTenantIdForUser(session.user.id);
-    const row = await withTenantDb(tenantId, () => getInstalledPlugin(session.user.id, pluginId), {
-      userId: session.user.id,
-    });
+    // Audit 2026-10-31 (R1): `getInstalledPlugin` reads the RLS-protected
+    // `user_installed_plugins` table; this page starts outside the API
+    // boundary, so the read runs in an explicit tenant scope.
+    const row = await withUserTenant(session.user.id, () =>
+      getInstalledPlugin(session.user.id, pluginId),
+    );
     installed = row !== undefined && row.enabled;
   } catch {
     // Fail closed on the page: the Store still shows the plugin as available.
