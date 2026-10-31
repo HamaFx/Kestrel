@@ -1,6 +1,15 @@
 # Phase 4: AI Agent Orchestration, Routing & Plugin Tool Ergonomics Implementation Plan
 
-> **Status: ⏳ NOT STARTED.** Phases 1–2 are complete. This plan depends on Phase 3 for the `paper_control_strategy_run` / `paper_list_fills` tools; all checkboxes below are open.
+> **Status: ✅ COMPLETE — implemented, verified and committed 2026-10-31.**
+>
+> | Task                                                                                         | Commit     | Verification                                                                    |
+> | :------------------------------------------------------------------------------------------- | :--------- | :------------------------------------------------------------------------------ |
+> | 1. Plugin-aware system prompt + `canonical-chat` `maxSteps: 10`                              | `2c410e78` | `@kestrel/ai` full suite (1,639 ✔ / 24 skipped)                                 |
+> | 2. Intent detection & route overrides (`full` mode, comparisons, Jev false positives)        | `eb1d7f9f` | `@kestrel/ai` router/decision suites ✔                                          |
+> | 3. Backtesting sweep lookup + run comparison tools; execution tools only on `canonical-chat` | `b563816f` | `@kestrel/plugin-backtesting` (46 ✔)                                            |
+> | 4. `paper_control_strategy_run`, `paper_list_fills`, server-side `strategyId` resolution     | `c9f97040` | `@kestrel/plugin-paper-trading` (44 ✔), typecheck + lint + maintainability PASS |
+>
+> Downstream regression after completion: full `@kestrel/ai` (1,639 ✔ / 24 skipped), `apps/worker` (168 ✔), `node scripts/check-maintainability.mjs` (0 violations), `node scripts/check-architecture-tree.mjs` PASS.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -44,7 +53,7 @@
   - `systemInstructions(routing, customInstructions, responseStyle, citeSources, installedPluginIds?: readonly string[]): string` in `packages/ai/src/mastra-v2/agents/canonical/prompts.ts`
   - `MASTRA_CAPABILITIES['canonical-chat'].maxSteps` in `packages/ai/src/mastra-v2/capabilities/catalog.ts`: raised from `6` to `10`.
 
-- [ ] **Step 1: Write the failing test in `packages/ai/test/mastra-run.test.ts` (or a dedicated prompt test)**
+- [x] **Step 1: Write the failing test in `packages/ai/test/mastra-run.test.ts` (or a dedicated prompt test)**
 
 ```ts
 it('instructs the canonical agent how to use installed backtesting and paper-trading plugin tools', () => {
@@ -61,12 +70,12 @@ it('instructs the canonical agent how to use installed backtesting and paper-tra
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/ai test -- test/mastra-run.test.ts`
 Expected: FAIL (`text` contains `'Mutation tools are deliberately not exposed in this agent'`).
 
-- [ ] **Step 3: Update `systemInstructions` in `prompts.ts`, pass `pluginRuntime.installedPluginIds` in `setup.ts`, and set `maxSteps: 10` in `catalog.ts`**
+- [x] **Step 3: Update `systemInstructions` in `prompts.ts`, pass `pluginRuntime.installedPluginIds` in `setup.ts`, and set `maxSteps: 10` in `catalog.ts`**
 
 In `packages/ai/src/mastra-v2/agents/canonical/prompts.ts`, add `installedPluginIds: readonly string[] = []` as the 5th parameter of `systemInstructions`.
 
@@ -76,12 +85,12 @@ In `packages/ai/src/mastra-v2/agents/canonical/prompts.ts`, add `installedPlugin
   In `packages/ai/src/mastra-v2/agents/canonical/setup.ts`, pass `pluginRuntime.installedPluginIds` into `systemInstructions(...)`.
   In `packages/ai/src/mastra-v2/capabilities/catalog.ts`, update `MASTRA_CAPABILITIES['canonical-chat'].maxSteps` to `10`.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pnpm --filter @kestrel/ai test -- test/mastra-run.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/ai/src/mastra-v2/agents/canonical/prompts.ts packages/ai/src/mastra-v2/agents/canonical/setup.ts packages/ai/src/mastra-v2/capabilities/catalog.ts packages/ai/test/mastra-run.test.ts
@@ -108,7 +117,7 @@ git commit -m "fix(ai): make canonical system prompt plugin-aware and raise maxS
   - `pluginRouteOverride` in `packages/ai/src/mastra-v2/planning/execution-decision.ts`: removes the `input.mode === 'single'` and `!comparisonActive` restrictions when `pluginIntent !== null` so explicit plugin commands always route to `'canonical-chat'`.
   - `routeUnified` in `packages/ai/src/mastra-v2/planning/router.ts`: when `pluginIntent !== null`, suppresses `jevDecision?.injectionBlocked` false positives (while still enforcing the deterministic `isInjectionAttempt(promptText)` lexical guard) and suppresses `mutationKind = 'log_journal'` hijacks for `'paper-trading'` intents.
 
-- [ ] **Step 1: Write the failing tests in `packages/ai/test/plugins-intent.test.ts` and `packages/ai/test/execution-decision-plugins.test.ts`**
+- [x] **Step 1: Write the failing tests in `packages/ai/test/plugins-intent.test.ts` and `packages/ai/test/execution-decision-plugins.test.ts`**
 
 ```ts
 // In packages/ai/test/plugins-intent.test.ts:
@@ -149,12 +158,12 @@ it('routes backtest and paper-trading commands to canonical-chat even in full mo
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `pnpm --filter @kestrel/ai test -- test/plugins-intent.test.ts test/execution-decision-plugins.test.ts`
 Expected: FAIL on both test files.
 
-- [ ] **Step 3: Update `intent.ts`, `execution-decision.ts`, and `router.ts`**
+- [x] **Step 3: Update `intent.ts`, `execution-decision.ts`, and `router.ts`**
 
 1. Expand `BACKTEST_INTENT_RE` and `PAPER_TRADE_ACTION_RE` in `packages/ai/src/plugins/intent.ts`.
 2. In `packages/ai/src/mastra-v2/planning/execution-decision.ts`:
@@ -177,12 +186,12 @@ Expected: FAIL on both test files.
        : rawMutationKind;
    ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pnpm --filter @kestrel/ai test -- test/plugins-intent.test.ts test/execution-decision-plugins.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/ai/src/plugins/intent.ts packages/ai/src/mastra-v2/planning/execution-decision.ts packages/ai/src/mastra-v2/planning/execution-routes.ts packages/ai/src/mastra-v2/planning/router.ts packages/ai/test/plugins-intent.test.ts packages/ai/test/execution-decision-plugins.test.ts
@@ -208,7 +217,7 @@ git commit -m "fix(ai): route plugin intents to canonical-chat across full mode 
   - `backtest_compare_runs`: compares 2–4 saved backtest `runId`s side-by-side (`metrics`, `params`, `symbol`, `timeframe`, delta in `expectancyR`, `profitFactor`, `maxDrawdownPct`, `netPnl`).
   - `backtest_run_strategy` and `backtest_sweep_strategy`: set `attachTo: ['canonical-chat']` so committee specialist desks (`technical`, `risk`) only receive read-only lookup tools (`backtest_list_runs`, `backtest_get_run`, `backtest_list_strategies`, `backtest_read_strategy`, `backtest_list_sweeps`, `backtest_get_sweep`) and cannot trigger heavy sandbox runs or DB writes during a committee pass.
 
-- [ ] **Step 1: Write the failing test in `plugins/backtesting/test/plugin.test.ts`**
+- [x] **Step 1: Write the failing test in `plugins/backtesting/test/plugin.test.ts`**
 
 ```ts
 it('exposes sweep inspection and run comparison tools and keeps execution tools on canonical-chat only', () => {
@@ -224,12 +233,12 @@ it('exposes sweep inspection and run comparison tools and keeps execution tools 
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/plugin-backtesting test -- test/plugin.test.ts`
 Expected: FAIL (`backtest_list_sweeps` missing; `backtest_run_strategy` attached to `technical`).
 
-- [ ] **Step 3: Implement `backtest_list_sweeps`, `backtest_get_sweep`, `backtest_compare_runs`, and update `attachTo`**
+- [x] **Step 3: Implement `backtest_list_sweeps`, `backtest_get_sweep`, `backtest_compare_runs`, and update `attachTo`**
 
 1. In `plugins/backtesting/src/tools/runs.ts`:
    - Change `runTool.attachTo` to `['canonical-chat']`.
@@ -238,12 +247,12 @@ Expected: FAIL (`backtest_list_sweeps` missing; `backtest_run_strategy` attached
    - Change `sweepTool.attachTo` to `['canonical-chat']`.
    - Add `listSweepsTool` (`name: 'backtest_list_sweeps'`, `attachTo: ['canonical-chat', 'technical', 'risk']`) and `getSweepTool` (`name: 'backtest_get_sweep'`, `attachTo: ['canonical-chat', 'technical', 'risk']`).
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pnpm --filter @kestrel/plugin-backtesting test -- test/plugin.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add plugins/backtesting/src/tools/runs.ts plugins/backtesting/src/tools/sweeps.ts plugins/backtesting/src/schemas/sweep.ts plugins/backtesting/test/plugin.test.ts
@@ -271,7 +280,7 @@ git commit -m "feat(backtesting): add sweep lookup and run comparison tools and 
   - `paper_control_strategy_run`: pauses, resumes, stops, or deletes a deployed paper strategy (`action: 'pause' | 'resume' | 'stop' | 'delete'`). `pause` and `stop` are risk-reducing (`requiresConfirmation: false`); `resume` and `delete` require confirmation.
   - `paper_list_fills`: lists recent execution fills (`open`, `close`, `partial_close`, `stop_loss`, `take_profit`, `trailing_stop`) with realized P&L and fees.
 
-- [ ] **Step 1: Write the failing test in `plugins/paper-trading/test/plugin.test.ts`**
+- [x] **Step 1: Write the failing test in `plugins/paper-trading/test/plugin.test.ts`**
 
 ```ts
 it('registers paper_control_strategy_run and paper_list_fills and allows pause/stop without confirmation', async () => {
@@ -296,12 +305,12 @@ it('registers paper_control_strategy_run and paper_list_fills and allows pause/s
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/plugin-paper-trading test -- test/plugin.test.ts`
 Expected: FAIL (`paper_control_strategy_run` and `paper_list_fills` missing).
 
-- [ ] **Step 3: Implement `paper_control_strategy_run`, `paper_list_fills`, and server-side `strategyId` resolution in `deployStrategyRunForUser`**
+- [x] **Step 3: Implement `paper_control_strategy_run`, `paper_list_fills`, and server-side `strategyId` resolution in `deployStrategyRunForUser`**
 
 1. In `plugins/paper-trading/src/schemas/strategy-runs.ts`:
    - Allow `DeployStrategyRunInputSchema` to accept either `source` (`min(20)`) OR `strategyId` (`min(1)`), with `.refine((v) => Boolean(v.source) || Boolean(v.strategyId))`.
@@ -313,12 +322,12 @@ Expected: FAIL (`paper_control_strategy_run` and `paper_list_fills` missing).
 4. In `plugins/paper-trading/src/tools/orders.ts` (or `accounts.ts`) and `tools/index.ts`:
    - Export `listFillsTool` (`name: 'paper_list_fills'`, `access: 'read-only'`, `attachTo: ['canonical-chat', 'technical', 'risk']`).
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pnpm --filter @kestrel/plugin-paper-trading test -- test/plugin.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Run full repo maintainability & typecheck verification and commit**
+- [x] **Step 5: Run full repo maintainability & typecheck verification and commit**
 
 Run: `node scripts/check-maintainability.mjs && node scripts/check-architecture-tree.mjs && pnpm turbo run typecheck --filter=@kestrel/shared --filter=@kestrel/data --filter=@kestrel/indicators --filter=@kestrel/plugin-backtesting --filter=@kestrel/plugin-paper-trading --filter=@kestrel/ai`
 Expected: PASS with 0 violations and 0 type errors.

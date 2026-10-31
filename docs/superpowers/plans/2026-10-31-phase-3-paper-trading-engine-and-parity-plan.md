@@ -1,6 +1,14 @@
 # Phase 3: Paper Trading Atomic Execution, Market-State Guards & Backtest Parity Implementation Plan
 
-> **Status: ⏳ NOT STARTED.** Phase 1 (`c910eff8`…`f3969965`) and Phase 2 (`ba25e790`…`1e68975c`) are complete; this plan is next in the queue and all checkboxes below are open.
+> **Status: ✅ COMPLETE — implemented, verified and committed 2026-10-31.**
+>
+> | Task                                                                                                                 | Commit     | Verification                                                                    |
+> | :------------------------------------------------------------------------------------------------------------------- | :--------- | :------------------------------------------------------------------------------ |
+> | 1. `rMultiple` via `initialRiskAmount`, no TP slippage                                                               | `b87cf257` | `@kestrel/plugin-paper-trading` (30 ✔)                                          |
+> | 2. Atomic balance/status claims + closed/stale market guards                                                         | `e39388e5` | `@kestrel/plugin-paper-trading` (31 ✔)                                          |
+> | 3. Full backtest-to-paper signal parity (`entry`, `validBars`, `maxBars`, `breakEvenAtR`, `trailing`, `flip`/`exit`) | `d361a99d` | `@kestrel/plugin-paper-trading` (38 ✔), lint + typecheck + maintainability PASS |
+>
+> Downstream regression after completion: `node scripts/check-maintainability.mjs` (0 violations), `node scripts/check-architecture-tree.mjs` PASS, prettier clean.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -46,7 +54,7 @@
   - `evaluatePosition(position: PaperPositionState, quotes: Quotes): PositionEvaluation`: computes `gross = (markPrice - entry) * direction * position.quantity * contractSizeFor(position.symbol)` and computes `rMultiple` using `position.initialRiskAmount > 0 ? round(gross / position.initialRiskAmount, 4) : (initialStopDistance > 0 ? round(((markPrice - entry) * direction) / initialStopDistance, 4) : 0)`.
   - `processQuotesForUser`: applies `exitWithSlippage` only when `evaluation.close.reason !== 'take_profit'`.
 
-- [ ] **Step 1: Write the failing tests in `plugins/paper-trading/test/domain.test.ts`**
+- [x] **Step 1: Write the failing tests in `plugins/paper-trading/test/domain.test.ts`**
 
 ```ts
 it('preserves rMultiple using initialRiskAmount after stopLoss is moved to breakeven', () => {
@@ -60,12 +68,12 @@ it('preserves rMultiple using initialRiskAmount after stopLoss is moved to break
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/plugin-paper-trading test -- test/domain.test.ts`
 Expected: FAIL (`expect(evaluation.rMultiple).toBeCloseTo(1.51, 2)` received `0`).
 
-- [ ] **Step 3: Implement `initialRiskAmount`-based `rMultiple` in `domain/evaluation.ts` and skip slippage on `take_profit` in `services/fill-engine.ts`**
+- [x] **Step 3: Implement `initialRiskAmount`-based `rMultiple` in `domain/evaluation.ts` and skip slippage on `take_profit` in `services/fill-engine.ts`**
 
 In `plugins/paper-trading/src/domain/evaluation.ts`:
 
@@ -91,12 +99,12 @@ const exitPrice =
     : exitWithSlippage(position, evaluation.close.price, args.settings);
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pnpm --filter @kestrel/plugin-paper-trading test -- test/domain.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add plugins/paper-trading/src/domain/types.ts plugins/paper-trading/src/domain/evaluation.ts plugins/paper-trading/src/services/fill-engine.ts plugins/paper-trading/test/domain.test.ts
@@ -126,7 +134,7 @@ git commit -m "fix(paper-trading): preserve rMultiple after breakeven stop move 
   - `updateOpenPosition(userId: string, positionId: string, patch: PositionPatch): Promise<PaperPositionRow | undefined>` in `db/queries/positions.ts` with `and(eq(paperPositions.userId, userId), eq(paperPositions.id, positionId), eq(paperPositions.status, 'open'))`.
   - `isTickTradable(tick: MarketTick): { ok: true } | { ok: false; reason: string }` in `services/pricing.ts`: returns `{ ok: false }` when `tick.marketState === 'closed' || tick.stale === true || (typeof tick.quoteAgeSeconds === 'number' && tick.quoteAgeSeconds > 300)`.
 
-- [ ] **Step 1: Write the failing test in `plugins/paper-trading/test/domain.test.ts` (or `plugin.test.ts`)**
+- [x] **Step 1: Write the failing test in `plugins/paper-trading/test/domain.test.ts` (or `plugin.test.ts`)**
 
 ```ts
 it('rejects market execution on closed or stale ticks while allowing resting orders', () => {
@@ -147,12 +155,12 @@ it('rejects market execution on closed or stale ticks while allowing resting ord
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/plugin-paper-trading test`
 Expected: FAIL (`isTickTradable is not a function`).
 
-- [ ] **Step 3: Implement atomic DB queries and `isTickTradable` guards**
+- [x] **Step 3: Implement atomic DB queries and `isTickTradable` guards**
 
 1. In `plugins/paper-trading/src/db/queries/accounts.ts`, add `incrementAccountBalance` using `sql\`${paperAccounts.balance} + ${delta}\``.
 2. In `plugins/paper-trading/src/db/queries/positions.ts`, add `updateOpenPosition` filtering by `eq(paperPositions.status, 'open')`.
@@ -161,12 +169,12 @@ Expected: FAIL (`isTickTradable is not a function`).
 5. In `plugins/paper-trading/src/services/fill-engine.ts` (`fillOrder` and `processQuotesForUser`), skip quotes where `!isTickTradable(tick).ok`, and claim the pending order with `claimPendingOrder` before calling `createPosition`.
 6. In `plugins/paper-trading/src/services/trading.ts` (`placeOrderForUser`), if `args.input.type === 'market'` and `!isTickTradable(tick).ok`, throw `new Error(tradable.reason)`.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pnpm --filter @kestrel/plugin-paper-trading test`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add plugins/paper-trading/src/db/queries/accounts.ts plugins/paper-trading/src/db/queries/orders.ts plugins/paper-trading/src/db/queries/positions.ts plugins/paper-trading/src/services/pricing.ts plugins/paper-trading/src/services/position-lifecycle.ts plugins/paper-trading/src/services/fill-engine.ts plugins/paper-trading/src/services/trading.ts plugins/paper-trading/test/domain.test.ts
@@ -194,7 +202,7 @@ git commit -m "fix(paper-trading): enforce atomic balance/status updates and blo
     3. **Limit entry (`signal.entry`) & `validBars` expiry**: When `typeof signal.entry === 'number'`, places `type: 'limit'`, `price: signal.entry`, and sets order expiry after `signal.validBars ?? 5` bars (cancelling any stale pending strategy order first).
     4. **Opposite-signal parity**: Only closes an opposing open position on signal if `signal.flip === true` (matching the backtester's rule that an open position blocks new signals unless `flip: true`, and when `flip: true` it closes the old position AND opens the new position).
 
-- [ ] **Step 1: Write the failing parity tests in `plugins/paper-trading/test/strategy-runner.test.ts`**
+- [x] **Step 1: Write the failing parity tests in `plugins/paper-trading/test/strategy-runner.test.ts`**
 
 ```ts
 it('translates limit entry, ATR trailing stop, and breakEvenAtR from getSignal into the paper order', async () => {
@@ -226,12 +234,12 @@ it('translates limit entry, ATR trailing stop, and breakEvenAtR from getSignal i
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/plugin-paper-trading test -- test/strategy-runner.test.ts`
 Expected: FAIL (`result.latestAtr` is `undefined`).
 
-- [ ] **Step 3: Implement full signal translation in `plugins/paper-trading/src/strategy-runner.ts`**
+- [x] **Step 3: Implement full signal translation in `plugins/paper-trading/src/strategy-runner.ts`**
 
 1. In `evaluateLatestStrategySignal`: compute `const latestAtr = matrix.series.atr14[lastIndex] ?? null;` and `const latestClose = closed[lastIndex]!.c;` and return both on `LatestStrategySignal`.
 2. Add helper `resolveTrailingDistance(signal: StrategySignal, latestAtr: number | null, latestClose: number): number | undefined`:
@@ -249,12 +257,12 @@ Expected: FAIL (`result.latestAtr` is `undefined`).
        - `...(trailingDistance ? { trailingStop: trailingDistance } : {})`
        - `...(evaluation.signal.breakEvenAtR !== undefined ? { breakEvenAtR: evaluation.signal.breakEvenAtR } : {})`
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pnpm --filter @kestrel/plugin-paper-trading test -- test/strategy-runner.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add plugins/paper-trading/src/strategy-runner.ts plugins/paper-trading/test/strategy-runner.test.ts
