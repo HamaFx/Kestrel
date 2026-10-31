@@ -148,7 +148,6 @@ The overlay starts ClickHouse, Redis, MinIO (S3), Langfuse, and its worker. The 
 | `TELEMETRY_RETENTION_DAYS`     | `90`    | Telemetry retention                   |
 | `TRACE_RETENTION_DAYS`         | `30`    | Diagnostic trace retention            |
 | `CRON_RUN_RETENTION_DAYS`      | `30`    | Cron history retention                |
-| `AI_EVALUATION_RETENTION_DAYS` | `90`    | AI evaluation retention               |
 | `CREDIT_LEDGER_RETENTION_DAYS` | `730`   | Billing ledger/audit retention        |
 
 Review privacy, retention, and provider terms before enabling telemetry or prompt/output capture.

@@ -27,7 +27,6 @@ const DEFAULT_RETENTION: Required<RetentionConfig> = {
   cronRunRetentionDays: 30,
   outboxRetentionDays: 30,
   analysisJobRetentionDays: 7,
-  aiEvaluationRetentionDays: 90,
   budgetReservationRetentionDays: 90,
   observationalMemoryRetentionDays: 90,
 };
@@ -47,8 +46,6 @@ export interface RetentionConfig {
   outboxRetentionDays?: number;
   /** Retention window in days for terminal Full-analysis queue rows. */
   analysisJobRetentionDays?: number;
-  /** Retention window in days for terminal AI evaluation artifacts. */
-  aiEvaluationRetentionDays?: number;
   /** Retention window in days for terminal budget reservation ledger rows. */
   budgetReservationRetentionDays?: number;
   /**
@@ -67,8 +64,6 @@ export interface RetentionResult {
   cronRunsDeleted: number;
   outboxDeleted: number;
   fullAnalysisQueueDeleted: number;
-  aiShadowComparisonsDeleted: number;
-  aiQualityResultsDeleted: number;
   budgetReservationsDeleted: number;
   sharedSnapshotsDeleted: number;
   notificationNoiseStateDeleted: number;
@@ -119,10 +114,6 @@ export function resolveRetention(config: RetentionConfig): Required<RetentionCon
       config.analysisJobRetentionDays,
       DEFAULT_RETENTION.analysisJobRetentionDays,
     ),
-    aiEvaluationRetentionDays: boundedDays(
-      config.aiEvaluationRetentionDays,
-      DEFAULT_RETENTION.aiEvaluationRetentionDays,
-    ),
     budgetReservationRetentionDays: boundedDays(
       config.budgetReservationRetentionDays,
       DEFAULT_RETENTION.budgetReservationRetentionDays,
@@ -166,10 +157,6 @@ export function getRetentionConfigFromEnv(): Required<RetentionConfig> {
     analysisJobRetentionDays: envDays(
       'ANALYSIS_JOB_RETENTION_DAYS',
       DEFAULT_RETENTION.analysisJobRetentionDays,
-    ),
-    aiEvaluationRetentionDays: envDays(
-      'AI_EVALUATION_RETENTION_DAYS',
-      DEFAULT_RETENTION.aiEvaluationRetentionDays,
     ),
     budgetReservationRetentionDays: envDays(
       'BUDGET_RESERVATION_RETENTION_DAYS',

@@ -116,10 +116,12 @@ describe('cron VM operational policy', () => {
     expect(sudoers).toContain('/usr/local/sbin/kestrel-sync-systemd-units');
   });
 
-  it('keeps AI evaluation retention defaults in the worker contract', () => {
+  it('drops retired retention knobs from the worker contract', () => {
     const workerEnv = read('apps/worker/src/env.ts');
     expect(workerEnv).not.toContain('BILLING_WEBHOOK_DLQ_RETENTION_DAYS');
-    expect(workerEnv).toContain('AI_EVALUATION_RETENTION_DAYS');
+    // Decision 1A — the AI-evaluation retention knob covered only the dropped
+    // shadow/quality tables, so it is retired with them.
+    expect(workerEnv).not.toContain('AI_EVALUATION_RETENTION_DAYS');
     // Zod 4 maps `.default()` on coerced schemas to `.prefault()` (the v3
     // semantics: default the raw input before coercion).
     expect(workerEnv).toContain('.prefault(90)');

@@ -1,9 +1,7 @@
 // Domain sub-barrel. Re-exported by ../index.ts for Drizzle Kit.
 export * from './agent-opinions';
 export * from './ai-feedback';
-export * from './ai-quality-results';
 export * from './ai-regression-cases';
-export * from './ai-shadow-comparisons';
 export * from './briefings';
 export * from './budget-reservations';
 export * from './daily-ai-spend';
