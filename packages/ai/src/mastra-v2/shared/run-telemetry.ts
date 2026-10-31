@@ -95,19 +95,66 @@ function canonicalTelemetryKind(
   return kind === 'mastra_xauusd_poc' || kind === undefined ? 'mastra_xauusd_research' : kind;
 }
 
+/**
+ * Phase 1 (observability roadmap) — attribute run metrics to the actual route
+ * instead of tagging every run `kestrel-xauusd-research-poc`. XAUUSD research
+ * (and the legacy `*_poc` alias / omitted kind) keeps the historical agent id
+ * so existing dashboards and telemetry tests keep resolving.
+ */
+export function agentLabelForTelemetryKind(
+  kind?: MastraRunObservation['telemetryKind'],
+): string {
+  switch (kind) {
+    case 'mastra_canonical_chat':
+      return 'kestrel-mastra-canonical-chat';
+    case 'mastra_mode':
+      return 'kestrel-committee-mode';
+    case 'mastra_full_job':
+      return 'kestrel-committee-full-job';
+    case 'mastra_worker_task':
+      return 'kestrel-worker-task';
+    case 'mastra_custom_agent':
+      return 'kestrel-custom-agent';
+    default:
+      return MASTRA_XAUUSD_AGENT_ID;
+  }
+}
+
+/** Diagnostic step name for a run type (start/finish must agree). */
+function stepNameForTelemetryKind(kind?: MastraRunObservation['telemetryKind']): string {
+  switch (kind) {
+    case 'mastra_canonical_chat':
+      return 'mastra_canonical_chat_run';
+    case 'mastra_mode':
+      return 'mastra_mode_run';
+    case 'mastra_full_job':
+      return 'mastra_full_job_run';
+    case 'mastra_custom_agent':
+      return 'mastra_custom_agent_run';
+    default:
+      return 'mastra_xauusd_run';
+  }
+}
+
 export function beginMastraRun(
-  args: Pick<MastraRunObservation, 'runId' | 'threadId' | 'model' | 'providerId'>,
+  args: Pick<MastraRunObservation, 'runId' | 'threadId' | 'model' | 'providerId'> & {
+    telemetryKind?: MastraRunObservation['telemetryKind'];
+  },
 ): void {
-  recordStep('mastra_xauusd_run', {
-    agent: MASTRA_XAUUSD_AGENT_ID,
+  const agentLabel = agentLabelForTelemetryKind(args.telemetryKind);
+  const stepName = stepNameForTelemetryKind(args.telemetryKind);
+  recordStep(stepName, {
+    agent: agentLabel,
     agentVersion: MASTRA_XAUUSD_AGENT_VERSION,
     runId: args.runId,
     model: args.model,
     providerId: args.providerId,
   });
-  mlog.info('Mastra XAUUSD run started', {
+  mlog.info('Mastra run started', {
     runId: args.runId,
     threadId: args.threadId,
+    agent: agentLabel,
+    telemetryKind: args.telemetryKind ?? 'mastra_xauusd_research',
     model: args.model,
     providerId: args.providerId,
   });
@@ -129,6 +176,8 @@ export function createMastraRunFinalizer(): (args: MastraRunObservation) => Prom
 export async function finishMastraRun(args: MastraRunObservation): Promise<void> {
   const durationMs = Math.max(0, Date.now() - args.startedAt);
   const status = args.outcome === 'success' ? 'completed' : 'failed';
+  const agentLabel = agentLabelForTelemetryKind(args.telemetryKind);
+  const stepName = stepNameForTelemetryKind(args.telemetryKind);
 
   // Audit plan §1.4 (P0-4) — feed the terminal run outcome into the
   // per-model circuit breaker, keyed by the resolved model id (the
@@ -144,7 +193,7 @@ export async function finishMastraRun(args: MastraRunObservation): Promise<void>
     }
   }
 
-  completeStep('mastra_xauusd_run', status, durationMs, {
+  completeStep(stepName, status, durationMs, {
     outcome: args.outcome,
     answerOutcome: args.answerOutcome,
     memoryMode: args.memoryMode,
@@ -157,34 +206,37 @@ export async function finishMastraRun(args: MastraRunObservation): Promise<void>
   });
 
   metrics.increment('mastra_run_total', {
-    tags: { agent: MASTRA_XAUUSD_AGENT_ID, outcome: args.outcome },
+    tags: { agent: agentLabel, outcome: args.outcome },
   });
   metrics.observe('total_latency_ms', durationMs, {
-    tags: { agent: MASTRA_XAUUSD_AGENT_ID },
+    tags: { agent: agentLabel },
   });
 
   if (args.outcome !== 'success') {
     metrics.increment('mastra_run_failed_total', {
-      tags: { agent: MASTRA_XAUUSD_AGENT_ID, outcome: args.outcome },
+      tags: { agent: agentLabel, outcome: args.outcome },
     });
     if (args.error !== undefined) recordError(args.error);
     logErrorContext(
       args.error ?? new Error(`Mastra run ended with ${args.outcome}`),
-      'mastra_xauusd_run',
+      stepName,
       {
         runId: args.runId,
         threadId: args.threadId,
         model: args.model,
         providerId: args.providerId,
+        telemetryKind: args.telemetryKind ?? 'mastra_xauusd_research',
         outcome: args.outcome,
         answerOutcome: args.answerOutcome,
       },
       'ai',
     );
   } else {
-    mlog.info('Mastra XAUUSD run completed', {
+    mlog.info('Mastra run completed', {
       runId: args.runId,
       threadId: args.threadId,
+      agent: agentLabel,
+      telemetryKind: args.telemetryKind ?? 'mastra_xauusd_research',
       model: args.model,
       providerId: args.providerId,
       durationMs,
@@ -241,7 +293,7 @@ export async function finishMastraRun(args: MastraRunObservation): Promise<void>
     cost = estimateKnownCostUsd(args.model, args.inputTokens, args.outputTokens);
   } catch (error) {
     metrics.increment('mastra_unpriced_model_total', {
-      tags: { agent: MASTRA_XAUUSD_AGENT_ID },
+      tags: { agent: agentLabel },
     });
     mlog.warn('Mastra run completed with unpriced model', {
       runId: args.runId,
@@ -251,7 +303,7 @@ export async function finishMastraRun(args: MastraRunObservation): Promise<void>
   }
   if (Number.isFinite(cost) && cost > 0) {
     metrics.observe('turn_cost_usd', cost, {
-      tags: { agent: MASTRA_XAUUSD_AGENT_ID },
+      tags: { agent: agentLabel },
     });
   }
 

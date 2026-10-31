@@ -18,6 +18,7 @@ import { metrics } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  agentLabelForTelemetryKind,
   executeMastraTool,
   finishMastraRun,
   getMastraGenerationStats,
@@ -214,6 +215,45 @@ describe('Mastra telemetry boundaries', () => {
         kind: 'mastra_canonical_chat',
       }),
     );
+  });
+
+  it('tags canonical-chat and mode runs with their own agent label instead of kestrel-xauusd-research-poc', async () => {
+    metrics.reset();
+    await finishMastraRun({
+      userId: 'user-1',
+      threadId: 'thread-1',
+      runId: 'run-canonical-1',
+      model: 'google/gemini-2.5-flash',
+      providerId: 'google',
+      startedAt: Date.now() - 250,
+      inputTokens: 100,
+      outputTokens: 50,
+      toolCalls: 1,
+      steps: 1,
+      outcome: 'success',
+      telemetryKind: 'mastra_canonical_chat',
+    });
+
+    const snap = metrics.snapshot();
+    expect(
+      snap.counters['mastra_run_total{agent=kestrel-mastra-canonical-chat,outcome=success}'],
+    ).toBe(1);
+    expect(snap.histograms['total_latency_ms{agent=kestrel-mastra-canonical-chat}']?.count).toBe(1);
+  });
+
+  it('maps every telemetry kind to its own metric agent label (XAUUSD stays the default)', () => {
+    expect(agentLabelForTelemetryKind('mastra_canonical_chat')).toBe(
+      'kestrel-mastra-canonical-chat',
+    );
+    expect(agentLabelForTelemetryKind('mastra_mode')).toBe('kestrel-committee-mode');
+    expect(agentLabelForTelemetryKind('mastra_full_job')).toBe('kestrel-committee-full-job');
+    expect(agentLabelForTelemetryKind('mastra_worker_task')).toBe('kestrel-worker-task');
+    expect(agentLabelForTelemetryKind('mastra_custom_agent')).toBe('kestrel-custom-agent');
+    expect(agentLabelForTelemetryKind('mastra_xauusd_research')).toBe(
+      'kestrel-xauusd-research-poc',
+    );
+    expect(agentLabelForTelemetryKind('mastra_xauusd_poc')).toBe('kestrel-xauusd-research-poc');
+    expect(agentLabelForTelemetryKind(undefined)).toBe('kestrel-xauusd-research-poc');
   });
 
   it('does not fail the AI result when observability exporters are unavailable', async () => {

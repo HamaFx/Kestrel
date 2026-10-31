@@ -27,6 +27,7 @@ export {
   type MastraUsageLike,
 } from './stats';
 export {
+  agentLabelForTelemetryKind,
   beginMastraRun,
   createMastraRunFinalizer,
   finishMastraRun,
