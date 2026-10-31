@@ -25,7 +25,7 @@
 //
 // §5.1: in addition to the absolute thresholds, the gate compares observed
 // quality against the committed baseline artifact
-// (`docs/archive/audit-v2/eval-baseline.json`) and fails on a >5% relative
+// (`packages/ai/src/eval/eval-baseline.json`) and fails on a >5% relative
 // drop. `--update-baseline` regenerates the artifact from the current batch
 // (run it on main after a green nightly). Zero recorded scores for a full
 // day no longer skip silently: the gate emits a loud CI warning, and exits
@@ -46,7 +46,7 @@ import {
 import { getKestrelMastra, listScoresForRun, recordsToGateObserved } from '../src/mastra-v2/index';
 
 const DEFAULT_BASELINE_PATH = fileURLToPath(
-  new URL('../../../docs/archive/audit-v2/eval-baseline.json', import.meta.url),
+  new URL('../src/eval/eval-baseline.json', import.meta.url),
 );
 
 const args = new Set(process.argv.slice(2));

@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -39,6 +42,14 @@ describe('eval baseline artifact (audit plan §5.1)', () => {
 });
 
 describe('compareEvalBaseline relative-drop rule', () => {
+  it('ships a valid committed eval-baseline.json artifact in packages/ai/src/eval/', () => {
+    const path = fileURLToPath(new URL('../src/eval/eval-baseline.json', import.meta.url));
+    const raw = readFileSync(path, 'utf8');
+    const parsed = parseEvalBaseline(raw);
+    expect(parsed).not.toBeNull();
+    expect(parsed?.schemaVersion).toBe('kestrel.eval-baseline.v1');
+    expect(parsed?.observed.overallPassRate).toBeGreaterThanOrEqual(0.95);
+  });
   it('fails only when the drop exceeds 5% of the baseline value', () => {
     // 0.95 baseline → floor is 0.9025.
     expect(
