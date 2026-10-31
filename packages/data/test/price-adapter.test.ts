@@ -127,13 +127,38 @@ describe('getPrice — provider order (on-demand BiQuote REST primary, live_tick
     const res = await getPriceWithMeta('XAUUSD');
     expect(res.tick.source).toBe('biquote');
     expect(res.tick.mid).toBeCloseTo(2345.678);
-    expect(res.tick.bid).toBe(res.tick.mid);
-    expect(res.tick.ask).toBe(res.tick.mid);
+    // The real MT5 bid/ask spread must survive the provider → tick normalisation.
+    expect(res.tick.bid).toBeCloseTo(2345.628);
+    expect(res.tick.ask).toBeCloseTo(2345.728);
     expect(res.tick.marketState).toBe('closed');
     expect(res.tick.quoteAgeSeconds).toBe(1800);
     expect(res.tick.dayDiffPercent).toBeNull();
     expect(res.ageMs).toBe(1_800_000);
     expect(fetchLiveTick).not.toHaveBeenCalled();
+  });
+
+  it('preserves real bid, ask, marketState and stale flags from biquote ticks', async () => {
+    globalThis.fetch = createRoutedFetch([
+      {
+        match: (u) => u.includes('biquote.test/api/'),
+        respond: () => ({
+          body: {
+            ...VALID_BIQUOTE_TICK('XAUUSD', 2650.1),
+            marketState: 'open',
+            stale: false,
+            quoteAgeSeconds: 1,
+          },
+        }),
+      },
+    ]);
+
+    const res = await getPriceWithMeta('XAUUSD', {
+      apiKeys: { biquoteBaseUrl: 'https://biquote.test' },
+    });
+    expect(res.tick.bid).toBeLessThan(res.tick.ask);
+    expect(res.tick.mid).toBeCloseTo((res.tick.bid + res.tick.ask) / 2, 5);
+    expect(res.tick.marketState).toBe('open');
+    expect(res.tick.stale).toBe(false);
   });
 
   it('serves the second call from cache without hitting fetch again', async () => {
@@ -236,6 +261,7 @@ describe('getPricesWithMeta — multi-symbol batching', () => {
     expect(singleCalls).toBe(0);
     expect(results[0]?.tick.marketState).toBe('open');
     expect(results[0]?.tick.dayDiffPercent).toBe(0.45);
+    expect(results[0]?.tick.bid).toBeLessThan(results[0]!.tick.ask);
     expect(results[1]?.tick.marketState).toBe('closed');
     expect(results[1]?.tick.dayDiffPercent).toBeNull();
 

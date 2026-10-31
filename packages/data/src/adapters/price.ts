@@ -76,12 +76,13 @@ function resolveKeys(opts: GetPriceOptions) {
 function snapshotToTick(symbol: Symbol, value: ProviderPriceSnapshot, fetchedAt: number): Tick {
   return {
     symbol,
-    bid: value.price,
-    ask: value.price,
+    bid: value.bid ?? value.price,
+    ask: value.ask ?? value.price,
     mid: value.price,
     ts: value.observedAt ?? fetchedAt,
     source: value.provider,
     ...(value.marketState ? { marketState: value.marketState } : {}),
+    ...(value.stale !== undefined ? { stale: value.stale } : {}),
     ...(value.quoteAgeSeconds !== undefined ? { quoteAgeSeconds: value.quoteAgeSeconds } : {}),
     ...(value.dayDiffPercent !== undefined ? { dayDiffPercent: value.dayDiffPercent } : {}),
   };
@@ -135,9 +136,12 @@ export async function getPriceWithMeta(
             return {
               price: result.price,
               provider: result.provider,
+              ...(result.bid !== undefined ? { bid: result.bid } : {}),
+              ...(result.ask !== undefined ? { ask: result.ask } : {}),
               ageMs: result.ageMs ?? null,
               ...(result.observedAt !== undefined ? { observedAt: result.observedAt } : {}),
               ...(result.marketState ? { marketState: result.marketState } : {}),
+              ...(result.stale !== undefined ? { stale: result.stale } : {}),
               ...(result.quoteAgeSeconds !== undefined
                 ? { quoteAgeSeconds: result.quoteAgeSeconds }
                 : {}),

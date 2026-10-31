@@ -29,6 +29,8 @@ export const TickSchema = z.object({
   source: z.string(),
   /** Market state reported by upstream ('open' | 'closed'). Optional for providers that do not report it. */
   marketState: BiquoteMarketStateSchema.optional(),
+  /** Upstream staleness flag when reported (BiQuote). */
+  stale: z.boolean().optional(),
   /** Seconds since the last upstream quote when reported by BiQuote. */
   quoteAgeSeconds: z.number().nonnegative().nullable().optional(),
   /** Daily percentage change since session open (null/hidden when marketState === 'closed'). */

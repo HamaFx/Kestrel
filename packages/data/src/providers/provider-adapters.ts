@@ -104,8 +104,11 @@ const biquoteProvider: MarketDataProvider = {
     return {
       price: mid,
       provider: 'biquote',
+      bid: tick.bid,
+      ask: tick.ask,
       ageMs: tick.quoteAgeSeconds != null ? tick.quoteAgeSeconds * 1000 : null,
       ...(tick.marketState ? { marketState: tick.marketState } : {}),
+      ...(tick.stale !== undefined ? { stale: tick.stale } : {}),
       quoteAgeSeconds: tick.quoteAgeSeconds ?? null,
       dayDiffPercent: tick.marketState === 'closed' ? null : (tick.dayDiffPercent ?? null),
     };
@@ -137,9 +140,12 @@ const biquoteProvider: MarketDataProvider = {
       out.set(tick.symbol, {
         price: mid,
         provider: 'biquote',
+        bid: tick.bid,
+        ask: tick.ask,
         ...(observedAt !== undefined ? { observedAt } : {}),
         ageMs: tick.quoteAgeSeconds != null ? tick.quoteAgeSeconds * 1000 : null,
         ...(tick.marketState ? { marketState: tick.marketState } : {}),
+        ...(tick.stale !== undefined ? { stale: tick.stale } : {}),
         quoteAgeSeconds: tick.quoteAgeSeconds ?? null,
         dayDiffPercent: tick.marketState === 'closed' ? null : (tick.dayDiffPercent ?? null),
       });

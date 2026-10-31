@@ -45,12 +45,18 @@ export interface ProviderFetchOptions {
 export interface ProviderPriceSnapshot {
   price: number;
   provider: string;
+  /** Best bid when the provider reports a real bid/ask spread (e.g. BiQuote MT5). */
+  bid?: number;
+  /** Best ask when the provider reports a real bid/ask spread (e.g. BiQuote MT5). */
+  ask?: number;
   /** Exact observation timestamp (ms epoch) reported by the upstream provider. */
   observedAt?: number;
   /** ms since the upstream observed the value. null for REST providers that don't report quote age. */
   ageMs?: number | null;
   /** Market session state ('open' | 'closed') when reported by the provider. */
   marketState?: BiquoteMarketState;
+  /** Upstream staleness flag when reported (BiQuote). */
+  stale?: boolean;
   /** Quote age in seconds when reported by BiQuote. */
   quoteAgeSeconds?: number | null;
   /** Daily percentage change since session open (null when marketState === 'closed'). */
