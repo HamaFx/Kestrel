@@ -78,6 +78,7 @@ export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraMode
     threadId: args.threadId,
     model: resolution.modelId,
     providerId: resolution.providerId,
+    telemetryKind: args.telemetryKind ?? 'mastra_mode',
   });
 
   try {

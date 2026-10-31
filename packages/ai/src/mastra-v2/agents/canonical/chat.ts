@@ -61,6 +61,7 @@ export async function runMastraCanonicalChat(
     threadId: args.threadId,
     model: resolution.modelId,
     providerId: resolution.providerId,
+    telemetryKind: 'mastra_canonical_chat',
   });
 
   try {
