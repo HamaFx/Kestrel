@@ -88,9 +88,9 @@ export function MetricsGrid({ metrics }: { metrics: Metrics }) {
       hint: fmtMoney(-Math.abs(metrics.maxDrawdown)),
     },
     {
-      label: 'Trade Sharpe',
+      label: 'Sharpe (ann.)',
       value: fmtNumber(metrics.sharpeRatio, 2),
-      hint: `Sortino ${fmtNumber(metrics.sortinoRatio, 2)}`,
+      hint: `Sortino ${fmtNumber(metrics.sortinoRatio, 2)} · SQN ${fmtNumber(metrics.sqn, 2)}`,
     },
     {
       label: 'Avg hold',

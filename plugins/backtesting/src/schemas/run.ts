@@ -90,6 +90,8 @@ export const BacktestMetricsSchema = z.object({
   maxDrawdownBars: z.number().int(),
   sharpeRatio: z.number(),
   sortinoRatio: z.number(),
+  /** System Quality Number (trade-scaled t-stat); 0 for runs persisted before it existed. */
+  sqn: z.number().default(0),
   averageBarsHeld: z.number(),
   exposurePct: z.number(),
   longTrades: z.number().int(),

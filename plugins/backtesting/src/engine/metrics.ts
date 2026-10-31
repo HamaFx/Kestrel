@@ -16,9 +16,13 @@
 
 // Backtest scorecard.
 //
-// Ratios are computed on per-trade returns and scaled by sqrt(trades) — this
-// is a comparability score between runs, not an annualised fund Sharpe. The
-// UI labels it "Trade Sharpe" for that reason.
+// Two families of risk-adjusted ratios, deliberately kept separate:
+//   - `sharpeRatio` / `sortinoRatio` are annualised from the equity curve's
+//     bar-to-bar returns (scaled by sqrt(periods per year), derived from the
+//     median bar spacing). They are what an allocator expects to see.
+//   - `sqn` (System Quality Number) is the trade-count-scaled t-statistic of
+//     per-trade returns: (avg return / std) * sqrt(trades). It rewards sample
+//     size, so it is only meaningful alongside a sensible minimum-trade filter.
 
 import { round } from './simulator';
 import type { BacktestMetrics, BacktestTrade, EquityPoint, TradeSide } from './types';
@@ -92,15 +96,39 @@ function drawdownStats(equityCurve: readonly EquityPoint[]): {
     }
     const drawdown = peak - point.equity;
     const pct = peak > 0 ? (drawdown / peak) * 100 : 0;
-    if (drawdown > max) {
-      max = drawdown;
-      maxPct = pct;
-      bars = index - peakIndex;
-    }
+    // Dollar and percentage drawdown are tracked independently: after equity
+    // growth, the deepest percentage drawdown can precede the deepest dollar one.
+    if (drawdown > max) max = drawdown;
+    if (pct > maxPct) maxPct = pct;
+    if (index - peakIndex > bars) bars = index - peakIndex;
   }
 
   return { max: round(max, 2), maxPct: round(maxPct, 3), bars };
 }
+
+/** Bar-to-bar return of the equity curve (one value per interval after the first). */
+function equityReturns(equityCurve: readonly EquityPoint[]): number[] {
+  const returns: number[] = [];
+  for (let index = 1; index < equityCurve.length; index += 1) {
+    const previous = equityCurve[index - 1]!.equity;
+    returns.push(previous > 0 ? equityCurve[index]!.equity / previous - 1 : 0);
+  }
+  return returns;
+}
+
+/** Median bar spacing in ms, or null when the curve has no positive spacing. */
+function medianBarMs(equityCurve: readonly EquityPoint[]): number | null {
+  if (equityCurve.length < 2) return null;
+  const spacings: number[] = [];
+  for (let index = 1; index < equityCurve.length; index += 1) {
+    spacings.push(equityCurve[index]!.t - equityCurve[index - 1]!.t);
+  }
+  spacings.sort((a, b) => a - b);
+  const median = spacings[Math.floor(spacings.length / 2)]!;
+  return median > 0 ? median : null;
+}
+
+const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
 
 export function computeMetrics(args: ComputeMetricsArgs): BacktestMetrics {
   const trades = args.trades;
@@ -128,11 +156,23 @@ export function computeMetrics(args: ComputeMetricsArgs): BacktestMetrics {
   }
   const avgReturn = mean(returns);
   const returnStd = standardDeviation(returns);
-  const downside = returns.map((value) => Math.min(0, value));
-  const downsideDev = Math.sqrt(mean(downside.map((value) => value ** 2)));
-  const scale = Math.sqrt(Math.max(1, returns.length));
-  const sharpe = returnStd > 0 ? (avgReturn / returnStd) * scale : 0;
-  const sortino = downsideDev > 0 ? (avgReturn / downsideDev) * scale : 0;
+  const sqn =
+    returnStd > 0 && returns.length > 0 ? (avgReturn / returnStd) * Math.sqrt(returns.length) : 0;
+
+  // Annualised equity-curve Sharpe/Sortino, falling back to SQN when the run
+  // has too few equity points to derive a reliable period return.
+  let sharpe = sqn;
+  let sortino = sqn;
+  if (args.equityCurve.length >= 5) {
+    const barReturns = equityReturns(args.equityCurve);
+    const avgBar = mean(barReturns);
+    const stdBar = standardDeviation(barReturns);
+    const downsideBar = Math.sqrt(mean(barReturns.map((value) => Math.min(0, value) ** 2)));
+    const barMs = medianBarMs(args.equityCurve);
+    const annualFactor = barMs !== null ? Math.sqrt(MS_PER_YEAR / barMs) : 1;
+    sharpe = stdBar > 0 ? (avgBar / stdBar) * annualFactor : 0;
+    sortino = downsideBar > 0 ? (avgBar / downsideBar) * annualFactor : 0;
+  }
 
   const drawdown = drawdownStats(args.equityCurve);
   const long = sideStats(trades, 'long');
@@ -167,6 +207,7 @@ export function computeMetrics(args: ComputeMetricsArgs): BacktestMetrics {
     maxDrawdownBars: drawdown.bars,
     sharpeRatio: round(sharpe, 3),
     sortinoRatio: round(sortino, 3),
+    sqn: round(sqn, 3),
     averageBarsHeld:
       trades.length === 0 ? 0 : round(mean(trades.map((trade) => trade.barsHeld)), 1),
     exposurePct: args.bars > 0 ? round((args.barsWithPosition / args.bars) * 100, 2) : 0,

@@ -61,6 +61,7 @@ export function compactRunForModel(output: RunResult): Record<string, unknown> {
     maxDrawdown: m.maxDrawdown,
     sharpeRatio: m.sharpeRatio,
     sortinoRatio: m.sortinoRatio,
+    sqn: m.sqn,
     averageBarsHeld: m.averageBarsHeld,
     exposurePct: m.exposurePct,
     longTrades: m.longTrades,
@@ -78,6 +79,6 @@ export function compactRunForModel(output: RunResult): Record<string, unknown> {
     note:
       m.trades < 20
         ? 'Fewer than 20 trades — treat these metrics as anecdotal, not statistically meaningful.'
-        : 'Sharpe/Sortino are per-trade scores scaled by sqrt(trades), not annualised fund ratios.',
+        : 'Sharpe/Sortino are annualised from the equity curve; SQN is the trade-count-scaled t-statistic.',
   };
 }
