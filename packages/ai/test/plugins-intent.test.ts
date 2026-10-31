@@ -47,6 +47,27 @@ describe('detectInstalledPluginIntent', () => {
     }
   });
 
+  it('matches natural trader phrasing for stop management, trimming, and strategy testing', () => {
+    expect(
+      detectInstalledPluginIntent('Move my XAUUSD stop to breakeven', ['paper-trading']),
+    ).toMatchObject({ pluginId: 'paper-trading' });
+    expect(
+      detectInstalledPluginIntent('Trail my stop on EURUSD by 15 pips', ['paper-trading']),
+    ).toMatchObject({ pluginId: 'paper-trading' });
+    expect(
+      detectInstalledPluginIntent('Trim half of my gold position', ['paper-trading']),
+    ).toMatchObject({ pluginId: 'paper-trading' });
+    expect(
+      detectInstalledPluginIntent('Flatten my sandbox positions', ['paper-trading']),
+    ).toMatchObject({ pluginId: 'paper-trading' });
+    expect(
+      detectInstalledPluginIntent('Pause my deployed strategy', ['paper-trading']),
+    ).toMatchObject({ pluginId: 'paper-trading' });
+    expect(
+      detectInstalledPluginIntent('Test a strategy on XAUUSD 15m using FVG', ['backtesting']),
+    ).toMatchObject({ pluginId: 'backtesting' });
+  });
+
   it('matches backtesting research prompts when the plugin is installed', () => {
     const prompt = 'Backtest an RSI crossover strategy on XAUUSD 1h';
     expect(detectInstalledPluginIntent(prompt, ['backtesting'])).toMatchObject({

@@ -47,13 +47,13 @@ const LIVE_BROKER_EXCLUSION_RE =
   /\b(real\s+money|live\s+account|live\s+broker|mt4|mt5|metatrader|interactive\s+brokers|ibkr|binance\s+live|coinbase\s+live|wire\s+transfer|withdraw\s+funds)\b/i;
 
 const BACKTEST_INTENT_RE =
-  /\b(backtest(?:s|ing)?|parameter\s+sweep|grid\s+sweep|run\s+a\s+sweep|walk[-\s]?forward|strategy\s+template|equity\s+curve|sharpe\s+ratio\s+of\s+my\s+strategy|save\s+(?:this\s+)?strategy|list\s+(?:my\s+)?strategies)\b|^\/backtest\b/i;
+  /\b(backtest(?:s|ing)?|parameter\s+sweep|grid\s+sweep|run\s+a\s+sweep|walk[-\s]?forward|strategy\s+template|equity\s+curve|sharpe\s+ratio\s+of\s+my\s+strategy|save\s+(?:this\s+)?strategy|list\s+(?:my\s+)?strategies|test\s+(?:a\s+|this\s+|my\s+)?strategy|simulate\s+(?:a\s+|this\s+)?strategy|getSignal|expectancy\s*r|profit\s+factor)\b|^\/backtest\b/i;
 
 const PAPER_EXPLICIT_RE =
   /\b(paper\s+(?:trade|trading|account|accounts|order|orders|position|positions|balance|equity|portfolio|sandbox|fill|fills|strategy|runner)|agent\s+sandbox|sandbox\s+account|virtual\s+(?:account|balance|trade|position|order)|simulated\s+(?:account|trade|position|order)|deploy\s+(?:[a-z0-9/_-]+\s+){0,4}?to\s+paper)\b|^\/paper\b/i;
 
 const PAPER_TRADE_ACTION_RE =
-  /\b(buy|sell|long|short|place\s+(?:a\s+|an\s+)?(?:market|limit|stop)\s+order|close\s+(?:my\s+|the\s+)?(?:[a-z0-9/_-]+\s+)?(?:open\s+)?(?:position|trade)|modify\s+(?:my\s+|the\s+)?(?:[a-z0-9/_-]+\s+)?position|cancel\s+(?:my\s+|the\s+)?(?:pending\s+)?order|reset\s+(?:my\s+)?(?:paper\s+|sandbox\s+)?account|my\s+open\s+positions|my\s+pending\s+orders|my\s+paper\s+positions)\b/i;
+  /\b(buy|sell|long|short|place\s+(?:a\s+|an\s+)?(?:market|limit|stop)\s+order|close\s+(?:my\s+|the\s+)?(?:[a-z0-9/_-]+\s+)?(?:open\s+)?(?:position|trade)|modify\s+(?:my\s+|the\s+)?(?:[a-z0-9/_-]+\s+)?position|cancel\s+(?:my\s+|the\s+)?(?:pending\s+)?order|reset\s+(?:my\s+)?(?:paper\s+|sandbox\s+)?account|my\s+open\s+positions|my\s+pending\s+orders|my\s+paper\s+positions|(?:move|trail|tighten|update)\s+(?:my\s+|the\s+)?(?:[a-z0-9/_-]+\s+)?stop(?:\s+loss)?|breakeven|(?:trim|flatten|exit)\s+(?:(?:my|the|half|of|all)\s+)*(?:[a-z0-9/_-]+\s+){0,3}(?:position|positions|trade|trades)|(?:pause|resume|stop)\s+(?:my\s+|the\s+)?(?:deployed\s+|paper\s+)?strategy)\b/i;
 
 const CUSTOM_AGENTS_INTENT_RE =
   /\b(custom\s+agent(?:s)?|subagent(?:s)?|delegate\s+to\s+agent|agent\s+studio|run\s+script\s+tool)\b|^\/agents\b/i;

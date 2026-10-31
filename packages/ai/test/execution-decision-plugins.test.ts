@@ -108,7 +108,29 @@ describe('decideMastraExecution — installed plugin intents (P0-4)', () => {
     expect(decision.route).toBe('xauusd-conversation');
   });
 
-  it('keeps multi-symbol comparisons and core mutations ahead of plugin intents', async () => {
+  it('routes backtest and paper-trading commands to canonical-chat even in full mode or with two symbols', async () => {
+    const fullModeBacktest = await decideMastraExecution({
+      userMessage: message('Backtest an RSI pullback strategy on XAUUSD 1h'),
+      mode: 'full',
+      settings,
+      env,
+      installedPluginIds: ['backtesting'],
+    });
+    expect(fullModeBacktest.route).toBe('canonical-chat');
+
+    const multiSymbolBacktest = await decideMastraExecution({
+      userMessage: message('Backtest RSI on XAUUSD and EURUSD'),
+      mode: 'single',
+      settings,
+      env,
+      installedPluginIds: ['backtesting'],
+    });
+    expect(multiSymbolBacktest.route).toBe('canonical-chat');
+  });
+
+  it('keeps core mutations ahead of plugin intents while plugin commands beat comparisons', async () => {
+    // Phase 4 (roadmap Phase 5): an explicit paper-trading command is answered
+    // where the plugin tools live, even when the prompt names two symbols.
     const comparison = await decideMastraExecution({
       userMessage: message('Buy 1 lot XAUUSD in my paper account and 2 lots of EURUSD'),
       mode: 'single',
@@ -116,7 +138,7 @@ describe('decideMastraExecution — installed plugin intents (P0-4)', () => {
       env: researchEnv,
       installedPluginIds: ['paper-trading'],
     });
-    expect(comparison.route).toBe('multi-symbol-research');
+    expect(comparison.route).toBe('canonical-chat');
 
     const mutation = await decideMastraExecution({
       userMessage: message('Schedule my Telegram briefing and set an alert for gold'),

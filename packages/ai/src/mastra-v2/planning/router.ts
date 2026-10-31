@@ -127,12 +127,23 @@ export async function routeUnified(input: UnifiedRouterInput): Promise<UnifiedRo
   // backtest, Telegram scheduling, custom agents) is an execution request the
   // plugin's own tools own: the read-only 422 gate must not fire for it. The
   // plugin match is deterministic and only exists for installed plugins.
-  const injectionBlocked = isInjectionAttempt(promptText) || jevDecision?.injectionBlocked === true;
+  //
+  // Phase 4 (roadmap Phase 5) — the deterministic match also suppresses a
+  // *Jev* false positive: a paper-trade/briefing phrasing the model misread as
+  // injection or as a `log_journal` mutation still reaches canonical chat. The
+  // lexical `isInjectionAttempt` guard always runs and can never be weakened.
   const pluginIntent = detectInstalledPluginIntent(promptText, input.installedPluginIds ?? []);
+  const injectionBlocked =
+    isInjectionAttempt(promptText) ||
+    (pluginIntent === null && jevDecision?.injectionBlocked === true);
   const highConfidenceMutationIntent =
     pluginIntent === null && isHighConfidenceMutationIntent(promptText);
-  const mutationKind =
+  const rawMutationKind =
     input.classifiedMutationKind ?? classifyMutationRequestWithJev(promptText, jevDecision);
+  const mutationKind =
+    pluginIntent?.pluginId === 'paper-trading' && rawMutationKind === 'log_journal'
+      ? null
+      : rawMutationKind;
 
   const decision = await decideMastraExecution({
     ...input,

@@ -164,18 +164,15 @@ export async function decideMastraExecution(
   // provide an explicit server-side decision, but never rely on route code to
   // classify it after planning.
   const mutationRequested = input.mutationRequested ?? classifyMutationRequest(promptText) !== null;
-  // P0-4 — an explicit request aimed at an installed plugin ("Backtest RSI on
-  // XAUUSD", "Buy 1 lot EURUSD in my paper account", "Schedule my Telegram
-  // briefing") must stay in canonical chat: that is the only route carrying the
-  // plugin's `main-chat` tools and their chat cards. Comparisons, core
-  // mutations, Full mode and explicit capability overrides keep precedence.
+  // P0-4 / Phase 4 (roadmap Phase 5) — an explicit request aimed at an
+  // installed plugin ("Backtest RSI on XAUUSD", "Buy 1 lot EURUSD in my paper
+  // account", "Schedule my Telegram briefing") must stay in canonical chat:
+  // that is the only route carrying the plugin's `main-chat` tools and their
+  // chat cards. Core mutations (alerts/journal/snapshots) keep precedence, but
+  // the plugin intent now beats Full mode and multi-symbol comparisons too.
   const pluginIntent = detectInstalledPluginIntent(promptText, input.installedPluginIds ?? []);
   const pluginRouteOverride =
-    pluginIntent !== null &&
-    input.capabilityId === undefined &&
-    input.mode === 'single' &&
-    !mutationRequested &&
-    !comparisonActive;
+    pluginIntent !== null && input.capabilityId === undefined && !mutationRequested;
   const capabilityId =
     input.capabilityId ??
     (pluginRouteOverride

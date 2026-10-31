@@ -50,12 +50,14 @@ export function routeFor(
   pluginRouteOverride = false,
 ): MastraExecutionRoute {
   if (mutationRequested || capabilityId === 'mutation-workflows') return 'mutation';
+  // P0-4 / Phase 4 — an installed plugin command runs where the plugin tools
+  // live. It beats Full mode and bounded comparisons: neither route carries
+  // the plugin's `main-chat` tools.
+  if (pluginRouteOverride) return 'canonical-chat';
   // A-01 (B-01): comparisons take precedence over the single-symbol paths in
   // both modes — a multi-symbol prompt must never be silently answered as one
   // symbol's research or as symbol-free canonical chat.
   if (comparisonActive) return 'multi-symbol-research';
-  // P0-4 — an installed plugin request runs where the plugin tools are.
-  if (pluginRouteOverride) return 'canonical-chat';
   if (mode === 'full') return 'full-analysis-queue';
   if (
     symbol === 'XAUUSD' &&
