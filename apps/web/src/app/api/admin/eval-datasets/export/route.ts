@@ -18,17 +18,25 @@
 
 // Manual (admin-triggered) training-dataset export.
 //
-// Assembles a governed dataset from reviewer-approved feedback rows right
-// here on the web side (serverless): the nightly *worker* job additionally
-// folds in eval reports and writes/upload the JSONL files. Both paths share
-// the same assembly + registration pipeline in @kestrel/ai and @kestrel/db.
+// Decision 3A — this handler writes the same artifacts as the nightly worker
+// job: `dataset.jsonl`, `manifest.json`, and the Jev `jev-rlcd.jsonl`
+// companion, with feedback pairs enriched by the real tool names joined from
+// `chat_tool_telemetry`. File writes are best-effort on serverless/read-only
+// filesystems; the content-addressed `eval_datasets` registration is the
+// source of truth.
+
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
 import { withAdminAuth } from '@/lib/auth/admin-auth';
 import { errorResponse } from '@/lib/http/api';
 import { recordAdminAudit } from '@/lib/services/admin';
 import {
   assembleTrainingDataset,
+  buildJevRlcdTrainingRecords,
+  isRlcdStateSafe,
   listReviewedTrainingPairs,
+  publishTrainingDatasetToLangfuse,
   registerEvalDataset,
   resolveEvaluationAnnotations,
   type FeedbackAnnotationInput,
@@ -66,7 +74,13 @@ export const POST = withAdminAuth(async (req, { user }) => {
       ttftMs: null,
       totalMs: 0,
       text: pair.assistantText,
-      toolCalls: [],
+      // Decision 3A — the tools the turn actually invoked, joined from
+      // chat_tool_telemetry, so both JSONL files carry the real tool surface.
+      toolCalls: (pair.toolNames ?? []).map((name) => ({
+        name,
+        args: {},
+        resultSummary: null,
+      })),
       agentProgress: [],
       metadata: {},
       terminalStatus: null,
@@ -93,6 +107,18 @@ export const POST = withAdminAuth(async (req, { user }) => {
     }
 
     const version = `manual-${utcStamp(new Date())}`;
+
+    // Decision 3A — build the Jev RLCD companion alongside the eval dataset.
+    // Enabled by default; a single prompt tripping the PII/credential guard
+    // is skipped rather than aborting the whole export.
+    const rlcdEnabled = (process.env.RLCD_EXPORT_ENABLED ?? 'true') !== 'false';
+    const rlcd = rlcdEnabled
+      ? buildJevRlcdTrainingRecords(
+          approved.filter((result) => isRlcdStateSafe(result.prompt)),
+          { datasetVersion: version, annotations },
+        )
+      : [];
+
     const assembled = assembleTrainingDataset({
       results: approved,
       feedbackByMessageId,
@@ -105,6 +131,7 @@ export const POST = withAdminAuth(async (req, { user }) => {
         feedbackPairs: pairs.length,
         approvedRecords: approved.length,
         droppedNeedsReview: results.length - approved.length,
+        rlcdRecords: rlcd.length,
       },
     });
 
@@ -123,6 +150,40 @@ export const POST = withAdminAuth(async (req, { user }) => {
       );
     }
 
+    // Best-effort file writes: serverless hosts can present a read-only
+    // filesystem, and the DB registration above is the durable artifact.
+    let outputDir: string | null = null;
+    try {
+      const outDir = join(process.env.DATASETS_DIR ?? '/tmp/kestrel-datasets', version);
+      await mkdir(outDir, { recursive: true });
+      await writeFile(join(outDir, 'dataset.jsonl'), assembled.jsonlContent, 'utf8');
+      await writeFile(
+        join(outDir, 'manifest.json'),
+        `${JSON.stringify(assembled.manifest, null, 2)}\n`,
+        'utf8',
+      );
+      if (rlcd.length > 0) {
+        await writeFile(
+          join(outDir, 'jev-rlcd.jsonl'),
+          `${rlcd.map((record) => JSON.stringify(record)).join('\n')}\n`,
+          'utf8',
+        );
+      }
+      outputDir = outDir;
+    } catch {
+      // Read-only filesystem — keep the registered dataset.
+    }
+
+    // Best-effort Langfuse publish (disabled without LANGFUSE_* env).
+    try {
+      await publishTrainingDatasetToLangfuse(assembled, {
+        datasetName: 'kestrel-training',
+        description: `Governed eval training records — ${version}`,
+      });
+    } catch {
+      // Publishing is a replica; the registered dataset stays authoritative.
+    }
+
     await recordAdminAudit(user.userId, 'ai.dataset.export', undefined, {
       version: row.version,
       recordCount: row.recordCount,
@@ -133,6 +194,8 @@ export const POST = withAdminAuth(async (req, { user }) => {
       {
         dataset: row,
         droppedNeedsReview: results.length - approved.length,
+        rlcdRecordCount: rlcd.length,
+        outputDir,
       },
       { status: 201 },
     );

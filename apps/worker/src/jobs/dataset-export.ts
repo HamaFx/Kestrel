@@ -27,6 +27,7 @@ import {
   assembleTrainingDataset,
   buildJevRlcdTrainingRecords,
   getDb,
+  isRlcdStateSafe,
   publishTrainingDatasetToLangfuse,
   resolveEvaluationAnnotations,
   type FeedbackAnnotationInput,
@@ -164,7 +165,14 @@ export async function runDatasetExport(ctx: JobContext): Promise<JobResult> {
     ttftMs: null,
     totalMs: 0,
     text: pair.assistantText,
-    toolCalls: [],
+    // Decision 3A — the tools the turn actually invoked, joined from
+    // chat_tool_telemetry, so both dataset.jsonl and jev-rlcd.jsonl carry the
+    // real tool surface instead of an empty list.
+    toolCalls: (pair.toolNames ?? []).map((name) => ({
+      name,
+      args: {},
+      resultSummary: null,
+    })),
     agentProgress: [],
     metadata: {},
     terminalStatus: null,
@@ -221,16 +229,19 @@ export async function runDatasetExport(ctx: JobContext): Promise<JobResult> {
     'utf8',
   );
 
-  // 5b — Phase 3 (Jev roadmap) — opt-in RLCD export for the Jev decision
-  // model. Unlike the hashes-only eval dataset, RLCD training needs the state
-  // the decision model saw (redacted prompt), so this file is written only
-  // when the operator sets RLCD_EXPORT_ENABLED=true. Assistant text stays
-  // excluded: approved text exports run through the explicit API instead.
+  // 5b — Phase 3 (Jev roadmap) — RLCD export for the Jev decision model.
+  // Decision 3A: on by default (`RLCD_EXPORT_ENABLED=false` opts out). Unlike
+  // the hashes-only eval dataset, RLCD training needs the state the decision
+  // model saw (redacted prompt), so only prompts that stay sensitive-free
+  // after redaction are exported — one unsafe record is skipped, never the
+  // whole batch. Assistant text stays excluded: approved text exports run
+  // through the explicit API instead.
   let rlcdRecords = 0;
-  const rlcdEnabled = (process.env.RLCD_EXPORT_ENABLED ?? 'false') === 'true';
+  const rlcdEnabled = (process.env.RLCD_EXPORT_ENABLED ?? 'true') !== 'false';
   if (rlcdEnabled) {
     try {
-      const rlcd = buildJevRlcdTrainingRecords(approved, {
+      const rlcdEligible = approved.filter((result) => isRlcdStateSafe(result.prompt));
+      const rlcd = buildJevRlcdTrainingRecords(rlcdEligible, {
         datasetVersion: version,
         annotations,
       });
