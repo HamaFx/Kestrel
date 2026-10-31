@@ -56,7 +56,13 @@ const AUTH_TAG_LENGTH = 16; // 128 bits
  * without pulling node:crypto / `server-only` into the test bundle.
  * Re-exported here for the existing import path.
  */
-export { PROVIDER_IDS, type ByokPayload, type ProviderId } from './byok';
+export {
+  PROVIDER_IDS,
+  JEV_PROVIDER_IDS,
+  type ByokPayload,
+  type JevByokProviderId,
+  type ProviderId,
+} from './byok';
 
 function getEncryptionKey(): Buffer {
   const secret = process.env.ENCRYPTION_SECRET;

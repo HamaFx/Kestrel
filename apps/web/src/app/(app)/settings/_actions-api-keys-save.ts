@@ -25,6 +25,7 @@ import { requireTenantIdForUser, schema } from '@kestrel/db';
 import {
   decryptByok,
   encryptByok,
+  JEV_PROVIDER_IDS,
   PROVIDER_IDS,
   type ByokPayload,
 } from '@kestrel/shared/encryption';
@@ -33,6 +34,7 @@ import { revalidatePath } from 'next/cache';
 
 import { auth } from '@/auth';
 
+import { JEV_DECISION_KEY_KEEP } from './api-keys/_components/jev-decision-keys';
 import { type SaveKeysResult } from './_actions-shared';
 
 /**
@@ -76,6 +78,15 @@ export async function updateApiKeysAction(
       );
     const oldDecrypted = oldSettings?.aiApiKeys ? decryptByok(oldSettings.aiApiKeys) : null;
     const oldUpdatedAt = oldSettings?.aiApiKeysUpdatedAt ?? {};
+
+    // Decision 4A — saving chat LLM keys must never wipe the non-chat keys.
+    // The Jev decision-model keys (opencode/liquid/typesafe) and the finnhub
+    // market-data key live on the same payload but have no inputs in this
+    // form, so carry the stored values forward.
+    for (const preservedId of [...JEV_PROVIDER_IDS, 'finnhub'] as const) {
+      const existing = oldDecrypted?.[preservedId];
+      if (existing) keys[preservedId] = existing;
+    }
 
     const newUpdatedAt = { ...oldUpdatedAt };
     for (const id of PROVIDER_IDS) {
@@ -163,6 +174,88 @@ export async function updateApiKeysAction(
         clearedCount,
         at: Date.now(),
       },
+    };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+/**
+ * Decision 4A — save the Jev System One decision-model keys (OpenCode /
+ * Liquid / TypeSafe) without touching the chat providers or the finnhub
+ * market-data key. An empty field clears that decision key; the
+ * `***KEEP***` prefill sentinel (or an absent field) preserves the stored
+ * value.
+ */
+export async function updateJevApiKeysAction(
+  _prevState: SaveKeysResult,
+  formData: FormData,
+): Promise<SaveKeysResult> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { ok: false as const, error: 'Not authenticated' };
+  }
+
+  try {
+    const db = getDb();
+    const userId = session.user.id;
+    const tenantId = await requireTenantIdForUser(userId, db);
+    const [oldSettings] = await db
+      .select({
+        aiApiKeys: schema.userSettings.aiApiKeys,
+        aiApiKeysUpdatedAt: schema.userSettings.aiApiKeysUpdatedAt,
+      })
+      .from(schema.userSettings)
+      .where(and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)));
+    const oldDecrypted = oldSettings?.aiApiKeys ? decryptByok(oldSettings.aiApiKeys) : null;
+    const oldUpdatedAt = oldSettings?.aiApiKeysUpdatedAt ?? {};
+
+    // Preservation invariant: the chat providers and finnhub have no inputs
+    // in this form — start from the stored payload and only touch Jev keys.
+    const keys: ByokPayload = { ...(oldDecrypted ?? {}) };
+    const newUpdatedAt = { ...oldUpdatedAt };
+    const now = new Date().toISOString();
+    let savedCount = 0;
+    let clearedCount = 0;
+
+    for (const id of JEV_PROVIDER_IDS) {
+      const raw = formData.get(id);
+      // An absent field preserves the stored key (older clients, partial posts).
+      if (raw === null) continue;
+      const value = typeof raw === 'string' ? raw.trim() : '';
+      // The prefilled sentinel means "leave the stored key as-is".
+      if (value === JEV_DECISION_KEY_KEEP) continue;
+      const oldKey = oldDecrypted?.[id];
+      if (value.length === 0) {
+        if (oldKey) {
+          delete keys[id];
+          delete newUpdatedAt[id];
+          clearedCount += 1;
+        }
+        continue;
+      }
+      if (value !== oldKey) {
+        keys[id] = value;
+        newUpdatedAt[id] = now;
+      }
+      savedCount += 1;
+    }
+
+    await db
+      .update(schema.userSettings)
+      .set({
+        aiApiKeys: Object.keys(keys).length > 0 ? encryptByok(keys) : null,
+        aiApiKeysUpdatedAt: Object.keys(newUpdatedAt).length > 0 ? newUpdatedAt : null,
+      })
+      .where(and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)));
+
+    revalidatePath('/settings/api-keys');
+    return {
+      ok: true as const,
+      data: { savedCount, clearedCount, at: Date.now() },
     };
   } catch (err) {
     return {
