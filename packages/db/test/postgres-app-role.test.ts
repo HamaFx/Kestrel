@@ -17,9 +17,16 @@
 // Audit 2026-10-31 (R1, R19) — the application role must actually enforce RLS.
 //
 // The sibling RLS suite proves PostgreSQL semantics on a probe table; this one
-// proves Kestrel's own schema: a fresh database is migrated, `kestrel_app`
-// (created NOLOGIN by migration 0094) is given LOGIN, and every assertion below
-// runs over a connection authenticated as that role.
+// proves Kestrel's own schema: a fresh database is migrated and every assertion
+// below runs with the privileges of `kestrel_app` (the role created NOLOGIN by
+// migration 0094 and used by the web app in a hardened deployment).
+//
+// The connection-level assertions use `SET LOCAL ROLE kestrel_app` inside a
+// transaction rather than logging in as the role. Roles are cluster-scoped, so
+// ALTERing its password would leak into every other database on the server and
+// race a parallel suite. `SET LOCAL ROLE` drops superuser privileges for the
+// duration of the transaction and is scoped to it — the same posture a
+// deployment connects with.
 //
 // It fails if:
 //   - the role can bypass RLS (someone connected the app as a superuser again),
@@ -49,7 +56,7 @@ const TENANT_A = USER_A;
 const TENANT_B = USER_B;
 
 let admin: ReturnType<typeof postgres> | null = null;
-let app: ReturnType<typeof postgres> | null = null;
+let isolatedClient: ReturnType<typeof postgres> | null = null;
 let databaseName = '';
 
 async function applyMigrations(client: ReturnType<typeof postgres>): Promise<void> {
@@ -70,9 +77,29 @@ async function applyMigrations(client: ReturnType<typeof postgres>): Promise<voi
   }
 }
 
+/** Minimal shape of a transaction handle for the raw queries below. */
+interface TxLike {
+  unsafe<T = unknown[]>(query: string): Promise<T>;
+}
+
+/**
+ * Run `fn` in a transaction whose current role is `kestrel_app`, optionally with
+ * the tenant GUC set — i.e. exactly what `withTenantDbFresh` does for the app.
+ */
+async function asAppRole<T>(fn: (tx: TxLike) => Promise<T>, tenant?: string): Promise<T> {
+  // postgres-js types `begin` as returning UnwrapPromiseArray<T>; the callback
+  // here always resolves a value, so the cast is safe.
+  const result = await isolatedClient!.begin<T>(async (tx) => {
+    await tx.unsafe(`SET LOCAL ROLE ${APP_ROLE}`);
+    if (tenant) await tx.unsafe(`SELECT set_config('app.current_tenant', '${tenant}', true)`);
+    return fn(tx as unknown as TxLike);
+  });
+  return result as unknown as T;
+}
+
 describe.skipIf(!enabled || !adminUrl)('application role enforces RLS on the real schema', () => {
   beforeAll(async () => {
-    admin = postgres(adminUrl!, { max: 1, prepare: false });
+    admin = postgres(adminUrl!, { max: 2, prepare: false });
     databaseName = `kestrel_app_role_${randomUUID().replaceAll('-', '_')}`;
     await admin.unsafe(`CREATE DATABASE ${databaseName}`);
 
@@ -99,19 +126,12 @@ describe.skipIf(!enabled || !adminUrl)('application role enforces RLS on the rea
     );
     await migrateClient.end({ timeout: 1 });
 
-    // Deployment provisioning gives the role LOGIN + a credential. Migrations
-    // deliberately do not carry a password.
-    const password = `pw_${randomUUID().replaceAll('-', '')}`;
-    await admin.unsafe(`ALTER ROLE ${APP_ROLE} WITH LOGIN PASSWORD '${password}'`);
-
-    const appUrl = new URL(isolated);
-    appUrl.username = APP_ROLE;
-    appUrl.password = password;
-    app = postgres(appUrl.toString(), { max: 2, prepare: false });
+    // The connection-level assertions run against the migrated database.
+    isolatedClient = postgres(isolated, { max: 2, prepare: false });
   });
 
   afterAll(async () => {
-    await app?.end({ timeout: 2 });
+    await isolatedClient?.end({ timeout: 2 });
     if (admin) {
       await admin.unsafe(`DROP DATABASE IF EXISTS ${databaseName} WITH (FORCE)`);
       await admin.end({ timeout: 2 });
@@ -119,10 +139,12 @@ describe.skipIf(!enabled || !adminUrl)('application role enforces RLS on the rea
   });
 
   it('connects as a role that cannot bypass row level security', async () => {
-    const [row] = await app!.unsafe<{ role: string; is_super: boolean; bypasses: boolean }[]>(
-      `SELECT current_user AS role,
-              (SELECT rolsuper FROM pg_roles WHERE rolname = current_user) AS is_super,
-              (SELECT rolbypassrls FROM pg_roles WHERE rolname = current_user) AS bypasses`,
+    const [row] = await asAppRole(async (tx) =>
+      tx.unsafe<{ role: string; is_super: boolean; bypasses: boolean }[]>(
+        `SELECT current_user AS role,
+                (SELECT rolsuper FROM pg_roles WHERE rolname = current_user) AS is_super,
+                (SELECT rolbypassrls FROM pg_roles WHERE rolname = current_user) AS bypasses`,
+      ),
     );
 
     expect(row?.role).toBe(APP_ROLE);
@@ -138,7 +160,6 @@ describe.skipIf(!enabled || !adminUrl)('application role enforces RLS on the rea
                WHERE g.grantee = '${APP_ROLE}' AND g.table_name = t.tablename) AS privs
         FROM pg_tables t
        WHERE t.schemaname = 'public'
-         AND t.tablename <> '__none__'
        ORDER BY t.tablename
     `);
 
@@ -157,60 +178,64 @@ describe.skipIf(!enabled || !adminUrl)('application role enforces RLS on the rea
   });
 
   it('resolves the tenant bootstrap before a tenant scope exists', async () => {
-    const rows = await app!.unsafe<{ org_id: string }[]>(
-      `SELECT org_id FROM organization_member WHERE user_id = '${USER_A}'`,
+    const rows = await asAppRole((tx) =>
+      tx.unsafe<{ org_id: string }[]>(
+        `SELECT org_id FROM organization_member WHERE user_id = '${USER_A}'`,
+      ),
     );
     expect(rows.map((r) => r.org_id)).toContain(TENANT_A);
   });
 
   it('reads only its own rows inside a tenant scope', async () => {
-    await app!.begin(async (tx) => {
-      await tx.unsafe(`SELECT set_config('app.current_tenant', '${TENANT_A}', true)`);
-      await tx.unsafe(
-        `INSERT INTO chat_threads (id, user_id, title, tenant_id, created_at, updated_at)
-         VALUES (gen_random_uuid(), '${USER_A}', 'scoped thread', '${TENANT_A}', now(), now())`,
-      );
-    });
+    await asAppRole(
+      (tx) =>
+        tx.unsafe(
+          `INSERT INTO chat_threads (id, user_id, title, tenant_id, created_at, updated_at)
+           VALUES (gen_random_uuid(), '${USER_A}', 'scoped thread', '${TENANT_A}', now(), now())`,
+        ),
+      TENANT_A,
+    );
 
-    const seenByB = await app!.begin(async (tx) => {
-      await tx.unsafe(`SELECT set_config('app.current_tenant', '${TENANT_B}', true)`);
-      return tx.unsafe(`SELECT id FROM chat_threads`);
-    });
-
+    const seenByB = await asAppRole((tx) => tx.unsafe(`SELECT id FROM chat_threads`), TENANT_B);
     expect(seenByB.length).toBe(0);
   });
 
   it('rejects a cross-tenant write', async () => {
     await expect(
-      app!.begin(async (tx) => {
-        await tx.unsafe(`SELECT set_config('app.current_tenant', '${TENANT_B}', true)`);
-        return tx.unsafe(
-          `INSERT INTO chat_threads (id, user_id, title, tenant_id, created_at, updated_at)
-           VALUES (gen_random_uuid(), '${USER_B}', 'cross tenant', '${TENANT_A}', now(), now())`,
-        );
-      }),
+      asAppRole(
+        (tx) =>
+          tx.unsafe(
+            `INSERT INTO chat_threads (id, user_id, title, tenant_id, created_at, updated_at)
+             VALUES (gen_random_uuid(), '${USER_B}', 'cross tenant', '${TENANT_A}', now(), now())`,
+          ),
+        TENANT_B,
+      ),
     ).rejects.toThrow(/row-level security|violates/i);
   });
 
   it('fails closed for an unscoped read and an unscoped write', async () => {
-    const unscopedRead = await app!.unsafe(`SELECT id FROM chat_threads`);
+    const unscopedRead = await asAppRole((tx) => tx.unsafe(`SELECT id FROM chat_threads`));
     expect(unscopedRead.length).toBe(0);
 
     await expect(
-      app!.unsafe(
-        `INSERT INTO chat_threads (id, user_id, title, tenant_id, created_at, updated_at)
-         VALUES (gen_random_uuid(), '${USER_A}', 'unscoped', '${TENANT_A}', now(), now())`,
+      asAppRole((tx) =>
+        tx.unsafe(
+          `INSERT INTO chat_threads (id, user_id, title, tenant_id, created_at, updated_at)
+           VALUES (gen_random_uuid(), '${USER_A}', 'unscoped', '${TENANT_A}', now(), now())`,
+        ),
       ),
     ).rejects.toThrow(/row-level security|violates/i);
   });
 
   it('can use the tables that migrations once forgot to grant', async () => {
-    await app!.unsafe(
-      `INSERT INTO provider_circuit_state (model_id, consecutive_failures, opened_at, updated_at)
-       VALUES ('probe/model', 0, now(), now())
-       ON CONFLICT (model_id) DO UPDATE SET consecutive_failures = 0`,
+    await asAppRole((tx) =>
+      tx.unsafe(
+        `INSERT INTO provider_circuit_state (model_id, consecutive_failures, opened_at, updated_at)
+         VALUES ('probe/model', 0, now(), now())
+         ON CONFLICT (model_id) DO UPDATE SET consecutive_failures = 0`,
+      ),
     );
-    const rows = await app!.unsafe(`SELECT model_id FROM provider_circuit_state`);
+    const rows = await asAppRole((tx) => tx.unsafe(`SELECT model_id FROM provider_circuit_state`));
     expect(rows.length).toBeGreaterThan(0);
   });
 });
