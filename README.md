@@ -424,6 +424,7 @@ For detailed guides, explore the `docs/` directory:
 - 📖 **[Configuration Reference](docs/configuration.md)**: Exhaustive list of all environment variables and secrets.
 - 🎨 **[Design System](docs/design-system.md)**: Kestrel tokens, typography, and showcase components.
 - 🤝 **[Contributing Guide](CONTRIBUTING.md)**: How to submit bug fixes, features, and new market indicators.
+- 🛟 **[Support](SUPPORT.md)**: Where to ask questions and report issues.
 
 ---
 
