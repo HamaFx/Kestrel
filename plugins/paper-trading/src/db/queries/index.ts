@@ -22,6 +22,7 @@
 export {
   findAccountByMode,
   getAccount,
+  incrementAccountBalance,
   listAccounts,
   setAccountBalance,
   updateAccountSettings,
@@ -43,11 +44,13 @@ export {
   listOpenPositions,
   listOpenPositionsForSymbol,
   listPositions,
+  updateOpenPosition,
   updatePosition,
   type InsertPositionInput,
   type PositionPatch,
 } from './positions';
 export {
+  claimPendingOrder,
   getOrder,
   insertOrder,
   listOrders,

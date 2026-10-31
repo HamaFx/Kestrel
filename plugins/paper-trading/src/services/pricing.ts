@@ -39,7 +39,10 @@ export function toMarketTick(tick: {
   ask: number;
   mid: number;
   ts: number;
-  source?: string;
+  source?: string | undefined;
+  marketState?: 'open' | 'closed' | undefined;
+  stale?: boolean | undefined;
+  quoteAgeSeconds?: number | null | undefined;
 }): MarketTick {
   return {
     symbol: tick.symbol,
@@ -48,7 +51,45 @@ export function toMarketTick(tick: {
     mid: tick.mid,
     ts: tick.ts,
     ...(tick.source ? { source: tick.source } : {}),
+    ...(tick.marketState ? { marketState: tick.marketState } : {}),
+    ...(tick.stale !== undefined ? { stale: tick.stale } : {}),
+    ...(tick.quoteAgeSeconds !== undefined ? { quoteAgeSeconds: tick.quoteAgeSeconds } : {}),
   };
+}
+
+/** Quotes older than five minutes are never tradable, even without flags. */
+export const MAX_QUOTE_AGE_SECONDS = 300;
+
+/**
+ * A market order or stop trigger may only execute against a live quote.
+ *
+ * `marketState === 'closed'` (weekend/holiday), an explicit upstream `stale`
+ * flag, or a quote older than five minutes all block execution. Resting
+ * limit/stop orders may still be *placed*; they simply do not fill until the
+ * market reopens with a fresh quote.
+ */
+export function isTickTradable(tick: MarketTick): { ok: true } | { ok: false; reason: string } {
+  if (tick.marketState === 'closed') {
+    return {
+      ok: false,
+      reason: `Market for ${tick.symbol} is currently closed; market orders cannot fill until the session opens.`,
+    };
+  }
+  if (tick.stale === true) {
+    return {
+      ok: false,
+      reason: `The quote for ${tick.symbol} is stale; market orders cannot fill until a fresh quote arrives.`,
+    };
+  }
+  if (typeof tick.quoteAgeSeconds === 'number' && tick.quoteAgeSeconds > MAX_QUOTE_AGE_SECONDS) {
+    return {
+      ok: false,
+      reason: `The quote for ${tick.symbol} is ${Math.round(
+        tick.quoteAgeSeconds,
+      )}s old; market orders cannot fill on a quote older than ${MAX_QUOTE_AGE_SECONDS}s.`,
+    };
+  }
+  return { ok: true };
 }
 
 export async function loadTick(symbol: string, signal?: AbortSignal): Promise<MarketTick> {

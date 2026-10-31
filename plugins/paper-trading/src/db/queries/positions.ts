@@ -175,6 +175,32 @@ export async function updatePosition(
   return rows[0];
 }
 
+/**
+ * Atomically update one still-open position.
+ *
+ * A close that loses the `status = 'open'` race must not insert a second fill
+ * or credit the realised P&L twice, so `applyClose` claims the row here first.
+ */
+export async function updateOpenPosition(
+  userId: string,
+  positionId: string,
+  patch: PositionPatch,
+): Promise<PaperPositionRow | undefined> {
+  const db = getDb();
+  const rows = await db
+    .update(paperPositions)
+    .set({ ...patch, updatedAt: new Date() })
+    .where(
+      and(
+        eq(paperPositions.userId, userId),
+        eq(paperPositions.id, positionId),
+        eq(paperPositions.status, 'open'),
+      ),
+    )
+    .returning();
+  return rows[0];
+}
+
 export async function countOpenPositions(userId: string, accountId: string): Promise<number> {
   const db = getDb();
   const rows = await db

@@ -26,8 +26,7 @@ import { withTenantDb } from '@kestrel/db';
 import type { PluginTick, PluginTickContext, PluginTickSubscriber } from '@kestrel/plugin-sdk';
 
 import { listWatchedSymbols } from './db/queries';
-import { quotesFromTick, type MarketTick } from './domain';
-import { spreadFor } from './services/pricing';
+import type { MarketTick } from './domain';
 import { processQuotesForUser } from './services/trading';
 import { normaliseSettings } from './settings';
 
@@ -107,13 +106,13 @@ export const paperTickSubscriber: PluginTickSubscriber = {
         lastProcessedAt.set(user.userId, now);
         try {
           const settings = normaliseSettings(user.settings);
-          const quotes = quotesFromTick(toMarketTick(tick), spreadFor(tick.symbol, settings));
+          const marketTick = toMarketTick(tick);
           const result = await withTenantDb(
             user.tenantId,
             () =>
               processQuotesForUser({
                 userId: user.userId,
-                quotesBySymbol: new Map([[tick.symbol, quotes]]),
+                ticksBySymbol: new Map([[tick.symbol, marketTick]]),
                 settings,
                 now: new Date(now),
                 source: 'tick',

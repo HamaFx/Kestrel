@@ -20,8 +20,9 @@ import {
   getAccount,
   getOrder,
   getPosition,
+  incrementAccountBalance,
   insertFill,
-  setAccountBalance,
+  updateOpenPosition,
   updateOrder,
   updatePosition,
 } from '../db/queries';
@@ -59,7 +60,7 @@ export async function applyClose(args: {
   source: string;
   now: Date;
   onJournalError?: (err: unknown) => void;
-}): Promise<{ position: PaperPositionRow; fill: FillView; closed: boolean }> {
+}): Promise<{ position: PaperPositionRow; fill: FillView | null; closed: boolean }> {
   const closeQuantity = Math.min(args.quantity, args.position.quantity);
   if (!(closeQuantity > 0)) {
     throw new Error('Close quantity must be positive.');
@@ -88,6 +89,34 @@ export async function applyClose(args: {
             ? 'close'
             : 'partial_close';
 
+  // Claim the row before any side effect: the TickBus subscriber and the
+  // market-watch job can evaluate the same stop at the same time, and only one
+  // of them may close, insert a fill, and credit the balance.
+  const updated = full
+    ? await updateOpenPosition(args.userId, args.position.id, {
+        status: 'closed',
+        quantity: 0,
+        closePrice: args.exitPrice,
+        closeTime: args.now,
+        closeReason: args.reason,
+        realizedPnl: args.position.realizedPnl + pnl,
+        unrealizedPnl: 0,
+        exitFee: args.position.exitFee + exitFee,
+      })
+    : await updateOpenPosition(args.userId, args.position.id, {
+        quantity: args.position.quantity - closeQuantity,
+        realizedPnl: args.position.realizedPnl + pnl,
+        unrealizedPnl: args.position.unrealizedPnl * (1 - closeQuantity / args.position.quantity),
+        // Keep the original risk so R and the Journal reflect the whole trade
+        // across partial closes, not just the remaining slice.
+        entryFee: args.position.entryFee * (1 - closeQuantity / args.position.quantity),
+        exitFee: args.position.exitFee + exitFee,
+      });
+  if (!updated) {
+    // Another worker won the claim; do not duplicate the fill or the credit.
+    return { position: args.position, fill: null, closed: false };
+  }
+
   const fill = await insertFill({
     userId: args.userId,
     accountId: args.account.id,
@@ -106,51 +135,25 @@ export async function applyClose(args: {
     },
   });
 
-  let updated: PaperPositionRow | undefined;
+  // Atomic increment: concurrent closes must never lose a realised-P&L update.
+  await incrementAccountBalance(args.userId, args.account.id, pnl);
+
   if (full) {
     // Prior partials are already in realizedPnl; the journal must reflect the
     // whole trade, not just the final slice.
-    const totalPnl = args.position.realizedPnl + pnl;
-    updated = await updatePosition(args.userId, args.position.id, {
-      status: 'closed',
-      quantity: 0,
-      closePrice: args.exitPrice,
-      closeTime: args.now,
-      closeReason: args.reason,
-      realizedPnl: args.position.realizedPnl + pnl,
-      unrealizedPnl: 0,
-      exitFee: args.position.exitFee + exitFee,
-    });
-    const freshAccount = (await getAccount(args.userId, args.account.id)) ?? args.account;
-    await setAccountBalance(args.userId, args.account.id, freshAccount.balance + pnl);
     await syncJournal({
       position: args.position,
       account: args.account,
       exitPrice: args.exitPrice,
-      pnl: totalPnl,
+      pnl: args.position.realizedPnl + pnl,
       recordedQuantity: args.position.initialQuantity,
       reason: args.reason,
       settings: args.settings,
       closedAt: args.now,
       ...(args.onJournalError ? { onError: args.onJournalError } : {}),
     });
-  } else {
-    const remaining = args.position.quantity - closeQuantity;
-    const share = remaining / args.position.quantity;
-    updated = await updatePosition(args.userId, args.position.id, {
-      quantity: remaining,
-      realizedPnl: args.position.realizedPnl + pnl,
-      unrealizedPnl: args.position.unrealizedPnl * share,
-      // Keep the original risk so R and the Journal reflect the whole trade
-      // across partial closes, not just the remaining slice.
-      entryFee: args.position.entryFee * share,
-      exitFee: args.position.exitFee + exitFee,
-    });
-    const freshAccount = (await getAccount(args.userId, args.account.id)) ?? args.account;
-    await setAccountBalance(args.userId, args.account.id, freshAccount.balance + pnl);
   }
 
-  if (!updated) throw new Error('Position disappeared while closing.');
   return { position: updated, fill: fillView(fill), closed: full };
 }
 
@@ -166,7 +169,7 @@ export async function closePositionForUser(args: {
   now?: Date;
   signal?: AbortSignal;
   onJournalError?: (err: unknown) => void;
-}): Promise<{ position: PositionView; account: AccountView; fill: FillView }> {
+}): Promise<{ position: PositionView; account: AccountView; fill: FillView | null }> {
   const position = await getPosition(args.userId, args.positionId);
   if (!position) throw new Error('Position not found.');
   if (position.status !== 'open') throw new Error('This position is already closed.');
@@ -196,8 +199,13 @@ export async function closePositionForUser(args: {
     ...(args.onJournalError ? { onJournalError: args.onJournalError } : {}),
   });
   const refreshedAccount = (await getAccount(args.userId, account.id)) ?? account;
+  // `fill === null` means a concurrent tick/watch closed the row between the
+  // read above and the atomic claim: report the current state, not a duplicate.
+  const current = result.fill
+    ? result.position
+    : ((await getPosition(args.userId, args.positionId)) ?? result.position);
   return {
-    position: positionView(result.position, refreshedAccount),
+    position: positionView(current, refreshedAccount),
     account: await accountViewById(args.userId, refreshedAccount),
     fill: result.fill,
   };

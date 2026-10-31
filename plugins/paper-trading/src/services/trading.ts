@@ -44,7 +44,7 @@ import type {
 } from '../schemas';
 import type { PaperSettings } from '../settings';
 import { accountViewById, listAccountViews, resolvePaperAccount } from './accounts';
-import { loadTick, slippageFor } from './pricing';
+import { isTickTradable, loadTick, slippageFor } from './pricing';
 import { createPosition, minStopDistance, nextUtcMidnight, quotesFor } from './trading-shared';
 import { fillView, orderView, positionView } from './views';
 
@@ -90,6 +90,14 @@ export async function placeOrderForUser(args: {
     throw new Error(
       'A stop loss is required for paper orders. Pass stopLoss, or disable "require stop loss" in plugin settings.',
     );
+  }
+
+  // A market order can only execute against a live quote. Resting limit/stop
+  // orders may still be placed while the market is closed: they wait for the
+  // session to open instead of filling on a stale weekend print.
+  if (args.input.type === 'market') {
+    const tradable = isTickTradable(tick);
+    if (!tradable.ok) throw new Error(tradable.reason);
   }
 
   const referencePrice =

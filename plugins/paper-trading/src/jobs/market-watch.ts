@@ -25,8 +25,7 @@ import { withTenantDb } from '@kestrel/db';
 import type { PluginJobRegistration } from '@kestrel/plugin-sdk';
 
 import { listWatchedSymbols } from '../db/queries';
-import { quotesFromTick } from '../domain';
-import { loadTicks, spreadFor } from '../services/pricing';
+import { loadTicks } from '../services/pricing';
 import { processQuotesForUser } from '../services/trading';
 import { normaliseSettings } from '../settings';
 
@@ -58,19 +57,12 @@ export const paperMarketWatchJob: PluginJobRegistration = {
           continue;
         }
 
-        const quotesBySymbol = new Map(
-          [...ticks.entries()].map(([symbol, tick]) => [
-            symbol,
-            quotesFromTick(tick, spreadFor(symbol, settings)),
-          ]),
-        );
-
         await withTenantDb(
           user.tenantId,
           () =>
             processQuotesForUser({
               userId: user.userId,
-              quotesBySymbol,
+              ticksBySymbol: ticks,
               settings,
               source: 'market-watch',
               onJournalError: (err) =>

@@ -20,7 +20,7 @@
 // worker TickBus/job) and every query additionally filters by user_id.
 
 import { getDb } from '@kestrel/db';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 
 import type { AccountMode } from '../../domain';
 import { paperAccounts, type PaperAccountRow } from '../tables';
@@ -94,6 +94,26 @@ export async function setAccountBalance(
   const rows = await db
     .update(paperAccounts)
     .set({ balance, updatedAt: new Date() })
+    .where(and(eq(paperAccounts.userId, userId), eq(paperAccounts.id, accountId)))
+    .returning();
+  return rows[0];
+}
+
+/**
+ * Atomically add `delta` to the realised cash balance.
+ *
+ * Concurrent closes (TickBus + market-watch) must never read-modify-write the
+ * same balance: a lost update would silently drop realised P&L.
+ */
+export async function incrementAccountBalance(
+  userId: string,
+  accountId: string,
+  delta: number,
+): Promise<PaperAccountRow | undefined> {
+  const db = getDb();
+  const rows = await db
+    .update(paperAccounts)
+    .set({ balance: sql`${paperAccounts.balance} + ${delta}`, updatedAt: new Date() })
     .where(and(eq(paperAccounts.userId, userId), eq(paperAccounts.id, accountId)))
     .returning();
   return rows[0];

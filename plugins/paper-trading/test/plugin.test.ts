@@ -19,6 +19,7 @@ import { describe, expect, it } from 'vitest';
 
 import { quotesFromTick, sizePosition } from '../src/domain';
 import plugin from '../src/index';
+import { isTickTradable } from '../src/services/pricing';
 import { DEFAULT_SETTINGS, normaliseSettings } from '../src/settings';
 
 describe('paper trading plugin', () => {
@@ -95,5 +96,57 @@ describe('paper trading plugin', () => {
       0.2,
     );
     expect(quotes.ask - quotes.bid).toBeCloseTo(0.2, 6);
+  });
+
+  it('rejects market execution on closed or stale ticks while allowing resting orders', () => {
+    expect(
+      isTickTradable({
+        symbol: 'XAUUSD',
+        bid: 2650,
+        ask: 2650.2,
+        mid: 2650.1,
+        ts: Date.now(),
+        marketState: 'closed',
+      }),
+    ).toEqual({
+      ok: false,
+      reason:
+        'Market for XAUUSD is currently closed; market orders cannot fill until the session opens.',
+    });
+
+    expect(
+      isTickTradable({
+        symbol: 'XAUUSD',
+        bid: 2650,
+        ask: 2650.2,
+        mid: 2650.1,
+        ts: Date.now(),
+        stale: true,
+      }),
+    ).toMatchObject({ ok: false });
+
+    expect(
+      isTickTradable({
+        symbol: 'XAUUSD',
+        bid: 2650,
+        ask: 2650.2,
+        mid: 2650.1,
+        ts: Date.now(),
+        quoteAgeSeconds: 420,
+      }),
+    ).toMatchObject({ ok: false });
+
+    expect(
+      isTickTradable({
+        symbol: 'XAUUSD',
+        bid: 2650,
+        ask: 2650.2,
+        mid: 2650.1,
+        ts: Date.now(),
+        marketState: 'open',
+        stale: false,
+        quoteAgeSeconds: 2,
+      }),
+    ).toEqual({ ok: true });
   });
 });

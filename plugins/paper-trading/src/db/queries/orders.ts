@@ -153,3 +153,30 @@ export async function updateOrder(
     .returning();
   return rows[0];
 }
+
+/**
+ * Atomically transition one still-pending order.
+ *
+ * The TickBus and the minute market-watch job can evaluate the same resting
+ * order at the same time; only the caller whose `status = 'pending'` claim
+ * matches may create the position (or reject/expire the order).
+ */
+export async function claimPendingOrder(
+  userId: string,
+  orderId: string,
+  patch: OrderPatch,
+): Promise<PaperOrderRow | undefined> {
+  const db = getDb();
+  const rows = await db
+    .update(paperOrders)
+    .set({ ...patch, updatedAt: new Date() })
+    .where(
+      and(
+        eq(paperOrders.userId, userId),
+        eq(paperOrders.id, orderId),
+        eq(paperOrders.status, 'pending'),
+      ),
+    )
+    .returning();
+  return rows[0];
+}
