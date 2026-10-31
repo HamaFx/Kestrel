@@ -91,14 +91,23 @@ export async function runSpecialistGeneration(
   };
   try {
     const toolPartsBuffer: MastraToolInvocationPart[] = [];
-    // Phase 2 (Jev) — the calibrated anchor published by the collect step.
-    // Restored onto the agent's context copy so the desk prompt includes it.
-    const jevCalibration = requestContext.get('jevCalibration') as JevPacketCalibration | undefined;
+    // Phase 2/3 (Jev) — the calibrated anchor published by the collect step.
+    // Comparison runs publish one calibration per symbol; prefer this desk's
+    // symbol-specific anchor and fall back to the single-symbol key. It is
+    // copied onto the agent's context so the desk prompt and the confidence
+    // blend both read it.
+    const calibrationsBySymbol = requestContext.get('jevCalibrationsBySymbol') as
+      | Record<string, JevPacketCalibration>
+      | undefined;
+    const jevCalibration =
+      (args.symbol ? calibrationsBySymbol?.[args.symbol] : undefined) ??
+      (requestContext.get('jevCalibration') as JevPacketCalibration | undefined);
     const packetContext = contextWithPacket(requestContext, packet);
-    (packetContext as unknown as { set?: (k: string, v: unknown) => void }).set?.(
-      'toolParts',
-      toolPartsBuffer,
-    );
+    const packetContextWithSet = packetContext as unknown as {
+      set?: (k: string, v: unknown) => void;
+    };
+    packetContextWithSet.set?.('toolParts', toolPartsBuffer);
+    if (jevCalibration) packetContextWithSet.set?.('jevCalibration', jevCalibration);
 
     // Audit v3 Phase 4 (Q8): bind each specialist's dedicated read-only
     // domain toolset. Phase 1 plugin extension: merge only the tools from

@@ -67,11 +67,17 @@ export interface JevPacketCalibration {
   technicalBias: JevChoiceAnswer;
   /** Calibrated fundamental desk distribution (bullish/bearish/neutral). */
   fundamentalBias: JevChoiceAnswer;
+  /**
+   * Calibrated positioning desk distribution (bullish/bearish/neutral) from
+   * deterministic COT/macro positioning. Optional so calibrations persisted
+   * or constructed before the positioning question keep working.
+   */
+  positioningBias?: JevChoiceAnswer;
   /** Volatility regime score: Compressed | Normal | Elevated | Extreme. */
   riskRegime: JevScoreAnswer;
   /** Setup clarity score: Noisy/Choppy | Moderate | High-Clarity. */
   setupQualityScore: JevScoreAnswer;
-  /** Mean calibrated confidence across the four answers. */
+  /** Mean calibrated confidence across the answered questions (4 or 5). */
   calibratedConfidence: number;
   providerId: string;
   model: string;
@@ -239,6 +245,16 @@ export async function scorePacketWithJev(
           neutral: 'Macro evidence is balanced or insufficient',
         },
       },
+      positioning_bias: {
+        type: 'choice',
+        instructions:
+          'Given only the deterministic COT net-positioning rows and macro series, what is the sentiment desk directional bias for this symbol? Never use headlines or free-form prose — positioning evidence only.',
+        criteria: {
+          bullish: 'COT positioning and macro flows favor upside',
+          bearish: 'COT positioning and macro flows favor downside',
+          neutral: 'Positioning is balanced, crowded, or unavailable',
+        },
+      },
       volatility_regime: {
         type: 'score',
         instructions: 'Classify the current volatility regime from recent candle ranges and ATR.',
@@ -261,18 +277,26 @@ export async function scorePacketWithJev(
   });
   if (!result) return null;
 
-  const { technical_bias, fundamental_bias, volatility_regime, setup_clarity } = result.answers;
+  const { technical_bias, fundamental_bias, positioning_bias, volatility_regime, setup_clarity } =
+    result.answers;
+  // Mean calibrated confidence across the answered questions. The
+  // positioning question is part of the batch; if an older/partial endpoint
+  // response omits it the mean falls back to the original four answers.
+  const confidences = [
+    technical_bias.confidence,
+    fundamental_bias.confidence,
+    ...(positioning_bias ? [positioning_bias.confidence] : []),
+    volatility_regime.confidence,
+    setup_clarity.confidence,
+  ];
   return {
     technicalBias: technical_bias,
     fundamentalBias: fundamental_bias,
+    ...(positioning_bias ? { positioningBias: positioning_bias } : {}),
     riskRegime: volatility_regime,
     setupQualityScore: setup_clarity,
     calibratedConfidence: clamp01(
-      (technical_bias.confidence +
-        fundamental_bias.confidence +
-        volatility_regime.confidence +
-        setup_clarity.confidence) /
-        4,
+      confidences.reduce((sum, confidence) => sum + confidence, 0) / confidences.length,
     ),
     providerId: result.providerId,
     model: result.model,
@@ -286,8 +310,8 @@ export async function scorePacketWithJev(
  *   - technical  → technical bias distribution
  *   - fundamental→ fundamental bias distribution
  *   - risk       → volatility regime score
- *   - sentiment  → aggregate calibrated confidence (positioning has no
- *                  dedicated Jev question)
+ *   - sentiment  → dedicated positioning bias distribution (falls back to the
+ *                  aggregate calibrated confidence when absent)
  */
 export function deskJevConfidence(
   calibration: JevPacketCalibration,
@@ -301,7 +325,7 @@ export function deskJevConfidence(
     case 'risk':
       return calibration.riskRegime.confidence;
     case 'sentiment':
-      return calibration.calibratedConfidence;
+      return calibration.positioningBias?.confidence ?? calibration.calibratedConfidence;
   }
 }
 
@@ -339,6 +363,9 @@ export function jevCalibrationBlock(calibration: JevPacketCalibration): string {
     'JEV CALIBRATED REFERENCE (deterministic statistical anchor; you may disagree, but address it):',
     `- Technical bias: ${renderDistribution(calibration.technicalBias.probabilities)}`,
     `- Fundamental bias: ${renderDistribution(calibration.fundamentalBias.probabilities)}`,
+    ...(calibration.positioningBias
+      ? [`- Positioning bias: ${renderDistribution(calibration.positioningBias.probabilities)}`]
+      : []),
     `- Volatility regime score: ${calibration.riskRegime.score.toFixed(2)} (Compressed..Extreme)`,
     `- Setup clarity score: ${calibration.setupQualityScore.score.toFixed(2)} (Noisy..High-Clarity)`,
   ].join('\n');

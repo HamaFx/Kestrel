@@ -19,20 +19,26 @@
 // (Check Point indirect evidence-poisoning hardening).
 
 import { RequestContext } from '@mastra/core/request-context';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { createComparisonCollectStep } from '../src/committee/comparison-workflow/collect-step';
 import {
   blendSpecialistConfidence,
   buildDeterministicNumericPacketState,
   deskJevConfidence,
+  jevCalibrationBlock,
   scorePacketWithJev,
   type JevPacketCalibration,
 } from '../src/committee/jev-packet-scorer';
 import { specialistInstructionsForRequest } from '../src/committee/prompts/specialist';
 import { contextWithPacket } from '../src/committee/types/context';
 import type { SymbolResearchPacket } from '../src/mastra-v2/packets/symbol-research';
+import { createGenerationLedger } from '../src/persistence/generation-ledger';
 
 describe('Committee Jev packet scorer & untrusted-prose stripping', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
   const samplePacket = {
     packetId: 'pkt-1',
     kind: 'symbol_research_packet',
@@ -98,6 +104,11 @@ describe('Committee Jev packet scorer & untrusted-prose stripping', () => {
             choice: 'bullish',
             probabilities: { bullish: 0.78, bearish: 0.12, neutral: 0.1 },
           },
+          positioning_bias: {
+            type: 'choice',
+            choice: 'neutral',
+            probabilities: { bullish: 0.25, bearish: 0.25, neutral: 0.5 },
+          },
           volatility_regime: {
             type: 'score',
             probabilities: [0.1, 0.7, 0.2],
@@ -140,6 +151,11 @@ describe('Committee Jev packet scorer & untrusted-prose stripping', () => {
             choice: 'bullish',
             probabilities: { bullish: 0.78, bearish: 0.12, neutral: 0.1 },
           },
+          positioning_bias: {
+            type: 'choice',
+            choice: 'neutral',
+            probabilities: { bullish: 0.25, bearish: 0.25, neutral: 0.5 },
+          },
           volatility_regime: { type: 'score', probabilities: [0.1, 0.7, 0.2] },
           setup_clarity: { type: 'score', probabilities: [0.05, 0.15, 0.8] },
         },
@@ -163,6 +179,157 @@ describe('Committee Jev packet scorer & untrusted-prose stripping', () => {
     expect(body.state as string).toContain('2750');
     // The untrusted-prose stripping invariant survives serialization.
     expect(body.state as string).not.toContain('PonziCorp');
+  });
+
+  it('includes positioning_bias in scorePacketWithJev and uses it for the sentiment desk confidence', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        model: 'jev-1.13-free',
+        answers: {
+          technical_bias: {
+            type: 'choice',
+            choice: 'bullish',
+            probabilities: { bullish: 0.82, bearish: 0.1, neutral: 0.08 },
+          },
+          fundamental_bias: {
+            type: 'choice',
+            choice: 'bullish',
+            probabilities: { bullish: 0.78, bearish: 0.12, neutral: 0.1 },
+          },
+          positioning_bias: {
+            type: 'choice',
+            choice: 'bearish',
+            probabilities: { bullish: 0.2, bearish: 0.6, neutral: 0.2 },
+          },
+          volatility_regime: { type: 'score', probabilities: [0.1, 0.7, 0.2] },
+          setup_clarity: { type: 'score', probabilities: [0.05, 0.15, 0.8] },
+        },
+        usage: { input_tokens: 260, output_tokens: 20 },
+      }),
+    });
+
+    const calibration = await scorePacketWithJev(samplePacket, {
+      env: { OPENCODE_API_KEY: 'oc-free' },
+      fetchImpl: fetchMock as unknown as typeof fetch,
+    });
+
+    expect(calibration).not.toBeNull();
+    const body = JSON.parse(String(fetchMock.mock.calls[0]![1].body)) as {
+      questions: Record<string, unknown>;
+    };
+    // The calibration batch grew from 4 to 5 questions.
+    expect(Object.keys(body.questions)).toContain('positioning_bias');
+
+    expect(calibration!.positioningBias?.choice).toBe('bearish');
+    // The sentiment desk anchors on the dedicated positioning question…
+    expect(deskJevConfidence(calibration!, 'sentiment')).toBe(
+      calibration!.positioningBias!.confidence,
+    );
+    // …and the aggregate mean includes the fifth answer.
+    const expectedMean =
+      (calibration!.technicalBias.confidence +
+        calibration!.fundamentalBias.confidence +
+        calibration!.positioningBias!.confidence +
+        calibration!.riskRegime.confidence +
+        calibration!.setupQualityScore.confidence) /
+      5;
+    expect(calibration!.calibratedConfidence).toBeCloseTo(expectedMean, 6);
+    expect(jevCalibrationBlock(calibration!)).toContain('Positioning bias:');
+  });
+
+  it('calibrates each healthy symbol packet in createComparisonCollectStep and stores jevCalibrationsBySymbol', async () => {
+    const answersFor = (choice: string) => ({
+      technical_bias: {
+        type: 'choice',
+        choice,
+        probabilities: { bullish: 0.82, bearish: 0.1, neutral: 0.08 },
+      },
+      fundamental_bias: {
+        type: 'choice',
+        choice: 'bullish',
+        probabilities: { bullish: 0.78, bearish: 0.12, neutral: 0.1 },
+      },
+      positioning_bias: {
+        type: 'choice',
+        choice: 'neutral',
+        probabilities: { bullish: 0.25, bearish: 0.25, neutral: 0.5 },
+      },
+      volatility_regime: { type: 'score', probabilities: [0.1, 0.7, 0.2] },
+      setup_clarity: { type: 'score', probabilities: [0.05, 0.15, 0.8] },
+    });
+    const fetchMock = vi.fn(async (_url: string, init: { body: string }) => {
+      const { symbol } = JSON.parse(JSON.parse(init.body).state) as { symbol: string };
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          model: 'jev-1.13-free',
+          answers: answersFor(symbol === 'XAUUSD' ? 'bullish' : 'bearish'),
+          usage: { input_tokens: 250, output_tokens: 20 },
+        }),
+      };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const euroPacket = {
+      ...samplePacket,
+      packetId: 'pkt-2',
+      symbol: 'EURUSD',
+    } as unknown as SymbolResearchPacket;
+
+    const contextStore = new Map<string, unknown>([['runId', 'run-compare-1']]);
+    const requestContext = {
+      get: (key: string) => contextStore.get(key),
+      set: (key: string, value: unknown) => {
+        contextStore.set(key, value);
+      },
+    };
+    const step = createComparisonCollectStep({
+      deps: { jevSettings: null, jevEnv: { OPENCODE_API_KEY: 'oc-free' } } as never,
+      mode: 'single',
+      symbols: ['XAUUSD', 'EURUSD'] as never,
+      deskNames: [],
+      stepIdFor: () => 'analysis',
+      collectComparisonPackets: async () =>
+        new Map<string, SymbolResearchPacket>([
+          ['XAUUSD', samplePacket],
+          ['EURUSD', euroPacket],
+        ]),
+      specialistDeps: {} as never,
+      runSignals: {} as never,
+      runSignal: undefined,
+      progressStages: ['collect-packet'] as never,
+      generationLedger: createGenerationLedger(),
+      maxSteps: 3,
+    } as never);
+
+    const result = (await (
+      step as unknown as { execute: (args: unknown) => Promise<unknown> }
+    ).execute({
+      inputData: {
+        prompt: 'compare XAUUSD and EURUSD',
+        symbol: 'XAUUSD',
+        mode: 'single',
+        symbols: ['XAUUSD', 'EURUSD'],
+      },
+      requestContext,
+      abortSignal: undefined,
+      bail: (value: unknown) => value,
+    })) as { packets: Record<string, unknown> };
+
+    expect(result.packets).toBeDefined();
+    const calibrations = contextStore.get('jevCalibrationsBySymbol') as Record<
+      string,
+      JevPacketCalibration
+    >;
+    expect(Object.keys(calibrations).sort()).toEqual(['EURUSD', 'XAUUSD']);
+    expect(calibrations.XAUUSD!.technicalBias.choice).toBe('bullish');
+    expect(calibrations.EURUSD!.technicalBias.choice).toBe('bearish');
+    // The primary symbol's anchor is also published for backward compatibility.
+    expect(contextStore.get('jevCalibration')).toBe(calibrations.XAUUSD);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   const sampleCalibration: JevPacketCalibration = {
