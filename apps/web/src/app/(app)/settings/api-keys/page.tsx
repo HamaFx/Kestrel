@@ -16,24 +16,12 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { computeUsage, type ProviderBreakdown } from '@kestrel/ai';
-import {
-  getDb,
-  getOwnUserSettings,
-  getUserWithSettings,
-  requireTenantIdForUser,
-  schema,
-} from '@kestrel/db';
-import { decryptByok } from '@kestrel/shared/encryption';
-import { and, eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
-import { buildCatalogForUser } from '@/lib/services/catalog-server';
 
 import { AISubNav } from '../_components/ai-subnav';
 import { updateApiKeysAction } from '../actions';
-import type { ApiKeyHealth } from './_components/api-key-health';
 import { ApiKeysEmptyState } from './_components/api-keys-empty-state';
 import { ApiKeysLandingBanner } from './_components/api-keys-landing-banner';
 import { ExportImportKeys } from './_components/export-import-keys';
@@ -43,6 +31,7 @@ import { ProviderCapabilityMatrix } from './_components/provider-capability-matr
 import { ProviderHealthPanel } from './_components/provider-health-panel';
 import { ProviderKeySections } from './_components/provider-key-sections';
 import { SaveBar } from './_components/save-bar';
+import { loadApiKeysPageData } from './_lib/load-page-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,96 +56,23 @@ export default async function ApiKeysSettingsPage({
   const fromChat = sp.from === 'chat';
   const preservedPrompt = sp.prompt && sp.prompt.trim().length > 0 ? sp.prompt : null;
 
-  // The vault fields must come from the user's OWN settings row: the
-  // platform-inheritance merge would otherwise pre-fill this editable form
-  // with the operator's decrypted provider keys. `effSettings` (merged) is
-  // still used for effective non-secret values like the market feed adapter.
-  const [{ settings: effSettings }, ownSettings] = await Promise.all([
-    getUserWithSettings(session.user.id),
-    getOwnUserSettings(session.user.id),
-  ]);
-
-  // Audit 2026-10-31 (R5): decrypt server-side ONLY to learn which providers
-  // have a key. The plaintext is used to build an id list and is never passed
-  // to a component, so it cannot end up in the RSC payload.
-  const ownKeyPayload = ownSettings?.aiApiKeys ? decryptByok(ownSettings.aiApiKeys) : null;
-  const configuredKeyIds = ownKeyPayload
-    ? Object.entries(ownKeyPayload)
-        .filter(([, v]) => typeof v === 'string' && v.length > 0)
-        .map(([k]) => k)
-    : [];
-
-  // Phase A — UX_UPGRADE_PLAN.md item 7. Load the latest health
-  // snapshot per provider so the badge can render without waiting
-  // for the user to click "Test". Single round-trip; the row PK
-  // is (userId, providerId) so the result is naturally keyed.
-  const db = getDb();
-  const tenantId = await requireTenantIdForUser(session.user.id, db);
-  const healthRows = await db
-    .select({
-      providerId: schema.providerTests.providerId,
-      ok: schema.providerTests.ok,
-      error: schema.providerTests.error,
-      testedAt: schema.providerTests.testedAt,
-      rateLimit: schema.providerTests.rateLimit,
-    })
-    .from(schema.providerTests)
-    .where(
-      and(
-        eq(schema.providerTests.userId, session.user.id),
-        eq(schema.providerTests.tenantId, tenantId),
-      ),
-    );
-  const healthByProvider = new Map<string, ApiKeyHealth>(
-    healthRows.map((h) => [
-      h.providerId,
-      {
-        ok: h.ok,
-        error: h.error,
-        // testedAt has `mode: 'string'` in the schema, so the value
-        // is always a string already — no Date coercion needed.
-        testedAt: h.testedAt,
-        rateLimit: h.rateLimit,
-      },
-    ]),
-  );
-
-  // Phase D — per-provider usage. We computeUsage once here and
-  // map the breakdown by BYOK id so each card receives just the
-  // turns + cost for its own provider. No N+1 queries.
-  const usage = await computeUsage(session.user.id);
-  const usageByProvider = new Map<string, { turns: number; costUsd: number }>();
-  for (const p of usage.byProvider as ProviderBreakdown[]) {
-    if (p.byokProviderId) {
-      usageByProvider.set(p.byokProviderId, {
-        turns: p.turns,
-        costUsd: p.costUsd,
-      });
-    }
-  }
-
-  // Phase E — call the catalog builder directly. RSC pages can't
-  // fetch() their own host without a full URL (and APP_URL isn't
-  // always set on Vercel), so the route handler and the RSC pages
-  // share a `buildCatalogForUser(userId)` helper instead.
-  const catalog = await buildCatalogForUser(session.user.id);
-
-  // The catalog endpoint already does the user-overrides merge for
-  // defaultModels and the per-provider key/health check. We just
-  // filter into configured vs available here.
-  const configured = catalog.providers.filter((p) => p.hasKey);
-  const available = catalog.providers.filter((p) => !p.hasKey);
-
-  const totalConfigured = configured.length;
-  const totalFailed = catalog.providers.filter((p) => p.health && !p.health.ok).length;
-  const totalTurns = usage.thirtyDayTurns;
-  const totalCost = usage.thirtyDayUsd;
-
-  const testedAtTimes = healthRows
-    .map((h) => new Date(h.testedAt).getTime())
-    .filter((t) => !isNaN(t));
-  const lastTestedTime = testedAtTimes.length > 0 ? Math.max(...testedAtTimes) : null;
-  const lastTestedStr = lastTestedTime ? new Date(lastTestedTime).toISOString() : null;
+  // Audit 2026-10-31 (R1): this server component starts outside the API
+  // boundary, so every tenant read below must run inside a tenant scope — see
+  // `_lib/load-page-data.ts`.
+  const {
+    effSettings,
+    ownSettings,
+    configuredKeyIds,
+    healthByProvider,
+    usageByProvider,
+    configured,
+    available,
+    totalConfigured,
+    totalFailed,
+    totalTurns,
+    totalCost,
+    lastTestedStr,
+  } = await loadApiKeysPageData(session.user.id);
 
   return (
     <div className="flex max-w-2xl min-w-0 flex-col gap-6">

@@ -56,10 +56,16 @@ describe('Personal BYOK settings surface (Phase 3)', () => {
   });
 
   it('reads the BYOK vault from the user’s own settings row, not the inherited one', () => {
-    const apiKeys = read('apps/web/src/app/(app)/settings/api-keys/page.tsx');
+    const page = read('apps/web/src/app/(app)/settings/api-keys/page.tsx');
+    // The vault read moved into the page's data loader (audit 2026-10-31 R1
+    // wrapped it in a tenant scope); the invariant is asserted where the reads
+    // now happen, and the page must delegate rather than read the vault itself.
+    const loader = read('apps/web/src/app/(app)/settings/api-keys/_lib/load-page-data.ts');
 
-    expect(apiKeys).toContain('getOwnUserSettings');
-    expect(apiKeys).toContain('ownSettings?.aiApiKeys');
+    expect(page).toContain('loadApiKeysPageData');
+    expect(page).not.toContain('getUserWithSettings');
+    expect(loader).toContain('getOwnUserSettings');
+    expect(loader).toContain('ownSettings?.aiApiKeys');
   });
 
   it('replaces the fake locale selector with a static badge', () => {

@@ -42,7 +42,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import postgres from 'postgres';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 const enabled = process.env.RUN_POSTGRES_RLS_TESTS === '1';
 const adminUrl = process.env.TEST_POSTGRES_ADMIN_URL;
@@ -126,7 +126,8 @@ describe.skipIf(!enabled || !adminUrl)('application role enforces RLS on the rea
     );
     await migrateClient.end({ timeout: 1 });
 
-    // The connection-level assertions run against the migrated database.
+    // Every assertion below runs against the migrated database: `admin` stays
+    // on the maintenance database so it can DROP this one during cleanup.
     isolatedClient = postgres(isolated, { max: 2, prepare: false });
   });
 
@@ -153,7 +154,7 @@ describe.skipIf(!enabled || !adminUrl)('application role enforces RLS on the rea
   });
 
   it('has table privileges for every table in the schema (R19 regression guard)', async () => {
-    const rows = await admin!.unsafe<{ tablename: string; privs: string | null }[]>(`
+    const rows = await isolatedClient!.unsafe<{ tablename: string; privs: string | null }[]>(`
       SELECT t.tablename,
              (SELECT string_agg(g.privilege_type, ',' ORDER BY g.privilege_type)
                 FROM information_schema.role_table_grants g
@@ -237,5 +238,78 @@ describe.skipIf(!enabled || !adminUrl)('application role enforces RLS on the rea
     );
     const rows = await asAppRole((tx) => tx.unsafe(`SELECT model_id FROM provider_circuit_state`));
     expect(rows.length).toBeGreaterThan(0);
+  });
+
+  describe('withUserTenant gives RSC entry points a scope', () => {
+    // A dedicated login role rather than the shared `kestrel_app`: roles are
+    // cluster-scoped, so creating/altering a throwaway name keeps parallel
+    // suites and other databases untouched.
+    const probeRole = `kestrel_app_probe_${randomUUID().replaceAll('-', '').slice(0, 12)}`;
+    const probePassword = `pw_${randomUUID().replaceAll('-', '')}`;
+    let probeUrl = '';
+    let probeClient: ReturnType<typeof postgres> | null = null;
+
+    beforeAll(async () => {
+      await admin!.unsafe(
+        `CREATE ROLE ${probeRole} LOGIN NOSUPERUSER NOBYPASSRLS PASSWORD '${probePassword}'`,
+      );
+      await isolatedClient!.unsafe(
+        `GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO ${probeRole}`,
+      );
+
+      const url = new URL(adminUrl!);
+      url.pathname = `/${databaseName}`;
+      url.username = probeRole;
+      url.password = probePassword;
+      probeUrl = url.toString();
+      probeClient = postgres(probeUrl, { max: 2, prepare: false });
+
+      // The page helpers must see the app-side connection pool.
+      process.env.DATABASE_URL = probeUrl;
+      process.env.KESTREL_ENABLE_RLS = 'true';
+      process.env.MULTI_USER_ENABLED = '1';
+      process.env.DB_DISABLE_SSL = 'true';
+      process.env.KESTREL_RUNTIME = 'web';
+
+      await isolatedClient!.unsafe(
+        `INSERT INTO user_settings (user_id, tenant_id, default_symbol)
+         VALUES ('${USER_A}', '${TENANT_A}', 'XAUUSD') ON CONFLICT (user_id) DO NOTHING`,
+      );
+    });
+
+    afterAll(async () => {
+      await probeClient?.end({ timeout: 2 });
+      await isolatedClient!.unsafe(`DROP OWNED BY ${probeRole}`);
+      await admin!.unsafe(`DROP ROLE IF EXISTS ${probeRole}`);
+    });
+
+    it('returns no rows unscoped, then returns them inside withUserTenant', async () => {
+      // Fresh module registry so the query layer builds its pool from the
+      // app-role DATABASE_URL set above.
+      vi.resetModules();
+      const queries = await import('../src/queries/user-settings');
+      const threads = await import('../src/queries/threads');
+      const { withUserTenant } = await import('../src/with-user-tenant');
+      const { closeDb } = await import('../src/client');
+
+      try {
+        // Entry points outside withAuth (RSC pages) used to read like this.
+        expect(await queries.getOwnUserSettings(USER_A)).toBeNull();
+
+        const scopedSettings = await withUserTenant(USER_A, () =>
+          queries.getOwnUserSettings(USER_A),
+        );
+        expect(scopedSettings).not.toBeNull();
+        expect(scopedSettings?.defaultSymbol).toBe('XAUUSD');
+
+        const scopedThreads = await withUserTenant(USER_A, () => threads.listThreads(USER_A, 5));
+        expect(scopedThreads.length).toBeGreaterThan(0);
+
+        // The scope must not outlive the wrapper.
+        expect(await queries.getOwnUserSettings(USER_A)).toBeNull();
+      } finally {
+        await closeDb();
+      }
+    });
   });
 });

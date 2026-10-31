@@ -42,6 +42,7 @@ export {
   type DbClient,
 } from './client';
 export { withUserScope } from './with-user-scope';
+export { withUserTenant } from './with-user-tenant';
 export { withRateLimit, type RateLimitResult } from './rate-limit';
 export {
   runRetentionCleanup,
