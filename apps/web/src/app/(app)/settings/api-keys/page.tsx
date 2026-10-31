@@ -76,7 +76,15 @@ export default async function ApiKeysSettingsPage({
     getOwnUserSettings(session.user.id),
   ]);
 
-  const decrypted = ownSettings?.aiApiKeys ? decryptByok(ownSettings.aiApiKeys) : null;
+  // Audit 2026-10-31 (R5): decrypt server-side ONLY to learn which providers
+  // have a key. The plaintext is used to build an id list and is never passed
+  // to a component, so it cannot end up in the RSC payload.
+  const ownKeyPayload = ownSettings?.aiApiKeys ? decryptByok(ownSettings.aiApiKeys) : null;
+  const configuredKeyIds = ownKeyPayload
+    ? Object.entries(ownKeyPayload)
+        .filter(([, v]) => typeof v === 'string' && v.length > 0)
+        .map(([k]) => k)
+    : [];
 
   // Phase A — UX_UPGRADE_PLAN.md item 7. Load the latest health
   // snapshot per provider so the badge can render without waiting
@@ -188,7 +196,7 @@ export default async function ApiKeysSettingsPage({
         <ProviderKeySections
           configured={configured}
           available={available}
-          decrypted={decrypted}
+          configuredIds={configuredKeyIds}
           keyUpdatedAtByProvider={ownSettings?.aiApiKeysUpdatedAt ?? undefined}
           healthByProvider={healthByProvider}
           usageByProvider={usageByProvider}
@@ -198,16 +206,16 @@ export default async function ApiKeysSettingsPage({
       {/* Decision 4A — Jev System One decision-model keys. */}
       <JevDecisionKeysCard
         initialKeys={{
-          opencode: !!decrypted?.opencode,
-          liquid: !!decrypted?.liquid,
-          typesafe: !!decrypted?.typesafe,
+          opencode: configuredKeyIds.includes('opencode'),
+          liquid: configuredKeyIds.includes('liquid'),
+          typesafe: configuredKeyIds.includes('typesafe'),
         }}
       />
 
       {/* Market Data Provider Configuration */}
       <MarketDataConfig
         initialProvider={effSettings?.marketDataProvider ?? 'biquote'}
-        finnhubKeySet={!!decrypted?.finnhub}
+        finnhubKeySet={configuredKeyIds.includes('finnhub')}
       />
 
       {/* Export / Import API Keys */}

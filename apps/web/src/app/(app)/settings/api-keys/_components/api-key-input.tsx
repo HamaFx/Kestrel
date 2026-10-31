@@ -3,6 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Masked key input with copy/reveal affordances and the inline test feedback.
+//
+// Audit 2026-10-31 (R5): the field is write-only for a stored key — it holds
+// the KEEP sentinel until the user types a replacement, so no plaintext ever
+// arrives from the server. Copy/reveal therefore only apply to a value the
+// user has just typed in this session.
 import type { ProviderMeta } from '@kestrel/shared';
 import { IconCircleCheck, IconCircleX, IconCopy, IconEye, IconEyeOff } from '@tabler/icons-react';
 
@@ -14,8 +19,13 @@ interface ApiKeyInputProps {
   provider: ProviderMeta;
   value: string;
   revealed: boolean;
+  /** A key is currently stored server-side (or one has just been typed). */
   isSet: boolean;
+  /** A stored key exists and the field has not been edited yet. */
+  isPristineStoredKey: boolean;
+  /** The user has edited the field in this session. */
   dirty: boolean;
+  canCopy: boolean;
   testState: TestState;
   onValueChange: (value: string) => void;
   onToggleReveal: () => void;
@@ -27,7 +37,9 @@ export function ApiKeyInput({
   value,
   revealed,
   isSet,
+  isPristineStoredKey,
   dirty,
+  canCopy,
   testState,
   onValueChange,
   onToggleReveal,
@@ -45,13 +57,17 @@ export function ApiKeyInput({
           onChange={(e) => {
             onValueChange(e.target.value);
           }}
-          placeholder={provider.keyHint}
+          placeholder={
+            isPristineStoredKey
+              ? 'Stored — type a new key to replace it, or clear the field to remove it'
+              : provider.keyHint
+          }
           autoComplete="off"
           spellCheck={false}
           className="pr-24 font-mono"
         />
         <div className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-0.5">
-          {isSet && (
+          {canCopy && (
             <button
               type="button"
               onClick={onCopy}
@@ -84,6 +100,11 @@ export function ApiKeyInput({
           <IconCircleCheck className="size-3.5 shrink-0" />
           <span>New value passes validation. Click Save to apply.</span>
         </div>
+      ) : null}
+      {isSet && isPristineStoredKey ? (
+        <p className="text-caption text-fg-subtle">
+          Stored key is hidden. Leave the field untouched to keep it.
+        </p>
       ) : null}
     </>
   );

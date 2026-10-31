@@ -17,7 +17,6 @@
 // Configured / available provider card lists rendered inside the SaveBar.
 
 import type { ProviderMeta } from '@kestrel/shared';
-import type { ByokPayload, ProviderId } from '@kestrel/shared/encryption';
 
 import { ApiKeyCard } from './api-key-card';
 import type { ApiKeyHealth } from './api-key-health';
@@ -25,7 +24,11 @@ import type { ApiKeyHealth } from './api-key-health';
 interface ProviderKeySectionsProps {
   configured: ProviderMeta[];
   available: ProviderMeta[];
-  decrypted: ByokPayload | null;
+  /**
+   * Ids that have a stored key (derived server-side). Audit 2026-10-31 (R5):
+   * plaintext keys are no longer part of this payload.
+   */
+  configuredIds: readonly string[];
   keyUpdatedAtByProvider: Record<string, string> | undefined;
   healthByProvider: Map<string, ApiKeyHealth>;
   usageByProvider: Map<string, { turns: number; costUsd: number }>;
@@ -34,7 +37,7 @@ interface ProviderKeySectionsProps {
 export function ProviderKeySections({
   configured,
   available,
-  decrypted,
+  configuredIds,
   keyUpdatedAtByProvider,
   healthByProvider,
   usageByProvider,
@@ -57,7 +60,7 @@ export function ProviderKeySections({
               <ApiKeyCard
                 key={p.id}
                 provider={p}
-                currentValue={decrypted?.[p.id as ProviderId] ?? ''}
+                isConfigured={configuredIds.includes(p.id)}
                 keyUpdatedAt={keyUpdatedAt}
                 {...(health ? { health } : {})}
                 {...(u ? { usage: u } : {})}
@@ -83,7 +86,7 @@ export function ProviderKeySections({
               <ApiKeyCard
                 key={p.id}
                 provider={p}
-                currentValue=""
+                isConfigured={false}
                 keyUpdatedAt={keyUpdatedAt}
                 {...(health ? { health } : {})}
                 {...(u ? { usage: u } : {})}

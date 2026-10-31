@@ -581,7 +581,7 @@ describe('updateApiKeysAction', () => {
     expect(mockTestProviderKey).toHaveBeenCalledWith('google', 'new-g');
   });
 
-  it('removes a cleared chat key without touching the decision-model or market-data keys', async () => {
+  it('clears a chat key when its field is submitted empty, without touching the decision-model or market-data keys', async () => {
     mockDb([
       [
         {
@@ -591,11 +591,88 @@ describe('updateApiKeysAction', () => {
       ],
     ]);
 
-    const result = await updateApiKeysAction({ status: 'idle' }, formData({}));
+    const result = await updateApiKeysAction({ status: 'idle' }, formData({ google: '' }));
 
     expect(result.ok).toBe(true);
     expect(savedByokPayload()).toMatchObject({ opencode: 'oc-free-1' });
     expect(savedByokPayload()).not.toHaveProperty('google');
+  });
+
+  it('keeps stored chat keys when the fields still carry the KEEP sentinel (R5)', async () => {
+    mockDb([
+      [
+        {
+          aiApiKeys: encryptByok({ google: 'old-g', openai: 'old-o' }),
+          aiApiKeysUpdatedAt: null,
+        },
+      ],
+    ]);
+
+    const result = await updateApiKeysAction(
+      { status: 'idle' },
+      formData({
+        google: '***KEEP***',
+        openai: '***KEEP***',
+        anthropic: '',
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+    const saved = savedByokPayload();
+    expect(saved).toMatchObject({ google: 'old-g', openai: 'old-o' });
+    // The write-only form never re-tests an untouched stored key.
+    expect(mockTestProviderKey).not.toHaveBeenCalled();
+  });
+
+  it('preserves stored keys for providers the form does not mention (R5)', async () => {
+    mockDb([
+      [
+        {
+          aiApiKeys: encryptByok({ google: 'old-g', deepseek: 'old-d' }),
+          aiApiKeysUpdatedAt: null,
+        },
+      ],
+    ]);
+
+    // A pre-R5 client (or a provider absent from the catalog) omits the field.
+    const result = await updateApiKeysAction({ status: 'idle' }, formData({ google: '' }));
+
+    expect(result.ok).toBe(true);
+    const saved = savedByokPayload();
+    expect(saved).not.toHaveProperty('google');
+    expect(saved).toMatchObject({ deepseek: 'old-d' });
+  });
+
+  it('replaces a stored key when the user types a new value (R5)', async () => {
+    mockDb([
+      [
+        {
+          aiApiKeys: encryptByok({ google: 'old-g' }),
+          aiApiKeysUpdatedAt: null,
+        },
+      ],
+    ]);
+
+    const result = await updateApiKeysAction(
+      { status: 'idle' },
+      formData({ google: 'new-g', openai: '***KEEP***' }),
+    );
+
+    expect(result.ok).toBe(true);
+    expect(savedByokPayload()).toMatchObject({ google: 'new-g' });
+    expect(mockTestProviderKey).toHaveBeenCalledWith('google', 'new-g');
+  });
+
+  it('does not invent a stored key from a sentinel for a provider with no key (R5)', async () => {
+    mockDb([[{ aiApiKeys: null, aiApiKeysUpdatedAt: null }]]);
+
+    const result = await updateApiKeysAction(
+      { status: 'idle' },
+      formData({ openai: '***KEEP***' }),
+    );
+
+    expect(result.ok).toBe(true);
+    expect(savedByokPayload()).not.toHaveProperty('openai');
   });
 });
 

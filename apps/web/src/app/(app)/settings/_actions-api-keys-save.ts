@@ -28,14 +28,16 @@ import {
   JEV_PROVIDER_IDS,
   PROVIDER_IDS,
   type ByokPayload,
+  type ProviderId,
 } from '@kestrel/shared/encryption';
 import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
 import { auth } from '@/auth';
 
-import { JEV_DECISION_KEY_KEEP } from './api-keys/_components/jev-decision-keys';
 import { type SaveKeysResult } from './_actions-shared';
+import { BYOK_KEY_KEEP } from './api-keys/_components/byok-key-sentinel';
+import { JEV_DECISION_KEY_KEEP } from './api-keys/_components/jev-decision-keys';
 
 /**
  * Server action to save/update/clear API keys for all BYOK providers.
@@ -52,10 +54,25 @@ export async function updateApiKeysAction(
 
   const keys: ByokPayload = {};
   let clearedCount = 0;
+  // Audit 2026-10-31 (R5): write-only inputs submit the KEEP sentinel for a
+  // stored key the user did not touch, and an absent field means the form did
+  // not speak about that provider at all (older client, or a provider missing
+  // from the catalog). Both cases preserve whatever is stored — only an
+  // explicitly empty field clears a key.
+  const keepIds = new Set<string>();
   for (const id of PROVIDER_IDS) {
     const raw = formData.get(id);
-    if (typeof raw === 'string' && raw.trim().length > 0) {
-      keys[id] = raw.trim();
+    if (raw === null) {
+      keepIds.add(id);
+      continue;
+    }
+    const value = typeof raw === 'string' ? raw.trim() : '';
+    if (value === BYOK_KEY_KEEP) {
+      keepIds.add(id);
+      continue;
+    }
+    if (value.length > 0) {
+      keys[id] = value;
     } else {
       clearedCount += 1;
     }
@@ -78,6 +95,13 @@ export async function updateApiKeysAction(
       );
     const oldDecrypted = oldSettings?.aiApiKeys ? decryptByok(oldSettings.aiApiKeys) : null;
     const oldUpdatedAt = oldSettings?.aiApiKeysUpdatedAt ?? {};
+
+    // R5: carry untouched stored keys forward. Without this the write-only
+    // form would read an untouched field as "clear".
+    for (const id of keepIds) {
+      const existing = oldDecrypted?.[id as ProviderId];
+      if (existing) keys[id as ProviderId] = existing;
+    }
 
     // Decision 4A — saving chat LLM keys must never wipe the non-chat keys.
     // The Jev decision-model keys (opencode/liquid/typesafe) and the finnhub
@@ -209,7 +233,9 @@ export async function updateJevApiKeysAction(
         aiApiKeysUpdatedAt: schema.userSettings.aiApiKeysUpdatedAt,
       })
       .from(schema.userSettings)
-      .where(and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)));
+      .where(
+        and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
+      );
     const oldDecrypted = oldSettings?.aiApiKeys ? decryptByok(oldSettings.aiApiKeys) : null;
     const oldUpdatedAt = oldSettings?.aiApiKeysUpdatedAt ?? {};
 
@@ -250,7 +276,9 @@ export async function updateJevApiKeysAction(
         aiApiKeys: Object.keys(keys).length > 0 ? encryptByok(keys) : null,
         aiApiKeysUpdatedAt: Object.keys(newUpdatedAt).length > 0 ? newUpdatedAt : null,
       })
-      .where(and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)));
+      .where(
+        and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
+      );
 
     revalidatePath('/settings/api-keys');
     return {

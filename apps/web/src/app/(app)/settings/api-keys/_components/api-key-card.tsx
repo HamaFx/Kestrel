@@ -29,12 +29,17 @@ import { StatusPill, UsageBadge, type TestState } from './api-key-badges';
 import type { ApiKeyHealth } from './api-key-health';
 import { ApiKeyInput } from './api-key-input';
 import { KeyRotationWarning, RateLimitPanel } from './api-key-meta-panels';
+import { BYOK_KEY_KEEP } from './byok-key-sentinel';
 import { ProviderLogo } from './provider-logo';
 import { ProviderSetupDetails } from './provider-setup-details';
 
 interface ApiKeyCardProps {
   provider: ProviderMeta;
-  currentValue: string;
+  /**
+   * Whether a key is already stored for this provider. Audit 2026-10-31 (R5):
+   * the card receives a boolean, never the decrypted key.
+   */
+  isConfigured: boolean;
   keyUpdatedAt?: string | undefined;
   health?: ApiKeyHealth | undefined;
   usage?:
@@ -47,19 +52,25 @@ interface ApiKeyCardProps {
 
 export function ApiKeyCard({
   provider,
-  currentValue,
+  isConfigured,
   health,
   usage,
   keyUpdatedAt,
 }: ApiKeyCardProps) {
   const [revealed, setRevealed] = useState(false);
-  const [value, setValue] = useState(currentValue);
+  // A stored key prefills the KEEP sentinel so an untouched field can never
+  // blank the stored value on save, and so no plaintext reaches the client.
+  const [value, setValue] = useState(isConfigured ? BYOK_KEY_KEEP : '');
   const [test, setTest] = useState<TestState>({ kind: 'idle' });
   const [, startTransition] = useTransition();
   const [confirmNode, confirm] = useConfirm();
 
-  const dirty = value.trim() !== currentValue;
-  const isSet = value.trim().length > 0;
+  const trimmed = value.trim();
+  const pristineStoredKey = isConfigured && trimmed === BYOK_KEY_KEEP;
+  const reusedSentinel = !isConfigured && trimmed === BYOK_KEY_KEEP;
+  const dirty = value !== (isConfigured ? BYOK_KEY_KEEP : '');
+  const typedValue = dirty && !reusedSentinel ? trimmed : '';
+  const isSet = pristineStoredKey || typedValue.length > 0;
 
   let keyAgeDays: number | null = null;
   if (keyUpdatedAt && isSet) {
@@ -75,12 +86,18 @@ export function ApiKeyCard({
     setTest({ kind: 'pending' });
     startTransition(async () => {
       try {
+        // A pristine stored key has no plaintext to send; the route falls back
+        // to the stored (server-side) value for that provider.
+        const body =
+          typedValue.length > 0
+            ? { provider: provider.id, apiKey: typedValue }
+            : { provider: provider.id };
         const data = await apiMutate<{ ok: boolean; error?: string }>(
           '/api/settings/test-provider',
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ provider: provider.id, apiKey: value.trim() }),
+            body: JSON.stringify(body),
           },
         );
         if (!data.ok) {
@@ -98,7 +115,7 @@ export function ApiKeyCard({
   }
 
   async function handleCopy() {
-    if (!isSet) return;
+    if (typedValue.length === 0) return;
     const ok = await confirm({
       title: 'Copy API Key to Clipboard?',
       description:
@@ -109,7 +126,7 @@ export function ApiKeyCard({
     });
     if (ok) {
       try {
-        await navigator.clipboard.writeText(value.trim());
+        await navigator.clipboard.writeText(typedValue);
         toast.success('API Key copied to clipboard');
       } catch {
         toast.error('Failed to copy to clipboard');
@@ -180,7 +197,9 @@ export function ApiKeyCard({
         value={value}
         revealed={revealed}
         isSet={isSet}
+        isPristineStoredKey={pristineStoredKey}
         dirty={dirty}
+        canCopy={typedValue.length > 0}
         testState={test}
         onValueChange={(next) => {
           setValue(next);
