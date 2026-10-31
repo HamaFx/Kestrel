@@ -28,12 +28,13 @@
 // `withUserTenant` is the fix at those entry points: it resolves the user's
 // tenant (short-circuited when a matching scope is already active) and runs the
 // callback inside `withTenantDb`, so nested helper calls inherit the scope.
+// `withUserTenantRO` is the read-only variant for callbacks that only SELECT.
 //
 // Lives in its own module rather than `connection/scope.ts` because it needs
 // `requireTenantIdForUser` from `tenant.ts`, which already imports `client.ts`
 // — importing it from scope.ts would close an import cycle.
 
-import { withTenantDb, type DbClient } from './client';
+import { withTenantDb, withTenantDbRO, type DbClient } from './client';
 import { requireTenantIdForUser } from './tenant';
 
 /**
@@ -53,4 +54,26 @@ export async function withUserTenant<T>(
   // withTenantDb reuses an existing same-tenant scope, so calling this inside a
   // route that already entered one is a no-op rather than a nested transaction.
   return withTenantDb(tenantId, work, { userId });
+}
+
+/**
+ * Read-only variant of {@link withUserTenant}, for callbacks whose work is all
+ * SELECTs (settings pages, read-only RSC renders).
+ *
+ * Prefer this over `withUserTenant` for read-only work: it uses
+ * `withTenantDbRO`, so the reads can be served by `DATABASE_URL_REPLICA` when
+ * a replica is configured and the transaction cannot take write locks. Use
+ * `withUserTenant` as soon as the callback writes.
+ *
+ * @example
+ *   const data = await withUserTenantRO(session.user.id, () =>
+ *     getOwnUserSettings(session.user.id),
+ *   );
+ */
+export async function withUserTenantRO<T>(
+  userId: string,
+  work: (db: DbClient) => Promise<T>,
+): Promise<T> {
+  const tenantId = await requireTenantIdForUser(userId);
+  return withTenantDbRO(tenantId, work, { userId });
 }

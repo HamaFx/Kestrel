@@ -15,10 +15,15 @@
  */
 
 // Tool telemetry query helpers.
+//
+// Audit 2026-10-31 (R1): `getToolStats` aggregates across every tenant and is
+// only reachable from admin-gated surfaces, so it runs on the admin
+// (BYPASSRLS) connection and fails loudly when `ADMIN_DATABASE_URL` is unset
+// rather than silently reporting an empty catalogue.
 
 import { gte, sql } from 'drizzle-orm';
 
-import { getDb, schema } from '../client';
+import { getAdminDb, schema, type DbClient } from '../client';
 
 export type ToolTelemetryRow = typeof schema.chatToolTelemetry.$inferSelect;
 export type ToolTelemetryInsert = typeof schema.chatToolTelemetry.$inferInsert;
@@ -34,11 +39,20 @@ export interface ToolStats {
 /**
  * Aggregate tool telemetry for the last N hours.
  * Returns per-tool stats: invocation count, failure count, median/p95 latency.
+ *
+ * Cross-tenant by design (the platform-wide tool catalogue), so it reads on
+ * the admin (BYPASSRLS) connection. Deliberately throws when
+ * `ADMIN_DATABASE_URL` is not configured — a fallback read would return zero
+ * rows under the non-bypass application role, which looks like "no tool has
+ * ever run". Callers are admin-gated surfaces only.
+ *
+ * @param db Optional client the caller already holds. Pass the admin client
+ *   (e.g. the handle from `withAdminDb`), never a tenant-scoped one.
  */
-export async function getToolStats(sinceMs: number): Promise<ToolStats[]> {
+export async function getToolStats(sinceMs: number, db?: DbClient): Promise<ToolStats[]> {
   const since = new Date(sinceMs);
-  const db = getDb();
-  const result = await db
+  const client = db ?? getAdminDb();
+  const result = await client
     .select({
       tool: schema.chatToolTelemetry.tool,
       invocations: sql<number>`count(*)`.as('invocations'),

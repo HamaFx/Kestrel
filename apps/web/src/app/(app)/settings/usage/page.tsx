@@ -17,7 +17,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { BYOK_PROVIDERS_LIST, computeUsage, listTelemetry } from '@kestrel/ai';
-import { getUserWithSettings, listMtdAgentOpinions, withUserTenant } from '@kestrel/db';
+import { getUserWithSettings, listMtdAgentOpinions, withUserTenantRO } from '@kestrel/db';
 import { IconChartBar } from '@tabler/icons-react';
 import type { Metadata } from 'next';
 import { Link } from 'next-view-transitions';
@@ -49,9 +49,10 @@ export default async function UsagePage() {
   // Audit 2026-10-31 (R1): this RSC starts outside the API boundary, so every
   // tenant read below — chat_telemetry, daily_ai_spend, agent_opinions, and
   // the user's own user_settings — must run in the user's tenant scope. A
-  // single `withUserTenant` now covers the settings read too; before, the
-  // read-only tenant wrapper only covered the usage aggregates.
-  const [[stats, recent, agentOpinionRows], { settings }] = await withUserTenant(userId, () =>
+  // single `withUserTenantRO` covers all of them; RO is safe because every
+  // call below is a SELECT, and it lets a `DATABASE_URL_REPLICA` deployment
+  // serve these reads from the replica.
+  const [[stats, recent, agentOpinionRows], { settings }] = await withUserTenantRO(userId, () =>
     Promise.all([
       Promise.all([
         computeUsage(userId),

@@ -14,10 +14,15 @@
 
 // Admin correlation timeline: merge traces, turns, tools, agent opinions,
 // budget reservations and outbox rows into one bounded event list.
+//
+// Audit 2026-10-31 (R1): this is an admin-only view over every tenant's
+// telemetry. The optional `userId` filter narrows an admin investigation, it
+// is not a tenant boundary, so the reads run on the admin (BYPASSRLS)
+// connection and fail loudly when `ADMIN_DATABASE_URL` is unset.
 
 import { and, desc, eq, inArray, or, type SQL } from 'drizzle-orm';
 
-import { getDb, schema } from '../../client';
+import { getAdminDb, schema, type DbClient } from '../../client';
 import type { DiagnosticTraceRow, TraceExplorerEvent, TraceExplorerFilters } from './types';
 
 function boundedLimit(limit: number | undefined): number {
@@ -32,17 +37,26 @@ function allMatch(conditions: SQL[]): SQL | undefined {
  * Return a bounded, correlation-aware timeline for admin incident debugging.
  * Every source query uses its existing correlation/thread/message indexes; the
  * final merge is capped so an incident cannot create an unbounded response.
+ *
+ * Admin-gated callers only (`withAdminAuth` guards the sole route); reads on
+ * the admin (BYPASSRLS) connection, which throws when `ADMIN_DATABASE_URL` is
+ * not configured so a misconfigured deployment gets a loud 500 instead of an
+ * empty incident timeline.
+ *
+ * @param db Optional client the caller already holds. Pass the admin client
+ *   (e.g. the handle from `withAdminDb`), never a tenant-scoped one.
  */
 export async function listTraceExplorerEvents(
   filters: TraceExplorerFilters = {},
+  db?: DbClient,
 ): Promise<TraceExplorerEvent[]> {
   const limit = boundedLimit(filters.limit);
-  const db = getDb();
+  const client = db ?? getAdminDb();
 
   const [traces, turns, tools, budgets, outbox] = await Promise.all([
     filters.messageId || filters.runId || filters.jobId
       ? Promise.resolve([] as DiagnosticTraceRow[])
-      : db
+      : client
           .select()
           .from(schema.diagnosticTraces)
           .where(
@@ -58,7 +72,7 @@ export async function listTraceExplorerEvents(
           )
           .orderBy(desc(schema.diagnosticTraces.startedAt))
           .limit(limit),
-    db
+    client
       .select()
       .from(schema.chatTelemetry)
       .where(
@@ -73,7 +87,7 @@ export async function listTraceExplorerEvents(
       )
       .orderBy(desc(schema.chatTelemetry.createdAt))
       .limit(limit),
-    db
+    client
       .select()
       .from(schema.chatToolTelemetry)
       .where(
@@ -88,7 +102,7 @@ export async function listTraceExplorerEvents(
       )
       .orderBy(desc(schema.chatToolTelemetry.createdAt))
       .limit(limit),
-    db
+    client
       .select()
       .from(schema.aiBudgetReservations)
       .where(
@@ -102,7 +116,7 @@ export async function listTraceExplorerEvents(
       )
       .orderBy(desc(schema.aiBudgetReservations.createdAt))
       .limit(limit),
-    db
+    client
       .select()
       .from(schema.persistenceOutbox)
       .where(
@@ -147,7 +161,7 @@ export async function listTraceExplorerEvents(
 
   const opinions =
     opinionConditions.length > 0
-      ? await db
+      ? await client
           .select()
           .from(schema.agentOpinions)
           .where(and(...opinionConditions))

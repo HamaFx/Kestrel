@@ -19,11 +19,34 @@
 // model routing, fallback chain, agent overrides, disabled tools, market data
 // adapter) configured by the primary Admin account automatically propagate as
 // platform defaults to all subscribers.
+//
+// Audit 2026-10-31 (R1): the inheritance source is another tenant's row, so
+// `getPlatformAdminSettings` and the all-users sweep in `listAllUserSettings`
+// read on the admin (BYPASSRLS) connection when `ADMIN_DATABASE_URL` is
+// configured. Without it they skip the cross-tenant read — platform-owner
+// inheritance degrades to "own settings only" — and warn once per process,
+// because these helpers run on nearly every page via `getUserWithSettings`
+// and must not take those pages down.
 
 import { and, asc, eq } from 'drizzle-orm';
 
-import { getDb, schema } from '../client';
+import { getAdminDb, getDb, schema, type DbClient } from '../client';
 import { requireTenantIdForUser } from '../tenant';
+
+// Once per process (this module instance), not once per call: the degraded
+// read happens on the request path of nearly every page.
+let warnedMissingAdminDb = false;
+
+function warnMissingAdminDbOnce(fnName: string): void {
+  if (warnedMissingAdminDb) return;
+  warnedMissingAdminDb = true;
+  console.warn(
+    `[db] ${fnName}: ADMIN_DATABASE_URL is not set — skipping cross-tenant ` +
+      'user_settings reads. Platform-owner settings inheritance and the ' +
+      'all-users spending-alert sweep require the admin connection; set ' +
+      'ADMIN_DATABASE_URL to enable them.',
+  );
+}
 
 export interface UserWithSettings {
   settings: typeof schema.userSettings.$inferSelect | null;
@@ -39,12 +62,26 @@ export interface UserWithSettings {
  * Fetch the primary platform admin's `user_settings` row so non-admin
  * subscribers inherit operator-configured AI keys, model routing, market data
  * adapters, and tool switches without needing personal BYOK credentials.
+ *
+ * This reads another tenant's row by design: under the non-bypass application
+ * role a tenant-scoped connection cannot see it. Runs on the admin
+ * (BYPASSRLS) connection when `ADMIN_DATABASE_URL` is configured; without it
+ * the cross-tenant read is skipped and `null` is returned, so pages keep
+ * rendering (with inheritance degraded) instead of failing. A one-time
+ * warning names the missing variable.
+ *
+ * @param db Optional client the caller already holds. Pass the admin client
+ *   (e.g. the handle from `withAdminDb`), never a tenant-scoped one.
  */
-export async function getPlatformAdminSettings(): Promise<
-  typeof schema.userSettings.$inferSelect | null
-> {
-  const db = getDb();
-  const rows = await db
+export async function getPlatformAdminSettings(
+  db?: DbClient,
+): Promise<typeof schema.userSettings.$inferSelect | null> {
+  if (!db && !process.env.ADMIN_DATABASE_URL) {
+    warnMissingAdminDbOnce('getPlatformAdminSettings');
+    return null;
+  }
+  const client = db ?? getAdminDb();
+  const rows = await client
     .select({ settings: schema.userSettings })
     .from(schema.userSettings)
     .innerJoin(schema.users, eq(schema.users.id, schema.userSettings.userId))
@@ -73,7 +110,8 @@ export async function getPlatformAdminUserId(): Promise<string | null> {
 /**
  * Fetch userSettings + basic user info (name, email, plan, role) in parallel.
  * For non-admin subscribers, operator-controlled AI/model/feed fields fall back
- * to the platform admin's settings row.
+ * to the platform admin's settings row when the admin connection allows the
+ * cross-tenant read (see `getPlatformAdminSettings`).
  */
 export async function getUserWithSettings(userId: string): Promise<UserWithSettings> {
   const db = getDb();
@@ -144,12 +182,26 @@ export async function getUserWithSettings(userId: string): Promise<UserWithSetti
 }
 
 /**
- * List all user settings rows. Used by background job that checks
+ * List all user settings rows. Used by the background job that checks
  * spending alerts across every user.
+ *
+ * Cross-tenant by design: runs on the admin (BYPASSRLS) connection when
+ * `ADMIN_DATABASE_URL` is configured. Without it the sweep is skipped and an
+ * empty list is returned (a tenant-scoped read would only see one tenant),
+ * with a one-time warning naming the missing variable.
+ *
+ * @param db Optional client the caller already holds. Pass the admin client
+ *   (e.g. the handle from `withAdminDb`), never a tenant-scoped one.
  */
-export async function listAllUserSettings(): Promise<(typeof schema.userSettings.$inferSelect)[]> {
-  const db = getDb();
-  return db.select().from(schema.userSettings);
+export async function listAllUserSettings(
+  db?: DbClient,
+): Promise<(typeof schema.userSettings.$inferSelect)[]> {
+  if (!db && !process.env.ADMIN_DATABASE_URL) {
+    warnMissingAdminDbOnce('listAllUserSettings');
+    return [];
+  }
+  const client = db ?? getAdminDb();
+  return client.select().from(schema.userSettings);
 }
 
 /**
