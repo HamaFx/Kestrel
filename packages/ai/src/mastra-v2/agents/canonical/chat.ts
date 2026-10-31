@@ -19,6 +19,7 @@
 import { metrics } from '@kestrel/shared';
 
 import { estimateCostUsd } from '@ai/budget/cost';
+import { getDiagnosticContext, withDiagnostics } from '@ai/diagnostics';
 import { createGenerationLedger } from '@ai/persistence/generation-ledger';
 import { withRetry } from '@ai/runtime/retry';
 import { withToolContext } from '@ai/runtime/tool-context';
@@ -41,11 +42,26 @@ import type { MastraCanonicalChatResult, RunMastraCanonicalChatArgs } from './ty
 export async function runMastraCanonicalChat(
   args: RunMastraCanonicalChatArgs,
 ): Promise<MastraCanonicalChatResult> {
+  const runId = args.runId ?? crypto.randomUUID();
+  // Phase 1 (observability roadmap) — the buffered canonical turn owns its
+  // diagnostic scope so every turn writes a durable `diagnostic_traces` row
+  // correlated by `traceId`/`runId`. A caller that already opened a scope
+  // (e.g. an outer orchestration) reuses it instead of double-persisting.
+  if (getDiagnosticContext()) return executeCanonicalChat(args, runId);
+  return withDiagnostics(args.userId, args.threadId, () => executeCanonicalChat(args, runId), {
+    traceId: runId,
+    runId,
+  });
+}
+
+async function executeCanonicalChat(
+  args: RunMastraCanonicalChatArgs,
+  runId: string,
+): Promise<MastraCanonicalChatResult> {
   const startedAt = Date.now();
-  const setup = await setupCanonicalChat(args);
+  const setup = await setupCanonicalChat({ ...args, runId });
   const generationLedger = args.ledger ?? createGenerationLedger();
   const {
-    runId,
     agent,
     routing,
     resolution,
