@@ -827,6 +827,13 @@
       "when": 1793200000000,
       "tag": "0118_drop_legacy_shadow_and_quality_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 118,
+      "version": "7",
+      "when": 1793300000000,
+      "tag": "0119_grant_app_role_privileges",
+      "breakpoints": true
     }
   ]
 }

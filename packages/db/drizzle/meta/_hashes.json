@@ -471,6 +471,10 @@
     {
       "tag": "0118_drop_legacy_shadow_and_quality_tables",
       "hash": "6d091150390424d04675f2c8d792df6c05b9e55efda68c3f4e4c3951d728cd01"
+    },
+    {
+      "tag": "0119_grant_app_role_privileges",
+      "hash": "d6df32dab15c240ae14131d3e7894e52104cc668d77d175e22fbcf44d8458e39"
     }
   ]
 }
