@@ -38,6 +38,12 @@ export interface MarketTick {
   mid: number;
   ts: number;
   source?: string;
+  /** Upstream market state ('open' | 'closed') when reported. */
+  marketState?: 'open' | 'closed';
+  /** Upstream staleness flag when reported (BiQuote). */
+  stale?: boolean;
+  /** Seconds since the last upstream quote when reported by BiQuote. */
+  quoteAgeSeconds?: number | null;
 }
 
 export interface Quotes {

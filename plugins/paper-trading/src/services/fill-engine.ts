@@ -182,11 +182,18 @@ export async function processQuotesForUser(args: {
     const evaluation = evaluatePosition(positionState(position), quotes);
 
     if (evaluation.close) {
+      // A take-profit is a resting limit exit: it fills at the target price
+      // with no adverse slippage. Stops, trailing stops and manual closes
+      // cross the book and pay slippage.
+      const exitPrice =
+        evaluation.close.reason === 'take_profit'
+          ? evaluation.close.price
+          : exitWithSlippage(position, evaluation.close.price, args.settings);
       await applyClose({
         userId: args.userId,
         position,
         account,
-        exitPrice: exitWithSlippage(position, evaluation.close.price, args.settings),
+        exitPrice,
         quantity: position.quantity,
         reason: evaluation.close.reason,
         settings: args.settings,

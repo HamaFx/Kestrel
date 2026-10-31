@@ -150,6 +150,16 @@ describe('paper trading domain', () => {
     expect(evaluation.close?.price).toBe(2021);
   });
 
+  it('preserves rMultiple using initialRiskAmount after stopLoss is moved to breakeven', () => {
+    // Position opened at 2000 with initial stop 1990 (initialRiskAmount = $1000
+    // on 1 lot XAUUSD), then modified so stopLoss = 2000 (breakeven).
+    const evaluation = evaluatePosition(
+      position({ entryPrice: 2000, stopLoss: 2000, initialRiskAmount: 1000 }),
+      { bid: 2015, ask: 2015.2, mid: 2015.1 },
+    );
+    expect(evaluation.rMultiple).toBeCloseTo(1.51, 2);
+  });
+
   it('moves a trailing stop up but never down', () => {
     const first = evaluatePosition(position({ trailingStopDistance: 10 }), {
       bid: 2010,

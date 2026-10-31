@@ -55,14 +55,18 @@ export function evaluatePosition(position: PaperPositionState, quotes: Quotes): 
   const entry = position.entryPrice;
   const direction = position.side === 'long' ? 1 : -1;
   const markPrice = quotes.mid;
-  const unrealizedPnl = round(
-    (markPrice - entry) * direction * position.quantity * contractSizeFor(position.symbol) -
-      position.entryFee,
-    2,
-  );
+  const contractSize = contractSizeFor(position.symbol);
+  const gross = (markPrice - entry) * direction * position.quantity * contractSize;
+  const unrealizedPnl = round(gross - position.entryFee, 2);
   const initialStopDistance = position.stopLoss !== null ? Math.abs(entry - position.stopLoss) : 0;
+  // R is measured against the risk captured at entry, never the mutable stop:
+  // once the stop moves to breakeven, `stopLoss` no longer describes the risk.
   const rMultiple =
-    initialStopDistance > 0 ? round(((markPrice - entry) * direction) / initialStopDistance, 4) : 0;
+    position.initialRiskAmount > 0
+      ? round(gross / position.initialRiskAmount, 4)
+      : initialStopDistance > 0
+        ? round(((markPrice - entry) * direction) / initialStopDistance, 4)
+        : 0;
 
   const stop = effectiveStop(position);
   const exitPrice = exitQuote(position, quotes);
