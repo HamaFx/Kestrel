@@ -20,8 +20,13 @@
 
 // API-keys import/export actions: password + 2FA gated encrypted backup
 // transfer of the user's BYOK payload.
+//
+// Audit 2026-10-31 (R1): server actions run outside the page's tenant scope.
+// The direct `user` reads below (2FA gate, password hash) carry no RLS
+// (migration 0039); every `user_settings` access is scoped with
+// `withUserTenant`.
 import { getDb } from '@kestrel/ai';
-import { requireTenantIdForUser, schema, withRateLimit } from '@kestrel/db';
+import { requireTenantIdForUser, schema, withRateLimit, withUserTenant } from '@kestrel/db';
 import {
   decryptByok,
   decryptSecret,
@@ -89,17 +94,21 @@ export async function exportKeysAction(
   }
 
   try {
-    const db = getDb();
-    const tenantId = await requireTenantIdForUser(session.user.id, db);
-    const [settings] = await db
-      .select({ aiApiKeys: schema.userSettings.aiApiKeys })
-      .from(schema.userSettings)
-      .where(
-        and(
-          eq(schema.userSettings.userId, session.user.id),
-          eq(schema.userSettings.tenantId, tenantId),
-        ),
-      );
+    // Audit 2026-10-31 (R1): scope the vault read. Unscoped under `kestrel_app`
+    // this row is invisible and the export would look empty.
+    const settings = await withUserTenant(session.user.id, async (db) => {
+      const tenantId = await requireTenantIdForUser(session.user.id, db);
+      const [row] = await db
+        .select({ aiApiKeys: schema.userSettings.aiApiKeys })
+        .from(schema.userSettings)
+        .where(
+          and(
+            eq(schema.userSettings.userId, session.user.id),
+            eq(schema.userSettings.tenantId, tenantId),
+          ),
+        );
+      return row;
+    });
 
     const encryptedPayload = settings?.aiApiKeys;
     if (!encryptedPayload) {
@@ -173,54 +182,59 @@ export async function importKeysAction(
       return { ok: false as const, error: 'No valid keys found in backup payload' };
     }
 
-    const db = getDb();
-    const tenantId = await requireTenantIdForUser(session.user.id, db);
+    // Audit 2026-10-31 (R1): the read used to preserve stored keys and the
+    // write that follows must share the user's tenant scope.
+    const importedCount = await withUserTenant(session.user.id, async (db) => {
+      const tenantId = await requireTenantIdForUser(session.user.id, db);
 
-    // Preservation invariant: a backup written before the decision-model
-    // keys existed must not wipe the stored ones on import — carry them
-    // forward when the backup does not carry its own.
-    const [oldSettings] = await db
-      .select({
-        aiApiKeys: schema.userSettings.aiApiKeys,
-        aiApiKeysUpdatedAt: schema.userSettings.aiApiKeysUpdatedAt,
-      })
-      .from(schema.userSettings)
-      .where(
-        and(
-          eq(schema.userSettings.userId, session.user.id),
-          eq(schema.userSettings.tenantId, tenantId),
-        ),
-      );
-    const oldDecrypted = oldSettings?.aiApiKeys ? decryptByok(oldSettings.aiApiKeys) : null;
-    const oldUpdatedAt = oldSettings?.aiApiKeysUpdatedAt ?? {};
-    for (const id of [...JEV_PROVIDER_IDS, 'finnhub'] as const) {
-      const existing = oldDecrypted?.[id];
-      if (existing && !validKeys[id]) validKeys[id] = existing;
-    }
+      // Preservation invariant: a backup written before the decision-model
+      // keys existed must not wipe the stored ones on import — carry them
+      // forward when the backup does not carry its own.
+      const [oldSettings] = await db
+        .select({
+          aiApiKeys: schema.userSettings.aiApiKeys,
+          aiApiKeysUpdatedAt: schema.userSettings.aiApiKeysUpdatedAt,
+        })
+        .from(schema.userSettings)
+        .where(
+          and(
+            eq(schema.userSettings.userId, session.user.id),
+            eq(schema.userSettings.tenantId, tenantId),
+          ),
+        );
+      const oldDecrypted = oldSettings?.aiApiKeys ? decryptByok(oldSettings.aiApiKeys) : null;
+      const oldUpdatedAt = oldSettings?.aiApiKeysUpdatedAt ?? {};
+      for (const id of [...JEV_PROVIDER_IDS, 'finnhub'] as const) {
+        const existing = oldDecrypted?.[id];
+        if (existing && !validKeys[id]) validKeys[id] = existing;
+      }
 
-    const now = new Date().toISOString();
-    const newUpdatedAt: Record<string, string> = {};
-    for (const id of Object.keys(validKeys)) {
-      // Imported keys are marked now; carried-forward decision/market-data
-      // keys keep their original change time.
-      newUpdatedAt[id] = importedIds.has(id) ? now : (oldUpdatedAt[id] ?? now);
-    }
+      const now = new Date().toISOString();
+      const newUpdatedAt: Record<string, string> = {};
+      for (const id of Object.keys(validKeys)) {
+        // Imported keys are marked now; carried-forward decision/market-data
+        // keys keep their original change time.
+        newUpdatedAt[id] = importedIds.has(id) ? now : (oldUpdatedAt[id] ?? now);
+      }
 
-    await db
-      .update(schema.userSettings)
-      .set({
-        aiApiKeys: encryptByok(validKeys),
-        aiApiKeysUpdatedAt: newUpdatedAt,
-      })
-      .where(
-        and(
-          eq(schema.userSettings.userId, session.user.id),
-          eq(schema.userSettings.tenantId, tenantId),
-        ),
-      );
+      await db
+        .update(schema.userSettings)
+        .set({
+          aiApiKeys: encryptByok(validKeys),
+          aiApiKeysUpdatedAt: newUpdatedAt,
+        })
+        .where(
+          and(
+            eq(schema.userSettings.userId, session.user.id),
+            eq(schema.userSettings.tenantId, tenantId),
+          ),
+        );
+
+      return Object.keys(validKeys).length;
+    });
 
     revalidatePath('/settings/api-keys');
-    return { ok: true as const, data: { importedCount: Object.keys(validKeys).length } };
+    return { ok: true as const, data: { importedCount } };
   } catch (err) {
     logActionError(err, 'settings-action');
     return {

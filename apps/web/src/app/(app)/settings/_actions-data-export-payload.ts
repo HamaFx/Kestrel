@@ -20,13 +20,20 @@
 // and strips identity and secret material before serialization. This module
 // exports a plain server helper, so it must not carry a "use server"
 // directive.
+//
+// Audit 2026-10-31 (R1): the builder is called from a server action, which
+// inherits no tenant scope. Every query below runs on a tenant RLS table;
+// unscoped under `kestrel_app` each one would return zero rows and the export
+// would silently omit the user's data.
 
-import { getDb } from '@kestrel/ai';
-import { requireTenantIdForUser, schema } from '@kestrel/db';
+import { requireTenantIdForUser, schema, withUserTenant, type DbClient } from '@kestrel/db';
 import { and, eq, inArray } from 'drizzle-orm';
 
 export async function buildUserDataExport(userId: string): Promise<string> {
-  const db = getDb();
+  return withUserTenant(userId, (db) => collectUserDataExport(userId, db));
+}
+
+async function collectUserDataExport(userId: string, db: DbClient): Promise<string> {
   const tenantId = await requireTenantIdForUser(userId, db);
 
   const [profile] = await db.select().from(schema.users).where(eq(schema.users.id, userId));

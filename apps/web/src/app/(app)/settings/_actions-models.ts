@@ -8,7 +8,10 @@
  */
 import 'server-only';
 
-import { getDb, requireTenantIdForUser, schema } from '@kestrel/db';
+// Audit 2026-10-31 (R1): server actions run outside the page's tenant scope.
+// `user_settings` has RLS, so every helper call below is wrapped in
+// `withUserTenant` — the helper's own getDb() then resolves the scoped client.
+import { requireTenantIdForUser, schema, withUserTenant } from '@kestrel/db';
 import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
@@ -42,7 +45,9 @@ export async function updateChatModelAction(
   const value = `${providerId}:${bareModelId}`;
 
   try {
-    await updateUserSettingsField(session.user.id, 'chatModel', value);
+    await withUserTenant(session.user.id, () =>
+      updateUserSettingsField(session.user.id, 'chatModel', value),
+    );
     revalidatePath('/settings');
     return { ok: true, data: { chatModel: value } };
   } catch (err) {
@@ -57,7 +62,9 @@ export async function clearChatModelAction(): Promise<ActionResult<{ chatModel: 
   }
 
   try {
-    await updateUserSettingsField(session.user.id, 'chatModel', null);
+    await withUserTenant(session.user.id, () =>
+      updateUserSettingsField(session.user.id, 'chatModel', null),
+    );
     revalidatePath('/settings');
     return { ok: true, data: { chatModel: null } };
   } catch (err) {
@@ -73,33 +80,34 @@ export async function resetOnboardingAction(
     return { ok: false, error: 'Not authenticated' };
   }
 
-  const db = getDb();
   try {
-    const tenantId = await requireTenantIdForUser(session.user.id, db);
-    if (options.soft) {
-      await db
-        .update(schema.userSettings)
-        .set({ onboardingCompleted: false })
-        .where(
-          and(
-            eq(schema.userSettings.userId, session.user.id),
-            eq(schema.userSettings.tenantId, tenantId),
-          ),
-        );
-    } else {
-      await db
-        .update(schema.userSettings)
-        .set({
-          onboardingCompleted: false,
-          onboardingProgress: {},
-        })
-        .where(
-          and(
-            eq(schema.userSettings.userId, session.user.id),
-            eq(schema.userSettings.tenantId, tenantId),
-          ),
-        );
-    }
+    await withUserTenant(session.user.id, async (scopedDb) => {
+      const tenantId = await requireTenantIdForUser(session.user.id, scopedDb);
+      if (options.soft) {
+        await scopedDb
+          .update(schema.userSettings)
+          .set({ onboardingCompleted: false })
+          .where(
+            and(
+              eq(schema.userSettings.userId, session.user.id),
+              eq(schema.userSettings.tenantId, tenantId),
+            ),
+          );
+      } else {
+        await scopedDb
+          .update(schema.userSettings)
+          .set({
+            onboardingCompleted: false,
+            onboardingProgress: {},
+          })
+          .where(
+            and(
+              eq(schema.userSettings.userId, session.user.id),
+              eq(schema.userSettings.tenantId, tenantId),
+            ),
+          );
+      }
+    });
 
     revalidatePath('/settings');
     revalidatePath('/onboarding');

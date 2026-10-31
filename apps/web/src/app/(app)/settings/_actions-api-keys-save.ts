@@ -20,8 +20,13 @@
 
 // API-keys save action: BYOK key create/update/clear with provider health
 // checks and an atomic settings + provider-tests write.
-import { getDb, testProviderKey } from '@kestrel/ai';
-import { requireTenantIdForUser, schema } from '@kestrel/db';
+//
+// Audit 2026-10-31 (R1): server actions are separate requests from the page
+// that rendered them, so they inherit no tenant scope. Every DB phase below
+// opens its own `withUserTenant` scope; unscoped under `kestrel_app` the
+// stored-payload read returns no row and untouched keys would be dropped.
+import { testProviderKey } from '@kestrel/ai';
+import { requireTenantIdForUser, schema, withUserTenant } from '@kestrel/db';
 import {
   decryptByok,
   encryptByok,
@@ -79,22 +84,27 @@ export async function updateApiKeysAction(
   }
 
   try {
-    const db = getDb();
-    const tenantId = await requireTenantIdForUser(session.user.id, db);
-    const [oldSettings] = await db
-      .select({
-        aiApiKeys: schema.userSettings.aiApiKeys,
-        aiApiKeysUpdatedAt: schema.userSettings.aiApiKeysUpdatedAt,
-      })
-      .from(schema.userSettings)
-      .where(
-        and(
-          eq(schema.userSettings.userId, session.user.id),
-          eq(schema.userSettings.tenantId, tenantId),
-        ),
-      );
-    const oldDecrypted = oldSettings?.aiApiKeys ? decryptByok(oldSettings.aiApiKeys) : null;
-    const oldUpdatedAt = oldSettings?.aiApiKeysUpdatedAt ?? {};
+    const userId = session.user.id;
+
+    // Audit 2026-10-31 (R1): read the stored payload inside the user's scope.
+    // The KEEP/preserve logic below is only correct if this row is visible —
+    // unscoped it is empty, and every untouched key would be dropped.
+    const { oldDecrypted, oldUpdatedAt } = await withUserTenant(userId, async (db) => {
+      const tenantId = await requireTenantIdForUser(userId, db);
+      const [oldSettings] = await db
+        .select({
+          aiApiKeys: schema.userSettings.aiApiKeys,
+          aiApiKeysUpdatedAt: schema.userSettings.aiApiKeysUpdatedAt,
+        })
+        .from(schema.userSettings)
+        .where(
+          and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
+        );
+      return {
+        oldDecrypted: oldSettings?.aiApiKeys ? decryptByok(oldSettings.aiApiKeys) : null,
+        oldUpdatedAt: oldSettings?.aiApiKeysUpdatedAt ?? {},
+      };
+    });
 
     // R5: carry untouched stored keys forward. Without this the write-only
     // form would read an untouched field as "clear".
@@ -154,40 +164,44 @@ export async function updateApiKeysAction(
       }
     }
 
-    // STAB-10: Atomic write — all DB mutations inside one transaction.
-    const userId = session.user.id;
-    await db.transaction(async (tx) => {
-      await tx
-        .update(schema.userSettings)
-        .set({
-          aiApiKeys: Object.keys(keys).length > 0 ? encryptByok(keys) : null,
-          aiApiKeysUpdatedAt: Object.keys(newUpdatedAt).length > 0 ? newUpdatedAt : null,
-        })
-        .where(
-          and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
-        );
-
-      for (const tr of testResults) {
+    // STAB-10: Atomic write — all DB mutations inside one user-tenant scope,
+    // after the `testProviderKey` network calls above, so no connection is held
+    // open during I/O.
+    await withUserTenant(userId, async (db) => {
+      const tenantId = await requireTenantIdForUser(userId, db);
+      await db.transaction(async (tx) => {
         await tx
-          .delete(schema.providerTests)
+          .update(schema.userSettings)
+          .set({
+            aiApiKeys: Object.keys(keys).length > 0 ? encryptByok(keys) : null,
+            aiApiKeysUpdatedAt: Object.keys(newUpdatedAt).length > 0 ? newUpdatedAt : null,
+          })
           .where(
-            and(
-              eq(schema.providerTests.userId, userId),
-              eq(schema.providerTests.tenantId, tenantId),
-              eq(schema.providerTests.providerId, tr.id),
-            ),
+            and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
           );
-        if (tr.action === 'upsert') {
-          await tx.insert(schema.providerTests).values({
-            userId,
-            tenantId,
-            providerId: tr.id,
-            ok: tr.ok!,
-            error: tr.ok ? null : (tr.error ?? 'unknown error'),
-            testedAt: testedAt.toISOString(),
-          });
+
+        for (const tr of testResults) {
+          await tx
+            .delete(schema.providerTests)
+            .where(
+              and(
+                eq(schema.providerTests.userId, userId),
+                eq(schema.providerTests.tenantId, tenantId),
+                eq(schema.providerTests.providerId, tr.id),
+              ),
+            );
+          if (tr.action === 'upsert') {
+            await tx.insert(schema.providerTests).values({
+              userId,
+              tenantId,
+              providerId: tr.id,
+              ok: tr.ok!,
+              error: tr.ok ? null : (tr.error ?? 'unknown error'),
+              testedAt: testedAt.toISOString(),
+            });
+          }
         }
-      }
+      });
     });
 
     revalidatePath('/settings/api-keys');
@@ -224,61 +238,68 @@ export async function updateJevApiKeysAction(
   }
 
   try {
-    const db = getDb();
     const userId = session.user.id;
-    const tenantId = await requireTenantIdForUser(userId, db);
-    const [oldSettings] = await db
-      .select({
-        aiApiKeys: schema.userSettings.aiApiKeys,
-        aiApiKeysUpdatedAt: schema.userSettings.aiApiKeysUpdatedAt,
-      })
-      .from(schema.userSettings)
-      .where(
-        and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
-      );
-    const oldDecrypted = oldSettings?.aiApiKeys ? decryptByok(oldSettings.aiApiKeys) : null;
-    const oldUpdatedAt = oldSettings?.aiApiKeysUpdatedAt ?? {};
 
-    // Preservation invariant: the chat providers and finnhub have no inputs
-    // in this form — start from the stored payload and only touch Jev keys.
-    const keys: ByokPayload = { ...(oldDecrypted ?? {}) };
-    const newUpdatedAt = { ...oldUpdatedAt };
-    const now = new Date().toISOString();
-    let savedCount = 0;
-    let clearedCount = 0;
+    // Audit 2026-10-31 (R1): read and write inside the user's scope. The form
+    // only touches the Jev keys and copies the rest forward from this read, so
+    // an unscoped read (zero rows) would wipe every stored chat provider key.
+    const { savedCount, clearedCount } = await withUserTenant(userId, async (db) => {
+      const tenantId = await requireTenantIdForUser(userId, db);
+      const [oldSettings] = await db
+        .select({
+          aiApiKeys: schema.userSettings.aiApiKeys,
+          aiApiKeysUpdatedAt: schema.userSettings.aiApiKeysUpdatedAt,
+        })
+        .from(schema.userSettings)
+        .where(
+          and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
+        );
+      const oldDecrypted = oldSettings?.aiApiKeys ? decryptByok(oldSettings.aiApiKeys) : null;
+      const oldUpdatedAt = oldSettings?.aiApiKeysUpdatedAt ?? {};
 
-    for (const id of JEV_PROVIDER_IDS) {
-      const raw = formData.get(id);
-      // An absent field preserves the stored key (older clients, partial posts).
-      if (raw === null) continue;
-      const value = typeof raw === 'string' ? raw.trim() : '';
-      // The prefilled sentinel means "leave the stored key as-is".
-      if (value === JEV_DECISION_KEY_KEEP) continue;
-      const oldKey = oldDecrypted?.[id];
-      if (value.length === 0) {
-        if (oldKey) {
-          delete keys[id];
-          delete newUpdatedAt[id];
-          clearedCount += 1;
+      // Preservation invariant: the chat providers and finnhub have no inputs
+      // in this form — start from the stored payload and only touch Jev keys.
+      const keys: ByokPayload = { ...(oldDecrypted ?? {}) };
+      const newUpdatedAt = { ...oldUpdatedAt };
+      const now = new Date().toISOString();
+      let saved = 0;
+      let cleared = 0;
+
+      for (const id of JEV_PROVIDER_IDS) {
+        const raw = formData.get(id);
+        // An absent field preserves the stored key (older clients, partial posts).
+        if (raw === null) continue;
+        const value = typeof raw === 'string' ? raw.trim() : '';
+        // The prefilled sentinel means "leave the stored key as-is".
+        if (value === JEV_DECISION_KEY_KEEP) continue;
+        const oldKey = oldDecrypted?.[id];
+        if (value.length === 0) {
+          if (oldKey) {
+            delete keys[id];
+            delete newUpdatedAt[id];
+            cleared += 1;
+          }
+          continue;
         }
-        continue;
+        if (value !== oldKey) {
+          keys[id] = value;
+          newUpdatedAt[id] = now;
+        }
+        saved += 1;
       }
-      if (value !== oldKey) {
-        keys[id] = value;
-        newUpdatedAt[id] = now;
-      }
-      savedCount += 1;
-    }
 
-    await db
-      .update(schema.userSettings)
-      .set({
-        aiApiKeys: Object.keys(keys).length > 0 ? encryptByok(keys) : null,
-        aiApiKeysUpdatedAt: Object.keys(newUpdatedAt).length > 0 ? newUpdatedAt : null,
-      })
-      .where(
-        and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
-      );
+      await db
+        .update(schema.userSettings)
+        .set({
+          aiApiKeys: Object.keys(keys).length > 0 ? encryptByok(keys) : null,
+          aiApiKeysUpdatedAt: Object.keys(newUpdatedAt).length > 0 ? newUpdatedAt : null,
+        })
+        .where(
+          and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
+        );
+
+      return { savedCount: saved, clearedCount: cleared };
+    });
 
     revalidatePath('/settings/api-keys');
     return {

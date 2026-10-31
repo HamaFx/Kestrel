@@ -19,8 +19,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // AI preferences actions: custom instructions and the disabled-tools list.
-import { getDb } from '@kestrel/ai';
-import { requireTenantIdForUser, schema, withRateLimit } from '@kestrel/db';
+//
+// Audit 2026-10-31 (R1): server actions inherit no tenant scope from their
+// page, so each `user_settings` write opens one with `withUserTenant`.
+import { requireTenantIdForUser, schema, withRateLimit, withUserTenant } from '@kestrel/db';
 import { PresentationPreferencesSchema } from '@kestrel/shared';
 import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -50,17 +52,18 @@ export async function updateAiPrefsAction(customInstructions: string): Promise<A
   }
 
   try {
-    const db = getDb();
-    const tenantId = await requireTenantIdForUser(session.user.id, db);
-    await db
-      .update(schema.userSettings)
-      .set({ customInstructions: parsedInstructions.data ?? '' })
-      .where(
-        and(
-          eq(schema.userSettings.userId, session.user.id),
-          eq(schema.userSettings.tenantId, tenantId),
-        ),
-      );
+    await withUserTenant(session.user.id, async (db) => {
+      const tenantId = await requireTenantIdForUser(session.user.id, db);
+      await db
+        .update(schema.userSettings)
+        .set({ customInstructions: parsedInstructions.data ?? '' })
+        .where(
+          and(
+            eq(schema.userSettings.userId, session.user.id),
+            eq(schema.userSettings.tenantId, tenantId),
+          ),
+        );
+    });
 
     revalidatePath('/settings');
     return { ok: true as const };
@@ -88,17 +91,18 @@ export async function updateDisabledToolsAction(disabledTools: string[]): Promis
   }
 
   try {
-    const db = getDb();
-    const tenantId = await requireTenantIdForUser(session.user.id, db);
-    await db
-      .update(schema.userSettings)
-      .set({ disabledTools })
-      .where(
-        and(
-          eq(schema.userSettings.userId, session.user.id),
-          eq(schema.userSettings.tenantId, tenantId),
-        ),
-      );
+    await withUserTenant(session.user.id, async (db) => {
+      const tenantId = await requireTenantIdForUser(session.user.id, db);
+      await db
+        .update(schema.userSettings)
+        .set({ disabledTools })
+        .where(
+          and(
+            eq(schema.userSettings.userId, session.user.id),
+            eq(schema.userSettings.tenantId, tenantId),
+          ),
+        );
+    });
 
     revalidatePath('/settings/agent');
     return { ok: true as const };

@@ -20,7 +20,12 @@
 
 // Password-change action: current-password and optional 2FA gated rotation
 // with token-version bump and audit logging.
-import { createAuditLog, getDb, schema } from '@kestrel/db';
+//
+// Audit 2026-10-31 (R1): the `user` read/update below carries no RLS
+// (migration 0039 disables it for `user`), but `createAuditLog` writes
+// `audit_logs`, which is tenant-scoped — that insert runs inside
+// `withUserTenant`.
+import { createAuditLog, getDb, schema, withUserTenant } from '@kestrel/db';
 import { decryptSecret } from '@kestrel/shared/encryption';
 import bcrypt from 'bcryptjs';
 import { eq, sql } from 'drizzle-orm';
@@ -74,9 +79,13 @@ export async function changePasswordAction(
     .set({ hashedPassword, tokenVersion: sql`${schema.users.tokenVersion} + 1` })
     .where(eq(schema.users.id, session.user.id));
 
-  // FEAT-03: Audit log for password changed
+  // FEAT-03: Audit log for password changed. `audit_logs` is tenant-scoped
+  // (audit 2026-10-31 R1), so the insert needs its own scope — the rest of
+  // this action only touches the non-RLS `user` table.
   try {
-    await createAuditLog(session.user.id, 'password_changed');
+    await withUserTenant(session.user.id, () =>
+      createAuditLog(session.user.id, 'password_changed'),
+    );
   } catch {
     /* fail open */
   }

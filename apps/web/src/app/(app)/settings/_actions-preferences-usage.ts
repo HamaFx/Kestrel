@@ -20,8 +20,10 @@
 
 // Usage settings action: monthly budget limit, provider thresholds, and
 // spend-alert channels.
-import { getDb } from '@kestrel/ai';
-import { requireTenantIdForUser, schema, withRateLimit } from '@kestrel/db';
+//
+// Audit 2026-10-31 (R1): server actions do not inherit the page's tenant
+// scope, so the `user_settings` write opens its own with `withUserTenant`.
+import { requireTenantIdForUser, schema, withRateLimit, withUserTenant } from '@kestrel/db';
 import { PROVIDER_IDS } from '@kestrel/shared/encryption';
 import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -66,22 +68,23 @@ export async function updateUsageSettingsAction(formData: FormData): Promise<Act
   }
 
   try {
-    const db = getDb();
-    const tenantId = await requireTenantIdForUser(session.user.id, db);
-    await db
-      .update(schema.userSettings)
-      .set({
-        monthlyBudgetLimit,
-        providerSpendingThresholds:
-          Object.keys(providerSpendingThresholds).length > 0 ? providerSpendingThresholds : null,
-        spendAlertsConfig: { email: emailAlert, telegram: telegramAlert },
-      })
-      .where(
-        and(
-          eq(schema.userSettings.userId, session.user.id),
-          eq(schema.userSettings.tenantId, tenantId),
-        ),
-      );
+    await withUserTenant(session.user.id, async (db) => {
+      const tenantId = await requireTenantIdForUser(session.user.id, db);
+      await db
+        .update(schema.userSettings)
+        .set({
+          monthlyBudgetLimit,
+          providerSpendingThresholds:
+            Object.keys(providerSpendingThresholds).length > 0 ? providerSpendingThresholds : null,
+          spendAlertsConfig: { email: emailAlert, telegram: telegramAlert },
+        })
+        .where(
+          and(
+            eq(schema.userSettings.userId, session.user.id),
+            eq(schema.userSettings.tenantId, tenantId),
+          ),
+        );
+    });
 
     revalidatePath('/settings/usage');
     return { ok: true as const };

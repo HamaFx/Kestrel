@@ -19,8 +19,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Market-data provider selection action.
-import { getDb } from '@kestrel/ai';
-import { requireTenantIdForUser, schema, withRateLimit } from '@kestrel/db';
+// Audit 2026-10-31 (R1): a server action inherits no scope from its page, so
+// the `user_settings` write opens its own `withUserTenant` scope.
+import { requireTenantIdForUser, schema, withRateLimit, withUserTenant } from '@kestrel/db';
 import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
@@ -49,19 +50,20 @@ export async function updateMarketDataProviderAction(formData: FormData): Promis
   }
 
   try {
-    const db = getDb();
-    const tenantId = await requireTenantIdForUser(session.user.id, db);
-    await db
-      .update(schema.userSettings)
-      .set({
-        marketDataProvider: provider,
-      })
-      .where(
-        and(
-          eq(schema.userSettings.userId, session.user.id),
-          eq(schema.userSettings.tenantId, tenantId),
-        ),
-      );
+    await withUserTenant(session.user.id, async (db) => {
+      const tenantId = await requireTenantIdForUser(session.user.id, db);
+      await db
+        .update(schema.userSettings)
+        .set({
+          marketDataProvider: provider,
+        })
+        .where(
+          and(
+            eq(schema.userSettings.userId, session.user.id),
+            eq(schema.userSettings.tenantId, tenantId),
+          ),
+        );
+    });
 
     revalidatePath('/settings/api-keys');
     revalidatePath('/settings');

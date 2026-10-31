@@ -16,7 +16,13 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { getDb, getUserPasswordHash, updateUserDisplayName } from '@kestrel/db';
+import {
+  createAuditLog,
+  deleteUserAccount,
+  getDb,
+  getUserPasswordHash,
+  updateUserDisplayName,
+} from '@kestrel/db';
 // Pre-register mock DB in the container BEFORE @kestrel/ai is imported.
 // importOriginal for @kestrel/ai runs db.ts which does container.register('db', ...),
 // but since @kestrel/db is mocked and getRawDb = mockGetDb, the container will
@@ -33,16 +39,21 @@ import bcrypt from 'bcryptjs';
 import { revalidatePath } from 'next/cache';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
-import { auth } from '@/auth';
+import { auth, signOut } from '@/auth';
 import { logActionError } from '@/lib/http/action-errors';
 
 import {
   addSymbolAction,
+  changePasswordAction,
+  clearChatModelAction,
+  deleteAccountAction,
   exportDataAction,
   exportKeysAction,
   importKeysAction,
   removeSymbolAction,
+  resetOnboardingAction,
   updateApiKeysAction,
+  updateChatModelAction,
   updateJevApiKeysAction,
   updateProfileAction,
   updateUsageSettingsAction,
@@ -79,10 +90,17 @@ vi.mock('@kestrel/shared/encryption', async () => {
   };
 });
 
-vi.mock('@/auth', () => ({ auth: vi.fn() }));
+vi.mock('@/auth', () => ({ auth: vi.fn(), signOut: vi.fn() }));
 
 const mockGetDb = vi.hoisted(() => vi.fn());
 const mockWithRateLimit = vi.hoisted(() => vi.fn());
+// Audit 2026-10-31 (R1) — server actions must open their own tenant scope.
+// The test double is transparent: it runs the callback against the same mocked
+// client chain the action used to reach via getDb().
+const mockWithUserTenant = vi.hoisted(() => vi.fn());
+const mockCreateAuditLog = vi.hoisted(() => vi.fn());
+const mockDeleteUserAccount = vi.hoisted(() => vi.fn());
+const mockUpdateUserSettingsField = vi.hoisted(() => vi.fn());
 const mockUpdateUserDisplayName = vi.hoisted(() => vi.fn());
 const mockGetUserPasswordHash = vi.hoisted(() => vi.fn());
 const mockRequireTenantIdForUser = vi.hoisted(() => vi.fn());
@@ -102,6 +120,10 @@ const schemaProxy = vi.hoisted(() => {
 vi.mock('@kestrel/db', () => ({
   getDb: mockGetDb,
   withRateLimit: mockWithRateLimit,
+  withUserTenant: mockWithUserTenant,
+  createAuditLog: mockCreateAuditLog,
+  deleteUserAccount: mockDeleteUserAccount,
+  updateUserSettingsField: mockUpdateUserSettingsField,
   updateUserDisplayName: mockUpdateUserDisplayName,
   getUserPasswordHash: mockGetUserPasswordHash,
   requireTenantIdForUser: mockRequireTenantIdForUser,
@@ -196,6 +218,13 @@ beforeAll(async () => {
 
 beforeEach(() => {
   mockWithRateLimit.mockResolvedValue({ allowed: true, count: 1, limit: 10 });
+  // Transparent tenant scope: run the callback against the mocked client.
+  mockWithUserTenant.mockImplementation((_userId: string, fn: (db: unknown) => unknown) =>
+    fn(mockGetDb()),
+  );
+  mockCreateAuditLog.mockResolvedValue(undefined);
+  mockDeleteUserAccount.mockResolvedValue(undefined);
+  mockUpdateUserSettingsField.mockResolvedValue(undefined);
   // verifyAccountPassword calls getUserPasswordHash internally, so the mock
   // must return the known hash so bcrypt.compare can succeed.
   mockGetUserPasswordHash.mockResolvedValue(hashedTestPassword);
@@ -321,6 +350,16 @@ describe('addSymbolAction', () => {
     ]);
     const result = await addSymbolAction(formData({ symbol: 'btcusd' }));
     expect(result).toEqual({ ok: true });
+  });
+
+  it('reads the watchlist and inserts inside the user’s tenant scope (R1)', async () => {
+    mockDb([
+      [{ symbol: 'BTCUSD' }], // global catalog read (no RLS)
+      [{ maxOrder: null }], // user_symbols read (RLS)
+    ]);
+    const result = await addSymbolAction(formData({ symbol: 'BTCUSD' }));
+    expect(result).toEqual({ ok: true });
+    expect(mockWithUserTenant).toHaveBeenCalledWith(USER_ID, expect.any(Function));
   });
 
   it('logs server-action errors', async () => {
@@ -523,6 +562,9 @@ describe('exportDataAction', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
+    // R1: the whole payload is read inside the user's tenant scope.
+    expect(mockWithUserTenant).toHaveBeenCalledWith(USER_ID, expect.any(Function));
+
     const serialized = result.data;
     expect(serialized).toContain('feedback');
     expect(serialized).toContain('regressionCases');
@@ -674,6 +716,28 @@ describe('updateApiKeysAction', () => {
     expect(result.ok).toBe(true);
     expect(savedByokPayload()).not.toHaveProperty('openai');
   });
+
+  it('reads the stored payload and writes it inside the user’s tenant scope (R1)', async () => {
+    mockDb([
+      [
+        {
+          aiApiKeys: encryptByok({ google: 'old-g', opencode: 'oc-1' }),
+          aiApiKeysUpdatedAt: null,
+        },
+      ],
+    ]);
+
+    const result = await updateApiKeysAction(
+      { status: 'idle' },
+      formData({ google: '***KEEP***' }),
+    );
+
+    expect(result.ok).toBe(true);
+    // Two phases: the preserving read and the atomic settings + health write.
+    expect(mockWithUserTenant).toHaveBeenCalledTimes(2);
+    expect(mockWithUserTenant).toHaveBeenCalledWith(USER_ID, expect.any(Function));
+    expect(savedByokPayload()).toMatchObject({ google: 'old-g', opencode: 'oc-1' });
+  });
 });
 
 describe('updateJevApiKeysAction', () => {
@@ -783,11 +847,12 @@ describe('importKeysAction', () => {
       TEST_PASSWORD,
     );
     // verifyAccountPassword calls getUserPasswordHash → returns hashedTestPassword (set in beforeEach)
-    // importKeysAction then calls getDb() once for the update
+    // importKeysAction then opens one tenant scope for the read + write
     mockDb();
     const result = await importKeysAction(backup, TEST_PASSWORD);
     expect(result).toEqual({ ok: true, data: { importedCount: 2 } });
     expect(revalidatePath).toHaveBeenCalledWith('/settings/api-keys');
+    expect(mockWithUserTenant).toHaveBeenCalledWith(USER_ID, expect.any(Function));
   });
 
   it('imports decision-model and market-data keys from the backup payload', async () => {
@@ -900,5 +965,100 @@ describe('updateUsageSettingsAction', () => {
     );
     expect(result).toEqual({ ok: false, error: 'write conflict' });
     expect(logActionError).toHaveBeenCalled();
+  });
+});
+
+// ===========================================================================
+// changePasswordAction / deleteAccountAction  (R1 tenant-scoped helpers)
+// ===========================================================================
+
+describe('changePasswordAction', () => {
+  beforeEach(() => {
+    (auth as Mock).mockImplementation(mockNextAuthSession(USER_ID));
+  });
+
+  it('writes the audit log inside the user’s tenant scope (R1)', async () => {
+    mockDb([[{ twoFactorEnabled: false }]]);
+
+    const result = await changePasswordAction(TEST_PASSWORD, 'NewStrongPass1');
+
+    expect(result).toEqual({ ok: true });
+    expect(mockWithUserTenant).toHaveBeenCalledWith(USER_ID, expect.any(Function));
+    expect(createAuditLog).toHaveBeenCalledWith(USER_ID, 'password_changed');
+  });
+
+  it('still succeeds when audit logging fails (fail open)', async () => {
+    mockCreateAuditLog.mockRejectedValueOnce(new Error('audit unavailable'));
+    mockDb([[{ twoFactorEnabled: false }]]);
+
+    const result = await changePasswordAction(TEST_PASSWORD, 'NewStrongPass1');
+
+    expect(result).toEqual({ ok: true });
+  });
+});
+
+describe('deleteAccountAction', () => {
+  beforeEach(() => {
+    (auth as Mock).mockImplementation(mockNextAuthSession(USER_ID));
+  });
+
+  it('runs the tenant purge inside the user’s scope before signing out (R1)', async () => {
+    mockDb([[{ twoFactorEnabled: false }]]);
+
+    const result = await deleteAccountAction(TEST_PASSWORD);
+
+    expect(result).toEqual({ ok: true });
+    expect(mockWithUserTenant).toHaveBeenCalledWith(USER_ID, expect.any(Function));
+    expect(deleteUserAccount).toHaveBeenCalledWith(USER_ID);
+    expect(signOut).toHaveBeenCalledWith({ redirectTo: '/' });
+  });
+
+  it('returns an error and does not sign out when the purge fails', async () => {
+    mockDeleteUserAccount.mockRejectedValueOnce(new Error('purge failed'));
+    mockDb([[{ twoFactorEnabled: false }]]);
+
+    const result = await deleteAccountAction(TEST_PASSWORD);
+
+    expect(result).toEqual({ ok: false, error: 'purge failed' });
+    expect(signOut).not.toHaveBeenCalled();
+  });
+});
+
+// ===========================================================================
+// updateChatModelAction / clearChatModelAction / resetOnboardingAction (R1)
+// ===========================================================================
+
+describe('model and onboarding actions', () => {
+  beforeEach(() => {
+    (auth as Mock).mockImplementation(mockNextAuthSession(USER_ID));
+  });
+
+  it('updates the chat model inside the user’s tenant scope (R1)', async () => {
+    const result = await updateChatModelAction('openai', 'gpt-test');
+
+    expect(result).toEqual({ ok: true, data: { chatModel: 'openai:gpt-test' } });
+    expect(mockWithUserTenant).toHaveBeenCalledWith(USER_ID, expect.any(Function));
+    expect(mockUpdateUserSettingsField).toHaveBeenCalledWith(
+      USER_ID,
+      'chatModel',
+      'openai:gpt-test',
+    );
+  });
+
+  it('clears the chat model inside the user’s tenant scope (R1)', async () => {
+    const result = await clearChatModelAction();
+
+    expect(result).toEqual({ ok: true, data: { chatModel: null } });
+    expect(mockWithUserTenant).toHaveBeenCalledWith(USER_ID, expect.any(Function));
+    expect(mockUpdateUserSettingsField).toHaveBeenCalledWith(USER_ID, 'chatModel', null);
+  });
+
+  it('resets onboarding inside the user’s tenant scope (R1)', async () => {
+    mockDb();
+
+    const result = await resetOnboardingAction();
+
+    expect(result).toEqual({ ok: true, data: { reset: true } });
+    expect(mockWithUserTenant).toHaveBeenCalledWith(USER_ID, expect.any(Function));
   });
 });

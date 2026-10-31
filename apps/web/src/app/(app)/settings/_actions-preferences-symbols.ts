@@ -19,8 +19,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Watchlist symbol actions: add (catalog-validated) and remove.
+//
+// Audit 2026-10-31 (R1): `symbol_catalog` is global (`tenant_id =
+// '__system__'`, no RLS), so its read stays unscoped. `user_symbols` is
+// tenant-scoped and each access runs inside `withUserTenant`.
 import { getDb } from '@kestrel/ai';
-import { requireTenantIdForUser, schema, withRateLimit } from '@kestrel/db';
+import { requireTenantIdForUser, schema, withRateLimit, withUserTenant } from '@kestrel/db';
 import { and, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
@@ -55,8 +59,8 @@ export async function addSymbolAction(formData: FormData): Promise<ActionResult>
 
   try {
     const db = getDb();
-    const tenantId = await requireTenantIdForUser(session.user.id, db);
-
+    // `symbol_catalog` holds global rows (tenant_id = '__system__') and has no
+    // RLS, so this cross-tenant read needs no scope.
     const inCatalog = await db
       .select({ symbol: schema.symbolCatalog.symbol })
       .from(schema.symbolCatalog)
@@ -73,31 +77,35 @@ export async function addSymbolAction(formData: FormData): Promise<ActionResult>
       return { ok: false as const, error: `Symbol "${symbol}" is not supported or active.` };
     }
 
-    const orderResult = await db
-      .select({
-        maxOrder: sql<number>`coalesce(max(${schema.userSymbols.displayOrder}), -1)`,
-      })
-      .from(schema.userSymbols)
-      .where(
-        and(
-          eq(schema.userSymbols.userId, session.user.id),
-          eq(schema.userSymbols.tenantId, tenantId),
-        ),
-      );
+    await withUserTenant(session.user.id, async (scopedDb) => {
+      const tenantId = await requireTenantIdForUser(session.user.id, scopedDb);
 
-    const nextOrder = (orderResult[0]?.maxOrder ?? -1) + 1;
+      const orderResult = await scopedDb
+        .select({
+          maxOrder: sql<number>`coalesce(max(${schema.userSymbols.displayOrder}), -1)`,
+        })
+        .from(schema.userSymbols)
+        .where(
+          and(
+            eq(schema.userSymbols.userId, session.user.id),
+            eq(schema.userSymbols.tenantId, tenantId),
+          ),
+        );
 
-    await db
-      .insert(schema.userSymbols)
-      .values({
-        userId: session.user.id,
-        tenantId,
-        symbol,
-        displayOrder: nextOrder,
-      })
-      .onConflictDoNothing({
-        target: [schema.userSymbols.userId, schema.userSymbols.symbol],
-      });
+      const nextOrder = (orderResult[0]?.maxOrder ?? -1) + 1;
+
+      await scopedDb
+        .insert(schema.userSymbols)
+        .values({
+          userId: session.user.id,
+          tenantId,
+          symbol,
+          displayOrder: nextOrder,
+        })
+        .onConflictDoNothing({
+          target: [schema.userSymbols.userId, schema.userSymbols.symbol],
+        });
+    });
 
     revalidatePath('/settings/symbols');
     return { ok: true as const };
@@ -130,17 +138,18 @@ export async function removeSymbolAction(formData: FormData): Promise<ActionResu
   }
 
   try {
-    const db = getDb();
-    const tenantId = await requireTenantIdForUser(session.user.id, db);
-    await db
-      .delete(schema.userSymbols)
-      .where(
-        and(
-          eq(schema.userSymbols.userId, session.user.id),
-          eq(schema.userSymbols.tenantId, tenantId),
-          eq(schema.userSymbols.symbol, symbol),
-        ),
-      );
+    await withUserTenant(session.user.id, async (db) => {
+      const tenantId = await requireTenantIdForUser(session.user.id, db);
+      await db
+        .delete(schema.userSymbols)
+        .where(
+          and(
+            eq(schema.userSymbols.userId, session.user.id),
+            eq(schema.userSymbols.tenantId, tenantId),
+            eq(schema.userSymbols.symbol, symbol),
+          ),
+        );
+    });
 
     revalidatePath('/settings/symbols');
     return { ok: true as const };
