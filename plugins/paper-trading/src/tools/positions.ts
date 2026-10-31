@@ -114,12 +114,15 @@ export const closePositionTool: PluginToolRegistration<
           err: err instanceof Error ? err.message : String(err),
         }),
     });
-    const fullyClosed = result.position.status === 'closed';
-    return {
-      ok: true,
-      message: fullyClosed
+    const message =
+      result.outcome === 'closed'
         ? `Closed ${result.position.initialQuantity} ${result.position.symbol} at ${result.position.closePrice}.`
-        : `Partially closed ${input.quantity ?? 0} ${result.position.symbol}.`,
+        : result.outcome === 'partial'
+          ? `Partially closed ${result.fill?.quantity ?? 0} ${result.position.symbol}.`
+          : `No fill was placed: ${result.position.symbol} was already closed or reduced by a concurrent evaluation.`;
+    return {
+      ok: result.outcome !== 'not_closed',
+      message,
       ...result,
     };
   },

@@ -17,12 +17,12 @@
 // Position close/modify and order cancellation.
 
 import {
+  claimPositionClose,
   getAccount,
   getOrder,
   getPosition,
   incrementAccountBalance,
   insertFill,
-  updateOpenPosition,
   updateOrder,
   updatePosition,
 } from '../db/queries';
@@ -89,29 +89,20 @@ export async function applyClose(args: {
             ? 'close'
             : 'partial_close';
 
-  // Claim the row before any side effect: the TickBus subscriber and the
-  // market-watch job can evaluate the same stop at the same time, and only one
-  // of them may close, insert a fill, and credit the balance.
-  const updated = full
-    ? await updateOpenPosition(args.userId, args.position.id, {
-        status: 'closed',
-        quantity: 0,
-        closePrice: args.exitPrice,
-        closeTime: args.now,
-        closeReason: args.reason,
-        realizedPnl: args.position.realizedPnl + pnl,
-        unrealizedPnl: 0,
-        exitFee: args.position.exitFee + exitFee,
-      })
-    : await updateOpenPosition(args.userId, args.position.id, {
-        quantity: args.position.quantity - closeQuantity,
-        realizedPnl: args.position.realizedPnl + pnl,
-        unrealizedPnl: args.position.unrealizedPnl * (1 - closeQuantity / args.position.quantity),
-        // Keep the original risk so R and the Journal reflect the whole trade
-        // across partial closes, not just the remaining slice.
-        entryFee: args.position.entryFee * (1 - closeQuantity / args.position.quantity),
-        exitFee: args.position.exitFee + exitFee,
-      });
+  // Claim the row and apply the slice arithmetic in one guarded SQL update:
+  // the TickBus subscriber and the market-watch job can evaluate the same
+  // stop at the same time, and only one of them may close, insert a fill and
+  // credit the balance. The quantity guard also stops two concurrent partial
+  // closes from stacking past the position size: a close that no longer fits
+  // the remaining quantity claims nothing here.
+  const updated = await claimPositionClose(args.userId, args.position.id, {
+    closeQuantity,
+    realizedPnl: pnl,
+    exitFee,
+    full: full
+      ? { exitPrice: args.exitPrice, closeTime: args.now, closeReason: args.reason }
+      : null,
+  });
   if (!updated) {
     // Another worker won the claim; do not duplicate the fill or the credit.
     return { position: args.position, fill: null, closed: false };
@@ -131,7 +122,7 @@ export async function applyClose(args: {
     meta: {
       reason: args.reason,
       source: args.source,
-      remaining: full ? 0 : args.position.quantity - closeQuantity,
+      remaining: updated.quantity,
     },
   });
 
@@ -159,6 +150,16 @@ export async function applyClose(args: {
 
 // ── Place order ──────────────────────────────────────────────────────────
 
+/**
+ * What actually happened to a close request:
+ * - `closed`      — this call won the claim and flat-closed the position.
+ * - `partial`     — this call won the claim and reduced the position.
+ * - `not_closed`  — a concurrent evaluation changed the row first, so the
+ *                   guard rejected this close and no side effect was taken.
+ *                   Callers must not report a close.
+ */
+export type CloseOutcome = 'closed' | 'partial' | 'not_closed';
+
 export async function closePositionForUser(args: {
   userId: string;
   positionId: string;
@@ -171,7 +172,12 @@ export async function closePositionForUser(args: {
   now?: Date;
   signal?: AbortSignal;
   onJournalError?: (err: unknown) => void;
-}): Promise<{ position: PositionView; account: AccountView; fill: FillView | null }> {
+}): Promise<{
+  position: PositionView;
+  account: AccountView;
+  fill: FillView | null;
+  outcome: CloseOutcome;
+}> {
   const position = await getPosition(args.userId, args.positionId);
   if (!position) throw new Error('Position not found.');
   if (position.status !== 'open') throw new Error('This position is already closed.');
@@ -201,15 +207,22 @@ export async function closePositionForUser(args: {
     ...(args.onJournalError ? { onJournalError: args.onJournalError } : {}),
   });
   const refreshedAccount = (await getAccount(args.userId, account.id)) ?? account;
-  // `fill === null` means a concurrent tick/watch closed the row between the
-  // read above and the atomic claim: report the current state, not a duplicate.
+  // `fill === null` means a concurrent tick/watch changed the row between the
+  // read above and the atomic claim: report the current state, not a duplicate,
+  // and tell the caller no close was applied.
   const current = result.fill
     ? result.position
     : ((await getPosition(args.userId, args.positionId)) ?? result.position);
+  const outcome: CloseOutcome = result.fill
+    ? result.position.status === 'closed'
+      ? 'closed'
+      : 'partial'
+    : 'not_closed';
   return {
     position: positionView(current, refreshedAccount),
     account: await accountViewById(args.userId, refreshedAccount),
     fill: result.fill,
+    outcome,
   };
 }
 

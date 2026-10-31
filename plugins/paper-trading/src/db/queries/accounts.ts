@@ -100,10 +100,37 @@ export async function setAccountBalance(
 }
 
 /**
- * Atomically add `delta` to the realised cash balance.
+ * Take the account row's write lock for the rest of the surrounding
+ * transaction (`SELECT ... FOR UPDATE`).
+ *
+ * Fill/placement guards (free margin, open-position cap) must be re-read
+ * after this lock, so two concurrent writers on the same account cannot both
+ * pass a check against the same pre-write snapshot. The lock is held until
+ * the transaction commits; production callers always run inside
+ * `withTenantDb*`, which is what makes it effective.
+ */
+export async function lockAccountForWrite(
+  userId: string,
+  accountId: string,
+): Promise<PaperAccountRow | undefined> {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(paperAccounts)
+    .where(and(eq(paperAccounts.userId, userId), eq(paperAccounts.id, accountId)))
+    .for('update');
+  return rows[0];
+}
+
+/**
+ * Atomically add `delta` to the realised cash balance, floored at zero.
  *
  * Concurrent closes (TickBus + market-watch) must never read-modify-write the
- * same balance: a lost update would silently drop realised P&L.
+ * same balance: a lost update would silently drop realised P&L. `GREATEST`
+ * is the liquidation floor: a stop gapped past the account's cash can wipe
+ * the balance out but never drive it negative. The position and fill rows
+ * still record the full loss; the excess beyond the cash is a broker-side
+ * write-off.
  */
 export async function incrementAccountBalance(
   userId: string,
@@ -113,7 +140,10 @@ export async function incrementAccountBalance(
   const db = getDb();
   const rows = await db
     .update(paperAccounts)
-    .set({ balance: sql`${paperAccounts.balance} + ${delta}`, updatedAt: new Date() })
+    .set({
+      balance: sql`GREATEST(${paperAccounts.balance} + ${delta}, 0)`,
+      updatedAt: new Date(),
+    })
     .where(and(eq(paperAccounts.userId, userId), eq(paperAccounts.id, accountId)))
     .returning();
   return rows[0];

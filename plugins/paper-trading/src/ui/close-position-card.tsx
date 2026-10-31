@@ -49,6 +49,17 @@ export function ClosePositionCard({ output, state, errorMessage }: PluginToolPar
 
   const result = parsed.data;
   const { position, fill } = result;
+
+  // A rejected claim is not a close: surface the broker's answer instead of
+  // rendering a success card for a position another evaluation already moved.
+  if (result.outcome === 'not_closed' || !result.ok) {
+    return (
+      <div className="border-warn/30 bg-warn/5 text-warn rounded-xl border p-3 text-xs">
+        {result.message}
+      </div>
+    );
+  }
+
   return (
     <section className="surface-panel flex flex-col gap-3 rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)]">
       <header className="flex items-center justify-between gap-2">

@@ -45,13 +45,20 @@ import type {
 import type { PaperSettings } from '../settings';
 import { accountViewById, listAccountViews, resolvePaperAccount } from './accounts';
 import { isTickTradable, loadTick, slippageFor } from './pricing';
-import { createPosition, minStopDistance, nextUtcMidnight, quotesFor } from './trading-shared';
+import {
+  assertAccountCanOpen,
+  createPosition,
+  minStopDistance,
+  nextUtcMidnight,
+  quotesFor,
+} from './trading-shared';
 import { fillView, orderView, positionView } from './views';
 
 export {
   cancelOrderForUser,
   closePositionForUser,
   modifyPositionForUser,
+  type CloseOutcome,
 } from './position-lifecycle';
 export { processQuotesForUser, type ProcessQuotesResult } from './fill-engine';
 
@@ -164,9 +171,24 @@ export async function placeOrderForUser(args: {
     });
     if (fillBracketError) throw new Error(fillBracketError);
 
-    const position = await createPosition({
+    // Re-verify the cap and budgets under the account lock, right before the
+    // insert: the snapshot read earlier can go stale between two concurrent
+    // placements. Single-threaded callers see the same numbers as the sizing
+    // pass, so only a real race can trip this.
+    const writeAccount = await assertAccountCanOpen({
       userId: args.userId,
       account,
+      settings: args.settings,
+      margin: (fillPrice * sizing.quantity * contractSize) / Math.max(1, account.leverage),
+      risk:
+        args.input.stopLoss !== undefined && args.input.stopLoss !== null
+          ? Math.abs(fillPrice - args.input.stopLoss) * sizing.quantity * contractSize
+          : 0,
+    });
+
+    const position = await createPosition({
+      userId: args.userId,
+      account: writeAccount,
       symbol,
       side: args.input.side,
       quantity: sizing.quantity,
@@ -199,9 +221,21 @@ export async function placeOrderForUser(args: {
       : args.input.timeInForce === 'day'
         ? nextUtcMidnight(now)
         : null;
+
+  // Same locked re-verification for a resting order: it consumes a position
+  // slot the moment it is placed, so two concurrent placements must not both
+  // pass the cap check.
+  const writeAccount = await assertAccountCanOpen({
+    userId: args.userId,
+    account,
+    settings: args.settings,
+    margin: sizing.margin,
+    risk: sizing.riskAmount,
+  });
+
   const order = await insertOrder({
     userId: args.userId,
-    accountId: account.id,
+    accountId: writeAccount.id,
     symbol,
     side: args.input.side,
     type: args.input.type,

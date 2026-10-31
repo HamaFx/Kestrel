@@ -20,7 +20,7 @@
 // worker TickBus/job) and every query additionally filters by user_id.
 
 import { getDb, requireTenantIdForUser } from '@kestrel/db';
-import { and, count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, sql } from 'drizzle-orm';
 
 import type { PositionStatus } from '../../domain';
 import { paperPositions, type PaperPositionRow } from '../tables';
@@ -178,8 +178,8 @@ export async function updatePosition(
 /**
  * Atomically update one still-open position.
  *
- * A close that loses the `status = 'open'` race must not insert a second fill
- * or credit the realised P&L twice, so `applyClose` claims the row here first.
+ * Used for mark-to-market updates (unrealised P&L, trailing stop price).
+ * Closes use `claimPositionClose`, whose guards carry the slice arithmetic.
  */
 export async function updateOpenPosition(
   userId: string,
@@ -198,6 +198,87 @@ export async function updateOpenPosition(
       ),
     )
     .returning();
+  return rows[0];
+}
+
+export interface PositionCloseClaim {
+  /** Quantity of this close slice. The row must still hold it when the UPDATE runs. */
+  closeQuantity: number;
+  /** Realised P&L of the slice, accumulated onto the row's running total. */
+  realizedPnl: number;
+  /** Exit fee of the slice, accumulated onto the row's running total. */
+  exitFee: number;
+  /** Full-close metadata: the row is marked `closed` and its quantity zeroed. */
+  full: {
+    exitPrice: number;
+    closeTime: Date;
+    closeReason: string;
+  } | null;
+}
+
+/**
+ * Atomically apply one close slice to a still-open position.
+ *
+ * Every derived value runs in SQL against the row this UPDATE locks, so two
+ * concurrent partial closes can no longer overwrite each other's quantity,
+ * realised P&L or fee apportioning with numbers computed from the same stale
+ * read. The guards carry the claim:
+ *
+ * - a full close requires `quantity >= closeQuantity` (the row still holds
+ *   the whole slice), and
+ * - a partial close additionally requires a positive remainder
+ *   (`quantity > closeQuantity`) so a raced partial cannot leave the position
+ *   flat but still `open`; that final slice belongs to the full-close path.
+ *
+ * A close that loses the race claims no row. The caller must then take no
+ * side effect: no fill insert and no balance credit.
+ */
+export async function claimPositionClose(
+  userId: string,
+  positionId: string,
+  claim: PositionCloseClaim,
+): Promise<PaperPositionRow | undefined> {
+  const db = getDb();
+  const guard = and(
+    eq(paperPositions.userId, userId),
+    eq(paperPositions.id, positionId),
+    eq(paperPositions.status, 'open'),
+    claim.full
+      ? sql`${paperPositions.quantity} >= ${claim.closeQuantity}`
+      : sql`${paperPositions.quantity} > ${claim.closeQuantity}`,
+  );
+  const rows = claim.full
+    ? await db
+        .update(paperPositions)
+        .set({
+          status: 'closed',
+          quantity: 0,
+          realizedPnl: sql`${paperPositions.realizedPnl} + ${claim.realizedPnl}`,
+          unrealizedPnl: 0,
+          exitFee: sql`${paperPositions.exitFee} + ${claim.exitFee}`,
+          closePrice: claim.full.exitPrice,
+          closeTime: claim.full.closeTime,
+          closeReason: claim.full.closeReason,
+          updatedAt: new Date(),
+        })
+        .where(guard)
+        .returning()
+    : await db
+        .update(paperPositions)
+        .set({
+          // The same expressions the single-threaded JS path used, evaluated
+          // against the row's own values rather than a stale snapshot.
+          // `initial_risk_amount` is deliberately untouched so R and the
+          // Journal reflect the whole trade across partial closes.
+          quantity: sql`${paperPositions.quantity} - ${claim.closeQuantity}`,
+          realizedPnl: sql`${paperPositions.realizedPnl} + ${claim.realizedPnl}`,
+          unrealizedPnl: sql`${paperPositions.unrealizedPnl} * (1 - ${claim.closeQuantity} / ${paperPositions.quantity})`,
+          entryFee: sql`${paperPositions.entryFee} * (1 - ${claim.closeQuantity} / ${paperPositions.quantity})`,
+          exitFee: sql`${paperPositions.exitFee} + ${claim.exitFee}`,
+          updatedAt: new Date(),
+        })
+        .where(guard)
+        .returning();
   return rows[0];
 }
 

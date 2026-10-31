@@ -18,12 +18,21 @@
 
 import { pipSize } from '@kestrel/shared';
 
-import { insertFill, insertPosition } from '../db/queries';
+import {
+  insertFill,
+  insertPosition,
+  listOrders,
+  listPositions,
+  lockAccountForWrite,
+} from '../db/queries';
 import type { PaperAccountRow, PaperPositionRow } from '../db/tables';
 import {
+  accountSnapshot,
   contractSizeFor,
   entryFeeFor,
   quotesFromTick,
+  round,
+  type AccountSnapshot,
   type MarketTick,
   type OrderSide,
   type PaperPositionState,
@@ -102,6 +111,93 @@ export async function insertOpenFill(args: {
     ts: args.ts,
     ...(args.meta ? { meta: args.meta } : {}),
   });
+}
+
+export interface AccountTradeState {
+  account: PaperAccountRow;
+  snapshot: AccountSnapshot;
+  /** Open positions for this account, read under the account lock. */
+  openCount: number;
+  /** Pending orders for this account, read under the account lock. */
+  pendingCount: number;
+}
+
+/**
+ * Serialise margin / position-limit guards with the write that follows.
+ *
+ * Takes the account row's write lock (`SELECT ... FOR UPDATE`) and only then
+ * re-reads its open positions and pending orders, so two concurrent fills or
+ * placements for the same account cannot both pass a check against the same
+ * pre-write snapshot. The lock is held until the surrounding transaction
+ * commits — production callers always run inside `withTenantDb*`. Returns
+ * `null` when the account row no longer exists.
+ */
+export async function lockAccountForTrade(
+  userId: string,
+  accountId: string,
+): Promise<AccountTradeState | null> {
+  const account = await lockAccountForWrite(userId, accountId);
+  if (!account) return null;
+  const [open, pending] = await Promise.all([
+    listPositions(userId, { accountId, status: 'open', limit: 100 }),
+    listOrders(userId, { accountId, status: 'pending', limit: 100 }),
+  ]);
+  const snapshot = accountSnapshot(
+    { balance: account.balance },
+    open.map((position) => ({
+      side: position.side === 'short' ? ('short' as const) : ('long' as const),
+      symbol: position.symbol,
+      quantity: position.quantity,
+      entryPrice: position.entryPrice,
+      unrealizedPnl: position.unrealizedPnl,
+      status: 'open' as const,
+    })),
+    account.leverage,
+  );
+  return { account, snapshot, openCount: open.length, pendingCount: pending.length };
+}
+
+/**
+ * Re-verify the open-position cap and the margin/risk budget on freshly
+ * locked state, immediately before the position or order is inserted. The
+ * messages match the pre-write sizing checks, so single-threaded callers
+ * never see this throw; only a concurrent writer can trip it. Returns the
+ * freshly read account row for the insert.
+ */
+export async function assertAccountCanOpen(args: {
+  userId: string;
+  account: PaperAccountRow;
+  settings: PaperSettings;
+  /** Unrounded margin of the order at its reference price. */
+  margin: number;
+  /** Unrounded stop-distance risk; 0 when the order carries no stop. */
+  risk: number;
+}): Promise<PaperAccountRow> {
+  const state = await lockAccountForTrade(args.userId, args.account.id);
+  if (!state) throw new Error('Account not found.');
+  const used = state.openCount + state.pendingCount;
+  if (used >= args.settings.maxOpenPositions) {
+    throw new Error(
+      `This account already has ${used} open/pending trades; the cap is ${args.settings.maxOpenPositions}.`,
+    );
+  }
+  const marginCap =
+    Math.max(0, state.snapshot.freeMargin) * (args.settings.maxMarginUtilisationPct / 100);
+  if (args.margin > marginCap + 0.01) {
+    throw new Error(
+      `Margin ${round(args.margin, 2)} exceeds the ${args.settings.maxMarginUtilisationPct}% utilisation cap.`,
+    );
+  }
+  const maxRisk = (state.snapshot.equity * args.settings.maxRiskPct) / 100;
+  if (args.risk > maxRisk + 0.01) {
+    throw new Error(
+      `Risk ${round(args.risk, 2)} exceeds the ${args.settings.maxRiskPct}% cap (${round(
+        maxRisk,
+        2,
+      )}). Reduce quantity or tighten the stop.`,
+    );
+  }
+  return state.account;
 }
 
 export async function createPosition(args: {

@@ -42,7 +42,14 @@ export type {
   SizingResult,
 } from './types';
 export { contractSizeFor, pipSizeFor, positionToExitSide, sideToPosition } from './symbols';
-export { accountSnapshot, entryFeeFor, grossPnl, positionMargin, sizePosition } from './math';
+export {
+  accountSnapshot,
+  entryFeeFor,
+  grossPnl,
+  positionMargin,
+  round,
+  sizePosition,
+} from './math';
 export { exitQuote, marketFillPrice, quotesFromTick } from './quotes';
 export {
   evaluatePosition,

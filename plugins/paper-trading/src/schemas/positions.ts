@@ -33,6 +33,14 @@ export const CloseReasonSchema = z.enum([
   'account_reset',
 ]);
 
+/**
+ * What a close request actually did. `not_closed` means a concurrent
+ * evaluation changed the row first, so the guard rejected the slice and the
+ * caller must not report a close. Optional so previously persisted tool
+ * parts still parse.
+ */
+export const CloseOutcomeSchema = z.enum(['closed', 'partial', 'not_closed']);
+
 export const PositionSchema = z.object({
   id: z.string(),
   accountId: z.string(),
@@ -97,6 +105,7 @@ export const ClosePositionInputSchema = z.object({
 
 export const ClosePositionOutputSchema = z.object({
   ok: z.boolean(),
+  outcome: CloseOutcomeSchema.optional(),
   message: z.string(),
   position: PositionSchema,
   account: AccountSchema,

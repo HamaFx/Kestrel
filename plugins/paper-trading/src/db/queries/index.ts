@@ -24,6 +24,7 @@ export {
   getAccount,
   incrementAccountBalance,
   listAccounts,
+  lockAccountForWrite,
   setAccountBalance,
   updateAccountSettings,
   type AccountSettingsPatch,
@@ -38,6 +39,7 @@ export {
   type StrategyRunPatch,
 } from './strategy-runs';
 export {
+  claimPositionClose,
   countOpenPositions,
   getPosition,
   insertPosition,
@@ -47,6 +49,7 @@ export {
   updateOpenPosition,
   updatePosition,
   type InsertPositionInput,
+  type PositionCloseClaim,
   type PositionPatch,
 } from './positions';
 export {

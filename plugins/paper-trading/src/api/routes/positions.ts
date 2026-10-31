@@ -73,12 +73,17 @@ export const closePosition = wrap(async (ctx) => {
         err: err instanceof Error ? err.message : String(err),
       }),
   });
+  // A guard rejection must not read as a close: report the outcome the broker
+  // actually applied and mark the response not-ok when nothing was closed.
+  const message =
+    result.outcome === 'closed'
+      ? `Closed ${result.position.initialQuantity} ${result.position.symbol}.`
+      : result.outcome === 'partial'
+        ? `Partially closed ${result.fill?.quantity ?? 0} ${result.position.symbol}.`
+        : `No fill was placed: ${result.position.symbol} was already closed or reduced by a concurrent evaluation.`;
   return json({
-    ok: true,
-    message:
-      result.position.status === 'closed'
-        ? `Closed ${result.position.initialQuantity} ${result.position.symbol}.`
-        : `Partially closed ${body.quantity ?? 0} ${result.position.symbol}.`,
+    ok: result.outcome !== 'not_closed',
+    message,
     ...result,
   });
 }, 400);

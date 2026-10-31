@@ -26,7 +26,6 @@ import {
 } from '../db/queries';
 import type { PaperAccountRow, PaperOrderRow, PaperPositionRow } from '../db/tables';
 import {
-  accountSnapshot,
   contractSizeFor,
   evaluatePosition,
   matchOrder,
@@ -37,7 +36,13 @@ import {
 import type { PaperSettings } from '../settings';
 import { applyClose } from './position-lifecycle';
 import { isTickTradable, slippageFor, spreadFor } from './pricing';
-import { createPosition, exitWithSlippage, minStopDistance, positionState } from './trading-shared';
+import {
+  createPosition,
+  exitWithSlippage,
+  lockAccountForTrade,
+  minStopDistance,
+  positionState,
+} from './trading-shared';
 
 async function fillOrder(args: {
   userId: string;
@@ -79,26 +84,17 @@ async function fillOrder(args: {
   if (bracketError) return reject(bracketError);
 
   const contractSize = contractSizeFor(args.order.symbol);
-  const open = await listPositions(args.userId, {
-    accountId: args.account.id,
-    status: 'open',
-    limit: 100,
-  });
-  const snapshot = accountSnapshot(
-    { balance: args.account.balance },
-    open.map((position) => ({
-      side: position.side === 'short' ? ('short' as const) : ('long' as const),
-      symbol: position.symbol,
-      quantity: position.quantity,
-      entryPrice: position.entryPrice,
-      unrealizedPnl: position.unrealizedPnl,
-      status: 'open' as const,
-    })),
-    args.account.leverage,
-  );
+
+  // Serialise the margin/risk guards with the position insert: take the
+  // account row's lock, then re-read its open positions so a concurrent fill
+  // cannot pass the same check against a pre-fill snapshot and over-allocate
+  // margin. The lock is held until the surrounding tenant transaction commits.
+  const state = await lockAccountForTrade(args.userId, args.account.id);
+  if (!state) return reject('Account not found.');
+  const { account, snapshot } = state;
 
   const notional = match.price * args.order.quantity * contractSize;
-  const margin = notional / Math.max(1, args.account.leverage);
+  const margin = notional / Math.max(1, account.leverage);
   const marginCap =
     Math.max(0, snapshot.freeMargin) * (args.settings.maxMarginUtilisationPct / 100);
   if (margin > marginCap + 0.01) {
@@ -127,7 +123,7 @@ async function fillOrder(args: {
   try {
     const position = await createPosition({
       userId: args.userId,
-      account: args.account,
+      account,
       symbol: args.order.symbol,
       side: args.order.side === 'sell' ? 'sell' : 'buy',
       quantity: args.order.quantity,

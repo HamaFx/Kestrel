@@ -195,7 +195,7 @@ async function runOneStrategy(
 
   const closeOpenPosition = async (reason: 'max_bars' | 'manual'): Promise<void> => {
     if (!openPosition) return;
-    await closePositionForUser({
+    const result = await closePositionForUser({
       userId,
       positionId: openPosition.id,
       closeReason: reason,
@@ -203,6 +203,17 @@ async function runOneStrategy(
       source: 'strategy',
       ...(signal ? { signal } : {}),
     });
+    if (result.outcome === 'not_closed') {
+      // A concurrent evaluator changed the row first; never count or report a
+      // close that was not applied. If it flat-closed, drop the local handle;
+      // otherwise the position is still open and talking to it stays valid.
+      if (result.position.status === 'closed') {
+        openPosition = undefined;
+        positionId = null;
+        patch.positionId = null;
+      }
+      return;
+    }
     openPosition = undefined;
     positionId = null;
     patch.positionId = null;
