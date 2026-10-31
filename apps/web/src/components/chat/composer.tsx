@@ -18,6 +18,7 @@
 import { IconChartBar, IconNotebook, IconSettings, IconTerminal2 } from '@tabler/icons-react';
 import { memo } from 'react';
 
+import { useInstalledPluginIds } from '@/components/layout/installed-plugins-context';
 import type { CustomAgentSummary } from '@/hooks/use-custom-agents';
 import { cn } from '@/lib/formatters/cn';
 
@@ -62,7 +63,14 @@ export const Composer = memo(function Composer({
   selectedAgentSlug = null,
   onAgentChange,
 }: ComposerProps) {
-  const composer = useComposer({ onSubmit, disabled, isStreaming, customAgents });
+  const installedPluginIds = useInstalledPluginIds();
+  const composer = useComposer({
+    onSubmit,
+    disabled,
+    isStreaming,
+    customAgents,
+    installedPluginIds,
+  });
   const {
     value,
     setValue,

@@ -16,8 +16,6 @@
 
 // Process-wide UI slot registry.
 
-import type { ComponentType } from 'react';
-
 import type { PluginId } from '../types';
 import type {
   PluginUiDefinition,
@@ -25,11 +23,7 @@ import type {
   RegisteredNavItem,
   RegisteredSlashCommand,
 } from './definition';
-import type {
-  PluginPageRegistration,
-  PluginSetupWizardProps,
-  PluginToolPartRegistration,
-} from './slots';
+import type { PluginPageRegistration, PluginToolPartRegistration } from './slots';
 
 /**
  * Process-wide UI slot registry.
@@ -155,10 +149,6 @@ export class PluginUiRegistry {
     }
 
     return dynamicMatches[0] ?? null;
-  }
-
-  getSetupWizard(pluginId: string): ComponentType<PluginSetupWizardProps> | undefined {
-    return this.entries.get(pluginId)?.setupWizardComponent;
   }
 
   get size(): number {

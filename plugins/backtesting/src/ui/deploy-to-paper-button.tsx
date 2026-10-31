@@ -15,19 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { createPluginFetcher } from '@kestrel/plugin-sdk/ui';
 import { IconLoader2, IconRocket } from '@tabler/icons-react';
 import { useState } from 'react';
 
 import { pluginFetch } from './api';
 
-function csrfToken(): string | undefined {
-  if (typeof document === 'undefined') return undefined;
-  for (const name of ['__Host-hfx_csrf', 'hfx_csrf']) {
-    const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
-    if (match?.[1] !== undefined) return decodeURIComponent(match[1]);
-  }
-  return undefined;
-}
+/** Cross-plugin deploy target: the Paper Trading broker's own API. */
+const paperFetch = createPluginFetcher('paper-trading');
 
 async function deploy(runId: string): Promise<string> {
   const detail = await pluginFetch<{
@@ -40,12 +35,8 @@ async function deploy(runId: string): Promise<string> {
     };
   }>(`/runs/${encodeURIComponent(runId)}`);
 
-  const headers = new Headers({ 'content-type': 'application/json' });
-  const token = csrfToken();
-  if (token) headers.set('X-CSRF-Token', token);
-  const response = await fetch('/api/plugins/paper-trading/strategy-runs', {
+  const body = await paperFetch<{ message?: string }>('/strategy-runs', {
     method: 'POST',
-    headers,
     body: JSON.stringify({
       name: detail.run.name,
       strategyId: runId,
@@ -57,14 +48,12 @@ async function deploy(runId: string): Promise<string> {
       account: 'sandbox',
     }),
   });
-  const body = (await response.json().catch(() => null)) as {
-    message?: string;
-    error?: { message?: string };
-  } | null;
-  if (!response.ok) {
-    throw new Error(body?.error?.message ?? `HTTP ${response.status}`);
-  }
-  return body?.message ?? 'Deployed to the AI Agent Sandbox.';
+  return body.message ?? 'Deployed to the AI Agent Sandbox.';
+}
+
+/** True when the failure is "the Paper Trading plugin is not installed". */
+function isPaperPluginMissing(message: string): boolean {
+  return /not installed|PLUGIN_NOT_INSTALLED/i.test(message);
 }
 
 export function DeployToPaperButton({
@@ -76,17 +65,21 @@ export function DeployToPaperButton({
 }) {
   const [state, setState] = useState<'idle' | 'loading' | 'deployed' | 'error'>('idle');
   const [message, setMessage] = useState<string | null>(null);
+  const [paperMissing, setPaperMissing] = useState(false);
 
   async function onClick() {
     setState('loading');
     setMessage(null);
+    setPaperMissing(false);
     try {
       const text = await deploy(runId);
       setState('deployed');
       setMessage(text);
     } catch (err) {
+      const text = err instanceof Error ? err.message : String(err);
       setState('error');
-      setMessage(err instanceof Error ? err.message : String(err));
+      setPaperMissing(isPaperPluginMissing(text));
+      setMessage(text);
     }
   }
 
@@ -110,7 +103,14 @@ export function DeployToPaperButton({
         )}
         {state === 'deployed' ? 'Deployed' : 'Deploy to Paper'}
       </button>
-      {message ? (
+      {paperMissing ? (
+        <span className="text-danger max-w-64 text-[9px]">
+          Paper Trading isn&apos;t installed —{' '}
+          <a href="/settings/plugins" className="underline">
+            install it in Settings → Plugins
+          </a>
+        </span>
+      ) : message ? (
         <span
           className={`max-w-64 truncate text-[9px] ${
             state === 'error' ? 'text-danger' : 'text-fg-subtle'

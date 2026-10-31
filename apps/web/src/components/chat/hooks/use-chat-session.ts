@@ -24,6 +24,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
+import { useInstalledPluginIds } from '@/components/layout/installed-plugins-context';
 import { useConfirm } from '@/components/ui/confirm-drawer';
 import { useCustomAgents } from '@/hooks/use-custom-agents';
 import { useThreadTitle } from '@/hooks/use-thread-title';
@@ -59,7 +60,12 @@ export function useChatSession({
   citeSources: boolean;
   analysisModeRef: { current: 'single' | 'full' };
 }) {
-  const { agents: customAgents, loading: customAgentsLoading } = useCustomAgents();
+  // P2-3 — only ask for custom agents when the plugin is installed (or when
+  // the shell has not told us, which keeps isolated renders working).
+  const installedPluginIds = useInstalledPluginIds();
+  const { agents: customAgents, loading: customAgentsLoading } = useCustomAgents({
+    enabled: installedPluginIds === null || installedPluginIds.includes('custom-agents'),
+  });
   const [selectedAgentSlug, setSelectedAgentSlug] = useState<string | null>(initialAgentSlug);
   const selectedAgent = selectedAgentSlug
     ? (customAgents.find((agent) => agent.slug === selectedAgentSlug) ?? null)

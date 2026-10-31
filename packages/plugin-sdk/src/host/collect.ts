@@ -15,7 +15,7 @@
  */
 
 // Capability collection for one plugin: validates every declared tool, skill,
-// agent, catalog, job, tick subscriber, alert channel, indicator and packet
+// catalog, job, tick subscriber, alert channel, indicator and packet
 // enricher, then returns the stamped records the host will store.
 //
 // Validation order and error messages are part of the contract — keep them
@@ -24,7 +24,6 @@
 import type {
   KestrelPlugin,
   PluginSkillInput,
-  RegisteredPluginAgent,
   RegisteredPluginAlertChannel,
   RegisteredPluginIndicator,
   RegisteredPluginJob,
@@ -52,13 +51,11 @@ export interface ExistingRegistrations {
   tickSubscribers: ReadonlyMap<string, RegisteredPluginTickSubscriber>;
   alertChannels: ReadonlyMap<string, RegisteredPluginAlertChannel>;
   indicators: ReadonlyMap<string, RegisteredPluginIndicator>;
-  agents: ReadonlyMap<string, RegisteredPluginAgent>;
 }
 
 export interface CollectedCapabilities {
   tools: RegisteredPluginTool[];
   skills: PluginSkillInput[];
-  agents: RegisteredPluginAgent[];
   agentCatalogs: RegisteredPluginUserAgentCatalog[];
   jobs: RegisteredPluginJob[];
   tickSubscribers: RegisteredPluginTickSubscriber[];
@@ -120,19 +117,6 @@ export function collectCapabilities(
       );
     }
     skills.push(skill);
-  }
-
-  const agents: RegisteredPluginAgent[] = [];
-  const seenAgents = new Set<string>();
-  for (const agent of plugin.agents ?? []) {
-    assertKebabId(agent.id, `agent id in plugin "${manifest.id}"`);
-    assertUniqueId(seenAgents, agent.id, `agent in plugin "${manifest.id}"`);
-    assert(
-      !existing.agents.has(agent.id),
-      `agent "${agent.id}" is already registered by plugin "${existing.agents.get(agent.id)?.pluginId}"`,
-    );
-    assert(agent.instructions !== undefined, `agent "${agent.id}" requires instructions`);
-    agents.push({ ...agent, pluginId: manifest.id });
   }
 
   const agentCatalogs: RegisteredPluginUserAgentCatalog[] = [];
@@ -225,7 +209,6 @@ export function collectCapabilities(
   return {
     tools,
     skills,
-    agents,
     agentCatalogs,
     jobs,
     tickSubscribers,

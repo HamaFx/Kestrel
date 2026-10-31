@@ -45,7 +45,9 @@ export function useAlertForm({ initialSymbol, onCreated }: AlertFormProps) {
   const [snoozeHours, setSnoozeHours] = useState<string>('');
 
   // The Telegram plugin delivers through the user's own bot. Surface that
-  // channel only when the plugin is installed + enabled.
+  // channel only when the plugin is installed + enabled, and map any legacy
+  // `telegram` selection onto the plugin channel so editing an alert created
+  // before the plugin channel existed keeps the checkbox checked.
   useEffect(() => {
     let cancelled = false;
     apiFetch<PluginStoreSnapshot>('/api/plugins/manage')
@@ -54,6 +56,11 @@ export function useAlertForm({ initialSymbol, onCreated }: AlertFormProps) {
         const telegram = snapshot.plugins.find((plugin) => plugin.id === 'telegram-bot');
         if (telegram?.installed && telegram.enabled && telegram.onboardingCompleted) {
           setPluginChannels([{ id: 'telegram-bot', label: 'Telegram (personal bot)' }]);
+          setChannels((prev) =>
+            prev.includes('telegram')
+              ? [...prev.filter((channel) => channel !== 'telegram'), 'telegram-bot']
+              : prev,
+          );
         }
       })
       .catch(() => undefined);

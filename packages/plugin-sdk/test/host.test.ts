@@ -193,7 +193,7 @@ describe('PluginHost', () => {
     expect(host.requiresConfirmationForTool('missing')).toBe(false);
   });
 
-  it('resolves skills and agents per user', () => {
+  it('resolves skills per user', () => {
     const host = new PluginHost();
     host.register(
       makePlugin('alpha', {
@@ -201,21 +201,11 @@ describe('PluginHost', () => {
           'skills/alpha',
           { name: 'alpha-skill', description: 'd', instructions: 'Do the thing.' },
         ],
-        agents: [
-          {
-            id: 'alpha-agent',
-            name: 'Alpha Agent',
-            description: 'standalone',
-            instructions: 'Be helpful.',
-          },
-        ],
       }),
     );
 
     expect(host.resolveSkillsForUser(['alpha'])).toHaveLength(2);
     expect(host.resolveSkillsForUser(['beta'])).toHaveLength(0);
-    expect(host.resolveAgentsForUser(['alpha']).map((a) => a.id)).toEqual(['alpha-agent']);
-    expect(host.resolveAgentsForUser([])).toHaveLength(0);
   });
 
   it('normalises jobs, tick subscribers, alert channels and indicators with plugin ids', () => {
@@ -260,8 +250,6 @@ describe('PluginHost', () => {
     expect(host.getTickSubscribers()[0]?.pluginId).toBe('paper-trading');
     expect(host.getAlertChannels()[0]?.pluginId).toBe('paper-trading');
     expect(host.getIndicators()[0]?.pluginId).toBe('paper-trading');
-    expect(host.resolveJobsForUser(['paper-trading'])).toHaveLength(1);
-    expect(host.resolveJobsForUser(['other'])).toHaveLength(0);
   });
 
   it('rejects reserved alert channel and indicator ids', () => {

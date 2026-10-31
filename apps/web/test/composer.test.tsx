@@ -21,6 +21,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { Composer } from '@/components/chat/composer';
 import { MAX_TEXT_CHARS } from '@/components/chat/composer-helpers';
+import { InstalledPluginsProvider } from '@/components/layout/installed-plugins-context';
 
 // Polyfill window.matchMedia for jsdom (used by Composer to detect touch).
 beforeAll(() => {
@@ -351,6 +352,31 @@ describe('Composer', () => {
       render(<Composer onSubmit={vi.fn()} />);
       const textarea = screen.getByRole('textbox', { name: /chat message input/i });
       expect(textarea.getAttribute('aria-expanded')).toBe('false');
+    });
+
+    it('offers a plugin slash command when that plugin is installed (P2-1)', () => {
+      render(
+        <InstalledPluginsProvider installedPluginIds={['paper-trading']}>
+          <Composer onSubmit={vi.fn()} />
+        </InstalledPluginsProvider>,
+      );
+      const textarea = screen.getByRole('textbox', { name: /chat message input/i });
+      fireEvent.change(textarea, { target: { value: '/paper' } });
+
+      expect(screen.getByRole('option', { name: /\/paper/ })).toBeTruthy();
+      expect(screen.getByText('Open the virtual broker desk')).toBeTruthy();
+    });
+
+    it('hides plugin slash commands when the plugin is not installed (P2-1)', () => {
+      render(
+        <InstalledPluginsProvider installedPluginIds={[]}>
+          <Composer onSubmit={vi.fn()} />
+        </InstalledPluginsProvider>,
+      );
+      const textarea = screen.getByRole('textbox', { name: /chat message input/i });
+      fireEvent.change(textarea, { target: { value: '/paper' } });
+
+      expect(screen.queryByRole('listbox')).toBeNull();
     });
   });
 });

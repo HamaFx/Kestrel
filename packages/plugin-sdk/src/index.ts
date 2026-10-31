@@ -26,6 +26,16 @@ export {
   type PluginSettingsSchemaDescription,
 } from './settings-schema';
 export { PluginHost, pluginHost, type RegisteredPlugin, type ResolveToolsOptions } from './host';
+export {
+  PluginRouteApiError,
+  parsePluginBody,
+  pluginByMethod,
+  pluginJson,
+  pluginQuery,
+} from './route-helpers';
+// `resolvePluginSkillDir` lives on the node-only `@kestrel/plugin-sdk/skill-dir`
+// subpath: this barrel is reachable from client components, so it must not
+// pull `node:fs` into the browser graph.
 
 /**
  * Define a plugin with full type inference.

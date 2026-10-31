@@ -26,7 +26,7 @@ export function AlertDeliveryFields({ controller }: { controller: AlertFormContr
         <legend className="text-fg-subtle text-body-sm tracking-wide uppercase">
           Delivery Methods
         </legend>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
           <label className="text-fg flex cursor-pointer items-center gap-2 text-sm">
             <input
               type="checkbox"
@@ -39,19 +39,6 @@ export function AlertDeliveryFields({ controller }: { controller: AlertFormContr
               onBlur={() => touch('channels')}
             />
             Email
-          </label>
-          <label className="text-fg flex cursor-pointer items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="accent-brand size-4 cursor-pointer"
-              checked={channels.includes('telegram')}
-              onChange={(e) => {
-                const c = 'telegram';
-                setChannels(e.target.checked ? [...channels, c] : channels.filter((x) => x !== c));
-              }}
-              onBlur={() => touch('channels')}
-            />
-            Telegram
           </label>
           {pluginChannels.map((channel) => (
             <label
@@ -75,6 +62,15 @@ export function AlertDeliveryFields({ controller }: { controller: AlertFormContr
             </label>
           ))}
         </div>
+        {pluginChannels.length === 0 ? (
+          <p className="text-fg-subtle text-xs">
+            Telegram delivery requires the Telegram Copilot plugin —{' '}
+            <a href="/settings/plugins" className="underline">
+              install and link it in Settings → Plugins
+            </a>
+            .
+          </p>
+        ) : null}
         {fieldErrors.channels ? (
           <p id="alert-channels-error" role="alert" className="text-danger text-xs">
             {fieldErrors.channels}

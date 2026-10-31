@@ -32,25 +32,48 @@ interface AgentsResponse {
 }
 
 /**
- * Load the user's custom agents for the chat composer.
+ * Page-session memo for "custom-agents is not installed for this user".
  *
  * The plugin API 404s when Custom Agents is not installed; that is a normal
- * "no agents" state, not an error worth showing in chat.
+ * "no agents" state, not an error. Remembering it stops every chat-thread
+ * navigation from re-firing the request (and its DevTools 404).
  */
-export function useCustomAgents(): {
+let customAgentsPluginNotInstalled = false;
+
+/**
+ * Load the user's custom agents for the chat composer.
+ *
+ * Callers that already know the user's installed plugins should pass
+ * `enabled: false` so the request is never sent at all.
+ */
+export function useCustomAgents(options: { enabled?: boolean } = {}): {
   agents: CustomAgentSummary[];
   loading: boolean;
 } {
+  const enabled = options.enabled ?? true;
   const [agents, setAgents] = useState<CustomAgentSummary[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled && !customAgentsPluginNotInstalled);
 
   useEffect(() => {
+    if (!enabled || customAgentsPluginNotInstalled) {
+      setAgents([]);
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
+    setLoading(true);
     fetch('/api/plugins/custom-agents/agents', {
       headers: { accept: 'application/json' },
       cache: 'no-store',
     })
       .then(async (response) => {
+        if (response.status === 404) {
+          // Not installed or disabled for this user — treat as no agents and
+          // remember it for the rest of the page session.
+          customAgentsPluginNotInstalled = true;
+          return { agents: [] } as AgentsResponse;
+        }
         if (!response.ok) return { agents: [] } as AgentsResponse;
         return (await response.json()) as AgentsResponse;
       })
@@ -66,7 +89,7 @@ export function useCustomAgents(): {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [enabled]);
 
   return { agents, loading };
 }

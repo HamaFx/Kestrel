@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { IconPuzzle } from '@tabler/icons-react';
 import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/formatters/cn';
@@ -90,7 +91,8 @@ export function ComposerSlashMenu({
                 isActive ? 'text-brand-fg' : 'text-fg-subtle',
               )}
             >
-              {orig?.icon}
+              {/* Plugin slash commands have no icon entry — show a generic one. */}
+              {orig?.icon ?? <IconPuzzle className="size-4" aria-hidden="true" />}
             </span>
             <div className="flex min-w-0 flex-1 flex-col">
               <span className="font-mono text-xs font-semibold">{cmd.command}</span>

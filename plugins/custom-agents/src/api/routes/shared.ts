@@ -16,36 +16,33 @@
 
 // Authenticated Custom Agents HTTP routes — shared helpers.
 //
-// Mounted at /api/plugins/custom-agents/<path> by the core dispatcher.
+// Mounted at /api/plugins/custom-agents/<path> by the core dispatcher. The
+// generic primitives live in `@kestrel/plugin-sdk`; only the plugin's error
+// mapping and installed-plugin helper stay here.
 
 import { getInstalledPluginIdsForUser } from '@kestrel/db';
-import type { PluginApiRouteContext, PluginApiRouteHandler } from '@kestrel/plugin-sdk';
-import type { z } from 'zod';
+import {
+  parsePluginBody,
+  pluginByMethod,
+  pluginJson,
+  pluginQuery,
+  PluginRouteApiError,
+  type PluginApiRouteContext,
+  type PluginApiRouteHandler,
+} from '@kestrel/plugin-sdk';
 
 import { AgentSlugTakenError } from '../../db/queries';
 import { AgentConfigError } from '../../services/agents';
 import { McpConfigError } from '../../services/mcp';
 
-export class ApiError extends Error {
-  constructor(
-    readonly status: number,
-    message: string,
-    readonly code = 'CUSTOM_AGENTS_ERROR',
-  ) {
-    super(message);
-    this.name = 'ApiError';
-  }
-}
-
-export function json(body: unknown, status = 200): Response {
-  return Response.json(body, {
-    status,
-    headers: { 'cache-control': 'no-store' },
-  });
-}
+export { PluginRouteApiError as ApiError };
+export const json = pluginJson;
+export const byMethod = pluginByMethod;
+export const parseBody = parsePluginBody;
+export const query = pluginQuery;
 
 export function errorResponse(err: unknown, ctx: PluginApiRouteContext): Response {
-  if (err instanceof ApiError) {
+  if (err instanceof PluginRouteApiError) {
     return json({ error: { code: err.code, message: err.message } }, err.status);
   }
   if (err instanceof AgentSlugTakenError) {
@@ -78,42 +75,6 @@ export function wrap(
       return errorResponse(err, ctx);
     }
   };
-}
-
-export function byMethod(
-  handlers: Partial<Record<string, PluginApiRouteHandler>>,
-): PluginApiRouteHandler {
-  return async (ctx) => {
-    const handler = handlers[ctx.request.method.toUpperCase()];
-    if (!handler) {
-      return json({ error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed.' } }, 405);
-    }
-    return handler(ctx);
-  };
-}
-
-export async function parseBody<T extends z.ZodType>(
-  request: Request,
-  schema: T,
-): Promise<z.infer<T>> {
-  let raw: unknown;
-  try {
-    raw = await request.json();
-  } catch {
-    throw new ApiError(400, 'Request body must be valid JSON.', 'INVALID_JSON');
-  }
-  const parsed = schema.safeParse(raw);
-  if (!parsed.success) {
-    const message = parsed.error.issues
-      .map((issue) => `${issue.path.join('.') || 'body'}: ${issue.message}`)
-      .join('; ');
-    throw new ApiError(400, message, 'INVALID_INPUT');
-  }
-  return parsed.data;
-}
-
-export function query(request: Request): URLSearchParams {
-  return new URL(request.url).searchParams;
 }
 
 export async function installedIds(userId: string): Promise<string[]> {

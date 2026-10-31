@@ -28,8 +28,10 @@
 // up the page.
 
 import { buildToolCatalogue, BYOK_PROVIDERS_LIST } from '@kestrel/ai';
-import { getUserWithSettings } from '@kestrel/db';
-import { TOOL_NAMES, type ToolName } from '@kestrel/shared';
+import { getInstalledPluginIdsForUser, getUserWithSettings } from '@kestrel/db';
+import { pluginHost } from '@kestrel/plugin-sdk';
+import { ensureBundledPluginsRegistered } from '@kestrel/plugins';
+import { TOOL_NAMES } from '@kestrel/shared';
 import { IconActivity, IconSettings } from '@tabler/icons-react';
 import type { Metadata } from 'next';
 import { Link } from 'next-view-transitions';
@@ -44,6 +46,12 @@ import { AgentModelOverrideForm } from './_components/agent-model-override-form'
 import { AnalysisModeForm } from './_components/analysis-mode-form';
 import { DisabledToolsForm } from './_components/disabled-tools-form';
 
+try {
+  ensureBundledPluginsRegistered();
+} catch (err) {
+  console.error('[AgentSettingsPage] bundled plugin registration failed', err);
+}
+
 export const revalidate = 60;
 
 export const metadata: Metadata = {
@@ -57,6 +65,20 @@ export default async function AgentCataloguePage() {
   const isAdmin = await checkIsAdmin();
 
   const { settings } = await getUserWithSettings(session.user.id);
+
+  // Installed plugin tools join the disabled-tools list so users can switch
+  // them off exactly like core tools (P2-2). A plugin-table outage degrades
+  // to the core tool list only.
+  let installedPluginIds: string[] = [];
+  try {
+    installedPluginIds = await getInstalledPluginIdsForUser(session.user.id, { enabledOnly: true });
+  } catch (err) {
+    console.error('[AgentSettingsPage] installed plugin lookup failed:', err);
+  }
+  const pluginToolNames = pluginHost
+    .getInstalledPlugins(installedPluginIds)
+    .flatMap((plugin) => plugin.tools.map((tool) => tool.name));
+  const allAvailableTools = [...TOOL_NAMES, ...pluginToolNames];
 
   const disabledTools = settings?.disabledTools ?? [];
   // The form normalizes legacy persisted values onto the two-mode schema (Q2).
@@ -121,10 +143,7 @@ export default async function AgentCataloguePage() {
           Toggle tools off to prevent the agent from calling them. Disabled tools still appear in
           the catalogue but are excluded from the agent&apos;s available toolset.
         </p>
-        <DisabledToolsForm
-          allTools={TOOL_NAMES as unknown as ToolName[]}
-          initialDisabledTools={disabledTools}
-        />
+        <DisabledToolsForm allTools={allAvailableTools} initialDisabledTools={disabledTools} />
       </section>
 
       {isAdmin ? (

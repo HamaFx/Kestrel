@@ -14,23 +14,10 @@
  * limitations under the License.
  */
 
-// Public plugin contract — standalone agents and per-user agent catalogs.
+// Public plugin contract — per-user agent catalogs.
 
 import type { PluginExecutionContext } from './core';
 import type { PluginSkillInput } from './tools';
-
-export interface PluginStandaloneAgentRegistration {
-  /** Stable agent id, e.g. `ict-sniper`. */
-  id: string;
-  name: string;
-  description: string;
-  instructions: string | ((ctx: PluginExecutionContext) => string | Promise<string>);
-  /** Tool ids (core or plugin) the standalone agent may call. */
-  tools?: readonly string[];
-  skills?: readonly PluginSkillInput[];
-  /** Optional model pin (`provider/model`). */
-  model?: string;
-}
 
 /**
  * Remote Model Context Protocol server attached to a user-defined agent.
@@ -50,10 +37,8 @@ export interface PluginUserAgentMcpServer {
 /**
  * A user-authored standalone agent exposed by a plugin catalog.
  *
- * Unlike `PluginStandaloneAgentRegistration` (which is a static, code-defined
- * agent bundled with a plugin), these definitions are per-user data: the core
- * resolves them on demand, builds a real Mastra `Agent`, and never adds them
- * to the 4-Desk Committee.
+ * These definitions are per-user data: the core resolves them on demand,
+ * builds a real Mastra `Agent`, and never adds them to the 4-Desk Committee.
  */
 export interface PluginUserAgentDefinition {
   /** Stable catalog-local id (usually a UUID). */

@@ -85,11 +85,3 @@ export interface PluginSlashCommand {
   label: string;
   description?: string;
 }
-
-// ── Setup wizard ──────────────────────────────────────────────────────────
-
-export interface PluginSetupWizardProps {
-  pluginId: PluginId;
-  onComplete?: () => void;
-  onCancel?: () => void;
-}

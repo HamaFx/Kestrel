@@ -17,30 +17,26 @@
 // Authenticated Paper Trading HTTP routes — shared helpers.
 //
 // Mounted at /api/plugins/paper-trading/<path> by the core plugin dispatcher.
+// The generic primitives live in `@kestrel/plugin-sdk`; only the plugin's
+// error mapping and query object helper stay here.
 
-import type { PluginApiRouteContext, PluginApiRouteHandler } from '@kestrel/plugin-sdk';
-import type { z } from 'zod';
+import {
+  parsePluginBody,
+  pluginByMethod,
+  pluginJson,
+  pluginQuery,
+  PluginRouteApiError,
+  type PluginApiRouteContext,
+  type PluginApiRouteHandler,
+} from '@kestrel/plugin-sdk';
 
-export class ApiError extends Error {
-  constructor(
-    readonly status: number,
-    message: string,
-    readonly code = 'PAPER_TRADING_ERROR',
-  ) {
-    super(message);
-    this.name = 'ApiError';
-  }
-}
-
-export function json(body: unknown, status = 200): Response {
-  return Response.json(body, {
-    status,
-    headers: { 'cache-control': 'no-store' },
-  });
-}
+export { PluginRouteApiError as ApiError };
+export const json = pluginJson;
+export const byMethod = pluginByMethod;
+export const parseBody = parsePluginBody;
 
 export function errorResponse(err: unknown, ctx: PluginApiRouteContext, status = 500): Response {
-  if (err instanceof ApiError) {
+  if (err instanceof PluginRouteApiError) {
     return json({ error: { code: err.code, message: err.message } }, err.status);
   }
   ctx.log.error('paper trading api route failed', {
@@ -75,41 +71,8 @@ export function wrap(
   };
 }
 
-export function byMethod(
-  handlers: Partial<Record<string, PluginApiRouteHandler>>,
-): PluginApiRouteHandler {
-  return async (ctx) => {
-    const handler = handlers[ctx.request.method.toUpperCase()];
-    if (!handler) {
-      return json({ error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed.' } }, 405);
-    }
-    return handler(ctx);
-  };
-}
-
-export async function parseBody<T extends z.ZodType>(
-  request: Request,
-  schema: T,
-): Promise<z.infer<T>> {
-  let raw: unknown;
-  try {
-    raw = await request.json();
-  } catch {
-    throw new ApiError(400, 'Request body must be valid JSON.', 'INVALID_JSON');
-  }
-  const parsed = schema.safeParse(raw);
-  if (!parsed.success) {
-    const message = parsed.error.issues
-      .map((issue) => `${issue.path.join('.') || 'body'}: ${issue.message}`)
-      .join('; ');
-    throw new ApiError(400, message, 'INVALID_INPUT');
-  }
-  return parsed.data;
-}
-
 export function queryObject(request: Request): Record<string, string> {
-  const url = new URL(request.url);
   const result: Record<string, string> = {};
-  for (const [key, value] of url.searchParams.entries()) result[key] = value;
+  for (const [key, value] of pluginQuery(request).entries()) result[key] = value;
   return result;
 }

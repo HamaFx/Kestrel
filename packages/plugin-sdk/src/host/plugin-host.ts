@@ -33,7 +33,6 @@ import type {
   PluginId,
   PluginPublicApiRouteHandler,
   PluginSkillInput,
-  RegisteredPluginAgent,
   RegisteredPluginAlertChannel,
   RegisteredPluginIndicator,
   RegisteredPluginJob,
@@ -44,14 +43,7 @@ import type {
   RegisteredPluginUserAgentCatalog,
 } from '../types';
 import { collectCapabilities } from './collect';
-import {
-  installedPlugins,
-  resolveAgentCatalogs,
-  resolveAgents,
-  resolveJobs,
-  resolveSkills,
-  resolveTools,
-} from './resolution';
+import { installedPlugins, resolveAgentCatalogs, resolveSkills, resolveTools } from './resolution';
 import { assert, assertKebabId } from './validation';
 
 export interface RegisteredPlugin {
@@ -59,7 +51,6 @@ export interface RegisteredPlugin {
   readonly manifest: KestrelPluginManifest;
   readonly tools: readonly RegisteredPluginTool[];
   readonly skills: readonly PluginSkillInput[];
-  readonly agents: readonly RegisteredPluginAgent[];
   readonly agentCatalogs: readonly RegisteredPluginUserAgentCatalog[];
   readonly jobs: readonly RegisteredPluginJob[];
   readonly tickSubscribers: readonly RegisteredPluginTickSubscriber[];
@@ -89,7 +80,6 @@ export class PluginHost {
   private readonly tickSubscribers = new Map<string, RegisteredPluginTickSubscriber>();
   private readonly alertChannels = new Map<string, RegisteredPluginAlertChannel>();
   private readonly indicators = new Map<string, RegisteredPluginIndicator>();
-  private readonly agents = new Map<string, RegisteredPluginAgent>();
   private readonly agentCatalogs = new Map<string, RegisteredPluginUserAgentCatalog>();
   private readonly packetEnrichers = new Map<string, RegisteredPluginPacketEnricher>();
   private coreTools: readonly PluginCoreToolInfo[] = [];
@@ -115,7 +105,6 @@ export class PluginHost {
       tickSubscribers: this.tickSubscribers,
       alertChannels: this.alertChannels,
       indicators: this.indicators,
-      agents: this.agents,
     });
 
     if (plugin.apiRoutes) {
@@ -143,7 +132,6 @@ export class PluginHost {
       manifest,
       tools: capabilities.tools,
       skills: capabilities.skills,
-      agents: capabilities.agents,
       agentCatalogs: capabilities.agentCatalogs,
       jobs: capabilities.jobs,
       tickSubscribers: capabilities.tickSubscribers,
@@ -160,7 +148,6 @@ export class PluginHost {
     }
     for (const channel of capabilities.alertChannels) this.alertChannels.set(channel.id, channel);
     for (const indicator of capabilities.indicators) this.indicators.set(indicator.kind, indicator);
-    for (const agent of capabilities.agents) this.agents.set(agent.id, agent);
     for (const catalog of capabilities.agentCatalogs) {
       this.agentCatalogs.set(`${catalog.pluginId}:${catalog.id}`, catalog);
     }
@@ -206,10 +193,6 @@ export class PluginHost {
     return resolveSkills(this.plugins, installedPluginIds);
   }
 
-  resolveAgentsForUser(installedPluginIds: readonly string[]): readonly RegisteredPluginAgent[] {
-    return resolveAgents(this.agents, installedPluginIds);
-  }
-
   /**
    * Per-user agent catalogs belonging to installed plugins.
    *
@@ -220,10 +203,6 @@ export class PluginHost {
     installedPluginIds: readonly string[],
   ): readonly RegisteredPluginUserAgentCatalog[] {
     return resolveAgentCatalogs(this.agentCatalogs, installedPluginIds);
-  }
-
-  resolveJobsForUser(installedPluginIds: readonly string[]): readonly RegisteredPluginJob[] {
-    return resolveJobs(this.jobs, installedPluginIds);
   }
 
   /**
@@ -306,7 +285,6 @@ export class PluginHost {
     this.tickSubscribers.clear();
     this.alertChannels.clear();
     this.indicators.clear();
-    this.agents.clear();
     this.agentCatalogs.clear();
     this.packetEnrichers.clear();
     this.apiRoutes.clear();

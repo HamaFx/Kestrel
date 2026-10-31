@@ -22,8 +22,6 @@
 
 import type {
   PluginId,
-  RegisteredPluginAgent,
-  RegisteredPluginJob,
   RegisteredPluginSkill,
   RegisteredPluginTool,
   RegisteredPluginUserAgentCatalog,
@@ -82,15 +80,6 @@ export function resolveSkills(
   return result;
 }
 
-export function resolveAgents(
-  agents: ReadonlyMap<string, RegisteredPluginAgent>,
-  installedPluginIds: readonly string[],
-): readonly RegisteredPluginAgent[] {
-  const installed = new Set(installedPluginIds);
-  if (installed.size === 0) return [];
-  return [...agents.values()].filter((agent) => installed.has(agent.pluginId));
-}
-
 /**
  * Per-user agent catalogs belonging to installed plugins.
  *
@@ -104,13 +93,4 @@ export function resolveAgentCatalogs(
   const installed = new Set(installedPluginIds);
   if (installed.size === 0) return [];
   return [...agentCatalogs.values()].filter((catalog) => installed.has(catalog.pluginId));
-}
-
-export function resolveJobs(
-  jobs: ReadonlyMap<string, RegisteredPluginJob>,
-  installedPluginIds: readonly string[],
-): readonly RegisteredPluginJob[] {
-  const installed = new Set(installedPluginIds);
-  if (installed.size === 0) return [];
-  return [...jobs.values()].filter((job) => installed.has(job.pluginId));
 }

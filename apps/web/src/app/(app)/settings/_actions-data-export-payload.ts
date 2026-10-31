@@ -116,6 +116,37 @@ export async function buildUserDataExport(userId: string): Promise<string> {
     .select()
     .from(schema.auditLogs)
     .where(and(eq(schema.auditLogs.userId, userId), eq(schema.auditLogs.tenantId, tenantId)));
+  // Plugin platform rows (P2-6). Secret settings fields are stored as
+  // AES-256-GCM ciphertext by the install ledger, never as plaintext.
+  const installedPlugins = await db
+    .select({
+      pluginId: schema.userInstalledPlugins.pluginId,
+      enabled: schema.userInstalledPlugins.enabled,
+      settings: schema.userInstalledPlugins.settings,
+      onboardingCompleted: schema.userInstalledPlugins.onboardingCompleted,
+      installedAt: schema.userInstalledPlugins.installedAt,
+      updatedAt: schema.userInstalledPlugins.updatedAt,
+    })
+    .from(schema.userInstalledPlugins)
+    .where(
+      and(
+        eq(schema.userInstalledPlugins.userId, userId),
+        eq(schema.userInstalledPlugins.tenantId, tenantId),
+      ),
+    );
+  const pluginStorage = await db
+    .select({
+      pluginId: schema.pluginStorage.pluginId,
+      collection: schema.pluginStorage.collection,
+      key: schema.pluginStorage.key,
+      value: schema.pluginStorage.value,
+      createdAt: schema.pluginStorage.createdAt,
+      updatedAt: schema.pluginStorage.updatedAt,
+    })
+    .from(schema.pluginStorage)
+    .where(
+      and(eq(schema.pluginStorage.userId, userId), eq(schema.pluginStorage.tenantId, tenantId)),
+    );
   const [
     providerTests,
     notificationNoiseState,
@@ -296,6 +327,8 @@ export async function buildUserDataExport(userId: string): Promise<string> {
     memoryBackfillState: memoryBackfillState.map(({ userId: _userId, ...row }) => row),
     memoryProjectionState: memoryProjectionState.map(({ userId: _userId, ...row }) => row),
     auditLogs: auditLogs.map(({ userId: _userId, ...audit }) => audit),
+    installedPlugins,
+    pluginStorage,
   };
 
   return JSON.stringify(data, null, 2);

@@ -23,6 +23,11 @@
       "source": "./src/settings.ts",
       "types": "./dist/settings.d.ts",
       "import": "./dist/settings.js"
+    },
+    "./skill-dir": {
+      "source": "./src/skill-dir.ts",
+      "types": "./dist/skill-dir.d.ts",
+      "import": "./dist/skill-dir.js"
     }
   },
   "scripts": {

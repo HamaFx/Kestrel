@@ -15,39 +15,32 @@
  */
 
 // Shared HTTP plumbing for the Backtesting Lab route groups: error mapping,
-// JSON responses, body validation and method dispatch.
+// JSON responses, body validation and method dispatch. The generic primitives
+// live in `@kestrel/plugin-sdk`; only the plugin-specific error mapping and
+// query helpers stay here.
 
-import type {
-  PluginApiRouteContext,
-  PluginApiRouteHandler,
-  PluginExecutionContext,
+import {
+  parsePluginBody,
+  pluginByMethod,
+  pluginJson,
+  pluginQuery,
+  PluginRouteApiError,
+  type PluginApiRouteContext,
+  type PluginApiRouteHandler,
+  type PluginExecutionContext,
 } from '@kestrel/plugin-sdk';
-import type { z } from 'zod';
 
-export class ApiError extends Error {
-  constructor(
-    readonly status: number,
-    message: string,
-    readonly code = 'BACKTESTING_ERROR',
-  ) {
-    super(message);
-    this.name = 'ApiError';
-  }
-}
-
-export function json(body: unknown, status = 200): Response {
-  return Response.json(body, {
-    status,
-    headers: { 'cache-control': 'no-store' },
-  });
-}
+export { PluginRouteApiError as ApiError };
+export const json = pluginJson;
+export const byMethod = pluginByMethod;
+export const parseBody = parsePluginBody;
 
 export function errorResponse(
   err: unknown,
   ctx: PluginApiRouteContext,
   defaultStatus = 500,
 ): Response {
-  if (err instanceof ApiError) {
+  if (err instanceof PluginRouteApiError) {
     return json({ error: { code: err.code, message: err.message } }, err.status);
   }
   ctx.log.error('backtesting api route failed', {
@@ -82,26 +75,6 @@ export function wrap(
   };
 }
 
-export async function parseBody<T extends z.ZodType>(
-  request: Request,
-  schema: T,
-): Promise<z.infer<T>> {
-  let raw: unknown;
-  try {
-    raw = await request.json();
-  } catch {
-    throw new ApiError(400, 'Request body must be valid JSON.', 'INVALID_JSON');
-  }
-  const parsed = schema.safeParse(raw);
-  if (!parsed.success) {
-    const message = parsed.error.issues
-      .map((issue) => `${issue.path.join('.') || 'body'}: ${issue.message}`)
-      .join('; ');
-    throw new ApiError(400, message, 'INVALID_INPUT');
-  }
-  return parsed.data;
-}
-
 export function execCtx(ctx: PluginApiRouteContext): PluginExecutionContext {
   return {
     pluginId: ctx.pluginId,
@@ -113,20 +86,8 @@ export function execCtx(ctx: PluginApiRouteContext): PluginExecutionContext {
   };
 }
 
-export function byMethod(
-  handlers: Partial<Record<string, PluginApiRouteHandler>>,
-): PluginApiRouteHandler {
-  return async (ctx) => {
-    const handler = handlers[ctx.request.method.toUpperCase()];
-    if (!handler) {
-      return json({ error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed.' } }, 405);
-    }
-    return handler(ctx);
-  };
-}
-
 export function queryNumber(request: Request, key: string, fallback: number): number {
-  const raw = new URL(request.url).searchParams.get(key);
+  const raw = pluginQuery(request).get(key);
   if (!raw) return fallback;
   const value = Number(raw);
   return Number.isFinite(value) ? value : fallback;

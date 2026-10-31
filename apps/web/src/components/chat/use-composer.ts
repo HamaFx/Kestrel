@@ -17,13 +17,16 @@
  */
 
 // Composer state: text, images, slash/mention menus, voice input, and upload.
-import { useEffect, useRef, useState } from 'react';
+import { pluginUiRegistry } from '@kestrel/plugin-sdk/ui';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import type { CustomAgentSummary } from '@/hooks/use-custom-agents';
-import { useSlashCommands } from '@/hooks/use-slash-commands';
+import { useSlashCommands, type SlashCommand } from '@/hooks/use-slash-commands';
 import { useVoiceInput } from '@/hooks/use-voice-input';
 import { fetchCsrf } from '@/lib/auth/csrf';
+
+import '@/lib/plugins/register-ui';
 
 import { MAX_TEXT_CHARS } from './composer-helpers';
 
@@ -59,13 +62,32 @@ const SLASH_COMMANDS = [
   },
 ];
 
+/**
+ * Slash commands contributed by installed plugins' UI definitions (P2-1).
+ *
+ * Every bundled plugin command opens its own page (`/plugins/<pluginId>`), so
+ * they map to the same navigate action as `/settings`; selecting one leaves
+ * the composer untouched.
+ */
+function pluginSlashCommands(installedPluginIds: readonly string[]): SlashCommand[] {
+  return pluginUiRegistry.listSlashCommands(installedPluginIds).map(({ pluginId, command }) => ({
+    command: `/${command.id}`,
+    description: command.description ?? command.label,
+    placeholder: `/${command.id}`,
+    action: 'navigate' as const,
+    href: `/plugins/${pluginId}`,
+  }));
+}
+
 export function useComposer(args: {
   onSubmit: (text: string, images: ComposerImage[]) => void;
   disabled?: boolean | undefined;
   isStreaming?: boolean | undefined;
   customAgents: readonly CustomAgentSummary[];
+  /** Enabled plugin ids; their slash commands join the composer menu. */
+  installedPluginIds?: readonly string[] | null | undefined;
 }) {
-  const { onSubmit, disabled, isStreaming, customAgents } = args;
+  const { onSubmit, disabled, isStreaming, customAgents, installedPluginIds } = args;
   const [value, setValue] = useState('');
   const [images, setImages] = useState<ComposerImage[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -95,6 +117,11 @@ export function useComposer(args: {
     onError: (msg) => toast.error(msg),
   });
 
+  const slashCommands = useMemo(
+    () => [...SLASH_COMMANDS, ...pluginSlashCommands(installedPluginIds ?? [])],
+    [installedPluginIds],
+  );
+
   const {
     slashActive,
     filteredCommands,
@@ -107,7 +134,7 @@ export function useComposer(args: {
     value,
     setValue,
     textareaRef: ref,
-    commands: SLASH_COMMANDS,
+    commands: slashCommands,
   });
 
   const mentionMatch = /^@([a-z0-9-]*)$/i.exec(value);
@@ -274,7 +301,7 @@ export function useComposer(args: {
     handlePaste,
     handleDrop,
     MAX_IMAGES,
-    SLASH_COMMANDS,
+    slashCommands,
   };
 }
 

@@ -23,11 +23,8 @@
 //
 // Decision D-04: these agents never mutate the core 4-Desk Committee.
 
-import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import { definePlugin } from '@kestrel/plugin-sdk';
+import { resolvePluginSkillDir } from '@kestrel/plugin-sdk/skill-dir';
 
 import { customAgentsApiRoutes } from './api/routes';
 import { customAgentsCatalog } from './catalog';
@@ -36,13 +33,7 @@ import { DEFAULT_SETTINGS, PLUGIN_ID, settingsSchema } from './settings';
 import { customAgentTools } from './tools';
 
 function resolveSkillDir(name: string): string {
-  const candidates = [
-    join(dirname(fileURLToPath(import.meta.url)), '..', 'skills', name),
-    join(process.cwd(), 'plugins', 'custom-agents', 'skills', name),
-    join(process.cwd(), 'node_modules', '@kestrel', 'plugin-custom-agents', 'skills', name),
-    join(process.cwd(), '..', '..', 'plugins', 'custom-agents', 'skills', name),
-  ];
-  return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0]!;
+  return resolvePluginSkillDir(import.meta.url, 'custom-agents', name);
 }
 
 const plugin = definePlugin({

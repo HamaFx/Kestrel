@@ -17,14 +17,11 @@
 // The `PluginUiDefinition` a plugin package exports, plus the shapes the
 // registry returns for a user's installed plugins.
 
-import type { ComponentType } from 'react';
-
 import type { PluginId } from '../types';
 import type {
   PluginDashboardWidget,
   PluginNavItem,
   PluginPageRegistration,
-  PluginSetupWizardProps,
   PluginSlashCommand,
   PluginToolPartRegistration,
 } from './slots';
@@ -36,7 +33,6 @@ export interface PluginUiDefinition {
   navItems?: readonly PluginNavItem[];
   pages?: readonly PluginPageRegistration[];
   slashCommands?: readonly PluginSlashCommand[];
-  setupWizardComponent?: ComponentType<PluginSetupWizardProps>;
 }
 
 /** Identity helper for type inference and authoring ergonomics. */

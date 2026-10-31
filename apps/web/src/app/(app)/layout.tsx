@@ -28,6 +28,7 @@ import { cache, Suspense } from 'react';
 import { auth } from '@/auth';
 import { AppShellContainer, AppShellMain } from '@/components/layout/app-shell-container';
 import { DesktopSidebar } from '@/components/layout/desktop-sidebar';
+import { InstalledPluginsProvider } from '@/components/layout/installed-plugins-context';
 import { CommandPalette, InstallNudge } from '@/components/layout/lazy-chrome';
 import { MarketSessionBar } from '@/components/layout/market-session-bar';
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
@@ -134,7 +135,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                       </div>
                     }
                   >
-                    {children}
+                    <InstalledPluginsProvider installedPluginIds={installedPluginIds}>
+                      {children}
+                    </InstalledPluginsProvider>
                   </Suspense>
                 </AppShellMain>
               </AppShellContainer>

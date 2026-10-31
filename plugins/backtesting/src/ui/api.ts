@@ -15,40 +15,11 @@
  */
 
 // Authenticated fetch helper for the plugin's own HTTP routes.
-//
-// Plugin UI packages cannot import the web app's `@/` aliases, so the CSRF
-// cookie handling is duplicated here (same cookie names as the rest of the app).
+
+import { createPluginFetcher, pluginErrorMessage } from '@kestrel/plugin-sdk/ui';
 
 export const PLUGIN_ID = 'backtesting';
 
-function csrfToken(): string | undefined {
-  if (typeof document === 'undefined') return undefined;
-  for (const name of ['__Host-hfx_csrf', 'hfx_csrf']) {
-    const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
-    if (match?.[1] !== undefined) return decodeURIComponent(match[1]);
-  }
-  return undefined;
-}
+export const pluginFetch = createPluginFetcher(PLUGIN_ID);
 
-export async function pluginFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const headers = new Headers(init?.headers);
-  headers.set('accept', 'application/json');
-  const token = csrfToken();
-  if (token) headers.set('X-CSRF-Token', token);
-  if (init?.body) headers.set('content-type', 'application/json');
-
-  const response = await fetch(`/api/plugins/${PLUGIN_ID}${path}`, {
-    ...init,
-    headers,
-    cache: 'no-store',
-  });
-  const body = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
-  if (!response.ok) {
-    throw new Error(body?.error?.message ?? `HTTP ${response.status}`);
-  }
-  return body as T;
-}
-
-export function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
+export const errorMessage = pluginErrorMessage;

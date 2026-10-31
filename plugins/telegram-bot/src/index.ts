@@ -21,11 +21,8 @@
 // remains in `@kestrel/ai` for web-created alerts; alerts created from this
 // bot use the plugin's `telegram-bot` channel.
 
-import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import { definePlugin } from '@kestrel/plugin-sdk';
+import { resolvePluginSkillDir } from '@kestrel/plugin-sdk/skill-dir';
 
 import { telegramAlertChannel } from './alerts';
 import { dailyBriefingJob } from './jobs/daily-briefing';
@@ -42,29 +39,7 @@ import { handleTelegramWebhookRoute } from './server/webhook';
 import { PLUGIN_ID, settingsSchema } from './settings';
 import { telegramTools } from './tools';
 
-/**
- * Resolve the skill directory across source, Next standalone, and pnpm-deploy
- * layouts. Bundlers inline `import.meta.url` in some server chunks, so the
- * source-relative candidate is only one of several valid locations.
- */
-function resolveSkillPath(): string {
-  const candidates = [
-    join(dirname(fileURLToPath(import.meta.url)), '..', 'skills', 'telegram-copilot'),
-    join(process.cwd(), 'plugins', 'telegram-bot', 'skills', 'telegram-copilot'),
-    join(
-      process.cwd(),
-      'node_modules',
-      '@kestrel',
-      'plugin-telegram-bot',
-      'skills',
-      'telegram-copilot',
-    ),
-    join(process.cwd(), '..', '..', 'plugins', 'telegram-bot', 'skills', 'telegram-copilot'),
-  ];
-  return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0]!;
-}
-
-const skillPath = resolveSkillPath();
+const skillPath = resolvePluginSkillDir(import.meta.url, 'telegram-bot', 'telegram-copilot');
 
 const plugin = definePlugin({
   manifest: {

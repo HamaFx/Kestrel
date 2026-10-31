@@ -32,7 +32,6 @@ export type {
   PluginNavItem,
   PluginPageProps,
   PluginPageRegistration,
-  PluginSetupWizardProps,
   PluginSlashCommand,
   PluginToolPartProps,
   PluginToolPartRegistration,
@@ -44,4 +43,11 @@ export {
   type RegisteredNavItem,
   type RegisteredSlashCommand,
 } from './definition';
+export {
+  createPluginFetcher,
+  extractPluginErrorMessage,
+  pluginErrorMessage,
+  readCsrfToken,
+  type PluginFetcher,
+} from './fetcher';
 export { PluginUiRegistry, pluginUiRegistry } from './registry';

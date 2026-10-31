@@ -24,11 +24,8 @@
 // safety net for deployments without a live feed. Closed trades are copied to
 // the Trade Journal.
 
-import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import { definePlugin } from '@kestrel/plugin-sdk';
+import { resolvePluginSkillDir } from '@kestrel/plugin-sdk/skill-dir';
 
 import { paperTradingApiRoutes } from './api/routes';
 import { deleteAllPaperData } from './db/queries';
@@ -41,13 +38,7 @@ import { paperTickSubscriber } from './tick';
 import { paperTradingTools } from './tools';
 
 function resolveSkillDir(name: string): string {
-  const candidates = [
-    join(dirname(fileURLToPath(import.meta.url)), '..', 'skills', name),
-    join(process.cwd(), 'plugins', 'paper-trading', 'skills', name),
-    join(process.cwd(), 'node_modules', '@kestrel', 'plugin-paper-trading', 'skills', name),
-    join(process.cwd(), '..', '..', 'plugins', 'paper-trading', 'skills', name),
-  ];
-  return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0]!;
+  return resolvePluginSkillDir(import.meta.url, 'paper-trading', name);
 }
 
 const plugin = definePlugin({
@@ -68,7 +59,7 @@ const plugin = definePlugin({
       'Approve / deny orders',
       'Autonomous sandbox',
       'Live tick fills',
-      'Adds 10 AI tools',
+      'Adds 12 AI tools',
       'Adds sidebar tab',
     ],
     setupSteps: [],

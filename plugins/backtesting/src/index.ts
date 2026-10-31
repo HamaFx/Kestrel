@@ -23,11 +23,8 @@
 // The plugin owns its runs/strategy library tables and knowledge documents.
 // Nothing here mutates core chat, portfolio, or alert state.
 
-import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import { definePlugin } from '@kestrel/plugin-sdk';
+import { resolvePluginSkillDir } from '@kestrel/plugin-sdk/skill-dir';
 
 import { backtestingApiRoutes } from './api/routes';
 import { deleteAllBacktestData } from './db/queries';
@@ -40,13 +37,7 @@ import { backtestingTools } from './tools';
  * source-relative candidate is only one of several valid locations.
  */
 function resolveSkillDir(name: string): string {
-  const candidates = [
-    join(dirname(fileURLToPath(import.meta.url)), '..', 'skills', name),
-    join(process.cwd(), 'plugins', 'backtesting', 'skills', name),
-    join(process.cwd(), 'node_modules', '@kestrel', 'plugin-backtesting', 'skills', name),
-    join(process.cwd(), '..', '..', 'plugins', 'backtesting', 'skills', name),
-  ];
-  return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0]!;
+  return resolvePluginSkillDir(import.meta.url, 'backtesting', name);
 }
 
 const plugin = definePlugin({

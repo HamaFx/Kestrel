@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { ToolName } from '@kestrel/shared';
 import { IconPower } from '@tabler/icons-react';
 import { useActionState, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -25,7 +24,8 @@ import { Button } from '@/components/ui/button';
 import { updateDisabledToolsAction } from '../../actions';
 
 interface DisabledToolsFormProps {
-  allTools: ToolName[];
+  /** Core tool names plus installed plugin tool ids. */
+  allTools: readonly string[];
   initialDisabledTools: string[];
 }
 
