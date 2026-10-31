@@ -89,9 +89,6 @@ export const METRIC_NAMES = [
   'mastra_chat_fallback_total',
   'mastra_mode_route_total',
   'mastra_mode_fallback_total',
-  'mastra_shadow_total',
-  'mastra_shadow_failed_total',
-  'mastra_shadow_skipped_total',
   // Phase 5 — durability, cancellation, and guardrail health signals.
   'queue_duplicate_claim_total',
   'queue_stale_lease_completion_total',

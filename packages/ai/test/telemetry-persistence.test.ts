@@ -17,7 +17,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getDiagnosticContext, withDiagnostics } from '../src/diagnostics/run-context';
-import { recordTelemetry, recordToolTelemetry } from '../src/persistence/telemetry-persistence';
+import {
+  recordTelemetry,
+  recordToolTelemetry,
+  TELEMETRY_KINDS,
+} from '../src/persistence/telemetry-persistence';
 
 const { insertValues, db, selectBuilder } = vi.hoisted(() => {
   const insertValues = vi.fn();
@@ -140,5 +144,14 @@ describe('telemetry persistence correlation', () => {
       runId: 'explicit-run',
       jobId: 'explicit-job',
     });
+  });
+});
+
+describe('telemetry vocabulary', () => {
+  it('exposes only active Mastra v2 telemetry kinds in TELEMETRY_KINDS', () => {
+    expect(TELEMETRY_KINDS).not.toContain('multi_specialist_sentiment');
+    expect(TELEMETRY_KINDS).not.toContain('routing_fundamental');
+    expect(TELEMETRY_KINDS).toContain('mastra_canonical_chat');
+    expect(TELEMETRY_KINDS).toContain('mastra_mode');
   });
 });

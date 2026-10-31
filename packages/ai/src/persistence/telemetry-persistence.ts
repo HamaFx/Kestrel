@@ -38,34 +38,18 @@ const perlog = createCategorizedLogger('ai', { component: 'persistence' });
 /**
  * The telemetry `kind` vocabulary live writers actually emit (audit v2 §4.5).
  *
- * Historical values that are no longer produced (the pre-Mastra
- * Title_Generator kinds `title_generated` / `title_failed` /
- * `title_skipped_budget`) are intentionally absent: nothing emits them, and
+ * Historical values that are no longer produced (the pre-Mastra `routing_*` /
+ * `plan_*` / `multi_specialist_*` / `multi_agent_turn` kinds, and the
+ * pre-Mastra Title_Generator kinds `title_generated` / `title_failed` /
+ * `title_skipped_budget`) are intentionally absent: nothing emits them.
  * `title_skipped_budget` cannot exist at all while the budget is ledger-only
  * (Q4 — a title is never budget-blocked). Legacy rows and queued outbox
  * payloads may still carry those kinds; they remain valid *stored* values in
- * `ChatTelemetryKind` (packages/db) and in the replay schema, they are just
- * not part of the emitted vocabulary.
+ * `ChatTelemetryKind` (packages/db) and in the replay schema — budget usage
+ * aggregation still reads `multi_agent_turn` / `multi_specialist_*` historical
+ * rows — they are just not part of the emitted vocabulary.
  */
 export const TELEMETRY_KINDS = [
-  'routing_fundamental',
-  'routing_technical',
-  'routing_summary',
-  'routing_vision',
-  'routing_generic',
-  'plan_generated',
-  'plan_skipped_budget',
-  'plan_failed',
-  'multi_specialist_technical',
-  'multi_specialist_fundamental',
-  'multi_specialist_risk',
-  'multi_specialist_sentiment',
-  'multi_specialist_technical_failed',
-  'multi_specialist_fundamental_failed',
-  'multi_specialist_risk_failed',
-  'multi_specialist_sentiment_failed',
-  'multi_specialist_decision',
-  'multi_agent_turn',
   // P-03 (audit 2026-10-18): footprint-neutral name; the `mastra_xauusd_poc`
   // values remain accepted (and are normalized to these on write) for one
   // release so existing dashboards keep resolving historical rows.

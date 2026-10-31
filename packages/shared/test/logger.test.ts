@@ -20,7 +20,6 @@ import {
   createCategorizedLogger,
   createScopedLogger,
   logErrorContext,
-  logForAgent,
   logger,
   requestIdStorage,
   runIdStorage,
@@ -173,63 +172,5 @@ describe('logErrorContext', () => {
     expect(logObject.errorPattern).toBe('Daily AI spend cap reached');
     expect(logObject.suggestedFix).toBeDefined();
     expect(logObject.retryable).toBe(false);
-  });
-});
-
-describe('logForAgent', () => {
-  let infoSpy: ReturnType<typeof vi.spyOn>;
-  let errorSpy: ReturnType<typeof vi.spyOn>;
-
-  beforeEach(() => {
-    infoSpy = vi.spyOn(logger, 'info').mockImplementation(() => {});
-    errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    infoSpy.mockRestore();
-    errorSpy.mockRestore();
-  });
-
-  it('produces an agent log line with agentLog flag', () => {
-    logForAgent('info', 'testOperation', {
-      module: 'test-module',
-      category: 'ai',
-      context: { userId: 'u-123' },
-    });
-
-    expect(infoSpy).toHaveBeenCalledTimes(1);
-    const logObject = infoSpy.mock.calls[0]?.[0] as Record<string, unknown>;
-    expect(logObject.agentLog).toBe(true);
-    expect(logObject.operation).toBe('testOperation');
-    expect(logObject.module).toBe('test-module');
-    expect(logObject.category).toBe('ai');
-    expect(logObject.userId).toBe('u-123');
-  });
-
-  it('includes bug report when an error is provided', () => {
-    const err = new Error('Agent failure');
-    logForAgent('error', 'agentRun', {
-      module: 'ai-agent',
-      category: 'ai',
-      error: err,
-    });
-
-    expect(errorSpy).toHaveBeenCalledTimes(1);
-    const logObject = errorSpy.mock.calls[0]?.[0] as Record<string, unknown>;
-    expect(logObject.agentLog).toBe(true);
-    expect(logObject.bugReport).toBeDefined();
-    expect((logObject.bugReport as Record<string, unknown>).error).toBeDefined();
-  });
-
-  it('includes traceId when inside a diagnostic scope', () => {
-    traceIdStorage.run('trace-xyz', () => {
-      logForAgent('info', 'agentRun', {
-        module: 'ai-agent',
-        category: 'ai',
-      });
-    });
-
-    const logObject = infoSpy.mock.calls[0]?.[0] as Record<string, unknown>;
-    expect(logObject.traceId).toBe('trace-xyz');
   });
 });
