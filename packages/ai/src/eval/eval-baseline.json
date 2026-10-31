@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "kestrel.eval-baseline.v1",
+  "generatedAt": "2026-10-29T00:00:00.000Z",
+  "runCount": 50,
+  "recordCount": 100,
+  "observed": {
+    "overallPassRate": 0.98,
+    "averageCitationScore": 0.95
+  }
+}
