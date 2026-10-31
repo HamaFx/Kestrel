@@ -165,14 +165,6 @@ export function buildHealthAssessment(input: HealthAssessmentInput): HealthAsses
         `Full-mode completion is below SLO: ${operational.fullCompleted}/${operational.fullTotal} completed`,
       );
     }
-    if (
-      operational.sentimentTotal > 0 &&
-      operational.sentimentSucceeded / operational.sentimentTotal < 0.95
-    ) {
-      anomalies.push(
-        `Sentiment specialist success is below SLO: ${operational.sentimentSucceeded}/${operational.sentimentTotal} succeeded`,
-      );
-    }
     if (operational.outboxDead > 0) {
       anomalies.push(`${operational.outboxDead} persistence outbox record(s) are dead-lettered`);
     }

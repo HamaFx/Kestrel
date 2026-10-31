@@ -51,8 +51,6 @@ export interface OperationalAggregate {
   fullTotal: number;
   fullCompleted: number;
   fullFailed: number;
-  sentimentTotal: number;
-  sentimentSucceeded: number;
   outboxTerminal: number;
   outboxCompleted: number;
   outboxDead: number;
