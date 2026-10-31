@@ -47,7 +47,11 @@ export interface PersistedTrace {
  */
 function traceDocumentWithDeepLinks(trace: PersistedTrace): Record<string, unknown> {
   const runId = typeof trace.trace['runId'] === 'string' ? trace.trace['runId'] : '';
-  const langfuseUrl = runId.length > 0 ? langfuseTraceUrl(runId) : null;
+  // Phase 1 (observability roadmap) — prefer the runId (the Mastra/Langfuse
+  // trace key) and fall back to the diagnostic traceId so every persisted
+  // trace gets a working deep link when Langfuse is configured.
+  const correlationId = runId.length > 0 ? runId : trace.traceId;
+  const langfuseUrl = correlationId.length > 0 ? langfuseTraceUrl(correlationId) : null;
   return langfuseUrl ? { ...trace.trace, langfuseTraceUrl: langfuseUrl } : trace.trace;
 }
 
