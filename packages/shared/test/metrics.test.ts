@@ -16,7 +16,14 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { isMetricName, METRIC_NAMES, metrics, MetricsRegistry } from '../src/metrics';
+import {
+  HISTOGRAM_BUCKET_BOUNDS_MS,
+  HISTOGRAM_BUCKET_BOUNDS_USD,
+  isMetricName,
+  METRIC_NAMES,
+  metrics,
+  MetricsRegistry,
+} from '../src/metrics';
 
 describe('metrics registry', () => {
   it('exposes the AI + worker SLI metric names', () => {
@@ -60,7 +67,27 @@ describe('metrics registry', () => {
       min: 100,
       max: 300,
       buckets: [0, 0, 0, 0, 0, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+      bounds: [...HISTOGRAM_BUCKET_BOUNDS_MS],
     });
+  });
+
+  it('uses HISTOGRAM_BUCKET_BOUNDS_USD for *_usd cost histograms and HISTOGRAM_BUCKET_BOUNDS_MS for latency histograms', () => {
+    const registry = new MetricsRegistry();
+    registry.observe('turn_cost_usd', 0.004);
+    registry.observe('turn_cost_usd', 0.08);
+    registry.observe('ttft_ms', 120);
+
+    const snap = registry.snapshot();
+    const costHist = snap.histograms['turn_cost_usd']!;
+    expect(costHist.bounds).toEqual([...HISTOGRAM_BUCKET_BOUNDS_USD]);
+    // 0.004 <= 0.005 (index 4), so buckets[0..3] === 0, buckets[4] === 1
+    expect(costHist.buckets[3]).toBe(0); // le=0.0025
+    expect(costHist.buckets[4]).toBe(1); // le=0.005
+    // 0.08 <= 0.1 (index 8), so buckets[8] === 2
+    expect(costHist.buckets[8]).toBe(2); // le=0.1
+
+    const latencyHist = snap.histograms['ttft_ms']!;
+    expect(latencyHist.bounds).toEqual([...HISTOGRAM_BUCKET_BOUNDS_MS]);
   });
 
   it('keeps tagged series independent and stable across observation order', () => {

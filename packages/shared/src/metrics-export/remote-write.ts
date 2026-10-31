@@ -104,7 +104,9 @@ export function snapshotToPromRemoteWrite(
     const { name, labels } = parseSnapshotKey(key);
     // Prometheus-convention cumulative buckets so `histogram_quantile` works
     // in Grafana: `{name}_bucket{le=…}` labels plus `{le="+Inf"}` = total.
-    HISTOGRAM_BUCKET_BOUNDS_MS.forEach((bound, i) => {
+    // Bounds are per-series: USD for `*_usd` cost histograms, ms for latency.
+    const bounds = summary.bounds ?? HISTOGRAM_BUCKET_BOUNDS_MS;
+    bounds.forEach((bound, i) => {
       pending.push({
         name: `${name}_bucket`,
         labels: [...labels, ['le', String(bound)]],

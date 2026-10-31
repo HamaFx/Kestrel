@@ -17,7 +17,13 @@
 import { uncompress as snappyUncompress } from 'snappyjs';
 import { describe, expect, it, vi } from 'vitest';
 
-import { metrics, type MetricsSnapshot } from '../src/metrics';
+import {
+  HISTOGRAM_BUCKET_BOUNDS_MS,
+  HISTOGRAM_BUCKET_BOUNDS_USD,
+  metrics,
+  MetricsRegistry,
+  type MetricsSnapshot,
+} from '../src/metrics';
 import {
   buildMetricsUrl,
   exportMetricsToOtlp,
@@ -42,6 +48,7 @@ function snapshot(): MetricsSnapshot {
         min: 100,
         max: 500,
         buckets: [0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2],
+        bounds: [...HISTOGRAM_BUCKET_BOUNDS_MS],
       },
     },
   };
@@ -128,6 +135,46 @@ describe('snapshotToOtlpJson', () => {
     expect(hist.histogram.dataPoints[0]?.bucketCounts[5]).toBe('1'); // le=100
     expect(hist.histogram.dataPoints[0]?.bucketCounts[7]).toBe('1'); // le=500
     expect(hist.histogram.dataPoints[0]?.bucketCounts[8]).toBe('2'); // le=1000
+  });
+
+  it('exports USD explicitBounds for turn_cost_usd in OTLP JSON', () => {
+    const registry = new MetricsRegistry();
+    registry.observe('turn_cost_usd', 0.012);
+    const otlp = snapshotToOtlpJson(registry.snapshot(), 'kestrel', '1000') as {
+      resourceMetrics: Array<{
+        scopeMetrics: Array<{
+          metrics: Array<{
+            name: string;
+            histogram?: { dataPoints: Array<{ explicitBounds: number[] }> };
+          }>;
+        }>;
+      }>;
+    };
+    const costMetric = otlp.resourceMetrics[0]!.scopeMetrics[0]!.metrics.find(
+      (m) => m.name === 'turn_cost_usd',
+    );
+    expect(costMetric?.histogram?.dataPoints[0]?.explicitBounds).toEqual([
+      ...HISTOGRAM_BUCKET_BOUNDS_USD,
+    ]);
+
+    const latencyRegistry = new MetricsRegistry();
+    latencyRegistry.observe('total_latency_ms', 250);
+    const latencyOtlp = snapshotToOtlpJson(latencyRegistry.snapshot(), 'kestrel', '1000') as {
+      resourceMetrics: Array<{
+        scopeMetrics: Array<{
+          metrics: Array<{
+            name: string;
+            histogram?: { dataPoints: Array<{ explicitBounds: number[] }> };
+          }>;
+        }>;
+      }>;
+    };
+    const latencyMetric = latencyOtlp.resourceMetrics[0]!.scopeMetrics[0]!.metrics.find(
+      (m) => m.name === 'total_latency_ms',
+    );
+    expect(latencyMetric?.histogram?.dataPoints[0]?.explicitBounds).toEqual([
+      ...HISTOGRAM_BUCKET_BOUNDS_MS,
+    ]);
   });
 });
 
@@ -379,6 +426,35 @@ describe('snapshotToPromRemoteWrite', () => {
     expect(bucket('500').samples[0]!.value).toBe(1);
     expect(bucket('1000').samples[0]!.value).toBe(2);
     expect(bucket('+Inf').samples[0]!.value).toBe(2);
+  });
+
+  it('emits sub-dollar le labels for *_usd cost histograms', () => {
+    const registry = new MetricsRegistry();
+    registry.observe('turn_cost_usd', 0.012);
+    registry.observe('turn_cost_usd', 0.03);
+    const series = parseWriteRequest(
+      snapshotToPromRemoteWrite(registry.snapshot(), 'kestrel', 1_700_000_000_000),
+    );
+
+    const bucket = (le: string) =>
+      series.find(
+        (s) =>
+          s.labels.some((l) => l.name === '__name__' && l.value === 'turn_cost_usd_bucket') &&
+          s.labels.some((l) => l.name === 'le' && l.value === le),
+      )!;
+    // 0.012 lands in le=0.025 (index 6) and 0.03 in le=0.05 (index 7).
+    expect(bucket('0.0005').samples[0]!.value).toBe(0);
+    expect(bucket('0.01').samples[0]!.value).toBe(0);
+    expect(bucket('0.025').samples[0]!.value).toBe(1);
+    expect(bucket('0.05').samples[0]!.value).toBe(2);
+    expect(bucket('+Inf').samples[0]!.value).toBe(2);
+    expect(
+      series.some(
+        (s) =>
+          s.labels.some((l) => l.name === '__name__' && l.value === 'turn_cost_usd_bucket') &&
+          s.labels.some((l) => l.name === 'le' && l.value === '1000'),
+      ),
+    ).toBe(false);
   });
 
   it('splits tagged registry keys into proper name + labels (regression: literal {k=v} in __name__)', () => {
