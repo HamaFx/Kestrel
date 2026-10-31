@@ -102,9 +102,7 @@ async function fillOrder(args: {
   const marginCap =
     Math.max(0, snapshot.freeMargin) * (args.settings.maxMarginUtilisationPct / 100);
   if (margin > marginCap + 0.01) {
-    return reject(
-      `Gap moved the entry; margin ${margin.toFixed(2)} exceeds the available cap.`,
-    );
+    return reject(`Gap moved the entry; margin ${margin.toFixed(2)} exceeds the available cap.`);
   }
 
   if (args.order.stopLoss !== null) {
