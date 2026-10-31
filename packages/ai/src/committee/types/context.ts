@@ -54,6 +54,12 @@ export const REQUEST_CONTEXT_SCHEMA = z.object({
    */
   jevCalibration: z.unknown().optional(),
   /**
+   * Phase 3 (Jev) — per-symbol calibrations for comparison runs, keyed by
+   * symbol. Each desk pass resolves its own symbol's anchor from here before
+   * falling back to the single-symbol `jevCalibration`.
+   */
+  jevCalibrationsBySymbol: z.unknown().optional(),
+  /**
    * Phase 2 (Jev) — the consensus-gate decision written by the critique step
    * and reused by the debate step (one Jev gate call per run).
    */
@@ -93,6 +99,12 @@ export function contextWithPacket(
   const jevCalibration = base.get('jevCalibration');
   if (jevCalibration !== undefined) {
     entries.push(['jevCalibration', jevCalibration]);
+  }
+  // Phase 3 (Jev): comparison runs carry one calibration per symbol; the
+  // rebuilt context keeps them so a specialist can resolve its own anchor.
+  const jevCalibrationsBySymbol = base.get('jevCalibrationsBySymbol');
+  if (jevCalibrationsBySymbol !== undefined) {
+    entries.push(['jevCalibrationsBySymbol', jevCalibrationsBySymbol]);
   }
   // Phase 3: the empirical desk reliability weights travel into the fusion
   // call so its instructions can weigh the desks by calibrated accuracy.
