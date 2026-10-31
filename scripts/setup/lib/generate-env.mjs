@@ -60,7 +60,15 @@ const REMOVED_ENV_KEYS = [
 // Cosmetic section grouping for freshly generated files. Every key listed
 // here MUST exist in secret-template.json (enforced by tests).
 const SECTIONS = [
-  ['Postgres', ['POSTGRES_PASSWORD', 'POSTGRES_ADMIN_PASSWORD', 'POSTGRES_VOLUME_NAME']],
+  [
+    'Postgres',
+    [
+      'POSTGRES_PASSWORD',
+      'POSTGRES_ADMIN_PASSWORD',
+      'POSTGRES_APP_PASSWORD',
+      'POSTGRES_VOLUME_NAME',
+    ],
+  ],
   [
     'Local Docker backups',
     [
@@ -74,10 +82,7 @@ const SECTIONS = [
   ['Cron authentication', ['CRON_SECRET']],
   ['Worker health/proxy authentication', ['WORKER_HEALTH_TOKEN', 'BIQUOTE_PROXY_TOKEN']],
   ['Encryption (BYOK key encryption at rest)', ['ENCRYPTION_SECRET']],
-  [
-    'Deployment defaults',
-    ['MULTI_USER_ENABLED', 'REGISTRATION_MODE', 'KESTREL_ENABLE_RLS'],
-  ],
+  ['Deployment defaults', ['MULTI_USER_ENABLED', 'REGISTRATION_MODE', 'KESTREL_ENABLE_RLS']],
 ];
 
 function parseArgs(argv) {

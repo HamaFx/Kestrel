@@ -33,6 +33,9 @@ services:
       POSTGRES_USER: hamafx
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run docker/init-secrets.sh to generate .env}
       POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Run docker/init-secrets.sh to generate .env}
+      # Optional so existing volumes keep starting; the init script skips
+      # kestrel_app provisioning when it is empty (see init-admin-role.sh).
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:-}
     ports:
       - '${POSTGRES_PUBLISHED_PORT:-127.0.0.1:5432}:5432'
     volumes:
@@ -123,6 +126,11 @@ services:
       # host port when 3000 is already taken. Binds localhost only.
       - '${APP_PUBLISHED_PORT:-127.0.0.1:3000}:3000'
     environment:
+      # Audit 2026-10-31 (R1): this connection still uses the bundled Postgres
+      # superuser, which bypasses row-level security. Switching it to the
+      # provisioned kestrel_app credential is what makes RLS effective; that
+      # app-side sweep is tracked in
+      # docs/audit/kestrel-architecture-db-audit-2026-10-31.md.
       DATABASE_URL: postgres://hamafx:${POSTGRES_PASSWORD}@db:5432/hamafx
       ADMIN_DATABASE_URL: postgres://hamafx_admin:${POSTGRES_ADMIN_PASSWORD}@db:5432/hamafx
       KESTREL_LOCAL_DOCKER: 'true'
@@ -174,6 +182,9 @@ services:
       context: .
       dockerfile: Dockerfile.worker
     environment:
+      # Audit 2026-10-31 (R1): app traffic on the worker is meant to move to
+      # kestrel_app too; cron/admin work stays on ADMIN_DATABASE_URL
+      # (hamafx_admin, BYPASSRLS). See the audit doc above.
       DATABASE_URL: postgres://hamafx:${POSTGRES_PASSWORD}@db:5432/hamafx
       ADMIN_DATABASE_URL: postgres://hamafx_admin:${POSTGRES_ADMIN_PASSWORD}@db:5432/hamafx
       NODE_ENV: production

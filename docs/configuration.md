@@ -36,6 +36,8 @@ Tenant isolation is enforced via Postgres RLS on every user-data table with expl
 | `CRON_SECRET`                              | Production      | Web/worker integrations | Bearer secret for cron endpoints; at least 16 characters                        |
 | `ENCRYPTION_SECRET`                        | Production      | Web                     | Encryption key for BYOK and protected secrets; back it up securely              |
 | `POSTGRES_PASSWORD`                        | Docker          | Compose                 | Password for the bundled PostgreSQL service                                     |
+| `POSTGRES_ADMIN_PASSWORD`                  | Docker          | Compose/init script     | Password for the `hamafx_admin` role (`BYPASSRLS`)                              |
+| `POSTGRES_APP_PASSWORD`                    | Docker          | Compose/init script     | Password for the `kestrel_app` role (`LOGIN`, `NOBYPASSRLS`); see below         |
 | `DATABASE_URL` or `POSTGRES_URL`           | External DB/app | Web/worker              | Runtime database connection                                                     |
 | `DIRECT_URL` or `POSTGRES_URL_NON_POOLING` | Migrations      | Migration tooling       | Direct/session database connection; do not use a transaction pooler             |
 | `DATABASE_URL_REPLICA`                     | Optional        | Web                     | Read-only replica for read-heavy queries                                        |
@@ -43,6 +45,45 @@ Tenant isolation is enforced via Postgres RLS on every user-data table with expl
 | `ADMIN_DATABASE_URL`                       | Required        | Web/worker              | Dedicated `BYPASSRLS` connection for tenant lookup, worker, and cron operations |
 
 PostgreSQL is required in every environment; provide `DATABASE_URL` or `POSTGRES_URL`.
+
+## Database roles and row-level security
+
+Two database roles back a deployment:
+
+| Role           | Attributes                          | Used by                                                                         |
+| -------------- | ----------------------------------- | ------------------------------------------------------------------------------- |
+| `kestrel_app`  | `LOGIN`, `NOBYPASSRLS`              | Web application (`DATABASE_URL`) once the app stops using the bundled superuser |
+| `hamafx_admin` | `LOGIN`, `BYPASSRLS`, `NOSUPERUSER` | Worker, cron, and administrative paths via `ADMIN_DATABASE_URL`                 |
+
+Postgres row-level security only applies to a connection whose role cannot bypass it.
+Migration `0094` creates `kestrel_app` deliberately `NOLOGIN` — credentials must never
+live in migration history — and migration `0119` grants it privileges on all tables,
+sequences, and future objects. Provisioning supplies the missing deployment half
+(LOGIN plus password):
+
+- **Fresh volumes** — `docker/postgres/init-admin-role.sh` creates `kestrel_app` and
+  `hamafx_admin` from `POSTGRES_APP_PASSWORD` and `POSTGRES_ADMIN_PASSWORD` when the
+  volume is first created. `./docker/init-secrets.sh` generates both.
+- **Existing volumes** — the init script never re-runs. Provision once with a direct
+  connection whose role can create and alter roles:
+
+  ```bash
+  POSTGRES_APP_PASSWORD=<16+ character secret> \
+    DIRECT_URL=postgres://hamafx:...@db:5432/hamafx \
+    pnpm --filter @kestrel/db provision:app-role
+  ```
+
+  The script prefers `DIRECT_URL`, then `POSTGRES_URL_NON_POOLING`,
+  `ADMIN_DATABASE_URL`, and `DATABASE_URL`. It creates the role when absent and
+  otherwise re-applies the exact same attributes, grants, and default privileges, so
+  it is safe to re-run. It never prints the password and refuses a password shorter
+  than 16 characters. Add the same value to `.env` so Compose keeps passing it.
+
+> **Until `DATABASE_URL` points at `kestrel_app` (for example
+> `postgres://kestrel_app:${POSTGRES_APP_PASSWORD}@db:5432/hamafx`), RLS is not
+> enforced.** The bundled `hamafx` role is a Postgres superuser, and superusers bypass
+> every policy even with `FORCE ROW LEVEL SECURITY`. The app-side switch is tracked in
+> `docs/audit/kestrel-architecture-db-audit-2026-10-31.md` (R1).
 
 ## Application and runtime
 
@@ -207,6 +248,8 @@ a 15-second timeout and fails open (the agent keeps its other tools).
 The setup wizard generates these values in `.env`:
 
 - `POSTGRES_PASSWORD`
+- `POSTGRES_ADMIN_PASSWORD`
+- `POSTGRES_APP_PASSWORD`
 - `POSTGRES_VOLUME_NAME`
 - `BACKUP_VOLUME_NAME`
 - `BACKUP_INTERVAL_SECONDS`
