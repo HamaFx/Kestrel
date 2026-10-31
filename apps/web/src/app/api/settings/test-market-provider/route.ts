@@ -19,7 +19,7 @@
 import { z } from 'zod';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
-import { marketDataProviders } from '@/lib/services/api-boundary';
+import { marketDataProviders, withRateLimit } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -29,7 +29,22 @@ const BodySchema = z.object({
   apiKey: z.string().max(8192).optional(),
 });
 
-export const POST = withAuth<void>(async (req) => {
+/** Bound connection tests per user per minute (each one hits an upstream). */
+const MARKET_PROVIDER_TEST_RATE_LIMIT = 10;
+
+export const POST = withAuth<void>(async (req, { user }) => {
+  const rate = await withRateLimit(
+    user.userId,
+    'market_provider_test',
+    MARKET_PROVIDER_TEST_RATE_LIMIT,
+  );
+  if (!rate.allowed) {
+    return Response.json(
+      { ok: false, error: 'Too many connection tests. Try again in a minute.' },
+      { status: 429 },
+    );
+  }
+
   let body: z.infer<typeof BodySchema>;
   try {
     body = await parseJsonBody(req, BodySchema);
@@ -54,8 +69,12 @@ export const POST = withAuth<void>(async (req) => {
     );
   }
 
+  // Audit 2026-10-31 (R12): this used to pass the caller's `apiKey` through as
+  // `baseUrl`, so any authenticated user could make the server fetch an
+  // arbitrary host (e.g. cloud metadata endpoints). A base URL is operator
+  // configuration — it is never taken from the request.
   const result = await providerInstance.testConnection(
-    body.apiKey ? { apiKey: body.apiKey, baseUrl: body.apiKey } : undefined,
+    body.apiKey ? { apiKey: body.apiKey } : undefined,
   );
 
   if (!result.ok) {
