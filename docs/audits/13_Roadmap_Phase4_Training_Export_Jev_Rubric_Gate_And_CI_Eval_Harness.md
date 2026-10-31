@@ -41,7 +41,7 @@
   - Adds `toolNames?: string[]`
 - Updates `POST /api/admin/eval-datasets/export` response JSON to include `rlcdRecordCount: number` and `outputDir: string | null`
 
-- [ ] **Step 1: Write the failing tests in `apps/worker/test/dataset-export.test.ts`**
+- [x] **Step 1: Write the failing tests in `apps/worker/test/dataset-export.test.ts`**
 
 ```typescript
 it('populates toolCalls from ReviewedTrainingPair.toolNames and writes jev-rlcd.jsonl by default', async () => {
@@ -52,12 +52,12 @@ it('populates toolCalls from ReviewedTrainingPair.toolNames and writes jev-rlcd.
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/worker test test/dataset-export.test.ts`
 Expected: FAIL (`toolCalls` was hardcoded to `[]` and `rlcd` was skipped unless `RLCD_EXPORT_ENABLED=true`)
 
-- [ ] **Step 3: Update `training-dataset.ts`, `dataset-export.ts`, and `/api/admin/eval-datasets/export/route.ts`**
+- [x] **Step 3: Update `training-dataset.ts`, `dataset-export.ts`, and `/api/admin/eval-datasets/export/route.ts`**
   - In `packages/db/src/queries/training-dataset.ts`:
     - Add `toolNames?: string[];` to `ReviewedTrainingPair` and select `toolNames` via correlated subquery over `chat_tool_telemetry`.
   - In `apps/worker/src/jobs/dataset-export.ts`:
@@ -69,12 +69,12 @@ Expected: FAIL (`toolCalls` was hardcoded to `[]` and `rlcd` was skipped unless 
     - Best-effort write `dataset.jsonl`, `manifest.json`, and `jev-rlcd.jsonl` to `join(process.env.DATASETS_DIR ?? '/tmp/kestrel-datasets', version)` and best-effort call `publishTrainingDatasetToLangfuse(assembled, { datasetName: 'kestrel-training', description: `Governed eval training records — ${version}` })`.
     - Include `rlcdRecords: rlcd.length` in `provenance` and return `{ dataset: row, droppedNeedsReview: results.length - approved.length, rlcdRecordCount: rlcd.length }`.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pnpm --filter @kestrel/worker test test/dataset-export.test.ts && pnpm --filter @kestrel/ai test test/regime-memory-and-jev-export.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/db/src/queries/training-dataset.ts apps/worker/src/jobs/dataset-export.ts apps/web/src/app/api/admin/eval-datasets/export/route.ts apps/worker/test/dataset-export.test.ts
@@ -94,7 +94,7 @@ git commit -m "feat(db,worker,web): include tool names in feedback exports and u
   - `JEV_RUBRIC_THRESHOLDS = { answerRelevancy: 0.5, noHallucination: 0.8, unbiasedScenarios: 0.8, nonToxic: 0.9 } as const` in `packages/ai/src/mastra-v2/evals/gate.ts`
   - `checkJevRubricRecord(record: ScoreRecord, minFaithfulness: number): { ok: boolean; failures: string[] }` in `packages/ai/src/mastra-v2/evals/gate.ts`
 
-- [ ] **Step 1: Write the failing test in `packages/ai/test/jev-verifier-and-scorers.test.ts`**
+- [x] **Step 1: Write the failing test in `packages/ai/test/jev-verifier-and-scorers.test.ts`**
 
 ```typescript
 import { recordsToGateObserved } from '../src/mastra-v2/evals/gate';
@@ -125,24 +125,24 @@ it('fails recordsToGateObserved when kestrel-jev-rubric has high faithfulness bu
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/ai test test/jev-verifier-and-scorers.test.ts`
 Expected: FAIL (`gate.passed` was `true` because `recordsToGateObserved` only checked `record.score >= 0.95`)
 
-- [ ] **Step 3: Implement `checkJevRubricRecord` in `packages/ai/src/mastra-v2/evals/gate.ts`**
+- [x] **Step 3: Implement `checkJevRubricRecord` in `packages/ai/src/mastra-v2/evals/gate.ts`**
   - Export `JEV_RUBRIC_THRESHOLDS = { answerRelevancy: 0.5, noHallucination: 0.8, unbiasedScenarios: 0.8, nonToxic: 0.9 } as const`.
   - Implement `export function checkJevRubricRecord(record: ScoreRecord, minFaithfulness: number): { ok: boolean; failures: string[] }`:
     - Check `record.score >= minFaithfulness`.
     - If `record.reason` starts with `{`, parse JSON and check `answerRelevancy >= JEV_RUBRIC_THRESHOLDS.answerRelevancy`, `noHallucination >= JEV_RUBRIC_THRESHOLDS.noHallucination`, `unbiasedScenarios >= JEV_RUBRIC_THRESHOLDS.unbiasedScenarios`, and `nonToxic >= JEV_RUBRIC_THRESHOLDS.nonToxic`.
   - In `recordsToGateObserved`, when `record.scorerId === 'kestrel-jev-rubric'`, delegate `pass(record)` to `checkJevRubricRecord(record, effectiveThresholds.minOverallPassRate).ok` and attach any rubric failures to `assertions` on the synthesized case.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pnpm --filter @kestrel/ai test test/jev-verifier-and-scorers.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/ai/src/mastra-v2/evals/gate.ts packages/ai/test/jev-verifier-and-scorers.test.ts
@@ -162,7 +162,7 @@ git commit -m "fix(ai): gate all five Jev rubric dimensions in recordsToGateObse
 - Creates `packages/ai/src/eval/eval-baseline.json` conforming to `EvalBaselineArtifact` (`schemaVersion: 'kestrel.eval-baseline.v1'`)
 - Updates `DEFAULT_BASELINE_PATH` in `packages/ai/scripts/eval-gate.ts` to `fileURLToPath(new URL('../src/eval/eval-baseline.json', import.meta.url))`
 
-- [ ] **Step 1: Write the failing test in `packages/ai/test/eval-baseline.test.ts`**
+- [x] **Step 1: Write the failing test in `packages/ai/test/eval-baseline.test.ts`**
 
 ```typescript
 import { readFileSync } from 'node:fs';
@@ -179,12 +179,12 @@ it('ships a valid committed eval-baseline.json artifact in packages/ai/src/eval/
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/ai test test/eval-baseline.test.ts`
 Expected: FAIL (`ENOENT: no such file or directory, open '.../packages/ai/src/eval/eval-baseline.json'`)
 
-- [ ] **Step 3: Create `packages/ai/src/eval/eval-baseline.json` and update `packages/ai/scripts/eval-gate.ts`**
+- [x] **Step 3: Create `packages/ai/src/eval/eval-baseline.json` and update `packages/ai/scripts/eval-gate.ts`**
   - Create `packages/ai/src/eval/eval-baseline.json`:
     ```json
     {
@@ -200,12 +200,12 @@ Expected: FAIL (`ENOENT: no such file or directory, open '.../packages/ai/src/ev
     ```
   - In `packages/ai/scripts/eval-gate.ts`, update `DEFAULT_BASELINE_PATH` to `fileURLToPath(new URL('../src/eval/eval-baseline.json', import.meta.url))` and update the comment referencing the path.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pnpm --filter @kestrel/ai test test/eval-baseline.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/ai/src/eval/eval-baseline.json packages/ai/scripts/eval-gate.ts packages/ai/test/eval-baseline.test.ts

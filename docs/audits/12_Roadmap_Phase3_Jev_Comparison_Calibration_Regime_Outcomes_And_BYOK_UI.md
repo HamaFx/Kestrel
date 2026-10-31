@@ -40,7 +40,7 @@
   - Updates `deskJevConfidence(calibration, 'sentiment')` to return `calibration.positioningBias?.confidence ?? calibration.calibratedConfidence`
 - Updates `createComparisonCollectStep` in `packages/ai/src/committee/comparison-workflow/collect-step.ts` to call `enrichPacketForUser` and `scorePacketWithJev` for each healthy symbol packet and store `jevCalibrationsBySymbol` on `requestContext`.
 
-- [ ] **Step 1: Write the failing tests in `packages/ai/test/committee-jev-packet-scorer.test.ts`**
+- [x] **Step 1: Write the failing tests in `packages/ai/test/committee-jev-packet-scorer.test.ts`**
 
 ```typescript
 it('includes positioning_bias in scorePacketWithJev and uses it for the sentiment desk confidence', async () => {
@@ -55,12 +55,12 @@ it('calibrates each healthy symbol packet in createComparisonCollectStep and sto
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/ai test test/committee-jev-packet-scorer.test.ts`
 Expected: FAIL (`positioning_bias` not requested; `createComparisonCollectStep` does not set `jevCalibrationsBySymbol`)
 
-- [ ] **Step 3: Implement `positioning_bias` in `jev-packet-scorer.ts` and per-symbol calibration in `comparison-workflow/collect-step.ts` + `specialist-runner/runner.ts`**
+- [x] **Step 3: Implement `positioning_bias` in `jev-packet-scorer.ts` and per-symbol calibration in `comparison-workflow/collect-step.ts` + `specialist-runner/runner.ts`**
   - In `packages/ai/src/committee/jev-packet-scorer.ts`:
     - Add `positioning_bias` (`type: 'choice'`, criteria `{ bullish: 'COT positioning and macro flows favor upside', bearish: 'COT positioning and macro flows favor downside', neutral: 'Positioning is balanced, crowded, or unavailable' }`) to `questions` in `scorePacketWithJev`.
     - Add `positioningBias?: JevChoiceAnswer` to `JevPacketCalibration`, include `positioning_bias.confidence` in the 5-way `calibratedConfidence` mean, and update `deskJevConfidence` for `'sentiment'` to `return calibration.positioningBias?.confidence ?? calibration.calibratedConfidence;`.
@@ -71,12 +71,12 @@ Expected: FAIL (`positioning_bias` not requested; `createComparisonCollectStep` 
   - In `packages/ai/src/committee/specialist-runner/runner.ts`:
     - Resolve `const bySymbol = requestContext.get('jevCalibrationsBySymbol') as Record<string, JevPacketCalibration> | undefined;` and `const jevCalibration = (args.symbol ? bySymbol?.[args.symbol] : undefined) ?? (requestContext.get('jevCalibration') as JevPacketCalibration | undefined);`, and copy `jevCalibration` onto `packetContext` so the specialist prompt receives the symbol-specific anchor.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pnpm --filter @kestrel/ai test test/committee-jev-packet-scorer.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/ai/src/committee/jev-packet-scorer.ts packages/ai/src/committee/comparison-workflow/collect-step.ts packages/ai/src/committee/specialist-runner/runner.ts packages/ai/test/committee-jev-packet-scorer.test.ts
@@ -96,7 +96,7 @@ git commit -m "feat(ai): add positioning_bias Jev anchor and calibrate multi-sym
   - `computeRegimeOutcomeFromCandles(candles: readonly CandlePoint[], entryMs: number, exitMs: number): { resolution4h: 'bullish' | 'bearish' | 'range'; mfePct: number; maePct: number } | null` in `apps/worker/src/jobs/opinion-calibration.ts`
   - Updates `memory_embeddings` (`kind = 'market_regime'`) rows matching `(userId, tenantId, symbol)` around `row.createdAt` with the realized `OUTCOME_4H` line and `meta.outcome` JSONB.
 
-- [ ] **Step 1: Write the failing test in `apps/worker/test/opinion-calibration.test.ts`**
+- [x] **Step 1: Write the failing test in `apps/worker/test/opinion-calibration.test.ts`**
 
 ```typescript
 import { computeRegimeOutcomeFromCandles } from '../src/jobs/opinion-calibration';
@@ -119,12 +119,12 @@ it('computes 4-hour resolution4h, mfePct, and maePct from candles_1m and patches
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/worker test test/opinion-calibration.test.ts`
 Expected: FAIL (`computeRegimeOutcomeFromCandles is not exported`)
 
-- [ ] **Step 3: Implement `computeRegimeOutcomeFromCandles` and `patchRegimeMemoryOutcome` in `apps/worker/src/jobs/opinion-calibration.ts`**
+- [x] **Step 3: Implement `computeRegimeOutcomeFromCandles` and `patchRegimeMemoryOutcome` in `apps/worker/src/jobs/opinion-calibration.ts`**
   - Export `computeRegimeOutcomeFromCandles(candles: readonly CandlePoint[], entryMs: number, exitMs: number)`:
     - Find `entry = closeAtOrBefore(candles, entryMs)` and `exit = closeAtOrBefore(candles, exitMs)`. If either is null or `entry <= 0`, return `null`.
     - Slice window candles with `c.t >= entryMs && c.t <= exitMs` (including `entry` and `exit` in the min/max).
@@ -133,12 +133,12 @@ Expected: FAIL (`computeRegimeOutcomeFromCandles is not exported`)
     - Determine `resolution4h`: if `Math.abs(exit - entry) <= entry * 0.003` → `'range'`, else if `exit > entry` → `'bullish'`, else `'bearish'`.
   - Add `async function patchRegimeMemoryOutcome(db: DbClient, row: OpinionRow, symbol: string, outcome: NonNullable<ReturnType<typeof computeRegimeOutcomeFromCandles>>): Promise<void>` that updates `schema.memoryEmbeddings` where `userId = row.userId`, `tenantId = row.tenantId`, `kind = 'market_regime'`, `symbol = symbol`, and `occurredAt` within $\pm 10$ minutes of `row.createdAt` (appending `\nOUTCOME_4H=${outcome.resolution4h}(MFE=${outcome.mfePct >= 0 ? '+' : ''}${outcome.mfePct}%,MAE=${outcome.maePct}%)` if `text` does not already contain `OUTCOME_4H`, and merging `{ outcome }` into `meta`), deduplicated per `row.messageId` in the batch.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pnpm --filter @kestrel/worker test test/opinion-calibration.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/worker/src/jobs/opinion-calibration.ts apps/worker/test/opinion-calibration.test.ts
@@ -164,7 +164,7 @@ git commit -m "feat(worker): backfill realized 4h outcomes into market_regime em
   - `updateJevApiKeysAction(formData: FormData): Promise<SaveKeysResult>` in `apps/web/src/app/(app)/settings/_actions-api-keys-save.ts` (re-exported from `apps/web/src/app/(app)/settings/actions.ts`)
   - `<JevDecisionKeysCard initialKeys={{ opencode: boolean; liquid: boolean; typesafe: boolean }} />` in `apps/web/src/app/(app)/settings/api-keys/_components/jev-decision-keys-card.tsx`
 
-- [ ] **Step 1: Write the failing test in `apps/web/test/settings-actions.test.ts`**
+- [x] **Step 1: Write the failing test in `apps/web/test/settings-actions.test.ts`**
 
 ```typescript
 it('preserves opencode, liquid, typesafe, and finnhub keys when updateApiKeysAction saves chat provider keys', async () => {
@@ -174,12 +174,12 @@ it('preserves opencode, liquid, typesafe, and finnhub keys when updateApiKeysAct
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/web test test/settings-actions.test.ts`
 Expected: FAIL (`opencode`, `liquid`, and `finnhub` were wiped when `updateApiKeysAction` constructed a fresh `ByokPayload`)
 
-- [ ] **Step 3: Preserve non-chat keys in `_actions-api-keys-save.ts` & `_actions-api-keys-transfer.ts`, and add `JevDecisionKeysCard`**
+- [x] **Step 3: Preserve non-chat keys in `_actions-api-keys-save.ts` & `_actions-api-keys-transfer.ts`, and add `JevDecisionKeysCard`**
   - In `packages/shared/src/byok.ts` (and re-export in `packages/shared/src/encryption.ts` + `packages/shared/src/index.ts`):
     - Export `export const JEV_PROVIDER_IDS = ['opencode', 'liquid', 'typesafe'] as const; export type JevByokProviderId = (typeof JEV_PROVIDER_IDS)[number];`.
   - In `apps/web/src/app/(app)/settings/_actions-api-keys-save.ts`:
@@ -193,12 +193,12 @@ Expected: FAIL (`opencode`, `liquid`, and `finnhub` were wiped when `updateApiKe
     - **TypeSafe AI (`jev-latest`)** — Direct `/v1/systemone` endpoint (`$0.042 / 1M` input, `$0` output)
   - Render `<JevDecisionKeysCard decrypted={decrypted} />` in `apps/web/src/app/(app)/settings/api-keys/page.tsx` right above `<MarketDataConfig />`.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pnpm --filter @kestrel/web test test/settings-actions.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/shared/src/byok.ts packages/shared/src/encryption.ts packages/shared/src/index.ts apps/web/src/app/\(app\)/settings/ apps/web/test/settings-actions.test.ts
