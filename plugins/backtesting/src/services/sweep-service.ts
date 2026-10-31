@@ -19,6 +19,10 @@
 // Expands a small parameter grid, runs the same deterministic engine as a
 // normal backtest, ranks results by an explicit objective, and persists
 // progress so the worker/UI can resume viewing a long sweep.
+//
+// The candle window and feature matrices are prepared once per sweep (see
+// `sweep-execution.ts`); `persistRuns: true` keeps the legacy per-combination
+// persisted-run path, while OOS (`trainRatio`) sweeps always run in memory.
 
 import type { Symbol, Timeframe } from '@kestrel/shared';
 
@@ -26,19 +30,31 @@ import {
   createBacktestSweep,
   getBacktestStrategy,
   getBacktestSweep,
-  listBacktestSweeps,
   updateBacktestSweep,
 } from '../db/queries';
 import type { BacktestSweepRow } from '../db/tables';
-import {
-  SweepDetailSchema,
-  SweepSummarySchema,
-  type SweepInput,
-  type SweepObjective,
-} from '../schemas';
+import type { SweepInput, SweepObjective } from '../schemas';
+import { normaliseSettings } from '../settings';
 import { runBacktestForUser } from './run-service';
+import {
+  metricsSummary,
+  prepareSweepWindow,
+  runSweepCombination,
+  scoreFor,
+  type SweepMetricsSummary,
+  type SweepResult,
+  type SweepWindow,
+} from './sweep-execution';
+import { getSweepDetail, listSweepViews } from './sweep-views';
+
+export { getSweepDetail, listSweepViews };
+export type { SweepMetricsSummary, SweepResult } from './sweep-execution';
 
 const MAX_RESULTS = 200;
+/** Flush progress (and check cancellation) every N combinations. */
+const PROGRESS_FLUSH_EVERY = 5;
+/** `trainRatio` rides inside baseParams because the sweep table has no column for it. */
+const TRAIN_RATIO_KEY = '__trainRatio';
 
 export class SweepCancelledError extends Error {
   constructor() {
@@ -47,63 +63,17 @@ export class SweepCancelledError extends Error {
   }
 }
 
-export interface SweepMetricsSummary {
-  trades: number;
-  winRate: number;
-  netPnl: number;
-  returnPct: number;
-  maxDrawdownPct: number;
-  profitFactor: number;
-  sharpeRatio: number;
-  expectancyR: number;
+/** Read and clamp the persisted OOS split ratio, or null when absent. */
+function trainRatioFrom(baseParams: Record<string, unknown>): number | null {
+  const raw = baseParams[TRAIN_RATIO_KEY];
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) return null;
+  return Math.min(0.9, Math.max(0.5, raw));
 }
 
-export interface SweepResult {
-  params: Record<string, unknown>;
-  score: number | null;
-  metrics: SweepMetricsSummary | null;
-  error: string | null;
-}
-
-function metricsSummary(metrics: {
-  trades: number;
-  winRate: number;
-  netPnl: number;
-  returnPct: number;
-  maxDrawdownPct: number;
-  profitFactor: number;
-  sharpeRatio: number;
-  expectancyR: number;
-}): SweepMetricsSummary {
-  return {
-    trades: metrics.trades,
-    winRate: metrics.winRate,
-    netPnl: metrics.netPnl,
-    returnPct: metrics.returnPct,
-    maxDrawdownPct: metrics.maxDrawdownPct,
-    profitFactor: Number.isFinite(metrics.profitFactor) ? metrics.profitFactor : 0,
-    sharpeRatio: Number.isFinite(metrics.sharpeRatio) ? metrics.sharpeRatio : 0,
-    expectancyR: metrics.expectancyR,
-  };
-}
-
-function scoreFor(metrics: SweepMetricsSummary, objective: SweepObjective): number {
-  switch (objective) {
-    case 'profitFactor':
-      return metrics.profitFactor;
-    case 'netPnl':
-      return metrics.netPnl;
-    case 'returnPct':
-      return metrics.returnPct;
-    case 'sharpeRatio':
-      return metrics.sharpeRatio;
-    case 'maxDrawdownPct':
-      // Lower drawdown is better.
-      return -metrics.maxDrawdownPct;
-    case 'expectancyR':
-    default:
-      return metrics.expectancyR;
-  }
+function withoutTrainRatio(params: Record<string, unknown>): Record<string, unknown> {
+  const clean = { ...params };
+  delete clean[TRAIN_RATIO_KEY];
+  return clean;
 }
 
 export function expandParameterSpace(
@@ -129,41 +99,6 @@ export function expandParameterSpace(
   return combinations;
 }
 
-function rowSummary(row: BacktestSweepRow) {
-  return SweepSummarySchema.parse({
-    id: row.id,
-    name: row.name,
-    symbol: row.symbol,
-    timeframe: row.timeframe,
-    objective: row.objective,
-    status: row.status,
-    total: row.total,
-    completed: row.completed,
-    bestScore: row.bestScore,
-    bestParams: row.bestParams,
-    bestMetrics: row.bestMetrics,
-    error: row.error,
-    createdAt: row.createdAt.toISOString(),
-    updatedAt: row.updatedAt.toISOString(),
-  });
-}
-
-function rowDetail(row: BacktestSweepRow) {
-  return SweepDetailSchema.parse({
-    ...rowSummary(row),
-    strategyId: row.strategyId,
-    source: row.source,
-    baseParams: row.baseParams,
-    parameterSpace: row.parameterSpace,
-    count: row.count,
-    initialBalance: row.initialBalance,
-    riskPct: row.riskPct,
-    minTrades: row.minTrades,
-    persistRuns: row.persistRuns,
-    results: row.results,
-  });
-}
-
 export async function createSweepForUser(args: {
   userId: string;
   input: SweepInput;
@@ -182,6 +117,9 @@ export async function createSweepForUser(args: {
   }
   if (!source) throw new Error('A strategy source or saved strategy is required.');
   if (!name) name = `${args.input.symbol} ${args.input.timeframe} sweep`;
+  if (args.input.trainRatio !== undefined) {
+    baseParams = { ...baseParams, [TRAIN_RATIO_KEY]: args.input.trainRatio };
+  }
 
   const combinations = expandParameterSpace(
     baseParams,
@@ -228,11 +166,13 @@ export async function executeSweep(args: {
   if (!row) throw new Error('Sweep not found.');
   if (row.status === 'cancelled') return row;
 
+  const trainRatio = trainRatioFrom(row.baseParams);
   const combinations = expandParameterSpace(
     row.baseParams,
     row.parameterSpace,
     Math.max(row.total, 1),
-  );
+  ).map(withoutTrainRatio);
+
   let results: SweepResult[] = [];
   let best: {
     score: number;
@@ -249,32 +189,66 @@ export async function executeSweep(args: {
   });
 
   try {
+    // Load the candle window and build the feature matrices once for the whole
+    // sweep. OOS sweeps always run in memory so both windows share the data.
+    let window: SweepWindow | null = null;
+    if (!row.persistRuns || trainRatio !== null) {
+      window = await prepareSweepWindow({
+        symbol: row.symbol as Symbol,
+        timeframe: row.timeframe as Timeframe,
+        count: row.count,
+        initialBalance: row.initialBalance,
+        riskPct: row.riskPct,
+        trainRatio,
+        settings: normaliseSettings(args.settings),
+        ...(args.signal ? { signal: args.signal } : {}),
+      });
+    }
+
     for (let index = 0; index < combinations.length; index += 1) {
       if (args.signal?.aborted) throw new SweepCancelledError();
-      const current = await getBacktestSweep(args.userId, args.sweepId);
-      if (!current || current.status === 'cancelled') throw new SweepCancelledError();
-
       const params = combinations[index]!;
+
       try {
-        const response = await runBacktestForUser({
-          userId: args.userId,
-          settings: args.settings,
-          ...(args.signal ? { signal: args.signal } : {}),
-          input: {
-            name: `${row.name} #${index + 1}`,
-            symbol: row.symbol as Symbol,
-            timeframe: row.timeframe as Timeframe,
+        let metrics: SweepMetricsSummary;
+        let oosMetrics: SweepMetricsSummary | null = null;
+        if (window) {
+          const outcome = await runSweepCombination({
+            window,
             source: row.source,
             params,
-            count: row.count,
-            initialBalance: row.initialBalance,
-            riskPct: row.riskPct,
-            persist: row.persistRuns,
-          },
-        });
-        const metrics = metricsSummary(response.result.metrics);
+            ...(args.signal ? { signal: args.signal } : {}),
+          });
+          metrics = outcome.metrics;
+          oosMetrics = outcome.oosMetrics;
+        } else {
+          const response = await runBacktestForUser({
+            userId: args.userId,
+            settings: args.settings,
+            ...(args.signal ? { signal: args.signal } : {}),
+            input: {
+              name: `${row.name} #${index + 1}`,
+              symbol: row.symbol as Symbol,
+              timeframe: row.timeframe as Timeframe,
+              source: row.source,
+              params,
+              count: row.count,
+              initialBalance: row.initialBalance,
+              riskPct: row.riskPct,
+              persist: row.persistRuns,
+            },
+          });
+          metrics = metricsSummary(response.result.metrics);
+        }
+
         const score = scoreFor(metrics, row.objective as SweepObjective);
-        results.push({ params, score, metrics, error: null });
+        results.push({
+          params,
+          score,
+          metrics,
+          ...(window ? { oosMetrics } : {}),
+          error: null,
+        });
         if (metrics.trades >= row.minTrades && (best === null || score > best.score)) {
           best = { score, params, metrics };
         }
@@ -283,15 +257,22 @@ export async function executeSweep(args: {
           params,
           score: null,
           metrics: null,
+          ...(window ? { oosMetrics: null } : {}),
           error: err instanceof Error ? err.message : String(err),
         });
       }
 
       if (results.length > MAX_RESULTS) results = results.slice(-MAX_RESULTS);
-      await updateBacktestSweep(args.userId, args.sweepId, {
-        completed: index + 1,
-        results: results as unknown as Array<Record<string, unknown>>,
-      });
+
+      const isLast = index === combinations.length - 1;
+      if ((index + 1) % PROGRESS_FLUSH_EVERY === 0 || isLast) {
+        const current = await getBacktestSweep(args.userId, args.sweepId);
+        if (!current || current.status === 'cancelled') throw new SweepCancelledError();
+        await updateBacktestSweep(args.userId, args.sweepId, {
+          completed: index + 1,
+          results: results as unknown as Array<Record<string, unknown>>,
+        });
+      }
     }
 
     results.sort((a, b) => (b.score ?? -Infinity) - (a.score ?? -Infinity));
@@ -333,15 +314,3 @@ export async function runSweepForUser(args: {
     ...(args.signal ? { signal: args.signal } : {}),
   });
 }
-
-export async function listSweepViews(userId: string, limit = 20) {
-  const rows = await listBacktestSweeps(userId, limit);
-  return rows.map(rowSummary);
-}
-
-export async function getSweepDetail(userId: string, sweepId: string) {
-  const row = await getBacktestSweep(userId, sweepId);
-  return row ? rowDetail(row) : null;
-}
-
-export { rowSummary, rowDetail };

@@ -63,6 +63,12 @@ export const SweepInputSchema = z
     riskPct: z.coerce.number().min(0.01).max(10).default(1),
     /** Persist synthetic runs during the sweep. Default false (sweep only). */
     persistRuns: z.boolean().default(false),
+    /**
+     * Walk-forward split: fraction of the closed candles used in-sample to
+     * rank parameters. The remaining candles form the out-of-sample window
+     * reported as `oosMetrics`. Omit for a full-window sweep.
+     */
+    trainRatio: z.number().min(0.5).max(0.9).optional(),
   })
   .refine((value) => Boolean(value.strategyId) || Boolean(value.source), {
     message: 'Provide `strategyId` or `source`.',
@@ -85,6 +91,8 @@ export const SweepResultSchema = z.object({
   params: StrategyParamsSchema,
   score: z.number().nullable(),
   metrics: SweepMetricsSchema.nullable(),
+  /** Out-of-sample metrics when the sweep used a `trainRatio` split. */
+  oosMetrics: SweepMetricsSchema.nullable().optional(),
   error: z.string().nullable(),
 });
 
