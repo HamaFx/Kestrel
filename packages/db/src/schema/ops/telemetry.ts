@@ -17,9 +17,9 @@
 import { sql } from 'drizzle-orm';
 import {
   bigint,
-  doublePrecision,
   index,
   integer,
+  numeric,
   pgTable,
   text,
   timestamp,
@@ -127,8 +127,15 @@ export const chatTelemetry = pgTable(
     toolCalls: integer('tool_calls').notNull().default(0),
     /** End-to-end latency in milliseconds for this turn. */
     ms: integer('ms').notNull().default(0),
-    /** Estimated cost in USD; computed from per-model rate at insert time. */
-    estCostUsd: doublePrecision('est_cost_usd').notNull().default(0),
+    /**
+     * Estimated cost in USD; computed from per-model rate at insert time.
+     * Exact `numeric(20, 8)` (audit R2) — summed in SQL for usage reporting,
+     * so it must not be a binary float. Mode `number` keeps JS call sites on
+     * `number`; accumulation stays in SQL.
+     */
+    estCostUsd: numeric('est_cost_usd', { precision: 20, scale: 8, mode: 'number' })
+      .notNull()
+      .default(0),
     /** Whether the platform or the user's BYOK key paid for this turn. */
     providerMode: text('provider_mode').$type<'byok' | 'managed' | null>(),
     /** Credits actually consumed by this turn (0 for BYOK). */

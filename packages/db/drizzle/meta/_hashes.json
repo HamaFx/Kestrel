@@ -479,6 +479,10 @@
     {
       "tag": "0120_mastra_storage_schema",
       "hash": "2390aa516a0753c626d24274d7f38500f4567c4632cfd4b6ec8b40aa43b07a01"
+    },
+    {
+      "tag": "0121_money_columns_to_numeric",
+      "hash": "1c357930cd585d18450a4542b974e9a581372b2add593e7d815105e740c98f9f"
     }
   ]
 }

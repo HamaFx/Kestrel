@@ -19,16 +19,24 @@
 // Follows the createPluginTable() contract (plg_ prefix, tenant columns, RLS)
 // but is declared explicitly so Drizzle keeps full column inference.
 //
+// Money columns are `numeric(20, 8)` (audit R2, migration 0121), not
+// `double precision`: balances, P&L and fees accumulate, so they must be exact
+// in the database. `mode: 'number'` keeps the inferred TS type `number`; the
+// accumulation itself stays in SQL (`balance = balance + $1`,
+// `quantity = quantity - $1`) — see claimPositionClose and
+// incrementAccountBalance.
+//
 // Migration: packages/db/drizzle/0109_paper_trading_plugin_tables.sql
+//            packages/db/drizzle/0121_money_columns_to_numeric.sql
 
 import { schema } from '@kestrel/db';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
-  doublePrecision,
   index,
   integer,
   jsonb,
+  numeric,
   pgPolicy,
   pgTable,
   text,
@@ -51,6 +59,11 @@ function tenantIsolation() {
     using: sql`tenant_id = current_setting('app.current_tenant', true)`,
     withCheck: sql`tenant_id = current_setting('app.current_tenant', true)`,
   });
+}
+
+/** Exact money / price / size column. See the 0121 migration header. */
+function moneyColumn(name: string) {
+  return numeric(name, { precision: 20, scale: 8, mode: 'number' });
 }
 
 function baseColumns() {
@@ -76,11 +89,11 @@ export const paperAccounts = pgTable(
     /** 'confirm' (personal) | 'autonomous_sandbox' (agent). */
     mode: text('mode').notNull(),
     currency: text('currency').notNull().default('USD'),
-    initialBalance: doublePrecision('initial_balance').notNull(),
+    initialBalance: moneyColumn('initial_balance').notNull(),
     /** Realised cash. Equity is derived from balance + open positions. */
-    balance: doublePrecision('balance').notNull(),
-    leverage: doublePrecision('leverage').notNull().default(30),
-    riskPerTradePct: doublePrecision('risk_per_trade_pct').notNull().default(1),
+    balance: moneyColumn('balance').notNull(),
+    leverage: moneyColumn('leverage').notNull().default(30),
+    riskPerTradePct: moneyColumn('risk_per_trade_pct').notNull().default(1),
     /** 'active' | 'archived'. */
     status: text('status').notNull().default('active'),
     seeded: boolean('seeded').notNull().default(false),
@@ -104,21 +117,21 @@ export const paperPositions = pgTable(
     side: text('side').notNull(),
     /** 'open' | 'closed'. */
     status: text('status').notNull().default('open'),
-    quantity: doublePrecision('quantity').notNull(),
-    initialQuantity: doublePrecision('initial_quantity').notNull(),
-    entryPrice: doublePrecision('entry_price').notNull(),
+    quantity: moneyColumn('quantity').notNull(),
+    initialQuantity: moneyColumn('initial_quantity').notNull(),
+    entryPrice: moneyColumn('entry_price').notNull(),
     entryTime: timestamp('entry_time', { withTimezone: true }).notNull(),
-    stopLoss: doublePrecision('stop_loss'),
-    takeProfit: doublePrecision('take_profit'),
-    trailingStopDistance: doublePrecision('trailing_stop_distance'),
-    trailingStopPrice: doublePrecision('trailing_stop_price'),
-    breakEvenAtR: doublePrecision('break_even_at_r'),
-    initialRiskAmount: doublePrecision('initial_risk_amount').notNull().default(0),
-    unrealizedPnl: doublePrecision('unrealized_pnl').notNull().default(0),
-    realizedPnl: doublePrecision('realized_pnl').notNull().default(0),
-    entryFee: doublePrecision('entry_fee').notNull().default(0),
-    exitFee: doublePrecision('exit_fee').notNull().default(0),
-    closePrice: doublePrecision('close_price'),
+    stopLoss: moneyColumn('stop_loss'),
+    takeProfit: moneyColumn('take_profit'),
+    trailingStopDistance: moneyColumn('trailing_stop_distance'),
+    trailingStopPrice: moneyColumn('trailing_stop_price'),
+    breakEvenAtR: moneyColumn('break_even_at_r'),
+    initialRiskAmount: moneyColumn('initial_risk_amount').notNull().default(0),
+    unrealizedPnl: moneyColumn('unrealized_pnl').notNull().default(0),
+    realizedPnl: moneyColumn('realized_pnl').notNull().default(0),
+    entryFee: moneyColumn('entry_fee').notNull().default(0),
+    exitFee: moneyColumn('exit_fee').notNull().default(0),
+    closePrice: moneyColumn('close_price'),
     closeTime: timestamp('close_time', { withTimezone: true }),
     /** 'manual' | 'stop_loss' | 'take_profit' | 'trailing_stop' | 'account_reset'. */
     closeReason: text('close_reason'),
@@ -149,17 +162,17 @@ export const paperOrders = pgTable(
     type: text('type').notNull(),
     /** 'pending' | 'filled' | 'cancelled' | 'rejected' | 'expired'. */
     status: text('status').notNull().default('pending'),
-    quantity: doublePrecision('quantity').notNull(),
-    riskPct: doublePrecision('risk_pct'),
-    limitPrice: doublePrecision('limit_price'),
-    stopPrice: doublePrecision('stop_price'),
-    stopLoss: doublePrecision('stop_loss'),
-    takeProfit: doublePrecision('take_profit'),
-    trailingStopDistance: doublePrecision('trailing_stop_distance'),
-    breakEvenAtR: doublePrecision('break_even_at_r'),
+    quantity: moneyColumn('quantity').notNull(),
+    riskPct: moneyColumn('risk_pct'),
+    limitPrice: moneyColumn('limit_price'),
+    stopPrice: moneyColumn('stop_price'),
+    stopLoss: moneyColumn('stop_loss'),
+    takeProfit: moneyColumn('take_profit'),
+    trailingStopDistance: moneyColumn('trailing_stop_distance'),
+    breakEvenAtR: moneyColumn('break_even_at_r'),
     /** 'gtc' | 'day'. */
     timeInForce: text('time_in_force').notNull().default('gtc'),
-    filledPrice: doublePrecision('filled_price'),
+    filledPrice: moneyColumn('filled_price'),
     filledAt: timestamp('filled_at', { withTimezone: true }),
     positionId: uuid('position_id'),
     reason: text('reason'),
@@ -185,10 +198,10 @@ export const paperFills = pgTable(
     orderId: uuid('order_id'),
     /** 'open' | 'close' | 'partial_close' | 'stop_loss' | 'take_profit' | 'trailing_stop'. */
     kind: text('kind').notNull(),
-    price: doublePrecision('price').notNull(),
-    quantity: doublePrecision('quantity').notNull(),
-    pnl: doublePrecision('pnl').notNull().default(0),
-    fees: doublePrecision('fees').notNull().default(0),
+    price: moneyColumn('price').notNull(),
+    quantity: moneyColumn('quantity').notNull(),
+    pnl: moneyColumn('pnl').notNull().default(0),
+    fees: moneyColumn('fees').notNull().default(0),
     meta: jsonb('meta').$type<Record<string, unknown>>().notNull().default({}),
     ts: timestamp('ts', { withTimezone: true }).defaultNow().notNull(),
   },
@@ -212,7 +225,7 @@ export const paperStrategyRuns = pgTable(
     timeframe: text('timeframe').notNull(),
     source: text('source').notNull(),
     params: jsonb('params').$type<Record<string, unknown>>().notNull().default({}),
-    riskPct: doublePrecision('risk_pct').notNull().default(1),
+    riskPct: moneyColumn('risk_pct').notNull().default(1),
     /** 'active' | 'paused' | 'stopped' | 'error'. */
     status: text('status').notNull().default('active'),
     lastBarTime: timestamp('last_bar_time', { withTimezone: true }),

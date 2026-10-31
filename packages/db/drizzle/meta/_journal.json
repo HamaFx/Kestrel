@@ -841,6 +841,13 @@
       "when": 1793400000000,
       "tag": "0120_mastra_storage_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 120,
+      "version": "7",
+      "when": 1793492000000,
+      "tag": "0121_money_columns_to_numeric",
+      "breakpoints": true
     }
   ]
 }

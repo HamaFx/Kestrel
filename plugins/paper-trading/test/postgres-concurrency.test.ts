@@ -179,9 +179,13 @@ interface PositionDbRow {
   entry_fee: number;
 }
 
+// Money columns are exact `numeric(20, 8)` since migration 0121 and postgres.js
+// returns numeric as a string; these raw probe reads cast back to float8 so the
+// assertions below compare numbers. (Reads through Drizzle keep `mode: 'number'`.)
 async function readPosition(): Promise<PositionDbRow> {
   const rows = await raw!.unsafe<PositionDbRow[]>(
-    `SELECT status, quantity, realized_pnl, entry_fee
+    `SELECT status, quantity::float8 AS quantity, realized_pnl::float8 AS realized_pnl,
+            entry_fee::float8 AS entry_fee
        FROM plg_paper_trading_positions WHERE id = $1`,
     [POSITION_ID],
   );
@@ -196,7 +200,7 @@ interface FillDbRow {
 
 async function readCloseFills(): Promise<FillDbRow[]> {
   return raw!.unsafe<FillDbRow[]>(
-    `SELECT kind, quantity, pnl FROM plg_paper_trading_fills
+    `SELECT kind, quantity::float8 AS quantity, pnl::float8 AS pnl FROM plg_paper_trading_fills
       WHERE user_id = $1 AND position_id = $2 ORDER BY ts`,
     [USER_ID, POSITION_ID],
   );
@@ -204,7 +208,7 @@ async function readCloseFills(): Promise<FillDbRow[]> {
 
 async function readBalance(): Promise<number> {
   const rows = await raw!.unsafe<{ balance: number }[]>(
-    `SELECT balance FROM plg_paper_trading_accounts WHERE id = $1`,
+    `SELECT balance::float8 AS balance FROM plg_paper_trading_accounts WHERE id = $1`,
     [ACCOUNT_ID],
   );
   return rows[0]!.balance;
@@ -434,7 +438,8 @@ describe.skipIf(!enabled || !adminUrl)('paper trading money races — real Postg
     expect(first.filled + second.filled).toBe(1);
 
     const positions = await raw!.unsafe<{ quantity: number; entry_price: number }[]>(
-      `SELECT quantity, entry_price FROM plg_paper_trading_positions WHERE user_id = $1`,
+      `SELECT quantity::float8 AS quantity, entry_price::float8 AS entry_price
+         FROM plg_paper_trading_positions WHERE user_id = $1`,
       [USER_ID],
     );
     expect(positions).toHaveLength(1);

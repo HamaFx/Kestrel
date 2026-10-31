@@ -19,16 +19,21 @@
 // Follows the createPluginTable() contract (plg_ prefix, tenant columns, RLS)
 // but is declared explicitly so Drizzle keeps full column inference.
 //
+// Run cost is `numeric(20, 8)` (audit R2, migration 0121), not `double
+// precision`: costs are compared and aggregated exactly. `mode: 'number'`
+// keeps the inferred TS type `number`.
+//
 // Migration: packages/db/drizzle/0110_custom_agents_plugin_tables.sql
+//            packages/db/drizzle/0121_money_columns_to_numeric.sql
 
 import { schema } from '@kestrel/db';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
-  doublePrecision,
   index,
   integer,
   jsonb,
+  numeric,
   pgPolicy,
   pgTable,
   text,
@@ -114,7 +119,7 @@ export const customAgentRuns = pgTable(
     status: text('status').notNull(),
     model: text('model'),
     latencyMs: integer('latency_ms').notNull().default(0),
-    costUsd: doublePrecision('cost_usd').notNull().default(0),
+    costUsd: numeric('cost_usd', { precision: 20, scale: 8, mode: 'number' }).notNull().default(0),
     toolCalls: integer('tool_calls').notNull().default(0),
     inputChars: integer('input_chars').notNull().default(0),
     outputChars: integer('output_chars').notNull().default(0),

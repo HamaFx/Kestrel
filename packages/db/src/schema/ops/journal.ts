@@ -15,7 +15,7 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { check, doublePrecision, index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { check, index, numeric, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 import { organization, users } from '../core/auth';
 
@@ -37,15 +37,15 @@ export const journalEntries = pgTable(
     side: text('side').notNull(),
     openedAt: timestamp('opened_at', { withTimezone: true }).notNull(),
     closedAt: timestamp('closed_at', { withTimezone: true }),
-    entry: doublePrecision('entry').notNull(),
-    stop: doublePrecision('stop'),
-    target: doublePrecision('target'),
-    exit: doublePrecision('exit'),
+    entry: numeric('entry', { precision: 20, scale: 8, mode: 'number' }).notNull(),
+    stop: numeric('stop', { precision: 20, scale: 8, mode: 'number' }),
+    target: numeric('target', { precision: 20, scale: 8, mode: 'number' }),
+    exit: numeric('exit', { precision: 20, scale: 8, mode: 'number' }),
     /** Position size in lots (nullable — many users journal without sizing). */
-    size: doublePrecision('size'),
+    size: numeric('size', { precision: 20, scale: 8, mode: 'number' }),
     /** "win" | "loss" | "breakeven" | "open". */
     outcome: text('outcome').notNull().default('open'),
-    rMultiple: doublePrecision('r_multiple'),
+    rMultiple: numeric('r_multiple', { precision: 20, scale: 8, mode: 'number' }),
     notes: text('notes'),
     tags: text('tags')
       .array()

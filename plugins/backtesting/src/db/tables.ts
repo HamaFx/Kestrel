@@ -20,16 +20,22 @@
 // physical prefix, tenant columns, RLS policy, and index), but are declared
 // explicitly so Drizzle retains full column inference for query builders.
 //
+// Money columns are `numeric(20, 8)` (audit R2, migration 0121), not
+// `double precision`: starting balance, final equity, risk percentage and the
+// sweep score are compared and persisted, so they must be exact in the
+// database. `mode: 'number'` keeps the inferred TS type `number`.
+//
 // Migration: packages/db/drizzle/0108_backtesting_plugin_tables.sql
+//            packages/db/drizzle/0121_money_columns_to_numeric.sql
 
 import { schema } from '@kestrel/db';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
-  doublePrecision,
   index,
   integer,
   jsonb,
+  numeric,
   pgPolicy,
   pgTable,
   text,
@@ -54,6 +60,11 @@ function tenantIsolation() {
     using: sql`tenant_id = current_setting('app.current_tenant', true)`,
     withCheck: sql`tenant_id = current_setting('app.current_tenant', true)`,
   });
+}
+
+/** Exact money / price / ratio column. See the 0121 migration header. */
+function moneyColumn(name: string) {
+  return numeric(name, { precision: 20, scale: 8, mode: 'number' });
 }
 
 function baseColumns() {
@@ -87,8 +98,8 @@ export const backtestRuns = pgTable(
     bars: integer('bars').notNull().default(0),
     fromTs: timestamp('from_ts', { withTimezone: true }),
     toTs: timestamp('to_ts', { withTimezone: true }),
-    initialBalance: doublePrecision('initial_balance').notNull(),
-    finalEquity: doublePrecision('final_equity').notNull(),
+    initialBalance: moneyColumn('initial_balance').notNull(),
+    finalEquity: moneyColumn('final_equity').notNull(),
     metrics: jsonb('metrics').$type<BacktestMetrics>().notNull(),
     equityCurve: jsonb('equity_curve').$type<EquityPoint[]>().notNull(),
     trades: jsonb('trades').$type<BacktestTrade[]>().notNull(),
@@ -141,8 +152,8 @@ export const backtestSweeps = pgTable(
       .default([]),
     objective: text('objective').notNull(),
     count: integer('count').notNull().default(1000),
-    initialBalance: doublePrecision('initial_balance').notNull().default(10_000),
-    riskPct: doublePrecision('risk_pct').notNull().default(1),
+    initialBalance: moneyColumn('initial_balance').notNull().default(10_000),
+    riskPct: moneyColumn('risk_pct').notNull().default(1),
     minTrades: integer('min_trades').notNull().default(5),
     persistRuns: boolean('persist_runs').notNull().default(false),
     status: text('status').notNull().default('queued'),
@@ -150,7 +161,7 @@ export const backtestSweeps = pgTable(
     completed: integer('completed').notNull().default(0),
     bestParams: jsonb('best_params').$type<Record<string, unknown> | null>(),
     bestMetrics: jsonb('best_metrics').$type<Record<string, unknown> | null>(),
-    bestScore: doublePrecision('best_score'),
+    bestScore: moneyColumn('best_score'),
     results: jsonb('results').$type<Array<Record<string, unknown>>>().notNull().default([]),
     error: text('error'),
   },
