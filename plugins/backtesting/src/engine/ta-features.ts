@@ -57,7 +57,8 @@ export function applyTaFeatures(matrix: FeatureMatrix, candles: readonly Candle[
   const stochastic = new StochasticOscillator({ kPeriod: 14, dPeriod: 3, kSlowingPeriod: 3 });
   const stochRsi = new StochasticRSI(14);
   const superTrend = new SuperTrend({ interval: 10, multiplier: 3 });
-  const vwap = new VWAP();
+  let vwap = new VWAP();
+  let currentDay = -1;
   const obv = new OBV(2);
   const cci = new CCI(20);
   const williamsR = new WilliamsR(14);
@@ -93,6 +94,13 @@ export function applyTaFeatures(matrix: FeatureMatrix, candles: readonly Candle[
     stochastic.update(hlc, false);
     stochRsi.update(candle.c, false);
     superTrend.update(hlc, false);
+    // Session-anchored VWAP: reset the cumulative price-volume accumulator at
+    // each UTC day boundary so earlier days never leak into later ones.
+    const day = Math.floor(candle.t / 86_400_000);
+    if (day !== currentDay) {
+      currentDay = day;
+      vwap = new VWAP();
+    }
     vwap.update(ohlcv, false);
     obv.update(ohlcv, false);
     cci.update(hlc, false);

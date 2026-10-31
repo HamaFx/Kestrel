@@ -31,6 +31,11 @@ export interface DetectLiquiditySweepsOptions {
   maxLookback?: number;
   /** ATR(14) value for magnitude scoring. If not provided, magnitude defaults to 0. */
   atr14?: number;
+  /**
+   * Per-bar ATR(14) series. When provided, each sweep's magnitude uses the
+   * ATR knowable on the sweep bar so the score stays point-in-time.
+   */
+  atrSeries?: readonly (number | null)[];
 }
 
 export function detectLiquiditySweeps(
@@ -49,13 +54,20 @@ export function detectLiquiditySweeps(
   const swingHighs = swings.filter((s) => s.type === 'high');
   const swingLows = swings.filter((s) => s.type === 'low');
 
+  // Each swing level can be swept at most once. A close beyond the level is a
+  // break, not a sweep — it consumes the level too so it never re-fires later.
+  const sweptHighs = new Set<number>();
+  const sweptLows = new Set<number>();
+
   for (let i = 0; i < candles.length; i += 1) {
     const c = candles[i]!;
+    const barAtr = opts.atrSeries?.[i] ?? atr14;
 
     // Sweep of a swing-high: c.h > swing.price AND c.c < swing.price AND
     // the swing was confirmed by bar i (i.e. swing.index + swing.lookback <= i).
     for (let s = swingHighs.length - 1; s >= 0; s -= 1) {
       const sw = swingHighs[s]!;
+      if (sweptHighs.has(sw.index)) continue;
       if (sw.index + sw.lookback > i) continue; // not confirmed yet at i
       if (sw.index >= i) continue; // can't sweep self
       if (i - sw.index > maxLookback) break;
@@ -67,14 +79,17 @@ export function detectLiquiditySweeps(
           time: c.t,
           level: sw.price,
           wick: c.h,
-          magnitude: atr14 > 0 ? extension / atr14 : 0,
+          magnitude: barAtr > 0 ? extension / barAtr : 0,
         });
+        sweptHighs.add(sw.index);
         break; // one sweep per bar per side is enough
       }
+      if (c.c > sw.price) sweptHighs.add(sw.index); // clean break consumes the level
     }
 
     for (let s = swingLows.length - 1; s >= 0; s -= 1) {
       const sw = swingLows[s]!;
+      if (sweptLows.has(sw.index)) continue;
       if (sw.index + sw.lookback > i) continue;
       if (sw.index >= i) continue;
       if (i - sw.index > maxLookback) break;
@@ -86,10 +101,12 @@ export function detectLiquiditySweeps(
           time: c.t,
           level: sw.price,
           wick: c.l,
-          magnitude: atr14 > 0 ? extension / atr14 : 0,
+          magnitude: barAtr > 0 ? extension / barAtr : 0,
         });
+        sweptLows.add(sw.index);
         break;
       }
+      if (c.c < sw.price) sweptLows.add(sw.index); // clean break consumes the level
     }
   }
 

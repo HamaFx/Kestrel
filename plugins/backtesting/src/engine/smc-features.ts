@@ -90,6 +90,10 @@ export function applySmc(
     tf: timeframe,
     candles: [...candles],
     kinds: ['swings', 'bos_choch', 'fvg', 'order_blocks', 'liquidity'],
+    // Feature matrices must stay causal: keep every OB (never prune by
+    // recency over the full series) and score with per-bar ATR.
+    orderBlocks: { maxPerSide: null, atrSeries: matrix.series.atr14 },
+    liquidity: { atrSeries: matrix.series.atr14 },
   });
 
   const swings = structure.swings ?? [];

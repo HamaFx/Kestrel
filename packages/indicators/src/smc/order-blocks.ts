@@ -33,6 +33,18 @@ export interface DetectOrderBlocksOptions {
   impulseBars?: number;
   /** ATR(14) value for strength scoring. If not provided, strength defaults to 0. */
   atr14?: number;
+  /**
+   * Cap on the returned order blocks per side (most recent kept). Defaults to
+   * 10 for chart UI. Pass `null` to keep every order block — feature matrices
+   * must never drop historical OBs based on later bars (causality).
+   */
+  maxPerSide?: number | null;
+  /**
+   * Per-bar ATR(14) series. When provided, each OB is scored with the ATR
+   * knowable on its confirmation bar (`index + impulse`) instead of a single
+   * scalar, so strength is point-in-time.
+   */
+  atrSeries?: readonly (number | null)[];
 }
 
 export function detectOrderBlocks(
@@ -56,6 +68,9 @@ export function detectOrderBlocks(
     const followers = candles.slice(i + 1, i + 1 + impulse);
     if (followers.length < impulse) break;
 
+    // Strength is scored with the ATR knowable on the confirmation bar.
+    const confirmationAtr = opts.atrSeries?.[i + impulse] ?? atr14;
+
     if (isBearishCandle) {
       // Bullish OB candidate: all followers are bullish + last close > c.h.
       const allBull = followers.every((b) => b.c > b.o);
@@ -70,7 +85,7 @@ export function detectOrderBlocks(
         top: c.h,
         bottom: c.l,
         mitigated: isMitigated(candles, i + 1 + impulse, candles.length, c.l, c.h),
-        strength: computeStrength(c, followers, atr14, impulse),
+        strength: computeStrength(c, followers, confirmationAtr, impulse),
       });
     } else if (isBullishCandle) {
       const allBear = followers.every((b) => b.c < b.o);
@@ -85,14 +100,18 @@ export function detectOrderBlocks(
         top: c.h,
         bottom: c.l,
         mitigated: isMitigated(candles, i + 1 + impulse, candles.length, c.l, c.h),
-        strength: computeStrength(c, followers, atr14, impulse),
+        strength: computeStrength(c, followers, confirmationAtr, impulse),
       });
     }
   }
 
+  // `null` keeps every order block (feature-matrix mode: pruning a full
+  // series by recency would erase earlier OBs using future information).
+  if (opts.maxPerSide === null) return out;
+
   // Keep only the most recent N order blocks per side; ancient ones are
   // rarely actionable. 10 each is plenty.
-  return prune(out, 10);
+  return prune(out, opts.maxPerSide ?? 10);
 }
 
 function isMitigated(

@@ -298,6 +298,48 @@ describe('feature matrix', () => {
     expect(matrix.smc.pdh[59]).toBeGreaterThan(0);
     expect(matrix.smc.pdl[59]).toBeGreaterThan(0);
   });
+
+  it('keeps order blocks causal when more than 10 order blocks form across the series', () => {
+    // Construct 400 alternating impulse candles producing > 25 bullish and bearish OBs.
+    const bars: { o: number; h: number; l: number; c: number }[] = [];
+    let price = 2000;
+    for (let i = 0; i < 400; i += 1) {
+      const mod = i % 6;
+      if (mod === 0) {
+        bars.push({ o: price + 2, h: price + 3, l: price - 2, c: price - 1 });
+      } else if (mod === 1 || mod === 2) {
+        price += 3;
+        bars.push({ o: price - 3, h: price + 1, l: price - 3, c: price });
+      } else if (mod === 3) {
+        bars.push({ o: price - 2, h: price + 2, l: price - 3, c: price + 1 });
+      } else {
+        price -= 2.5;
+        bars.push({ o: price + 2.5, h: price + 3, l: price - 1, c: price });
+      }
+    }
+    const full = makeCandles(bars);
+    const prefix = full.slice(0, 180);
+
+    const fullMatrix = buildFeatureMatrix({ symbol: 'XAUUSD', timeframe: '1h', candles: full });
+    const prefixMatrix = buildFeatureMatrix({
+      symbol: 'XAUUSD',
+      timeframe: '1h',
+      candles: prefix,
+    });
+
+    expect(prefixMatrix.smc.obBullTop).toEqual(fullMatrix.smc.obBullTop.slice(0, 180));
+    expect(prefixMatrix.smc.obBearTop).toEqual(fullMatrix.smc.obBearTop.slice(0, 180));
+    expect(fullMatrix.smc.obBullStrength.some((s) => s > 0)).toBe(true);
+    expect(fullMatrix.smc.obBearStrength.some((s) => s > 0)).toBe(true);
+  });
+
+  it('resets VWAP at the UTC day boundary so later days do not depend on earlier start bars', () => {
+    const full = waveCandles(120, 60 * 60 * 1000); // 5 days of 1h bars
+    const sliced = full.slice(24); // drop day 1
+    const mFull = buildFeatureMatrix({ symbol: 'XAUUSD', timeframe: '1h', candles: full });
+    const mSliced = buildFeatureMatrix({ symbol: 'XAUUSD', timeframe: '1h', candles: sliced });
+    expect(mSliced.series.vwap.slice(24)).toEqual(mFull.series.vwap.slice(48));
+  });
 });
 
 describe('strategy sandbox', () => {
