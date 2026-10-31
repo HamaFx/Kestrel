@@ -108,13 +108,8 @@ export function checkJevRubricRecord(
 
   const reason = record.reason?.trimStart() ?? '';
   if (reason.startsWith('{')) {
-    let parsed: Record<string, unknown> | null = null;
     try {
-      parsed = JSON.parse(reason) as Record<string, unknown>;
-    } catch {
-      parsed = null;
-    }
-    if (parsed) {
+      const parsed = JSON.parse(reason) as Record<string, unknown>;
       for (const [dimension, threshold] of Object.entries(JEV_RUBRIC_THRESHOLDS)) {
         const value = parsed[dimension];
         if (typeof value === 'number' && value < threshold) {
@@ -123,6 +118,8 @@ export function checkJevRubricRecord(
           );
         }
       }
+    } catch {
+      // Malformed reason JSON — nothing to check beyond faithfulness.
     }
   }
 
