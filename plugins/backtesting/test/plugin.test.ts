@@ -30,14 +30,17 @@ describe('backtesting plugin', () => {
     const tools = host.resolveToolsForUser(['backtesting']);
     expect(tools.map((tool) => tool.name).sort()).toEqual(
       [
+        'backtest_compare_runs',
         'backtest_delete_strategy',
         'backtest_get_run',
+        'backtest_get_sweep',
         'backtest_knowledge_delete',
         'backtest_knowledge_list',
         'backtest_knowledge_read',
         'backtest_knowledge_save',
         'backtest_list_runs',
         'backtest_list_strategies',
+        'backtest_list_sweeps',
         'backtest_read_strategy',
         'backtest_run_strategy',
         'backtest_save_strategy',
@@ -63,6 +66,28 @@ describe('backtesting plugin', () => {
     expect(host.getTool('backtest_save_strategy')?.access).toBe('write');
     expect(host.requiresConfirmationForTool('backtest_save_strategy')).toBe(false);
     expect(host.isWriteTool('backtest_run_strategy')).toBe(false);
+  });
+
+  it('exposes sweep inspection and run comparison tools and keeps execution tools on canonical-chat only', () => {
+    const host = new PluginHost();
+    host.register(plugin);
+
+    const canonicalTools = host.resolveToolsForUser(['backtesting'], { target: 'canonical-chat' });
+    expect(canonicalTools.map((tool) => tool.name)).toEqual(
+      expect.arrayContaining([
+        'backtest_list_sweeps',
+        'backtest_get_sweep',
+        'backtest_compare_runs',
+      ]),
+    );
+
+    const technicalDeskTools = host.resolveToolsForUser(['backtesting'], { target: 'technical' });
+    expect(technicalDeskTools.map((tool) => tool.name)).not.toContain('backtest_run_strategy');
+    expect(technicalDeskTools.map((tool) => tool.name)).not.toContain('backtest_sweep_strategy');
+    expect(technicalDeskTools.map((tool) => tool.name)).toContain('backtest_list_runs');
+    expect(technicalDeskTools.map((tool) => tool.name)).toContain('backtest_list_sweeps');
+    expect(technicalDeskTools.map((tool) => tool.name)).toContain('backtest_get_sweep');
+    expect(technicalDeskTools.map((tool) => tool.name)).toContain('backtest_compare_runs');
   });
 
   it('normalises settings and derives kebab-case slugs', () => {

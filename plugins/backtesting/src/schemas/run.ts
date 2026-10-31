@@ -215,6 +215,53 @@ export const RunDetailSchema = RunResultSchema.extend({
 
 export type RunDetail = z.infer<typeof RunDetailSchema>;
 
+// ── Run comparison ───────────────────────────────────────────────────────
+
+export const CompareRunsInputSchema = z.object({
+  /** 2–4 saved run ids to compare against the first (baseline) run. */
+  runIds: z.array(z.string().min(1)).min(2).max(4),
+});
+
+export type CompareRunsInput = z.infer<typeof CompareRunsInputSchema>;
+
+export const RunComparisonMetricsSchema = z.object({
+  trades: z.number().int(),
+  winRate: z.number(),
+  netPnl: z.number(),
+  returnPct: z.number(),
+  maxDrawdownPct: z.number(),
+  profitFactor: z.number(),
+  sharpeRatio: z.number(),
+  expectancyR: z.number(),
+});
+
+export const RunComparisonDeltaSchema = z.object({
+  expectancyR: z.number(),
+  profitFactor: z.number(),
+  maxDrawdownPct: z.number(),
+  netPnl: z.number(),
+});
+
+export const RunComparisonEntrySchema = z.object({
+  runId: z.string(),
+  name: z.string(),
+  symbol: z.string(),
+  timeframe: z.string(),
+  bars: z.number().int(),
+  params: StrategyParamsSchema,
+  metrics: RunComparisonMetricsSchema,
+  /** Delta vs the first run in the request; null on the baseline entry. */
+  delta: RunComparisonDeltaSchema.nullable(),
+});
+
+export const CompareRunsOutputSchema = z.object({
+  baselineRunId: z.string(),
+  runs: z.array(RunComparisonEntrySchema),
+  totalReturned: z.number().int(),
+});
+
+export type CompareRunsOutput = z.infer<typeof CompareRunsOutputSchema>;
+
 // ── Async queue payloads ─────────────────────────────────────────────────
 
 export const AsyncRunOutputSchema = z.object({

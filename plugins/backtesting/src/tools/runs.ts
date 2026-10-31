@@ -20,12 +20,15 @@ import type { PluginToolRegistration } from '@kestrel/plugin-sdk';
 import type { z } from 'zod';
 
 import {
+  CompareRunsInputSchema,
+  CompareRunsOutputSchema,
   GetRunInputSchema,
   ListRunsInputSchema,
   ListRunsOutputSchema,
   RunBacktestInputSchema,
   RunDetailSchema,
   RunResultSchema,
+  type RunDetail,
 } from '../schemas';
 import { getRunDetail, listRunSummaries, runBacktestForUser } from '../services/run-service';
 import { compactRunForModel } from './shared';
@@ -43,11 +46,12 @@ const runTool: PluginToolRegistration<
     'Accessors reject forward offsets (series(name, 1) throws). Signals are generated at a bar close and fill at the NEXT bar open (market) or at a later limit touch. If a bar touches both stop and target, the stop wins.',
     'Every signal must include a protective stop. Risk is sized from the stop distance and the run riskPct; leverage caps notional exposure.',
     'The full equity curve and trade list are streamed to the UI; you receive a compact scorecard. Iterate on the strategy only when metrics justify it — avoid overfitting to a single window.',
+    'Heavy sandbox execution runs only in canonical-chat; committee specialist desks receive read-only lookup tools instead.',
   ].join(' '),
   inputSchema: RunBacktestInputSchema,
   outputSchema: RunResultSchema,
   access: 'read-only',
-  attachTo: ['canonical-chat', 'technical', 'risk'],
+  attachTo: ['canonical-chat'],
   toModelOutput: compactRunForModel,
   execute: async (input, ctx) => {
     const response = await runBacktestForUser({
@@ -98,4 +102,76 @@ const getRunTool: PluginToolRegistration<
   },
 };
 
-export const runTools: readonly PluginToolRegistration[] = [runTool, listRunsTool, getRunTool];
+function comparisonMetrics(detail: RunDetail) {
+  return {
+    trades: detail.metrics.trades,
+    winRate: detail.metrics.winRate,
+    netPnl: detail.metrics.netPnl,
+    returnPct: detail.metrics.returnPct,
+    maxDrawdownPct: detail.metrics.maxDrawdownPct,
+    profitFactor: detail.metrics.profitFactor,
+    sharpeRatio: detail.metrics.sharpeRatio,
+    expectancyR: detail.metrics.expectancyR,
+  };
+}
+
+function roundDelta(value: number, digits: number): number {
+  if (!Number.isFinite(value)) return 0;
+  const factor = 10 ** digits;
+  return Math.round(value * factor) / factor;
+}
+
+const compareRunsTool: PluginToolRegistration<
+  z.infer<typeof CompareRunsInputSchema>,
+  z.infer<typeof CompareRunsOutputSchema>
+> = {
+  name: 'backtest_compare_runs',
+  description:
+    'Compare 2–4 saved backtest runs side-by-side: symbol, timeframe, params, and the scorecard metrics (trades, win rate, net P&L, return, max drawdown, profit factor, Sharpe, expectancy R) with deltas versus the first (baseline) run. Use it to answer "which version is better?" without re-running anything.',
+  inputSchema: CompareRunsInputSchema,
+  outputSchema: CompareRunsOutputSchema,
+  access: 'read-only',
+  attachTo: ['canonical-chat', 'technical', 'risk'],
+  execute: async (input, ctx) => {
+    const details: RunDetail[] = [];
+    for (const runId of input.runIds) {
+      const detail = await getRunDetail(ctx.userId, runId);
+      if (!detail) throw new Error(`Backtest run "${runId}" was not found.`);
+      details.push(detail);
+    }
+    const baseline = details[0]!;
+    const baselineMetrics = comparisonMetrics(baseline);
+    const runs = details.map((detail, index) => {
+      const metrics = comparisonMetrics(detail);
+      return {
+        runId: detail.runId,
+        name: detail.name,
+        symbol: detail.symbol,
+        timeframe: detail.timeframe,
+        bars: detail.bars,
+        params: detail.params,
+        metrics,
+        delta:
+          index === 0
+            ? null
+            : {
+                expectancyR: roundDelta(metrics.expectancyR - baselineMetrics.expectancyR, 4),
+                profitFactor: roundDelta(metrics.profitFactor - baselineMetrics.profitFactor, 4),
+                maxDrawdownPct: roundDelta(
+                  metrics.maxDrawdownPct - baselineMetrics.maxDrawdownPct,
+                  4,
+                ),
+                netPnl: roundDelta(metrics.netPnl - baselineMetrics.netPnl, 2),
+              },
+      };
+    });
+    return { baselineRunId: baseline.runId, runs, totalReturned: runs.length };
+  },
+};
+
+export const runTools: readonly PluginToolRegistration[] = [
+  runTool,
+  listRunsTool,
+  getRunTool,
+  compareRunsTool,
+];
