@@ -28,6 +28,7 @@ import {
   decryptWithPassword,
   encryptByok,
   encryptWithPassword,
+  JEV_PROVIDER_IDS,
   PROVIDER_IDS,
 } from '@kestrel/shared/encryption';
 import { and, eq } from 'drizzle-orm';
@@ -158,12 +159,15 @@ export async function importKeysAction(
     }
 
     const validKeys: Record<string, string> = {};
-    for (const id of PROVIDER_IDS) {
+    // Decision 4A — backups may carry the decision-model keys and the finnhub
+    // market-data key alongside the chat providers.
+    for (const id of [...PROVIDER_IDS, ...JEV_PROVIDER_IDS, 'finnhub'] as const) {
       const val = decryptedKeys[id];
       if (typeof val === 'string' && val.trim().length > 0) {
         validKeys[id] = val.trim();
       }
     }
+    const importedIds = new Set(Object.keys(validKeys));
 
     if (Object.keys(validKeys).length === 0) {
       return { ok: false as const, error: 'No valid keys found in backup payload' };
@@ -172,10 +176,34 @@ export async function importKeysAction(
     const db = getDb();
     const tenantId = await requireTenantIdForUser(session.user.id, db);
 
+    // Preservation invariant: a backup written before the decision-model
+    // keys existed must not wipe the stored ones on import — carry them
+    // forward when the backup does not carry its own.
+    const [oldSettings] = await db
+      .select({
+        aiApiKeys: schema.userSettings.aiApiKeys,
+        aiApiKeysUpdatedAt: schema.userSettings.aiApiKeysUpdatedAt,
+      })
+      .from(schema.userSettings)
+      .where(
+        and(
+          eq(schema.userSettings.userId, session.user.id),
+          eq(schema.userSettings.tenantId, tenantId),
+        ),
+      );
+    const oldDecrypted = oldSettings?.aiApiKeys ? decryptByok(oldSettings.aiApiKeys) : null;
+    const oldUpdatedAt = oldSettings?.aiApiKeysUpdatedAt ?? {};
+    for (const id of [...JEV_PROVIDER_IDS, 'finnhub'] as const) {
+      const existing = oldDecrypted?.[id];
+      if (existing && !validKeys[id]) validKeys[id] = existing;
+    }
+
     const now = new Date().toISOString();
     const newUpdatedAt: Record<string, string> = {};
     for (const id of Object.keys(validKeys)) {
-      newUpdatedAt[id] = now;
+      // Imported keys are marked now; carried-forward decision/market-data
+      // keys keep their original change time.
+      newUpdatedAt[id] = importedIds.has(id) ? now : (oldUpdatedAt[id] ?? now);
     }
 
     await db

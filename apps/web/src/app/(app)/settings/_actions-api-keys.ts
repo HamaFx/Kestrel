@@ -20,6 +20,6 @@
 // Implementations live in sibling `_actions-api-keys-*.ts` files, each marked
 // with the "use server" directive; the module path stays unchanged.
 
-export { updateApiKeysAction } from './_actions-api-keys-save';
+export { updateApiKeysAction, updateJevApiKeysAction } from './_actions-api-keys-save';
 export { exportKeysAction, importKeysAction } from './_actions-api-keys-transfer';
 export { updateMarketDataProviderAction } from './_actions-api-keys-market';

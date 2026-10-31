@@ -38,6 +38,7 @@ export {
 // API keys
 export {
   updateApiKeysAction,
+  updateJevApiKeysAction,
   exportKeysAction,
   importKeysAction,
   updateMarketDataProviderAction,

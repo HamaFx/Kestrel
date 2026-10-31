@@ -49,6 +49,17 @@ export const PROVIDER_IDS = [
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
 /**
+ * Decision 4A — the Jev System One decision-model providers. These are
+ * deliberately NOT part of `PROVIDER_IDS`: Jev providers are non-generative
+ * decision models, so they must never appear in chat-model pickers or be
+ * cleared by chat-provider key saves. The canonical tuple is shared by the
+ * API-keys save action (which must carry them forward), the backup import
+ * (which may restore them), and the settings UI card.
+ */
+export const JEV_PROVIDER_IDS = ['opencode', 'liquid', 'typesafe'] as const;
+export type JevByokProviderId = (typeof JEV_PROVIDER_IDS)[number];
+
+/**
  * Deduplicated Set derived from PROVIDER_IDS — used by cost tracking
  * and usage analytics to canonicalize provider prefixes from model IDs.
  * Single source of truth; keep PROVIDER_IDS updated and this follows.
