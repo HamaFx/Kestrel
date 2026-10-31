@@ -15,11 +15,17 @@
  */
 
 // User sessions query helpers — session management and revocation.
+//
+// Audit 2026-10-31 (R1): `user_sessions` carries `tenant_isolation` RLS. Every
+// helper below runs in the owning user's tenant scope; unscoped, the SELECT
+// returned "no sessions" and the DELETEs matched zero rows — revocation and
+// "sign out everywhere" silently did nothing.
 
 import { and, eq } from 'drizzle-orm';
 
-import { getDb, schema } from '../client';
+import { schema } from '../client';
 import { requireTenantIdForUser } from '../tenant';
+import { withUserTenant, withUserTenantRO } from '../with-user-tenant';
 
 /** A user session row (selective fields for display). */
 export interface SessionRow {
@@ -34,45 +40,53 @@ export interface SessionRow {
  * List all sessions for a user, ordered by creation time.
  */
 export async function listUserSessions(userId: string): Promise<SessionRow[]> {
-  const db = getDb();
-  const tenantId = await requireTenantIdForUser(userId, db);
-  return db
-    .select({
-      id: schema.userSessions.id,
-      deviceName: schema.userSessions.deviceName,
-      ip: schema.userSessions.ip,
-      createdAt: schema.userSessions.createdAt,
-      lastActiveAt: schema.userSessions.lastActiveAt,
-    })
-    .from(schema.userSessions)
-    .where(and(eq(schema.userSessions.userId, userId), eq(schema.userSessions.tenantId, tenantId)))
-    .orderBy(schema.userSessions.createdAt);
+  return withUserTenantRO(userId, async (db) => {
+    // Short-circuits on the scope entered above.
+    const tenantId = await requireTenantIdForUser(userId, db);
+    return db
+      .select({
+        id: schema.userSessions.id,
+        deviceName: schema.userSessions.deviceName,
+        ip: schema.userSessions.ip,
+        createdAt: schema.userSessions.createdAt,
+        lastActiveAt: schema.userSessions.lastActiveAt,
+      })
+      .from(schema.userSessions)
+      .where(
+        and(eq(schema.userSessions.userId, userId), eq(schema.userSessions.tenantId, tenantId)),
+      )
+      .orderBy(schema.userSessions.createdAt);
+  });
 }
 
 /**
  * Revoke a single session, scoped to the user.
  */
 export async function revokeUserSession(sessionId: string, userId: string): Promise<void> {
-  const db = getDb();
-  const tenantId = await requireTenantIdForUser(userId, db);
-  await db
-    .delete(schema.userSessions)
-    .where(
-      and(
-        eq(schema.userSessions.id, sessionId),
-        eq(schema.userSessions.userId, userId),
-        eq(schema.userSessions.tenantId, tenantId),
-      ),
-    );
+  await withUserTenant(userId, async (db) => {
+    const tenantId = await requireTenantIdForUser(userId, db);
+    await db
+      .delete(schema.userSessions)
+      .where(
+        and(
+          eq(schema.userSessions.id, sessionId),
+          eq(schema.userSessions.userId, userId),
+          eq(schema.userSessions.tenantId, tenantId),
+        ),
+      );
+  });
 }
 
 /**
  * Delete all sessions for a user (sign-out-everywhere).
  */
 export async function deleteUserSessions(userId: string): Promise<void> {
-  const db = getDb();
-  const tenantId = await requireTenantIdForUser(userId, db);
-  await db
-    .delete(schema.userSessions)
-    .where(and(eq(schema.userSessions.userId, userId), eq(schema.userSessions.tenantId, tenantId)));
+  await withUserTenant(userId, async (db) => {
+    const tenantId = await requireTenantIdForUser(userId, db);
+    await db
+      .delete(schema.userSessions)
+      .where(
+        and(eq(schema.userSessions.userId, userId), eq(schema.userSessions.tenantId, tenantId)),
+      );
+  });
 }

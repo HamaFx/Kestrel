@@ -21,6 +21,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   _resetSessionThrottles,
+  sessionValidationNeedsDb,
   validateSession,
   type SessionToken,
 } from '../src/lib/auth/session-validators';
@@ -128,5 +129,41 @@ describe('session validation outage policy', () => {
     expect(set).toHaveBeenCalled();
     expect(chain.select).toHaveBeenCalledOnce();
     expect(chain.limit).toHaveBeenCalledOnce();
+  });
+});
+
+describe('sessionValidationNeedsDb (R1 scope-opening decision)', () => {
+  it('requests a scope before the first check of a session', () => {
+    expect(sessionValidationNeedsDb(token(), 2_000)).toBe(true);
+  });
+
+  it('requests no scope for a fully throttled token', () => {
+    expect(
+      sessionValidationNeedsDb(token({ tvCheckedAt: 1_999, lastActiveUpdate: 1_999 }), 2_000),
+    ).toBe(false);
+  });
+
+  it('requests a scope when only the token check is due', () => {
+    const stale = token({ lastActiveUpdate: 1_999, tvCheckedAt: 2_000 });
+    // tvCheck interval is 60s; last-active interval is 15 min.
+    expect(sessionValidationNeedsDb(stale, 2_061)).toBe(true);
+  });
+
+  it('requests a scope when only the last-active write is due', () => {
+    const stale = token({ tvCheckedAt: 2_999, lastActiveUpdate: 2_000 });
+    expect(sessionValidationNeedsDb(stale, 3_000)).toBe(true);
+  });
+
+  it('requests no scope for an expired non-remembered session', () => {
+    expect(
+      sessionValidationNeedsDb(
+        token({ iat: 1_000, rememberMe: false, tvCheckedAt: 0, lastActiveUpdate: 0 }),
+        1_000 + 86_401,
+      ),
+    ).toBe(false);
+  });
+
+  it('requests no scope when the token carries no user id', () => {
+    expect(sessionValidationNeedsDb(token({ id: null }), 2_000)).toBe(false);
   });
 });

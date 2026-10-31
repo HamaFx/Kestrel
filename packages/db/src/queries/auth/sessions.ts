@@ -13,16 +13,38 @@
  */
 
 // Auth query helpers — user session rows (JWT callback support).
+//
+// Audit 2026-10-31 (R1): `user_sessions` carries `tenant_isolation` RLS, so
+// every statement here must run in the owning user's tenant scope. The JWT
+// callback runs before any request scope exists, which is why
+// `createUserSession` opens the scope itself; `findSession` /
+// `updateSessionLastActive` take only a session id and therefore cannot
+// resolve a tenant — they fail closed instead of silently matching no rows.
 
 import { eq, sql } from 'drizzle-orm';
 
-import { getDb, schema } from '../../client';
+import { getDb, getTenantDbScope, schema } from '../../client';
 import { requireTenantIdForUser } from '../../tenant';
+import { withUserTenant } from '../../with-user-tenant';
+
+function assertTenantScope(fn: string): void {
+  if (!getTenantDbScope()) {
+    throw new Error(
+      `[db] ${fn} requires an active tenant scope: user_sessions is RLS-protected ` +
+        'and a session id alone cannot resolve its tenant. Call it inside ' +
+        'withUserTenant(userId, ...) / withTenantDb(tenantId, ...).',
+    );
+  }
+}
 
 /**
  * Check if a session still exists (not revoked).
+ *
+ * Requires an active tenant scope — under RLS an unscoped lookup returns no
+ * rows, which would read as "revoked" for a healthy session.
  */
 export async function findSession(sessionId: string): Promise<boolean> {
+  assertTenantScope('findSession');
   const db = getDb();
   const [sess] = await db
     .select({ id: schema.userSessions.id })
@@ -34,8 +56,12 @@ export async function findSession(sessionId: string): Promise<boolean> {
 
 /**
  * Update session last active time.
+ *
+ * Requires an active tenant scope — unscoped, the UPDATE matches no rows and
+ * the write is silently lost.
  */
 export async function updateSessionLastActive(sessionId: string): Promise<void> {
+  assertTenantScope('updateSessionLastActive');
   const db = getDb();
   await db
     .update(schema.userSessions)
@@ -45,6 +71,10 @@ export async function updateSessionLastActive(sessionId: string): Promise<void> 
 
 /**
  * Create a user session row (JWT callback).
+ *
+ * Runs in the user's tenant scope: the callback that calls it sits outside
+ * any request transaction, and `user_sessions.tenant_id` must agree with the
+ * `app.current_tenant` GUC or the RLS `WITH CHECK` rejects the INSERT.
  */
 export async function createUserSession(
   sessionId: string,
@@ -52,10 +82,13 @@ export async function createUserSession(
   deviceName: string | null,
   ip: string | null,
 ): Promise<void> {
-  const db = getDb();
-  const tenantId = await requireTenantIdForUser(userId, db);
-  await db.execute(
-    sql`INSERT INTO ${schema.userSessions} (id, user_id, tenant_id, device_name, ip)
-        VALUES (${sessionId}, ${userId}, ${tenantId}, ${deviceName}, ${ip})`,
-  );
+  await withUserTenant(userId, async (db) => {
+    // Short-circuits on the scope entered above; the explicit tenant also
+    // matches the GUC by construction.
+    const tenantId = await requireTenantIdForUser(userId, db);
+    await db.execute(
+      sql`INSERT INTO ${schema.userSessions} (id, user_id, tenant_id, device_name, ip)
+          VALUES (${sessionId}, ${userId}, ${tenantId}, ${deviceName}, ${ip})`,
+    );
+  });
 }

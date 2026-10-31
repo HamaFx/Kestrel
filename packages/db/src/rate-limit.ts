@@ -28,11 +28,31 @@
 // counter is incremented atomically under concurrent requests for the
 // same user. The query returns the new count; if it exceeds `limit`
 // we reject the request.
+//
+// Audit 2026-10-31 (R1): `rate_limits` carries `tenant_isolation` RLS
+// (`tenant_id = current_setting('app.current_tenant', true)`), so an
+// unscoped INSERT is rejected outright under the non-bypass application
+// role — login, registration, password reset and 2FA rate limiting all
+// died on it. This helper now opens the scope the row belongs to before
+// the single statement:
+//
+//   - an active same-tenant scope is reused (pre-auth callers running
+//     inside a request scope, and the common route/action case),
+//   - pre-auth buckets (`__system__` subject) scope to the platform
+//     `__system__` tenant,
+//   - an explicit `opts.tenantId` scopes to that tenant,
+//   - an authenticated subject with no active scope resolves its
+//     membership and runs in the user's tenant scope (fail closed when
+//     membership is missing — never an unscoped write).
+//
+// The scope is always a real transaction because the tenant GUC is
+// transaction-local; the cost is one BEGIN/SET_CONFIG/COMMIT around a
+// statement that already existed.
 
 import { sql } from 'drizzle-orm';
 
-import { getDb } from './client';
-import { getTenantDbScope } from './connection/scope';
+import { getTenantDbScope, withTenantDb, type DbClient } from './client';
+import { withUserTenant } from './with-user-tenant';
 
 export interface RateLimitResult {
   /** True iff the request is within the limit. */
@@ -55,7 +75,7 @@ export interface RateLimitOptions {
 /** Platform subject used for unauthenticated buckets (login, register, reset). */
 export const SYSTEM_RATE_LIMIT_USER_ID = '__system__';
 
-/** Platform tenant that owns those buckets (seeded by migrations 0009/0035). */
+/** Platform tenant that owns those buckets (seeded by migrations 0009/0035/0117). */
 export const SYSTEM_RATE_LIMIT_TENANT_ID = '__system__';
 
 /**
@@ -66,12 +86,9 @@ export const SYSTEM_RATE_LIMIT_TENANT_ID = '__system__';
  * whose GUC was present but empty historically produced `tenant_id = ''`,
  * violating `rate_limits_tenant_id_fkey` and turning POST /login into a 500
  * (digest 1876515799, React #441). Authenticated callers keep the tenant
- * transaction's tenant (or the database default when unscoped).
+ * transaction's tenant (or `undefined` so `withRateLimit` resolves membership).
  */
-export function resolveRateLimitTenant(
-  userId: string,
-  tenantId?: string,
-): string | undefined {
+export function resolveRateLimitTenant(userId: string, tenantId?: string): string | undefined {
   if (tenantId) return tenantId;
   const scoped = getTenantDbScope()?.tenantId;
   if (scoped) return scoped;
@@ -91,34 +108,60 @@ export async function withRateLimit(
   limit: number,
   opts: RateLimitOptions = {},
 ): Promise<RateLimitResult> {
-  const db = getDb();
+  const activeScope = getTenantDbScope();
+  const tenantId = resolveRateLimitTenant(userId, opts.tenantId);
+
   // Fixed 1-minute window — the rate_limits PK is keyed on a minute-aligned
   // window_start. Longer/shorter windows require a schema change.
-  const bucket = sql`date_trunc('minute', now())`;
-  const tenantId = resolveRateLimitTenant(userId, opts.tenantId);
-  const tenantColumn = tenantId ? sql`, "tenant_id"` : sql``;
-  const tenantValue = tenantId ? sql`, ${tenantId}` : sql``;
+  const record = async (
+    db: DbClient,
+    rowTenantId: string | undefined,
+  ): Promise<RateLimitResult> => {
+    const bucket = sql`date_trunc('minute', now())`;
+    const tenantColumn = rowTenantId ? sql`, "tenant_id"` : sql``;
+    const tenantValue = rowTenantId ? sql`, ${rowTenantId}` : sql``;
 
-  // Use the `rate_limits` table via schema export.
-  const rows = await db.execute<{ request_count: number }>(sql`
-    INSERT INTO "rate_limits" ("user_id"${tenantColumn}, "endpoint_group", "window_start", "request_count")
-    VALUES (${userId}${tenantValue}, ${endpointGroup}, ${bucket}, 1)
-    ON CONFLICT ("user_id", "endpoint_group", "window_start")
-    DO UPDATE SET "request_count" = "rate_limits"."request_count" + 1
-    RETURNING "request_count"
-  `);
+    // Use the `rate_limits` table via schema export.
+    const rows = await db.execute<{ request_count: number }>(sql`
+      INSERT INTO "rate_limits" ("user_id"${tenantColumn}, "endpoint_group", "window_start", "request_count")
+      VALUES (${userId}${tenantValue}, ${endpointGroup}, ${bucket}, 1)
+      ON CONFLICT ("user_id", "endpoint_group", "window_start")
+      DO UPDATE SET "request_count" = "rate_limits"."request_count" + 1
+      RETURNING "request_count"
+    `);
 
-  // Driver-shape normalization: postgres-js (prod) returns a Result that
-  // *extends Array* (no `.rows`). Read the shape correctly or the
-  // counter silently reads 0 in production and the limit never fires.
-  const rawRows = (
-    Array.isArray(rows) ? rows : ((rows as { rows?: Array<{ request_count: number }> }).rows ?? [])
-  ) as Array<{ request_count: number }>;
-  const count = Number(rawRows[0]?.request_count ?? 0);
+    // Driver-shape normalization: postgres-js (prod) returns a Result that
+    // *extends Array* (no `.rows`). Read the shape correctly or the
+    // counter silently reads 0 in production and the limit never fires.
+    const rawRows = (
+      Array.isArray(rows)
+        ? rows
+        : ((rows as { rows?: Array<{ request_count: number }> }).rows ?? [])
+    ) as Array<{ request_count: number }>;
+    const count = Number(rawRows[0]?.request_count ?? 0);
 
-  return {
-    allowed: count <= limit,
-    count,
-    limit,
+    return {
+      allowed: count <= limit,
+      count,
+      limit,
+    };
   };
+
+  // Fast path: the active scope already carries the row's tenant GUC, so the
+  // single statement can run on the caller's transaction with no extra work.
+  if (activeScope && tenantId === activeScope.tenantId) {
+    return record(activeScope.db, tenantId);
+  }
+
+  // Explicit or platform (`__system__`) tenant: open a scope for it (reuses an
+  // active same-tenant scope when there is one) and write the row there.
+  if (tenantId) {
+    return withTenantDb(tenantId, (db) => record(db, tenantId));
+  }
+
+  // Authenticated subject outside any scope (2FA verification, cron calls):
+  // resolve the user's tenant and run in that scope. `withUserTenant` is
+  // fail-closed — no membership, no counter, no request. The row tenant is
+  // read back from the scope so the column and the GUC can never disagree.
+  return withUserTenant(userId, (db) => record(db, getTenantDbScope()?.tenantId));
 }

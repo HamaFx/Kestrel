@@ -1,12 +1,12 @@
 import { getDb } from '@kestrel/ai';
-import { createUserSession } from '@kestrel/db';
+import { createUserSession, withUserTenant } from '@kestrel/db';
 import { logErrorContext } from '@kestrel/shared/logger';
 import { AuthError, type Session, type User } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
 
 import { assertProductionSecurity } from '@/lib/http/security-invariants';
 
-import { validateSession } from './session-validators';
+import { sessionValidationNeedsDb, validateSession } from './session-validators';
 
 type AuthUser = User & {
   tokenVersion?: number;
@@ -32,6 +32,9 @@ export async function handleJwtCallback(token: JWT, user?: AuthUser): Promise<JW
     const sessionId = user.sessionId || crypto.randomUUID();
     token.sessionId = sessionId;
     try {
+      // R1: createUserSession opens the user's tenant scope internally —
+      // `user_sessions` is RLS-protected and this callback runs before any
+      // request transaction exists.
       await createUserSession(sessionId, user.id ?? '', user.deviceName ?? null, user.ip ?? null);
     } catch (err) {
       logErrorContext(err, 'auth/session_insert', { userId: user.id ?? '', sessionId }, 'auth');
@@ -61,8 +64,27 @@ export async function handleSessionCallback(
     return { ...session, user: undefined, expires: '0' };
   }
 
-  const invalidated = await validateSession(db, token, session, Math.floor(Date.now() / 1000), {
-    failClosed: true,
-  });
-  return (invalidated as AuthSession | null) ?? session;
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const userId = token.id;
+
+  try {
+    // Audit 2026-10-31 (R1): the session callback runs on every `auth()` call,
+    // before any route handler opens a tenant transaction, and
+    // `user_sessions` carries RLS. Whenever the throttles say a check is due,
+    // run it in the user's tenant scope — otherwise the session row is
+    // invisible, the token is treated as revoked, and users bounce to /login.
+    // A fully throttled call touches no database and opens no scope.
+    const invalidated =
+      userId && sessionValidationNeedsDb(token, nowSeconds)
+        ? await withUserTenant(userId, (scopedDb) =>
+            validateSession(scopedDb, token, session, nowSeconds, { failClosed: true }),
+          )
+        : await validateSession(db, token, session, nowSeconds, { failClosed: true });
+    return (invalidated as AuthSession | null) ?? session;
+  } catch (err) {
+    // Scope establishment failed (missing membership, pool error) — fail
+    // closed rather than serving a session whose security checks never ran.
+    logErrorContext(err, 'auth/session_scope', { userId: userId ?? '' }, 'auth');
+    return { ...session, user: undefined, expires: '0' };
+  }
 }

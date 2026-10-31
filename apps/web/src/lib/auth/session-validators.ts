@@ -79,6 +79,61 @@ export interface SessionToken {
   lastActiveUpdate?: number | null;
 }
 
+interface ValidationDue {
+  /** The tokenVersion/session-row SELECT is due. */
+  tokenCheck: boolean;
+  /** The last_active_at UPDATE is due. */
+  lastActiveUpdate: boolean;
+}
+
+/**
+ * Which of the two database round-trips are due for this token. Shared by
+ * {@link validateSession} and {@link sessionValidationNeedsDb} so the
+ * scope-opening decision in the Auth.js session callback cannot drift from
+ * the checks themselves.
+ */
+function validationDue(token: SessionToken, nowSeconds: number): ValidationDue {
+  // The in-process ledger extends the token fields; the effective values are
+  // the max of both so an HTTP-path re-encoded cookie and RSC calls agree.
+  const throttleKey = token.sessionId ? `${token.sessionId}:${token.id}` : null;
+  const ledger = readThrottle(throttleKey);
+  const effectiveTvCheckedAt = Math.max(token.tvCheckedAt ?? 0, ledger.tvCheckedAt);
+  const effectiveLastActive = Math.max(token.lastActiveUpdate ?? 0, ledger.lastActiveUpdate);
+
+  return {
+    tokenCheck:
+      !effectiveTvCheckedAt || nowSeconds - effectiveTvCheckedAt > TV_CHECK_INTERVAL_SECONDS,
+    lastActiveUpdate:
+      Boolean(token.sessionId) &&
+      (!effectiveLastActive || nowSeconds - effectiveLastActive > LAST_ACTIVE_INTERVAL_SECONDS),
+  };
+}
+
+/**
+ * Whether {@link validateSession} will issue a database round-trip for this
+ * token at `nowSeconds`.
+ *
+ * Audit 2026-10-31 (R1): `user_sessions` is RLS-protected and the Auth.js
+ * session callback runs outside any tenant scope; the callback opens the
+ * user's scope only when this returns true. That keeps a fully throttled
+ * `auth()` call (the common case, thanks to the in-process ledger) at zero
+ * database work and zero extra membership lookups.
+ */
+export function sessionValidationNeedsDb(token: SessionToken, nowSeconds: number): boolean {
+  // FEAT-04: Without rememberMe, invalidate sessions older than 24h.
+  if (
+    token.iat &&
+    token.rememberMe !== true &&
+    nowSeconds - token.iat > SESSION_AGE_LIMIT_SECONDS
+  ) {
+    return false;
+  }
+  if (!token.id) return false;
+
+  const due = validationDue(token, nowSeconds);
+  return due.tokenCheck || due.lastActiveUpdate;
+}
+
 interface ValidateOptions {
   /**
    * When true, DB errors during validation invalidate the session.
@@ -124,11 +179,9 @@ export async function validateSession(
   // The in-process ledger extends the token fields; the effective values are
   // the max of both so an HTTP-path re-encoded cookie and RSC calls agree.
   const throttleKey = token.sessionId ? `${token.sessionId}:${userId}` : null;
-  const ledger = readThrottle(throttleKey);
-  const effectiveTvCheckedAt = Math.max(token.tvCheckedAt ?? 0, ledger.tvCheckedAt);
-  const effectiveLastActive = Math.max(token.lastActiveUpdate ?? 0, ledger.lastActiveUpdate);
+  const due = validationDue(token, nowSeconds);
 
-  if (!effectiveTvCheckedAt || nowSeconds - effectiveTvCheckedAt > TV_CHECK_INTERVAL_SECONDS) {
+  if (due.tokenCheck) {
     try {
       const sessionId = token.sessionId;
 
@@ -171,10 +224,7 @@ export async function validateSession(
   // fail-closed policy, this write is part of the session-security check:
   // if it cannot complete, do not keep serving an unchecked session.
   const sessionId = token.sessionId;
-  if (
-    sessionId &&
-    (!effectiveLastActive || nowSeconds - effectiveLastActive > LAST_ACTIVE_INTERVAL_SECONDS)
-  ) {
+  if (sessionId && due.lastActiveUpdate) {
     try {
       await db
         .update(schema.userSessions)

@@ -86,6 +86,9 @@ vi.mock('@/lib/env', () => ({
 
 vi.mock('@kestrel/db', () => ({
   hasAdminDbScope: () => false,
+  // R1: new-user provisioning runs in the personal tenant scope (id = user id);
+  // the mock just runs the callback with a fresh fake client.
+  withTenantDb: async (_tenantId: string, work: (db: unknown) => Promise<void>) => work(mockDb()),
   schema: {
     users: 'users',
     userSettings: 'userSettings',

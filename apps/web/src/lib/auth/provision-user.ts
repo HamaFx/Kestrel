@@ -24,7 +24,7 @@
 // provisionUserOnSignIn, return its decision.
 
 import { getDb } from '@kestrel/ai';
-import { schema } from '@kestrel/db';
+import { schema, withTenantDb } from '@kestrel/db';
 import { DEFAULT_WATCHLIST_SYMBOLS } from '@kestrel/shared';
 import { and, eq, isNull } from 'drizzle-orm';
 
@@ -114,9 +114,12 @@ export async function provisionUserOnSignIn(input: SignInInput): Promise<SignInD
     // Create new OAuth user
     userId = crypto.randomUUID();
     const newUserId = userId; // narrow to string for the transaction closure
-    await db.transaction(async (tx) => {
-      const t = tx as unknown as typeof db;
-      await t.insert(schema.users).values({
+    // Audit 2026-10-31 (R1): the `user` insert trigger provisions the personal
+    // organization with id = user id, and `user_settings` is RLS-protected.
+    // Run both inserts inside that tenant scope; an unscoped settings INSERT
+    // is rejected under the non-bypass application role.
+    await withTenantDb(newUserId, async (tx) => {
+      await tx.insert(schema.users).values({
         id: newUserId,
         email,
         name: (profile.name ?? email) as string,
@@ -126,7 +129,7 @@ export async function provisionUserOnSignIn(input: SignInInput): Promise<SignInD
         emailVerified: new Date(),
         hashedPassword: null,
       });
-      await t.insert(schema.userSettings).values({
+      await tx.insert(schema.userSettings).values({
         userId: newUserId,
         onboardingCompleted: false,
         defaultSymbol: DEFAULT_WATCHLIST_SYMBOLS[0],

@@ -16,24 +16,31 @@
 
 import { and, eq } from 'drizzle-orm';
 
-import { getDb, schema } from '../../client';
+import { schema } from '../../client';
 import { requireTenantIdForUser } from '../../tenant';
+import { withUserTenant } from '../../with-user-tenant';
 
 /**
  * Update user's API keys (encrypted BYOK payload) and updatedAt map.
+ *
+ * Audit 2026-10-31 (R1): `user_settings` is RLS-protected; run the UPDATE in
+ * the user's tenant scope. An unscoped UPDATE matched zero rows silently.
  */
 export async function updateUserApiKeys(
   userId: string,
   encryptedKeys: string | null,
   keysUpdatedAt: Record<string, string> | null,
 ): Promise<void> {
-  const db = getDb();
-  const tenantId = await requireTenantIdForUser(userId, db);
-  await db
-    .update(schema.userSettings)
-    .set({
-      aiApiKeys: encryptedKeys,
-      ...(keysUpdatedAt !== null ? { aiApiKeysUpdatedAt: keysUpdatedAt } : {}),
-    })
-    .where(and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)));
+  await withUserTenant(userId, async (db) => {
+    const tenantId = await requireTenantIdForUser(userId, db);
+    await db
+      .update(schema.userSettings)
+      .set({
+        aiApiKeys: encryptedKeys,
+        ...(keysUpdatedAt !== null ? { aiApiKeysUpdatedAt: keysUpdatedAt } : {}),
+      })
+      .where(
+        and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
+      );
+  });
 }

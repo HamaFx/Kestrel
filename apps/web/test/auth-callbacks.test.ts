@@ -36,10 +36,14 @@ beforeEach(() => {
 
 const mockCreateUserSession = vi.fn();
 const mockGetDb = vi.fn();
+const mockWithUserTenant = vi.fn();
 
 vi.mock('@kestrel/db', () => ({
   hasAdminDbScope: () => false,
   createUserSession: (...args: unknown[]) => mockCreateUserSession(...args),
+  // R1: user_sessions is RLS-protected; the session callback must run its
+  // checks inside withUserTenant(userId, ...) when a round-trip is due.
+  withUserTenant: (...args: unknown[]) => mockWithUserTenant(...args),
   schema: {
     users: { tokenVersion: 'users.tokenVersion' },
     userSessions: {
@@ -141,6 +145,11 @@ describe('handleJwtCallback', () => {
 describe('handleSessionCallback', () => {
   beforeEach(() => {
     mockGetDb.mockReset();
+    mockWithUserTenant.mockReset();
+    // Default: the tenant scope resolves and hands back the same fake client.
+    mockWithUserTenant.mockImplementation(
+      (_userId: string, work: (db: unknown) => Promise<unknown>) => work(mockGetDb()),
+    );
   });
 
   it('fails closed with an expired session when getDb throws', async () => {
@@ -151,6 +160,53 @@ describe('handleSessionCallback', () => {
     const result = await handleSessionCallback(
       { user: { id: 'u1' }, expires: '2026-12-01' } as never,
       { id: 'u1', sessionId: 'sess-1' } as never,
+    );
+
+    expectInvalidated(result);
+    expect(mockWithUserTenant).not.toHaveBeenCalled();
+  });
+
+  it('runs due session checks inside the user tenant scope (RLS)', async () => {
+    mockGetDb.mockReturnValue(makeDb({ tv: 3, sessionId: 'sess-1' }));
+
+    const result = await handleSessionCallback(
+      { user: { id: 'u1' }, expires: '2026-12-01' } as never,
+      { id: 'u1', tokenVersion: 3, sessionId: 'sess-1' } as never,
+    );
+
+    expect(result.expires).toBe('2026-12-01');
+    expect(mockWithUserTenant).toHaveBeenCalledWith('u1', expect.any(Function));
+  });
+
+  it('opens no tenant scope when both throttles are fresh', async () => {
+    const db = makeDb({ tv: 3, sessionId: 'sess-1' });
+    mockGetDb.mockReturnValue(db);
+    const nowSeconds = Math.floor(Date.now() / 1000);
+
+    const result = await handleSessionCallback(
+      { user: { id: 'u1' }, expires: '2026-12-01' } as never,
+      {
+        id: 'u1',
+        tokenVersion: 3,
+        sessionId: 'sess-1',
+        tvCheckedAt: nowSeconds - 1,
+        lastActiveUpdate: nowSeconds - 1,
+      } as never,
+    );
+
+    expect(result.expires).toBe('2026-12-01');
+    expect(mockWithUserTenant).not.toHaveBeenCalled();
+    expect(db.select).not.toHaveBeenCalled();
+    expect(db.update).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when the tenant scope cannot be established', async () => {
+    mockGetDb.mockReturnValue(makeDb({ tv: 3, sessionId: 'sess-1' }));
+    mockWithUserTenant.mockRejectedValue(new Error('No organization membership found'));
+
+    const result = await handleSessionCallback(
+      { user: { id: 'u1' }, expires: '2026-12-01' } as never,
+      { id: 'u1', tokenVersion: 3, sessionId: 'sess-1' } as never,
     );
 
     expectInvalidated(result);

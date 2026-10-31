@@ -17,7 +17,7 @@
 import { DEFAULT_WATCHLIST_SYMBOLS } from '@kestrel/shared';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 
-import { getDb, schema } from '../../client';
+import { getDb, schema, withTenantDb } from '../../client';
 import type { AuthUserRow, CreateUserInput } from './types';
 
 /**
@@ -75,10 +75,15 @@ export async function resetLoginLockout(userId: string): Promise<void> {
 /**
  * Create a new user, userSettings, and email verification token in a single transaction.
  * Returns the raw verification token (for constructing the verify URL) and the user.
+ *
+ * Audit 2026-10-31 (R1): the `user` insert trigger provisions the personal
+ * organization with `id = user id`, and `user_settings` is RLS-protected. Both
+ * inserts therefore run in a scope keyed on the new user id — the GUC exists
+ * before the organization row does, which is fine (nothing validates the GUC
+ * against `organization`) and the settings row's tenant matches the policy.
  */
 export async function createUserWithSettings(input: CreateUserInput): Promise<void> {
-  const db = getDb();
-  await db.transaction(async (tx) => {
+  await withTenantDb(input.id, async (tx) => {
     await tx.insert(schema.users).values({
       id: input.id,
       email: input.email,
