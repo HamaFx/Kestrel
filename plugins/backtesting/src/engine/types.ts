@@ -60,6 +60,13 @@ export interface StrategySignal {
   trailing?: StrategyTrailing;
   /** Move the stop to entry once the trade reaches this many R. */
   breakEvenAtR?: number;
+  /**
+   * When an opposing position is open: close it at the next bar open and
+   * reverse into this signal. Without `flip`, an open position rejects it.
+   */
+  flip?: boolean;
+  /** Close an open position on the same side at the next bar open (manual exit). */
+  exit?: boolean;
   reason?: string;
   tags?: string[];
 }
@@ -154,6 +161,8 @@ export interface BacktestMetrics {
   maxDrawdownBars: number;
   sharpeRatio: number;
   sortinoRatio: number;
+  /** System Quality Number: trade-scaled t-stat (avg trade return / std) * sqrt(N). */
+  sqn: number;
   averageBarsHeld: number;
   exposurePct: number;
   longTrades: number;

@@ -27,6 +27,7 @@ export interface SandboxPayload {
   seriesNames: readonly SeriesName[];
   smc: FeatureMatrix['smc'];
   params: Record<string, unknown>;
+  costs: { spread: number; slippage: number; commissionPerUnit: number };
   limits: Pick<SandboxLimits, 'maxLogs' | 'maxSignals'>;
 }
 
@@ -105,6 +106,9 @@ export function toSignal(value: unknown): GeneratedSignal | null {
       signal.trailing = { type: type as TrailingMode, value: trailingValue };
     }
   }
+
+  if (value['flip'] === true) signal.flip = true;
+  if (value['exit'] === true) signal.exit = true;
 
   const reason = value['reason'];
   if (typeof reason === 'string' && reason.length > 0) signal.reason = reason.slice(0, 200);

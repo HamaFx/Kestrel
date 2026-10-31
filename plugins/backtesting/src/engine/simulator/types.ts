@@ -81,5 +81,7 @@ export interface SimulatorState {
   position: OpenPosition | null;
   pending: PendingEntry | null;
   marketIntent: GeneratedSignal | null;
+  /** Pending close/reverse from a prior signal; acted on at the next bar open. */
+  exitIntent: GeneratedSignal | null;
   nextTradeId: number;
 }

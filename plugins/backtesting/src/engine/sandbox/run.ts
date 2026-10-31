@@ -35,6 +35,8 @@ export async function runStrategySandbox(args: {
   symbol: string;
   timeframe: string;
   params?: Record<string, unknown>;
+  /** Execution costs exposed to the strategy as `ctx.costs`. */
+  costs?: { spread: number; slippage: number; commissionPerUnit: number };
   limits?: Partial<SandboxLimits>;
   signal?: AbortSignal;
 }): Promise<StrategySandboxResult> {
@@ -52,6 +54,7 @@ export async function runStrategySandbox(args: {
     seriesNames: SERIES_NAMES,
     smc: args.matrix.smc,
     params: args.params ?? {},
+    costs: args.costs ?? { spread: 0, slippage: 0, commissionPerUnit: 0 },
     limits: { maxLogs: limits.maxLogs, maxSignals: limits.maxSignals },
   };
 

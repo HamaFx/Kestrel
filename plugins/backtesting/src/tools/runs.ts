@@ -37,8 +37,8 @@ const runTool: PluginToolRegistration<
   name: 'backtest_run_strategy',
   description: [
     'Run a deterministic, look-ahead-safe backtest of an agent-authored JavaScript strategy.',
-    'The strategy must define `function getSignal(ctx)` and return null or { side, stop, target?, entry?, riskPct?, maxBars?, trailing?, breakEvenAtR?, reason?, tags? }.',
-    'ctx exposes: i, bars, t, open/high/low/close/volume, params, price(offset), series(name, offset), smc { fvg, orderBlock, sweep, structure, swingHigh, swingLow, pdh, pdl, asianHigh, asianLow }, session, atr(offset).',
+    'The strategy must define `function getSignal(ctx)` and return null or { side, stop, target?, entry?, riskPct?, maxBars?, validBars?, trailing?, breakEvenAtR?, flip?, exit?, reason?, tags? }.',
+    'ctx exposes: i, bars, t, open/high/low/close/volume, params, costs { spread, slippage, commissionPerUnit }, price(offset), series(name, offset), smc { fvg, orderBlock, sweep, structure, swingHigh, swingLow, pdh, pdl, asianHigh, asianLow }, session, atr(offset).',
     'Series names: ema20, ema50, ema200, sma20, sma50, rsi14, atr14, adx14, macd, macdSignal, macdHistogram, bbUpper, bbMiddle, bbLower, bbWidth, stochK, stochD, stochRsi, supertrend, supertrendDirection, vwap, obv, cci20, williamsR14, psar, keltnerUpper, keltnerLower, donchianUpper, donchianLower, mfi14, roc12, volumeSma20, atrPercent.',
     'Accessors reject forward offsets (series(name, 1) throws). Signals are generated at a bar close and fill at the NEXT bar open (market) or at a later limit touch. If a bar touches both stop and target, the stop wins.',
     'Every signal must include a protective stop. Risk is sized from the stop distance and the run riskPct; leverage caps notional exposure.',

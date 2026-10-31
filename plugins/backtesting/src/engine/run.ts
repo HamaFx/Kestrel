@@ -76,15 +76,63 @@ function clampNumber(
   return Math.min(max, Math.max(min, value));
 }
 
-/** Downsample a series to at most `max` points, always keeping first/last. */
-export function downsample<T>(points: readonly T[], max: number): T[] {
-  if (points.length <= max) return [...points];
-  const result: T[] = [];
-  const step = (points.length - 1) / (max - 1);
-  for (let index = 0; index < max; index += 1) {
-    result.push(points[Math.round(index * step)]!);
+/** Read a numeric field off a point when present (e.g. `equity`, `drawdownPct`). */
+function numericField<T>(point: T, key: string): number | null {
+  if (typeof point !== 'object' || point === null) return null;
+  const value = (point as Record<string, unknown>)[key];
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+/** Index of the largest numeric `key` on `points`, or -1 when the field is absent. */
+function maxFieldIndex<T>(points: readonly T[], key: string): number {
+  let bestIndex = -1;
+  let bestValue = Number.NEGATIVE_INFINITY;
+  for (let index = 0; index < points.length; index += 1) {
+    const value = numericField(points[index], key);
+    if (value !== null && value > bestValue) {
+      bestValue = value;
+      bestIndex = index;
+    }
   }
-  return result;
+  return bestIndex;
+}
+
+/**
+ * Downsample a series to at most `max` points (plus up to two forced extrema).
+ *
+ * For equity-curve-shaped points this picks the largest `drawdownPct` inside
+ * each bucket and always keeps the global peak-equity and worst-drawdown
+ * points, so charts never flatten the drawdown that matters.
+ */
+export function downsample<T>(points: readonly T[], max: number): T[] {
+  if (points.length <= max || max < 3) return [...points];
+  const keep = new Set<number>([0, points.length - 1]);
+  const step = (points.length - 1) / (max - 1);
+
+  for (let index = 1; index < max - 1; index += 1) {
+    const center = index * step;
+    const start = Math.max(0, Math.ceil(center - step / 2));
+    const end = Math.min(points.length - 1, Math.floor(center + step / 2));
+    let best = Math.round(center);
+    let bestDrawdown = Number.NEGATIVE_INFINITY;
+    for (let candidate = start; candidate <= end; candidate += 1) {
+      const drawdown = numericField(points[candidate], 'drawdownPct');
+      if (drawdown !== null && drawdown > bestDrawdown) {
+        bestDrawdown = drawdown;
+        best = candidate;
+      }
+    }
+    keep.add(best);
+  }
+
+  const peakIndex = maxFieldIndex(points, 'equity');
+  if (peakIndex >= 0) keep.add(peakIndex);
+  const troughIndex = maxFieldIndex(points, 'drawdownPct');
+  if (troughIndex >= 0) keep.add(troughIndex);
+
+  return [...keep]
+    .sort((a, b) => a - b)
+    .map((index) => points[index]!);
 }
 
 export async function runBacktest(args: RunBacktestArgs): Promise<RunBacktestOutput> {
@@ -129,6 +177,11 @@ export async function runBacktest(args: RunBacktestArgs): Promise<RunBacktestOut
     symbol: args.symbol,
     timeframe: args.timeframe,
     params: args.params ?? {},
+    costs: {
+      spread: options.spread,
+      slippage: options.slippage,
+      commissionPerUnit: options.commissionPerUnit,
+    },
     ...(args.signal ? { signal: args.signal } : {}),
     ...(args.sandboxTimeoutMs !== undefined
       ? { limits: { timeoutMs: args.sandboxTimeoutMs } }

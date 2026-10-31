@@ -153,6 +153,8 @@ function __kestrelNormalize(sig, i) {
   if (sig.reason !== undefined && sig.reason !== null) {
     out.reason = String(sig.reason).slice(0, 200);
   }
+  if (sig.flip === true) out.flip = true;
+  if (sig.exit === true) out.exit = true;
   if (sig.tags !== undefined && sig.tags !== null) {
     if (!Array.isArray(sig.tags)) throw new Error('signal.tags must be an array of strings');
     out.tags = sig.tags.slice(0, 10).map(function (tag) { return String(tag).slice(0, 40); });
@@ -220,6 +222,7 @@ function __kestrelRun() {
       series: series,
       session: __kestrelSession(__KP.bars.t[I]),
       smc: __kestrelSmc(I),
+      costs: __KP.costs,
       atr: function (offset) { return series('atr14', offset); }
     };
 

@@ -60,6 +60,7 @@ export function simulateBacktest(args: SimulateArgs): BacktestResult {
     position: null,
     pending: null,
     marketIntent: null,
+    exitIntent: null,
     nextTradeId: 1,
   };
 
@@ -69,6 +70,13 @@ export function simulateBacktest(args: SimulateArgs): BacktestResult {
 
   for (let index = 0; index < candles.length; index += 1) {
     const candle = candles[index]!;
+
+    // A close/flip signal from the previous close closes the open position at
+    // this bar's open, before any reversal entry is filled.
+    if (state.exitIntent) {
+      state.exitIntent = null;
+      closePosition(state, index, candle.o, 'manual');
+    }
 
     // A market signal from the previous close fills at this bar's open.
     if (state.marketIntent) {
@@ -92,7 +100,16 @@ export function simulateBacktest(args: SimulateArgs): BacktestResult {
       if (index === candles.length - 1) {
         reject(state, signal, 'Signal occurred on the final bar; no bar left to fill it');
       } else if (state.position) {
-        reject(state, signal, 'A position is already open');
+        if (signal.exit === true && signal.side === state.position.side) {
+          // Manual close at the next bar open; no reversal.
+          state.exitIntent = signal;
+        } else if (signal.flip === true && signal.side !== state.position.side) {
+          // Close the open position at the next bar open and reverse.
+          state.exitIntent = signal;
+          state.marketIntent = signal;
+        } else {
+          reject(state, signal, 'A position is already open');
+        }
       } else if (state.pending) {
         reject(state, signal, 'Another limit entry is already resting');
       } else if (signal.side === 'short' && !options.allowShort) {

@@ -31,6 +31,8 @@ export const STRATEGY_CONTRACT = {
     'validBars',
     'trailing',
     'breakEvenAtR',
+    'flip',
+    'exit',
     'reason',
     'tags',
   ] as const satisfies readonly (keyof StrategySignal)[],

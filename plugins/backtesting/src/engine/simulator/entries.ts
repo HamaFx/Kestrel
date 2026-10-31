@@ -30,10 +30,11 @@ export function openPosition(
   entryType: 'market' | 'limit',
 ): void {
   const side = signal.side;
+  // Resting limit entries provide liquidity: they pay the half-spread but no
+  // adverse slippage. Market entries cross the book and pay both.
+  const slip = entryType === 'market' ? state.slippage : 0;
   const entryPrice =
-    side === 'long'
-      ? rawEntry + state.halfSpread + state.slippage
-      : rawEntry - state.halfSpread - state.slippage;
+    side === 'long' ? rawEntry + state.halfSpread + slip : rawEntry - state.halfSpread - slip;
 
   const stopDistance = side === 'long' ? entryPrice - signal.stop : signal.stop - entryPrice;
   if (!(stopDistance > 0) || !Number.isFinite(stopDistance)) {
@@ -116,16 +117,6 @@ export function checkExit(state: SimulatorState, index: number): void {
   const candle = state.candles[index]!;
   const current = state.position;
 
-  // Track excursions for the report.
-  const favourable =
-    current.side === 'long' ? candle.h - current.entryPrice : current.entryPrice - candle.l;
-  const adverse =
-    current.side === 'long' ? current.entryPrice - candle.l : candle.h - current.entryPrice;
-  if (current.initialRiskDistance > 0) {
-    current.mfeR = Math.max(current.mfeR, favourable / current.initialRiskDistance);
-    current.maeR = Math.max(current.maeR, adverse / current.initialRiskDistance);
-  }
-
   const stopHit = current.side === 'long' ? candle.l <= current.stop : candle.h >= current.stop;
   const gapThroughStop =
     current.side === 'long' ? candle.o <= current.stop : candle.o >= current.stop;
@@ -139,18 +130,42 @@ export function checkExit(state: SimulatorState, index: number): void {
     return;
   }
 
+  // Track excursions for the report — only for bars the position survived,
+  // so the high/low that followed a stop-out is never counted as favourable.
+  const favourable =
+    current.side === 'long' ? candle.h - current.entryPrice : current.entryPrice - candle.l;
+  const adverse =
+    current.side === 'long' ? current.entryPrice - candle.l : candle.h - current.entryPrice;
+  if (current.initialRiskDistance > 0) {
+    current.mfeR = Math.max(current.mfeR, favourable / current.initialRiskDistance);
+    current.maeR = Math.max(current.maeR, adverse / current.initialRiskDistance);
+  }
+
   if (current.target !== null) {
-    const gapThroughTarget =
-      current.side === 'long' ? candle.o >= current.target : candle.o <= current.target;
-    if (gapThroughTarget) {
-      closePosition(state, index, candle.o, 'take_profit');
-      return;
-    }
-    const targetHit =
-      current.side === 'long' ? candle.h >= current.target : candle.l <= current.target;
-    if (targetHit) {
-      closePosition(state, index, current.target, 'take_profit');
-      return;
+    // A limit order that filled mid-bar only takes profit on the same bar if
+    // the bar's close itself cleared the target — the high/low could have
+    // printed before the limit was touched.
+    const sameBarLimit = index === current.entryIndex && current.entryType === 'limit';
+    if (sameBarLimit) {
+      const closeClearedTarget =
+        current.side === 'long' ? candle.c >= current.target : candle.c <= current.target;
+      if (closeClearedTarget) {
+        closePosition(state, index, current.target, 'take_profit');
+        return;
+      }
+    } else {
+      const gapThroughTarget =
+        current.side === 'long' ? candle.o >= current.target : candle.o <= current.target;
+      if (gapThroughTarget) {
+        closePosition(state, index, candle.o, 'take_profit');
+        return;
+      }
+      const targetHit =
+        current.side === 'long' ? candle.h >= current.target : candle.l <= current.target;
+      if (targetHit) {
+        closePosition(state, index, current.target, 'take_profit');
+        return;
+      }
     }
   }
 
