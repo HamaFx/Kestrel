@@ -18,7 +18,7 @@
 import 'server-only';
 
 import { getDb } from '@kestrel/ai';
-import { requireTenantIdForUser, schema } from '@kestrel/db';
+import { requireTenantIdForUser, schema, withUserTenant } from '@kestrel/db';
 import { DEFAULT_WATCHLIST_SYMBOLS, normalizeSymbol } from '@kestrel/shared';
 import type { PROVIDER_IDS } from '@kestrel/shared/byok';
 import { decryptByok, encryptByok, type ByokPayload } from '@kestrel/shared/encryption';
@@ -95,10 +95,9 @@ export async function completeOnboardingAction(formData: FormData) {
       };
     }
 
-    // The database catalog is authoritative at the user boundary.
-    const db = getDb();
-    const tenantId = await requireTenantIdForUser(userId, db);
-    const activeRows = await db
+    // `symbol_catalog` holds global rows (tenant_id = '__system__') and is
+    // never RLS-protected, so the validation read is safe unscoped.
+    const activeRows = await getDb()
       .select({ symbol: schema.symbolCatalog.symbol })
       .from(schema.symbolCatalog)
       .where(
@@ -123,67 +122,64 @@ export async function completeOnboardingAction(formData: FormData) {
       validatedTradingStyle = ts.data;
     }
 
-    await db.transaction(async (tx) => {
-      // Save displayName to users table if provided
-      if (payload.displayName && typeof payload.displayName === 'string') {
-        await tx
-          .update(schema.users)
-          .set({ name: payload.displayName.trim().slice(0, 100) })
-          .where(eq(schema.users.id, userId));
-      }
+    // Audit 2026-10-31 (R1): server actions do not inherit the calling page's
+    // tenant scope. `user_settings` and `user_symbols` are RLS-protected, so
+    // the whole write unit runs inside withUserTenant — unscoped, the UPDATE
+    // matches zero rows and the INSERT fails the WITH CHECK policy.
+    await withUserTenant(userId, async (db) => {
+      const tenantId = await requireTenantIdForUser(userId, db);
 
-      // 1. Merge API keys — keep existing ones for providers not in the payload.
-      // Also fetch onboardingProgress so we can merge tradingStyle into it without
-      // clobbering other progress keys (BUG-1: tradingStyle now persisted server-side).
-      const [existing] = await tx
-        .select({
-          aiApiKeys: schema.userSettings.aiApiKeys,
-          onboardingProgress: schema.userSettings.onboardingProgress,
-        })
-        .from(schema.userSettings)
-        .where(
-          and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
-        );
-      const currentKeys = decryptByok(existing?.aiApiKeys) ?? {};
-      const merged: ByokPayload = { ...currentKeys };
-      if (payload.apiKeys) {
-        for (const [id, raw] of Object.entries(payload.apiKeys)) {
-          const value = (raw ?? '').trim();
-          if (value.length > 0) {
-            merged[id as keyof ByokPayload] = value;
-          }
-          // Empty string = leave existing key in place (no-op). Use a
-          // dedicated "clear" flow if the user wants to remove a key.
+      await db.transaction(async (tx) => {
+        // Save displayName to users table if provided
+        if (payload.displayName && typeof payload.displayName === 'string') {
+          await tx
+            .update(schema.users)
+            .set({ name: payload.displayName.trim().slice(0, 100) })
+            .where(eq(schema.users.id, userId));
         }
-      }
-      const mergedProgress: Record<string, unknown> = { ...(existing?.onboardingProgress ?? {}) };
-      if (validatedTradingStyle) {
-        mergedProgress.tradingStyle = validatedTradingStyle;
-      }
 
-      // 2. Upsert user settings.
-      const encryptedKeys = encryptByok(merged);
-      const existingSettings = await tx
-        .select({ userId: schema.userSettings.userId })
-        .from(schema.userSettings)
-        .where(
-          and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
-        );
+        // 1. Merge API keys — keep existing ones for providers not in the payload.
+        // Also fetch onboardingProgress so we can merge tradingStyle into it without
+        // clobbering other progress keys (BUG-1: tradingStyle now persisted server-side).
+        const [existing] = await tx
+          .select({
+            aiApiKeys: schema.userSettings.aiApiKeys,
+            onboardingProgress: schema.userSettings.onboardingProgress,
+          })
+          .from(schema.userSettings)
+          .where(
+            and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
+          );
+        const currentKeys = decryptByok(existing?.aiApiKeys) ?? {};
+        const merged: ByokPayload = { ...currentKeys };
+        if (payload.apiKeys) {
+          for (const [id, raw] of Object.entries(payload.apiKeys)) {
+            const value = (raw ?? '').trim();
+            if (value.length > 0) {
+              merged[id as keyof ByokPayload] = value;
+            }
+            // Empty string = leave existing key in place (no-op). Use a
+            // dedicated "clear" flow if the user wants to remove a key.
+          }
+        }
+        const mergedProgress: Record<string, unknown> = { ...(existing?.onboardingProgress ?? {}) };
+        if (validatedTradingStyle) {
+          mergedProgress.tradingStyle = validatedTradingStyle;
+        }
 
-      if (existingSettings.length === 0) {
-        await tx.insert(schema.userSettings).values({
-          userId,
-          tenantId,
-          defaultSymbol: requestedDefault,
-          timezone: payload.timezone || 'UTC',
-          aiApiKeys: encryptedKeys,
-          onboardingCompleted: true,
-          ...(Object.keys(mergedProgress).length > 0 ? { onboardingProgress: mergedProgress } : {}),
-        });
-      } else {
-        await tx
-          .update(schema.userSettings)
-          .set({
+        // 2. Upsert user settings.
+        const encryptedKeys = encryptByok(merged);
+        const existingSettings = await tx
+          .select({ userId: schema.userSettings.userId })
+          .from(schema.userSettings)
+          .where(
+            and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
+          );
+
+        if (existingSettings.length === 0) {
+          await tx.insert(schema.userSettings).values({
+            userId,
+            tenantId,
             defaultSymbol: requestedDefault,
             timezone: payload.timezone || 'UTC',
             aiApiKeys: encryptedKeys,
@@ -191,39 +187,55 @@ export async function completeOnboardingAction(formData: FormData) {
             ...(Object.keys(mergedProgress).length > 0
               ? { onboardingProgress: mergedProgress }
               : {}),
-          })
-          .where(
-            and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
-          );
-      }
+          });
+        } else {
+          await tx
+            .update(schema.userSettings)
+            .set({
+              defaultSymbol: requestedDefault,
+              timezone: payload.timezone || 'UTC',
+              aiApiKeys: encryptedKeys,
+              onboardingCompleted: true,
+              ...(Object.keys(mergedProgress).length > 0
+                ? { onboardingProgress: mergedProgress }
+                : {}),
+            })
+            .where(
+              and(
+                eq(schema.userSettings.userId, userId),
+                eq(schema.userSettings.tenantId, tenantId),
+              ),
+            );
+        }
 
-      // 3. Add default or custom watchlist.
-      try {
-        const watchSymbols = requestedSymbols;
+        // 3. Add default or custom watchlist.
+        try {
+          const watchSymbols = requestedSymbols;
 
-        await tx
-          .delete(schema.userSymbols)
-          .where(
-            and(eq(schema.userSymbols.userId, userId), eq(schema.userSymbols.tenantId, tenantId)),
-          );
+          await tx
+            .delete(schema.userSymbols)
+            .where(
+              and(eq(schema.userSymbols.userId, userId), eq(schema.userSymbols.tenantId, tenantId)),
+            );
 
-        await tx
-          .insert(schema.userSymbols)
-          .values(
-            watchSymbols.map((symbol, i) => ({
-              userId,
-              tenantId,
-              symbol,
-              displayOrder: i,
-            })),
-          )
-          .onConflictDoNothing();
-      } catch (err) {
-        createScopedLoggerWithContext({
-          component: 'onboarding',
-          action: 'seed-watchlist',
-        }).errorContext(err, 'seedWatchlist', { userId });
-      }
+          await tx
+            .insert(schema.userSymbols)
+            .values(
+              watchSymbols.map((symbol, i) => ({
+                userId,
+                tenantId,
+                symbol,
+                displayOrder: i,
+              })),
+            )
+            .onConflictDoNothing();
+        } catch (err) {
+          createScopedLoggerWithContext({
+            component: 'onboarding',
+            action: 'seed-watchlist',
+          }).errorContext(err, 'seedWatchlist', { userId });
+        }
+      });
     });
 
     revalidatePath('/');

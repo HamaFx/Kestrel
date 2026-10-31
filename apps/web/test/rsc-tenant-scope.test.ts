@@ -34,8 +34,10 @@
 //   - It only sees direct @kestrel/db access: a getDb() call, or a non-type
 //     import of an export outside SCOPE_SAFE_EXPORTS. Tenant reads reached
 //     through service modules (@/lib/services/**, @kestrel/ai/**) are
-//     invisible here; e.g. (app)/chat/page.tsx calls the thread persistence
-//     helpers (createThread/listThreads) without a scope and is NOT flagged.
+//     invisible here; (app)/chat/page.tsx was the motivating example — its
+//     thread persistence helpers (createThread/listThreads) are now wrapped
+//     in withUserTenant, which this test can see as a declaration but cannot
+//     verify wraps those calls.
 //   - route.ts handlers are excluded on purpose: they run behind withAuth,
 //     withAdminAuth or withCronAuth, and scripts/check-route-security.mjs owns
 //     that boundary contract.
@@ -138,18 +140,6 @@ const EXEMPT: Record<string, ScopeExemption> = {
       "tenant_id = '__system__', never RLS-protected). The user's watchlist goes " +
       'through getWatchlistWithCatalog wrapped in withUserTenant; only the direct ' +
       'reads are excused so the helper stays covered by the scope rule.',
-    accesses: ['getDb'],
-  },
-  'apps/web/src/app/onboarding/page.tsx': {
-    kind: 'tracked-gap',
-    reason:
-      'TRACKED GAP, not a clean bill of health: reads `user_settings` (RLS, migration ' +
-      '0038) through an unscoped getDb() with only a user_id+tenant_id WHERE clause. ' +
-      'Under kestrel_app the row is invisible, so a user who completed onboarding is ' +
-      'sent through it again. The fix is to wrap the read in withUserTenant; this ' +
-      'entry exists because the R1 audit task owns only the test file. Removing the ' +
-      'gap must delete this entry — the assertion below fails if the file declares a ' +
-      'scope and the entry is left behind.',
     accesses: ['getDb'],
   },
 };

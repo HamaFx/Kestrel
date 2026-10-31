@@ -14,15 +14,20 @@
  * limitations under the License.
  */
 
-// Audit 2026-10-31 (R1) — real (unmocked) client: the two cross-tenant
-// aggregates that are only reachable from admin-gated surfaces must fail
-// closed when the admin connection is not configured, while the optional
-// user_settings inheritance reads degrade without opening any connection.
+// Audit 2026-10-31 (R1) — real (unmocked) client: the cross-tenant
+// aggregates and the admin diagnostic-trace reads that are only reachable
+// from admin-gated surfaces must fail closed when the admin connection is not
+// configured, while the optional user_settings inheritance reads degrade
+// without opening any connection.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { closeAdminDb } from '../src/client';
 import { listTraceExplorerEvents } from '../src/queries/diagnostic-traces/explorer';
+import {
+  getDiagnosticTraceForAdmin,
+  listDiagnosticTracesForAdmin,
+} from '../src/queries/diagnostic-traces/read';
 import { getToolStats } from '../src/queries/tool-telemetry';
 import { getPlatformAdminSettings, listAllUserSettings } from '../src/queries/user-settings';
 
@@ -46,6 +51,14 @@ describe('admin-gated cross-tenant aggregates fail closed', () => {
 
   it('listTraceExplorerEvents throws instead of returning an empty timeline', async () => {
     await expect(listTraceExplorerEvents({})).rejects.toThrow(/ADMIN_DATABASE_URL/);
+  });
+
+  it('getDiagnosticTraceForAdmin throws instead of reporting a missing trace', async () => {
+    await expect(getDiagnosticTraceForAdmin('trace-1')).rejects.toThrow(/ADMIN_DATABASE_URL/);
+  });
+
+  it('listDiagnosticTracesForAdmin throws instead of returning an empty list', async () => {
+    await expect(listDiagnosticTracesForAdmin()).rejects.toThrow(/ADMIN_DATABASE_URL/);
   });
 });
 

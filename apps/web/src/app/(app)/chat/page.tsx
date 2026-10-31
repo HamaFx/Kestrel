@@ -27,6 +27,7 @@
 //   - Otherwise → redirect to the most recently used thread, or create
 //     a fresh one if none exist.
 
+import { withUserTenant } from '@kestrel/db';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
@@ -58,12 +59,19 @@ export default async function ChatLanding({ searchParams }: PageProps) {
   if (desk) params.set('desk', desk);
   const queryString = params.toString() ? `?${params.toString()}` : '';
 
+  // Audit 2026-10-31 (R1): this server component renders outside the API
+  // boundary, and the thread persistence helpers read/write the RLS-protected
+  // `chat_threads` table. Under `kestrel_app` an unscoped read returns zero
+  // rows and an unscoped insert violates the policy, so each branch runs
+  // inside a tenant scope. The helpers inherit it through getDb().
   if ((prompt && prompt.trim().length > 0) || mode || desk || forceNew === '1') {
-    const fresh = await createThread(userId);
+    const fresh = await withUserTenant(userId, () => createThread(userId));
     redirect(`/chat/${fresh.id}${queryString}`);
   }
 
-  const { threads } = await listThreads(userId, 1);
-  const target = threads[0] ?? (await createThread(userId));
+  const target = await withUserTenant(userId, async () => {
+    const { threads } = await listThreads(userId, 1);
+    return threads[0] ?? (await createThread(userId));
+  });
   redirect(`/chat/${target.id}${queryString}`);
 }

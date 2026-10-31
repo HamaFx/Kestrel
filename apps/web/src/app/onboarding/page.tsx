@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { getDb, requireTenantIdForUser, schema } from '@kestrel/db';
+import { schema, withUserTenantRO } from '@kestrel/db';
 import { and, eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 
@@ -26,33 +26,38 @@ import { OnboardingWizard } from '@/components/onboarding/wizard';
 
 export default async function OnboardingPage() {
   const session = await auth();
-  if (!session?.user?.id) {
+  const userId = session?.user?.id;
+  if (!userId) {
     redirect('/login');
   }
 
-  const db = getDb();
-  const tenantId = await requireTenantIdForUser(session.user.id, db);
-  const [settings] = await db
-    .select()
-    .from(schema.userSettings)
-    .where(
-      and(
-        eq(schema.userSettings.userId, session.user.id),
-        eq(schema.userSettings.tenantId, tenantId),
-      ),
-    );
+  // Audit 2026-10-31 (R1): server components render outside the API boundary.
+  // `user_settings` is RLS-protected, so as `kestrel_app` an unscoped read
+  // returns zero rows and a user who already completed onboarding is sent
+  // through it again. Read-only scope: both reads below are SELECTs.
+  const { settings, symbolsCatalog } = await withUserTenantRO(userId, async (db) => {
+    const [settings] = await db
+      .select()
+      .from(schema.userSettings)
+      .where(eq(schema.userSettings.userId, userId));
+
+    const symbolsCatalog = await db
+      .select()
+      .from(schema.symbolCatalog)
+      .where(
+        and(
+          eq(schema.symbolCatalog.isActive, true),
+          eq(schema.symbolCatalog.tenantId, '__system__'),
+        ),
+      )
+      .orderBy(schema.symbolCatalog.sortOrder);
+
+    return { settings: settings ?? null, symbolsCatalog };
+  });
 
   if (settings?.onboardingCompleted) {
     redirect('/dashboard');
   }
-
-  const symbolsCatalog = await db
-    .select()
-    .from(schema.symbolCatalog)
-    .where(
-      and(eq(schema.symbolCatalog.isActive, true), eq(schema.symbolCatalog.tenantId, '__system__')),
-    )
-    .orderBy(schema.symbolCatalog.sortOrder);
 
   return (
     <div className="flex flex-col gap-8">
