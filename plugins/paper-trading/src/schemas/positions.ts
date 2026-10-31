@@ -29,6 +29,7 @@ export const CloseReasonSchema = z.enum([
   'stop_loss',
   'take_profit',
   'trailing_stop',
+  'max_bars',
   'account_reset',
 ]);
 

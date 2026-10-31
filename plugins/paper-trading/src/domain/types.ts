@@ -29,7 +29,7 @@ export type OrderType = 'market' | 'limit' | 'stop';
 export type OrderStatus = 'pending' | 'filled' | 'cancelled' | 'rejected' | 'expired';
 export type PositionStatus = 'open' | 'closed';
 export type PositionCloseReason =
-  'manual' | 'stop_loss' | 'take_profit' | 'trailing_stop' | 'account_reset';
+  'manual' | 'stop_loss' | 'take_profit' | 'trailing_stop' | 'max_bars' | 'account_reset';
 
 export interface MarketTick {
   symbol: string;

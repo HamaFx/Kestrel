@@ -62,6 +62,8 @@ export async function placeOrderForUser(args: {
   source?: 'agent' | 'manual' | 'api' | 'strategy';
   signal?: AbortSignal;
   now?: Date;
+  /** Explicit resting-order expiry (strategy `validBars`); overrides day TIF. */
+  expiresAt?: Date | null;
 }): Promise<PlaceOrderOutput> {
   const now = args.now ?? new Date();
   const source = args.source ?? 'agent';
@@ -191,7 +193,12 @@ export async function placeOrderForUser(args: {
     };
   }
 
-  const expiresAt = args.input.timeInForce === 'day' ? nextUtcMidnight(now) : null;
+  const expiresAt =
+    args.expiresAt !== undefined
+      ? args.expiresAt
+      : args.input.timeInForce === 'day'
+        ? nextUtcMidnight(now)
+        : null;
   const order = await insertOrder({
     userId: args.userId,
     accountId: account.id,

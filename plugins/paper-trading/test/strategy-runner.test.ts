@@ -16,6 +16,12 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  maxBarsFromNotes,
+  resolveMaxBars,
+  resolveTrailingDistance,
+  resolveValidBars,
+} from '../src/strategy-parity';
 import { evaluateLatestStrategySignal } from '../src/strategy-runner';
 
 const mocks = vi.hoisted(() => ({ getCandles: vi.fn() }));
@@ -77,5 +83,65 @@ describe('paper strategy runner', () => {
       params: {},
     });
     expect(result.signal).toBeNull();
+  });
+
+  it('translates limit entry, ATR trailing stop, and breakEvenAtR from getSignal into the paper order', async () => {
+    const result = await evaluateLatestStrategySignal({
+      symbol: 'XAUUSD',
+      timeframe: '1h',
+      source: `
+        function getSignal(ctx) {
+          if (ctx.i !== ctx.bars - 1) return null;
+          return {
+            side: 'long',
+            entry: ctx.close - 5,
+            stop: ctx.close - 15,
+            target: ctx.close + 25,
+            breakEvenAtR: 1.5,
+            trailing: { type: 'atr', value: 2 },
+            validBars: 4,
+            maxBars: 12,
+          };
+        }
+      `,
+      params: {},
+    });
+
+    expect(result.signal?.entry).toBeTypeOf('number');
+    expect(result.latestAtr).toBeGreaterThan(0);
+    expect(result.latestClose).toBeGreaterThan(0);
+    expect(result.signal?.trailing).toEqual({ type: 'atr', value: 2 });
+    expect(result.signal?.breakEvenAtR).toBe(1.5);
+    expect(result.signal?.validBars).toBe(4);
+    expect(result.signal?.maxBars).toBe(12);
+  });
+});
+
+describe('paper strategy parity helpers', () => {
+  it('translates atr, percent and fixed trailing modes into price distances', () => {
+    expect(resolveTrailingDistance({ trailing: { type: 'atr', value: 2 } }, 3.5, 2000)).toBe(7);
+    expect(resolveTrailingDistance({ trailing: { type: 'percent', value: 1 } }, null, 2000)).toBe(
+      20,
+    );
+    expect(resolveTrailingDistance({ trailing: { type: 'fixed', value: 12.5 } }, null, 2000)).toBe(
+      12.5,
+    );
+    // Without a usable ATR an `atr` trailing stop cannot be translated.
+    expect(
+      resolveTrailingDistance({ trailing: { type: 'atr', value: 2 } }, null, 2000),
+    ).toBeUndefined();
+    expect(resolveTrailingDistance({}, 5, 2000)).toBeUndefined();
+  });
+
+  it('reads and defaults the maxBars time stop and validBars expiry', () => {
+    expect(maxBarsFromNotes('Deployed strategy: X [run:1] [maxBars:12]')).toBe(12);
+    expect(maxBarsFromNotes('Deployed strategy: X')).toBe(100);
+    expect(maxBarsFromNotes(null)).toBe(100);
+    expect(resolveMaxBars(undefined)).toBe(100);
+    expect(resolveMaxBars(12.6)).toBe(13);
+    expect(resolveMaxBars(0)).toBe(1);
+    expect(resolveValidBars(undefined)).toBe(5);
+    expect(resolveValidBars(0)).toBe(1);
+    expect(resolveValidBars(900)).toBe(500);
   });
 });

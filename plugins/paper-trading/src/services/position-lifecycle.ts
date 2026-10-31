@@ -164,6 +164,8 @@ export async function closePositionForUser(args: {
   positionId: string;
   quantity?: number;
   reason?: string;
+  /** Broker close reason persisted on the position (defaults to 'manual'). */
+  closeReason?: PositionCloseReason;
   settings: PaperSettings;
   source?: string;
   now?: Date;
@@ -184,7 +186,7 @@ export async function closePositionForUser(args: {
     args.settings,
   );
   const now = args.now ?? new Date();
-  const reason: PositionCloseReason = 'manual';
+  const reason: PositionCloseReason = args.closeReason ?? 'manual';
 
   const result = await applyClose({
     userId: args.userId,

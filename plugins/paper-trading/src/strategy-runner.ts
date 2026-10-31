@@ -20,6 +20,11 @@
 // QuickJS sandbox and feature matrix as the Backtesting Lab produce the
 // signal; this module only turns the latest bar's signal into a virtual order
 // and reconciles the sandbox position.
+//
+// Signal parity (Phase 3, roadmap Phase 4): the runner translates every field
+// of `StrategySignal` — limit `entry`, `validBars` expiry, `maxBars` time
+// stops, `breakEvenAtR`, `trailing` (`atr` | `percent` | `fixed`), `flip` and
+// `exit` — into the same behaviour as `plugin-backtesting`.
 
 import { getCandles } from '@kestrel/data';
 import {
@@ -31,13 +36,24 @@ import { msPerTimeframe, type Symbol, type Timeframe } from '@kestrel/shared';
 
 import {
   getPosition,
+  listOpenPositionsForSymbol,
+  listOrders,
   listStrategyRuns,
   updateStrategyRun,
   type StrategyRunPatch,
 } from './db/queries';
-import type { PaperStrategyRunRow } from './db/tables';
-import { closePositionForUser, placeOrderForUser } from './services/trading';
+import type { PaperPositionRow, PaperStrategyRunRow } from './db/tables';
+import { cancelOrderForUser, closePositionForUser, placeOrderForUser } from './services/trading';
 import type { PaperSettings } from './settings';
+import {
+  findRunPosition,
+  isStrategyOrderForRun,
+  maxBarsFromNotes,
+  resolveMaxBars,
+  resolveTrailingDistance,
+  resolveValidBars,
+  strategyNotes,
+} from './strategy-parity';
 
 const STRATEGY_LOOKBACK_BARS = 500;
 
@@ -46,6 +62,10 @@ export interface LatestStrategySignal {
   candleCount: number;
   signal: StrategySignal | null;
   logs: string[];
+  /** Latest ATR(14); feeds `trailing: { type: 'atr' }` translation. */
+  latestAtr: number | null;
+  /** Latest closed bar's close; feeds `trailing: { type: 'percent' }`. */
+  latestClose: number;
 }
 
 /** Evaluate a strategy's latest closed bar in the same engine as a backtest. */
@@ -90,6 +110,8 @@ export async function evaluateLatestStrategySignal(args: {
     candleCount: closed.length,
     signal,
     logs: sandbox.logs,
+    latestAtr: matrix.series.atr14[lastIndex] ?? null,
+    latestClose: closed[lastIndex]!.c,
   };
 }
 
@@ -156,8 +178,12 @@ async function runOneStrategy(
     return { entered: 0, closed: 0 };
   }
 
-  const existing = run.positionId ? await getPosition(userId, run.positionId) : undefined;
-  const openPosition = existing?.status === 'open' ? existing : undefined;
+  const barMs = msPerTimeframe(run.timeframe as Timeframe);
+  const existing = run.positionId
+    ? await getPosition(userId, run.positionId)
+    : findRunPosition(await listOpenPositionsForSymbol(userId, run.symbol), run);
+  let openPosition: PaperPositionRow | undefined =
+    existing?.status === 'open' ? existing : undefined;
   let entered = 0;
   let closed = 0;
   let positionId = openPosition?.id ?? null;
@@ -167,49 +193,117 @@ async function runOneStrategy(
     ...(positionId !== run.positionId ? { positionId } : {}),
   };
 
+  const closeOpenPosition = async (reason: 'max_bars' | 'manual'): Promise<void> => {
+    if (!openPosition) return;
+    await closePositionForUser({
+      userId,
+      positionId: openPosition.id,
+      closeReason: reason,
+      settings,
+      source: 'strategy',
+      ...(signal ? { signal } : {}),
+    });
+    openPosition = undefined;
+    positionId = null;
+    patch.positionId = null;
+    closed += 1;
+  };
+
   try {
-    if (evaluation.signal) {
-      patch.lastSignal = evaluation.signal.side;
+    // Time stop: mirror the backtester's `index - entryIndex >= maxBars`.
+    if (openPosition) {
+      const barsHeld = Math.floor((evaluation.barTime - openPosition.entryTime.getTime()) / barMs);
+      if (barsHeld >= maxBarsFromNotes(openPosition.notes)) {
+        await closeOpenPosition('max_bars');
+      }
+    }
+
+    const strategySignal = evaluation.signal;
+    if (strategySignal) {
+      patch.lastSignal = strategySignal.side;
       patch.lastSignalAt = new Date(evaluation.barTime);
       patch.signalCount = run.signalCount + 1;
 
-      if (openPosition && openPosition.side !== evaluation.signal.side) {
-        await closePositionForUser({
-          userId,
-          positionId: openPosition.id,
-          reason: 'strategy flip',
-          settings,
-          source: 'strategy',
-          ...(signal ? { signal } : {}),
-        });
-        positionId = null;
-        patch.positionId = null;
-        closed += 1;
-      } else if (!openPosition) {
-        const order = await placeOrderForUser({
-          userId,
-          settings,
-          source: 'strategy',
-          ...(signal ? { signal } : {}),
-          input: {
-            account: run.accountId,
-            symbol: run.symbol as Symbol,
-            side: evaluation.signal.side === 'long' ? 'buy' : 'sell',
-            type: 'market',
-            riskPct: evaluation.signal.riskPct ?? run.riskPct,
-            stopLoss: evaluation.signal.stop,
-            ...(evaluation.signal.target !== undefined
-              ? { takeProfit: evaluation.signal.target }
-              : {}),
-            timeInForce: 'gtc',
-            notes: `Deployed strategy: ${run.name}${run.strategyId ? ` (${run.strategyId})` : ''}`,
-          },
-        });
-        if (order.position) {
-          positionId = order.position.id;
-          patch.positionId = order.position.id;
-          patch.orderCount = run.orderCount + 1;
-          entered += 1;
+      let shouldEnter = !openPosition;
+      if (openPosition) {
+        // Same rule as the simulator: an open position blocks a new signal
+        // unless the signal explicitly exits (same side) or flips (opposite).
+        if (strategySignal.exit === true && strategySignal.side === openPosition.side) {
+          await closeOpenPosition('manual');
+          shouldEnter = false;
+        } else if (strategySignal.flip === true && strategySignal.side !== openPosition.side) {
+          await closeOpenPosition('manual');
+          shouldEnter = true;
+        }
+      }
+
+      if (shouldEnter) {
+        const entry = strategySignal.entry ?? 'market';
+        const trailingDistance = resolveTrailingDistance(
+          strategySignal,
+          evaluation.latestAtr,
+          evaluation.latestClose,
+        );
+        const maxBars = resolveMaxBars(strategySignal.maxBars);
+        const notes = strategyNotes(run, maxBars);
+        const sharedInput = {
+          account: run.accountId,
+          symbol: run.symbol as Symbol,
+          side: strategySignal.side === 'long' ? ('buy' as const) : ('sell' as const),
+          riskPct: strategySignal.riskPct ?? run.riskPct,
+          stopLoss: strategySignal.stop,
+          ...(strategySignal.target !== undefined ? { takeProfit: strategySignal.target } : {}),
+          ...(trailingDistance !== undefined ? { trailingStop: trailingDistance } : {}),
+          ...(strategySignal.breakEvenAtR !== undefined
+            ? { breakEvenAtR: strategySignal.breakEvenAtR }
+            : {}),
+          timeInForce: 'gtc' as const,
+          notes,
+        };
+
+        if (entry === 'market') {
+          const order = await placeOrderForUser({
+            userId,
+            settings,
+            source: 'strategy',
+            ...(signal ? { signal } : {}),
+            input: { ...sharedInput, type: 'market' },
+          });
+          if (order.position) {
+            positionId = order.position.id;
+            patch.positionId = order.position.id;
+            patch.orderCount = run.orderCount + 1;
+            entered += 1;
+          }
+        } else {
+          // Cancel this run's stale resting entry first: the backtester allows
+          // only one pending limit at a time.
+          const pending = await listOrders(userId, {
+            accountId: run.accountId,
+            symbol: run.symbol,
+            status: 'pending',
+            limit: 100,
+          });
+          for (const order of pending) {
+            if (!isStrategyOrderForRun(order.notes, run)) continue;
+            await cancelOrderForUser({ userId, orderId: order.id });
+          }
+
+          const expiresAt = new Date(
+            evaluation.barTime + resolveValidBars(strategySignal.validBars) * barMs,
+          );
+          const order = await placeOrderForUser({
+            userId,
+            settings,
+            source: 'strategy',
+            expiresAt,
+            ...(signal ? { signal } : {}),
+            input: { ...sharedInput, type: 'limit', price: entry },
+          });
+          if (order.order) {
+            patch.orderCount = run.orderCount + 1;
+            entered += 1;
+          }
         }
       }
     }
