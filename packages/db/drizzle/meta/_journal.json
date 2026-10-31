@@ -834,6 +834,13 @@
       "when": 1793300000000,
       "tag": "0119_grant_app_role_privileges",
       "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1793400000000,
+      "tag": "0120_mastra_storage_schema",
+      "breakpoints": true
     }
   ]
 }

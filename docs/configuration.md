@@ -50,10 +50,10 @@ PostgreSQL is required in every environment; provide `DATABASE_URL` or `POSTGRES
 
 Two database roles back a deployment:
 
-| Role           | Attributes                          | Used by                                                                         |
-| -------------- | ----------------------------------- | ------------------------------------------------------------------------------- |
-| `kestrel_app`  | `LOGIN`, `NOBYPASSRLS`              | Web application (`DATABASE_URL`) once the app stops using the bundled superuser |
-| `hamafx_admin` | `LOGIN`, `BYPASSRLS`, `NOSUPERUSER` | Worker, cron, and administrative paths via `ADMIN_DATABASE_URL`                 |
+| Role           | Attributes                          | Used by                                                                    |
+| -------------- | ----------------------------------- | -------------------------------------------------------------------------- |
+| `kestrel_app`  | `LOGIN`, `NOBYPASSRLS`              | Web application and worker app traffic (`DATABASE_URL`)                     |
+| `hamafx_admin` | `LOGIN`, `BYPASSRLS`, `NOSUPERUSER` | Worker, cron, and administrative paths via `ADMIN_DATABASE_URL`             |
 
 Postgres row-level security only applies to a connection whose role cannot bypass it.
 Migration `0094` creates `kestrel_app` deliberately `NOLOGIN` — credentials must never
@@ -79,11 +79,16 @@ sequences, and future objects. Provisioning supplies the missing deployment half
   it is safe to re-run. It never prints the password and refuses a password shorter
   than 16 characters. Add the same value to `.env` so Compose keeps passing it.
 
-> **Until `DATABASE_URL` points at `kestrel_app` (for example
-> `postgres://kestrel_app:${POSTGRES_APP_PASSWORD}@db:5432/hamafx`), RLS is not
-> enforced.** The bundled `hamafx` role is a Postgres superuser, and superusers bypass
-> every policy even with `FORCE ROW LEVEL SECURITY`. The app-side switch is tracked in
-> `docs/audit/kestrel-architecture-db-audit-2026-10-31.md` (R1).
+> **Compose selects the app role automatically when the credential exists.**
+> `DATABASE_URL` is
+> `postgres://${POSTGRES_APP_PASSWORD:+kestrel_app:}${POSTGRES_APP_PASSWORD:-hamafx:${POSTGRES_PASSWORD}}@db:5432/hamafx`,
+> so a fresh install (where `./docker/init-secrets.sh` generated
+> `POSTGRES_APP_PASSWORD`) connects as `kestrel_app` and RLS is enforced. An existing
+> volume that has not run the provisioning step above has no such credential and
+> therefore still connects as `hamafx` — a Postgres superuser — which bypasses every
+> policy even with `FORCE ROW LEVEL SECURITY`. Provision the role, add
+> `POSTGRES_APP_PASSWORD` to `.env`, and restart to close that gap. To verify a running
+> deployment, check that `current_user` is `kestrel_app` with `rolbypassrls = false`.
 
 ## Application and runtime
 

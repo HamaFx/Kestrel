@@ -106,12 +106,47 @@ function main() {
   const cronSecret = getOrGen('CRON_SECRET', 24);
   const workerHealthToken = getOrGen('WORKER_HEALTH_TOKEN', 24);
   const biquoteProxyToken = getOrGen('BIQUOTE_PROXY_TOKEN', 24);
+  // Audit 2026-10-31 (R1): the web app and worker connect as the non-bypass
+  // `kestrel_app` role so row level security applies. This is only the
+  // credential — the role and its grants come from migration 0119 plus a
+  // one-off `pnpm --filter @kestrel/db provision:app-role`.
+  const appDbPassword = getOrGen('POSTGRES_APP_PASSWORD', 32);
+
+  /**
+   * Rewrite a Postgres URL to connect as `kestrel_app`.
+   *
+   * The username suffix is preserved because Supabase's pooler routes on
+   * `<role>.<project-ref>`: `postgres.abcdef` must become
+   * `kestrel_app.abcdef`, not `kestrel_app`. Returns null when the URL is a
+   * placeholder that cannot be parsed, so the caller can say so instead of
+   * silently shipping a privileged connection.
+   */
+  function toAppDbUrl(privilegedUrl, password) {
+    try {
+      const parsed = new URL(privilegedUrl);
+      const [, ...suffix] = parsed.username.split('.');
+      parsed.username = ['kestrel_app', ...suffix].join('.');
+      parsed.password = password;
+      return parsed.toString();
+    } catch {
+      return null;
+    }
+  }
 
   const dbUrl =
     args.db ||
     process.env.DATABASE_URL ||
     existing.get('DATABASE_URL') ||
     'postgres://postgres.<project-ref>:<password>@aws-0-us-east-1.pooler.supabase.com:6543/postgres';
+
+  const appDbUrl = toAppDbUrl(dbUrl, appDbPassword);
+  const appDbUrlNote = appDbUrl
+    ? `# App traffic connects as kestrel_app (non-bypass), so row level security applies.`
+    : [
+        '# WARNING: DATABASE_URL could not be rewritten to the kestrel_app role',
+        '# (it is still a placeholder). Once the real URL is set, re-run this',
+        '# script — until then the app would connect with a role that bypasses RLS.',
+      ].join('\n');
 
   const adminDbUrl =
     args.adminDb ||
@@ -136,7 +171,9 @@ function main() {
     '# ============================================================================',
     '',
     '# 1. Required Core Secrets (must match Vercel)',
-    `DATABASE_URL=${dbUrl}`,
+    appDbUrlNote,
+    `DATABASE_URL=${appDbUrl ?? dbUrl}`,
+    `POSTGRES_APP_PASSWORD=${appDbPassword}`,
     `ADMIN_DATABASE_URL=${adminDbUrl}`,
     `DIRECT_URL=${adminDbUrl}`,
     `ENCRYPTION_SECRET=${encryptionSecret}`,
@@ -161,7 +198,9 @@ function main() {
     '# DO NOT commit this file to Git.',
     '# ============================================================================',
     '',
-    `DATABASE_URL=${dbUrl}`,
+    appDbUrlNote,
+    `DATABASE_URL=${appDbUrl ?? dbUrl}`,
+    `POSTGRES_APP_PASSWORD=${appDbPassword}`,
     `ADMIN_DATABASE_URL=${adminDbUrl}`,
     `DIRECT_URL=${adminDbUrl}`,
     `ENCRYPTION_SECRET=${encryptionSecret}`,

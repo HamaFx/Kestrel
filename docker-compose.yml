@@ -126,12 +126,16 @@ services:
       # host port when 3000 is already taken. Binds localhost only.
       - '${APP_PUBLISHED_PORT:-127.0.0.1:3000}:3000'
     environment:
-      # Audit 2026-10-31 (R1): this connection still uses the bundled Postgres
-      # superuser, which bypasses row-level security. Switching it to the
-      # provisioned kestrel_app credential is what makes RLS effective; that
-      # app-side sweep is tracked in
-      # docs/audit/kestrel-architecture-db-audit-2026-10-31.md.
-      DATABASE_URL: postgres://hamafx:${POSTGRES_PASSWORD}@db:5432/hamafx
+      # Audit 2026-10-31 (R1): the application connects as the non-bypass
+      # `kestrel_app` role once its credential exists, which is what makes row
+      # level security apply (`docker/init-secrets.sh` generates
+      # POSTGRES_APP_PASSWORD for a fresh install). An existing volume has no
+      # such credential yet, so it keeps using the bundled superuser — with RLS
+      # consequently unenforced — until the one-off
+      # `pnpm --filter @kestrel/db provision:app-role` run documented in
+      # docs/configuration.md. That path is deliberate: refusing to boot an
+      # existing stack would be a worse failure than telling the operator.
+      DATABASE_URL: postgres://${POSTGRES_APP_PASSWORD:+kestrel_app:}${POSTGRES_APP_PASSWORD:-hamafx:${POSTGRES_PASSWORD}}@db:5432/hamafx
       ADMIN_DATABASE_URL: postgres://hamafx_admin:${POSTGRES_ADMIN_PASSWORD}@db:5432/hamafx
       KESTREL_LOCAL_DOCKER: 'true'
       # The bundled Postgres service is plain TCP. This explicit local-only
@@ -182,10 +186,11 @@ services:
       context: .
       dockerfile: Dockerfile.worker
     environment:
-      # Audit 2026-10-31 (R1): app traffic on the worker is meant to move to
-      # kestrel_app too; cron/admin work stays on ADMIN_DATABASE_URL
-      # (hamafx_admin, BYPASSRLS). See the audit doc above.
-      DATABASE_URL: postgres://hamafx:${POSTGRES_PASSWORD}@db:5432/hamafx
+      # Audit 2026-10-31 (R1): app traffic on the worker uses the same
+      # non-bypass credential as the web app when it is present; cron/admin
+      # work stays on ADMIN_DATABASE_URL (hamafx_admin, BYPASSRLS) either way.
+      # See the app service above for the existing-volume caveat.
+      DATABASE_URL: postgres://${POSTGRES_APP_PASSWORD:+kestrel_app:}${POSTGRES_APP_PASSWORD:-hamafx:${POSTGRES_PASSWORD}}@db:5432/hamafx
       ADMIN_DATABASE_URL: postgres://hamafx_admin:${POSTGRES_ADMIN_PASSWORD}@db:5432/hamafx
       NODE_ENV: production
       # Deployment environment: multi-user + RLS required
