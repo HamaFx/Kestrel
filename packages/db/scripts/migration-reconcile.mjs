@@ -5,17 +5,22 @@
  * Read-only production migration/schema reconciliation report.
  *
  * This command never runs DDL or DML. It compares the repository's
- * migration hashes with drizzle.__drizzle_migrations and inspects the
- * production invariants needed before applying migrations 0065–0068.
+ * migration hashes with drizzle.__drizzle_migrations and verifies that the
+ * tables, columns and indexes declared by the built schema module actually
+ * exist — the migration chain is supposed to guarantee every one of them, so
+ * a missing object is real drift rather than "none missing".
+ *
+ * Build @kestrel/db first so the schema module is available:
+ *   pnpm --filter @kestrel/db build
  *
  * Usage:
  *   DIRECT_URL=... pnpm --filter @kestrel/db migrate:reconcile
  *   DIRECT_URL=... pnpm --filter @kestrel/db migrate:reconcile -- --json
  */
-
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+
 import postgres from 'postgres';
 
 const HERE = new URL('.', import.meta.url).pathname;
@@ -23,9 +28,7 @@ const DRIZZLE_DIR = join(HERE, '..', 'drizzle');
 const jsonOutput = process.argv.includes('--json');
 
 function getRepositoryMigrations() {
-  const journal = JSON.parse(
-    readFileSync(join(DRIZZLE_DIR, 'meta', '_journal.json'), 'utf8'),
-  );
+  const journal = JSON.parse(readFileSync(join(DRIZZLE_DIR, 'meta', '_journal.json'), 'utf8'));
   const byHash = new Map();
   const entries = journal.entries ?? [];
   for (const entry of entries) {
@@ -41,19 +44,14 @@ function getRepositoryMigrations() {
 
 function resolveSslOptions() {
   if (process.env.DB_DISABLE_SSL === 'true') {
-    if (
-      process.env.NODE_ENV !== 'production' ||
-      process.env.KESTREL_LOCAL_DOCKER === 'true'
-    ) {
+    if (process.env.NODE_ENV !== 'production' || process.env.KESTREL_LOCAL_DOCKER === 'true') {
       return false;
     }
-    throw new Error(
-      'DB_DISABLE_SSL=true is only permitted with KESTREL_LOCAL_DOCKER=true.',
-    );
+    throw new Error('DB_DISABLE_SSL=true is only permitted with KESTREL_LOCAL_DOCKER=true.');
   }
   const ca = process.env.SUPABASE_CA_CERT?.replace(/\\n/g, '\n').trim();
   if (ca) return { ca, rejectUnauthorized: true };
-  return (process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production')
+  return process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production'
     ? { rejectUnauthorized: true }
     : { rejectUnauthorized: false };
 }
@@ -69,17 +67,45 @@ function resolveDatabaseUrl() {
   );
 }
 
+/** Keep a wildly drifted report readable; --json carries the full lists. */
+function formatObjectList(items) {
+  if (items.length === 0) return 'none';
+  const head = items.slice(0, 20);
+  const extra = items.length - head.length;
+  return extra > 0 ? `${head.join(', ')} … (+${extra} more)` : head.join(', ');
+}
+
+async function loadRequiredSchemaObjects() {
+  try {
+    const { collectRequiredSchemaObjects } = await import('../dist/migration-plan.js');
+    const schema = await import('../dist/schema/index.js');
+    return collectRequiredSchemaObjects(schema);
+  } catch (error) {
+    throw new Error(
+      `Cannot load the built schema module (${error instanceof Error ? error.message : error}). ` +
+        'Run `pnpm --filter @kestrel/db build` so missing tables, columns and indexes can be verified.',
+      { cause: error },
+    );
+  }
+}
+
 function printHumanReport(report) {
   console.log('\nKestrel migration reconciliation (READ ONLY)\n');
   console.log(`Repository migrations: ${report.repository.migrationCount}`);
   console.log(`Production migrations: ${report.production.migrationCount ?? 'unavailable'}`);
-  console.log(`Migration tracking table available: ${String(report.production.trackingTableAvailable)}`);
+  console.log(
+    `Migration tracking table available: ${String(report.production.trackingTableAvailable)}`,
+  );
   console.log(`Unknown production hashes: ${report.production.unknown.length}`);
   console.log(`Repository hashes absent in production: ${report.production.missing.length}`);
   console.log(`Duplicate briefing groups: ${report.schema.duplicateBriefingGroups.length}`);
-  console.log(`Missing required tables: ${report.schema.missingTables.join(', ') || 'none'}`);
-  console.log(`Missing required columns: ${report.schema.missingColumns.join(', ') || 'none'}`);
-  console.log(`Missing required indexes: ${report.schema.missingIndexes.join(', ') || 'none'}`);
+  console.log(
+    `Schema objects verified: ${report.schema.verified.tables} tables, ` +
+      `${report.schema.verified.columns} columns, ${report.schema.verified.indexes} indexes`,
+  );
+  console.log(`Missing required tables: ${formatObjectList(report.schema.missingTables)}`);
+  console.log(`Missing required columns: ${formatObjectList(report.schema.missingColumns)}`);
+  console.log(`Missing required indexes: ${formatObjectList(report.schema.missingIndexes)}`);
   console.log(
     `Stale production-only columns: ${report.schema.staleColumns.map((column) => `${column.name} (non-empty=${column.nonEmptyValues})`).join(', ') || 'none'}`,
   );
@@ -107,7 +133,14 @@ if (!url) {
   const report = {
     repository: { migrationCount: entries.length },
     production: { migrationCount: null, trackingTableAvailable: false, unknown: [], missing: [] },
-    schema: { duplicateBriefingGroups: [], missingTables: [], missingColumns: [], missingIndexes: [], staleColumns: [] },
+    schema: {
+      duplicateBriefingGroups: [],
+      verified: { tables: 0, columns: 0, indexes: 0 },
+      missingTables: [],
+      missingColumns: [],
+      missingIndexes: [],
+      staleColumns: [],
+    },
     security: { currentRole: null, roleBypassRls: null },
     connection: 'unavailable',
   };
@@ -151,27 +184,41 @@ try {
           return !appliedHashes.has(hash);
         })
         .map((entry) => entry.tag)
-    : [];
+    : // No tracking table at all: nothing has been applied, so every journal
+      // entry is absent. Reporting an empty list here would be misleading.
+      entries.map((entry) => entry.tag);
 
-  const duplicateRows = await sql`
-    WITH duplicate_users AS (
-      SELECT user_id
-      FROM public.chat_threads
-      WHERE is_briefings = true
-      GROUP BY user_id
-      HAVING count(*) > 1
-    )
-    SELECT
-      t.user_id,
-      t.id,
-      t.created_at,
-      t.updated_at,
-      (SELECT count(*) FROM public.chat_messages m WHERE m.thread_id = t.id) AS message_count
-    FROM public.chat_threads t
-    JOIN duplicate_users d ON d.user_id = t.user_id
-    WHERE t.is_briefings = true
-    ORDER BY t.user_id, t.created_at, t.id
-  `;
+  // The briefings invariant only exists once chat_threads has been created;
+  // on a database that is behind on migrations the missing-object report below
+  // is the useful output, so do not crash before printing it.
+  const chatThreadsAvailable = Boolean(
+    (
+      await sql`
+        SELECT to_regclass('public.chat_threads') AS table_name
+      `
+    )[0]?.table_name,
+  );
+  const duplicateRows = chatThreadsAvailable
+    ? await sql`
+        WITH duplicate_users AS (
+          SELECT user_id
+          FROM public.chat_threads
+          WHERE is_briefings = true
+          GROUP BY user_id
+          HAVING count(*) > 1
+        )
+        SELECT
+          t.user_id,
+          t.id,
+          t.created_at,
+          t.updated_at,
+          (SELECT count(*) FROM public.chat_messages m WHERE m.thread_id = t.id) AS message_count
+        FROM public.chat_threads t
+        JOIN duplicate_users d ON d.user_id = t.user_id
+        WHERE t.is_briefings = true
+        ORDER BY t.user_id, t.created_at, t.id
+      `
+    : [];
   const duplicateBriefingGroups = [];
   for (const row of duplicateRows) {
     let group = duplicateBriefingGroups.find((item) => item.userId === row.user_id);
@@ -188,31 +235,45 @@ try {
     });
   }
 
-  const requiredTables = [];
+  // R11 — the migration chain is supposed to leave every object the schema
+  // module declares in place. Previously `requiredTables` was empty, so the
+  // "missing" check could only ever report "none". The required sets now come
+  // from the built schema module; pg_catalog is used so the check still works
+  // when the connection role lacks privileges on some objects.
+  const required = await loadRequiredSchemaObjects();
+
   const tableRows = await sql`
-    SELECT table_name
-    FROM information_schema.tables
-    WHERE table_schema = 'public'
-      AND table_name IN ('__none__')
+    SELECT c.relname AS table_name
+    FROM pg_catalog.pg_class c
+    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relkind IN ('r', 'p')
   `;
   const existingTables = new Set(tableRows.map((row) => row.table_name));
-  const missingTables = requiredTables.filter((name) => !existingTables.has(name));
+  const missingTables = required.tables.filter((name) => !existingTables.has(name));
 
-  const requiredColumns = [
-    ['chat_tool_telemetry', 'output_chars'],
-    ['alerts', 'delivery_claimed_at'],
-  ];
   const columnRows = await sql`
-    SELECT table_name, column_name
-    FROM information_schema.columns
-    WHERE table_schema = 'public'
-      AND ((table_name = 'chat_tool_telemetry' AND column_name = 'output_chars')
-        OR (table_name = 'alerts' AND column_name = 'delivery_claimed_at'))
+    SELECT c.relname AS table_name, a.attname AS column_name
+    FROM pg_catalog.pg_attribute a
+    JOIN pg_catalog.pg_class c ON c.oid = a.attrelid
+    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relkind IN ('r', 'p')
+      AND a.attnum > 0
+      AND NOT a.attisdropped
   `;
   const existingColumns = new Set(columnRows.map((row) => `${row.table_name}.${row.column_name}`));
-  const missingColumns = requiredColumns
-    .map(([table, column]) => `${table}.${column}`)
-    .filter((key) => !existingColumns.has(key));
+  const missingColumns = required.columns.filter((key) => !existingColumns.has(key));
+
+  const indexRows = await sql`
+    SELECT c.relname AS index_name
+    FROM pg_catalog.pg_index i
+    JOIN pg_catalog.pg_class c ON c.oid = i.indexrelid
+    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+  `;
+  const existingIndexes = new Set(indexRows.map((row) => row.index_name));
+  const missingIndexes = required.indexes.filter((name) => !existingIndexes.has(name));
 
   const staleColumnDefinition = await sql`
     SELECT count(*)::int AS total
@@ -236,19 +297,6 @@ try {
     });
   }
 
-  const requiredIndexes = [
-    'alerts_delivery_claimed_at_idx',
-    'chat_threads_one_briefings_per_user_idx',
-  ];
-  const indexRows = await sql`
-    SELECT indexname
-    FROM pg_indexes
-    WHERE schemaname = 'public'
-      AND indexname IN ('alerts_delivery_claimed_at_idx', 'chat_threads_one_briefings_per_user_idx')
-  `;
-  const existingIndexes = new Set(indexRows.map((row) => row.indexname));
-  const missingIndexes = requiredIndexes.filter((name) => !existingIndexes.has(name));
-
   const roleRows = await sql`
     SELECT current_user AS current_role, r.rolbypassrls
     FROM pg_roles r
@@ -267,6 +315,11 @@ try {
     },
     schema: {
       duplicateBriefingGroups,
+      verified: {
+        tables: required.tables.length,
+        columns: required.columns.length,
+        indexes: required.indexes.length,
+      },
       missingTables,
       missingColumns,
       missingIndexes,

@@ -17,7 +17,7 @@ function fixture(files: Record<string, string>) {
   mkdirSync(join(dir, 'meta'));
   writeFileSync(
     join(dir, 'meta', '_journal.json'),
-    JSON.stringify({ entries: [{ tag: '0001_init' }] }),
+    JSON.stringify({ entries: [{ tag: '0001_init', when: 1 }] }),
   );
   for (const [file, content] of Object.entries(files)) writeFileSync(join(dir, file), content);
   return dir;

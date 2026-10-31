@@ -187,14 +187,32 @@ CMTyZKG3XEu5Ghl1LEnI3QmEKsqaCLv12BnVjbkSeZsMnevJPs1Ye6TjjJwdik5P
 o/bKiIz+Fq8=
 -----END CERTIFICATE-----`;
   const rawCa = process.env.SUPABASE_CA_CERT?.replace(/\\n/g, '\n').trim();
-  const ca = rawCa || (url.includes('supabase.co') || url.includes('supabase.com') ? SUPABASE_ROOT_CA_2021 : undefined);
+  const ca =
+    rawCa ||
+    (url.includes('supabase.co') || url.includes('supabase.com')
+      ? SUPABASE_ROOT_CA_2021
+      : undefined);
+  // Mirror the other migration scripts so a local scratch database can be
+  // checked with DB_DISABLE_SSL=true; the flag still refuses to disable TLS
+  // for anything that looks like a production deploy.
+  let sslOption;
+  if (ca) {
+    sslOption = { ca, rejectUnauthorized: true };
+  } else if (process.env.DB_DISABLE_SSL === 'true') {
+    if (process.env.NODE_ENV !== 'production' || process.env.KESTREL_LOCAL_DOCKER === 'true') {
+      sslOption = false;
+    } else {
+      throw new Error(
+        'DB_DISABLE_SSL=true is only permitted with KESTREL_LOCAL_DOCKER=true; configure verified TLS for production databases.',
+      );
+    }
+  } else {
+    sslOption = productionTls ? { rejectUnauthorized: true } : { rejectUnauthorized: false };
+  }
+
   const sql = postgres(url, {
     prepare: false,
-    ssl: ca
-      ? { ca, rejectUnauthorized: true }
-      : productionTls
-        ? { rejectUnauthorized: true }
-        : { rejectUnauthorized: false },
+    ssl: sslOption,
   });
 
   try {
@@ -202,13 +220,29 @@ o/bKiIz+Fq8=
       SELECT to_regclass('drizzle.__drizzle_migrations') AS table_name
     `;
     const appliedRows = trackingTable[0]?.table_name
-      ? await sql`SELECT hash FROM drizzle."__drizzle_migrations"`
+      ? await sql`SELECT hash, created_at FROM drizzle."__drizzle_migrations"`
       : [];
     const appliedHashes = new Set(appliedRows.map((r) => r.hash));
+
+    // R11: drizzle compares each entry's `when` against the newest recorded
+    // created_at (`order by created_at desc limit 1`) instead of following
+    // journal order, so an entry that is not strictly newer is skipped with no
+    // error at all. The same rule is enforced inside migrate:apply via
+    // packages/db/src/migration-plan.ts; checking it here fails the deploy
+    // before any build step runs.
+    let newestAppliedAt = null;
+    for (const row of appliedRows) {
+      const createdAt = Number(row.created_at);
+      if (newestAppliedAt === null || createdAt > newestAppliedAt) {
+        newestAppliedAt = createdAt;
+      }
+    }
 
     const journalPath = join(migrationsDir, 'meta', '_journal.json');
     const journal = JSON.parse(readFileSync(journalPath, 'utf-8'));
     const currentHashes = new Map();
+    const silentlySkipped = [];
+    let pendingCount = 0;
 
     for (const entry of journal.entries || []) {
       const sqlPath = join(migrationsDir, `${entry.tag}.sql`);
@@ -217,6 +251,17 @@ o/bKiIz+Fq8=
       }
       const fileHash = createHash('sha256').update(readFileSync(sqlPath)).digest('hex');
       currentHashes.set(fileHash, entry.tag);
+
+      if (appliedHashes.has(fileHash)) continue;
+      if (typeof entry.when !== 'number') {
+        throw new Error(
+          `Journal entry ${entry.tag} has no numeric 'when' timestamp; drizzle would not apply it reliably. Regenerate the migration.`,
+        );
+      }
+      pendingCount += 1;
+      if (newestAppliedAt !== null && entry.when <= newestAppliedAt) {
+        silentlySkipped.push(`${entry.tag} (when=${entry.when} <= ${newestAppliedAt})`);
+      }
     }
 
     const unknownAppliedHashes = [...appliedHashes].filter((hash) => !currentHashes.has(hash));
@@ -226,14 +271,13 @@ o/bKiIz+Fq8=
       );
     }
 
-    // Log the pending count for visibility
-    const pendingCount = journal.entries.filter((entry) => {
-      const sqlPath = join(migrationsDir, `${entry.tag}.sql`);
-      if (!existsSync(sqlPath)) return false;
-      const fileHash = createHash('sha256').update(readFileSync(sqlPath)).digest('hex');
-      return !appliedHashes.has(fileHash);
-    }).length;
+    if (silentlySkipped.length > 0) {
+      throw new Error(
+        `${silentlySkipped.length} pending migration(s) would be silently skipped because their \`when\` is not newer than the newest applied \`created_at\`: ${silentlySkipped.join(', ')}. Regenerate the migration with a strictly newer \`when\` before deploying.`,
+      );
+    }
 
+    // Log the pending count for visibility
     if (pendingCount > 0) {
       console.log(`[predeploy-migrate] %d pending migration(s) will be applied.`, pendingCount);
     } else {

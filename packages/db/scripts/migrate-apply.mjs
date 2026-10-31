@@ -15,14 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { resolveMigrationDatabaseUrl } from '@kestrel/shared';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
-import { resolveMigrationDatabaseUrl } from '@kestrel/shared';
-import { buildMigrationPlan, assertMigrationPlanIsConsistent } from '../dist/migration-plan.js';
+
+import {
+  assertMigrationPlanIsConsistent,
+  assertMigrationPlanWillApply,
+  buildMigrationPlan,
+} from '../dist/migration-plan.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DRIZZLE_DIR = resolve(__dirname, '..', 'drizzle');
@@ -68,10 +73,7 @@ o/bKiIz+Fq8=
   }
 
   if (process.env.DB_DISABLE_SSL === 'true') {
-    if (
-      process.env.NODE_ENV !== 'production' ||
-      process.env.KESTREL_LOCAL_DOCKER === 'true'
-    ) {
+    if (process.env.NODE_ENV !== 'production' || process.env.KESTREL_LOCAL_DOCKER === 'true') {
       return false;
     }
     throw new Error(
@@ -86,7 +88,14 @@ o/bKiIz+Fq8=
 }
 
 const plan = buildMigrationPlan(DRIZZLE_DIR);
-assertMigrationPlanIsConsistent(plan);
+try {
+  assertMigrationPlanIsConsistent(plan);
+} catch (err) {
+  console.error(
+    `[migrate:apply] Migration journal is not deployable: ${err instanceof Error ? err.message : err}`,
+  );
+  process.exit(1);
+}
 const dryRun = process.argv.includes('--dry-run');
 if (dryRun) {
   console.log(`[migrate:apply] Dry run: ${plan.entries.length} migration(s) are valid and ready.`);
@@ -101,6 +110,35 @@ const sql = postgres(databaseUrl, {
   max: 1,
   ssl: sslOption,
 });
+
+// R11 preflight — refuse a plan drizzle would silently skip. Drizzle applies
+// an entry only when its `when` (folderMillis) is strictly newer than the
+// newest `created_at` recorded in drizzle.__drizzle_migrations; it does not
+// follow journal order. Running before the migrator means an operator sees
+// this failure instead of a deploy that quietly ships a schema change that
+// was never applied.
+try {
+  const tracking = await sql`
+    SELECT to_regclass('drizzle.__drizzle_migrations') AS table_name
+  `;
+  const appliedRows = tracking[0]?.table_name
+    ? await sql`SELECT hash, created_at FROM drizzle."__drizzle_migrations"`
+    : [];
+  const audit = assertMigrationPlanWillApply(
+    plan,
+    appliedRows.map((row) => ({ hash: row.hash, createdAt: Number(row.created_at) })),
+  );
+  console.log(
+    `[migrate:apply] Preflight OK — ${audit.appliedCount} of ${plan.entries.length} migration(s) ` +
+      `already applied, ${plan.entries.length - audit.appliedCount} to apply.`,
+  );
+} catch (err) {
+  console.error(
+    `[migrate:apply] Preflight failed — refusing to apply migrations: ${err instanceof Error ? err.message : err}`,
+  );
+  await sql.end({ timeout: 5 });
+  process.exit(1);
+}
 
 try {
   // Ensure Supabase compatibility roles exist before migrations run so that
@@ -127,9 +165,13 @@ try {
   const db = drizzle(sql);
   const startedAt = Date.now();
   console.log('[migrate:apply] Applying migrations using postgres.js...');
-  console.log('[migrate:apply] PostgreSQL migration lock is managed by Drizzle; lock waits will be reported by the driver.');
+  console.log(
+    '[migrate:apply] PostgreSQL migration lock is managed by Drizzle; lock waits will be reported by the driver.',
+  );
   await migrate(db, { migrationsFolder: DRIZZLE_DIR });
-  console.log(`[migrate:apply] OK — migrations applied successfully in ${Date.now() - startedAt}ms.`);
+  console.log(
+    `[migrate:apply] OK — migrations applied successfully in ${Date.now() - startedAt}ms.`,
+  );
 } catch (err) {
   console.error('[migrate:apply] Migration failed:', err);
   process.exit(1);
