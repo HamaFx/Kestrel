@@ -346,27 +346,5 @@ export function blendSpecialistConfidence(
   return clamp01(JEV_CONFIDENCE_BLEND_WEIGHT * jev + (1 - JEV_CONFIDENCE_BLEND_WEIGHT) * llm);
 }
 
-/** One-line distribution renderer for the specialist prompt anchor. */
-function renderDistribution(probabilities: Record<string, number>): string {
-  const entries = Object.entries(probabilities);
-  if (entries.length === 0) return 'n/a';
-  return entries.map(([label, p]) => `${label} ${p.toFixed(2)}`).join(', ');
-}
-
-/**
- * Compact "statistical reference anchor" block appended to every desk prompt
- * when a calibration is present. The desks may disagree with it, but they must
- * reason in its presence.
- */
-export function jevCalibrationBlock(calibration: JevPacketCalibration): string {
-  return [
-    'JEV CALIBRATED REFERENCE (deterministic statistical anchor; you may disagree, but address it):',
-    `- Technical bias: ${renderDistribution(calibration.technicalBias.probabilities)}`,
-    `- Fundamental bias: ${renderDistribution(calibration.fundamentalBias.probabilities)}`,
-    ...(calibration.positioningBias
-      ? [`- Positioning bias: ${renderDistribution(calibration.positioningBias.probabilities)}`]
-      : []),
-    `- Volatility regime score: ${calibration.riskRegime.score.toFixed(2)} (Compressed..Extreme)`,
-    `- Setup clarity score: ${calibration.setupQualityScore.score.toFixed(2)} (Noisy..High-Clarity)`,
-  ].join('\n');
-}
+// Prompt anchor block: separate module (file-size gate), re-exported for compatibility.
+export { jevCalibrationBlock } from './jev-calibration-block';
