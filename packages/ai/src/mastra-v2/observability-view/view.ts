@@ -106,6 +106,11 @@ export async function toMastraRunView(
   const scoreMean =
     scores.length > 0 ? scores.reduce((sum, entry) => sum + entry.score, 0) / scores.length : null;
 
+  // Phase 1 (observability roadmap) — the Mastra/Langfuse trace key is the
+  // runId; fall back to it when no traceId was persisted so runs always carry
+  // a working deep link when Langfuse is configured.
+  const langfuseId = row.traceId ?? (runId.length > 0 ? runId : null);
+
   return {
     runId,
     kind: row.kind,
@@ -118,7 +123,7 @@ export async function toMastraRunView(
     estCostUsd: row.estCostUsd,
     createdAt: row.createdAt.toISOString(),
     traceId: row.traceId,
-    langfuseUrl: row.traceId ? langfuseTraceUrl(row.traceId) : null,
+    langfuseUrl: langfuseId ? langfuseTraceUrl(langfuseId) : null,
     workflow,
     scores,
     scoreMean,

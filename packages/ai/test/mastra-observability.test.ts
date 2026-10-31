@@ -76,6 +76,24 @@ function telemetryRow(overrides: Partial<RunTelemetryRow> = {}): RunTelemetryRow
   };
 }
 
+/**
+ * Restore LANGFUSE_* env vars exactly. Assigning `undefined` would leak the
+ * literal string "undefined" into process.env, which reads as a configured
+ * value to every downstream check.
+ */
+function restoreLangfuseEnv(prev: {
+  key: string | undefined;
+  secret: string | undefined;
+  base: string | undefined;
+}): void {
+  if (prev.key === undefined) delete process.env.LANGFUSE_PUBLIC_KEY;
+  else process.env.LANGFUSE_PUBLIC_KEY = prev.key;
+  if (prev.secret === undefined) delete process.env.LANGFUSE_SECRET_KEY;
+  else process.env.LANGFUSE_SECRET_KEY = prev.secret;
+  if (prev.base === undefined) delete process.env.LANGFUSE_BASE_URL;
+  else process.env.LANGFUSE_BASE_URL = prev.base;
+}
+
 describe('mastra observability — telemetry helpers', () => {
   it('builds run tracing options with runId metadata and stable tags', () => {
     const options = runTracingOptions({
@@ -152,9 +170,7 @@ describe('mastra observability — telemetry helpers', () => {
       process.env.LANGFUSE_BASE_URL = 'https://cloud.langfuse.com/';
       expect(langfuseTraceUrl('abc')).toBe('https://cloud.langfuse.com/trace/abc');
     } finally {
-      process.env.LANGFUSE_PUBLIC_KEY = prev.key;
-      process.env.LANGFUSE_SECRET_KEY = prev.secret;
-      process.env.LANGFUSE_BASE_URL = prev.base;
+      restoreLangfuseEnv(prev);
     }
   });
 
@@ -199,9 +215,7 @@ describe('mastra observability — telemetry helpers', () => {
       expect(typeof entrypoint?.flush).toBe('function');
       await entrypoint?.shutdown();
     } finally {
-      process.env.LANGFUSE_PUBLIC_KEY = prev.key;
-      process.env.LANGFUSE_SECRET_KEY = prev.secret;
-      process.env.LANGFUSE_BASE_URL = prev.base;
+      restoreLangfuseEnv(prev);
     }
   });
 
@@ -350,9 +364,25 @@ describe('mastra observability — unified run view', () => {
       expect(view.workflow.error).toBeNull();
       expect(view.error).toBeNull();
     } finally {
-      process.env.LANGFUSE_PUBLIC_KEY = prev.key;
-      process.env.LANGFUSE_SECRET_KEY = prev.secret;
-      process.env.LANGFUSE_BASE_URL = prev.base;
+      restoreLangfuseEnv(prev);
+    }
+  });
+
+  it('falls back to the runId for the Langfuse deep link when no traceId is stored', async () => {
+    const prev = {
+      key: process.env.LANGFUSE_PUBLIC_KEY,
+      secret: process.env.LANGFUSE_SECRET_KEY,
+      base: process.env.LANGFUSE_BASE_URL,
+    };
+    try {
+      process.env.LANGFUSE_PUBLIC_KEY = 'pk';
+      process.env.LANGFUSE_SECRET_KEY = 'sk';
+      process.env.LANGFUSE_BASE_URL = 'https://cloud.langfuse.com';
+      const view = await toMastraRunView(telemetryRow({ traceId: null }), undefined);
+      expect(view.runId).toBe('run-1');
+      expect(view.langfuseUrl).toBe('https://cloud.langfuse.com/trace/run-1');
+    } finally {
+      restoreLangfuseEnv(prev);
     }
   });
 

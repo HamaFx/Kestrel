@@ -25,4 +25,46 @@ describe('telemetry startup health', () => {
     expect(result.status).toBe('healthy');
     expect(result.exporters.langfuse).toBe('disabled');
   });
+
+  it('reports database, metrics, langfuse, and mastra as configured when env vars are present', () => {
+    const result = validateTelemetryStartup({
+      DATABASE_URL: 'postgres://localhost:5432/kestrel',
+      GRAFANA_CLOUD_OTLP_ENDPOINT: 'https://otlp.grafana.net/otlp',
+      GRAFANA_CLOUD_API_KEY: 'glc_123',
+      LANGFUSE_PUBLIC_KEY: 'pk-lf-123',
+      LANGFUSE_SECRET_KEY: 'sk-lf-123',
+      LANGFUSE_BASE_URL: 'https://cloud.langfuse.com',
+    });
+    expect(result.exporters).toEqual({
+      database: 'configured',
+      metrics: 'configured',
+      langfuse: 'configured',
+      mastra: 'configured',
+    });
+  });
+
+  it('reports disabled when optional exporter env vars are absent', () => {
+    const result = validateTelemetryStartup({});
+    expect(result.exporters.database).toBe('disabled');
+    expect(result.exporters.metrics).toBe('disabled');
+    expect(result.exporters.langfuse).toBe('disabled');
+    expect(result.exporters.mastra).toBe('disabled');
+  });
+
+  it('reports metrics configured when only the Prometheus remote-write transport is configured', () => {
+    const result = validateTelemetryStartup({
+      GRAFANA_CLOUD_RW_ENDPOINT: 'https://metrics.example/api/prom/push',
+      GRAFANA_CLOUD_METRICS_INSTANCE_ID: '3508468',
+      GRAFANA_CLOUD_API_KEY: 'glc_x',
+    });
+    expect(result.exporters.metrics).toBe('configured');
+  });
+
+  it('reports mastra configured when either the database or Langfuse is available', () => {
+    const withDatabaseOnly = validateTelemetryStartup({
+      POSTGRES_URL: 'postgres://localhost:5432/kestrel',
+    });
+    expect(withDatabaseOnly.exporters.database).toBe('configured');
+    expect(withDatabaseOnly.exporters.mastra).toBe('configured');
+  });
 });
