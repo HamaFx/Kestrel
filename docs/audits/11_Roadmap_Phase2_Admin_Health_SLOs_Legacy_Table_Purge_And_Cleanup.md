@@ -41,7 +41,7 @@
 - Modifies `OperationalAggregate` in `apps/web/src/lib/services/health/probe-types.ts` (removes `sentimentTotal: number` and `sentimentSucceeded: number`)
 - Modifies `buildSliSnapshots` in `apps/web/src/lib/services/health/sli-builder.ts` (removes the `sentiment_health` SLI card)
 
-- [ ] **Step 1: Write the failing test in `apps/web/test/admin/admin-health.test.ts`**
+- [x] **Step 1: Write the failing test in `apps/web/test/admin/admin-health.test.ts`**
 
 ```typescript
 it('counts Mastra v2 chat_telemetry rows in queryChatAggregate and omits retired sentiment_health SLI', async () => {
@@ -81,12 +81,12 @@ it('counts Mastra v2 chat_telemetry rows in queryChatAggregate and omits retired
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/web test test/admin/admin-health.test.ts test/admin-system-health.test.tsx`
 Expected: FAIL (`sentiment_health` is still present in `slis`)
 
-- [ ] **Step 3: Update `probe-types.ts`, `probe-queries.ts`, `anomaly-builder.ts`, `sli-builder.ts`, and `sli-icons.ts`**
+- [x] **Step 3: Update `probe-types.ts`, `probe-queries.ts`, `anomaly-builder.ts`, `sli-builder.ts`, and `sli-icons.ts`**
   - In `apps/web/src/lib/services/health/probe-queries.ts`:
     - Update `queryChatAggregate` to:
       ```sql
@@ -101,12 +101,12 @@ Expected: FAIL (`sentiment_health` is still present in `slis`)
   - In `apps/web/src/lib/services/health/sli-builder.ts`, remove the `sentiment_health` object from `operationalSlis`.
   - In `apps/web/src/app/(app)/admin/_components/admin-system-health/sli-icons.ts`, remove `sentiment_health` if typed against SLI keys.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pnpm --filter @kestrel/web test test/admin/admin-health.test.ts test/admin-system-health.test.tsx`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/web/src/lib/services/health/ apps/web/src/app/\(app\)/admin/_components/admin-system-health/sli-icons.ts apps/web/test/admin/admin-health.test.ts apps/web/test/admin-system-health.test.tsx
@@ -144,7 +144,7 @@ git commit -m "fix(web): count Mastra turns in chat health SLI and remove retire
   ```
 - Removes `aiShadowComparisonsDeleted` and `aiQualityResultsDeleted` from `RetentionResult` (`@kestrel/db`).
 
-- [ ] **Step 1: Write the failing test updates in `packages/db/test/retention.test.ts` and `packages/db/test/migration-plan.test.ts`**
+- [x] **Step 1: Write the failing test updates in `packages/db/test/retention.test.ts` and `packages/db/test/migration-plan.test.ts`**
 
 ```typescript
 // In packages/db/test/retention.test.ts:
@@ -155,12 +155,12 @@ expect(result.note).not.toContain('aiShadowComparisonsDeleted');
 expect(result.note).not.toContain('aiQualityResultsDeleted');
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/db test test/retention.test.ts`
 Expected: FAIL (`result.note` still contains `aiShadowComparisonsDeleted=2`)
 
-- [ ] **Step 3: Create migration `0118` and remove `aiShadowComparisons` + `aiQualityResults` references**
+- [x] **Step 3: Create migration `0118` and remove `aiShadowComparisons` + `aiQualityResults` references**
   - Create `packages/db/drizzle/0118_drop_legacy_shadow_and_quality_tables.sql` with `DROP TABLE IF EXISTS "ai_shadow_comparisons" CASCADE; DROP TABLE IF EXISTS "ai_quality_results" CASCADE;`.
   - Append `{ "idx": 117, "version": "7", "when": 1793200000000, "tag": "0118_drop_legacy_shadow_and_quality_tables", "breakpoints": true }` to `packages/db/drizzle/meta/_journal.json` and add the SHA-256 hash of `0118_drop_legacy_shadow_and_quality_tables.sql` to `packages/db/drizzle/meta/_hashes.json`.
   - Remove `export * from './ai-quality-results';` and `export * from './ai-shadow-comparisons';` from `packages/db/src/schema/ai/index.ts`.
@@ -170,12 +170,12 @@ Expected: FAIL (`result.note` still contains `aiShadowComparisonsDeleted=2`)
   - Remove the `aiShadowComparisons` and `aiQualityResults` queries from `apps/web/src/app/(app)/settings/_actions-data-export-payload.ts`.
   - Update `packages/db/test/ai-shadow-comparisons.test.ts` (replace with a minimal pass stub or remove export assertions so `check-test-files.mjs` passes).
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pnpm --filter @kestrel/db test && pnpm --filter @kestrel/worker test test/jobs-registry.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/db/ apps/worker/src/jobs/retention.ts apps/web/src/app/api/cron/cleanup-telemetry/route.ts apps/web/src/app/\(app\)/settings/_actions-data-export-payload.ts
@@ -199,7 +199,7 @@ git commit -m "chore(db,web,worker): drop unused ai_shadow_comparisons and ai_qu
 - Modifies `METRIC_NAMES` in `packages/shared/src/metrics.ts`: removes `'mastra_shadow_total'`, `'mastra_shadow_failed_total'`, `'mastra_shadow_skipped_total'`
 - Modifies `TELEMETRY_KINDS` in `packages/ai/src/persistence/telemetry-persistence.ts`: retains only active Mastra v2 kinds (`'mastra_xauusd_research'`, `'mastra_xauusd_research_failed'`, `'mastra_xauusd_poc'`, `'mastra_xauusd_poc_failed'`, `'mastra_mode'`, `'mastra_mode_failed'`, `'mastra_full_job'`, `'mastra_full_job_failed'`, `'mastra_worker_task'`, `'mastra_worker_task_failed'`, `'mastra_canonical_chat'`, `'mastra_canonical_chat_failed'`, `'mastra_custom_agent'`, `'mastra_custom_agent_failed'`, `'turn_failed'`)
 
-- [ ] **Step 1: Write the failing test in `packages/ai/test/telemetry-persistence.test.ts` and `packages/shared/test/metrics.test.ts`**
+- [x] **Step 1: Write the failing test in `packages/ai/test/telemetry-persistence.test.ts` and `packages/shared/test/metrics.test.ts`**
 
 ```typescript
 // In packages/ai/test/telemetry-persistence.test.ts:
@@ -223,22 +223,22 @@ it('excludes retired mastra_shadow_* metrics from METRIC_NAMES', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/shared test test/metrics.test.ts && pnpm --filter @kestrel/ai test test/telemetry-persistence.test.ts`
 Expected: FAIL (`TELEMETRY_KINDS` still contains `'multi_specialist_sentiment'` and `isMetricName('mastra_shadow_total')` is `true`)
 
-- [ ] **Step 3: Prune `METRIC_NAMES`, `TELEMETRY_KINDS`, and mark/remove unused barrel exports**
+- [x] **Step 3: Prune `METRIC_NAMES`, `TELEMETRY_KINDS`, and mark/remove unused barrel exports**
   - In `packages/shared/src/metrics.ts`, remove `'mastra_shadow_total'`, `'mastra_shadow_failed_total'`, and `'mastra_shadow_skipped_total'` from `METRIC_NAMES`.
   - In `packages/ai/src/persistence/telemetry-persistence.ts`, remove the 14 retired pre-Mastra kinds (`routing_*`, `plan_*`, `multi_specialist_*`, `multi_agent_turn`) from `TELEMETRY_KINDS`.
   - Run `pnpm knip` or `pnpm typecheck` to ensure no remaining references exist.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pnpm --filter @kestrel/shared test test/metrics.test.ts && pnpm --filter @kestrel/ai test test/telemetry-persistence.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/shared/src/metrics.ts packages/shared/test/metrics.test.ts packages/ai/src/persistence/telemetry-persistence.ts packages/ai/test/telemetry-persistence.test.ts
