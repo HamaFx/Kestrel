@@ -42,7 +42,7 @@
   - `boundsForMetric(name: MetricName): readonly number[]` in `packages/shared/src/metrics.ts`
   - `HistogramSummary.bounds: number[]` on `HistogramSummary` in `packages/shared/src/metrics.ts`
 
-- [ ] **Step 1: Write the failing tests in `packages/shared/test/metrics.test.ts` and `packages/shared/test/metrics-export.test.ts`**
+- [x] **Step 1: Write the failing tests in `packages/shared/test/metrics.test.ts` and `packages/shared/test/metrics-export.test.ts`**
 
 ```typescript
 // In packages/shared/test/metrics.test.ts:
@@ -96,12 +96,12 @@ it('exports USD explicitBounds for turn_cost_usd in OTLP JSON', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/shared test test/metrics.test.ts test/metrics-export.test.ts`
 Expected: FAIL (`HISTOGRAM_BUCKET_BOUNDS_USD is not exported`)
 
-- [ ] **Step 3: Implement `HISTOGRAM_BUCKET_BOUNDS_USD` and `boundsForMetric` in `packages/shared/src/metrics.ts`, `otlp.ts`, and `remote-write.ts`**
+- [x] **Step 3: Implement `HISTOGRAM_BUCKET_BOUNDS_USD` and `boundsForMetric` in `packages/shared/src/metrics.ts`, `otlp.ts`, and `remote-write.ts`**
   - In `packages/shared/src/metrics.ts`:
     - Export `HISTOGRAM_BUCKET_BOUNDS_USD = [0.0001, 0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5] as const`.
     - Export `function boundsForMetric(name: MetricName): readonly number[] { return name.endsWith('_usd') ? HISTOGRAM_BUCKET_BOUNDS_USD : HISTOGRAM_BUCKET_BOUNDS_MS; }`.
@@ -111,12 +111,12 @@ Expected: FAIL (`HISTOGRAM_BUCKET_BOUNDS_USD is not exported`)
   - In `packages/shared/src/metrics-export/remote-write.ts`:
     - Use `const bounds = summary.bounds ?? HISTOGRAM_BUCKET_BOUNDS_MS;` when iterating bucket bounds for `${name}_bucket`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pnpm --filter @kestrel/shared test test/metrics.test.ts test/metrics-export.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/shared/src/metrics.ts packages/shared/src/metrics-export/otlp.ts packages/shared/src/metrics-export/remote-write.ts packages/shared/test/metrics.test.ts packages/shared/test/metrics-export.test.ts
@@ -145,7 +145,7 @@ git commit -m "fix(shared): use sub-dollar histogram buckets for *_usd cost metr
     - `'mastra_xauusd_research'` | `'mastra_xauusd_poc'` | `undefined` → `MASTRA_XAUUSD_AGENT_ID` (`'kestrel-xauusd-research-poc'`)
   - `beginMastraRun` accepts optional `telemetryKind?: MastraRunObservation['telemetryKind']`
 
-- [ ] **Step 1: Write the failing test in `packages/ai/test/mastra-telemetry.test.ts`**
+- [x] **Step 1: Write the failing test in `packages/ai/test/mastra-telemetry.test.ts`**
 
 ```typescript
 it('tags canonical-chat and mode runs with their own agent label instead of kestrel-xauusd-research-poc', async () => {
@@ -173,23 +173,23 @@ it('tags canonical-chat and mode runs with their own agent label instead of kest
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/ai test test/mastra-telemetry.test.ts`
 Expected: FAIL (`expected undefined to be 1` because `agent` was hardcoded to `kestrel-xauusd-research-poc`)
 
-- [ ] **Step 3: Update `packages/ai/src/mastra-v2/shared/run-telemetry.ts` and callers**
+- [x] **Step 3: Update `packages/ai/src/mastra-v2/shared/run-telemetry.ts` and callers**
   - Add `export function agentLabelForTelemetryKind(kind?: MastraRunObservation['telemetryKind']): string` and `function stepNameForTelemetryKind(kind?: MastraRunObservation['telemetryKind']): string` (`'mastra_canonical_chat'` → `'mastra_canonical_chat_run'`, `'mastra_mode'` → `'mastra_mode_run'`, `'mastra_full_job'` → `'mastra_full_job_run'`, `'mastra_custom_agent'` → `'mastra_custom_agent_run'`, default `'mastra_xauusd_run'`).
   - Update `beginMastraRun` to accept `telemetryKind?: MastraRunObservation['telemetryKind']` and use `stepNameForTelemetryKind(args.telemetryKind)` and `agentLabelForTelemetryKind(args.telemetryKind)`.
   - Update `finishMastraRun` to compute `const agentLabel = agentLabelForTelemetryKind(args.telemetryKind)` and `const stepName = stepNameForTelemetryKind(args.telemetryKind)` and pass `agent: agentLabel` to `mastra_run_total`, `total_latency_ms`, `mastra_run_failed_total`, `mastra_unpriced_model_total`, and `turn_cost_usd`.
   - Pass `telemetryKind: 'mastra_canonical_chat'` to `beginMastraRun` in `packages/ai/src/mastra-v2/agents/canonical/chat.ts` and `stream.ts`, and `telemetryKind: args.telemetryKind ?? 'mastra_mode'` in `packages/ai/src/mastra-v2/planning/mode-runner/run.ts`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pnpm --filter @kestrel/ai test test/mastra-telemetry.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/ai/src/mastra-v2/shared/run-telemetry.ts packages/ai/src/mastra-v2/agents/canonical/chat.ts packages/ai/src/mastra-v2/agents/canonical/stream.ts packages/ai/src/mastra-v2/planning/mode-runner/run.ts packages/ai/test/mastra-telemetry.test.ts
@@ -213,7 +213,7 @@ git commit -m "fix(ai): attribute Mastra run metrics and diagnostic steps by tel
   - Active `RunDiagnosticContext` + `traceIdStorage` + `runIdStorage` during `runMastraCanonicalChat`, `runMastraCanonicalChatStream`, `runMastraMode`, and `runCustomAgentStreamService`
   - Automatic `persistDiagnosticContext(diagCtx, status)` on stream completion/failure
 
-- [ ] **Step 1: Write the failing test in `packages/ai/test/canonical-diagnostics.test.ts`**
+- [x] **Step 1: Write the failing test in `packages/ai/test/canonical-diagnostics.test.ts`**
 
 ```typescript
 import { describe, expect, it, vi } from 'vitest';
@@ -229,12 +229,12 @@ describe('Diagnostic trace coverage across canonical chat and mode runner', () =
 ```
 *(Expand the test in `packages/ai/test/canonical-diagnostics.test.ts` to mock `setupCanonicalChat` and `persistTrace`, invoke `runMastraCanonicalChat` and `runMastraCanonicalChatStream`, consume `text` + `completion`, and assert that `getDiagnosticContext()?.runId` matched `runId` and `persistTrace` was called with `status: 'completed'`.)*
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/ai test test/canonical-diagnostics.test.ts`
 Expected: FAIL (`persistTrace` not called during `runMastraCanonicalChat` / `runMastraCanonicalChatStream`)
 
-- [ ] **Step 3: Wire `withDiagnostics` into `canonical/chat.ts`, `canonical/stream.ts`, `mode-runner/run.ts`, and `mastra-custom-agent-stream/service.ts`**
+- [x] **Step 3: Wire `withDiagnostics` into `canonical/chat.ts`, `canonical/stream.ts`, `mode-runner/run.ts`, and `mastra-custom-agent-stream/service.ts`**
   - In `packages/ai/src/mastra-v2/agents/canonical/chat.ts`:
     - If `getDiagnosticContext()` is null, wrap the body of `runMastraCanonicalChat` in `withDiagnostics(args.userId, args.threadId, () => executeCanonicalChat(args, runId), { traceId: runId, runId })`.
   - In `packages/ai/src/mastra-v2/agents/canonical/stream.ts`:
@@ -246,12 +246,12 @@ Expected: FAIL (`persistTrace` not called during `runMastraCanonicalChat` / `run
   - In `apps/web/src/lib/services/mastra/chat/mastra-custom-agent-stream/service.ts`:
     - Import `withDiagnostics, getDiagnosticContext, persistDiagnosticContext` from `@kestrel/ai` and wrap the custom agent stream setup with `{ deferCompletion: true, traceId: runId, runId }`, calling `await persistDiagnosticContext(diagCtx, 'completed' | 'failed')` when the stream completes or errors.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pnpm --filter @kestrel/ai test test/canonical-diagnostics.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/ai/src/mastra-v2/agents/canonical/chat.ts packages/ai/src/mastra-v2/agents/canonical/stream.ts packages/ai/src/mastra-v2/planning/mode-runner/run.ts apps/web/src/lib/services/mastra/chat/mastra-custom-agent-stream/service.ts packages/ai/test/canonical-diagnostics.test.ts
@@ -273,7 +273,7 @@ git commit -m "fix(ai,web): wrap canonical chat, mode runner, and custom agents 
   - `TelemetryStartupCheck['exporters']` where `database`, `metrics`, `langfuse`, and `mastra` each resolve to `'configured' | 'disabled'` (preserving `'unknown'` in the union type for backward compatibility)
   - Consistent `langfuseUrl` resolution (`langfuseTraceUrl(row.traceId ?? row.runId)`) in `toMastraRunView` and `traceDocumentWithDeepLinks`
 
-- [ ] **Step 1: Write the failing test in `packages/ai/test/telemetry-startup.test.ts`**
+- [x] **Step 1: Write the failing test in `packages/ai/test/telemetry-startup.test.ts`**
 
 ```typescript
 it('reports database, metrics, langfuse, and mastra as configured when env vars are present', () => {
@@ -300,12 +300,12 @@ it('reports disabled when optional exporter env vars are absent', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @kestrel/ai test test/telemetry-startup.test.ts`
 Expected: FAIL (`expected 'unknown' to deeply equal 'configured'`)
 
-- [ ] **Step 3: Implement real readiness checks in `telemetry-startup.ts` and fallback ID in `observability-view/view.ts`**
+- [x] **Step 3: Implement real readiness checks in `telemetry-startup.ts` and fallback ID in `observability-view/view.ts`**
   - In `packages/ai/src/mastra-v2/shared/telemetry-startup.ts`:
     - Expand `exporters` field types to `'configured' | 'disabled' | 'unknown'`.
     - Compute:
@@ -324,12 +324,12 @@ Expected: FAIL (`expected 'unknown' to deeply equal 'configured'`)
   - In `packages/ai/src/diagnostics/trace-persistence.ts`:
     - In `traceDocumentWithDeepLinks`, resolve `const correlationId = (typeof trace.trace['runId'] === 'string' && trace.trace['runId'].length > 0) ? trace.trace['runId'] : trace.traceId;` and pass `correlationId` to `langfuseTraceUrl`.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pnpm --filter @kestrel/ai test test/telemetry-startup.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/ai/src/mastra-v2/shared/telemetry-startup.ts packages/ai/src/mastra-v2/observability-view/view.ts packages/ai/src/diagnostics/trace-persistence.ts packages/ai/test/telemetry-startup.test.ts
