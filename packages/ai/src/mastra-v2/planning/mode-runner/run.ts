@@ -29,6 +29,7 @@
 
 import { assetClassForSymbol, metrics } from '@kestrel/shared';
 
+import { getDiagnosticContext, withDiagnostics } from '@ai/diagnostics';
 import { rememberMarketRegime } from '@ai/memory/memory-index';
 import { createGenerationLedger } from '@ai/persistence/generation-ledger';
 
@@ -45,6 +46,20 @@ import { buildToolContext } from './run-context';
 import type { MastraModeResult, RunMastraModeArgs } from './types';
 
 export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraModeResult> {
+  // Phase 1 (observability roadmap) — synchronous committee runs
+  // (`symbol-research`, `multi-symbol-research`, and the web full-mode stream)
+  // get their own diagnostic scope so they write durable traces. The durable
+  // worker path already wraps `runMastraMode` in `withDiagnostics`
+  // (multi-agent-analysis/execute-run.ts) — reuse that scope instead of
+  // nesting a second one that would double-persist the trace.
+  if (getDiagnosticContext()) return executeMastraMode(args);
+  return withDiagnostics(args.userId, args.threadId, () => executeMastraMode(args), {
+    traceId: args.runId,
+    runId: args.runId,
+  });
+}
+
+async function executeMastraMode(args: RunMastraModeArgs): Promise<MastraModeResult> {
   const comparisonSymbols = [...new Set(args.symbols ?? [])];
   const isComparison = comparisonSymbols.length >= 2;
   // C-02 (audit 2026-10-18) — per-asset-class telemetry so committee cost and

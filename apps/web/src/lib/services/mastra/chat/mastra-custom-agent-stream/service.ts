@@ -31,7 +31,10 @@ import {
   createGenerationLedger,
   DEFAULT_MAX_DAILY_USD,
   extractUserMessageText,
+  getDiagnosticContext,
+  persistDiagnosticContext,
   reserveTurnBudget,
+  withDiagnostics,
 } from '@kestrel/ai';
 import { listMessages } from '@kestrel/ai/persistence';
 import {
@@ -81,17 +84,43 @@ export interface RunCustomAgentStreamInput {
 export async function runCustomAgentStreamService(
   input: RunCustomAgentStreamInput,
 ): Promise<Response> {
+  const runId = crypto.randomUUID();
+  // Phase 1 (observability roadmap) — the `@handle` stream owns its diagnostic
+  // scope for the whole stream lifetime. `deferCompletion` keeps the trace
+  // from persisting when the HTTP response handle returns; the stream's
+  // terminal paths persist it once the stream completes or errors.
+  return withDiagnostics(
+    input.userId,
+    input.threadId,
+    () => executeCustomAgentStreamService(input, runId),
+    { deferCompletion: true, traceId: runId, runId },
+  );
+}
+
+async function executeCustomAgentStreamService(
+  input: RunCustomAgentStreamInput,
+  runId: string,
+): Promise<Response> {
+  const diagCtx = getDiagnosticContext();
   const { settings } = await getUserWithSettings(input.userId);
   if (!settings) throw new Error('User settings not found. Please complete onboarding.');
 
   const env = getServerEnv();
-  const runId = crypto.randomUUID();
   const ledger = createGenerationLedger();
   const budget = await reserveTurnBudget({
     userId: input.userId,
     maxDailyUsd: settings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD,
     correlation: { threadId: input.threadId, runId },
   });
+
+  // Exactly one terminal diagnostic write per stream, mirroring the run
+  // finalizer's one-terminal-record guarantee.
+  let diagnosticsPersisted = false;
+  const persistTerminalDiagnostics = async (status: 'completed' | 'failed'): Promise<void> => {
+    if (diagnosticsPersisted) return;
+    diagnosticsPersisted = true;
+    await persistDiagnosticContext(diagCtx, status);
+  };
 
   const finalizer = createMastraStreamFinalizer({
     budget,
@@ -245,9 +274,11 @@ export async function runCustomAgentStreamService(
           outputChars: completed.text.length,
         });
         await finalizer.complete(observedCost);
+        await persistTerminalDiagnostics('completed');
       } catch (error) {
         if (input.signal?.aborted) await finalizer.abort();
         else await finalizer.fail();
+        await persistTerminalDiagnostics('failed');
         await recordCustomAgentRun({
           runtime: input.runtime,
           descriptor: input.descriptor,
@@ -272,6 +303,7 @@ export async function runCustomAgentStreamService(
       onAbort: async () => {
         terminalStatus = 'interrupted';
         await finalizer.abort();
+        await persistTerminalDiagnostics('failed');
       },
       onComplete: () => (terminalStatus === 'persisted' ? 'persisted' : terminalStatus),
     });

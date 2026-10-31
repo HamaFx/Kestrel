@@ -19,6 +19,7 @@
 import { metrics } from '@kestrel/shared';
 
 import { estimateCostUsd } from '@ai/budget/cost';
+import { getDiagnosticContext, persistDiagnosticContext, withDiagnostics } from '@ai/diagnostics';
 import { createGenerationLedger } from '@ai/persistence/generation-ledger';
 import { withRetry } from '@ai/runtime/retry';
 import { withToolContext } from '@ai/runtime/tool-context';
@@ -29,6 +30,7 @@ import {
   createMastraRunFinalizer,
   getMastraGenerationStats,
   mastraOutcomeForError,
+  type MastraRunObservation,
 } from '../../shared/telemetry';
 import { runTracingOptions } from '../../telemetry';
 import { extractToolPartsFromMessages } from '../xauusd/legacy-tool-adapter';
@@ -41,11 +43,28 @@ import type { MastraCanonicalChatStream, RunMastraCanonicalChatArgs } from './ty
 export async function runMastraCanonicalChatStream(
   args: RunMastraCanonicalChatArgs,
 ): Promise<MastraCanonicalChatStream> {
+  const runId = args.runId ?? crypto.randomUUID();
+  // Phase 1 (observability roadmap) — the streaming turn owns its diagnostic
+  // scope for its whole lifetime. `deferCompletion` keeps the trace from being
+  // persisted when the HTTP response handle returns; the stream's terminal
+  // finalizer persists it once the stream (or its error path) finishes.
+  return withDiagnostics(
+    args.userId,
+    args.threadId,
+    () => executeCanonicalChatStream(args, runId),
+    { deferCompletion: true, traceId: runId, runId },
+  );
+}
+
+async function executeCanonicalChatStream(
+  args: RunMastraCanonicalChatArgs,
+  runId: string,
+): Promise<MastraCanonicalChatStream> {
+  const diagCtx = getDiagnosticContext();
   const startedAt = Date.now();
-  const setup = await setupCanonicalChat(args);
+  const setup = await setupCanonicalChat({ ...args, runId });
   const generationLedger = args.ledger ?? createGenerationLedger();
   const {
-    runId,
     agent,
     routing,
     resolution,
@@ -92,7 +111,17 @@ export async function runMastraCanonicalChatStream(
     ),
   );
 
-  const finishRun = createMastraRunFinalizer();
+  const finishMastra = createMastraRunFinalizer();
+  let terminalPromise: Promise<void> | null = null;
+  // One terminal finalizer for the stream: the run record and the diagnostic
+  // trace land together, exactly once, when the stream completes or fails.
+  const finishRun = (obs: MastraRunObservation): Promise<void> => {
+    terminalPromise ??= (async () => {
+      await finishMastra(obs);
+      await persistDiagnosticContext(diagCtx, obs.outcome === 'success' ? 'completed' : 'failed');
+    })();
+    return terminalPromise;
+  };
 
   async function* textIter(): AsyncIterable<string> {
     try {
