@@ -70,25 +70,6 @@ export function buildSliSnapshots(
           details: `${operational.fullCompleted}/${operational.fullTotal} Full-mode jobs completed`,
         },
         {
-          key: 'sentiment_health',
-          label: 'Sentiment Specialist',
-          current:
-            operational.sentimentTotal > 0
-              ? operational.sentimentSucceeded / operational.sentimentTotal
-              : null,
-          sloTarget: 0.95,
-          window: HOUR_LABEL,
-          success: operational.sentimentSucceeded,
-          total: operational.sentimentTotal,
-          errorBudget: computeErrorBudget(
-            operational.sentimentTotal > 0
-              ? operational.sentimentSucceeded / operational.sentimentTotal
-              : null,
-            0.95,
-          ),
-          details: `${operational.sentimentSucceeded}/${operational.sentimentTotal} sentiment calls succeeded`,
-        },
-        {
           key: 'persistence_outbox',
           label: 'Persistence Recovery',
           current:

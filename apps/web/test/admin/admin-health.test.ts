@@ -24,6 +24,8 @@ import {
   resetAdminSpendAlertDedup,
   resolveSpendWatch,
 } from '@/lib/services/admin-health';
+import { queryChatAggregate } from '@/lib/services/health/probe-queries';
+import { buildSliSnapshots } from '@/lib/services/health/sli-builder';
 
 function createMockDb(
   scenario:
@@ -88,8 +90,6 @@ function createMockDb(
               full_total: '10',
               full_completed: '10',
               full_failed: '0',
-              sentiment_total: '10',
-              sentiment_succeeded: '9',
               outbox_terminal: '10',
               outbox_completed: '10',
               outbox_dead: '0',
@@ -137,7 +137,7 @@ describe('computeHealthSloService', () => {
     expect(tickSli?.details).toBe('Oldest symbol tick 30s old across 2 symbols');
     expect(tickSli?.success).toBe(1);
     expect(result.slis.find((s) => s.key === 'full_mode_completion')?.current).toBe(1);
-    expect(result.slis.find((s) => s.key === 'sentiment_health')?.current).toBe(0.9);
+    expect(result.slis.find((s) => s.key === 'sentiment_health')).toBeUndefined();
   });
 
   it('reports healthy on-demand REST mode when live_ticks is empty and WORKER_ENABLE_TICK_STREAM is disabled', async () => {
@@ -195,7 +195,7 @@ describe('computeHealthSloService', () => {
     const result = await computeHealthSloService(db, { hours: 24 });
 
     expect(result.slis.find((s) => s.key === 'full_mode_completion')?.current).toBe(1);
-    expect(result.slis.find((s) => s.key === 'sentiment_health')?.current).toBe(0.9);
+    expect(result.slis.find((s) => s.key === 'sentiment_health')).toBeUndefined();
     expect(result.anomalies).not.toContain(
       'Recovery telemetry is unavailable — outbox, budget, trace, and Full-mode health cannot be verified',
     );
@@ -332,5 +332,46 @@ describe('computeHealthSloService', () => {
       { userId: 'user-a', spendUsd: 99 },
       { userId: 'user-b', spendUsd: 26 },
     ]);
+  });
+
+  it('counts Mastra v2 chat_telemetry rows in queryChatAggregate and omits the retired sentiment_health SLI', async () => {
+    const execute = vi.fn(async (_query: unknown) => ({ rows: [{ turns: '3' }] }));
+    const aggregate = await queryChatAggregate({ execute }, '2026-01-01T00:00:00.000Z');
+
+    expect(aggregate).toEqual({ turns: 3 });
+    const sqlText = JSON.stringify(execute.mock.calls[0]![0]);
+    expect(sqlText).toContain("kind IS NULL OR kind LIKE 'mastra_%'");
+
+    const slis = buildSliSnapshots(
+      {
+        tickOk: true,
+        tickAgeSeconds: null,
+        tickSymbolCount: 0,
+        onDemandTickMode: true,
+        cronSuccessRate: 1,
+        cronDone: 10,
+        cronTotal: 10,
+        toolSuccessRate: 1,
+        toolsOk: 20,
+        toolsTotal: 20,
+        chatTurns: 15,
+      },
+      {
+        fullTotal: 4,
+        fullCompleted: 4,
+        fullFailed: 0,
+        outboxTerminal: 2,
+        outboxCompleted: 2,
+        outboxDead: 0,
+        budgetTerminal: 15,
+        budgetErrors: 0,
+        traceTotal: 15,
+        traceFailed: 0,
+        providerFallbackTraces: 0,
+      },
+      24,
+    );
+    expect(slis.find((s) => s.key === 'sentiment_health')).toBeUndefined();
+    expect(slis.find((s) => s.key === 'chat_api')?.total).toBe(15);
   });
 });

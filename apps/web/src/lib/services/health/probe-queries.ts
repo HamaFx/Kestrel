@@ -127,10 +127,13 @@ export async function queryChatAggregate(
   since: string,
 ): Promise<ChatAggregate | null> {
   try {
+    // Count every real chat turn: legacy rows (no kind) and every Mastra v2
+    // turn kind. The old `kind IS NULL` filter silently returned 0 for all
+    // Mastra v2 traffic, permanently degrading the Admin System Health view.
     const result = await db.execute(sql`
       SELECT COUNT(*)::text AS turns
       FROM chat_telemetry
-      WHERE kind IS NULL AND created_at >= ${since}
+      WHERE (kind IS NULL OR kind LIKE 'mastra_%') AND created_at >= ${since}
     `);
     const rows = extractRows(result);
     const row = rows[0] as { turns: string } | undefined;
@@ -151,8 +154,6 @@ export async function queryOperationalAggregate(
         (SELECT COUNT(*) FROM mastra_workflow_snapshot WHERE workflow_name = 'full-analysis' AND "createdAt" >= ${since})::text AS full_total,
         (SELECT COUNT(*) FROM mastra_workflow_snapshot WHERE workflow_name = 'full-analysis' AND "createdAt" >= ${since} AND snapshot ->> 'status' = 'success')::text AS full_completed,
         (SELECT COUNT(*) FROM mastra_workflow_snapshot WHERE workflow_name = 'full-analysis' AND "createdAt" >= ${since} AND snapshot ->> 'status' = 'failed')::text AS full_failed,
-        (SELECT COUNT(*) FROM chat_telemetry WHERE kind IN ('multi_specialist_sentiment', 'multi_specialist_sentiment_failed') AND created_at >= ${since})::text AS sentiment_total,
-        (SELECT COUNT(*) FROM chat_telemetry WHERE kind = 'multi_specialist_sentiment' AND created_at >= ${since})::text AS sentiment_succeeded,
         (SELECT COUNT(*) FROM persistence_outbox WHERE created_at >= ${since} AND status IN ('completed', 'dead'))::text AS outbox_terminal,
         (SELECT COUNT(*) FROM persistence_outbox WHERE created_at >= ${since} AND status = 'completed')::text AS outbox_completed,
         (SELECT COUNT(*) FROM persistence_outbox WHERE created_at >= ${since} AND status = 'dead')::text AS outbox_dead,
@@ -177,8 +178,6 @@ export async function queryOperationalAggregate(
       fullTotal: Number(row.full_total ?? 0),
       fullCompleted: Number(row.full_completed ?? 0),
       fullFailed: Number(row.full_failed ?? 0),
-      sentimentTotal: Number(row.sentiment_total ?? 0),
-      sentimentSucceeded: Number(row.sentiment_succeeded ?? 0),
       outboxTerminal: Number(row.outbox_terminal ?? 0),
       outboxCompleted: Number(row.outbox_completed ?? 0),
       outboxDead: Number(row.outbox_dead ?? 0),
