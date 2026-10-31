@@ -5,15 +5,15 @@
 // Dispatch for streamed `tool-<name>` chat parts: core names use the bespoke
 // registry, plugin tools try their registered UI card, then fall back to the
 // automatic card and finally the compact telemetry row.
-import { pluginHost } from '@kestrel/plugin-sdk';
 import { pluginUiRegistry } from '@kestrel/plugin-sdk/ui';
-import { isCoreToolName, type CoreToolName } from '@kestrel/shared';
+import { extractPluginToolConfirm, isCoreToolName, type CoreToolName } from '@kestrel/shared';
 import type { ComponentType, ReactElement } from 'react';
 
 import '@/lib/plugins/register-ui';
 
 import { AutoPluginToolCard } from '../auto-plugin-tool-card';
 import { CompactTelemetryRow } from '../compact-telemetry-row';
+import { PluginToolConfirmCard } from '../plugin-tool-confirm-card';
 import { parseBespokeOutput, partRegistry } from './part-registry';
 import type { ChatToolPartProps, ToolPartProps, ToolPartState } from './types';
 
@@ -68,12 +68,21 @@ function renderPluginPart(
   state: ToolPartState,
   errorMessage: string | undefined,
 ): ReactElement {
+  // P0-6 — a confirmation envelope renders the one-click Confirm card before
+  // any plugin tool card (whose schema would reject the envelope shape).
+  if (state === 'done') {
+    const confirmation = extractPluginToolConfirm(output);
+    if (confirmation) return <PluginToolConfirmCard payload={confirmation} />;
+  }
+
   const registration = pluginUiRegistry.getToolPart(name);
   if (registration) {
     const PluginPart = registration.component;
-    // Validate against the plugin tool's real output schema (or the UI's
-    // explicit override) so a malformed payload never reaches custom code.
-    const schema = registration.schema ?? pluginHost.getTool(name)?.outputSchema;
+    // Validate against the plugin card's explicit output schema when it
+    // declares one so a malformed payload never reaches custom code. The
+    // registry lives in the browser; the server-side `pluginHost` is empty
+    // here, so its outputSchema is intentionally not consulted.
+    const schema = registration.schema;
     if (state === 'done' && schema) {
       const parsed = schema.safeParse(output);
       if (!parsed.success) {

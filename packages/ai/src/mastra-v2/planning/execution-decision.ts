@@ -13,7 +13,13 @@ import {
   type MastraModelPurpose,
   type MastraResolvedModel,
 } from '../../models/model';
-import { resolveSemanticRoutingConfig, routeTurn, type RoutingDecision, type RoutingDomain } from '../../routing';
+import { detectInstalledPluginIntent } from '../../plugins/intent';
+import {
+  resolveSemanticRoutingConfig,
+  routeTurn,
+  type RoutingDecision,
+  type RoutingDomain,
+} from '../../routing';
 import { isHighConfidenceMutationIntent } from '../../routing/keywords';
 import {
   evaluateMastraCapability,
@@ -22,6 +28,7 @@ import {
   type MastraCapabilityId,
 } from '../capabilities';
 import { classifyMutationRequest } from '../mutation/mutation-detect';
+import { capabilityFor, purposeFor, routeFor } from './execution-routes';
 import {
   extractMastraSymbol,
   isInjectionAttempt,
@@ -69,6 +76,13 @@ export interface MastraExecutionDecisionInput {
   mutationRequested?: boolean;
   capabilityId?: MastraCapabilityId;
   signal?: AbortSignal | null;
+  /**
+   * P0-4 — enabled plugin ids for this user. When the prompt explicitly asks
+   * an installed plugin to do something, single-mode turns route to
+   * `canonical-chat` (where the plugin's tools and UI cards live) instead of
+   * `xauusd-*` / `symbol-research`.
+   */
+  installedPluginIds?: readonly string[];
   /** Phase 1 (Jev) — optional confident routing hints. */
   jevHints?: MastraJevRoutingHints | null;
 }
@@ -150,18 +164,33 @@ export async function decideMastraExecution(
   // provide an explicit server-side decision, but never rely on route code to
   // classify it after planning.
   const mutationRequested = input.mutationRequested ?? classifyMutationRequest(promptText) !== null;
+  // P0-4 — an explicit request aimed at an installed plugin ("Backtest RSI on
+  // XAUUSD", "Buy 1 lot EURUSD in my paper account", "Schedule my Telegram
+  // briefing") must stay in canonical chat: that is the only route carrying the
+  // plugin's `main-chat` tools and their chat cards. Comparisons, core
+  // mutations, Full mode and explicit capability overrides keep precedence.
+  const pluginIntent = detectInstalledPluginIntent(promptText, input.installedPluginIds ?? []);
+  const pluginRouteOverride =
+    pluginIntent !== null &&
+    input.capabilityId === undefined &&
+    input.mode === 'single' &&
+    !mutationRequested &&
+    !comparisonActive;
   const capabilityId =
     input.capabilityId ??
-    capabilityFor(
-      input.mode,
-      symbol,
-      mutationRequested,
-      reportFollowup,
-      detectedXauusdChatKind,
-      comparisonActive,
-    );
-  const plannedXauusdChatKind =
-    capabilityId === 'xauusd-research'
+    (pluginRouteOverride
+      ? null
+      : capabilityFor(
+          input.mode,
+          symbol,
+          mutationRequested,
+          reportFollowup,
+          detectedXauusdChatKind,
+          comparisonActive,
+        ));
+  const plannedXauusdChatKind = pluginRouteOverride
+    ? null
+    : capabilityId === 'xauusd-research'
       ? reportFollowup
         ? 'conversation'
         : 'research'
@@ -187,6 +216,7 @@ export async function decideMastraExecution(
     symbolCandidate,
     plannedXauusdChatKind,
     comparisonActive,
+    pluginRouteOverride,
   );
   if (
     capability &&
@@ -227,84 +257,6 @@ export async function decideMastraExecution(
     symbolCandidate,
     xauusdCandidate,
   };
-}
-
-function capabilityFor(
-  mode: MastraExecutionDecisionInput['mode'],
-  symbol: string | null,
-  mutationRequested = false,
-  reportFollowup = false,
-  xauusdChatKind: 'research' | 'conversation' | null = null,
-  comparisonActive = false,
-): MastraCapabilityId | null {
-  if (mutationRequested) return 'mutation-workflows';
-  // A-01: bounded comparisons run through the generic symbol capability; each
-  // symbol still gets its own packet + desk pass inside the comparison graph.
-  if (comparisonActive) return 'symbol-research';
-  if (symbol === 'XAUUSD' && mode === 'single') {
-    if (reportFollowup || xauusdChatKind === 'research') return 'xauusd-research';
-    if (xauusdChatKind === 'conversation') return 'xauusd-conversation';
-  }
-  // Q2 two-mode collapse: any symbol in either mode goes through the
-  // committee — `single` for the one-desk read, `full` for the 4-desk
-  // committee (the durable queue wraps the same capability).
-  if (symbol) return 'symbol-research';
-  return null;
-}
-
-function routeFor(
-  mode: MastraExecutionDecisionInput['mode'],
-  symbol: string | null,
-  mutationRequested = false,
-  capabilityId: MastraCapabilityId | null,
-  reportFollowup: boolean,
-  xauusdCandidate: boolean,
-  symbolCandidate: boolean,
-  xauusdChatKind: 'research' | 'conversation' | null,
-  comparisonActive = false,
-): MastraExecutionRoute {
-  if (mutationRequested || capabilityId === 'mutation-workflows') return 'mutation';
-  // A-01 (B-01): comparisons take precedence over the single-symbol paths in
-  // both modes — a multi-symbol prompt must never be silently answered as one
-  // symbol's research or as symbol-free canonical chat.
-  if (comparisonActive) return 'multi-symbol-research';
-  if (mode === 'full') return 'full-analysis-queue';
-  if (
-    symbol === 'XAUUSD' &&
-    capabilityId === 'xauusd-research' &&
-    (xauusdCandidate || reportFollowup)
-  ) {
-    return 'xauusd-research';
-  }
-  if (
-    symbol === 'XAUUSD' &&
-    capabilityId === 'xauusd-conversation' &&
-    (xauusdCandidate || reportFollowup) &&
-    xauusdChatKind === 'conversation'
-  ) {
-    return 'xauusd-conversation';
-  }
-  if (symbolCandidate) return 'symbol-research';
-  return 'canonical-chat';
-}
-
-function purposeFor(route: MastraExecutionRoute): MastraModelPurpose | null {
-  switch (route) {
-    case 'mutation':
-      return null;
-    case 'full-analysis-queue':
-      return 'worker';
-    case 'multi-symbol-research':
-      return 'mode';
-    case 'xauusd-conversation':
-      return 'xauusd';
-    case 'xauusd-research':
-      return 'xauusd';
-    case 'symbol-research':
-      return 'mode';
-    case 'canonical-chat':
-      return 'canonical-chat';
-  }
 }
 
 export function capabilityForRoute(route: MastraExecutionRoute): MastraCapabilityId | null {

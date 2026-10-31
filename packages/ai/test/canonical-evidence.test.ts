@@ -1,4 +1,6 @@
+import { pluginHost } from '@kestrel/plugin-sdk';
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 
 import {
   assertCanonicalEvidence,
@@ -159,5 +161,84 @@ describe('canonical evidence check (P1-06 contextual claims)', () => {
       ok: true,
       numericClaimCount: 0,
     });
+  });
+});
+
+describe('canonical evidence check (P0-5 plugin tools)', () => {
+  it('grounds paper account balances returned by paper_get_accounts', () => {
+    const text = 'Your paper sandbox balance is $100,000.00 (+2.4%).';
+    const evidence = [
+      { name: 'paper_get_accounts', resultText: '{"equity":100000,"changePct":2.4}' },
+    ];
+    expect(checkCanonicalEvidence(text, evidence)).toEqual({
+      ok: true,
+      findings: [],
+      numericClaimCount: 2,
+    });
+  });
+
+  it('grounds backtest metrics returned by backtest_run_strategy', () => {
+    const text =
+      'Backtest completed: final equity $11,420.50, net P&L +$1,240.00, max drawdown 4.2%.';
+    const evidence = [
+      {
+        name: 'backtest_run_strategy',
+        resultText: '{"finalEquity":11420.5,"netPnl":1240,"maxDrawdownPct":4.2}',
+      },
+    ];
+    expect(checkCanonicalEvidence(text, evidence).ok).toBe(true);
+  });
+
+  it('still blocks plugin numbers without any tool result', () => {
+    expect(checkCanonicalEvidence('Your paper balance is $100,000.00.', [])).toMatchObject({
+      ok: false,
+      numericClaimCount: 1,
+    });
+  });
+
+  it('still blocks a plugin-namespaced tool whose output lacks the claimed value', () => {
+    const evidence = [{ name: 'paper_get_accounts', resultText: '{"equity":2500}' }];
+    expect(checkCanonicalEvidence('Your paper balance is $100,000.00.', evidence)).toMatchObject({
+      ok: false,
+      numericClaimCount: 1,
+    });
+  });
+
+  it('accepts any actually registered plugin tool, even with a novel name', () => {
+    pluginHost.clear();
+    pluginHost.register({
+      manifest: {
+        id: 'opaque-metrics',
+        name: 'Opaque Metrics',
+        version: '1.0.0',
+        tagline: 'test',
+        description: 'test',
+        category: 'quant-research' as const,
+        iconName: 'IconFlask',
+        installMode: 'instant' as const,
+      },
+      tools: [
+        {
+          name: 'zzz_opaque_widget',
+          description: 'test tool',
+          inputSchema: z.object({}),
+          outputSchema: z.object({ value: z.number() }),
+          access: 'read-only' as const,
+          execute: async () => ({ value: 4321 }),
+        },
+      ],
+    });
+
+    try {
+      // The lexical pattern does not contain `opaque`/`widget`; registry
+      // membership is what makes the tool valid evidence.
+      expect(
+        checkCanonicalEvidence('The widget value is 4321.', [
+          { name: 'zzz_opaque_widget', resultText: '{"value":4321}' },
+        ]),
+      ).toEqual({ ok: true, findings: [], numericClaimCount: 1 });
+    } finally {
+      pluginHost.clear();
+    }
   });
 });

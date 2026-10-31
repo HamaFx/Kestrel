@@ -21,12 +21,15 @@
 // AI turn code never talks to the plugin tables directly.
 
 import {
+  getTenantDbScope,
   listInstalledPlugins,
   pluginStorageClear,
   pluginStorageDelete,
   pluginStorageGet,
   pluginStorageList,
   pluginStorageSet,
+  requireTenantIdForUser,
+  withTenantDb,
 } from '@kestrel/db';
 import {
   pluginHost,
@@ -193,6 +196,35 @@ export function createPluginExecutionContext(args: {
     ...(args.signal ? { signal: args.signal } : {}),
     ...(args.requestContext !== undefined ? { requestContext: args.requestContext } : {}),
   };
+}
+
+/**
+ * Run plugin work inside a tenant transaction when the caller has none.
+ *
+ * Streaming chat continuations (`tool.execute` after `withTenantDbFresh` has
+ * already committed its transaction), worker callbacks, and public transport
+ * routes all execute outside a request scope. Plugin tools, packet enrichers,
+ * and agent catalogs query RLS-protected tables (`plugin_storage`, `plg_*`,
+ * `trade_journal`, …), so they must open `withTenantDb` themselves.
+ *
+ * When a matching scope is already active the work runs on it; a scope for a
+ * different tenant/user is never reused.
+ */
+export async function runWithPluginTenantScope<T>(
+  userId: string,
+  tenantId: string | null | undefined,
+  work: () => Promise<T>,
+): Promise<T> {
+  const active = getTenantDbScope();
+  if (
+    active &&
+    (!tenantId || active.tenantId === tenantId) &&
+    (active.userId === undefined || active.userId === userId)
+  ) {
+    return work();
+  }
+  const resolvedTenantId = tenantId || (await requireTenantIdForUser(userId));
+  return withTenantDb(resolvedTenantId, () => work(), { userId });
 }
 
 /** Plugin tools for one core agent target, filtered by user-disabled tools. */

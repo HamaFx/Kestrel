@@ -31,6 +31,7 @@ import { alog } from './agent-log';
 import {
   createPluginExecutionContext,
   pluginSettingsFor,
+  runWithPluginTenantScope,
   type InstalledPluginRuntime,
 } from './runtime';
 
@@ -176,7 +177,11 @@ export async function listUserCustomAgents(
     const ctx = buildCatalogContext(runtime, catalog.pluginId);
     let agents: readonly PluginUserAgentDefinition[];
     try {
-      agents = await catalog.listAgents(ctx);
+      // Chat agent pickers and streaming subagent delegation resolve catalogs
+      // after the request transaction has closed; catalogs query RLS tables.
+      agents = await runWithPluginTenantScope(runtime.userId, runtime.tenantId, () =>
+        catalog.listAgents(ctx),
+      );
     } catch (err) {
       alog.warn('agent catalog failed; skipping its agents', {
         pluginId: catalog.pluginId,

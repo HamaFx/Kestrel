@@ -145,6 +145,10 @@ export { CanonicalEvidenceBlockedError } from '@kestrel/ai/mastra-v2';
 // Audit plan §1.9: guardrail failure classes for clean route-boundary mapping.
 export { GuardrailUnavailableError } from '@kestrel/ai/mastra-v2';
 export { TripWire } from '@kestrel/ai/mastra-v2';
+// Phase 2 (P0-3/P0-4): installed-plugin intent classification for the chat
+// boundary and the unified router.
+export { detectInstalledPluginIntent } from '@kestrel/ai/plugins';
+export type { PluginIntentMatch } from '@kestrel/ai/plugins';
 
 // Database queries and infrastructure used by controllers that do not yet
 // have a dedicated domain service.
@@ -200,6 +204,7 @@ export {
   reorderWatchlist,
   addUserSymbol,
   removeUserSymbol,
+  getInstalledPluginIdsForUser,
   schema,
 } from '@kestrel/db';
 
@@ -234,6 +239,7 @@ export {
   conflict,
   validationError,
   providerUnavailable,
+  rateLimited,
   AnalysisQueuedEventSchema,
   ChatStreamEventSchema,
   logStreamHub,

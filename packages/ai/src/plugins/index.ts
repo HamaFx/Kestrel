@@ -23,6 +23,7 @@ export {
   pluginSettingsFor,
   resolvePluginSkills,
   resolvePluginToolsForAgent,
+  runWithPluginTenantScope,
   type InstalledPluginRecord,
   type InstalledPluginRuntime,
 } from './runtime';
@@ -32,6 +33,11 @@ export {
   type BuildPluginMastraToolsArgs,
 } from './mastra-tools';
 export { syncPluginIndicators } from './indicators';
+export {
+  detectInstalledPluginIntent,
+  type InstalledPluginIntentId,
+  type PluginIntentMatch,
+} from './intent';
 export { enrichPacketForUser, type EnrichablePacket } from './enrichers';
 export { buildPluginCoreToolCatalog, syncPluginCoreTools } from './core-tools';
 export {

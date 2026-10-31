@@ -26,8 +26,10 @@ import { withAuth } from '@/lib/http/api';
 import { createRequestLogger } from '@/lib/logger';
 import {
   createExecutionPlan,
+  detectInstalledPluginIntent,
   extractMastraSymbols,
   extractUserMessageText,
+  getInstalledPluginIdsForUser,
   getThread,
   getUserWithSettings,
   isHighConfidenceMutationIntent,
@@ -126,6 +128,19 @@ export const POST = withAuth<void>(async (req, { user }) => {
       ? await listMessages(user.userId, body.threadId, 100)
       : [];
   const priorReportAvailable = extractLatestMastraReport(provisionalReport) !== null;
+  // Phase 2 (P0-3/P0-4): installed plugins make some prompts executable that
+  // the read-only gate would otherwise reject, and plugin-targeted prompts
+  // must route to canonical chat (where their tools live). Fail open: a
+  // plugin-table outage degrades to the previous read-only behavior.
+  let installedPluginIds: string[] = [];
+  try {
+    installedPluginIds = await getInstalledPluginIdsForUser(user.userId, { enabledOnly: true });
+  } catch (err) {
+    log.warn(
+      { err: err instanceof Error ? err.message : String(err) },
+      'installed plugin lookup failed; continuing without plugin intents',
+    );
+  }
   // Unified router (audit plan §1.1): domain, symbol, injection, mutation,
   // capability, and model resolution all classify in one pass. The lexical
   // fallbacks only run when user settings are absent (onboarding edge).
@@ -138,12 +153,16 @@ export const POST = withAuth<void>(async (req, { user }) => {
         env: serverEnv,
         priorReportAvailable,
         symbol: fallbackSymbol,
+        installedPluginIds,
       })
     : null;
   const injectionBlocked = unified ? unified.injection.blocked : isInjectionAttempt(userText);
-  const highConfidenceMutationIntent = unified
-    ? unified.highConfidenceMutationIntent
-    : isHighConfidenceMutationIntent(userText);
+  // The boundary is authoritative for the 422 gate: an installed-plugin intent
+  // is exempt even if a caller bypassed the router's own plugin awareness.
+  const pluginIntent = detectInstalledPluginIntent(userText, installedPluginIds);
+  const highConfidenceMutationIntent =
+    pluginIntent === null &&
+    (unified ? unified.highConfidenceMutationIntent : isHighConfidenceMutationIntent(userText));
   const mutationKind = unified?.mutationKind ?? null;
   const executionPlan = userSettings
     ? await createExecutionPlan({
@@ -156,6 +175,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
         priorReportAvailable,
         mutationRequested: mutationKind !== null,
         routingDecision: unified?.decision,
+        installedPluginIds,
         symbol: fallbackSymbol,
       })
     : null;
@@ -196,7 +216,9 @@ export const POST = withAuth<void>(async (req, { user }) => {
   }
 
   // Lexical high-confidence mutation gate — only blocks unambiguous trade
-  // commands that the model classifier may have missed.
+  // commands that the model classifier may have missed. Prompts targeting an
+  // installed plugin (paper orders, backtests, Telegram, custom agents) are
+  // exempt: their own tools enforce `requiresConfirmation` instead.
   if (highConfidenceMutationIntent) {
     return errorJson(
       'READ_ONLY_REQUEST_REQUIRED',

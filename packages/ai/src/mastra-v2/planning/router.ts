@@ -33,6 +33,7 @@ import type { UIMessage } from 'ai';
 import { evaluateJevTurnRouting, type JevTurnRoutingDecision } from '../../jev/turn-router';
 import type { ResolveModelEnv } from '../../models/env-factory';
 import type { MastraModelPurpose } from '../../models/model';
+import { detectInstalledPluginIntent } from '../../plugins/intent';
 import type { RoutingDecision, RoutingDomain } from '../../routing';
 import { isHighConfidenceMutationIntent } from '../../routing/keywords';
 import { classifyMutationRequestWithJev } from '../mutation/mutation-detect';
@@ -121,8 +122,15 @@ export async function routeUnified(input: UnifiedRouterInput): Promise<UnifiedRo
   // Zero-cost safety gates first — no model should ever see an injection
   // attempt, and high-confidence trade commands are rejected before routing.
   // Jev can only add a block on top of the zero-cost verdicts.
+  //
+  // P0-3 — a prompt that explicitly targets an installed plugin (paper order,
+  // backtest, Telegram scheduling, custom agents) is an execution request the
+  // plugin's own tools own: the read-only 422 gate must not fire for it. The
+  // plugin match is deterministic and only exists for installed plugins.
   const injectionBlocked = isInjectionAttempt(promptText) || jevDecision?.injectionBlocked === true;
-  const highConfidenceMutationIntent = isHighConfidenceMutationIntent(promptText);
+  const pluginIntent = detectInstalledPluginIntent(promptText, input.installedPluginIds ?? []);
+  const highConfidenceMutationIntent =
+    pluginIntent === null && isHighConfidenceMutationIntent(promptText);
   const mutationKind =
     input.classifiedMutationKind ?? classifyMutationRequestWithJev(promptText, jevDecision);
 
@@ -147,6 +155,7 @@ export async function routeUnified(input: UnifiedRouterInput): Promise<UnifiedRo
     injectionBlocked ? 'injection=blocked' : null,
     mutationKind ? `mutation=${mutationKind}` : null,
     highConfidenceMutationIntent ? 'high-confidence-mutation' : null,
+    pluginIntent ? `plugin-intent=${pluginIntent.pluginId}:${pluginIntent.reason}` : null,
     routing.rationale,
   ]
     .filter(Boolean)

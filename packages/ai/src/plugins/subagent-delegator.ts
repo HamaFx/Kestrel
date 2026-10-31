@@ -27,7 +27,7 @@ import {
   type CustomAgentDescriptor,
 } from './agent-catalog';
 import { alog } from './agent-log';
-import type { InstalledPluginRuntime } from './runtime';
+import { runWithPluginTenantScope, type InstalledPluginRuntime } from './runtime';
 
 export async function buildCustomAgentSubagents(args: {
   runtime: InstalledPluginRuntime;
@@ -86,20 +86,24 @@ export async function recordCustomAgentRun(args: {
 }): Promise<void> {
   if (!args.descriptor.catalog.recordRun) return;
   try {
-    await args.descriptor.catalog.recordRun({
-      ctx: buildCatalogContext(args.runtime, args.descriptor.pluginId),
-      agent: args.descriptor.agent,
-      runId: args.runId,
-      threadId: args.threadId,
-      status: args.status,
-      model: args.model,
-      latencyMs: args.latencyMs,
-      costUsd: args.costUsd,
-      toolCalls: args.toolCalls,
-      inputChars: args.inputChars,
-      outputChars: args.outputChars,
-      ...(args.error !== undefined ? { error: args.error } : {}),
-    });
+    // Custom-agent runs are recorded when the stream completes, after the
+    // request transaction has closed; the ledger table is RLS-protected.
+    await runWithPluginTenantScope(args.runtime.userId, args.runtime.tenantId, () =>
+      args.descriptor.catalog.recordRun!({
+        ctx: buildCatalogContext(args.runtime, args.descriptor.pluginId),
+        agent: args.descriptor.agent,
+        runId: args.runId,
+        threadId: args.threadId,
+        status: args.status,
+        model: args.model,
+        latencyMs: args.latencyMs,
+        costUsd: args.costUsd,
+        toolCalls: args.toolCalls,
+        inputChars: args.inputChars,
+        outputChars: args.outputChars,
+        ...(args.error !== undefined ? { error: args.error } : {}),
+      }),
+    );
   } catch (err) {
     alog.warn('custom agent run ledger write failed', {
       agent: args.descriptor.agent.slug,

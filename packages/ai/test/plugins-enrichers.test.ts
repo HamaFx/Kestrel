@@ -26,6 +26,9 @@ const runtime = vi.hoisted(() => ({
     settings: {},
     log: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
   })),
+  runWithPluginTenantScope: vi.fn(
+    async (_userId: string, _tenantId: string | null, work: () => Promise<unknown>) => work(),
+  ),
 }));
 
 vi.mock('../src/plugins/runtime', () => runtime);

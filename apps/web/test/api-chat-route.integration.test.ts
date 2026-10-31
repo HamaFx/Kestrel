@@ -33,6 +33,7 @@ const {
   mockDecideMastraExecution,
   mockGuardrailUnavailableError,
   mockTripWire,
+  mockGetInstalledPluginIdsForUser,
 } = vi.hoisted(() => ({
   mockEnqueueFullAnalysis: vi.fn(),
   mockGetUserWithSettings: vi.fn(),
@@ -46,6 +47,7 @@ const {
   mockRunMastraModeChatStream: vi.fn(() => new Response('mode', { status: 200 })),
   mockMastraChatResponse: vi.fn(() => new Response('xauusd', { status: 200 })),
   mockDecideMastraExecution: vi.fn(),
+  mockGetInstalledPluginIdsForUser: vi.fn(async () => [] as string[]),
   mockResolveMastraModeModel: vi.fn(() => ({
     modelId: 'google/gemini-3.6-flash',
     providerId: 'google',
@@ -194,6 +196,22 @@ vi.mock('@/lib/services/api-boundary', () => ({
   isInjectionAttempt: (prompt: string) =>
     /ignore previous instructions|system:|developer:/i.test(prompt),
   isHighConfidenceMutationIntent: (prompt: string) => /\bbuy\b|\bsell\b/i.test(prompt),
+  // Phase 2 (P0-3/P0-4): installed plugins exempt plugin-targeted prompts from
+  // the read-only gate. Mirrors the real classifier's paper-trading branch,
+  // including its live-broker exclusion. (The classifier itself is tested in
+  // packages/ai/test/plugins-intent.test.ts.)
+  getInstalledPluginIdsForUser: mockGetInstalledPluginIdsForUser,
+  detectInstalledPluginIntent: (prompt: string, installedPluginIds: readonly string[]) => {
+    if (!installedPluginIds.includes('paper-trading')) return null;
+    if (/\b(?:real\s+money|live\s+account|live\s+broker|mt4|mt5)\b/i.test(prompt)) return null;
+    const paper =
+      /\b(?:paper\s+\w+|agent\s+sandbox|sandbox\s+account|deploy\s+(?:\w+\s+){0,4}?to\s+paper)\b/i.test(
+        prompt,
+      );
+    return paper || /\bbuy\b|\bsell\b/i.test(prompt)
+      ? { pluginId: 'paper-trading' as const, reason: 'paper-explicit' }
+      : null;
+  },
   enqueueFullAnalysis: mockEnqueueFullAnalysis,
   traceIdStorage: { getStore: () => 'trace-route-1' },
   isMastraMutationEnabled: () => false,
@@ -296,6 +314,7 @@ describe('POST /api/chat Mastra boundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockWithRateLimit.mockResolvedValue({ allowed: true, count: 1, limit: 30 });
+    mockGetInstalledPluginIdsForUser.mockResolvedValue([]);
     mockGetThread.mockResolvedValue({ id: 'thread-1', userId: 'user-1' });
     mockGetUserWithSettings.mockResolvedValue({
       settings: {
@@ -518,6 +537,64 @@ describe('POST /api/chat Mastra boundary', () => {
     });
     expect(mockRunMastraXauusdChat).not.toHaveBeenCalled();
     expect(mockRunMastraCanonicalChatStreamService).not.toHaveBeenCalled();
+  });
+
+  it('lets a paper-trading order reach the agent when the plugin is installed (P0-3)', async () => {
+    mockGetInstalledPluginIdsForUser.mockResolvedValue(['paper-trading']);
+
+    const response = await POST(
+      request(
+        body({
+          messages: [
+            {
+              id: 'user-message-6',
+              role: 'user',
+              content: 'Buy 1 lot XAUUSD in my paper account with stop at 3300',
+              parts: [
+                {
+                  type: 'text',
+                  text: 'Buy 1 lot XAUUSD in my paper account with stop at 3300',
+                },
+              ],
+            },
+          ],
+        }),
+      ),
+      { params: Promise.resolve(undefined) },
+    );
+
+    // The read-only 422 gate must not fire; the turn reaches a Mastra run.
+    // (Route selection itself is covered by the AI-package decision tests.)
+    expect(response.status).toBe(200);
+    expect(
+      mockRunMastraXauusdChat.mock.calls.length +
+        mockRunMastraCanonicalChatStreamService.mock.calls.length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('keeps the 422 gate for live-broker execution even with paper-trading installed (P0-3)', async () => {
+    mockGetInstalledPluginIdsForUser.mockResolvedValue(['paper-trading']);
+
+    const response = await POST(
+      request(
+        body({
+          messages: [
+            {
+              id: 'user-message-7',
+              role: 'user',
+              content: 'Buy 1 lot XAUUSD on my live account',
+              parts: [{ type: 'text', text: 'Buy 1 lot XAUUSD on my live account' }],
+            },
+          ],
+        }),
+      ),
+      { params: Promise.resolve(undefined) },
+    );
+
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({
+      error: { code: 'READ_ONLY_REQUEST_REQUIRED' },
+    });
   });
 
   it('returns an explicit Mastra failure rather than invoking a legacy fallback', async () => {

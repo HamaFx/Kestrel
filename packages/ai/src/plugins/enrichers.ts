@@ -29,6 +29,7 @@ import {
   createPluginExecutionContext,
   getInstalledPluginRuntime,
   pluginSettingsFor,
+  runWithPluginTenantScope,
 } from './runtime';
 
 const elog = createCategorizedLogger('ai', { component: 'plugin-packet-enrichers' });
@@ -59,6 +60,7 @@ export async function enrichPacketForUser<T extends { symbol: string; status: st
 
   const runtime = await getInstalledPluginRuntime(userId);
   if (!runtime.tenantId || runtime.installedPluginIds.length === 0) return packet;
+  const tenantId = runtime.tenantId;
 
   const enrichers = pluginHost
     .getPacketEnrichers()
@@ -70,20 +72,24 @@ export async function enrichPacketForUser<T extends { symbol: string; status: st
     if (enricher.supportsSymbol && !enricher.supportsSymbol(packet.symbol)) continue;
     const ctx = createPluginExecutionContext({
       userId: runtime.userId,
-      tenantId: runtime.tenantId,
+      tenantId,
       pluginId: enricher.pluginId,
       settings: pluginSettingsFor(runtime, enricher.pluginId),
       ...(signal ? { signal } : {}),
     });
     try {
-      const value = await enricher.enrich({
-        userId: runtime.userId,
-        tenantId: runtime.tenantId,
-        symbol: packet.symbol,
-        settings: ctx.settings,
-        log: ctx.log,
-        ...(signal ? { signal } : {}),
-      });
+      // Specialist desks can run after the request transaction commits (and
+      // the worker has no request scope at all); enrichers query RLS tables.
+      const value = await runWithPluginTenantScope(runtime.userId, tenantId, () =>
+        enricher.enrich({
+          userId: runtime.userId,
+          tenantId,
+          symbol: packet.symbol,
+          settings: ctx.settings,
+          log: ctx.log,
+          ...(signal ? { signal } : {}),
+        }),
+      );
       if (value !== null && value !== undefined) {
         enrichment[`${enricher.pluginId}:${enricher.id}`] = value;
       }

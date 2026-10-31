@@ -86,6 +86,8 @@ export * from './schemas/tool-outputs/run-system-action';
 // F3 — Social Sentiment
 export * from './schemas/tool-outputs/get-social-sentiment';
 export * from './schemas/tool-outputs/web-search';
+// Plugin platform — stateless tool confirmation envelope (P0-6)
+export * from './schemas/tool-outputs/plugin-tool-confirm';
 // UI-only message parts (planner output, citation + verify warnings)
 export * from './schemas/ui-parts';
 // Briefings (cron-emitted assistant messages in the dedicated thread)

@@ -4,6 +4,8 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  */
 
+import { pluginHost } from '@kestrel/plugin-sdk';
+
 import { EVIDENCE_TOLERANCE } from '@ai/committee/grounding';
 
 import {
@@ -23,8 +25,26 @@ export interface CanonicalEvidenceCheck {
   numericClaimCount: number;
 }
 
+/**
+ * Tool names that count as evidence for numeric claims in a canonical reply.
+ *
+ * Core market tools match the lexical namespaces; the plugin namespaces
+ * (`backtest_*`, `paper_*`, `custom_agent_run_script`, `delegate_to_agent_*`,
+ * `telegram_*`, …) are included so plugin results can ground their own numbers
+ * instead of tripping `CanonicalEvidenceBlockedError` (P0-5).
+ */
 const MARKET_TOOL_PATTERN =
-  /price|candle|indicator|market|news|calendar|cot|sentiment|correlation|volatility|technical|fundamental|session|seasonality|risk|position|portfolio|journal|replay|verify|committee|knowledge|web_search|chart|packet|research/i;
+  /price|candle|indicator|market|news|calendar|cot|sentiment|correlation|volatility|technical|fundamental|session|seasonality|risk|position|portfolio|journal|replay|verify|committee|knowledge|web_search|chart|packet|research|backtest|sweep|strategy|paper|account|order|agent|delegate|script|telegram/i;
+
+/**
+ * True when a called tool can ground market/account numbers — either a known
+ * core namespace or any tool actually registered on the plugin host, so a
+ * plugin tool with a novel id still counts once the plugin is installed.
+ */
+export function isEvidenceProvidingTool(toolName: string): boolean {
+  if (MARKET_TOOL_PATTERN.test(toolName)) return true;
+  return pluginHost.getTool(toolName) !== undefined;
+}
 
 /**
  * Market-move/reading context that promotes an unsigned percentage to a claim.
@@ -113,7 +133,7 @@ export function checkCanonicalEvidence(
   toolEvidence: readonly CanonicalToolEvidence[],
 ): CanonicalEvidenceCheck {
   const claims = collectCanonicalClaims(text);
-  const marketTools = toolEvidence.filter((tool) => MARKET_TOOL_PATTERN.test(tool.name));
+  const marketTools = toolEvidence.filter((tool) => isEvidenceProvidingTool(tool.name));
   const findings: string[] = [];
   if (claims.length > 0 && marketTools.length === 0) {
     findings.push('numeric market claims were generated without a market-data tool result');
