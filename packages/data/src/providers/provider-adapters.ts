@@ -164,7 +164,7 @@ const biquoteProvider: MarketDataProvider = {
     const raw = await biquote.fetchOhlc({
       symbol,
       tf,
-      count: Math.min(count, 1000),
+      count,
       baseUrl,
       ...(opts?.from ? { from: opts.from } : {}),
       ...(opts?.to ? { to: opts.to } : {}),

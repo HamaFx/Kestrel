@@ -39,7 +39,7 @@ const OhlcEnvelopeSchema = z.object({
 export interface FetchOhlcArgs extends CallOptions {
   symbol: Symbol;
   tf: Timeframe;
-  /** Bar count, capped at BiQuote's documented 1000-per-series limit. */
+  /** Bar count; values above 1000 are paged backward (up to 5,000 bars). */
   count: number;
   /**
    * If false (default), drop the live unfinished bar (`isOpen=true`).
@@ -52,13 +52,23 @@ export interface FetchOhlcArgs extends CallOptions {
   to?: string;
 }
 
+/** BiQuote caps a single OHLC response at 1,000 bars. */
+const MAX_BARS_PER_PAGE = 1000;
+/** Hard ceiling keeps a single call at 5 pages of history plus one guard page. */
+const MAX_OHLC_PAGES = 6;
+const MAX_OHLC_BARS = 5000;
+
 /**
  * Fetch up to `count` recent or date-bounded (`from`/`to`) OHLC bars from BiQuote.
+ *
+ * BiQuote returns at most 1,000 bars per HTTP call, so windows above that are
+ * paged backward using the oldest bar's `openTime - 1ms` as the `to` cursor,
+ * deduplicated by `openTime` (bounded by `MAX_OHLC_PAGES`).
  *
  * Throws ProviderError on:
  *   - Unsupported timeframe (W1) — BiQuote doesn't expose weekly.
  *   - Quota / HTTP failure / parse error.
- *   - Empty array (treated as "no data" so failover can move on).
+ *   - Empty array on the first page (treated as "no data" so failover can move on).
  *
  * Returns oldest-first bars.
  */
@@ -73,41 +83,64 @@ export async function fetchOhlc(args: FetchOhlcArgs): Promise<BiquoteOhlcBar[]> 
     );
   }
 
-  const limit = Math.max(1, Math.min(args.count, 1000));
+  const targetCount = Math.max(1, Math.min(args.count, MAX_OHLC_BARS));
   const path = `/api/${toBiquoteSymbol(validated)}/ohlc`;
-  const env = await call(
-    path,
-    {
-      interval: tf,
-      limit: String(limit),
-      ...(args.from ? { from: args.from } : {}),
-      ...(args.to ? { to: args.to } : {}),
-    },
-    OhlcEnvelopeSchema,
-    args,
-  );
-  const raw = env.bars;
 
-  // BiQuote returns bars NEWEST-first; flip to oldest-first
-  // for downstream consumers (indicators, charts) that expect that order.
-  // Also drop the in-progress bar unless the caller asked to keep it.
-  const ascending = [...raw].reverse();
+  // BiQuote returns bars NEWEST-first. We collect pages keyed by openTime so
+  // overlapping boundary bars dedupe, then sort ascending at the end.
+  const byTime = new Map<number, BiquoteOhlcBar>();
+  let pageTo = args.to;
+  let oldestMs = Number.POSITIVE_INFINITY;
+
+  for (let page = 0; page < MAX_OHLC_PAGES && byTime.size < targetCount; page += 1) {
+    // Request one extra bar on the first page because the live (open) bar is
+    // dropped unless the caller opted in — same for every top-up page.
+    const limit = String(
+      Math.min(MAX_BARS_PER_PAGE, targetCount - byTime.size + (args.includeOpenBar ? 0 : 1)),
+    );
+    const env = await call(
+      path,
+      {
+        interval: tf,
+        limit,
+        ...(page === 0 && args.from ? { from: args.from } : {}),
+        ...(pageTo ? { to: pageTo } : {}),
+      },
+      OhlcEnvelopeSchema,
+      args,
+    );
+
+    if (env.bars.length === 0) {
+      if (page === 0) {
+        throw new ProviderError('PROVIDER_HTTP_ERROR', PROVIDER, 'empty candle response');
+      }
+      break;
+    }
+
+    for (const bar of env.bars) byTime.set(Date.parse(bar.openTime), bar);
+
+    // A short page means upstream ran out of older bars — stop paging.
+    if (env.bars.length < Number(limit)) break;
+
+    const pageOldest = env.bars.reduce(
+      (min, bar) => Math.min(min, Date.parse(bar.openTime)),
+      Number.POSITIVE_INFINITY,
+    );
+    // No older bars upstream, or the cursor was ignored — stop paging.
+    if (!(pageOldest < oldestMs)) break;
+    oldestMs = pageOldest;
+    if (args.from && oldestMs <= Date.parse(args.from)) break;
+    pageTo = new Date(oldestMs - 1).toISOString();
+  }
+
+  const ascending = [...byTime.values()].sort(
+    (a, b) => Date.parse(a.openTime) - Date.parse(b.openTime),
+  );
   const filtered = args.includeOpenBar ? ascending : ascending.filter((b) => !b.isOpen);
   if (filtered.length === 0) {
     throw new ProviderError('PROVIDER_HTTP_ERROR', PROVIDER, 'empty candle response');
   }
 
-  // Final monotonicity guard — if BiQuote ever flips ordering again,
-  // surface it loudly instead of shipping mixed-order bars to indicators.
-  for (let i = 1; i < filtered.length; i += 1) {
-    if (Date.parse(filtered[i]!.openTime) < Date.parse(filtered[i - 1]!.openTime)) {
-      throw new ProviderError(
-        'PROVIDER_PARSE_ERROR',
-        PROVIDER,
-        'OHLC bars are not in ascending-time order — upstream contract changed',
-      );
-    }
-  }
-
-  return filtered;
+  // Keep the most recent `targetCount` bars in strict ascending order.
+  return filtered.slice(-targetCount);
 }

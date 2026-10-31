@@ -277,7 +277,8 @@ describe('biquote fetchOhlc', () => {
 
     const url = new URL(String(fetchSpy.mock.calls[0]?.[0]));
     expect(url.searchParams.get('interval')).toBe('15m');
-    expect(url.searchParams.get('limit')).toBe('200');
+    // Requests one extra bar because the live (open) bar is dropped by default.
+    expect(url.searchParams.get('limit')).toBe('201');
     expect(url.searchParams.get('from')).toBe('2026-05-20T00:00:00.000Z');
     expect(url.searchParams.get('to')).toBe('2026-05-21T00:00:00.000Z');
   });
@@ -302,15 +303,58 @@ describe('biquote fetchOhlc', () => {
     });
   });
 
-  it('caps `count` at 1000 to match the documented BiQuote limit', async () => {
-    const fetchSpy = vi
-      .fn()
-      .mockResolvedValue(jsonResponse(ohlcEnvelope([bar('2026-05-27T18:00:00Z')])));
-    globalThis.fetch = fetchSpy as unknown as typeof fetch;
+  it('caps `count` at 5000 by paging backward up to 5 requests', async () => {
+    const baseMs = Date.UTC(2026, 0, 1, 0, 0, 0);
+    const times = Array.from({ length: 6000 }, (_, i) => baseMs + i * 3_600_000);
+    let calls = 0;
+    globalThis.fetch = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      calls += 1;
+      const url = new URL(String(input));
+      const limit = Number(url.searchParams.get('limit') ?? '1000');
+      const to = url.searchParams.get('to');
+      const toMs = to ? Date.parse(to) : Number.POSITIVE_INFINITY;
+      const eligible = times.filter((t) => t <= toMs).slice(-limit);
+      const page = [...eligible].reverse().map((t) => bar(new Date(t).toISOString()));
+      return Promise.resolve(jsonResponse(ohlcEnvelope(page)));
+    }) as unknown as typeof fetch;
 
-    await fetchOhlc({ symbol: 'XAUUSD', tf: '1m', count: 99999 });
-    const url = String(fetchSpy.mock.calls[0]?.[0]);
-    expect(url).toContain('limit=1000');
+    const bars = await fetchOhlc({ symbol: 'XAUUSD', tf: '1h', count: 99999, skipThrottle: true });
+    expect(bars).toHaveLength(5000);
+    expect(calls).toBe(5);
+  });
+
+  it('paginates backward when count > 1000 and returns ascending, deduplicated bars', async () => {
+    const baseMs = Date.UTC(2026, 4, 1, 0, 0, 0);
+    const times = Array.from({ length: 2500 }, (_, i) => baseMs + i * 3_600_000);
+    globalThis.fetch = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      const limit = Number(url.searchParams.get('limit') ?? '1000');
+      const to = url.searchParams.get('to');
+      const toMs = to ? Date.parse(to) : Number.POSITIVE_INFINITY;
+      const eligible = times.filter((t) => t <= toMs).slice(-limit);
+      const page = [...eligible].reverse().map((t) => bar(new Date(t).toISOString()));
+      return Promise.resolve(jsonResponse(ohlcEnvelope(page)));
+    }) as unknown as typeof fetch;
+
+    const bars = await fetchOhlc({ symbol: 'XAUUSD', tf: '1h', count: 1500, skipThrottle: true });
+    expect(bars).toHaveLength(1500);
+    expect(Date.parse(bars[0]!.openTime)).toBeLessThan(Date.parse(bars[1499]!.openTime));
+    // Strictly ascending — a duplicated boundary bar must never survive.
+    for (let i = 1; i < bars.length; i += 1) {
+      expect(Date.parse(bars[i]!.openTime)).toBeGreaterThan(Date.parse(bars[i - 1]!.openTime));
+    }
+  });
+
+  it('stops paging when upstream has no older bars (short page)', async () => {
+    let calls = 0;
+    globalThis.fetch = vi.fn().mockImplementation(() => {
+      calls += 1;
+      return Promise.resolve(jsonResponse(ohlcEnvelope([bar('2026-05-27T18:00:00Z')])));
+    }) as unknown as typeof fetch;
+
+    const bars = await fetchOhlc({ symbol: 'XAUUSD', tf: '1h', count: 5000, skipThrottle: true });
+    expect(bars).toHaveLength(1);
+    expect(calls).toBe(1);
   });
 });
 

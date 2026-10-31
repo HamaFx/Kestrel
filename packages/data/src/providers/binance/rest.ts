@@ -118,6 +118,12 @@ async function klinesCall(
   return out;
 }
 
+/** Binance caps a single klines response at 1,000 bars. */
+const MAX_BARS_PER_PAGE = 1000;
+/** Hard ceiling keeps a single call at 5 pages of history plus one guard page. */
+const MAX_KLINE_PAGES = 6;
+const MAX_KLINE_BARS = 5000;
+
 export async function fetchCandles(
   symbol: Symbol,
   tf: Timeframe,
@@ -134,20 +140,43 @@ export async function fetchCandles(
   }
 
   const interval = toBinanceInterval(tf);
-  const reqCount = opts.includeOpenBar ? count : count + 1;
-  const limit = Math.min(reqCount, 1000);
+  const targetCount = Math.max(1, Math.min(count, MAX_KLINE_BARS));
+  // One extra raw bar because the live (open) bar is dropped by default.
+  const requested = targetCount + (opts.includeOpenBar ? 0 : 1);
 
-  const raw = await klinesCall(
-    { symbol: getSymbolDefinition(canonical).binance!, interval, limit: String(limit) },
-    opts,
-  );
+  // Binance returns at most 1,000 bars per call, so larger windows page
+  // backward via `endTime` (oldest t - 1ms), deduplicating by open time.
+  const byTime = new Map<number, NormalizedBinanceCandle>();
+  let endTime: string | undefined;
+
+  for (let page = 0; page < MAX_KLINE_PAGES && byTime.size < requested; page += 1) {
+    const limit = String(Math.min(MAX_BARS_PER_PAGE, requested - byTime.size));
+    const raw = await klinesCall(
+      {
+        symbol: getSymbolDefinition(canonical).binance!,
+        interval,
+        limit,
+        ...(endTime ? { endTime } : {}),
+      },
+      opts,
+    );
+
+    const before = byTime.size;
+    for (const candle of raw) byTime.set(candle.t, candle);
+    // A short page means upstream ran out of older klines — stop paging.
+    if (raw.length < Number(limit)) break;
+    // No meaningful new bars — upstream has no older history left.
+    if (byTime.size - before < 2) break;
+    endTime = String(Math.min(...byTime.keys()) - 1);
+  }
 
   const nowMs = opts.now ?? Date.now();
+  const ascending = [...byTime.values()].sort((a, b) => a.t - b.t);
   const filtered = opts.includeOpenBar
-    ? raw
-    : raw.filter((c) => c.closeTime !== undefined && c.closeTime <= nowMs);
+    ? ascending
+    : ascending.filter((c) => c.closeTime !== undefined && c.closeTime <= nowMs);
 
-  return filtered.slice(-count);
+  return filtered.slice(-targetCount);
 }
 
 /** GET /api/v3/ticker/price?symbol=BTCUSDT — lightweight current price fetch. */

@@ -140,3 +140,49 @@ describe('unclosed candle filtering (F-14)', () => {
     expect(withOpen[1]!.c).toBe(1.088);
   });
 });
+
+describe('binance OHLC pagination', () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('pages backward with endTime when count > 1000 and returns ascending bars', async () => {
+    const baseMs = Date.UTC(2026, 0, 1, 0, 0, 0);
+    const times = Array.from({ length: 2500 }, (_, i) => baseMs + i * 3_600_000);
+    let calls = 0;
+    globalThis.fetch = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      calls += 1;
+      const url = new URL(String(input));
+      const limit = Number(url.searchParams.get('limit') ?? '1000');
+      const endTime = url.searchParams.get('endTime');
+      const endMs = endTime ? Number(endTime) : Number.POSITIVE_INFINITY;
+      const eligible = times.filter((t) => t <= endMs).slice(-limit);
+      const page = eligible.map((t) => [
+        t,
+        '100',
+        '101',
+        '99',
+        '100.5',
+        '10',
+        t + 3_599_999,
+        '1000',
+        5,
+        '5',
+        '500',
+        '0',
+      ]);
+      return Promise.resolve({ ok: true, status: 200, json: async () => page });
+    }) as unknown as typeof fetch;
+
+    const candles = await binance.fetchCandles('BTCUSDT', '1h', 1500, {
+      skipThrottle: true,
+      now: Number.MAX_SAFE_INTEGER,
+    });
+
+    expect(candles).toHaveLength(1500);
+    expect(candles[0]!.t).toBeLessThan(candles[1499]!.t);
+    expect(calls).toBe(2);
+  });
+});
