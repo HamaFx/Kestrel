@@ -29,6 +29,7 @@ export {
   getDb,
   getDbRO,
   getTenantDbScope,
+  hasAdminDbScope,
   hasTenantDbScope,
   isRlsEnabled,
   withAdminDb,

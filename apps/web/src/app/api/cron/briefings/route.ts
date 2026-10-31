@@ -31,13 +31,13 @@
 // Each emit is idempotent at the (eventId, kind) primary key on
 // `briefings_emitted`.
 
-import { withCronAuth } from '@/lib/http/cron';
+import { getActiveUserIdsForCron, withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import {
   emitPostEvent,
   emitPreEvent,
   findHighImpactEventsInWindow,
-  getActiveUserIds,
+  withUserTenant,
 } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
@@ -71,25 +71,37 @@ export async function GET(req: Request): Promise<Response> {
 
     let postEmitted = 0;
 
-    const activeUsers = await getActiveUserIds();
+    // Audit 2026-10-31 (R1): the active-user scan joins `chat_threads`
+    // (RLS) and must run cross-tenant on the admin connection, while each
+    // user's emit writes briefings_emitted / chat_threads / chat_messages /
+    // journal stats under that user's tenant GUC.
+    const activeUsers = await getActiveUserIdsForCron();
 
     for (const userId of activeUsers) {
-      for (const c of preCandidates) {
-        try {
-          const r = await emitPreEvent(userId, c.id);
-          if (r.emitted) preEmitted += 1;
-        } catch (err) {
-          log.errorContext(err, 'emitPreEvent', { eventId: c.id, userId });
-        }
-      }
+      try {
+        await withUserTenant(userId, async () => {
+          for (const c of preCandidates) {
+            try {
+              const r = await emitPreEvent(userId, c.id);
+              if (r.emitted) preEmitted += 1;
+            } catch (err) {
+              log.errorContext(err, 'emitPreEvent', { eventId: c.id, userId });
+            }
+          }
 
-      for (const c of postCandidates) {
-        try {
-          const r = await emitPostEvent(userId, c.id);
-          if (r.emitted) postEmitted += 1;
-        } catch (err) {
-          log.errorContext(err, 'emitPostEvent', { eventId: c.id, userId });
-        }
+          for (const c of postCandidates) {
+            try {
+              const r = await emitPostEvent(userId, c.id);
+              if (r.emitted) postEmitted += 1;
+            } catch (err) {
+              log.errorContext(err, 'emitPostEvent', { eventId: c.id, userId });
+            }
+          }
+        });
+      } catch (err) {
+        // Tenant resolution failed for this user — skip them without
+        // failing the whole fan-out.
+        log.errorContext(err, 'withUserTenant', { userId });
       }
     }
 

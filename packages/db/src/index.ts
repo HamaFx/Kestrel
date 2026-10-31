@@ -36,6 +36,7 @@ export {
   withDbRetry,
   checkDbHealth,
   isRlsEnabled,
+  hasAdminDbScope,
   hasTenantDbScope,
   getTenantDbScope,
   schema,

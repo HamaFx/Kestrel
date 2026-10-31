@@ -27,7 +27,7 @@
 import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import { computeHealthSloService } from '@/lib/services/admin-health';
-import { getDb } from '@/lib/services/api-boundary';
+import { getAdminDb } from '@/lib/services/api-boundary';
 import { deliverHealthAlert } from '@/lib/services/health-alert-delivery';
 
 export const runtime = 'nodejs';
@@ -35,7 +35,12 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request): Promise<Response> {
   return withCronAuth(request, async () => {
-    const snapshot = await computeHealthSloService(getDb(), {
+    // Audit 2026-10-31 (R1): the SLO aggregates span every tenant
+    // (chat_telemetry, diagnostic_traces, persistence_outbox,
+    // ai_budget_reservations, full_analysis_queue, daily_ai_spend, …), all
+    // RLS-protected. `withCronAuth` opens no scope, so read them on the
+    // admin (BYPASSRLS) connection — same as /api/health/alerts.
+    const snapshot = await computeHealthSloService(getAdminDb(), {
       hours: Number.parseInt(process.env.ALERT_WINDOW_HOURS ?? '1', 10) || 1,
     });
     const delivery = await deliverHealthAlert(snapshot);

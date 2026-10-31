@@ -27,6 +27,7 @@ const mockGetProviderMonthlySpend = vi.hoisted(() => vi.fn());
 const mockSendNotification = vi.hoisted(() => vi.fn());
 
 vi.mock('@kestrel/db', () => ({
+  hasAdminDbScope: () => false,
   getDb: vi.fn(),
   listAllUserSettings: mockListAllUserSettings,
   getUserWithSettings: mockGetUserWithSettings,

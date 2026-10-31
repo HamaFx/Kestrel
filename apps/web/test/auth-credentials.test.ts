@@ -71,6 +71,7 @@ vi.mock('@kestrel/ai', () => ({
 }));
 
 vi.mock('@kestrel/db', () => ({
+  hasAdminDbScope: () => false,
   withRateLimit: vi.fn(async () => ({ allowed: true })),
   schema: {
     users: {

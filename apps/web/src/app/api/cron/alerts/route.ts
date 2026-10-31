@@ -24,10 +24,16 @@
 // Cadence: 1 min on Pro (`vercel.json` crons), 5 min on Hobby external
 // scheduler. The eval is fast (one cached price call per priceCross + one
 // candle call per (symbol, tf) deduped via the data cache).
+//
+// Audit 2026-10-31 (R1): `alerts` and the `user_settings` join are
+// RLS-protected and the evaluator is cross-tenant by design (one pass over
+// every user's alerts, then per-user writes with explicit tenant
+// predicates). `withCronAuth` opens no scope, so run it on the admin
+// (BYPASSRLS) connection — the same path the worker uses.
 
 import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
-import { evaluateAlerts } from '@/lib/services/api-boundary';
+import { evaluateAlerts, withAdminDb } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -35,7 +41,9 @@ export const maxDuration = 60;
 
 export async function GET(req: Request): Promise<Response> {
   return withCronAuth(req, async () => {
-    const result = await evaluateAlerts({ ...(req.signal ? { signal: req.signal } : {}) });
+    const result = await withAdminDb(() =>
+      evaluateAlerts({ ...(req.signal ? { signal: req.signal } : {}) }),
+    );
 
     // OBS-04 (Phase 5.3): Capture per-alert errors to Sentry + pino logger
     if (result.errors.length > 0) {

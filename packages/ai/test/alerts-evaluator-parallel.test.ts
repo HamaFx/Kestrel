@@ -32,6 +32,7 @@ vi.mock('@kestrel/data', () => ({
 }));
 
 vi.mock('@kestrel/db', () => ({
+  hasAdminDbScope: () => false,
   hasTenantDbScope: () => false,
   getDb: () => ({
     update: () => ({ set: () => ({ where: () => Promise.resolve([]) }) }),

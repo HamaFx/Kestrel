@@ -43,6 +43,7 @@ const schemaProxy = vi.hoisted(() => {
 });
 
 vi.mock('@kestrel/db', () => ({
+  hasAdminDbScope: () => false,
   listFeatureFlags: mockListFeatureFlags,
   upsertFeatureFlag: mockUpsertFeatureFlag,
   listUsersWithSettings: vi.fn(),

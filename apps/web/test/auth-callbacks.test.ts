@@ -38,6 +38,7 @@ const mockCreateUserSession = vi.fn();
 const mockGetDb = vi.fn();
 
 vi.mock('@kestrel/db', () => ({
+  hasAdminDbScope: () => false,
   createUserSession: (...args: unknown[]) => mockCreateUserSession(...args),
   schema: {
     users: { tokenVersion: 'users.tokenVersion' },

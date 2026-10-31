@@ -19,12 +19,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from '@/app/api/cron/health-alerts/route';
 
 const mockWithCronAuth = vi.hoisted(() => vi.fn());
-const mockGetDb = vi.hoisted(() => vi.fn());
+const mockAdminDb = vi.hoisted(() => vi.fn());
 const mockComputeHealth = vi.hoisted(() => vi.fn());
 const mockDeliverHealthAlert = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/http/cron', () => ({ withCronAuth: mockWithCronAuth }));
-vi.mock('@/lib/services/api-boundary', () => ({ getDb: mockGetDb }));
+vi.mock('@/lib/services/api-boundary', () => ({ getAdminDb: mockAdminDb }));
 vi.mock('@/lib/services/admin-health', () => ({ computeHealthSloService: mockComputeHealth }));
 vi.mock('@/lib/services/health-alert-delivery', () => ({
   deliverHealthAlert: mockDeliverHealthAlert,
@@ -44,7 +44,7 @@ const snapshot = {
 describe('GET /api/cron/health-alerts', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetDb.mockReturnValue({});
+    mockAdminDb.mockReturnValue({});
     mockComputeHealth.mockResolvedValue(snapshot);
     mockDeliverHealthAlert.mockResolvedValue({ status: 'sent', anomalyCount: 1 });
     mockWithCronAuth.mockImplementation(async (_request: Request, fn: () => Promise<unknown>) => {

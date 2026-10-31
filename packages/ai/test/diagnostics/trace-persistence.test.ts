@@ -24,6 +24,7 @@ const mockInsert = vi.fn();
 const mockTransaction = vi.fn();
 
 vi.mock('@kestrel/db', () => ({
+  hasAdminDbScope: () => false,
   hasTenantDbScope: () => false,
   getDb: () => ({
     insert: mockInsert,
@@ -179,8 +180,6 @@ describe('persistTrace', () => {
 
     const valuesFn = mockInsert.mock.results[0]!.value as { values: ReturnType<typeof vi.fn> };
     const inserted = valuesFn.values.mock.calls[0]![0] as { trace: Record<string, unknown> };
-    expect(inserted.trace.langfuseTraceUrl).toBe(
-      'https://langfuse.example.com/trace/trace-123',
-    );
+    expect(inserted.trace.langfuseTraceUrl).toBe('https://langfuse.example.com/trace/trace-123');
   });
 });

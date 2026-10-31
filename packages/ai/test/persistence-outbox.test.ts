@@ -71,6 +71,7 @@ vi.mock('@kestrel/db', () => {
   return {
     getDb,
     getAdminDb: getDb,
+    hasAdminDbScope: () => false,
     hasTenantDbScope: () => false,
     requireTenantIdForUser: async () => 'tenant-1',
     schema: { persistenceOutbox },

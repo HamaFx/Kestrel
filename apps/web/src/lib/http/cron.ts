@@ -169,6 +169,24 @@ function routeTag(req: Request): string {
   }
 }
 
+/**
+ * Active user ids for a cron fan-out job, read on the admin connection.
+ *
+ * `getActiveUserIds` joins `chat_threads`, which is RLS-protected. Because
+ * `withCronAuth` opens no database scope, calling it on the non-bypass
+ * application role silently returns zero rows (`app.current_tenant` is NULL,
+ * so every tenant policy evaluates false) and the fan-out becomes a
+ * successful no-op. Cross-tenant discovery is exactly what the admin
+ * (BYPASSRLS) connection is for.
+ *
+ * Audit 2026-10-31 (R1): use this in cron handlers that then scope each
+ * user's work with `withUserTenant(userId, …)`.
+ */
+export async function getActiveUserIdsForCron(): Promise<string[]> {
+  const { getActiveUserIds, withAdminDb } = await import('@kestrel/db');
+  return withAdminDb(() => getActiveUserIds());
+}
+
 export async function runCronJob(
   name: string,
   fn: () => Promise<void>,

@@ -30,6 +30,7 @@
 import {
   getAdminDb as getRawAdminDb,
   getDb as getRawDb,
+  hasAdminDbScope,
   hasTenantDbScope,
   type DbClient,
 } from '@kestrel/db';
@@ -53,9 +54,11 @@ export function ensureDbRegistered(): void {
 export function getDb(): DbClient {
   ensureDbRegistered();
   // The container caches the process-wide fallback client. Never use that
-  // cached instance inside a tenant request, because RLS must run on the
-  // transaction carrying app.current_tenant.
-  if (hasTenantDbScope()) return getRawDb();
+  // cached instance inside a scoped database context: tenant requests must
+  // run on the transaction carrying `app.current_tenant`, and explicit
+  // `withAdminDb` scopes must run on the BYPASSRLS admin connection. Both
+  // are resolved by the raw `getDb()` through AsyncLocalStorage.
+  if (hasTenantDbScope() || hasAdminDbScope()) return getRawDb();
   // Worker/cron AI code performs cross-tenant work and must use the explicit
   // BYPASSRLS admin connection when shared mode is enabled.
   if (process.env.KESTREL_RUNTIME === 'worker' && process.env.ADMIN_DATABASE_URL) {

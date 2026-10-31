@@ -35,6 +35,7 @@ vi.mock('@kestrel/ai', () => ({
 }));
 
 vi.mock('@kestrel/db', () => ({
+  hasAdminDbScope: () => false,
   withRateLimit: mockWithRateLimit,
   schema: {},
   getAdminDb: vi.fn(() => ({})),

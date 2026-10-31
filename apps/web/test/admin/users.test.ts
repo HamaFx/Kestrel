@@ -31,6 +31,7 @@ const mockListUsers = vi.hoisted(() => vi.fn());
 const mockCountUsers = vi.hoisted(() => vi.fn());
 
 vi.mock('@kestrel/db', () => ({
+  hasAdminDbScope: () => false,
   getDb: () => ({
     select: vi.fn(),
   }),

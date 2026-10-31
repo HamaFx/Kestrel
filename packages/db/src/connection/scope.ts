@@ -117,6 +117,18 @@ export function hasTenantDbScope(): boolean {
   return tenantDbScope.getStore() !== undefined;
 }
 
+/**
+ * Whether the current async execution context has an explicit admin
+ * (BYPASSRLS) scope opened by `withAdminDb`.
+ *
+ * Services that cache their client (notably the `@kestrel/ai` DI-backed
+ * `getDb()`) use this to fall back to `getDb()` — which resolves the ALS
+ * scope — instead of the cached default client.
+ */
+export function hasAdminDbScope(): boolean {
+  return adminDbScope.getStore() !== undefined;
+}
+
 /** Return the current tenant transaction, if one is active. */
 export function getTenantDbScope(): { tenantId: string; db: DbClient; userId?: string } | null {
   return tenantDbScope.getStore() ?? null;

@@ -43,6 +43,7 @@ const schemaProxy = vi.hoisted(() => {
 });
 
 vi.mock('@kestrel/db', () => ({
+  hasAdminDbScope: () => false,
   getUserById: mockGetUserById,
   resetOnboarding: mockResetOnboarding,
   recordAdminAudit: mockRecordAdminAudit,

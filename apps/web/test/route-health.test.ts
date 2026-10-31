@@ -26,6 +26,7 @@ const mockWithRateLimit = vi.hoisted(() => vi.fn());
 const mockListFullAnalysisQueueRows = vi.hoisted(() => vi.fn());
 
 vi.mock('@kestrel/db', () => ({
+  hasAdminDbScope: () => false,
   getDb: vi.fn(() => ({ execute: mockDbExecute })),
   listFullAnalysisQueueRows: mockListFullAnalysisQueueRows,
   withRateLimit: mockWithRateLimit,

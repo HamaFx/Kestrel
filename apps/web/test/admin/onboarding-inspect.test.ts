@@ -32,6 +32,7 @@ const mockListUserSymbols = vi.hoisted(() => vi.fn());
 const mockDecryptByok = vi.hoisted(() => vi.fn());
 
 vi.mock('@kestrel/db', () => ({
+  hasAdminDbScope: () => false,
   getUserWithSettings: mockGetUserWithSettings,
   listUserSymbols: mockListUserSymbols,
   updatePaymentStatus: vi.fn(),

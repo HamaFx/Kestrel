@@ -39,6 +39,7 @@ vi.mock('@kestrel/ai', () => ({
 const mockWithRateLimit = vi.hoisted(() => vi.fn());
 
 vi.mock('@kestrel/db', () => ({
+  hasAdminDbScope: () => false,
   withRateLimit: mockWithRateLimit,
   schema: {},
   getAdminDb: vi.fn(() => ({})),

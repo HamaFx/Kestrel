@@ -163,6 +163,8 @@ export {
   getUserWithSettings,
   requireTenantIdForUser,
   getAdminDb,
+  withAdminDb,
+  withUserTenant,
   withTenantDbFresh,
   getTenantDbScope,
   createAuditLog,

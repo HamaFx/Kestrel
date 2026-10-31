@@ -85,6 +85,7 @@ vi.mock('@/lib/env', () => ({
 }));
 
 vi.mock('@kestrel/db', () => ({
+  hasAdminDbScope: () => false,
   schema: {
     users: 'users',
     userSettings: 'userSettings',

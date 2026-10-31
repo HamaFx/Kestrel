@@ -50,6 +50,7 @@ vi.mock('@kestrel/ai', () => ({
   }),
 }));
 vi.mock('@kestrel/db', () => ({
+  hasAdminDbScope: () => false,
   getUserWithSettings: mocks.getUserWithSettings,
   schema: {},
 }));

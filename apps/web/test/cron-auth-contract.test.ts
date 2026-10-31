@@ -12,6 +12,7 @@ vi.mock('@/lib/http/api', () => ({ getUserFromRequest: mockGetUserFromRequest })
 vi.mock('@/lib/auth/admin-auth', () => ({ getAdminUser: mockGetAdminUser }));
 vi.mock('@kestrel/db', () => ({ withRateLimit: mockWithRateLimit }));
 vi.mock('@/lib/logger', () => ({
+  hasAdminDbScope: () => false,
   createScopedLoggerWithContext: () => ({ error: vi.fn() }),
 }));
 

@@ -25,10 +25,14 @@
 // same function.
 //
 // Schedule: daily via Vercel cron or the GCE VM systemd timer.
+//
+// Audit 2026-10-31 (R1): most targets are RLS-protected tenant tables and
+// retention is system-wide (all tenants), so the admin (BYPASSRLS)
+// connection is required — the worker runs the same cleanup on admin.
 
 import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
-import { runRetentionCleanup } from '@/lib/services/api-boundary';
+import { runRetentionCleanup, withAdminDb } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -36,7 +40,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: Request): Promise<Response> {
   const log = createScopedLoggerWithContext({ component: 'cron', job: 'cleanup-telemetry' });
   return withCronAuth(req, async () => {
-    const result = await runRetentionCleanup();
+    const result = await withAdminDb(() => runRetentionCleanup());
 
     log.info('retention cleanup completed', {
       telemetryDeleted: result.telemetryDeleted,

@@ -46,6 +46,7 @@ function makeThenable(value: unknown): Record<string, unknown> {
 vi.mock('@kestrel/db', () => {
   const fromResult = makeFromResult();
   return {
+    hasAdminDbScope: () => false,
     hasTenantDbScope: () => false,
     getDb: () => ({
       select: vi.fn(() => ({ from: vi.fn(() => fromResult) })),

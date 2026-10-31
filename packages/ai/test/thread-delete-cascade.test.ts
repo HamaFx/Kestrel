@@ -86,6 +86,7 @@ vi.mock('@kestrel/db', () => {
     schema,
     getDb: () => db,
     getAdminDb: () => db,
+    hasAdminDbScope: () => false,
     hasTenantDbScope: () => false,
     requireTenantIdForUser: async () => 'tenant-1',
   };

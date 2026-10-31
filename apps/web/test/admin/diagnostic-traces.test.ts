@@ -37,6 +37,7 @@ const mockListTraceExplorerEvents = vi.hoisted(() => vi.fn());
 const mockRecordAdminAudit = vi.hoisted(() => vi.fn());
 
 vi.mock('@kestrel/db', () => ({
+  hasAdminDbScope: () => false,
   listDiagnosticTracesForAdmin: mockListDiagnosticTraces,
   getDiagnosticTraceForAdmin: mockGetDiagnosticTrace,
   listTraceExplorerEvents: mockListTraceExplorerEvents,

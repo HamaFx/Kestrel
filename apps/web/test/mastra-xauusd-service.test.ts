@@ -26,6 +26,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@kestrel/db', () => ({
+  hasAdminDbScope: () => false,
   getThread: mocks.getThread,
   getUserWithSettings: mocks.getUserWithSettings,
 }));

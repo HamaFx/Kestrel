@@ -25,9 +25,9 @@
 // Calls `emitWeeklyReview` exactly once. Idempotent within an ISO week
 // via `briefings_emitted` PK on (`weekly_review:<isoWeek>`, 'weekly_review').
 
-import { withCronAuth } from '@/lib/http/cron';
+import { getActiveUserIdsForCron, withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
-import { emitWeeklyReview, getActiveUserIds } from '@/lib/services/api-boundary';
+import { emitWeeklyReview, withUserTenant } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -37,17 +37,24 @@ export async function GET(req: Request): Promise<Response> {
   return withCronAuth(req, async () => {
     // Phase 3 §3.11 — iterate over real active users. An empty result is
     // valid on a fresh installation; there is no synthetic fallback.
-    const activeUsers = await getActiveUserIds();
+    //
+    // Audit 2026-10-31 (R1): the active-user scan joins `chat_threads` (RLS)
+    // and must run cross-tenant on the admin connection; each user's review
+    // writes briefings_emitted / chat_threads / chat_messages / journal
+    // stats under that user's tenant GUC.
+    const activeUsers = await getActiveUserIdsForCron();
     let emittedCount = 0;
     const reasons: string[] = [];
 
     for (const userId of activeUsers) {
       try {
-        const r = await emitWeeklyReview(userId);
-        if (r.emitted) emittedCount++;
-        if (r.reason) reasons.push(`[${userId}]: ${r.reason}`);
+        await withUserTenant(userId, async () => {
+          const r = await emitWeeklyReview(userId);
+          if (r.emitted) emittedCount++;
+          if (r.reason) reasons.push(`[${userId}]: ${r.reason}`);
+        });
       } catch (err) {
-        log.errorContext(err, 'emitWeeklyReview', { userId });
+        log.errorContext(err, 'withUserTenant', { userId });
         reasons.push(`[${userId}]: error`);
       }
     }
