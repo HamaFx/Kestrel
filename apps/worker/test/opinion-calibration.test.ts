@@ -20,7 +20,10 @@
 import type * as KestrelDb from '@kestrel/db';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { runOpinionCalibration } from '../src/jobs/opinion-calibration';
+import {
+  computeRegimeOutcomeFromCandles,
+  runOpinionCalibration,
+} from '../src/jobs/opinion-calibration';
 import { createLogger } from '../src/log';
 import { TenantRouter } from '../src/tenant-router';
 
@@ -29,7 +32,9 @@ const state = vi.hoisted(() => ({
   queue: [] as Array<Record<string, unknown>>,
   threads: [] as Array<Record<string, unknown>>,
   candles: [] as Array<{ t: Date; c: number }>,
+  memories: [] as Array<Record<string, unknown>>,
   updates: [] as Array<Record<string, unknown>>,
+  memoryUpdates: [] as Array<Record<string, unknown>>,
 }));
 
 vi.mock('@kestrel/db', async (importOriginal) => {
@@ -39,6 +44,7 @@ vi.mock('@kestrel/db', async (importOriginal) => {
     if (table === actual.schema.fullAnalysisQueue) return state.queue;
     if (table === actual.schema.chatThreads) return state.threads;
     if (table === actual.schema.candles1m) return state.candles;
+    if (table === actual.schema.memoryEmbeddings) return state.memories;
     return [];
   };
   const selectChain = (table: unknown) => {
@@ -57,10 +63,11 @@ vi.mock('@kestrel/db', async (importOriginal) => {
     ...actual,
     getDb: () => ({
       select: () => ({ from: (table: unknown) => selectChain(table) }),
-      update: () => ({
+      update: (table: unknown) => ({
         set: (patch: Record<string, unknown>) => ({
           where: async () => {
-            state.updates.push(patch);
+            if (table === actual.schema.memoryEmbeddings) state.memoryUpdates.push(patch);
+            else state.updates.push(patch);
           },
         }),
       }),
@@ -116,7 +123,9 @@ beforeEach(() => {
     { t: new Date(ENTRY_MS), c: 2700 },
     { t: new Date(EXIT_MS), c: 2715 },
   ];
+  state.memories = [];
   state.updates = [];
+  state.memoryUpdates = [];
 });
 
 describe('runOpinionCalibration', () => {
@@ -189,5 +198,94 @@ describe('runOpinionCalibration', () => {
 
     expect(result).toEqual({ processed: 0, note: 'no ungraded opinions in the 4h–7d window' });
     expect(state.updates).toHaveLength(0);
+  });
+
+  it('computes 4-hour resolution4h, mfePct, and maePct from candles_1m and patches market_regime memory', async () => {
+    const t0 = 1_700_000_000_000;
+    const h4 = t0 + 4 * 60 * 60 * 1000;
+    const candles = [
+      { t: t0, c: 2000 },
+      { t: t0 + 60_000, c: 2020 }, // +1.0% MFE
+      { t: t0 + 120_000, c: 1995 }, // -0.25% MAE
+      { t: h4, c: 2015 }, // +0.75% close > 0.3% neutral band -> bullish
+    ];
+    expect(computeRegimeOutcomeFromCandles(candles, t0, h4)).toEqual({
+      resolution4h: 'bullish',
+      mfePct: 1,
+      maePct: -0.25,
+    });
+    // Inside the ±0.3% band → range; below → bearish; no data → null.
+    expect(
+      computeRegimeOutcomeFromCandles(
+        [
+          { t: t0, c: 2000 },
+          { t: h4, c: 2004 },
+        ],
+        t0,
+        h4,
+      )?.resolution4h,
+    ).toBe('range');
+    expect(
+      computeRegimeOutcomeFromCandles(
+        [
+          { t: t0, c: 2000 },
+          { t: h4, c: 1980 },
+        ],
+        t0,
+        h4,
+      )?.resolution4h,
+    ).toBe('bearish');
+    expect(computeRegimeOutcomeFromCandles([], t0, h4)).toBeNull();
+
+    // The job appends the realized outcome to the matching market_regime row.
+    state.opinions = [opinion({})];
+    state.memories = [
+      {
+        id: 'memory-1',
+        userId: 'user-1',
+        tenantId: 'tenant-1',
+        kind: 'market_regime',
+        symbol: 'XAUUSD',
+        text: 'REGIME=XAUUSD state',
+        meta: { dataQuality: 'complete' },
+        occurredAt: new Date(ENTRY_MS),
+      },
+    ];
+
+    await runOpinionCalibration(ctx);
+
+    expect(state.memoryUpdates).toHaveLength(1);
+    const patch = state.memoryUpdates[0]! as {
+      text: string;
+      meta: { outcome: Record<string, unknown> };
+    };
+    // 15 points of a 2700 entry → +0.56% MFE, MAE clamped at the entry level.
+    expect(patch.text).toBe('REGIME=XAUUSD state\nOUTCOME_4H=bullish(MFE=+0.56%,MAE=0%)');
+    expect(patch.meta.outcome).toEqual({ resolution4h: 'bullish', mfePct: 0.56, maePct: 0 });
+  });
+
+  it('patches the regime memory once per message when several desks graded the same run', async () => {
+    state.opinions = [
+      opinion({ id: 'opinion-1' }),
+      opinion({ id: 'opinion-2', agentName: 'fundamental' }),
+    ];
+    state.memories = [
+      {
+        id: 'memory-1',
+        userId: 'user-1',
+        tenantId: 'tenant-1',
+        kind: 'market_regime',
+        symbol: 'XAUUSD',
+        text: 'REGIME=XAUUSD state',
+        meta: null,
+        occurredAt: new Date(ENTRY_MS),
+      },
+    ];
+
+    const result = await runOpinionCalibration(ctx);
+
+    expect(result.processed).toBe(2);
+    expect(state.updates).toHaveLength(2);
+    expect(state.memoryUpdates).toHaveLength(1);
   });
 });

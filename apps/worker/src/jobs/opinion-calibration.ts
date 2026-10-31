@@ -86,6 +86,57 @@ function gradableBias(value: string): GradableBias | null {
   return value === 'bullish' || value === 'bearish' || value === 'neutral' ? value : null;
 }
 
+/** Resolution band: ±0.3% of the entry close is still a range. */
+const RANGE_BAND = 0.003;
+
+/**
+ * Window (ms) around an opinion's creation time used to locate the
+ * `market_regime` memory row for the same run. `rememberMarketRegime` stores
+ * `occurred_at` from the packet's `generatedAt`, so the row can predate the
+ * opinion by the committee run duration (minutes on Full mode).
+ */
+const REGIME_OUTCOME_WINDOW_MS = 10 * 60 * 1000;
+
+/** Realized 4-hour outcome resolved from the already-loaded candle slice. */
+export interface RegimeOutcome4h {
+  resolution4h: 'bullish' | 'bearish' | 'range';
+  /** Max favourable excursion, % from the entry close. */
+  mfePct: number;
+  /** Max adverse excursion, % from the entry close. */
+  maePct: number;
+}
+
+/**
+ * Phase 3 (Jev roadmap) — realized 4-hour outcome from the already-loaded
+ * `candles_1m` slice: max favourable / adverse excursion around the entry
+ * close plus a ±0.3% resolution band. Returns null when the entry or exit
+ * close cannot be resolved from the candle window.
+ */
+export function computeRegimeOutcomeFromCandles(
+  candles: readonly CandlePoint[],
+  entryMs: number,
+  exitMs: number,
+): RegimeOutcome4h | null {
+  const entry = closeAtOrBefore(candles, entryMs);
+  const exit = closeAtOrBefore(candles, exitMs);
+  if (entry === null || exit === null || entry <= 0) return null;
+
+  // The window includes the entry and exit candles themselves so a
+  // single-point move registers as both extremes.
+  const windowCandles = candles.filter((candle) => candle.t >= entryMs && candle.t <= exitMs);
+  const maxClose = Math.max(entry, exit, ...windowCandles.map((candle) => candle.c));
+  const minClose = Math.min(entry, exit, ...windowCandles.map((candle) => candle.c));
+  const mfePct = Number((((maxClose - entry) / entry) * 100).toFixed(2));
+  const maePct = Number((((minClose - entry) / entry) * 100).toFixed(2));
+  const resolution4h: RegimeOutcome4h['resolution4h'] =
+    Math.abs(exit - entry) <= entry * RANGE_BAND
+      ? 'range'
+      : exit > entry
+        ? 'bullish'
+        : 'bearish';
+  return { resolution4h, mfePct, maePct };
+}
+
 /** Row-level `raw_data.symbol` hint, when a producer stored one. */
 function rawSymbol(rawData: unknown): string | null {
   if (rawData && typeof rawData === 'object') {
@@ -186,6 +237,58 @@ async function candlesForSymbol(
 }
 
 /**
+ * Phase 3 (Jev roadmap) — backfill the realized 4-hour outcome into the
+ * `market_regime` memory row(s) written by the same run. Matched by
+ * `(userId, tenantId, kind, symbol)` inside a bounded window around the
+ * opinion's creation time; the outcome line is appended to `text` once (a
+ * row that already carries `OUTCOME_4H` is left as-is) and merged into
+ * `meta.outcome`. Best-effort at the call site: a memory failure never fails
+ * the grading pass.
+ */
+async function patchRegimeMemoryOutcome(
+  db: DbClient,
+  row: OpinionRow,
+  symbol: string,
+  outcome: RegimeOutcome4h,
+): Promise<void> {
+  const occurredFrom = new Date(row.createdAt.getTime() - REGIME_OUTCOME_WINDOW_MS);
+  const occurredTo = new Date(row.createdAt.getTime() + REGIME_OUTCOME_WINDOW_MS);
+  const memories = await db
+    .select({
+      id: schema.memoryEmbeddings.id,
+      text: schema.memoryEmbeddings.text,
+      meta: schema.memoryEmbeddings.meta,
+    })
+    .from(schema.memoryEmbeddings)
+    .where(
+      and(
+        eq(schema.memoryEmbeddings.userId, row.userId),
+        eq(schema.memoryEmbeddings.tenantId, row.tenantId),
+        eq(schema.memoryEmbeddings.kind, 'market_regime'),
+        eq(schema.memoryEmbeddings.symbol, symbol),
+        gte(schema.memoryEmbeddings.occurredAt, occurredFrom),
+        lte(schema.memoryEmbeddings.occurredAt, occurredTo),
+      ),
+    );
+
+  const outcomeLine = `\nOUTCOME_4H=${outcome.resolution4h}(MFE=${outcome.mfePct >= 0 ? '+' : ''}${outcome.mfePct}%,MAE=${outcome.maePct}%)`;
+  for (const memory of memories) {
+    const text = typeof memory.text === 'string' ? memory.text : '';
+    const meta =
+      memory.meta && typeof memory.meta === 'object'
+        ? (memory.meta as Record<string, unknown>)
+        : {};
+    await db
+      .update(schema.memoryEmbeddings)
+      .set({
+        text: text.includes('OUTCOME_4H') ? text : `${text}${outcomeLine}`,
+        meta: { ...meta, outcome },
+      })
+      .where(eq(schema.memoryEmbeddings.id, memory.id));
+  }
+}
+
+/**
  * Grade every eligible opinion in the 4h–7d window. Idempotent: only rows with
  * no `raw_data.calibrationEvaluated` flag are scanned, and each row is written
  * exactly once per invocation.
@@ -232,6 +335,9 @@ export async function runOpinionCalibration(ctx: JobContext): Promise<JobResult>
   let graded = 0;
   let skipped = 0;
   let failed = 0;
+  // One regime-memory backfill per run: every desk in a run shares a
+  // messageId, so the first graded opinion patches the row.
+  const patchedRegimeMessages = new Set<string>();
 
   // One candle read per symbol over the whole batch window.
   const from = new Date(rows[0]!.createdAt.getTime() - CANDLE_LOOKBACK_MS);
@@ -285,6 +391,31 @@ export async function runOpinionCalibration(ctx: JobContext): Promise<JobResult>
         evaluatedAt: new Date().toISOString(),
       });
       graded += 1;
+
+      // Phase 3 (Jev roadmap) — feed the realized 4-hour outcome back into
+      // the run's `market_regime` memory so later recalls can compare similar
+      // regimes with known resolutions. Best-effort: a memory failure is
+      // logged and never fails the grading pass.
+      const outcome = computeRegimeOutcomeFromCandles(
+        candles,
+        row.createdAt.getTime(),
+        row.createdAt.getTime() + HORIZON_MS,
+      );
+      if (outcome) {
+        const regimeKey = `${row.userId}:${row.messageId}`;
+        if (!patchedRegimeMessages.has(regimeKey)) {
+          patchedRegimeMessages.add(regimeKey);
+          try {
+            await patchRegimeMemoryOutcome(db, row, symbol, outcome);
+          } catch (err) {
+            log.warn('market-regime outcome backfill failed (non-fatal)', {
+              opinionId: row.id,
+              symbol,
+              err: err instanceof Error ? err.message : String(err),
+            });
+          }
+        }
+      }
     } catch (err) {
       failed += 1;
       log.error('opinion calibration failed for one row', {
