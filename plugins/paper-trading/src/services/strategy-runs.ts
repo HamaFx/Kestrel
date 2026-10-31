@@ -16,6 +16,9 @@
 
 // Deployment lifecycle for paper strategy runs.
 
+import { getBacktestRun, getBacktestStrategy } from '@kestrel/plugin-backtesting/server';
+import type { Symbol, Timeframe } from '@kestrel/shared';
+
 import {
   deleteStrategyRun,
   getStrategyRun,
@@ -35,6 +38,77 @@ export class StrategyRunError extends Error {
   }
 }
 
+interface ResolvedDeployInput {
+  name: string;
+  strategyId: string | null;
+  symbol: Symbol;
+  timeframe: Timeframe;
+  source: string;
+  params: Record<string, unknown>;
+  riskPct: number;
+}
+
+/**
+ * Resolve a deploy request against the Backtesting Lab.
+ *
+ * The model may reference a saved strategy (`strategyId` as id or slug) or a
+ * completed backtest run (`strategyId` as run id) instead of re-emitting the
+ * JavaScript source. Saved strategies carry no symbol/timeframe, so those must
+ * still be supplied for that path; a completed run carries everything.
+ */
+async function resolveDeployInput(
+  userId: string,
+  input: DeployStrategyRunInput,
+): Promise<ResolvedDeployInput> {
+  if (input.source) {
+    return {
+      name: input.name!,
+      strategyId: input.strategyId ?? null,
+      symbol: input.symbol!,
+      timeframe: input.timeframe!,
+      source: input.source,
+      params: input.params ?? {},
+      riskPct: input.riskPct,
+    };
+  }
+
+  const reference = input.strategyId!;
+  const strategy = await getBacktestStrategy(userId, reference);
+  if (strategy) {
+    if (!input.symbol || !input.timeframe) {
+      throw new StrategyRunError(
+        `Saved strategy "${strategy.name}" has no symbol or timeframe; pass both when deploying it.`,
+      );
+    }
+    return {
+      name: input.name ?? strategy.name,
+      strategyId: strategy.slug,
+      symbol: input.symbol,
+      timeframe: input.timeframe,
+      source: strategy.source,
+      params: input.params ?? strategy.params,
+      riskPct: input.riskPct,
+    };
+  }
+
+  const run = await getBacktestRun(userId, reference);
+  if (run) {
+    return {
+      name: input.name ?? run.name,
+      strategyId: run.id,
+      symbol: input.symbol ?? (run.symbol as Symbol),
+      timeframe: input.timeframe ?? (run.timeframe as Timeframe),
+      source: run.source,
+      params: input.params ?? run.params,
+      riskPct: input.riskPct,
+    };
+  }
+
+  throw new StrategyRunError(
+    `No saved strategy or backtest run matches "${reference}". Pass inline source to deploy a new strategy.`,
+  );
+}
+
 export async function deployStrategyRunForUser(args: {
   userId: string;
   input: DeployStrategyRunInput;
@@ -44,16 +118,17 @@ export async function deployStrategyRunForUser(args: {
   if (account.mode !== 'autonomous_sandbox') {
     throw new StrategyRunError('Deployed strategies can only run in the AI Agent Sandbox account.');
   }
+  const resolved = await resolveDeployInput(args.userId, args.input);
   const run = await insertStrategyRun({
     userId: args.userId,
     accountId: account.id,
-    name: args.input.name.trim(),
-    strategyId: args.input.strategyId ?? null,
-    symbol: args.input.symbol,
-    timeframe: args.input.timeframe,
-    source: args.input.source,
-    params: args.input.params,
-    riskPct: args.input.riskPct,
+    name: resolved.name.trim(),
+    strategyId: resolved.strategyId,
+    symbol: resolved.symbol,
+    timeframe: resolved.timeframe,
+    source: resolved.source,
+    params: resolved.params,
+    riskPct: resolved.riskPct,
     status: 'active',
   });
   return strategyRunView(run);

@@ -19,17 +19,31 @@
 import { SymbolSchema, TimeframeSchema } from '@kestrel/shared';
 import { z } from 'zod';
 
-export const DeployStrategyRunInputSchema = z.object({
-  name: z.string().min(1).max(120),
-  strategyId: z.string().max(120).optional(),
-  symbol: SymbolSchema,
-  timeframe: TimeframeSchema,
-  source: z.string().min(20).max(100_000),
-  params: z.record(z.string(), z.unknown()).default({}),
-  riskPct: z.number().min(0.01).max(20).default(1),
-  /** Deployed strategies always run in the autonomous sandbox. */
-  account: z.literal('sandbox').default('sandbox'),
-});
+export const DeployStrategyRunInputSchema = z
+  .object({
+    /** Defaults to the saved strategy / backtest run name when omitted. */
+    name: z.string().min(1).max(120).optional(),
+    /**
+     * Saved strategy id/slug (`plg_backtesting_strategies`) or a completed
+     * backtest run id (`plg_backtesting_runs`). When supplied, `source`,
+     * `params`, `name`, `symbol` and `timeframe` resolve server-side.
+     */
+    strategyId: z.string().min(1).max(120).optional(),
+    /** Required for inline `source`; resolved from a run otherwise. */
+    symbol: SymbolSchema.optional(),
+    timeframe: TimeframeSchema.optional(),
+    source: z.string().min(20).max(100_000).optional(),
+    params: z.record(z.string(), z.unknown()).optional(),
+    riskPct: z.number().min(0.01).max(20).default(1),
+    /** Deployed strategies always run in the autonomous sandbox. */
+    account: z.literal('sandbox').default('sandbox'),
+  })
+  .refine((value) => Boolean(value.source) || Boolean(value.strategyId), {
+    message: 'Provide `source` or `strategyId`.',
+  })
+  .refine((value) => !value.source || Boolean(value.name && value.symbol && value.timeframe), {
+    message: 'Provide `name`, `symbol` and `timeframe` with inline `source`.',
+  });
 
 export type DeployStrategyRunInput = z.infer<typeof DeployStrategyRunInputSchema>;
 
@@ -64,6 +78,21 @@ export const ListStrategyRunsOutputSchema = z.object({
 
 export const UpdateStrategyRunInputSchema = z.object({
   action: z.enum(['pause', 'resume', 'stop']),
+});
+
+export const ControlStrategyRunInputSchema = z.object({
+  strategyRunId: z.string().min(1),
+  action: z.enum(['pause', 'resume', 'stop', 'delete']),
+});
+
+export type ControlStrategyRunInput = z.infer<typeof ControlStrategyRunInputSchema>;
+
+export const ControlStrategyRunOutputSchema = z.object({
+  ok: z.boolean(),
+  message: z.string(),
+  action: z.enum(['pause', 'resume', 'stop', 'delete']),
+  /** Null after a delete; the updated run otherwise. */
+  run: StrategyRunSchema.nullable(),
 });
 
 export const DeployStrategyRunOutputSchema = z.object({

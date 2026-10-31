@@ -33,9 +33,11 @@ describe('paper trading plugin', () => {
       [
         'paper_cancel_order',
         'paper_close_position',
+        'paper_control_strategy_run',
         'paper_deploy_strategy',
         'paper_get_accounts',
         'paper_get_position',
+        'paper_list_fills',
         'paper_list_orders',
         'paper_list_positions',
         'paper_list_strategy_runs',
@@ -62,6 +64,43 @@ describe('paper trading plugin', () => {
     expect(host.requiresConfirmationForTool('paper_close_position')).toBe(false);
     expect(host.requiresConfirmationForTool('paper_cancel_order')).toBe(false);
     expect(host.requiresConfirmationForTool('paper_reset_account')).toBe(true);
+  });
+
+  it('registers paper_control_strategy_run and paper_list_fills and allows pause/stop without confirmation', async () => {
+    const host = new PluginHost();
+    host.register(plugin);
+
+    const tools = host.resolveToolsForUser(['paper-trading']);
+    const names = tools.map((tool) => tool.name);
+    expect(names).toContain('paper_control_strategy_run');
+    expect(names).toContain('paper_list_fills');
+
+    const controlTool = host.getTool('paper_control_strategy_run');
+    expect(controlTool).toBeDefined();
+    expect(typeof controlTool?.requiresConfirmation).toBe('function');
+    if (typeof controlTool?.requiresConfirmation === 'function') {
+      expect(
+        await controlTool.requiresConfirmation(
+          { strategyRunId: '1', action: 'pause' },
+          {} as never,
+        ),
+      ).toBe(false);
+      expect(
+        await controlTool.requiresConfirmation({ strategyRunId: '1', action: 'stop' }, {} as never),
+      ).toBe(false);
+      expect(
+        await controlTool.requiresConfirmation(
+          { strategyRunId: '1', action: 'resume' },
+          {} as never,
+        ),
+      ).toBe(true);
+      expect(
+        await controlTool.requiresConfirmation(
+          { strategyRunId: '1', action: 'delete' },
+          {} as never,
+        ),
+      ).toBe(true);
+    }
   });
 
   it('normalises settings and keeps the risk cap coherent', () => {

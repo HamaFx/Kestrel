@@ -30,13 +30,20 @@ import type { z } from 'zod';
 import {
   CancelOrderInputSchema,
   CancelOrderOutputSchema,
+  ListFillsOutputSchema,
+  ListFillsQuerySchema,
   ListOrdersInputSchema,
   ListOrdersOutputSchema,
   PlaceOrderInputSchema,
   PlaceOrderOutputSchema,
 } from '../schemas';
 import { accountModeForRef, resolvePaperAccount } from '../services/accounts';
-import { cancelOrderForUser, listOrderViews, placeOrderForUser } from '../services/trading';
+import {
+  cancelOrderForUser,
+  listFillViews,
+  listOrderViews,
+  placeOrderForUser,
+} from '../services/trading';
 import { normaliseSettings } from '../settings';
 
 async function approvalForAccount(
@@ -126,5 +133,29 @@ export const cancelOrderTool: PluginToolRegistration<
       orderId: input.orderId,
     });
     return { ok: true, message: result.message, order: result.order };
+  },
+};
+
+export const listFillsTool: PluginToolRegistration<
+  z.infer<typeof ListFillsQuerySchema>,
+  z.infer<typeof ListFillsOutputSchema>
+> = {
+  name: 'paper_list_fills',
+  description:
+    'List recent execution fills (open, close, partial_close, stop_loss, take_profit, trailing_stop) for the paper accounts, including the realised P&L and fees per fill. Use it to explain exactly what executed and why a position changed.',
+  inputSchema: ListFillsQuerySchema,
+  outputSchema: ListFillsOutputSchema,
+  access: 'read-only',
+  attachTo: ['canonical-chat', 'technical', 'risk'],
+  execute: async (input, ctx) => {
+    const settings = normaliseSettings(ctx.settings);
+    const account = input.account
+      ? await resolvePaperAccount(ctx.userId, input.account, settings)
+      : undefined;
+    const fills = await listFillViews(ctx.userId, {
+      ...(account ? { accountId: account.id } : {}),
+      limit: input.limit,
+    });
+    return { fills };
   },
 };

@@ -59,7 +59,7 @@ const plugin = definePlugin({
       'Approve / deny orders',
       'Autonomous sandbox',
       'Live tick fills',
-      'Adds 12 AI tools',
+      'Adds 14 AI tools',
       'Adds sidebar tab',
     ],
     setupSteps: [],

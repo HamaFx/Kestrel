@@ -36,6 +36,11 @@ export {
   type BacktestRunRequest,
   type BacktestRunResponse,
 } from './services/run-service';
+// Phase 4 (roadmap Phase 5) — paper-trading resolves a saved strategy or a
+// completed run server-side (`paper_deploy_strategy`) instead of asking the
+// model to re-emit the JavaScript source.
+export { getBacktestRun } from './db/queries/runs';
+export { getBacktestStrategy } from './db/queries/strategies';
 export { normaliseSettings, type BacktestSettings } from './settings';
 export {
   executeSweep,

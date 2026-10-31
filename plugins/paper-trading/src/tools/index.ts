@@ -27,14 +27,14 @@
 import type { PluginToolRegistration } from '@kestrel/plugin-sdk';
 
 import { getAccountsTool, resetAccountTool, updateAccountTool } from './accounts';
-import { cancelOrderTool, listOrdersTool, placeOrderTool } from './orders';
+import { cancelOrderTool, listFillsTool, listOrdersTool, placeOrderTool } from './orders';
 import {
   closePositionTool,
   getPositionTool,
   listPositionsTool,
   modifyPositionTool,
 } from './positions';
-import { deployStrategyTool, listStrategyRunsTool } from './strategy-runs';
+import { controlStrategyRunTool, deployStrategyTool, listStrategyRunsTool } from './strategy-runs';
 
 export const paperTradingTools: readonly PluginToolRegistration[] = [
   getAccountsTool,
@@ -49,4 +49,6 @@ export const paperTradingTools: readonly PluginToolRegistration[] = [
   resetAccountTool,
   listStrategyRunsTool,
   deployStrategyTool,
+  controlStrategyRunTool,
+  listFillsTool,
 ];
