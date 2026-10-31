@@ -62,17 +62,22 @@ export interface BiquoteOhlcBar {
   low: number;
   close: number;
   volume: number;
+  /** Tick count for the bar (FX/Gold have no real volume — MT5 reports tick count instead). */
+  tickVolume?: number;
 }
 
 /**
  * Map a BiQuote OHLC bar (with `openTime` string and `volume` number) to a
- * normalised `Candle` DTO. BiQuote returns 0 volume for FX — we store null
- * in our DTO for consistency.
+ * normalised `Candle` DTO. BiQuote returns 0 real volume for FX/Gold — in
+ * that case we fall back to `tickVolume` so volume-based indicators
+ * (`vwap`, `mfi14`, `obv`, `volumeSma20`) remain defined.
  */
 export function toCandleFromBiquote(
   bar: BiquoteOhlcBar,
   opts: { symbol: Symbol; tf: Timeframe; fetchedAt: number },
 ): Candle {
+  const tickVolume = bar.tickVolume ?? 0;
+  const volume = bar.volume > 0 ? bar.volume : tickVolume > 0 ? tickVolume : null;
   return CandleSchema.parse({
     symbol: opts.symbol,
     tf: opts.tf,
@@ -81,7 +86,7 @@ export function toCandleFromBiquote(
     h: bar.high,
     l: bar.low,
     c: bar.close,
-    v: bar.volume > 0 ? bar.volume : null,
+    v: volume,
     source: 'biquote',
     fetchedAt: opts.fetchedAt,
   });

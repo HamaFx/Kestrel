@@ -155,7 +155,12 @@ export function assertSymbolCatalog(): void {
 
     const hasProvider = (provider: SymbolDataProvider) => definition.providers.includes(provider);
     if (definition.category === 'crypto') {
-      if (definition.binance === null || !hasProvider('binance') || definition.biquote !== null) {
+      if (
+        definition.binance === null ||
+        !hasProvider('binance') ||
+        definition.biquote === null ||
+        !hasProvider('biquote')
+      ) {
         throw new Error(`Invalid crypto provider metadata: ${definition.internal}`);
       }
     } else if (

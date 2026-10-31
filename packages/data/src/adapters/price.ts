@@ -24,7 +24,7 @@
 //     round-trip when ≥2 FX/Gold symbols miss the 3s cache, populating per-symbol
 //     cache entries and falling back seamlessly to `getPriceWithMeta` per symbol.
 
-import { SymbolSchema, type Symbol, type Tick } from '@kestrel/shared';
+import { getSymbolDefinition, SymbolSchema, type Symbol, type Tick } from '@kestrel/shared';
 
 import { cacheKey, cacheTag, getDefaultCache, PRICE_TTL } from '../cache';
 import { runWithFailover, type ProviderAttempt } from '../failover';
@@ -222,6 +222,9 @@ export async function getPricesWithMeta(
       if (seen.has(s)) continue;
       seen.add(s);
       if (!(biquoteProvider.supports?.(s) ?? false)) continue;
+      // Crypto keeps Binance as its primary provider; BiQuote is only its
+      // per-symbol failover, so crypto pairs never enter the batch tier.
+      if (getSymbolDefinition(s).category === 'crypto') continue;
       const existing = await cache.getWithMeta?.<{ tick: Tick; ageMs: number | null }>(
         cacheKey({ resource: 'price', symbol: s }),
       );

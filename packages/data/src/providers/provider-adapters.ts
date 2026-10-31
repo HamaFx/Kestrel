@@ -176,8 +176,7 @@ const biquoteProvider: MarketDataProvider = {
   },
   supports(symbol: Symbol, tf?: Timeframe): boolean {
     const def = getSymbolDefinition(symbol);
-    if (!def || def.category === 'crypto') return false;
-    return !tf || tf !== '1w';
+    return Boolean(def?.biquote) && (!tf || tf !== '1w');
   },
   async testConnection(opts?: ProviderFetchOptions): Promise<{ ok: boolean; error?: string }> {
     try {
@@ -306,7 +305,7 @@ function buildProviderList(): MarketDataProvider[] {
   if (process.env.KESTREL_OFFLINE_MODE === '1' || process.env.KESTREL_OFFLINE_MODE === 'true') {
     return [offlineMarketDataProvider];
   }
-  return [liveTicksProvider, biquoteProvider, binanceProvider, finnhubProvider];
+  return [liveTicksProvider, binanceProvider, biquoteProvider, finnhubProvider];
 }
 
 let _bootstrapped = false;

@@ -61,8 +61,7 @@ describe('canonical symbol catalog', () => {
       expect(symbol.baseCurrency).toBeTruthy();
       expect(symbol.quoteCurrency).toBeTruthy();
       expect(symbol.settlementCurrency).toBeTruthy();
-      if (symbol.category === 'crypto') expect(symbol.biquote).toBeNull();
-      else expect(symbol.biquote).toBeTruthy();
+      expect(symbol.biquote).toBeTruthy();
       expect(symbol.finnhub).toBeTruthy();
       expect(symbol.tradingView).toBeTruthy();
       expect(symbol.decimals).toBeGreaterThanOrEqual(0);
@@ -79,12 +78,14 @@ describe('canonical symbol catalog', () => {
 
       if (symbol.category === 'crypto') {
         expect(symbol.binance).toBe(symbol.internal);
+        expect(symbol.biquote).toBe(`${symbol.baseCurrency}USD`);
         expect(symbol.quoteCurrency).toBe('USDT');
         expect(symbol.settlementCurrency).toBe('USDT');
         expect(symbol.currencies).toEqual(expect.arrayContaining(['USD', 'USDT']));
         expect(symbol.capabilities.quantityUnit).toBe('coins');
         expect(symbol.capabilities.supportsCftc).toBe(false);
         expect(symbol.providers).toContain('binance');
+        expect(symbol.providers).toContain('biquote');
       } else {
         expect(symbol.binance).toBeNull();
         expect(symbol.quoteCurrency).not.toBe('USDT');

@@ -378,4 +378,33 @@ describe('getPrice — live_ticks pseudo-provider (opt-in via WORKER_ENABLE_TICK
     expect(biquoteCalls).toBe(0);
     expect(finnhubCalls).toBe(0);
   });
+
+  it('falls back to BiQuote for crypto when Binance is unavailable', async () => {
+    let binanceCalls = 0;
+    let biquoteCalls = 0;
+    globalThis.fetch = createRoutedFetch([
+      {
+        match: (u) => u.includes('api.binance.com'),
+        respond: () => {
+          binanceCalls += 1;
+          return { status: 503, body: { message: 'binance down' } };
+        },
+      },
+      {
+        match: (u) => u.includes('biquote.io/api/BTCUSD'),
+        respond: () => {
+          biquoteCalls += 1;
+          return { body: { ...VALID_BIQUOTE_TICK('BTCUSD', 65000), marketState: 'open' } };
+        },
+      },
+    ]);
+
+    const tick = await getPrice('BTCUSDT');
+
+    expect(tick.source).toBe('biquote');
+    expect(tick.mid).toBeCloseTo(65000);
+    expect(tick.bid).toBeLessThan(tick.ask);
+    expect(binanceCalls).toBe(1);
+    expect(biquoteCalls).toBe(1);
+  });
 });

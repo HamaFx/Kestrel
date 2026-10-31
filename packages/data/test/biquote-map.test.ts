@@ -37,11 +37,23 @@ describe('biquote map', () => {
     expect(assertSupportedSymbol(raw)).toBe(canonical);
   });
 
-  it.each([['BTCUSD'], ['BTCUSDT'], ['DOGEUSDT'], ['GARAN'], ['ZZZZZZ']] as const)(
+  it.each([['DOGEUSDT'], ['GARAN'], ['ZZZZZZ']] as const)(
     'fails fast for the unsupported or unmapped symbol %s',
     (raw) => {
       expect(() => toBiquoteSymbol(raw)).toThrow(/no catalog mapping/);
       expect(() => assertSupportedSymbol(raw)).toThrow(ProviderError);
+    },
+  );
+
+  it.each([
+    ['BTCUSDT', 'BTCUSDT', 'BTCUSD'],
+    ['BTCUSD', 'BTCUSD', 'BTCUSD'],
+    [' ethusdt ', 'ETHUSDT', 'ETHUSD'],
+  ] as const)(
+    'maps crypto %j to the canonical %s / BiQuote %s pair',
+    (raw, canonical, biquoteSymbol) => {
+      expect(assertSupportedSymbol(raw)).toBe(canonical);
+      expect(toBiquoteSymbol(raw)).toBe(biquoteSymbol);
     },
   );
 

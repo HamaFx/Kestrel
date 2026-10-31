@@ -97,4 +97,20 @@ describe('toCandleFromBiquote', () => {
     );
     expect(result.v).toBe(500);
   });
+
+  it('uses tickVolume when FX/Gold real volume is zero on BiQuote bars', () => {
+    const result = toCandleFromBiquote(
+      {
+        openTime: '2026-02-24T12:00:00Z',
+        open: 2650.1,
+        high: 2655.0,
+        low: 2648.5,
+        close: 2653.2,
+        volume: 0,
+        tickVolume: 412,
+      },
+      { symbol: 'XAUUSD' as const, tf: '1h' as const, fetchedAt: 1771934400000 },
+    );
+    expect(result.v).toBe(412);
+  });
 });
