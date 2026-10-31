@@ -42,8 +42,6 @@ export async function runRetention(ctx: JobContext): Promise<JobResult> {
     cronRunsDeleted: result.cronRunsDeleted,
     outboxDeleted: result.outboxDeleted,
     fullAnalysisQueueDeleted: result.fullAnalysisQueueDeleted,
-    aiShadowComparisonsDeleted: result.aiShadowComparisonsDeleted,
-    aiQualityResultsDeleted: result.aiQualityResultsDeleted,
     budgetReservationsDeleted: result.budgetReservationsDeleted,
     sharedSnapshotsDeleted: result.sharedSnapshotsDeleted,
     notificationNoiseStateDeleted: result.notificationNoiseStateDeleted,

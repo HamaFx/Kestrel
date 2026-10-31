@@ -54,7 +54,6 @@ function isoCutoff(now: Date, milliseconds: number): string {
  * Terminal-only rules:
  * - outbox: completed/dead rows only
  * - analysis jobs: complete/failed rows with a completion timestamp
- * - AI evaluations: terminal shadow/quality artifacts
  * - budget ledger: reconciled/released rows only
  * - share snapshots: expired rows only
  * - notification noise state: expired rows only
@@ -79,10 +78,6 @@ export async function runRetentionCleanup(
   const analysisJobCutoff = isoCutoff(
     now,
     retention.analysisJobRetentionDays * 24 * 60 * 60 * 1_000,
-  );
-  const aiEvaluationCutoff = isoCutoff(
-    now,
-    retention.aiEvaluationRetentionDays * 24 * 60 * 60 * 1_000,
   );
   const budgetCutoff = isoCutoff(
     now,
@@ -118,18 +113,6 @@ export async function runRetentionCleanup(
     db,
     'full_analysis_queue',
     `status IN ('succeeded', 'failed', 'cancelled', 'blocked') AND completed_at IS NOT NULL AND completed_at < '${analysisJobCutoff}'`,
-  );
-  const aiShadowComparisonsDeleted = await deleteBatched(
-    db,
-    'ai_shadow_comparisons',
-    'created_at',
-    aiEvaluationCutoff,
-  );
-  const aiQualityResultsDeleted = await deleteBatched(
-    db,
-    'ai_quality_results',
-    'created_at',
-    aiEvaluationCutoff,
   );
   const budgetReservationsDeleted = await deleteBatchedWhere(
     db,
@@ -178,8 +161,6 @@ export async function runRetentionCleanup(
     cronRunsDeleted,
     outboxDeleted,
     fullAnalysisQueueDeleted,
-    aiShadowComparisonsDeleted,
-    aiQualityResultsDeleted,
     budgetReservationsDeleted,
     sharedSnapshotsDeleted,
     notificationNoiseStateDeleted,

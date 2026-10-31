@@ -54,10 +54,6 @@ export async function deleteUserAccount(userId: string): Promise<void> {
     await tx
       .delete(schema.memoryProjectionState)
       .where(eq(schema.memoryProjectionState.userId, userId));
-    await tx
-      .delete(schema.aiShadowComparisons)
-      .where(eq(schema.aiShadowComparisons.userId, userId));
-    await tx.delete(schema.aiQualityResults).where(eq(schema.aiQualityResults.userId, userId));
     await tx.delete(schema.fullAnalysisQueue).where(eq(schema.fullAnalysisQueue.userId, userId));
     await tx.delete(schema.persistenceOutbox).where(eq(schema.persistenceOutbox.userId, userId));
     await tx.delete(schema.mutationExecutions).where(eq(schema.mutationExecutions.userId, userId));

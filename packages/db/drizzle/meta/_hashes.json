@@ -467,6 +467,10 @@
     {
       "tag": "0117_fix_empty_tenant_guc_fallback",
       "hash": "37a71063e24d0956ef8bc0642b71e5306bbb16667c8f4cdb5f335655ef527bb0"
+    },
+    {
+      "tag": "0118_drop_legacy_shadow_and_quality_tables",
+      "hash": "6d091150390424d04675f2c8d792df6c05b9e55efda68c3f4e4c3951d728cd01"
     }
   ]
 }

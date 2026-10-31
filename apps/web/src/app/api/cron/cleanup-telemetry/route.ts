@@ -19,9 +19,10 @@
 // DB-1: GET /api/cron/cleanup-telemetry — purges stale operational rows.
 //
 // Targets: rate_limits, chat_telemetry, tool_telemetry, diagnostic_traces,
-// provider_daily_quota, Full-analysis queue, AI evaluation artifacts,
-// Telegram deduplication IDs, expired share snapshots, and recovery ledgers. Uses shared retention logic from @kestrel/db so
-// both the web cron route and the worker job call the same function.
+// provider_daily_quota, Full-analysis queue, Telegram deduplication IDs,
+// expired share snapshots, and recovery ledgers. Uses shared retention logic
+// from @kestrel/db so both the web cron route and the worker job call the
+// same function.
 //
 // Schedule: daily via Vercel cron or the GCE VM systemd timer.
 
@@ -48,8 +49,6 @@ export async function GET(req: Request): Promise<Response> {
         cronRunsDeleted: result.cronRunsDeleted,
         outboxDeleted: result.outboxDeleted,
         fullAnalysisQueueDeleted: result.fullAnalysisQueueDeleted,
-        aiShadowComparisonsDeleted: result.aiShadowComparisonsDeleted,
-        aiQualityResultsDeleted: result.aiQualityResultsDeleted,
         budgetReservationsDeleted: result.budgetReservationsDeleted,
         sharedSnapshotsDeleted: result.sharedSnapshotsDeleted,
         notificationNoiseStateDeleted: result.notificationNoiseStateDeleted,

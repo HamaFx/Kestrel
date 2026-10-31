@@ -124,8 +124,6 @@ export async function buildUserDataExport(userId: string): Promise<string> {
     toolTelemetry,
     feedback,
     regressionCases,
-    shadowComparisons,
-    qualityResults,
     fullAnalysisQueue,
     persistenceOutbox,
     mutationExecutions,
@@ -183,24 +181,6 @@ export async function buildUserDataExport(userId: string): Promise<string> {
         and(
           eq(schema.aiRegressionCases.userId, userId),
           eq(schema.aiRegressionCases.tenantId, tenantId),
-        ),
-      ),
-    db
-      .select()
-      .from(schema.aiShadowComparisons)
-      .where(
-        and(
-          eq(schema.aiShadowComparisons.userId, userId),
-          eq(schema.aiShadowComparisons.tenantId, tenantId),
-        ),
-      ),
-    db
-      .select()
-      .from(schema.aiQualityResults)
-      .where(
-        and(
-          eq(schema.aiQualityResults.userId, userId),
-          eq(schema.aiQualityResults.tenantId, tenantId),
         ),
       ),
     db
@@ -308,8 +288,6 @@ export async function buildUserDataExport(userId: string): Promise<string> {
     rateLimits: rateLimits.map(({ userId: _userId, ...limit }) => limit),
     feedback: feedback.map(({ userId: _userId, ...row }) => row),
     regressionCases: regressionCases.map(({ userId: _userId, ...row }) => row),
-    shadowComparisons: shadowComparisons.map(({ userId: _userId, ...row }) => row),
-    qualityResults: qualityResults.map(({ userId: _userId, ...row }) => row),
     fullAnalysisQueue: fullAnalysisQueue.map(({ userId: _userId, ...row }) => row),
     persistenceOutbox: persistenceOutbox.map(({ userId: _userId, ...row }) => row),
     mutationExecutions: mutationExecutions.map(({ userId: _userId, ...row }) => row),
