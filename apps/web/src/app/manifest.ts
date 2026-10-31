@@ -18,7 +18,7 @@
 
 // Web app manifest served at /manifest.webmanifest (Next metadata route).
 //
-// Contract notes (see docs/pwa.md):
+// Contract notes:
 //   - `id` pins the installed app identity. Without it the browser derives the
 //     id from `start_url`, so a future start_url change would register as a
 //     *different* app (duplicate home-screen entries, orphaned push subs).

@@ -21,7 +21,7 @@
 /**
  * <InstallNudge> — the in-app "Add Kestrel to your home screen" affordance.
  *
- * Rules (docs/pwa.md §install):
+ * Rules:
  *   - Nothing to say when the app is already installed or the user opted out.
  *   - The engagement gate + progressive snooze live in the hook; this component
  *     only decides *which* card to show.

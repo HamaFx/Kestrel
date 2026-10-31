@@ -398,7 +398,7 @@ function printLaunchFailure(io, buildOutput) {
   }
   io.line();
   info(io, `Retry anytime with: ${paint('docker compose up -d --build', 'brand')}`);
-  info(io, `More help: ${paint('docs/troubleshooting.md', 'dim')}`);
+  info(io, `More help: ${paint('docs/configuration.md', 'dim')}`);
   io.line();
 }
 

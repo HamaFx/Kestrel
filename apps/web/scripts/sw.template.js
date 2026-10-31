@@ -24,7 +24,7 @@
  * `__BUILD_ID__` / `__VAPID_PUBLIC_KEY__` and writes the result to
  * apps/web/public/sw.js. This file is NEVER served to the browser as-is.
  *
- * Responsibilities (see docs/pwa.md):
+ * Responsibilities:
  *   - install:  pre-cache the public shell, one URL at a time so a single
  *               failure (404/offline/redirect) can never abort the batch.
  *               `cache.addAll` is atomic: it rejected on the first missing

@@ -19,8 +19,7 @@
 /**
  * Phase 1 (Jev System One) — public surface of the Jev client.
  *
- * `packages/ai/src/jev/` is deliberately outside `mastra-v2/` so the CI
- * architecture-tree check for that subtree stays untouched (audit plan §0).
+ * `packages/ai/src/jev/` is deliberately outside `mastra-v2/`.
  */
 
 export * from './types';

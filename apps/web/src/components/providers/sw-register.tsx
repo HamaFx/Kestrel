@@ -25,7 +25,7 @@ import { isStandalone } from '@/lib/pwa/platform-detect';
  * Registers the service worker once, deferred until the browser is idle so it
  * never competes with first paint, and owns the update conversation.
  *
- * Update policy (docs/pwa.md):
+ * Update policy:
  *   - The SW stays in `waiting` until the app explicitly asks for the update,
  *     so a deploy can never swap chunks underneath a half-typed prompt.
  *   - Browser tab: a toast offers "Reload"; the reload happens only on click.
