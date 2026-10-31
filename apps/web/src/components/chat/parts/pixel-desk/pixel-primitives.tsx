@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Shared pixel-desk primitives: desk glyph dispatch and quick symbols for the
-// standby launcher. (The live thinking card now renders the Hoplite Plasma
+// standby launcher. (The live thinking card now renders the Kestrel Plasma
 // Circuit Spine — see `../syndicate-dossier/syndicate-circuit-live`.)
 import {
   ChartWizardSprite,

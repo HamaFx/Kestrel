@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Certified Trade Plan Ticket header: verified status line, deterministic plan
-// id with copy affordance, execution-direction badge, the Hoplite Risk
+// id with copy affordance, execution-direction badge, the Aegis Risk
 // Guardrail banner, the Bull/Bear Tug-of-War bar, and the four deep
 // `#0a0b0c` execution wells.
 import { IconAlertTriangle, IconCheck, IconCopy, IconShieldX } from '@tabler/icons-react';
@@ -31,7 +31,7 @@ export function SyndicateGuardrailBanner({
                 SETUP BLOCKED BY RISK GUARDRAIL
               </div>
               <div className="text-fg-subtle font-mono text-[10px] uppercase">
-                HOPLITE · DESK-III · IMMUTABLE 1.0% CEILING
+                AEGIS · DESK-III · IMMUTABLE 1.0% CEILING
               </div>
             </div>
           </div>
@@ -52,7 +52,7 @@ export function SyndicateGuardrailBanner({
           <IconAlertTriangle className="text-warn size-4 shrink-0" />
           <div>
             <div className="text-warn font-mono text-[11px] font-bold tracking-wider uppercase">
-              HOPLITE RISK GUARDRAIL — DESKS DISSENT
+              AEGIS RISK GUARDRAIL — DESKS DISSENT
             </div>
             <div className="text-fg-subtle font-mono text-[10px] uppercase">
               REDUCE SIZING TO 0.5% UNTIL DESKS RE-ALIGN

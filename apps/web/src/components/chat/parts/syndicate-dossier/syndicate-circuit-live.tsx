@@ -2,7 +2,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Live 5-stage Hoplite Plasma Circuit Spine + 2×2 live desk matrix shown while
+// Live 5-stage Kestrel Plasma Circuit Spine + 2×2 live desk matrix shown while
 // the council deliberates. The circuit trace lives in `syndicate-spine.tsx`
 // (adapted from `landing-stepper/circuit-spine.tsx`); the desk tiles in
 // `syndicate-live-desk-tile.tsx`. 100% SVG/CSS — no WebGL in `/chat`
@@ -43,7 +43,7 @@ const FULL_COUNCIL_STAGES: readonly StageDef[] = [
   {
     id: 'deliberation',
     title: '4-Desk Deliberation',
-    caption: 'HORUS · ASTROLABE · HOPLITE · SENTINEL deliberating in parallel',
+    caption: 'HORUS · ASTROLABE · AEGIS · SENTINEL deliberating in parallel',
   },
   {
     id: 'critique',
@@ -53,7 +53,7 @@ const FULL_COUNCIL_STAGES: readonly StageDef[] = [
   {
     id: 'verify',
     title: 'Risk Audit',
-    caption: 'Hoplite 1.0% ceiling and numerical grounding against the packet',
+    caption: 'Aegis 1.0% ceiling and numerical grounding against the packet',
   },
   {
     id: 'fusion',

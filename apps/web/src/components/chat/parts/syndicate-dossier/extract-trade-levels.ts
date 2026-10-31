@@ -232,10 +232,10 @@ function findVetoReason(opinions: SyndicateTradeOpinion[], direction: string): s
     }
     const confidence = clamp01(risk.confidence);
     if (risk.bias === 'neutral' && confidence < 0.5) {
-      return `HOPLITE withheld approval at ${Math.round(confidence * 100)}% confidence — sizing is not permitted until invalidation clarity returns.`;
+      return `AEGIS withheld approval at ${Math.round(confidence * 100)}% confidence — sizing is not permitted until invalidation clarity returns.`;
     }
     if (risk.bias === 'bearish' && direction !== 'SELL') {
-      return `HOPLITE dissents from the ${direction} thesis — the setup is vetoed until price action re-aligns.`;
+      return `AEGIS dissents from the ${direction} thesis — the setup is vetoed until price action re-aligns.`;
     }
   }
   // A global veto can also appear in the Arbiter text rather than the desk row.
@@ -256,7 +256,7 @@ function textVetoReason(text: string | undefined): string | null {
 
 /**
  * Extract the certified entry / invalidation / TP1 / TP2 wells, the
- * Tug-of-War probability, and the Hoplite veto state from any combination of
+ * Tug-of-War probability, and the Aegis veto state from any combination of
  * structured opinions and the Arbiter's markdown synthesis.
  */
 export function extractSyndicateTradeLevels(input: {

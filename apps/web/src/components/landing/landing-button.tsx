@@ -34,7 +34,7 @@ export function TacticalFlameButton({
 }: TacticalFlameButtonProps) {
   const innerElements = (
     <>
-      {/* Triple-Layer Expanding Orange Flame Glow (Hoplite Signature) */}
+      {/* Triple-Layer Expanding Orange Flame Glow (Kestrel Signature) */}
       <span
         aria-hidden="true"
         className="pointer-events-none absolute top-[0.45em] right-[0.45em] h-[1.45em] w-[5.2em] rounded-full bg-[#ff4800]/22 blur-[0.45em] transition-[width] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:w-[9.2em]"
@@ -51,7 +51,7 @@ export function TacticalFlameButton({
       {/* Button Text */}
       <span className="relative z-10 font-semibold">{label}</span>
 
-      {/* 5-Cross Expanding Grid Icon (Hoplite Signature Arrow Grid) */}
+      {/* 5-Cross Expanding Grid Icon (Kestrel Signature Arrow Grid) */}
       <svg
         viewBox="0 0 12 12"
         xmlns="http://www.w3.org/2000/svg"

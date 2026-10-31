@@ -19,7 +19,7 @@
  */
 
 // Canonical committee surface dispatcher (Locked Decision 4A): delegates to
-// the live Hoplite Plasma Circuit Spine while the council deliberates, and to
+// the live Kestrel Plasma Circuit Spine while the council deliberates, and to
 // the settled `SyndicateDossierCard` once every desk has reported. Desk
 // metadata lives in `agent-meta.tsx`; the live phalanx in `deliberation-live`.
 import { SyndicateDossierCard } from '../syndicate-dossier/syndicate-dossier-card';

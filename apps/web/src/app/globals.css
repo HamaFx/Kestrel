@@ -12,7 +12,7 @@
 @source '../../../../packages/*/src/**/*.{ts,tsx}';
 
 /* -------------------------------------------------------------------------
- * Typography — The Hoplite & Kestrel Typeface System
+ * Typography — The Kestrel Typeface System
  * ------------------------------------------------------------------------- */
 @font-face {
   font-family: 'Funnel Display';
@@ -91,7 +91,7 @@
 }
 
 /* -------------------------------------------------------------------------
- * Theme tokens — Hoplite Neo-Skeuomorphic & Cyber-Industrial System
+ * Theme tokens — Kestrel Neo-Skeuomorphic & Cyber-Industrial System
  * ------------------------------------------------------------------------- */
 
 @theme {
@@ -117,7 +117,7 @@
   --color-fg-muted: rgba(229, 229, 229, 0.6);
   --color-fg-subtle: rgba(229, 229, 229, 0.52);
 
-  /* ── Brand — Hoplite Forge Flame Orange (#FF3616) ── */
+  /* ── Brand — Kestrel Forge Flame Orange (#FF3616) ── */
   --color-brand: #ff3616;
   --color-brand-fg: #ffffff;
   --color-brand-soft: #ff632a;
@@ -430,7 +430,7 @@ html {
 }
 
 /* -------------------------------------------------------------------------
- * Tactile & Neo-Skeuomorphic Surface Utilities (The Hoplite Standard)
+ * Tactile & Neo-Skeuomorphic Surface Utilities (The Kestrel Standard)
  * ------------------------------------------------------------------------- */
 
 @utility surface-ground {
@@ -789,7 +789,7 @@ html {
   animation: fadeIn 0.25s ease-out both;
 }
 
-/* ── Hoplite Circuit & Hardware Keyframes ── */
+/* ── Kestrel Circuit & Hardware Keyframes ── */
 @keyframes setup-card-dot-hop {
   0% {
     left: 129px;

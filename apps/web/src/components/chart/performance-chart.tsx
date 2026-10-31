@@ -60,7 +60,7 @@ export function PerformanceChart({ entries, height = 220, bare = false }: Perfor
 
   // Single chart setup effect: (re)creates the lightweight-charts instance
   // whenever the data, height, or net R changes. Creation already applies
-  // the Hoplite axis colors + R-signed series colors, so the former separate
+  // the Kestrel axis colors + R-signed series colors, so the former separate
   // color-sync effects are subsumed here.
   useEffect(() => {
     const el = containerRef.current;
@@ -154,10 +154,7 @@ export function PerformanceChart({ entries, height = 220, bare = false }: Perfor
     // instead of rendering a pulsing "Performance Curve Loading" panel.
     if (bare) {
       return (
-        <div
-          className="text-fg-subtle flex items-center justify-center text-xs"
-          style={{ height }}
-        >
+        <div className="text-fg-subtle flex items-center justify-center text-xs" style={{ height }}>
           Not enough closed trades yet
         </div>
       );

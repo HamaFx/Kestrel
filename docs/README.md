@@ -5,7 +5,7 @@ These are the active documentation files for the private self-hosted multi-user 
 | Document                          | Purpose                                                                    |
 | --------------------------------- | -------------------------------------------------------------------------- |
 | [Configuration](configuration.md) | Environment variables, defaults, secrets, and feature flags                |
-| [Design System](design-system.md) | Hoplite design system, typography, tactile tokens, and showcase components |
+| [Design System](design-system.md) | Kestrel design system, typography, tactile tokens, and showcase components |
 
 Repository-level policy and status documents:
 

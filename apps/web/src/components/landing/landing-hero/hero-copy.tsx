@@ -32,7 +32,7 @@ export function HeroCopy({ isAuthenticated }: HeroCopyProps) {
         </span>
       </div>
 
-      {/* Monumental Headline with Hoplite Dual Radial/Linear Ink Text Clip */}
+      {/* Monumental Headline with Kestrel Dual Radial/Linear Ink Text Clip */}
       <h1 className="font-display text-4xl leading-[1.06] font-normal tracking-[-0.03em] sm:text-6xl lg:text-[70px]">
         <span className="bg-gradient-to-b from-white via-white/95 to-white/60 bg-clip-text text-transparent">
           THE APEX AI COMMITTEE FOR{' '}

@@ -4,7 +4,7 @@
 
 // Live deliberation state rendered inside the conversation stream. Locked
 // Decision 4A retired the pixel-desk sprites: this entry point now delegates
-// to the canonical Hoplite `SyndicateCircuitLive` plasma spine so every
+// to the canonical Kestrel `SyndicateCircuitLive` plasma spine so every
 // existing caller automatically gets the new Council UI.
 import type { AgentProgress } from '@/lib/chat-transport';
 

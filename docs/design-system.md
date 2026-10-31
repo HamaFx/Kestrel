@@ -1,7 +1,7 @@
-# Hoplite Design System Architecture
+# Kestrel Design System Architecture
 
 > **Aesthetic Thesis:** Classical Antiquity Meets Cyber-Industrial Hardware.  
-> The Hoplite design system transforms Kestrel from a flat monochrome dashboard into a high-precision, tactile quantitative research terminal.
+> The Kestrel design system transforms the platform from a flat monochrome dashboard into a high-precision, tactile quantitative research terminal.
 
 ---
 
@@ -9,7 +9,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                            THE HOPLITE STANDARD                             │
+│                            THE KESTREL STANDARD                             │
 │       Ancient Sovereign Authority   ×   Milled Industrial Hardware          │
 ├──────────────────────────────────────┬──────────────────────────────────────┤
 │  • Sovereign Falcon of Horus / Gold  │  • Milled billet aluminum housings   │
@@ -45,7 +45,7 @@ All fonts are self-hosted as modern `.woff2` files in `apps/web/public/fonts/` w
 
 ## 3. Surface Language & Token Architecture
 
-Located in `apps/web/src/app/globals.css`, the Hoplite surface token system replaces flat borders with physical depth:
+Located in `apps/web/src/app/globals.css`, the Kestrel surface token system replaces flat borders with physical depth:
 
 ### Color Palette
 
@@ -104,7 +104,7 @@ The root `/` route serves as an institutional marketing showcase for unauthentic
 │  • Gliding Spring Pills (`layoutId`) & Smooth Transitions   │
 ├─────────────────────────────────────────────────────────────┤
 │                     LANDING DESKS (#desks)                  │
-│  • Cybernetic Hoplite Spartan Bust Masterwork Backdrop      │
+│  • Cybernetic Aegis Spartan Bust Masterwork Backdrop        │
 │  • 4 Autonomous Specialist Desks (Tech, Macro, Risk, COT)   │
 │  • Horizontal Phalanx Carousel with Next/Prev Chevrons      │
 ├─────────────────────────────────────────────────────────────┤
@@ -143,8 +143,8 @@ The root `/` route serves as an institutional marketing showcase for unauthentic
    - **Horus Falcon Masterpiece:** Neoclassical predatory raptor on temple pediment blended into the obsidian canvas with radial vignette masking.
    - **Market Ticker Ribbon:** Continuous interbank feed metrics (`XAU/USD $2,864.20 ▲ +1.42%`, `DXY 104.12 ▼ -0.34%`).
    - **Deliberation Rig:** Interactive hardware console with `layoutId` gliding symbol selector and `AnimatePresence` data transitions.
-   - **Tactical Flame Button (`TacticalFlameButton`):** Hoplite-style asymmetric button (`rounded-l-[6px] rounded-r-full`) with expanding triple-layer orange flame glow and animated 5-cross grid arrow.
-3. **`LandingDesks` (`landing-desks.tsx`):** Calm, spacious deep-dive into the 4 specialist desks with the Cybernetic Hoplite Spartan bust backdrop, smooth `layoutId` gliding indicator pill, and clean vertical fade transitions without carousel clutter.
+   - **Tactical Flame Button (`TacticalFlameButton`):** Kestrel-style asymmetric button (`rounded-l-[6px] rounded-r-full`) with expanding triple-layer orange flame glow and animated 5-cross grid arrow.
+3. **`LandingDesks` (`landing-desks.tsx`):** Calm, spacious deep-dive into the 4 specialist desks with the Cybernetic Aegis Spartan bust backdrop, smooth `layoutId` gliding indicator pill, and clean vertical fade transitions without carousel clutter.
 4. **`LandingSimulator` (`landing-simulator.tsx`):** The centerpiece hands-on interactive transaction simulator featuring scenario injection, live 4-desk radial voting progress, interactive draggable risk governor slider (with live red veto triggers when $>1.0\%$), and mock FIX bridge dispatching.
 5. **`LandingStepper` (`landing-stepper.tsx`):** Vertical glowing fiber-optic circuit timeline with an animated laser tracer line, IDE-styled code window with macOS hardware dots, and vertical directional slide transitions.
 6. **`LandingArchitecture` (`landing-architecture.tsx`):** Mathematical 3D Exploded Isometric Silicon Stack (`rotate(30deg) skewX(-30deg) scaleY(0.866025)`). Features 4 floating isometric plates that levitate in 3D (`y: -22px`) on hover/click, dual concentric rotating SVG text marquees, and live telemetry console.
@@ -155,10 +155,10 @@ The root `/` route serves as an institutional marketing showcase for unauthentic
 
 ## 5. Neoclassical Cyber-Art Masterworks & Visual Identity
 
-| Masterpiece                         | Asset Location                       | Aesthetic Rationale                                                                                                                                                                                                              |
-| :---------------------------------- | :----------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Sovereign Falcon of Horus**       | `/landing/kestrel-horus-statue.webp` | Forged in titanium, bronze, and obsidian with glowing circuit wings perched atop a classical Greek temple pediment with holographic financial telemetry. Represents Kestrel's apex surveillance over currency and bullion flows. |
-| **Cybernetic Hoplite Spartan Bust** | `/landing/hoplite-spartan-bust.webp` | Classical Greek bronze sculpture fused with glowing molten ember-orange optical circuits and Greek key armor engravings. Symbolizes the unbreakable algorithmic phalanx of the 4 specialist desks.                               |
+| Masterpiece                       | Asset Location                       | Aesthetic Rationale                                                                                                                                                                                                              |
+| :-------------------------------- | :----------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Sovereign Falcon of Horus**     | `/landing/kestrel-horus-statue.webp` | Forged in titanium, bronze, and obsidian with glowing circuit wings perched atop a classical Greek temple pediment with holographic financial telemetry. Represents Kestrel's apex surveillance over currency and bullion flows. |
+| **Cybernetic Aegis Spartan Bust** | `/landing/aegis-spartan-bust.webp`   | Classical Greek bronze sculpture fused with glowing molten ember-orange optical circuits and Greek key armor engravings. Symbolizes the unbreakable algorithmic phalanx of the 4 specialist desks.                               |
 
 ---
 

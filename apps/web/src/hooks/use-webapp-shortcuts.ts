@@ -29,7 +29,7 @@ interface WebappShortcutsOptions {
 }
 
 /**
- * Vim-inspired single-key ergonomics matching Hoplite:
+ * Vim-inspired single-key ergonomics matching Kestrel:
  * - 'c': Focus composer textarea
  * - '[' or ']': Toggle docked views sidecar
  * - 'j' / 'k': Jump down / up conversation turns

@@ -160,7 +160,7 @@ function renderBespoke<K extends CoreToolName>(
   );
 }
 
-/** Render the sleek Hoplite-style compact telemetry row for tool execution. */
+/** Render the sleek Kestrel-style compact telemetry row for tool execution. */
 function renderFallback(
   name: string,
   output: unknown,

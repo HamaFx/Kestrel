@@ -141,7 +141,7 @@ describe('extractSyndicateTradeLevels', () => {
     expect(fromText.rr).toBe('1:2.4');
   });
 
-  it('flags a Hoplite risk veto on low-confidence neutrality, dissent, or breach phrasing', () => {
+  it('flags an Aegis risk veto on low-confidence neutrality, dissent, or breach phrasing', () => {
     const withheld = extractSyndicateTradeLevels({
       symbol: 'XAUUSD',
       opinions: [
@@ -155,7 +155,7 @@ describe('extractSyndicateTradeLevels', () => {
       ],
     });
     expect(withheld.isVetoed).toBe(true);
-    expect(withheld.vetoReason).toMatch(/HOPLITE/i);
+    expect(withheld.vetoReason).toMatch(/AEGIS/i);
 
     const dissentingRisk = extractSyndicateTradeLevels({
       opinions: [
@@ -250,7 +250,7 @@ describe('SyndicateCircuitLive', () => {
 
     expect(screen.getByText('DESK-I // HORUS')).toBeTruthy();
     expect(screen.getByText('DESK-II // ASTROLABE')).toBeTruthy();
-    expect(screen.getByText('DESK-III // HOPLITE')).toBeTruthy();
+    expect(screen.getByText('DESK-III // AEGIS')).toBeTruthy();
     expect(screen.getByText('DESK-IV // SENTINEL')).toBeTruthy();
     expect(screen.getByText(/bullish · 94%/i)).toBeTruthy();
     expect(screen.getByText(/Analyzing/i)).toBeTruthy();

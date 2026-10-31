@@ -17,7 +17,7 @@ export function BriefingPanel({ current }: BriefingPanelProps) {
   return (
     <div id="pipeline-detail-panel" role="tabpanel" className="lg:col-span-6">
       <div className="border-brand/40 relative overflow-hidden rounded-2xl border bg-[#121314] p-6 shadow-2xl">
-        {/* Hoplite Signature Elliptical Radial Border Glow Mask */}
+        {/* Kestrel Signature Elliptical Radial Border Glow Mask */}
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 rounded-2xl select-none"

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('Public Landing Showcase', () => {
-  test('renders Hoplite landing page sections and live telemetry ticker', async ({ browser }) => {
+  test('renders Kestrel landing page sections and live telemetry ticker', async ({ browser }) => {
     const context = await browser.newContext({
       baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
       storageState: { cookies: [], origins: [] },

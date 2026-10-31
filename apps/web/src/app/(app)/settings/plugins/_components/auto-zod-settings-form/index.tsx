@@ -19,7 +19,7 @@
 // AutoZodSettingsForm — renders a plugin's settings schema without bespoke
 // form code. The server serialises Zod into `PluginSettingsFieldDescriptor[]`
 // (see packages/plugin-sdk/src/settings-schema.ts); this component picks the
-// matching Hoplite control for each descriptor.
+// matching Kestrel control for each descriptor.
 //
 // Secret values arrive as `PLUGIN_SECRET_MASK`. Leaving the mask untouched
 // keeps the stored secret; typing a new value replaces it.

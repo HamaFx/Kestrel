@@ -30,7 +30,7 @@ interface ThreadTocRailProps {
 }
 
 /**
- * Floating vertical Table-of-Contents micro-rail matching Hoplite:
+ * Floating vertical Table-of-Contents micro-rail matching Kestrel:
  * Shows turn-by-turn navigation dots along the chat edge when a thread
  * contains multiple user turns. Hovering previews the user prompt.
  */

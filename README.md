@@ -46,7 +46,7 @@ Trading gold (`XAUUSD`), forex, and crypto requires analyzing price action, inst
 
 - 🧠 **4-Agent AI Committee**: Technical, Fundamental, Risk, and Sentiment specialist agents collaborate using [Mastra](https://mastra.ai) to synthesize multi-factor trade ideas with strict citations and guardrails.
 - 📐 **Institutional Smart Money Concepts (SMC)**: Native detection of Order Blocks, Fair Value Gaps (FVG), Liquidity Sweeps, Asian Session Killzones, and Market Structure Shifts (BOS/CHoCH).
-- 🏛️ **Hoplite Design Standard**: Institutional dark-chrome terminal blending Classical Antiquity with cyber-industrial hardware — Funnel Display typography, Redaction Italic emphasis, Geist Mono tabular figures, recessed instrument wells, and bottom-up ember illumination. See [Design System](docs/design-system.md).
+- 🏛️ **Kestrel Design Standard**: Institutional dark-chrome terminal blending Classical Antiquity with cyber-industrial hardware — Funnel Display typography, Redaction Italic emphasis, Geist Mono tabular figures, recessed instrument wells, and bottom-up ember illumination. See [Design System](docs/design-system.md).
 - ⚡ **Dual Real-Time Feeds**: SignalR sub-second streaming for Gold & Forex, plus Binance WebSockets for 24/7 crypto candles.
 - 🛠️ **Zero-Friction Self-Hosting**: Launch the full private multi-user stack with 1-click Docker Compose or connect to your own PostgreSQL.
 
@@ -422,7 +422,7 @@ Yes! Install [Ollama](https://ollama.ai), run your model (e.g. `ollama run llama
 For detailed guides, explore the `docs/` directory:
 
 - 📖 **[Configuration Reference](docs/configuration.md)**: Exhaustive list of all environment variables and secrets.
-- 🎨 **[Design System](docs/design-system.md)**: Hoplite tokens, typography, and showcase components.
+- 🎨 **[Design System](docs/design-system.md)**: Kestrel tokens, typography, and showcase components.
 - 🤝 **[Contributing Guide](CONTRIBUTING.md)**: How to submit bug fixes, features, and new market indicators.
 
 ---

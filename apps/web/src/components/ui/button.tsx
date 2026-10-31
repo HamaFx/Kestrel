@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Milled Hoplite hardware button primitive — no scale/whileTap that can cause
+// Milled Kestrel hardware button primitive — no scale/whileTap that can cause
 // layout shift. Specular top edge, machined bottom bevel, and 0.5px physical
 // depression via `tactile-press`. Spinner uses lucide's IconLoader2 to satisfy
 // steering rule §10 ("@tabler/icons-react exclusively, no inline SVGs").

@@ -132,7 +132,7 @@ export function ChatEmptyState({
             Convene the Full 4-Desk Council
           </h3>
           <p className="text-fg-muted mt-1 max-w-2xl text-xs leading-relaxed sm:text-sm">
-            HORUS, ASTROLABE, HOPLITE, and SENTINEL deliberate in parallel, cross-examine each
+            HORUS, ASTROLABE, AEGIS, and SENTINEL deliberate in parallel, cross-examine each
             other&apos;s assumptions, and the Arbiter certifies one trade plan with entry,
             invalidation, and targets.
           </p>

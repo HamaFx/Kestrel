@@ -2,7 +2,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// The 2×2 Hoplite Desk Matrix: four specialist desks with neoclassical
+// The 2×2 Kestrel Desk Matrix: four specialist desks with neoclassical
 // engraving watermarks, bias pills, conviction bars, a one-click expandable
 // breakdown carrying the full reasoning (never a truncated useless one-liner),
 // and the aggregate Committee Conviction row. Used by both the inline

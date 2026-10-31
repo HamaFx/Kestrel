@@ -2,7 +2,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// The 5-stage Hoplite plasma circuit trace (adapted from
+// The 5-stage Kestrel plasma circuit trace (adapted from
 // `landing-stepper/circuit-spine.tsx`): inactive background trace, illuminated
 // `#ff3616 → #e5a93c` gradient fill, glowing runner bead, and node rings.
 import { m } from 'motion/react';

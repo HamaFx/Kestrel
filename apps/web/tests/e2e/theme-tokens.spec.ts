@@ -17,7 +17,7 @@
 // ---------------------------------------------------------------------------
 // E2E: Theme tokens
 //
-// Verifies that the Hoplite Dark CSS design tokens declared in
+// Verifies that the Kestrel Dark CSS design tokens declared in
 // apps/web/src/app/globals.css render correctly on :root. A single navigation
 // reads every semantic token in one evaluate pass (values are asserted against
 // globals.css — keep them in sync when the theme changes).
@@ -25,7 +25,7 @@
 
 import { expect, test } from './fixtures';
 
-test.describe('Theme tokens — Hoplite Dark root custom properties', () => {
+test.describe('Theme tokens — Kestrel Dark root custom properties', () => {
   test('root CSS custom properties match the globals.css design tokens', async ({ authedPage }) => {
     const page = authedPage;
     await page.goto('/chat');

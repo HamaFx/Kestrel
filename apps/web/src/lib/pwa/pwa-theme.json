@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "PWA surface palette. Mirrors the Hoplite Dark tokens declared in",
+    "PWA surface palette. Mirrors the Kestrel Dark tokens declared in",
     "apps/web/src/app/globals.css (@theme) so the installed app, the manifest chrome,",
     "the generated icons/splashes and the install-dialog screenshots all agree.",
     "Consumed by: src/app/manifest.ts, src/app/layout.tsx (theme-color),",

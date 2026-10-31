@@ -2,7 +2,7 @@
 
 'use client';
 
-// Live deliberation state: the Hoplite Plasma Circuit Spine on top, and the
+// Live deliberation state: the Kestrel Plasma Circuit Spine on top, and the
 // compact desk phalanx + telemetry trace below. Owns the running-state
 // aria-label contracts (`${label} desk: ${status}`, `Live Committee Progress`,
 // `[ ANALYZING ] / [ QUEUED ] / [ READY ]`).

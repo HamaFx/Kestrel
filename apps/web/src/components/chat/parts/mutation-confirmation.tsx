@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Confirmation card for Mastra mutation drafts. Hoplite Human-in-the-Loop Execution Gate.
+// Confirmation card for Mastra mutation drafts. Aegis Human-in-the-Loop Execution Gate.
 'use client';
 
 /**
@@ -170,7 +170,7 @@ export function MutationConfirmationCard({ payload }: { payload: MutationDraftPa
         <div className="flex items-center gap-2">
           <IconLock className="text-brand size-4" strokeWidth={1.85} />
           <span className="text-brand font-mono text-[11px] font-semibold tracking-wider uppercase">
-            HOPLITE EXECUTION GATE // REQUIRES OPERATOR APPROVAL
+            AEGIS EXECUTION GATE // REQUIRES OPERATOR APPROVAL
           </span>
         </div>
         <span className="text-fg-subtle font-mono text-[11px] uppercase tabular-nums">

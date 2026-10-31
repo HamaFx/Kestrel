@@ -16,7 +16,7 @@ describe('canonical 4-desk strategist registry', () => {
     expect(FOUR_SPECIALIST_DESKS.map((d) => d.code)).toEqual([
       'DESK-I // HORUS',
       'DESK-II // ASTROLABE',
-      'DESK-III // HOPLITE',
+      'DESK-III // AEGIS',
       'DESK-IV // SENTINEL',
     ]);
     const artwork = FOUR_SPECIALIST_DESKS.map((d) => d.artworkPath);
@@ -33,7 +33,7 @@ describe('canonical 4-desk strategist registry', () => {
     expect(resolveStrategistDesk('economist').code).toBe('DESK-I // HORUS');
     expect(resolveStrategistDesk('quant').code).toBe('DESK-II // ASTROLABE');
     expect(resolveStrategistDesk('technician').code).toBe('DESK-II // ASTROLABE');
-    expect(resolveStrategistDesk('risk_manager').code).toBe('DESK-III // HOPLITE');
+    expect(resolveStrategistDesk('risk_manager').code).toBe('DESK-III // AEGIS');
     expect(resolveStrategistDesk('sentiment').code).toBe('DESK-IV // SENTINEL');
     expect(resolveStrategistDesk('flow').code).toBe('DESK-IV // SENTINEL');
     expect(resolveStrategistDesk('arbiter').code).toBe('STAGE II // ARBITER');

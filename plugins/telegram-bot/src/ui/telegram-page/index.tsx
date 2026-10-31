@@ -19,7 +19,7 @@
 // Telegram Copilot page.
 //
 // Self-contained: the plugin UI package cannot import the web app's `@/`
-// aliases, so it uses Hoplite tokens/classes directly and talks to its own
+// aliases, so it uses Kestrel tokens/classes directly and talks to its own
 // authenticated plugin API routes.
 import { IconAlertTriangle } from '@tabler/icons-react';
 

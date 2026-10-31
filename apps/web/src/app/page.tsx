@@ -40,7 +40,7 @@ export default async function RootPage({
     redirect('/dashboard');
   }
 
-  // Public visitors (or authenticated visitors requesting the landing page) see the full Hoplite landing page
+  // Public visitors (or authenticated visitors requesting the landing page) see the full Kestrel landing page
   return (
     <MotionRoot>
       <LandingPageView isAuthenticated={!!session?.user} />

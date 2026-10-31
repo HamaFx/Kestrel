@@ -121,7 +121,7 @@ describe('ChatEmptyState — Sovereign Council launcher', () => {
 
     expect(screen.getByText('DESK-I // HORUS')).toBeTruthy();
     expect(screen.getByText('DESK-II // ASTROLABE')).toBeTruthy();
-    expect(screen.getByText('DESK-III // HOPLITE')).toBeTruthy();
+    expect(screen.getByText('DESK-III // AEGIS')).toBeTruthy();
     expect(screen.getByText('DESK-IV // SENTINEL')).toBeTruthy();
   });
 
@@ -141,7 +141,7 @@ describe('ChatEmptyState — Sovereign Council launcher', () => {
     const onSelect = vi.fn();
     render(<ChatEmptyState pinnedSymbol="XAUUSD" onSelect={onSelect} />);
 
-    fireEvent.click(screen.getByText('DESK-III // HOPLITE').closest('button')!);
+    fireEvent.click(screen.getByText('DESK-III // AEGIS').closest('button')!);
 
     expect(onSelect).toHaveBeenCalledTimes(1);
     const [prompt, mode] = onSelect.mock.calls[0]!;

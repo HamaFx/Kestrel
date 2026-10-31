@@ -26,7 +26,7 @@
  * they stay stable across builds and safe to ship in the install dialog.
  *
  * Colours come from `src/lib/pwa/pwa-theme.json` (which mirrors globals.css),
- * so the install dialog previews the actual Hoplite Dark surface.
+ * so the install dialog previews the actual Kestrel Dark surface.
  */
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';

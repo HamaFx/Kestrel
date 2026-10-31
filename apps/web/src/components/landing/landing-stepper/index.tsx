@@ -102,7 +102,7 @@ export function LandingStepper() {
       />
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Section Header with Hoplite Rosette Badge */}
+        {/* Section Header with Kestrel Rosette Badge */}
         <div className="mb-16 flex max-w-3xl flex-col items-start gap-4">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono text-xs">
             <span className="bg-brand size-2 animate-pulse rounded-full shadow-[0_0_8px_#ff3616]" />

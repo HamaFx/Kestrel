@@ -106,7 +106,7 @@ describe('DockOpinionsPanel — Syndicate War Room', () => {
     const grid = within(screen.getByTestId('syndicate-desk-grid'));
     expect(grid.getByText('DESK-I // HORUS')).toBeTruthy();
     expect(grid.getByText('DESK-II // ASTROLABE')).toBeTruthy();
-    expect(grid.getByText('DESK-III // HOPLITE')).toBeTruthy();
+    expect(grid.getByText('DESK-III // AEGIS')).toBeTruthy();
     expect(grid.getByText('DESK-IV // SENTINEL')).toBeTruthy();
 
     // Cross-examination ledger from `committeeCritiques`.

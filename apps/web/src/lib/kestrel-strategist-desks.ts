@@ -64,7 +64,7 @@ export interface StrategistDeskConfig {
   artworkPath: string;
   /**
    * CSS color token (from `globals.css`) for the desk identity dot. Keep these
-   * as `var(--color-*)` references so the Hoplite palette stays the single
+   * as `var(--color-*)` references so the Kestrel palette stays the single
    * source of truth instead of re-hardcoding hexes here.
    */
   accentColor: string;
@@ -122,7 +122,7 @@ const TECHNICAL_DESK: StrategistDeskConfig = {
 
 const RISK_DESK: StrategistDeskConfig = {
   id: 'risk',
-  code: 'DESK-III // HOPLITE',
+  code: 'DESK-III // AEGIS',
   title: 'Quantitative Risk Desk',
   label: 'Risk',
   chipLabel: 'RISK',
@@ -131,7 +131,7 @@ const RISK_DESK: StrategistDeskConfig = {
     'Immutable 1.0% portfolio drawdown ceiling, ATR-adjusted invalidation stops, and asymmetric expectancy.',
   domainMetrics:
     'Immutable 1.0% Drawdown Ceiling · ATR-14 Invalidation Stops · R:R Asymmetry & Veto',
-  artworkPath: '/landing/hoplite-spartan-bust.webp',
+  artworkPath: '/landing/aegis-spartan-bust.webp',
   accentColor: 'var(--color-warn)',
   analysisMode: 'single',
   defaultPrompt:
@@ -203,7 +203,7 @@ export const STRATEGIST_DESKS: Record<StrategistDeskId, StrategistDeskConfig> = 
 
 /**
  * The 4 Specialist Desks in canonical deliberation order:
- * HORUS (Macro) → ASTROLABE (Technical) → HOPLITE (Risk) → SENTINEL (Flow).
+ * HORUS (Macro) → ASTROLABE (Technical) → AEGIS (Risk) → SENTINEL (Flow).
  */
 export const FOUR_SPECIALIST_DESKS: readonly StrategistDeskConfig[] = [
   FUNDAMENTAL_DESK,

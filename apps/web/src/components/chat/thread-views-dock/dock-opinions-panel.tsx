@@ -2,7 +2,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Syndicate War Room sidecar: the live Hoplite Plasma Circuit Spine while a
+// Syndicate War Room sidecar: the live Kestrel Plasma Circuit Spine while a
 // council run is in flight, or the settled 4-Desk Matrix + Cross-Examination
 // ledger hydrated from the newest `data-multi-agent-meta` (so a page reload
 // with `agentProgress === null` still shows the full committee record).
@@ -85,7 +85,7 @@ export function DockOpinionsPanel({
           <IconUsers className="text-brand size-8 stroke-1" />
           <p className="font-display text-fg text-sm font-normal">4-Desk Committee Ready</p>
           <p className="text-fg-muted max-w-xs font-serif text-xs italic">
-            HORUS, ASTROLABE, HOPLITE, and SENTINEL opinions synchronize here in real time.
+            HORUS, ASTROLABE, AEGIS, and SENTINEL opinions synchronize here in real time.
           </p>
         </div>
       )}

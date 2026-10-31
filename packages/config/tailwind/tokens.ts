@@ -48,7 +48,7 @@ export const colors = {
   fgMuted: 'rgba(229, 229, 229, 0.6)',
   fgSubtle: 'rgba(229, 229, 229, 0.52)',
 
-  // brand — Hoplite Forge Flame Orange (#FF3616)
+  // brand — Kestrel Forge Flame Orange (#FF3616)
   brand: '#ff3616',
   brandFg: '#ffffff',
   brandSoft: '#ff632a',

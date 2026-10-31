@@ -145,7 +145,7 @@ describe('SyndicateDossierCard', () => {
     // The settled 4-Desk Matrix carries the canonical descriptor codes.
     expect(screen.getByText('DESK-I // HORUS')).toBeTruthy();
     expect(screen.getByText('DESK-II // ASTROLABE')).toBeTruthy();
-    expect(screen.getByText('DESK-III // HOPLITE')).toBeTruthy();
+    expect(screen.getByText('DESK-III // AEGIS')).toBeTruthy();
     expect(screen.getByText('DESK-IV // SENTINEL')).toBeTruthy();
   });
 
@@ -182,17 +182,17 @@ describe('SyndicateDossierCard', () => {
     expect(screen.getByText(/Real-yield compression confirms/i)).toBeTruthy();
   });
 
-  it('renders the Hoplite Risk Guardrail when desks dissent', () => {
+  it('renders the Aegis Risk Guardrail when desks dissent', () => {
     const agents = dissentingDesks();
     render(<SyndicateDossierCard agents={agents} opinions={agents} mode="full" symbol="XAUUSD" />);
-    expect(screen.getByText(/HOPLITE RISK GUARDRAIL — DESKS DISSENT/i)).toBeTruthy();
+    expect(screen.getByText(/AEGIS RISK GUARDRAIL — DESKS DISSENT/i)).toBeTruthy();
     expect(screen.getByText(/0\.5% UNTIL DESKS RE-ALIGN/i)).toBeTruthy();
     expect(screen.getByText(/0\.5% Cap/i)).toBeTruthy();
     // Dissent is not a veto: the ticket stays GO/SELL rather than BLOCKED.
     expect(screen.queryByText(/RISK VETO ACTIVE/i)).toBeNull();
   });
 
-  it('escalates to RISK VETO ACTIVE when HOPLITE blocks the setup', () => {
+  it('escalates to RISK VETO ACTIVE when AEGIS blocks the setup', () => {
     const agents: AgentProgress[] = [
       ...alignedDesks().slice(0, 2),
       {
@@ -209,7 +209,7 @@ describe('SyndicateDossierCard', () => {
     render(<SyndicateDossierCard agents={agents} opinions={agents} mode="full" symbol="XAUUSD" />);
     expect(screen.getByText(/SETUP BLOCKED BY RISK GUARDRAIL/i)).toBeTruthy();
     expect(screen.getByText(/RISK VETO ACTIVE/i)).toBeTruthy();
-    expect(screen.getByText(/HOPLITE · DESK-III · IMMUTABLE 1\.0% CEILING/i)).toBeTruthy();
+    expect(screen.getByText(/AEGIS · DESK-III · IMMUTABLE 1\.0% CEILING/i)).toBeTruthy();
   });
 
   it('collapses the desks/clashes into a War Room pill when compactInline is set', () => {

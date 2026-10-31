@@ -18,7 +18,7 @@
 //
 // A plugin declares its per-user settings as a Zod object. The Plugin Store
 // turns that schema into a serialisable field list so the browser can render
-// the correct Hoplite control without shipping the Zod schema (or any server
+// the correct Kestrel control without shipping the Zod schema (or any server
 // code) to the client.
 //
 // Zod v4's `toJSONSchema({ io: 'input' })` preserves `.meta()` entries, so
