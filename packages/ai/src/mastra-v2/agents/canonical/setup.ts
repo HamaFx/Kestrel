@@ -274,6 +274,7 @@ export async function setupCanonicalChat(
       args.customInstructions,
       args.responseStyle,
       args.citeSources,
+      pluginRuntime.installedPluginIds,
     ),
     tools: agentTools as never,
     ...(pluginSkills.length > 0 ? { skills: pluginSkills as never } : {}),

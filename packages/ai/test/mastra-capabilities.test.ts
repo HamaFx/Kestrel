@@ -68,7 +68,9 @@ describe('Mastra capability policy', () => {
       route: 'canonical-chat',
       component: 'mastra-canonical-chat',
       readOnly: true,
-      maxSteps: 6,
+      // Phase 4 (roadmap Phase 5): 10 steps so iterative backtest workflows
+      // (read knowledge → read skill → run v1 → iterate → save → explain) fit.
+      maxSteps: 10,
     });
     expect(MASTRA_CAPABILITIES['canonical-chat'].tools).not.toContain('log_journal');
   });

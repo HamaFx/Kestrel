@@ -113,7 +113,7 @@ export const MASTRA_CAPABILITIES = {
     requiresConfirmation: false,
     supportsStreaming: true,
     supportsAbort: true,
-    maxSteps: 6,
+    maxSteps: 10,
     maxDurationMs: 55_000,
     evidencePolicy: 'optional',
     externalData: true,
