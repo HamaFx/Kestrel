@@ -136,13 +136,16 @@ export const RuntimeEnv = z.object({
     .default('0')
     .transform((v) => v === '1' || v === 'true'),
   /**
-   * Q4 decision — daily spend is ledger-only by default; the reservation is
-   * recorded for admin reporting but never blocks a turn with 429. Set true
-   * to restore the legacy hard daily cap.
+   * Daily spend ceiling. Audit 2026-10-31 (R3) — enforcement is now ON by
+   * default: a turn that would cross `MAX_DAILY_USD` (or a user's
+   * `max_daily_usd` override) is rejected with 429 instead of being ledgered
+   * and allowed. Set `ENFORCE_BUDGET=0` to return to ledger-only observation
+   * (previously the default), which is only safe when every account that can
+   * reach the instance is trusted.
    */
   ENFORCE_BUDGET: z
     .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('0')
+    .default('1')
     .transform((v) => v === '1' || v === 'true'),
   /**
    * M-02 (audit 2026-10-18, Phase 0/2) — generic macro packet for

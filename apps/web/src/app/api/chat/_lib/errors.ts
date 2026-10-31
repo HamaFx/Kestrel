@@ -90,8 +90,9 @@ export function mutationDraftFailureResponse(
  * is not one of the known boundary classes (caller logs + 502s).
  */
 export function mapChatFailure(error: unknown): Response | null {
-  // Q4 decision: spend is ledger-only — a 429 is possible only when the
-  // operator explicitly set ENFORCE_BUDGET=true.
+  // Audit 2026-10-31 (R3): the cap is enforced by default; a 429 only fires
+  // when enforcement is on (opt-out: ENFORCE_BUDGET=false) and the daily
+  // ceiling is crossed.
   if (error instanceof BudgetExceededError && isBudgetEnforced()) {
     return errorJson(
       'BUDGET_EXCEEDED',

@@ -19,16 +19,16 @@
 /**
  * Budget facade (audit plan §1.3 Q4 decision, §4.3 module collapse).
  *
- * The daily budget is **observability only**: every reservation is still
- * atomically ledgered (`daily_ai_spend` + `ai_budget_reservations`) for admin
- * reporting and BYOK cost tracking, but no turn is ever rejected with 429 by default.
- * Set `ENFORCE_BUDGET=true` to restore the local hard cap.
+ * Every reservation is atomically ledgered (`daily_ai_spend` +
+ * `ai_budget_reservations`) for admin reporting and BYOK cost tracking, and
+ * the cap is **enforced by default** (audit 2026-10-31 R3): a turn that would
+ * cross the daily ceiling is rejected with 429. Operators who accept the risk
+ * of unmetered spend can set `ENFORCE_BUDGET=false` for ledger-only mode.
  *
  * §4.3: this module is the single budget facade. `acquireBudget` /
  * `reserveTurnBudget` are the entry points every turn path goes through
- * (`budget-reservation.ts` and `budget-guard.ts` were folded in / deleted);
- * neither throws `BudgetExceededError` while enforcement is off. The
- * ledger/rate table lives in `cost.ts`.
+ * (`budget-reservation.ts` and `budget-guard.ts` were folded in / deleted).
+ * The ledger/rate table lives in `cost.ts`.
  */
 
 import { metrics, readFeatureFlag } from '@kestrel/shared';

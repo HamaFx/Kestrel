@@ -65,7 +65,10 @@ const BudgetExceededErrorActual = (
 
 beforeEach(() => {
   metrics.reset();
-  delete process.env.ENFORCE_BUDGET;
+  // Audit 2026-10-31 (R3): enforcement is now the default, so the cases below
+  // that cover the ledger-only path pin the opt-out explicitly instead of
+  // relying on an unset variable.
+  process.env.ENFORCE_BUDGET = 'false';
   _resetBudgetEnforcementCache();
 });
 
@@ -117,7 +120,25 @@ describe('reserveTurnBudget', () => {
     );
   });
 
-  it('enforces the admin cap only when ENFORCE_BUDGET=true (Q4)', async () => {
+  it('enforces the admin cap by default when ENFORCE_BUDGET is unset (R3)', async () => {
+    delete process.env.ENFORCE_BUDGET;
+    _resetBudgetEnforcementCache();
+    mockTryReserveBudget.mockResolvedValue({ ok: true, spent: 0.05, max: 5.0 });
+
+    await reserveTurnBudget({ userId: 'u1', maxDailyUsd: 5.0 });
+
+    expect(mockTryReserveBudget).toHaveBeenCalledWith(
+      'u1',
+      0.01,
+      5.0,
+      expect.any(Date),
+      undefined,
+      undefined,
+      undefined,
+    );
+  });
+
+  it('enforces the admin cap when ENFORCE_BUDGET=true (explicit opt-in)', async () => {
     process.env.ENFORCE_BUDGET = 'true';
     _resetBudgetEnforcementCache();
     mockTryReserveBudget.mockResolvedValue({ ok: true, spent: 0.05, max: 5.0 });

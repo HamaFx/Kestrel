@@ -31,7 +31,10 @@ const FLAG_DEFAULTS: Record<FeatureFlagName, boolean> = {
   ENABLE_COMMITTEE_CRITIQUE: true,
   PHASE3_STRUCTURED_FUSION: true,
   ENABLE_COMMITTEE_DEBATE: false,
-  ENFORCE_BUDGET: false,
+  // Audit 2026-10-31 (R3): the daily budget cap now blocks by default. With
+  // open registration and operator-inherited provider keys, ledger-only
+  // metering let any self-registered account spend without limit.
+  ENFORCE_BUDGET: true,
   ENABLE_GENERIC_MACRO: true,
   ENABLE_COMPARISON_RISK_DESK: true,
   PHASE_TOOLS_SHIMS: true,

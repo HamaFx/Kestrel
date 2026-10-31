@@ -49,7 +49,9 @@ vi.mock('../src/budget/cost', async () => {
 
 beforeEach(() => {
   metrics.reset();
-  delete process.env.ENFORCE_BUDGET;
+  // Audit 2026-10-31 (R3): enforcement is now the default, so the cases below
+  // that cover the ledger-only path pin the opt-out explicitly.
+  process.env.ENFORCE_BUDGET = 'false';
   _resetBudgetEnforcementCache();
   mocks.tryReserveBudget.mockReset();
   mocks.applyBudgetDelta.mockReset().mockResolvedValue(undefined);
@@ -58,7 +60,11 @@ beforeEach(() => {
 });
 
 describe('local daily USD budget cap', () => {
-  it('uses the configured cap only when enforcement is explicitly enabled', () => {
+  it('enforces the cap by default and relaxes only on an explicit opt-out (R3)', () => {
+    delete process.env.ENFORCE_BUDGET;
+    expect(effectiveDailyCap(5)).toBe(5);
+
+    process.env.ENFORCE_BUDGET = 'false';
     expect(effectiveDailyCap(5)).toBe(UNCAPPED_DAILY_USD);
 
     process.env.ENFORCE_BUDGET = 'true';
