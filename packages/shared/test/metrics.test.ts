@@ -41,6 +41,11 @@ describe('metrics registry', () => {
     expect(isMetricName('not_a_metric')).toBe(false);
   });
 
+  it('excludes retired mastra_shadow_* metrics from METRIC_NAMES', () => {
+    expect(isMetricName('mastra_shadow_total')).toBe(false);
+    expect(isMetricName('mastra_run_total')).toBe(true);
+  });
+
   it('increments counters and flattens them into the snapshot', () => {
     const registry = new MetricsRegistry();
     registry.increment('chat_request_total');

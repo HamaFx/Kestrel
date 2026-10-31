@@ -18,8 +18,8 @@
 //
 // Split by domain group: categories + correlation stores in
 // `./logger/context`, the pino instance/destination in `./logger/pino`,
-// structured error logging in `./logger/errors`, the categorized logger in
-// `./logger/categorized`, and the agent log lines in `./logger/agent`.
+// structured error logging in `./logger/errors`, and the categorized logger
+// in `./logger/categorized`.
 //
 // Every name previously exported from `src/logger.ts` is re-exported here so
 // `@kestrel/shared/logger`, `./logger` and `../logger` imports keep resolving —
@@ -35,4 +35,3 @@ export {
 export { createPinoLogger, createScopedLogger, logger } from './logger/pino';
 export { logErrorContext } from './logger/errors';
 export { createCategorizedLogger, type CategorizedLogger } from './logger/categorized';
-export { logForAgent, type AgentLogData } from './logger/agent';

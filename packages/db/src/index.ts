@@ -42,7 +42,6 @@ export {
   type DbClient,
 } from './client';
 export { withUserScope } from './with-user-scope';
-export { traceQuery, withTracing } from './tracing';
 export { withRateLimit, type RateLimitResult } from './rate-limit';
 export {
   runRetentionCleanup,
