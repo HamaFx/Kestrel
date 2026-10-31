@@ -23,6 +23,7 @@ export {
   buildJevRlcdTrainingRecords,
   buildDatasetManifest,
   writeTrainingExport,
+  isRlcdStateSafe,
   TRAINING_RECORD_SCHEMA,
   DATASET_MANIFEST_SCHEMA,
   JEV_RLCD_RECORD_SCHEMA,

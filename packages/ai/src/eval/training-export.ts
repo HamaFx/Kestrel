@@ -335,3 +335,13 @@ function findSensitiveTrainingContent(value: string): 'email' | 'phone' | 'crede
     return 'credential';
   return null;
 }
+
+/**
+ * Decision 3A — the same guard `buildJevRlcdTrainingRecords` enforces per
+ * record (redact first, then refuse if sensitive content survives), exposed
+ * so batch callers can skip one unsafe record instead of aborting the whole
+ * export when a prompt contains an email address or credential.
+ */
+export function isRlcdStateSafe(prompt: string): boolean {
+  return findSensitiveTrainingContent(redactString(prompt)) === null;
+}

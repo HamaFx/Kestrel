@@ -22,6 +22,12 @@ export interface ReviewedTrainingPair {
   reviewerNote: string | null;
   userNote: string | null;
   reviewedAt: Date | null;
+  /**
+   * Decision 3A — real tool names invoked during the reviewed turn, joined
+   * live from `chat_tool_telemetry` (never a hardcoded empty list). `[]` when
+   * the turn ran no tools (or the telemetry rows have aged out).
+   */
+  toolNames?: string[];
 }
 
 export interface ListReviewedTrainingPairsOptions {
@@ -61,7 +67,19 @@ export async function listReviewedTrainingPairs(
     LIMIT 1
   )`;
 
-  return db
+  // Decision 3A — the exact tool names used in the reviewed turn, joined from
+  // the persisted tool telemetry: same thread + tenant, matched by the
+  // assistant message id or the turn's trace id, successful calls only.
+  const toolNamesSql = sql<string[]>`COALESCE((
+    SELECT array_agg(DISTINCT t.tool ORDER BY t.tool)
+    FROM chat_tool_telemetry t
+    WHERE t.thread_id = ${assistant.threadId}
+      AND t.tenant_id = ${feedback.tenantId}
+      AND (t.message_id = ${assistant.id} OR t.trace_id = ${feedback.traceId})
+      AND t.ok = true
+  ), ARRAY[]::text[])`;
+
+  const rows = await db
     .select({
       messageId: feedback.messageId,
       threadId: feedback.threadId,
@@ -74,6 +92,7 @@ export async function listReviewedTrainingPairs(
       reviewedAt: feedback.reviewedAt,
       assistantText: assistant.content,
       prompt: promptSql,
+      toolNames: toolNamesSql,
     })
     .from(feedback)
     .innerJoin(
@@ -96,4 +115,11 @@ export async function listReviewedTrainingPairs(
     .orderBy(desc(feedback.reviewedAt))
     .limit(Math.min(5000, Math.max(1, limit)))
     .offset(Math.max(0, offset));
+
+  // Normalize a driver that returns a Postgres string literal instead of a
+  // decoded text[] (defensive: production postgres-js decodes arrays).
+  return rows.map((row) => ({
+    ...row,
+    toolNames: Array.isArray(row.toolNames) ? row.toolNames : [],
+  }));
 }

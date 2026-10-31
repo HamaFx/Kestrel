@@ -17,8 +17,8 @@ import { TenantRouter } from '../src/tenant-router';
 
 // Hoisted mock controllers — vi.mock factories are hoisted above all other
 // statements, so shared mock fns must live here to avoid TDZ failures.
-const { mockAssemble, mockListPairs, mockRegister, mockDb, mockPublishLangfuse } = vi.hoisted(
-  () => {
+const { mockAssemble, mockListPairs, mockRegister, mockDb, mockPublishLangfuse, mockRlcd } =
+  vi.hoisted(() => {
     const mockPublishLangfuse = vi.fn(async () => ({
       status: 'ok' as const,
       datasetName: 'kestrel-training',
@@ -27,6 +27,14 @@ const { mockAssemble, mockListPairs, mockRegister, mockDb, mockPublishLangfuse }
       total: 3,
       errors: [],
     }));
+    const mockRlcd = vi.fn((results: Array<{ id: string }>, options: { datasetVersion: string }) =>
+      results.map((result) => ({
+        schemaVersion: 'kestrel.jev-rlcd.v1',
+        datasetVersion: options.datasetVersion,
+        caseId: result.id,
+        questions: { pass_quality: { type: 'noul', targetNoul: 1 }, tools_used: [] },
+      })),
+    );
     const mockAssemble = vi.fn(
       (input: {
         results: unknown[];
@@ -57,9 +65,8 @@ const { mockAssemble, mockListPairs, mockRegister, mockDb, mockPublishLangfuse }
         }),
       }),
     };
-    return { mockAssemble, mockListPairs, mockRegister, mockDb, mockPublishLangfuse };
-  },
-);
+    return { mockAssemble, mockListPairs, mockRegister, mockDb, mockPublishLangfuse, mockRlcd };
+  });
 
 vi.mock('@kestrel/ai', () => ({
   getDb: () => mockDb,
@@ -83,16 +90,8 @@ vi.mock('@kestrel/ai', () => ({
   },
   assembleTrainingDataset: mockAssemble,
   // Phase 3 — faithful stand-in for the RLCD record builder.
-  buildJevRlcdTrainingRecords: (
-    results: Array<{ id: string }>,
-    options: { datasetVersion: string },
-  ) =>
-    results.map((result) => ({
-      schemaVersion: 'kestrel.jev-rlcd.v1',
-      datasetVersion: options.datasetVersion,
-      caseId: result.id,
-      questions: { pass_quality: { type: 'noul', targetNoul: 1 }, tools_used: [] },
-    })),
+  buildJevRlcdTrainingRecords: mockRlcd,
+  isRlcdStateSafe: () => true,
   publishTrainingDatasetToLangfuse: mockPublishLangfuse,
 }));
 
@@ -109,7 +108,7 @@ const msg1 = '00000000-0000-4000-8000-000000000001';
 const msg2 = '00000000-0000-4000-8000-000000000002';
 const msg3 = '00000000-0000-4000-8000-000000000003';
 
-function pair(messageId: string, reviewerLabel: string | null) {
+function pair(messageId: string, reviewerLabel: string | null, toolNames: string[] = []) {
   return {
     messageId,
     threadId: 't-1',
@@ -121,6 +120,7 @@ function pair(messageId: string, reviewerLabel: string | null) {
     issueCodes: reviewerLabel === 'fail' ? ['wrong-tool'] : null,
     reviewerNote: null,
     reviewedAt: new Date(),
+    toolNames,
   };
 }
 
@@ -152,6 +152,7 @@ describe('runDatasetExport', () => {
     mockAssemble.mockClear();
     mockListPairs.mockReset();
     mockRegister.mockClear();
+    mockRlcd.mockClear();
   });
 
   afterEach(() => {
@@ -267,7 +268,36 @@ describe('runDatasetExport', () => {
     expect(result.note).toContain('rlcd=2');
   });
 
-  it('skips the RLCD export unless the operator opts in', async () => {
+  it('populates toolCalls from ReviewedTrainingPair.toolNames and writes jev-rlcd.jsonl by default', async () => {
+    mockListPairs.mockResolvedValue([pair(msg1, 'pass', ['get_price', 'get_market_structure'])]);
+
+    const result = await runDatasetExport({
+      log,
+      signal: new AbortController().signal,
+      tenantRouter: testRouter,
+    });
+
+    // The RLCD builder receives the real tools joined from chat_tool_telemetry.
+    expect(mockRlcd).toHaveBeenCalledTimes(1);
+    const rlcdResults = mockRlcd.mock.calls[0]![0] as Array<{
+      id: string;
+      toolCalls: Array<{ name: string; args: unknown }>;
+    }>;
+    const target = rlcdResults.find((r) => r.id === msg1)!;
+    expect(target.toolCalls).toEqual([
+      { name: 'get_price', args: {}, resultSummary: null },
+      { name: 'get_market_structure', args: {}, resultSummary: null },
+    ]);
+
+    // Decision 3A — the RLCD export is enabled by default; no env opt-in.
+    const version = `nightly-${new Date().toISOString().slice(0, 10)}`;
+    const rlcdPath = join(datasetsDir, version, 'jev-rlcd.jsonl');
+    expect(existsSync(rlcdPath)).toBe(true);
+    expect(result.note).toContain('rlcd=1');
+  });
+
+  it('skips the RLCD export only when explicitly disabled', async () => {
+    process.env.RLCD_EXPORT_ENABLED = 'false';
     mockListPairs.mockResolvedValue([pair(msg2, 'pass')]);
 
     const result = await runDatasetExport({
