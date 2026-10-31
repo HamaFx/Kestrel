@@ -84,6 +84,8 @@ export function snapshotToOtlpJson(
   // plus avg/min/max gauges so the central-tendency fields stay queryable.
   for (const [key, summary] of Object.entries(snapshot.histograms)) {
     const { name, labels } = parseSnapshotKey(key);
+    // Per-series bounds: USD for `*_usd` cost histograms, ms for latency.
+    const bounds = summary.bounds ?? HISTOGRAM_BUCKET_BOUNDS_MS;
     metricsOut.push({
       name,
       histogram: {
@@ -93,7 +95,7 @@ export function snapshotToOtlpJson(
             count: String(summary.count),
             sum: summary.sum,
             bucketCounts: summary.buckets.map((v) => String(v)),
-            explicitBounds: [...HISTOGRAM_BUCKET_BOUNDS_MS],
+            explicitBounds: [...bounds],
             attributes: labels.map(([k, v]) => ({ key: k, value: { stringValue: v } })),
           },
         ],

@@ -143,8 +143,10 @@ export interface HistogramSummary {
   avg: number;
   min: number;
   max: number;
-  /** Cumulative bucket counts aligned with `HISTOGRAM_BUCKET_BOUNDS_MS`. */
+  /** Cumulative bucket counts aligned with `bounds`. */
   buckets: number[];
+  /** Upper bounds for `buckets` (ms for latency, USD for `*_usd` cost). */
+  bounds: number[];
 }
 
 /** Serialized form of the whole registry, safe to log / POST / JSON-stringify. */
@@ -158,21 +160,39 @@ export interface MetricsSnapshot {
  * Observations are counted into every bucket whose bound is >= the value, so
  * bucket `i` is cumulative: `buckets[i]` = observations <= `BUCKET_BOUNDS[i]`.
  * These make `{name}_bucket{le="…"}` series available for p95-style
- * percentiles via `histogram_quantile` in Grafana. Values are recorded in
- * milliseconds by every caller (ttft, turn latency, tick freshness), so the
- * bounds are ms-based.
+ * percentiles via `histogram_quantile` in Grafana. These bounds are ms-based
+ * and apply to latency metrics (ttft, turn latency, tick freshness);
+ * `*_usd` cost metrics use `HISTOGRAM_BUCKET_BOUNDS_USD` via
+ * `boundsForMetric`.
  */
 export const HISTOGRAM_BUCKET_BOUNDS_MS = [
   1, 5, 10, 25, 50, 100, 250, 500, 1000, 2000, 5000, 10000, 20000, 30000, 60000, 120000,
 ] as const;
+
+/**
+ * Sub-dollar bucket bounds for USD cost histograms (`turn_cost_usd`,
+ * `committee_step_cost_usd`). Values are recorded in dollars, so the
+ * millisecond bounds above would trap every observation in the `<= 1` bucket
+ * and make cost percentiles meaningless.
+ */
+export const HISTOGRAM_BUCKET_BOUNDS_USD = [
+  0.0001, 0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5,
+] as const;
+
+/** Pick histogram bucket bounds by metric unit: `*_usd` costs vs ms latency. */
+export function boundsForMetric(name: MetricName): readonly number[] {
+  return name.endsWith('_usd') ? HISTOGRAM_BUCKET_BOUNDS_USD : HISTOGRAM_BUCKET_BOUNDS_MS;
+}
 
 interface HistogramAccumulator {
   count: number;
   sum: number;
   min: number;
   max: number;
-  /** Cumulative count of observations <= each bound (aligned with HISTOGRAM_BUCKET_BOUNDS_MS). */
+  /** Cumulative count of observations <= each bound (aligned with `bounds`). */
   buckets: number[];
+  /** The bounds this series was accumulated against (stable per metric). */
+  bounds: readonly number[];
 }
 
 function keyFor(name: MetricName, tags?: Record<string, string>): string {
@@ -203,13 +223,21 @@ export class MetricsRegistry {
   observe(name: MetricName, value: number, opts?: { tags?: Record<string, string> }): void {
     if (!Number.isFinite(value)) return;
     const key = keyFor(name, opts?.tags);
+    const bounds = boundsForMetric(name);
     const current = this.histograms.get(key);
     if (!current) {
-      const buckets = HISTOGRAM_BUCKET_BOUNDS_MS.map(() => 0);
+      const buckets = bounds.map(() => 0);
       for (let i = 0; i < buckets.length; i++) {
-        if (value <= HISTOGRAM_BUCKET_BOUNDS_MS[i]!) buckets[i] = 1;
+        if (value <= bounds[i]!) buckets[i] = 1;
       }
-      this.histograms.set(key, { count: 1, sum: value, min: value, max: value, buckets });
+      this.histograms.set(key, {
+        count: 1,
+        sum: value,
+        min: value,
+        max: value,
+        buckets,
+        bounds,
+      });
       return;
     }
     current.count += 1;
@@ -217,7 +245,7 @@ export class MetricsRegistry {
     if (value < current.min) current.min = value;
     if (value > current.max) current.max = value;
     for (let i = 0; i < current.buckets.length; i++) {
-      if (value <= HISTOGRAM_BUCKET_BOUNDS_MS[i]!) {
+      if (value <= current.bounds[i]!) {
         current.buckets[i] = current.buckets[i]! + 1;
       }
     }
@@ -238,6 +266,7 @@ export class MetricsRegistry {
         max: acc.max,
         // Copy so callers cannot mutate the live accumulator through the snapshot.
         buckets: [...acc.buckets],
+        bounds: [...acc.bounds],
       };
     }
 
