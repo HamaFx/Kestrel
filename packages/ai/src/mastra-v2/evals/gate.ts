@@ -71,6 +71,64 @@ const INVERTED_SCORERS = new Set(['hallucination', 'bias', 'toxicity']);
 /** A hallucination/bias/toxicity score at or below this is a pass. */
 const INVERTED_PASS_CEILING = 0.2;
 
+/**
+ * Phase 4 (Jev roadmap) — the non-faithfulness Jev rubric dimensions packed
+ * into the `kestrel-jev-rubric` reason JSON by `createJevRubricScorer`.
+ * `faithfulness` is the record score; the other four live in the reason and
+ * were previously ignored by the gate.
+ */
+export const JEV_RUBRIC_THRESHOLDS = {
+  answerRelevancy: 0.5,
+  noHallucination: 0.8,
+  unbiasedScenarios: 0.8,
+  nonToxic: 0.9,
+} as const;
+
+export interface JevRubricCheck {
+  ok: boolean;
+  failures: string[];
+}
+
+/**
+ * Check a `kestrel-jev-rubric` score record against ALL five dimensions: the
+ * record score is faithfulness; `reason` carries the other four as JSON.
+ * A record with high faithfulness but a hallucinated (low
+ * `noHallucination`) or toxic (low `nonToxic`) answer fails here.
+ */
+export function checkJevRubricRecord(
+  record: ScoreRecord,
+  minFaithfulness: number,
+): JevRubricCheck {
+  const failures: string[] = [];
+  if (!(record.score >= minFaithfulness)) {
+    failures.push(
+      `jev-rubric failed: faithfulness=${record.score.toFixed(2)} < ${minFaithfulness.toFixed(2)}`,
+    );
+  }
+
+  const reason = record.reason?.trimStart() ?? '';
+  if (reason.startsWith('{')) {
+    let parsed: Record<string, unknown> | null = null;
+    try {
+      parsed = JSON.parse(reason) as Record<string, unknown>;
+    } catch {
+      parsed = null;
+    }
+    if (parsed) {
+      for (const [dimension, threshold] of Object.entries(JEV_RUBRIC_THRESHOLDS)) {
+        const value = parsed[dimension];
+        if (typeof value === 'number' && value < threshold) {
+          failures.push(
+            `jev-rubric failed: ${dimension}=${value.toFixed(2)} < ${threshold.toFixed(2)}`,
+          );
+        }
+      }
+    }
+  }
+
+  return { ok: failures.length === 0, failures };
+}
+
 export function recordsToGateObserved(
   records: readonly ScoreRecord[],
   thresholds: EvalQualityGateThresholds = DEFAULT_EVAL_QUALITY_GATE_THRESHOLDS,
@@ -93,6 +151,10 @@ export function recordsToGateObserved(
     if (record.scorerId === 'kestrel-citation') {
       return record.score >= effectiveThresholds.minCitationScore;
     }
+    // Phase 4 — gate all five Jev rubric dimensions, not just faithfulness.
+    if (record.scorerId === 'kestrel-jev-rubric') {
+      return checkJevRubricRecord(record, effectiveThresholds.minOverallPassRate).ok;
+    }
     if (INVERTED_SCORERS.has(record.scorerId)) return record.score <= INVERTED_PASS_CEILING;
     return record.score >= effectiveThresholds.minOverallPassRate;
   };
@@ -106,6 +168,10 @@ export function recordsToGateObserved(
     const allPassed = group.every(pass);
     const citationRecord = group.find((r) => r.scorerId === 'kestrel-citation');
     const groundingFailure = group.find((r) => r.scorerId === 'kestrel-grounding' && r.score < 1);
+    const rubricRecord = group.find((r) => r.scorerId === 'kestrel-jev-rubric');
+    const rubricFailures = rubricRecord
+      ? checkJevRubricRecord(rubricRecord, effectiveThresholds.minOverallPassRate).failures
+      : [];
     return {
       id: group[0]!.runId,
       prompt: '',
@@ -118,14 +184,17 @@ export function recordsToGateObserved(
         totalCostUsd: group[0]!.metadata?.costUsd ?? 0,
       },
       citationScore: citationRecord?.score ?? null,
-      assertions: groundingFailure
-        ? [
-            {
-              kind: 'unsupported_numeric_claim' as const,
-              detail: groundingFailure.reason ?? 'report failed grounding',
-            },
-          ]
-        : [],
+      assertions: [
+        ...(groundingFailure
+          ? [
+              {
+                kind: 'unsupported_numeric_claim' as const,
+                detail: groundingFailure.reason ?? 'report failed grounding',
+              },
+            ]
+          : []),
+        ...rubricFailures.map((detail) => ({ kind: 'rubric_failure' as const, detail })),
+      ],
       agentProgress: [],
       terminalStatus: null,
     };
