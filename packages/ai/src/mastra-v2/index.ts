@@ -138,10 +138,16 @@ export {
   buildGuardrailInputProcessors,
   buildResearchGuardrails,
   buildResearchGuardrailsAvailability,
+  createIndirectContentGuardrailProcessor,
+  INDIRECT_CONTENT_PROCESSOR_ID,
+  screenPromptToolResults,
   GuardrailUnavailableError,
+  type GuardrailBundle,
   type GuardrailMode,
   type GuardrailOptions,
   type GuardrailStrategy,
+  type IndirectContentGuardrailProcessor,
+  type PromptToolScreenResult,
 } from './guardrails';
 // Audit plan §1.9: re-export Mastra's tripwire error so route boundaries can
 // distinguish a blocked injection (detector strategy 'block') from a generic

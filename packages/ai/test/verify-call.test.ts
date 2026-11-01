@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import type * as KestrelData from '@kestrel/data';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { verifyCallTool } from '../src/tools/verify-call';
@@ -48,10 +49,14 @@ const mockGetCandles = vi.fn();
 const mockGetPrice = vi.fn();
 const mockComputeStructure = vi.fn();
 
-vi.mock('@kestrel/data', () => ({
-  getCandlesUnchecked: (...args: unknown[]) => mockGetCandles(...args),
-  getPriceUnchecked: (...args: unknown[]) => mockGetPrice(...args),
-}));
+vi.mock('@kestrel/data', async (importOriginal) => {
+  const actual = await importOriginal<typeof KestrelData>();
+  return {
+    ...actual,
+    getCandlesUnchecked: (...args: unknown[]) => mockGetCandles(...args),
+    getPrice: (...args: unknown[]) => mockGetPrice(...args),
+  };
+});
 
 vi.mock('@kestrel/indicators', () => ({
   computeStructure: (...args: unknown[]) => mockComputeStructure(...args),
@@ -78,19 +83,28 @@ function makeCandle(overrides: {
   };
 }
 
+function liveQuote(mid: number, overrides: { stale?: boolean; ageMs?: number } = {}) {
+  return {
+    tick: {
+      symbol: 'EURUSD',
+      bid: mid - 0.0001,
+      ask: mid + 0.0001,
+      mid,
+      ts: Date.now(),
+      source: 'test',
+    },
+    stale: overrides.stale ?? false,
+    producedAt: Date.now(),
+    ageMs: overrides.ageMs ?? 0,
+  };
+}
+
 describe('verify_call — Phase 0.9', () => {
   beforeEach(() => {
     mockGetCandles.mockReset();
     mockGetPrice.mockReset();
     mockComputeStructure.mockReset();
-    mockGetPrice.mockResolvedValue({
-      symbol: 'EURUSD',
-      bid: 1.0799,
-      ask: 1.0801,
-      mid: 1.08,
-      ts: Date.now(),
-      source: 'test',
-    });
+    mockGetPrice.mockResolvedValue(liveQuote(1.08));
   });
 
   it('agrees with a clean long setup and no opposing liquidity', async () => {
@@ -436,14 +450,7 @@ describe('verify_call — Phase 0.9', () => {
   });
 
   it('flags levels that sit too far from the live market', async () => {
-    mockGetPrice.mockResolvedValue({
-      symbol: 'EURUSD',
-      bid: 1.1199,
-      ask: 1.1201,
-      mid: 1.12,
-      ts: Date.now(),
-      source: 'test',
-    });
+    mockGetPrice.mockResolvedValue(liveQuote(1.12));
     mockGetCandles.mockResolvedValue([makeCandle({})]);
     mockComputeStructure.mockReturnValue({
       symbol: 'EURUSD',
@@ -465,5 +472,29 @@ describe('verify_call — Phase 0.9', () => {
     expect(result.marketPrice).toBe(1.12);
     expect(result.marketTolerance).toBeGreaterThan(0);
     expect(result.caveats.some((c) => c.code === 'level_far_from_market')).toBe(true);
+  });
+
+  it('does not ground a setup against a stale quote (R8/R13)', async () => {
+    mockGetPrice.mockResolvedValue(liveQuote(1.12, { stale: true }));
+    mockGetCandles.mockResolvedValue([makeCandle({})]);
+    mockComputeStructure.mockReturnValue({
+      symbol: 'EURUSD',
+      tf: '1h',
+      bars: 1,
+      fetchedAt: Date.now(),
+      swings: [{ type: 'high', price: 1.13, index: 0 }],
+    });
+
+    const result = await exec({
+      symbol: 'EURUSD',
+      side: 'long',
+      entry: 1.08,
+      stop: 1.075,
+      target: 1.09,
+    });
+
+    expect(result.marketPrice).toBeNull();
+    expect(result.caveats.some((c) => c.code === 'market_price_unavailable')).toBe(true);
+    expect(result.rationale).toContain('Live price check unavailable');
   });
 });

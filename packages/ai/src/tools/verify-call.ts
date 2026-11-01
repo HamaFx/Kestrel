@@ -28,10 +28,9 @@
 // `verify-warning` chat part which renders caveats next to the agent's
 // directional call rather than silencing it.
 
-import { getCandlesUnchecked, getPriceUnchecked } from '@kestrel/data';
+import { getCandlesUnchecked, getPrice, priceAgeSeconds } from '@kestrel/data';
 import { computeStructure } from '@kestrel/indicators';
 import {
-  pipSize,
   priceDecimals,
   VerifyCallInputSchema,
   type Symbol,
@@ -41,6 +40,10 @@ import {
 import { tool, type Tool } from 'ai';
 import type { z } from 'zod';
 
+import {
+  LEVEL_CHECK_MAX_QUOTE_AGE_SECONDS,
+  marketDistanceTolerance,
+} from '../mastra-v2/mutation/level-sanity';
 import { maybeGetToolContext } from '../runtime/tool-context';
 
 const InputSchema = VerifyCallInputSchema;
@@ -67,9 +70,14 @@ export const verifyCallTool: Tool<z.infer<typeof InputSchema>, VerifyCallOutput>
     let marketTolerance: number | null = null;
 
     try {
-      const tick = await (signal
-        ? getPriceUnchecked(symbol, { signal })
-        : getPriceUnchecked(symbol));
+      const quote = await (signal ? getPrice(symbol, { signal }) : getPrice(symbol));
+      // R8/R13: a stale or too-old quote is not a live market. Report the
+      // setup as ungrounded instead of checking it against stale data and
+      // presenting the result as "checked against live price".
+      if (quote.stale || priceAgeSeconds(quote) > LEVEL_CHECK_MAX_QUOTE_AGE_SECONDS) {
+        throw new Error(`${symbol} quote is stale`);
+      }
+      const tick = quote.tick;
       marketPrice = tick.mid;
       marketTolerance = marketDistanceTolerance(symbol, tick.mid, tf);
 
@@ -95,7 +103,7 @@ export const verifyCallTool: Tool<z.infer<typeof InputSchema>, VerifyCallOutput>
       caveats.push({
         code: 'market_price_unavailable',
         message:
-          'Could not fetch the live market price, so this setup was not grounded against the current market.',
+          'Could not fetch a fresh live market price, so this setup was not grounded against the current market.',
       });
     }
 
@@ -229,59 +237,6 @@ export const verifyCallTool: Tool<z.infer<typeof InputSchema>, VerifyCallOutput>
 
 function decimals(symbol: Symbol): number {
   return priceDecimals(symbol);
-}
-
-/**
- * Per-instrument daily volatility scaling factors (fraction of price).
- * Conservative but realistic estimates, not real-time ATR.  The tolerance
- * widens for volatile instruments and longer timeframes, and tightens for
- * short-timeframe scalps where levels must sit near the live price.
- */
-const INSTRUMENT_VOLATILITY: Record<string, number> = {
-  XAUUSD: 0.015, // ~$60/day on $4000
-  XAGUSD: 0.025,
-  BTCUSD: 0.04, // crypto moves more
-  ETHUSD: 0.04,
-  BTCUSDT: 0.04,
-  ETHUSDT: 0.04,
-  SOLUSDT: 0.05,
-  EURUSD: 0.02, // forex majors keep the original 2% baseline
-  GBPUSD: 0.02,
-  USDJPY: 0.02,
-  USDCHF: 0.02,
-  AUDUSD: 0.02,
-  NZDUSD: 0.02,
-  USDCAD: 0.02,
-};
-
-const DEFAULT_VOLATILITY_FACTOR = 0.02;
-
-/**
- * Timeframe scalars: shorter timeframes demand tighter tolerances because
- * the model's entry should be near the current market price; longer
- * timeframes allow levels further away (swing trades).
- */
-const TIMEFRAME_SCALARS: Record<string, number> = {
-  '1m': 0.3,
-  '5m': 0.4,
-  '15m': 0.5,
-  '30m': 0.7,
-  '1h': 1.0,
-  '4h': 1.3,
-  '1d': 1.8,
-  '1w': 2.5,
-};
-
-const DEFAULT_TIMEFRAME_SCALAR = 1.0;
-
-function marketDistanceTolerance(symbol: Symbol, livePrice: number, tf = '1h'): number {
-  const volFactor = INSTRUMENT_VOLATILITY[symbol] ?? DEFAULT_VOLATILITY_FACTOR;
-  const tfScalar = TIMEFRAME_SCALARS[tf] ?? DEFAULT_TIMEFRAME_SCALAR;
-  const percentageFactor = volFactor * tfScalar;
-  // Floor: keep a minimum pip-equivalent window so rounding noise never
-  // produces a zero-width tolerance.
-  const pipFloor = symbol === 'XAUUSD' ? 5.0 : pipSize(symbol) * 10;
-  return Math.max(pipFloor, livePrice * percentageFactor);
 }
 
 function capitalize(value: string): string {

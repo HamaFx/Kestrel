@@ -26,20 +26,45 @@
  * exported so unit tests can cover validation/normalization without an LLM.
  */
 
-import { AlertChannelSchema, AlertRuleSchema, RunSystemActionInputSchema } from '@kestrel/shared';
+import {
+  AlertChannelSchema,
+  AlertRuleSchema,
+  RunSystemActionInputSchema,
+  type Symbol,
+} from '@kestrel/shared';
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
 
 import { runMastraStructured } from '../agents/xauusd/text-runner';
 import { MutationInputSchema, type MutationInput, type MutationKind } from '../workflows/mutation';
+import { checkLevelsAgainstMarket, type ModelLevel } from './level-sanity';
+
+/** Why an extraction failed; level reasons come from the market cross-check. */
+export type MutationExtractionFailureReason =
+  'extraction_failed' | 'invalid_level' | 'level_out_of_band' | 'market_data_unavailable';
 
 export class MutationExtractionError extends Error {
   readonly kind: MutationKind;
+  readonly reason: MutationExtractionFailureReason;
+  /**
+   * The schema-valid draft preserved when a post-extraction market check
+   * rejects it. R13: nothing is written from it; it exists so the caller can
+   * keep the user's draft for a correction/retry instead of discarding it
+   * with the raw model text.
+   */
+  readonly draft?: MutationInput;
 
-  constructor(message: string, kind: MutationKind) {
+  constructor(
+    message: string,
+    kind: MutationKind,
+    options?: { reason?: MutationExtractionFailureReason; draft?: MutationInput },
+  ) {
     super(message);
     this.name = 'MutationExtractionError';
     this.kind = kind;
+    this.reason = options?.reason ?? 'extraction_failed';
+    const draft = options?.draft;
+    if (draft !== undefined) this.draft = draft;
   }
 }
 
@@ -53,10 +78,10 @@ const ALERT_EXTRACTION_SCHEMA = z.object({
 const JOURNAL_EXTRACTION_SCHEMA = z.object({
   symbol: z.string().min(1).describe('The trading symbol, e.g. XAUUSD'),
   side: z.enum(['long', 'short']),
-  entry: z.number(),
-  stop: z.number().nullish(),
-  target: z.number().nullish(),
-  exit: z.number().nullish(),
+  entry: z.number().positive(),
+  stop: z.number().positive().nullish(),
+  target: z.number().positive().nullish(),
+  exit: z.number().positive().nullish(),
   size: z.number().nullish(),
   outcome: z.enum(['win', 'loss', 'breakeven', 'open']).default('open'),
   rMultiple: z.number().nullish(),
@@ -198,8 +223,75 @@ function normalizeSymbol(symbol: string): string {
 }
 
 /**
+ * The symbol whose market prices the extracted levels belong to, or null for
+ * mutations that carry no model-supplied price level.
+ */
+function symbolForMutationInput(input: MutationInput): Symbol | null {
+  switch (input.kind) {
+    case 'log_journal':
+      return input.symbol;
+    case 'set_alert':
+      return input.rule.symbol;
+    default:
+      return null;
+  }
+}
+
+/**
+ * Every model-supplied price level in a mutation input, named for the
+ * rejection message. `indicatorCross` alert levels are indicator readings
+ * (e.g. RSI 30), not prices, so they are not cross-checked against the mid;
+ * binding those belongs with the alert schema owner (see R13 report).
+ */
+function modelLevelsForMutationInput(input: MutationInput): ModelLevel[] {
+  switch (input.kind) {
+    case 'log_journal':
+      return [
+        { name: 'entry', value: input.entry },
+        ...(input.stop != null ? [{ name: 'stop', value: input.stop }] : []),
+        ...(input.target != null ? [{ name: 'target', value: input.target }] : []),
+        ...(input.exit != null ? [{ name: 'exit', value: input.exit }] : []),
+      ];
+    case 'set_alert':
+      return input.rule.type === 'priceCross' || input.rule.type === 'candleClose'
+        ? [{ name: 'level', value: input.rule.level }]
+        : [];
+    default:
+      return [];
+  }
+}
+
+/**
+ * R13 (audit 2026-10-31): after the model output passes schema validation,
+ * cross-check every price level against the live market before the draft can
+ * be confirmed. Out-of-band levels fail with a named, user-visible reason
+ * (never a clamp); when the market cannot be read the write fails closed and
+ * the schema-valid draft rides along on the error for a retry.
+ */
+async function assertLevelsPlausible(input: MutationInput, signal?: AbortSignal): Promise<void> {
+  const symbol = symbolForMutationInput(input);
+  if (!symbol) return;
+  const levels = modelLevelsForMutationInput(input);
+  if (levels.length === 0) return;
+
+  const check = await checkLevelsAgainstMarket({
+    symbol,
+    levels,
+    band: input.kind === 'set_alert' ? 'alert' : 'trade',
+    ...(signal ? { signal } : {}),
+  });
+  if (check.ok) return;
+
+  throw new MutationExtractionError(check.message, input.kind, {
+    reason: check.reason,
+    draft: input,
+  });
+}
+
+/**
  * Run the extraction generation. Throws `MutationExtractionError` when the
- * model cannot produce a valid structured input.
+ * model cannot produce a valid structured input, or when its price levels
+ * are implausible / unverifiable against live market data.
  */
 export async function extractMutationInput(args: ExtractMutationInputArgs): Promise<MutationInput> {
   const { kind, text } = args;
@@ -215,7 +307,9 @@ export async function extractMutationInput(args: ExtractMutationInputArgs): Prom
       ...(args.signal ? { signal: args.signal } : {}),
       maxOutputTokens: 600,
     });
-    return buildMutationInput(kind, result.object);
+    const input = buildMutationInput(kind, result.object);
+    await assertLevelsPlausible(input, args.signal);
+    return input;
   } catch (error) {
     if (error instanceof MutationExtractionError) throw error;
     throw new MutationExtractionError(

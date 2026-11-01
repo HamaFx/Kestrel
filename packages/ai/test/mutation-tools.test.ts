@@ -15,6 +15,7 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type * as KestrelData from '@kestrel/data';
 import type { LogJournalOutput, SetAlertOutput, ShareSnapshotOutput } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -45,6 +46,30 @@ vi.mock('../src/share/persistence', () => ({
 vi.mock('../src/share/sign', () => ({
   signShareToken: mocks.signShareTokenMock,
 }));
+
+// R13 (audit 2026-10-31) — log_journal now bounds proposed levels against
+// the live market before writing, so the intent-guard suite needs a
+// deterministic XAUUSD quote (the mid is also used by the injected-content
+// cases, which still fail earlier on the intent guard).
+vi.mock('@kestrel/data', async (importOriginal) => {
+  const actual = await importOriginal<typeof KestrelData>();
+  return {
+    ...actual,
+    getPrice: vi.fn().mockResolvedValue({
+      tick: {
+        symbol: 'XAUUSD',
+        bid: 2399.9,
+        ask: 2400.1,
+        mid: 2400,
+        ts: Date.now(),
+        source: 'test',
+      },
+      stale: false,
+      producedAt: Date.now(),
+      ageMs: 0,
+    }),
+  };
+});
 
 function makeContext(latestUserMessageText: string) {
   return createToolContext({

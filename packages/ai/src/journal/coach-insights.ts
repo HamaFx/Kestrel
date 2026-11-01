@@ -17,7 +17,6 @@
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { JournalEntry, JournalStats, ServerEnv } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
-import { z } from 'zod';
 
 import { acquireBudget } from '../budget';
 import {
@@ -29,20 +28,29 @@ import * as textRunner from '../mastra-v2/agents/xauusd/text-runner';
 import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
 import {
   beginMastraRun,
-  finishMastraRun,
+  createMastraRunFinalizer,
   mastraOutcomeForError,
 } from '../mastra-v2/shared/telemetry';
 import { resolveChatModel } from '../models/model';
+import {
+  CoachInsightsOutputSchema,
+  CoachInsightsUnavailableError,
+  parseCoachPayload,
+} from './coach-insights-schema';
 import { syncCoachInsightsToWorkingMemory } from './coach-working-memory';
 import { computeStats, listEntries } from './persistence';
 
-export const CoachInsightsOutputSchema = z.object({
-  disciplineGrade: z.enum(['A+', 'A', 'B', 'C', 'D', 'F']),
-  summary: z.string().min(1),
-  strengths: z.array(z.string()).max(5),
-  leaks: z.array(z.string()).max(5),
-  actionRules: z.array(z.string()).max(5),
-});
+// R13 (audit 2026-10-31): the schema, content caps, and model-output
+// normalization live in `./coach-insights-schema`; re-exported here so the
+// existing public surface is unchanged.
+export {
+  COACH_BULLET_MAX_CHARS,
+  COACH_SUMMARY_MAX_CHARS,
+  CoachInsightsOutputSchema,
+  CoachInsightsUnavailableError,
+  coerceCoachInsights,
+  type CoachInsightsPayload,
+} from './coach-insights-schema';
 
 export interface CoachInsightsArgs {
   userId: string;
@@ -196,6 +204,13 @@ export async function getCoachInsights(args: CoachInsightsArgs): Promise<CoachIn
     providerId,
   });
 
+  // The finalizer records the terminal outcome exactly once: the success path
+  // finishes first, and the catch reuses the same promise on failure.
+  const finishRun = createMastraRunFinalizer();
+
+  let inputTokens = 0;
+  let outputTokens = 0;
+
   try {
     const [stats, entries] = await Promise.all([
       computeStats(userId),
@@ -204,10 +219,8 @@ export async function getCoachInsights(args: CoachInsightsArgs): Promise<CoachIn
 
     const userPrompt = formatStatsForCoachPrompt(stats, entries);
 
-    let inputTokens = 0;
-    let outputTokens = 0;
     let rawText = '';
-    let parsed: Partial<z.infer<typeof CoachInsightsOutputSchema>> = {};
+    let generatedObject: unknown;
 
     if (typeof textRunner.runMastraStructured === 'function') {
       const structuredResult = await textRunner.runMastraStructured({
@@ -225,9 +238,7 @@ export async function getCoachInsights(args: CoachInsightsArgs): Promise<CoachIn
       inputTokens = structuredResult.inputTokens;
       outputTokens = structuredResult.outputTokens;
       rawText = structuredResult.text ?? '';
-      if (structuredResult.object && typeof structuredResult.object === 'object') {
-        parsed = structuredResult.object;
-      }
+      generatedObject = structuredResult.object;
     } else {
       const textResult = await textRunner.runMastraText({
         task: 'journal-review',
@@ -248,7 +259,23 @@ export async function getCoachInsights(args: CoachInsightsArgs): Promise<CoachIn
     const latencyMs = Date.now() - startedAt;
     const costUsd = estimateKnownCostUsd(modelId, inputTokens, outputTokens);
 
-    await finishMastraRun({
+    // R13 (audit 2026-10-31): validate before anything is recorded as a
+    // completed review. A malformed response fails the run; it is never
+    // rewritten into a fabricated summary or stored as raw model prose.
+    const payload = parseCoachPayload(rawText, generatedObject);
+    if (!payload) {
+      clog.warn(
+        {
+          runId,
+          rawTextLength: rawText.length,
+          rawPreview: rawText.slice(0, 200),
+        },
+        'Coach review rejected: model output failed schema validation',
+      );
+      throw new CoachInsightsUnavailableError();
+    }
+
+    await finishRun({
       userId,
       threadId,
       runId,
@@ -269,38 +296,8 @@ export async function getCoachInsights(args: CoachInsightsArgs): Promise<CoachIn
       await reconcileBudgetReservation(reservation.reservationId, costUsd);
     }
 
-    if (!parsed.summary && rawText) {
-      try {
-        const cleaned = rawText
-          .replace(/^```json\s*/i, '')
-          .replace(/^```\s*/i, '')
-          .replace(/\s*```$/i, '')
-          .trim();
-        parsed = JSON.parse(cleaned);
-      } catch (parseErr) {
-        clog.warn(
-          { err: parseErr, rawText },
-          'Failed to parse structured coach JSON, using fallback formatting',
-        );
-        parsed = {
-          disciplineGrade: stats.winRate >= 0.6 ? 'A' : stats.winRate >= 0.45 ? 'B' : 'C',
-          summary: rawText.slice(0, 300),
-          strengths: ['Consistent trade journaling discipline'],
-          leaks: ['Review trade notes and risk parameters'],
-          actionRules: ['Stick to 1% risk per trade', 'Review setups before market open'],
-        };
-      }
-    }
-
     const insights: CoachInsightsResult = {
-      summary: parsed.summary ?? 'Performance evaluation completed based on recent journal data.',
-      disciplineGrade: parsed.disciplineGrade ?? 'B',
-      strengths: parsed.strengths ?? ['Consistent logging'],
-      leaks: parsed.leaks ?? ['Manage risk per trade'],
-      actionRules: parsed.actionRules ?? [
-        'Maintain strict stop-loss rules',
-        'Trade high-probability sessions',
-      ],
+      ...payload,
       modelId,
       costUsd,
       latencyMs,
@@ -315,15 +312,15 @@ export async function getCoachInsights(args: CoachInsightsArgs): Promise<CoachIn
 
     return insights;
   } catch (err) {
-    await finishMastraRun({
+    await finishRun({
       userId,
       threadId,
       runId,
       model: modelId,
       providerId,
       startedAt,
-      inputTokens: 0,
-      outputTokens: 0,
+      inputTokens,
+      outputTokens,
       toolCalls: 0,
       steps: 0,
       outcome: mastraOutcomeForError(err, signal),

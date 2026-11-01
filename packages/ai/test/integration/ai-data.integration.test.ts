@@ -23,6 +23,7 @@
 // (@kestrel/data getCandles / getPrice). Every asserted number below is
 // computed by the real @kestrel/indicators package at runtime.
 
+import type * as KestrelData from '@kestrel/data';
 import { computeIndicator, computeStructure } from '@kestrel/indicators';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -37,10 +38,31 @@ import { verifyCallTool } from '../../src/tools/verify-call';
 const mockGetCandles = vi.fn();
 const mockGetPrice = vi.fn();
 
-vi.mock('@kestrel/data', () => ({
-  getCandlesUnchecked: (...args: unknown[]) => mockGetCandles(...args),
-  getPriceUnchecked: (...args: unknown[]) => mockGetPrice(...args),
-}));
+vi.mock('@kestrel/data', async (importOriginal) => {
+  const actual = await importOriginal<typeof KestrelData>();
+  return {
+    ...actual,
+    getCandlesUnchecked: (...args: unknown[]) => mockGetCandles(...args),
+    getPrice: (...args: unknown[]) => mockGetPrice(...args),
+  };
+});
+
+/** R8/R13: verify_call now takes the freshness-preserving getter. */
+function liveQuote(mid: number) {
+  return {
+    tick: {
+      symbol: 'XAUUSD',
+      bid: mid - 0.5,
+      ask: mid + 0.5,
+      mid,
+      ts: Date.now(),
+      source: 'test',
+    },
+    stale: false,
+    producedAt: Date.now(),
+    ageMs: 0,
+  };
+}
 
 const execIndicators = getIndicatorsTool.execute as unknown as (input: {
   symbol: string;
@@ -183,14 +205,7 @@ describe('AI tools → real @kestrel/indicators integration', () => {
   });
 
   it('verify_call agrees when the nearest real swing high sits beyond the target', async () => {
-    mockGetPrice.mockResolvedValue({
-      symbol: 'XAUUSD',
-      bid: 2599.5,
-      ask: 2600.5,
-      mid: 2600,
-      ts: Date.now(),
-      source: 'test',
-    });
+    mockGetPrice.mockResolvedValue(liveQuote(2600));
     const candles = makeCandles([2575, 2585, 2634, 2592, 2570, 2582], {
       highs: [2576, 2586, 2635, 2593, 2571, 2583],
     });
@@ -218,14 +233,7 @@ describe('AI tools → real @kestrel/indicators integration', () => {
   });
 
   it('verify_call flags opposing liquidity when a real swing high blocks a long target', async () => {
-    mockGetPrice.mockResolvedValue({
-      symbol: 'XAUUSD',
-      bid: 2599.5,
-      ask: 2600.5,
-      mid: 2600,
-      ts: Date.now(),
-      source: 'test',
-    });
+    mockGetPrice.mockResolvedValue(liveQuote(2600));
     mockGetCandles.mockResolvedValue(makeCandles([2595, 2605, 2609, 2600, 2590, 2600]));
 
     const result = await execVerify({

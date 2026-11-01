@@ -21,12 +21,18 @@
 // feature; this tool exposes the manual side of it now so the user can ask
 // the agent to log something directly.
 
-import { SymbolSchema, TradeSideSchema, type LogJournalOutput } from '@kestrel/shared';
+import {
+  SymbolSchema,
+  TradeSideSchema,
+  validationError,
+  type LogJournalOutput,
+} from '@kestrel/shared';
 import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 
 import { createEntry } from '../journal/persistence';
-import { getToolContext } from '../runtime/tool-context';
+import { checkLevelsAgainstMarket } from '../mastra-v2/mutation/level-sanity';
+import { getToolContext, maybeGetToolContext } from '../runtime/tool-context';
 import { assertMutationIntent } from './mutation-guard';
 
 const InputSchema = z.object({
@@ -34,9 +40,9 @@ const InputSchema = z.object({
   side: TradeSideSchema,
   /** ms epoch UTC; defaults to "now" so the agent can omit it. */
   openedAtMs: z.int().optional(),
-  entry: z.number(),
-  stop: z.number().nullable().optional(),
-  target: z.number().nullable().optional(),
+  entry: z.number().positive(),
+  stop: z.number().positive().nullable().optional(),
+  target: z.number().positive().nullable().optional(),
   size: z.number().nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
   tags: z.array(z.string().max(40)).max(10).optional(),
@@ -54,6 +60,24 @@ export const logJournalTool: Tool<z.infer<typeof InputSchema>, LogJournalOutput>
   inputSchema: InputSchema,
   execute: async (input): Promise<LogJournalOutput> => {
     assertMutationIntent('log_journal');
+
+    // R13 (audit 2026-10-31): bound every model-supplied level against the
+    // live market before the write. Out-of-band fails with the reason; an
+    // unavailable market fails closed and nothing is written, never clamped.
+    const signal = maybeGetToolContext()?.signal ?? undefined;
+    const levelCheck = await checkLevelsAgainstMarket({
+      symbol: input.symbol,
+      levels: [
+        { name: 'entry', value: input.entry },
+        ...(input.stop != null ? [{ name: 'stop', value: input.stop }] : []),
+        ...(input.target != null ? [{ name: 'target', value: input.target }] : []),
+      ],
+      ...(signal ? { signal } : {}),
+    });
+    if (!levelCheck.ok) {
+      throw validationError(`Journal entry not saved: ${levelCheck.message}`);
+    }
+
     const entry = await createEntry({
       symbol: input.symbol,
       side: input.side,
