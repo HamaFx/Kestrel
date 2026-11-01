@@ -61,12 +61,16 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('../src/models/model', () => ({
-  resolveChatModel: mocks.resolveChatModel,
-  resolveMastraModel: mocks.resolveMastraModel,
-  resolveMastraExecutionModel: mocks.resolveMastraExecutionModel,
-  resolveEmbeddingModel: mocks.resolveEmbeddingModel,
-}));
+vi.mock('../src/models/model', async () => {
+  const actual = await vi.importActual<Record<string, unknown>>('../src/models/model');
+  return {
+    ...actual,
+    resolveChatModel: mocks.resolveChatModel,
+    resolveMastraModel: mocks.resolveMastraModel,
+    resolveMastraExecutionModel: mocks.resolveMastraExecutionModel,
+    resolveEmbeddingModel: mocks.resolveEmbeddingModel,
+  };
+});
 vi.mock('../src/mastra-v2/agents/xauusd/agent', () => ({
   createXauusdMastraAgent: mocks.createXauusdMastraAgent,
 }));

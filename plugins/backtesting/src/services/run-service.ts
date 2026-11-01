@@ -20,7 +20,6 @@
 // Both the agent tool and the plugin HTTP routes call this module so a manual
 // UI run and a chat run produce identical artifacts.
 
-import { getCandles } from '@kestrel/data';
 import { msPerTimeframe, pipSize, type Candle, type Symbol, type Timeframe } from '@kestrel/shared';
 
 import {
@@ -37,6 +36,7 @@ import type { BacktestRunRow } from '../db/tables';
 import { downsample, runBacktest as executeBacktest, type RunBacktestOutput } from '../engine/run';
 import type { RunBacktestInput, RunDetail, RunResult, RunSummary } from '../schemas';
 import { normaliseSettings, type BacktestSettings } from '../settings';
+import { loadBacktestCandleWindow, staleWindowWarning } from './market-data-gate';
 
 export const ENGINE_VERSION = 'kestrel-engine-1';
 
@@ -110,23 +110,18 @@ export async function runBacktestForUser(
   if (!name) name = `${input.symbol} ${input.timeframe} strategy`;
 
   const count = Math.max(60, Math.min(input.count ?? settings.maxCandles, 5000));
-  let candles: Candle[];
-  try {
-    candles = await getCandles(input.symbol as Symbol, input.timeframe as Timeframe, {
-      count,
-      includeOpenBar: false,
-      ...(input.from ? { from: input.from } : {}),
-      ...(input.to ? { to: input.to } : {}),
-      ...(request.signal ? { signal: request.signal } : {}),
-    });
-  } catch (err) {
-    throw new Error(
-      `Could not load ${input.symbol} ${input.timeframe} candles: ${
-        err instanceof Error ? err.message : String(err)
-      }`,
-      { cause: err },
-    );
-  }
+  // R8 (audit 2026-10-31): the gate reads the meta-returning getter so a
+  // stale-while-revalidate window is refused instead of silently feeding the
+  // engine a window that may be missing recent bars.
+  const { candles, staleWindowSeconds } = await loadBacktestCandleWindow({
+    symbol: input.symbol as Symbol,
+    timeframe: input.timeframe as Timeframe,
+    count,
+    ...(input.from ? { from: input.from } : {}),
+    ...(input.to ? { to: input.to } : {}),
+    ...(request.signal ? { signal: request.signal } : {}),
+    ...(input.allowStaleData !== undefined ? { allowStaleData: input.allowStaleData } : {}),
+  });
 
   const closed = closedCandlesOnly(candles, input.timeframe as Timeframe);
   if (closed.length < 30) {
@@ -161,6 +156,12 @@ export async function runBacktestForUser(
     },
   });
   const durationMs = Date.now() - startedAt;
+
+  if (staleWindowSeconds !== null) {
+    // The caller opted into a stale window; make sure the persisted run
+    // carries the caveat instead of looking like a clean result (R8).
+    output.result.warnings.unshift(staleWindowWarning(staleWindowSeconds));
+  }
 
   const persist = input.persist !== false;
   if (!persist) {

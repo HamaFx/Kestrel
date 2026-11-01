@@ -15,18 +15,18 @@
  */
 
 // Property-shaped checks for the replay_setup tool's pure-logic core. We
-// inject a stub `getCandles` via vi.mock so the test runs without
+// inject a stub `getCandlesUnchecked` via vi.mock so the test runs without
 // touching any live provider — these tests exercise the trade-simulation
 // / R-multiple math, not the data layer.
 
-import { getCandles } from '@kestrel/data';
+import { getCandlesUnchecked } from '@kestrel/data';
 import type { Candle } from '@kestrel/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { replaySetupTool } from '../src/tools/replay-setup';
 
 vi.mock('@kestrel/data', () => ({
-  getCandles: vi.fn(),
+  getCandlesUnchecked: vi.fn(),
 }));
 
 const exec = replaySetupTool.execute as unknown as (input: unknown) => Promise<{
@@ -56,12 +56,12 @@ function bar(o: number, h: number, l: number, c: number, t: number): Candle {
 }
 
 afterEach(() => {
-  vi.mocked(getCandles).mockReset();
+  vi.mocked(getCandlesUnchecked).mockReset();
 });
 
 describe('replay_setup — pure logic', () => {
   it('returns thin=true and zero trades when there are no candles', async () => {
-    vi.mocked(getCandles).mockResolvedValueOnce([] as Candle[]);
+    vi.mocked(getCandlesUnchecked).mockResolvedValueOnce([] as Candle[]);
     const r = await exec({
       symbol: 'EURUSD',
       tf: '1h',
@@ -79,7 +79,7 @@ describe('replay_setup — pure logic', () => {
     const flat: Candle[] = Array.from({ length: 200 }, (_, i) =>
       bar(1.08, 1.0801, 1.0799, 1.08, 1_700_000_000_000 + i * 60_000),
     );
-    vi.mocked(getCandles).mockResolvedValueOnce(flat);
+    vi.mocked(getCandlesUnchecked).mockResolvedValueOnce(flat);
     const r = await exec({
       symbol: 'EURUSD',
       tf: '1h',
@@ -125,7 +125,7 @@ describe('replay_setup — pure logic', () => {
       t += 60 * 60_000;
     }
 
-    vi.mocked(getCandles).mockResolvedValueOnce(seq);
+    vi.mocked(getCandlesUnchecked).mockResolvedValueOnce(seq);
     const r = await exec({
       symbol: 'EURUSD',
       tf: '1h',

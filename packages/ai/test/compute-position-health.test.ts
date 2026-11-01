@@ -53,7 +53,7 @@ vi.mock('../src/journal/persistence', () => ({
 }));
 
 vi.mock('@kestrel/data', () => ({
-  getPrice: (...args: unknown[]) => mockGetPrice(...args),
+  getPriceUnchecked: (...args: unknown[]) => mockGetPrice(...args),
 }));
 
 function runWithContext<T>(fn: () => Promise<T>): Promise<T> {

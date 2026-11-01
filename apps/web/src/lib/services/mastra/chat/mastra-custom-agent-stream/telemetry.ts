@@ -26,6 +26,7 @@ import type { z } from 'zod';
 import type { CustomAgentCompletion, CustomAgentToolPart } from './tool-events';
 
 export type MemoryDegradedPart = z.infer<typeof MemoryDegradedPartSchema>;
+export type CustomAgentFallbackPart = NonNullable<CustomAgentCompletion['fallbackParts']>[number];
 
 export function buildMemoryDegradedPart(
   memoryMode: CustomAgentCompletion['memoryMode'],
@@ -66,6 +67,10 @@ export function buildCustomAgentMetaData(
     memoryMode: completed.memoryMode,
     memoryBackfill: completed.memoryBackfill,
     modelSnapshot: completed.modelSnapshot,
+    // R14 — honest answer metadata when a mid-turn provider switch happened.
+    ...(completed.fallbackParts?.length
+      ? { fallbacks: completed.fallbackParts, fallbackApplied: true }
+      : { fallbackApplied: false }),
     terminalReason: 'stream-completed',
   };
 }
@@ -76,6 +81,7 @@ export function buildCustomAssistantMessage(
   text: string,
   memoryDegradedPart: MemoryDegradedPart | null,
   metaData: ReturnType<typeof buildCustomAgentMetaData>,
+  fallbackParts: readonly CustomAgentFallbackPart[] = [],
 ): UIMessage {
   return {
     id: messageId,
@@ -84,6 +90,7 @@ export function buildCustomAssistantMessage(
       ...(toolParts as unknown as UIMessage['parts']),
       { type: 'text', text },
       ...(memoryDegradedPart ? [memoryDegradedPart as unknown as UIMessage['parts'][number]] : []),
+      ...(fallbackParts as unknown as UIMessage['parts']),
       { type: 'data-multi-agent-meta', data: metaData } as UIMessage['parts'][number],
     ],
   };

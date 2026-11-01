@@ -249,6 +249,7 @@ async function executeCustomAgentStreamService(
           completed.text,
           memoryDegradedPart,
           metaData,
+          completed.fallbackParts ?? [],
         );
         try {
           await appendAssistantMessage(input.userId, input.threadId, assistantMessage, {

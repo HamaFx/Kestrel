@@ -54,8 +54,30 @@ export function getMastraGenerationStats(result: {
 export type MastraRunOutcome = 'success' | 'failed' | 'cancelled';
 export type MastraAnswerOutcome = 'ready' | 'blocked' | 'degraded';
 
+/**
+ * True when an abort came from a request deadline (`AbortSignal.timeout`)
+ * rather than the user closing the tab / cancelling. DOM aborts for a fired
+ * `AbortSignal.timeout` carry a `TimeoutError` DOMException as their reason;
+ * user cancellation carries an `AbortError` (or a plain reason), and shutdown
+ * aborts are deliberately treated as cancellation too.
+ */
+export function isDeadlineAbort(reason: unknown): boolean {
+  if (reason === null || typeof reason !== 'object') return false;
+  return (reason as { name?: unknown }).name === 'TimeoutError';
+}
+
+/**
+ * Classify the terminal outcome of a Mastra run.
+ *
+ * A deadline abort is recorded as `failed`, not `cancelled`: the provider hung
+ * past the request budget, which is exactly the signal the per-model circuit
+ * breaker must count (R14). A user cancellation or shutdown stays `cancelled`
+ * and never blames the provider.
+ */
 export function mastraOutcomeForError(error: unknown, signal?: AbortSignal): MastraRunOutcome {
-  if (signal?.aborted) return 'cancelled';
+  if (signal?.aborted) {
+    return isDeadlineAbort(signal.reason) ? 'failed' : 'cancelled';
+  }
   if (error instanceof Error && error.name === 'AbortError') return 'cancelled';
   return 'failed';
 }

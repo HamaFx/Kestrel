@@ -24,7 +24,7 @@
  * the AI agent always see identical numbers.
  */
 
-import { getCandles } from '@kestrel/data';
+import { getCandlesUnchecked } from '@kestrel/data';
 import { computeIndicator } from '@kestrel/indicators';
 import { type GetIndicatorsOutput, type IndicatorResult } from '@kestrel/shared';
 import { createTool } from '@mastra/core/tools';
@@ -52,7 +52,7 @@ export async function executeCanonicalIndicators(
 ): Promise<GetIndicatorsOutput> {
   const { symbol, tf, count, indicators } = input;
   const effectiveSignal = signal ?? maybeGetToolContext()?.signal ?? undefined;
-  const candles = await getCandles(symbol, tf, {
+  const candles = await getCandlesUnchecked(symbol, tf, {
     count,
     ...(effectiveSignal ? { signal: effectiveSignal } : {}),
   });

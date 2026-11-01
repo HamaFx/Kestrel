@@ -52,11 +52,13 @@ export const getIntermarketTool: Tool<z.infer<typeof InputSchema>, GetIntermarke
     const need = windowBars + 1;
     const series = new Map<Symbol, BareReturns>();
     let partial = false;
+    let anyStale = false;
 
     for (const symbol of ['XAUUSD', 'EURUSD', 'GBPUSD'] as const) {
       try {
-        const bars = await getCandles(symbol, tf, { count: need });
-        series.set(symbol, bareReturns(bars));
+        const result = await getCandles(symbol, tf, { count: need });
+        anyStale = anyStale || result.stale;
+        series.set(symbol, bareReturns(result.candles));
       } catch {
         partial = true;
       }
@@ -70,15 +72,17 @@ export const getIntermarketTool: Tool<z.infer<typeof InputSchema>, GetIntermarke
     const goldChange24h = computeChange24h(xau);
     const xauDxyCorrelation = computeXauDxyCorrelation(xau, eur, gbp, windowBars);
 
-    const regime = inferRegime({ dxy24h: dxyProxy.change24h, goldChange24h });
-    const regimeBreak = xauDxyCorrelation > 0;
+    const regime = inferRegime({ dxy24h: dxyProxy?.change24h ?? null, goldChange24h });
+    const regimeBreak = xauDxyCorrelation !== null && xauDxyCorrelation > 0;
 
     const notes = buildNotes({
-      dxy24h: dxyProxy.change24h,
+      dxyProxy,
       goldChange24h,
       xauDxyCorrelation,
       regime,
       regimeBreak,
+      partial,
+      stale: anyStale,
     });
 
     return {
@@ -124,9 +128,9 @@ function bareReturns(bars: { c: number; t: number }[]): BareReturns {
   return { closes, returns, times };
 }
 
-function pearson(xs: number[], ys: number[]): number {
+function pearson(xs: number[], ys: number[]): number | null {
   const n = Math.min(xs.length, ys.length);
-  if (n < 2) return 0;
+  if (n < 2) return null;
   let sx = 0;
   let sy = 0;
   let sxy = 0;
@@ -145,8 +149,9 @@ function pearson(xs: number[], ys: number[]): number {
   const denomX = n * sxx - sx * sx;
   const denomY = n * syy - sy * sy;
   const den = Math.sqrt(denomX * denomY);
-  if (den === 0 || !Number.isFinite(den)) return 0;
+  if (den === 0 || !Number.isFinite(den)) return null;
   const r = num / den;
+  if (!Number.isFinite(r)) return null;
   return Math.max(-1, Math.min(1, r));
 }
 
@@ -155,19 +160,23 @@ function computeDxyProxy(
   gbp: BareReturns | undefined,
 ): GetIntermarketOutput['dxyProxy'] {
   if (!eur || !gbp || eur.closes.length === 0 || gbp.closes.length === 0) {
-    return { value: 0, change24h: 0, formula: DXY_FORMULA };
+    // R8 (audit 2026-10-31): never fabricate a numeric proxy. Returning null
+    // keeps the value out of the tool output entirely, so the numeric evidence
+    // gate cannot ground a claim like "the DXY proxy is 0".
+    return null;
   }
   const lastEur = eur.closes[eur.closes.length - 1]!;
   const lastGbp = gbp.closes[gbp.closes.length - 1]!;
   const value = 100 / (Math.pow(lastEur, 0.5) * Math.pow(lastGbp, 0.5));
+  if (!Number.isFinite(value) || value <= 0) return null;
 
   const lastTime = eur.times[eur.times.length - 1] ?? Date.now();
   const eurAtTarget = closestPrice(eur, lastTime - ONE_DAY_MS);
   const gbpAtTarget = closestPrice(gbp, lastTime - ONE_DAY_MS);
-  let change24h = 0;
+  let change24h: number | null = null;
   if (eurAtTarget !== null && gbpAtTarget !== null) {
     const past = 100 / (Math.pow(eurAtTarget, 0.5) * Math.pow(gbpAtTarget, 0.5));
-    if (past > 0) change24h = ((value - past) / past) * 100;
+    if (past > 0 && Number.isFinite(past)) change24h = ((value - past) / past) * 100;
   }
   return { value, change24h, formula: DXY_FORMULA };
 }
@@ -186,10 +195,12 @@ function computeXauDxyCorrelation(
   eur: BareReturns | undefined,
   gbp: BareReturns | undefined,
   windowBars: number,
-): number {
-  if (!xau || !eur || !gbp) return 0;
+): number | null {
+  // R8: too few overlapping returns means there is no correlation to report.
+  // Returning 0 here used to read as "no relationship", a fabricated finding.
+  if (!xau || !eur || !gbp) return null;
   const n = Math.min(xau.returns.length, eur.returns.length, gbp.returns.length, windowBars);
-  if (n < 5) return 0;
+  if (n < 5) return null;
   // Synth DXY return at bar i ≈ -(0.5 * eur_return + 0.5 * gbp_return).
   const dxyReturns: number[] = [];
   for (let i = 0; i < n; i += 1) {
@@ -198,7 +209,8 @@ function computeXauDxyCorrelation(
     dxyReturns.push(-(0.5 * eurR + 0.5 * gbpR));
   }
   const xauReturns = xau.returns.slice(-n);
-  return pearson(xauReturns, dxyReturns);
+  const r = pearson(xauReturns, dxyReturns);
+  return Number.isFinite(r) ? r : null;
 }
 
 function closestPrice(s: BareReturns, targetMs: number): number | null {
@@ -219,8 +231,8 @@ function closestPrice(s: BareReturns, targetMs: number): number | null {
 // regime + notes
 // ---------------------------------------------------------------------------
 
-function inferRegime(args: { dxy24h: number; goldChange24h: number | null }): RiskRegime {
-  const dxyDir = sign(args.dxy24h, 0.1);
+function inferRegime(args: { dxy24h: number | null; goldChange24h: number | null }): RiskRegime {
+  const dxyDir = args.dxy24h !== null ? sign(args.dxy24h, 0.1) : 0;
   const goldDir = args.goldChange24h !== null ? sign(args.goldChange24h, 0.2) : 0;
   if (dxyDir < 0 && goldDir > 0) return 'risk-on';
   if (dxyDir > 0 && goldDir < 0) return 'risk-off';
@@ -234,24 +246,34 @@ function sign(n: number, threshold: number): number {
 }
 
 function buildNotes(args: {
-  dxy24h: number;
+  dxyProxy: GetIntermarketOutput['dxyProxy'];
   goldChange24h: number | null;
-  xauDxyCorrelation: number;
+  xauDxyCorrelation: number | null;
   regime: RiskRegime;
   regimeBreak: boolean;
+  partial: boolean;
+  stale: boolean;
 }): string {
   const regimeLine =
-    args.regime === 'risk-on'
-      ? 'Dollar offered, gold bid — risk-on tone.'
-      : args.regime === 'risk-off'
-        ? 'Dollar bid, gold offered — risk-off tone.'
-        : 'Mixed signals — neutral macro pulse.';
+    args.dxyProxy === null
+      ? 'USD-strength proxy unavailable — EURUSD/GBPUSD data missing.'
+      : args.regime === 'risk-on'
+        ? 'Dollar offered, gold bid — risk-on tone.'
+        : args.regime === 'risk-off'
+          ? 'Dollar bid, gold offered — risk-off tone.'
+          : 'Mixed signals — neutral macro pulse.';
   const corrLine =
-    args.xauDxyCorrelation <= -0.4
-      ? 'XAU and DXY are tracking their typical anti-correlation.'
-      : args.xauDxyCorrelation >= 0.4
-        ? 'XAU and DXY are moving together — atypical, treat with caution.'
-        : 'XAU/DXY relationship is loose this window.';
+    args.xauDxyCorrelation === null
+      ? 'XAU/DXY correlation unavailable (not enough overlapping bars).'
+      : args.xauDxyCorrelation <= -0.4
+        ? 'XAU and DXY are tracking their typical anti-correlation.'
+        : args.xauDxyCorrelation >= 0.4
+          ? 'XAU and DXY are moving together — atypical, treat with caution.'
+          : 'XAU/DXY relationship is loose this window.';
   const breakLine = args.regimeBreak ? ' Regime-break flag is on.' : '';
-  return `${regimeLine} ${corrLine}${breakLine}`;
+  const missingLine = args.partial ? ' One or more inputs were unavailable.' : '';
+  const staleLine = args.stale
+    ? ' At least one candle window was served from a stale cache; treat this pulse as provisional.'
+    : '';
+  return `${regimeLine} ${corrLine}${breakLine}${missingLine}${staleLine}`;
 }

@@ -25,8 +25,8 @@
  * keeps the identical output shape.
  */
 
-import { getPrice, ProviderError } from '@kestrel/data';
-import type { GetPriceOutput } from '@kestrel/shared';
+import { getPrice, priceAgeSeconds, ProviderError } from '@kestrel/data';
+import type { GetPriceOutput, QuoteFreshness } from '@kestrel/shared';
 import { createTool } from '@mastra/core/tools';
 import { type z } from 'zod';
 
@@ -44,19 +44,30 @@ export { CANONICAL_PRICE_DESCRIPTION, CanonicalPriceInputSchema };
 export type CanonicalPriceInput = z.infer<typeof CanonicalPriceInputSchema>;
 
 /**
+ * Age at which a quote is disclosed as not-live even when no SWR fallback
+ * happened. A live FX/gold quote is seconds old; a minute means the provider
+ * stopped updating (e.g. market closed) and the model must say so.
+ */
+export const PRICE_AGE_WARN_SECONDS = 60;
+
+/**
  * Shared execute core: fetches the latest mid price for one or more symbols.
  * Calls into `packages/data` so the cache + provider failover apply
  * transparently — the AI never talks to a provider directly.
+ *
+ * R8 (audit 2026-10-31): this reads the meta-returning getter so `stale` and
+ * the quote age reach the model as output fields it can disclose, instead of
+ * being dropped at the adapter boundary.
  */
 export async function executeCanonicalPrice(
   input: CanonicalPriceInput,
   signal?: AbortSignal,
 ): Promise<GetPriceOutput> {
   const effectiveSignal = signal ?? maybeGetToolContext()?.signal ?? undefined;
-  const ticks = await Promise.all(
+  const results = await Promise.all(
     input.symbols.map(async (s) => {
       try {
-        return await (effectiveSignal ? getPrice(s, { signal: effectiveSignal }) : getPrice(s));
+        return await getPrice(s, effectiveSignal ? { signal: effectiveSignal } : {});
       } catch (err) {
         if (err instanceof ProviderError) {
           throw new Error(`Couldn't price ${s}: ${err.message}`, { cause: err });
@@ -65,7 +76,46 @@ export async function executeCanonicalPrice(
       }
     }),
   );
-  return { ticks, asOf: new Date().toISOString() };
+
+  const now = Date.now();
+  const freshness: QuoteFreshness[] = results.map((result) => ({
+    symbol: result.tick.symbol,
+    source: result.tick.source,
+    stale: result.stale || result.tick.stale === true,
+    producedAt: result.producedAt,
+    ageSeconds: priceAgeSeconds(result, now),
+  }));
+
+  return {
+    ticks: results.map((result) => result.tick),
+    asOf: new Date(now).toISOString(),
+    freshness,
+    warnings: buildFreshnessWarnings(freshness),
+  };
+}
+
+/**
+ * Pre-rendered lines for the model. The canonical system prompt already asks
+ * it to disclose stale data; these strings remove any excuse not to, and they
+ * are also the values the evidence gate sees in the tool output.
+ */
+export function buildFreshnessWarnings(freshness: readonly QuoteFreshness[]): string[] {
+  const warnings: string[] = [];
+  for (const f of freshness) {
+    const age = f.ageSeconds === null ? null : Math.round(f.ageSeconds);
+    if (f.stale) {
+      warnings.push(
+        `${f.symbol}: the quote was served from a stale cache after an upstream failure${
+          age === null ? '' : ` (age ${age}s)`
+        } — do not present it as a live price.`,
+      );
+    } else if (age !== null && age > PRICE_AGE_WARN_SECONDS) {
+      warnings.push(
+        `${f.symbol}: the quote is ${age}s old (source ${f.source}) — disclose that it is not live.`,
+      );
+    }
+  }
+  return warnings;
 }
 
 export const canonicalPriceTool = createTool({

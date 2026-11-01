@@ -27,6 +27,7 @@
 import { getSymbolDefinition, SymbolSchema, type Symbol, type Tick } from '@kestrel/shared';
 
 import { cacheKey, cacheTag, getDefaultCache, PRICE_TTL } from '../cache';
+import { ProviderError } from '../errors';
 import { runWithFailover, type ProviderAttempt } from '../failover';
 import { recordFailure, recordSuccess } from '../health';
 import { ensureDataProvidersRegistered, isTickStreamEnabled } from '../providers/provider-adapters';
@@ -65,6 +66,18 @@ export interface PriceResult {
   ageMs: number | null;
 }
 
+/**
+ * Total age of a price reading in seconds: the provider's own quote age at
+ * fetch time plus the time the value then spent in the cache (R8, audit
+ * 2026-10-31). Consumers gate on this instead of re-deriving it, so a
+ * stale-while-revalidate fallback is always counted.
+ */
+export function priceAgeSeconds(result: PriceResult, now: number = Date.now()): number {
+  const observedAgeMs = result.ageMs ?? 0;
+  const cacheAgeMs = Math.max(0, now - result.producedAt);
+  return Math.round(((observedAgeMs + cacheAgeMs) / 1000) * 10) / 10;
+}
+
 function resolveKeys(opts: GetPriceOptions) {
   return {
     finnhub: opts.apiKeys?.finnhub ?? process.env.FINNHUB_API_KEY ?? '',
@@ -92,10 +105,30 @@ function snapshotToTick(symbol: Symbol, value: ProviderPriceSnapshot, fetchedAt:
  * Latest mid price for `symbol`. Cached at the 3-second tier; this means
  * the 1.5 s polling browser hits the upstream provider at most ~1× per
  * 3 seconds across the entire deployment.
+ *
+ * R8 (audit 2026-10-31) — this is the freshness-dropping getter, renamed so
+ * ignoring staleness is an explicit choice. Anything the AI, alerts, paper
+ * fills or backtests read must use `getPriceWithMeta` (or `getPrice`) instead.
  */
-export async function getPrice(symbolInput: Symbol, opts: GetPriceOptions = {}): Promise<Tick> {
+export async function getPriceUnchecked(
+  symbolInput: Symbol,
+  opts: GetPriceOptions = {},
+): Promise<Tick> {
   const r = await getPriceWithMeta(symbolInput, opts);
   return r.tick;
+}
+
+/**
+ * Default single-symbol price read: same value as `getPriceUnchecked` plus the
+ * freshness metadata consumers must not drop (R8). Kept as a thin alias so
+ * `getPrice(symbol)` is the obvious call and `…Unchecked` is the deliberate
+ * opt-out.
+ */
+export async function getPrice(
+  symbolInput: Symbol,
+  opts: GetPriceOptions = {},
+): Promise<PriceResult> {
+  return getPriceWithMeta(symbolInput, opts);
 }
 
 /**
@@ -133,11 +166,30 @@ export async function getPriceWithMeta(
               baseUrl: keys.biquoteBaseUrl,
               apiKey: keys.finnhub,
             });
+            // R8 (audit 2026-10-31) — a zero/negative/non-finite provider
+            // price is not a price. Rejecting it here lets failover try the
+            // next provider instead of caching a fabricated 0 that the AI
+            // could quote as a real level.
+            if (!Number.isFinite(result.price) || result.price <= 0) {
+              throw new ProviderError(
+                'PROVIDER_PARSE_ERROR',
+                p.name,
+                `provider returned a non-positive price (${String(result.price)}) for ${symbol}`,
+              );
+            }
+            const bid =
+              result.bid !== undefined && Number.isFinite(result.bid) && result.bid > 0
+                ? result.bid
+                : undefined;
+            const ask =
+              result.ask !== undefined && Number.isFinite(result.ask) && result.ask > 0
+                ? result.ask
+                : undefined;
             return {
               price: result.price,
               provider: result.provider,
-              ...(result.bid !== undefined ? { bid: result.bid } : {}),
-              ...(result.ask !== undefined ? { ask: result.ask } : {}),
+              ...(bid !== undefined ? { bid } : {}),
+              ...(ask !== undefined ? { ask } : {}),
               ageMs: result.ageMs ?? null,
               ...(result.observedAt !== undefined ? { observedAt: result.observedAt } : {}),
               ...(result.marketState ? { marketState: result.marketState } : {}),
@@ -270,11 +322,25 @@ export async function getPricesWithMeta(
 
 /**
  * Batch price lookup returning normalized `Tick[]` in input order.
+ *
+ * R8 — freshness-dropping batch getter; renamed so the opt-out is explicit.
+ * Prefer `getPricesWithMeta` (or `getPrices`) and disclose staleness.
  */
-export async function getPrices(
+export async function getPricesUnchecked(
   symbolsInput: readonly Symbol[],
   opts: GetPriceOptions = {},
 ): Promise<Tick[]> {
   const results = await getPricesWithMeta(symbolsInput, opts);
   return results.map((r) => r.tick);
+}
+
+/**
+ * Default batch price read: per-symbol values plus freshness metadata (R8).
+ * Alias of `getPricesWithMeta` so the dropping variant is the named one.
+ */
+export async function getPrices(
+  symbolsInput: readonly Symbol[],
+  opts: GetPriceOptions = {},
+): Promise<PriceResult[]> {
+  return getPricesWithMeta(symbolsInput, opts);
 }

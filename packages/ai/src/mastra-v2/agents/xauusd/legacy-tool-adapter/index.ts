@@ -96,7 +96,10 @@ export function createReadOnlyToolExecute<TInput, TOutput>(
       const output = await executeMastraTool(
         fullToolId,
         context,
-        () => run(input, context),
+        // F7 parity: the shared wrapper hands back the effective context so
+        // every read-only tool observes both parent cancellation and the
+        // per-tool deadline through its own abort signal.
+        (effectiveContext) => run(input, effectiveContext),
         options,
       );
       if (typeof onToolEvent === 'function') {

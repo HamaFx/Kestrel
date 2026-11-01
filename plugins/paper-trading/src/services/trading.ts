@@ -91,7 +91,6 @@ export async function placeOrderForUser(args: {
   }
 
   const tick = await loadTick(symbol, args.signal);
-  const quotes = quotesFor(symbol, tick, args.settings);
   const slippage = slippageFor(symbol, args.settings);
   const contractSize = contractSizeFor(symbol);
 
@@ -109,9 +108,14 @@ export async function placeOrderForUser(args: {
     if (!tradable.ok) throw new Error(tradable.reason);
   }
 
+  // R8 (audit 2026-10-31): only a market order needs a fillable two-sided
+  // quote, and `quotesFromTick` now rejects an unusable price instead of
+  // clamping it. Build it after the tradability gate.
+  const quotes = args.input.type === 'market' ? quotesFor(symbol, tick, args.settings) : null;
+
   const referencePrice =
     args.input.type === 'market'
-      ? marketFillPrice(args.input.side, quotes, slippage)
+      ? marketFillPrice(args.input.side, quotes!, slippage)
       : (args.input.price ?? 0);
 
   const bracketError = validateBracket({
@@ -161,7 +165,7 @@ export async function placeOrderForUser(args: {
   }
 
   if (args.input.type === 'market') {
-    const fillPrice = marketFillPrice(args.input.side, quotes, slippage);
+    const fillPrice = marketFillPrice(args.input.side, quotes!, slippage);
     const fillBracketError = validateBracket({
       side: args.input.side,
       entryPrice: fillPrice,

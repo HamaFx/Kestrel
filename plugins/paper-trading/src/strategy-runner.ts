@@ -26,7 +26,7 @@
 // stops, `breakEvenAtR`, `trailing` (`atr` | `percent` | `fixed`), `flip` and
 // `exit` — into the same behaviour as `plugin-backtesting`.
 
-import { getCandles } from '@kestrel/data';
+import { candlesAgeSeconds, getCandles } from '@kestrel/data';
 import {
   buildFeatureMatrix,
   runStrategySandbox,
@@ -78,11 +78,21 @@ export async function evaluateLatestStrategySignal(args: {
 }): Promise<LatestStrategySignal> {
   const symbol = args.symbol as Symbol;
   const timeframe = args.timeframe as Timeframe;
-  const candles = await getCandles(symbol, timeframe, {
+  // R8 (audit 2026-10-31): a strategy signal computed over a stale-while-
+  // revalidate window may be driven by missing recent bars, and it can open a
+  // paper position. Refuse rather than trade on it.
+  const candlesResult = await getCandles(symbol, timeframe, {
     count: STRATEGY_LOOKBACK_BARS,
     includeOpenBar: false,
     ...(args.signal ? { signal: args.signal } : {}),
   });
+  if (candlesResult.stale) {
+    throw new Error(
+      `The ${symbol} ${timeframe} candle window was served from a stale cache after an upstream ` +
+        `failure (age ${candlesAgeSeconds(candlesResult)}s); the strategy signal was not evaluated.`,
+    );
+  }
+  const candles = candlesResult.candles;
   const barMs = msPerTimeframe(timeframe);
   const closed = candles
     .filter((candle) => candle.t + barMs <= Date.now())

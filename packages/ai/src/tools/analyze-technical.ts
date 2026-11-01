@@ -26,7 +26,7 @@
 // are tolerated — the failing tf is dropped from the result and the
 // `partial` flag flips so the chat part can surface a warning.
 
-import { getCandles } from '@kestrel/data';
+import { getCandlesUnchecked } from '@kestrel/data';
 import { computeIndicator, computeStructure } from '@kestrel/indicators';
 import {
   AnalyzeTechnicalInputSchema,
@@ -147,7 +147,10 @@ async function readOneTimeframe(
   signal?: AbortSignal,
 ): Promise<PerTimeframeReading | null> {
   try {
-    const candles = await getCandles(symbol, tf, { count: COUNT, ...(signal ? { signal } : {}) });
+    const candles = await getCandlesUnchecked(symbol, tf, {
+      count: COUNT,
+      ...(signal ? { signal } : {}),
+    });
     return computeTechnicalReading({ symbol, tf, candles });
   } catch (err) {
     // Best-effort: surface the failure in the response, never bubble.

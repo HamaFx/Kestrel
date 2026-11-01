@@ -46,16 +46,23 @@ export const SeasonalityBucketSchema = z.object({
   key: z.int(),
   /** Human-readable label, e.g. "Mar", "Mon", "13:00 UTC". */
   label: z.string(),
-  /** Number of samples in the bucket. */
+  /** Number of samples in the bucket. A count, so 0 is honest here. */
   count: z.int(),
-  /** Median percent return across samples. */
-  medianReturnPct: z.number(),
-  /** 25th percentile percent return. */
-  q1Pct: z.number(),
-  /** 75th percentile percent return. */
-  q3Pct: z.number(),
-  /** Fraction of samples with positive return, 0..1. */
-  winRate: z.number().min(0).max(1),
+  /**
+   * Median percent return across samples. Null (not 0) when the bucket has no
+   * samples — R8 (audit 2026-10-31). A fabricated 0 reads as a measured
+   * "flat" return and grounds a claim the data does not support.
+   */
+  medianReturnPct: z.number().nullable(),
+  /** 25th percentile percent return. Null when the bucket has no samples. */
+  q1Pct: z.number().nullable(),
+  /** 75th percentile percent return. Null when the bucket has no samples. */
+  q3Pct: z.number().nullable(),
+  /**
+   * Fraction of samples with positive return, 0..1. Null when the bucket has
+   * no samples; 0 remains a real reading when trades/samples exist but none won.
+   */
+  winRate: z.number().min(0).max(1).nullable(),
 });
 export type SeasonalityBucket = z.infer<typeof SeasonalityBucketSchema>;
 
@@ -64,9 +71,20 @@ export const GetSeasonalityOutputSchema = z.object({
   granularity: SeasonalityGranularitySchema,
   asOf: z.int(),
   buckets: z.array(SeasonalityBucketSchema),
-  /** Number of bars used to derive the buckets. */
+  /** Number of bars used to derive the buckets. A count, so 0 is honest. */
   sampleSize: z.int(),
   /** True when fewer than 30 samples were available — buckets are noisy. */
   thin: z.boolean(),
+  /**
+   * True when a candle window was served from the stale-while-revalidate
+   * cache (R8, audit 2026-10-31). Optional so outputs persisted before the
+   * fix still parse.
+   */
+  stale: z.boolean().optional(),
+  /**
+   * Deterministic note explaining when no statistics could be derived at all.
+   * Optional so tool outputs persisted before the R8 fix still parse.
+   */
+  notes: z.string().optional(),
 });
 export type GetSeasonalityOutput = z.infer<typeof GetSeasonalityOutputSchema>;

@@ -20,6 +20,7 @@ import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { LanguageModel } from 'ai';
 
 import type { ResolveModelEnv } from '@ai/models/env-factory';
+import type { FallbackPartPayload } from '@ai/models/model';
 import type { GenerationLedger } from '@ai/persistence/generation-ledger';
 
 import type { XauusdResearchPacket } from '../../packets/research-types';
@@ -33,6 +34,12 @@ export interface XauusdMastraSettings extends Pick<UserSettingsRow, 'aiApiKeys' 
   defaultSymbol?: UserSettingsRow['defaultSymbol'] | null;
   language?: UserSettingsRow['language'] | null;
   timezone?: UserSettingsRow['timezone'] | null;
+  /**
+   * R14 — the user's provider priority for mid-turn failover. The web
+   * boundary passes the full settings row, so this is populated in
+   * production even though focused callers may omit it.
+   */
+  aiFallbackChain?: UserSettingsRow['aiFallbackChain'];
 }
 
 export interface RunXauusdMastraArgs {
@@ -79,6 +86,8 @@ export interface XauusdMastraRunResult {
   totalCostUsd: number;
   toolParts?: MastraToolInvocationPart[];
   answerOutcome: 'ready' | 'blocked' | 'degraded';
+  /** `data-fallback` parts emitted when a mid-turn provider switch happened (R14). */
+  fallbackParts?: FallbackPartPayload[];
   modelSnapshot: { providerId: string; bareModelId: string };
   /** 'degraded' when native-memory preparation partially failed (Phase 9). */
   memoryMode: 'native' | 'degraded';
@@ -98,6 +107,8 @@ export interface XauusdMastraConversationStream {
     toolParts: MastraToolInvocationPart[];
     answerOutcome: 'ready' | 'blocked' | 'degraded';
     modelSnapshot: { providerId: string; bareModelId: string };
+    /** `data-fallback` parts emitted when a mid-turn provider switch happened (R14). */
+    fallbackParts?: FallbackPartPayload[];
     memoryMode: 'native' | 'degraded';
     memoryBackfill: boolean;
   }>;

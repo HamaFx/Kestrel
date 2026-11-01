@@ -48,6 +48,7 @@ export * from './schemas/sentiment';
 export * from './schemas/noise-control';
 
 // Per-tool output envelope schemas (consumed by chat parts via `safeParse`).
+export * from './schemas/tool-outputs/freshness';
 export * from './schemas/tool-outputs/get-price';
 export * from './schemas/tool-outputs/get-candles';
 export * from './schemas/tool-outputs/get-indicators';

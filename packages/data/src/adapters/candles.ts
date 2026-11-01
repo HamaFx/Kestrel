@@ -52,6 +52,14 @@ export interface CandlesResult {
   producedAt: number;
 }
 
+/**
+ * Age of a candle window in seconds: time since the adapter produced it,
+ * which is the read the staleness gate cares about (R8, audit 2026-10-31).
+ */
+export function candlesAgeSeconds(result: CandlesResult, now: number = Date.now()): number {
+  return Math.max(0, Math.round(((now - result.producedAt) / 1000) * 10) / 10);
+}
+
 const DEFAULT_COUNT = 300;
 const MAX_COUNT = 5000;
 
@@ -71,14 +79,30 @@ function resolveKeys(opts: GetCandlesOptions) {
  * than requested, that's what the caller gets. On a primary-provider
  * failure (quota, rate limit, HTTP), we fall back to subsequent attempts.
  * 4H is synthesised from 1H on the Finnhub side.
+ *
+ * R8 (audit 2026-10-31) — this drops the stale-while-revalidate flag, so it
+ * is named `…Unchecked`. Anything the AI, alerts or backtests read must use
+ * `getCandlesWithMeta` (or `getCandles`) and gate on `stale`.
  */
-export async function getCandles(
+export async function getCandlesUnchecked(
   symbolInput: Symbol,
   tf: Timeframe,
   opts: GetCandlesOptions = {},
 ): Promise<Candle[]> {
   const r = await getCandlesWithMeta(symbolInput, tf, opts);
   return r.candles;
+}
+
+/**
+ * Default candle read: same window as `getCandlesUnchecked` plus the SWR
+ * freshness metadata (`stale`, `producedAt`) consumers must not drop (R8).
+ */
+export async function getCandles(
+  symbolInput: Symbol,
+  tf: Timeframe,
+  opts: GetCandlesOptions = {},
+): Promise<CandlesResult> {
+  return getCandlesWithMeta(symbolInput, tf, opts);
 }
 
 /** SWR-aware variant. */

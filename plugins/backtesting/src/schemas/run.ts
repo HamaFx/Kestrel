@@ -128,6 +128,14 @@ export const RunBacktestInputSchema = z
     count: z.coerce.number().int().min(60).max(5000).default(1000),
     from: z.iso.datetime().optional(),
     to: z.iso.datetime().optional(),
+    /**
+     * Accept a candle window served from a stale-while-revalidate cache after
+     * an upstream failure. Default false: the run is refused, because a stale
+     * live window may be missing recent bars (R8, audit 2026-10-31).
+     * Legitimate for archived historical windows whose closed bars cannot
+     * change.
+     */
+    allowStaleData: z.boolean().optional(),
     initialBalance: z.coerce.number().min(100).max(100_000_000).default(10_000),
     riskPct: z.coerce.number().min(0.01).max(10).default(1),
     spread: z.coerce.number().min(0).max(10_000).optional(),

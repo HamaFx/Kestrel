@@ -101,9 +101,7 @@ function canonicalTelemetryKind(
  * (and the legacy `*_poc` alias / omitted kind) keeps the historical agent id
  * so existing dashboards and telemetry tests keep resolving.
  */
-export function agentLabelForTelemetryKind(
-  kind?: MastraRunObservation['telemetryKind'],
-): string {
+export function agentLabelForTelemetryKind(kind?: MastraRunObservation['telemetryKind']): string {
   switch (kind) {
     case 'mastra_canonical_chat':
       return 'kestrel-mastra-canonical-chat';
@@ -182,8 +180,8 @@ export async function finishMastraRun(args: MastraRunObservation): Promise<void>
   // Audit plan §1.4 (P0-4) — feed the terminal run outcome into the
   // per-model circuit breaker, keyed by the resolved model id (the
   // qualified "<provider>/<model>" string, never the bare provider id).
-  // `cancelled` is a user abort rather than a provider failure, and a run
-  // whose model never resolved has no circuit to count against.
+  // R14: a request-deadline abort is `failed` (provider hang) and counts;
+  // a user cancellation or shutdown stays `cancelled` and never does.
   const breakerModelId = args.model;
   if (breakerModelId && breakerModelId !== 'unresolved') {
     if (args.outcome === 'success') {

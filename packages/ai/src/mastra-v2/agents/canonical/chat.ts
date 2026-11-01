@@ -20,6 +20,7 @@ import { metrics } from '@kestrel/shared';
 
 import { estimateCostUsd } from '@ai/budget/cost';
 import { getDiagnosticContext, withDiagnostics } from '@ai/diagnostics';
+import { MAX_TURN_FALLBACKS, resolveFallbackChain, runWithModelFallback } from '@ai/models/model';
 import { createGenerationLedger } from '@ai/persistence/generation-ledger';
 import { withRetry } from '@ai/runtime/retry';
 import { withToolContext } from '@ai/runtime/tool-context';
@@ -79,35 +80,71 @@ async function executeCanonicalChat(
     providerId: resolution.providerId,
     telemetryKind: 'mastra_canonical_chat',
   });
+  // The resolution that actually produced the answer; a mid-turn provider
+  // switch (R14) replaces it, and the catch path must report it too.
+  let activeResolution = resolution;
 
   try {
-    const result = await withToolContext(context, () =>
-      withRetry(
-        () =>
-          agent.generate(messages, {
-            requestContext,
-            ...(callMemory ? { memory: callMemory } : {}),
-            toolChoice: 'auto',
-            maxSteps: Math.min(
-              args.env.MAX_TOOL_ITERATIONS ?? manifestForCapability('canonical-chat').maxSteps,
-              manifestForCapability('canonical-chat').maxSteps,
-            ),
-            ...(Object.keys(scorers.entries).length > 0 ? { scorers: scorers.entries } : {}),
-            ...(args.signal ? { abortSignal: args.signal } : {}),
-            tracingOptions: runTracingOptions({
-              runId,
-              userId: args.userId,
-              threadId: args.threadId,
-              kind: 'mastra_canonical_chat',
-              capabilityId: 'canonical-chat',
-              tags: ['chat'],
-              memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
-              memoryBackfill: setup.memoryBackfill,
-            }),
-          }),
-        { maxAttempts: 2, signal: args.signal },
-      ),
-    );
+    // R14 — identical failover policy to the streaming canonical turn: an
+    // immutable execution-plan snapshot pins the model, otherwise a transient
+    // failure continues on the user's next configured provider.
+    const snapshotPinned = args.executionPlan?.model;
+    const fallbackCandidates = snapshotPinned
+      ? []
+      : resolveFallbackChain({
+          settings: args.settings,
+          env: args.env,
+          domain: routing.domain === 'generic' ? 'summary' : routing.domain,
+          primaryModelId: resolution.modelId,
+        });
+    const {
+      result,
+      resolution: attemptedResolution,
+      fallbackParts,
+    } = await runWithModelFallback({
+      primary: resolution,
+      candidates: fallbackCandidates,
+      signal: args.signal,
+      maxFallbacks: MAX_TURN_FALLBACKS,
+      onAttempt: (attempted) => {
+        activeResolution = attempted;
+      },
+      attempt: (candidate) =>
+        withToolContext(context, () =>
+          withRetry(
+            () =>
+              agent.generate(messages, {
+                requestContext,
+                model: candidate.model as never,
+                ...(callMemory ? { memory: callMemory } : {}),
+                toolChoice: 'auto',
+                maxSteps: Math.min(
+                  args.env.MAX_TOOL_ITERATIONS ?? manifestForCapability('canonical-chat').maxSteps,
+                  manifestForCapability('canonical-chat').maxSteps,
+                ),
+                ...(Object.keys(scorers.entries).length > 0 ? { scorers: scorers.entries } : {}),
+                ...(args.signal ? { abortSignal: args.signal } : {}),
+                tracingOptions: runTracingOptions({
+                  runId,
+                  userId: args.userId,
+                  threadId: args.threadId,
+                  kind: 'mastra_canonical_chat',
+                  capabilityId: 'canonical-chat',
+                  tags: ['chat'],
+                  memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
+                  memoryBackfill: setup.memoryBackfill,
+                }),
+              }),
+            { maxAttempts: 2, signal: args.signal },
+          ),
+        ),
+    });
+    activeResolution = attemptedResolution;
+    if (fallbackParts.length > 0) {
+      metrics.increment('provider_fallback_total', {
+        tags: { kind: 'mastra_canonical_chat', model: resolution.modelId },
+      });
+    }
     let stats = getMastraGenerationStats(result);
     const initialToolParts = extractToolPartsFromMessages(
       result.response?.messages,
@@ -160,7 +197,7 @@ async function executeCanonicalChat(
     }
 
     const primaryCostUsd = estimateCostUsd(
-      resolution.modelId,
+      activeResolution.modelId,
       stats.inputTokens,
       stats.outputTokens,
     );
@@ -180,15 +217,18 @@ async function executeCanonicalChat(
         userId: args.userId,
         threadId: args.threadId,
         runId,
-        model: resolution.modelId,
-        providerId: resolution.providerId,
+        model: activeResolution.modelId,
+        providerId: activeResolution.providerId,
         startedAt,
         ...stats,
         outcome: 'success',
         answerOutcome: 'blocked',
         memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
         memoryBackfill: setup.memoryBackfill,
-        modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
+        modelSnapshot: {
+          providerId: activeResolution.providerId,
+          bareModelId: activeResolution.bareModelId,
+        },
         telemetryKind: 'mastra_canonical_chat',
       });
       assertCanonicalEvidence(evidence);
@@ -197,21 +237,24 @@ async function executeCanonicalChat(
       userId: args.userId,
       threadId: args.threadId,
       runId,
-      model: resolution.modelId,
-      providerId: resolution.providerId,
+      model: activeResolution.modelId,
+      providerId: activeResolution.providerId,
       startedAt,
       ...stats,
       outcome: 'success',
       answerOutcome: finalText.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
       memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
       memoryBackfill: setup.memoryBackfill,
-      modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
+      modelSnapshot: {
+        providerId: activeResolution.providerId,
+        bareModelId: activeResolution.bareModelId,
+      },
       telemetryKind: 'mastra_canonical_chat',
     });
     return {
       text: finalText.trim(),
-      modelId: resolution.modelId,
-      providerId: resolution.providerId,
+      modelId: activeResolution.modelId,
+      providerId: activeResolution.providerId,
       routing,
       stats,
       totalCostUsd,
@@ -221,17 +264,21 @@ async function executeCanonicalChat(
       evidence,
       answerOutcome: finalText.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
       ...(repaired ? { repaired: true } : {}),
+      ...(fallbackParts.length > 0 ? { fallbackParts } : {}),
       memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
       memoryBackfill: setup.memoryBackfill,
-      modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
+      modelSnapshot: {
+        providerId: activeResolution.providerId,
+        bareModelId: activeResolution.bareModelId,
+      },
     };
   } catch (error) {
     await finishMastraRun({
       userId: args.userId,
       threadId: args.threadId,
       runId,
-      model: resolution.modelId,
-      providerId: resolution.providerId,
+      model: activeResolution.modelId,
+      providerId: activeResolution.providerId,
       startedAt,
       inputTokens: 0,
       outputTokens: 0,

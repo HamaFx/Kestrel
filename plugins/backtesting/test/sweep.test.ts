@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
+import type * as KestrelData from '@kestrel/data';
 import type { Candle } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type * as KestrelData from '@kestrel/data';
-import type * as FeaturesModule from '../src/engine/features';
 import type * as QueriesModule from '../src/db/queries';
+import type * as FeaturesModule from '../src/engine/features';
 import { SweepInputSchema, SweepResultSchema } from '../src/schemas';
 import { executeSweep, expandParameterSpace } from '../src/services/sweep-service';
 
@@ -219,7 +219,11 @@ describe('sweep execution', () => {
   });
 
   it('fetches candles once per sweep and computes out-of-sample metrics when trainRatio is set', async () => {
-    getCandlesSpy.mockResolvedValue(closedCandles(400));
+    getCandlesSpy.mockResolvedValue({
+      candles: closedCandles(400),
+      stale: false,
+      producedAt: Date.now(),
+    });
     sweepRows.set('sweep-1', sweepRow({ baseParams: { __trainRatio: 0.7 } }));
 
     const detail = await executeSweep({ userId: 'user-1', sweepId: 'sweep-1', settings: {} });
@@ -232,7 +236,11 @@ describe('sweep execution', () => {
   });
 
   it('builds the feature matrix once for a sweep without an OOS split', async () => {
-    getCandlesSpy.mockResolvedValue(closedCandles(400));
+    getCandlesSpy.mockResolvedValue({
+      candles: closedCandles(400),
+      stale: false,
+      producedAt: Date.now(),
+    });
     sweepRows.set('sweep-1', sweepRow());
 
     const detail = await executeSweep({ userId: 'user-1', sweepId: 'sweep-1', settings: {} });

@@ -23,7 +23,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { computeReplayWindow, getTradeSetupReplayService } from '@/lib/services/journal';
 
 vi.mock('@kestrel/data', () => ({
-  getCandles: vi.fn(),
+  getCandlesUnchecked: vi.fn(),
 }));
 
 vi.mock('@kestrel/ai', async (importOriginal) => {
@@ -57,7 +57,7 @@ describe('computeReplayWindow & getTradeSetupReplayService', () => {
     expect(Date.parse(win.from)).toBe(mondayMorning - 55 * 15 * 60_000 - 48 * 3_600_000);
   });
 
-  it('passes from and to to getCandles and falls back gracefully if historical range is empty', async () => {
+  it('passes from and to to getCandlesUnchecked and falls back gracefully if historical range is empty', async () => {
     const openedAt = Date.parse('2026-06-10T10:00:00Z');
     const closedAt = Date.parse('2026-06-10T12:00:00Z');
     vi.mocked(ai.getEntry).mockResolvedValueOnce({
@@ -82,7 +82,7 @@ describe('computeReplayWindow & getTradeSetupReplayService', () => {
       updatedAt: closedAt,
     });
 
-    vi.mocked(data.getCandles)
+    vi.mocked(data.getCandlesUnchecked)
       .mockRejectedValueOnce(new Error('empty candle response'))
       .mockResolvedValueOnce([
         {
@@ -101,7 +101,7 @@ describe('computeReplayWindow & getTradeSetupReplayService', () => {
 
     const res = await getTradeSetupReplayService({ userId: 'u1', id: 'entry-1', timeframe: '15m' });
     expect(res).not.toBeNull();
-    expect(data.getCandles).toHaveBeenNthCalledWith(
+    expect(data.getCandlesUnchecked).toHaveBeenNthCalledWith(
       1,
       'XAUUSD',
       '15m',

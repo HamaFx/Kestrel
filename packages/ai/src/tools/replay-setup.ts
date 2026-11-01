@@ -22,7 +22,7 @@
 // touches stop/target, or after `maxBars` (forced exit at close). No
 // look-ahead.
 
-import { getCandles } from '@kestrel/data';
+import { getCandlesUnchecked } from '@kestrel/data';
 import { atr, ema, rsi } from '@kestrel/indicators';
 import {
   pipSize,
@@ -52,7 +52,10 @@ export const replaySetupTool: Tool<z.infer<typeof InputSchema>, ReplaySetupOutpu
     const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
     const { symbol, tf, windowBars, rule, exit } = input;
     const need = Math.min(windowBars + 50, 2000);
-    const candles = await getCandles(symbol, tf, { count: need, ...(signal ? { signal } : {}) });
+    const candles = await getCandlesUnchecked(symbol, tf, {
+      count: need,
+      ...(signal ? { signal } : {}),
+    });
 
     const ruleLabel = describeRule(rule);
     if (candles.length < 30) {

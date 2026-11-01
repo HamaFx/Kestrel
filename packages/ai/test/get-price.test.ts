@@ -14,24 +14,57 @@
  * limitations under the License.
  */
 
+// get_price tool tests. R8 (audit 2026-10-31): the tool reads the
+// meta-returning adapter getter, so these mocks must supply `PriceResult`
+// envelopes and the assertions cover the freshness disclosure.
+
+import type { PriceResult } from '@kestrel/data';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getPriceTool } from '../src/tools/get-price';
 
-const exec = getPriceTool.execute as unknown as (input: {
-  symbols: string[];
-}) => Promise<{ ticks: unknown[]; asOf: string }>;
+const exec = getPriceTool.execute as unknown as (input: { symbols: string[] }) => Promise<{
+  ticks: unknown[];
+  asOf: string;
+  freshness?: Array<{
+    symbol: string;
+    source: string;
+    stale: boolean;
+    producedAt: number;
+    ageSeconds: number | null;
+  }>;
+  warnings?: string[];
+}>;
 
 const mockGetPrice = vi.fn();
 
-vi.mock('@kestrel/data', () => ({
-  getPrice: (...args: unknown[]) => mockGetPrice(...args),
-  ProviderError: class ProviderError extends Error {
-    constructor(_code: string, _provider: string, message: string) {
-      super(message);
-    }
-  },
-}));
+vi.mock('@kestrel/data', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@kestrel/data')>();
+  return { ...actual, getPrice: (...args: unknown[]) => mockGetPrice(...args) };
+});
+
+function quote(
+  overrides: { bid?: number; ask?: number; mid?: number; source?: string } = {},
+  meta: Partial<PriceResult> = {},
+): PriceResult {
+  const bid = overrides.bid ?? 1.08;
+  const ask = overrides.ask ?? 1.0802;
+  const mid = overrides.mid ?? 1.0801;
+  return {
+    tick: {
+      symbol: 'EURUSD',
+      bid,
+      ask,
+      mid,
+      ts: Date.now(),
+      source: overrides.source ?? 'biquote',
+    },
+    stale: false,
+    producedAt: Date.now(),
+    ageMs: 250,
+    ...meta,
+  } as PriceResult;
+}
 
 describe('get_price — Phase 0.10', () => {
   beforeEach(() => {
@@ -39,12 +72,7 @@ describe('get_price — Phase 0.10', () => {
   });
 
   it('returns ticks for a single symbol', async () => {
-    mockGetPrice.mockResolvedValue({
-      bid: 1.08,
-      ask: 1.0802,
-      mid: 1.0801,
-      timestamp: Date.now(),
-    });
+    mockGetPrice.mockResolvedValue(quote());
 
     const result = await exec({ symbols: ['EURUSD'] });
 
@@ -55,15 +83,15 @@ describe('get_price — Phase 0.10', () => {
 
   it('returns ticks for multiple symbols', async () => {
     mockGetPrice
-      .mockResolvedValueOnce({ bid: 1.08, ask: 1.0802, mid: 1.0801, timestamp: Date.now() })
-      .mockResolvedValueOnce({ bid: 2395, ask: 2395.1, mid: 2395.05, timestamp: Date.now() });
+      .mockResolvedValueOnce(quote())
+      .mockResolvedValueOnce(quote({ bid: 2395, ask: 2395.1, mid: 2395.05 }));
 
     const result = await exec({ symbols: ['EURUSD', 'XAUUSD'] });
 
     expect(result.ticks).toHaveLength(2);
     expect(mockGetPrice).toHaveBeenCalledTimes(2);
-    expect(mockGetPrice).toHaveBeenCalledWith('EURUSD');
-    expect(mockGetPrice).toHaveBeenCalledWith('XAUUSD');
+    expect(mockGetPrice).toHaveBeenCalledWith('EURUSD', {});
+    expect(mockGetPrice).toHaveBeenCalledWith('XAUUSD', {});
   });
 
   it('wraps ProviderError in a user-friendly message', async () => {
@@ -85,18 +113,50 @@ describe('get_price — Phase 0.10', () => {
 
   it('returns an ISO timestamp asOf the price fetch', async () => {
     const before = new Date().toISOString();
-    mockGetPrice.mockResolvedValue({
-      bid: 1.08,
-      ask: 1.0802,
-      mid: 1.0801,
-      timestamp: Date.now(),
-    });
+    mockGetPrice.mockResolvedValue(quote());
 
     const result = await exec({ symbols: ['EURUSD'] });
 
     expect(result.asOf).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
     // Must be at or after the captured "before" moment.
     expect(result.asOf >= before).toBe(true);
+  });
+
+  it('surfaces per-symbol freshness so the model can disclose it (R8)', async () => {
+    mockGetPrice.mockResolvedValue(quote({ source: 'finnhub' }));
+
+    const result = await exec({ symbols: ['EURUSD'] });
+
+    expect(result.freshness).toEqual([
+      {
+        symbol: 'EURUSD',
+        source: 'finnhub',
+        stale: false,
+        producedAt: expect.any(Number),
+        ageSeconds: expect.any(Number),
+      },
+    ]);
+    // A fresh quote carries no warning.
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('flags a stale cache fallback with a warning line (R8)', async () => {
+    mockGetPrice.mockResolvedValue(quote({ source: 'biquote' }, { stale: true, ageMs: 12_000 }));
+
+    const result = await exec({ symbols: ['EURUSD'] });
+
+    expect(result.freshness?.[0]?.stale).toBe(true);
+    expect(result.warnings?.[0]).toMatch(/served from a stale cache/);
+    expect(result.warnings?.[0]).toMatch(/EURUSD/);
+  });
+
+  it('flags an over-age quote without a stale flag (R8)', async () => {
+    mockGetPrice.mockResolvedValue(quote({ source: 'finnhub' }, { ageMs: 5 * 60_000 }));
+
+    const result = await exec({ symbols: ['EURUSD'] });
+
+    expect(result.freshness?.[0]?.stale).toBe(false);
+    expect(result.warnings?.[0]).toMatch(/not live/);
   });
 
   it('validates input schema — min 1 symbol', () => {
@@ -148,15 +208,13 @@ describe('get_price — Phase 0.10', () => {
     const secondPromise = new Promise<unknown>((resolve) => {
       resolveSecond = resolve;
     });
-    mockGetPrice
-      .mockResolvedValueOnce({ bid: 1.08, ask: 1.0802, mid: 1.0801, timestamp: Date.now() })
-      .mockReturnValueOnce(secondPromise);
+    mockGetPrice.mockResolvedValueOnce(quote()).mockReturnValueOnce(secondPromise);
 
     // Fire the call but don't await yet—it should start both concurrently.
     const resultPromise = exec({ symbols: ['EURUSD', 'GBPUSD'] });
 
     // Resolve the delayed second call.
-    resolveSecond!({ bid: 1.27, ask: 1.2702, mid: 1.2701, timestamp: Date.now() });
+    resolveSecond!(quote({ bid: 1.27, ask: 1.2702, mid: 1.2701 }));
 
     const result = await resultPromise;
     expect(result.ticks).toHaveLength(2);

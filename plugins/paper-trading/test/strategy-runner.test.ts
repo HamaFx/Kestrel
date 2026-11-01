@@ -59,7 +59,11 @@ function candles(count: number) {
 describe('paper strategy runner', () => {
   beforeEach(() => {
     mocks.getCandles.mockReset();
-    mocks.getCandles.mockResolvedValue(candles(320));
+    mocks.getCandles.mockResolvedValue({
+      candles: candles(320),
+      stale: false,
+      producedAt: Date.now(),
+    });
   });
 
   it('evaluates the latest closed bar inside the shared sandbox', async () => {

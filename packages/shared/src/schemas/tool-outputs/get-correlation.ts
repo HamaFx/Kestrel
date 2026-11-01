@@ -48,15 +48,36 @@ export const GetCorrelationOutputSchema = z.object({
   windowBars: z.int(),
   asOf: z.int(),
   matrix: z.array(CorrelationCellSchema),
-  dxyProxy: z.object({
-    /** Synthetic USD-strength index. Typically near 100 with the chosen formula. */
-    value: z.number(),
-    /** Percent change of the proxy across the most recent 24 hours of bars. */
-    change24h: z.number(),
-    /** Bars used to compute the value. */
-    samples: z.int(),
-    /** Verbatim formula + weights so the agent can cite it. */
-    formula: z.string(),
-  }),
+  /**
+   * USD-strength proxy snapshot. Null (not `{ value: 0, change24h: 0 }`) when
+   * EURUSD/GBPUSD data is unavailable — R8 (audit 2026-10-31). A fabricated 0
+   * is accepted by the numeric evidence gate as a real reading, while the
+   * truth is that no proxy value exists. `change24h` is separately nullable
+   * when no bar sits near 24h before the last close.
+   */
+  dxyProxy: z
+    .object({
+      /** Synthetic USD-strength index. Typically near 100 with the chosen formula. */
+      value: z.number(),
+      /** Percent change of the proxy across the most recent 24 hours of bars. */
+      change24h: z.number().nullable(),
+      /** Bars used to compute the value. A count, so 0 is honest here. */
+      samples: z.int(),
+      /** Verbatim formula + weights so the agent can cite it. */
+      formula: z.string(),
+    })
+    .nullable(),
+  /**
+   * Deterministic interpretation, including which readings are unavailable and
+   * why. Optional so tool outputs persisted before the R8 fix still parse.
+   */
+  notes: z.string().optional(),
+  /** True when one or more symbol candle windows could not be fetched. */
+  partial: z.boolean().optional(),
+  /**
+   * True when at least one candle window was served from a stale cache. The
+   * proxy is a price-derived reading, so staleness is disclosed (R8).
+   */
+  stale: z.boolean().optional(),
 });
 export type GetCorrelationOutput = z.infer<typeof GetCorrelationOutputSchema>;

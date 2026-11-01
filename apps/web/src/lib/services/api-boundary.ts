@@ -215,9 +215,11 @@ export type { DiagnosticTraceRow } from '@kestrel/db';
 // Market-data adapters and provider-specific cron helpers.
 export {
   getCandles,
+  getCandlesUnchecked,
   getCandlesWithMeta,
   getPriceWithMeta,
   getPrices,
+  getPricesUnchecked,
   getPricesWithMeta,
   fetchNews,
   fetchUpcomingEvents,

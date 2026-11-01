@@ -26,6 +26,7 @@ import {
   mastraOutcomeForError,
   resetMastraTelemetryHealth,
 } from '../src/mastra-v2/shared/telemetry';
+import { _resetCircuits, isCircuitOpen } from '../src/models/circuit-breaker';
 import { TELEMETRY_KINDS, type TelemetryInput } from '../src/persistence/telemetry-persistence';
 
 const mocks = vi.hoisted(() => ({
@@ -81,6 +82,72 @@ describe('Mastra telemetry boundaries', () => {
       mastraOutcomeForError(Object.assign(new Error('cancelled'), { name: 'AbortError' })),
     ).toBe('cancelled');
     expect(mastraOutcomeForError(new Error('provider failed'))).toBe('failed');
+  });
+
+  it('records a request deadline as a provider failure but a user cancel as cancelled (R14)', () => {
+    const deadline = new AbortController();
+    deadline.abort(new DOMException('The operation was aborted due to timeout', 'TimeoutError'));
+    expect(mastraOutcomeForError(new DOMException('Aborted', 'AbortError'), deadline.signal)).toBe(
+      'failed',
+    );
+
+    const userCancel = new AbortController();
+    userCancel.abort(new DOMException('Aborted', 'AbortError'));
+    expect(mastraOutcomeForError(new Error('cancelled'), userCancel.signal)).toBe('cancelled');
+
+    const shutdown = new AbortController();
+    shutdown.abort(new Error('shutting down'));
+    expect(mastraOutcomeForError(new Error('shutdown'), shutdown.signal)).toBe('cancelled');
+  });
+
+  it('trips the circuit breaker after repeated deadline failures (R14)', async () => {
+    _resetCircuits();
+    const deadline = new AbortController();
+    deadline.abort(new DOMException('The operation was aborted due to timeout', 'TimeoutError'));
+    const model = 'google/gemini-deadline-breaker-test';
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await finishMastraRun({
+        userId: 'user-1',
+        threadId: 'thread-1',
+        runId: `deadline-run-${attempt}`,
+        model,
+        providerId: 'google',
+        startedAt: Date.now(),
+        inputTokens: 0,
+        outputTokens: 0,
+        toolCalls: 0,
+        steps: 0,
+        outcome: mastraOutcomeForError(deadline.signal.reason, deadline.signal),
+      });
+    }
+
+    expect(isCircuitOpen(model)).toBe(true);
+  });
+
+  it('does not count user cancellation against the circuit breaker (R14)', async () => {
+    _resetCircuits();
+    const userCancel = new AbortController();
+    userCancel.abort(new DOMException('Aborted', 'AbortError'));
+    const model = 'google/gemini-cancel-breaker-test';
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await finishMastraRun({
+        userId: 'user-1',
+        threadId: 'thread-1',
+        runId: `cancel-run-${attempt}`,
+        model,
+        providerId: 'google',
+        startedAt: Date.now(),
+        inputTokens: 0,
+        outputTokens: 0,
+        toolCalls: 0,
+        steps: 0,
+        outcome: mastraOutcomeForError(new Error('cancelled'), userCancel.signal),
+      });
+    }
+
+    expect(isCircuitOpen(model)).toBe(false);
   });
 
   it('records a successful tool without exposing its payload to telemetry', async () => {
@@ -153,6 +220,58 @@ describe('Mastra telemetry boundaries', () => {
         'mastra_tool_failed_total{agent=kestrel-xauusd-research-poc,error=Error,tool=get-xauusd-candles}'
       ],
     ).toBe(1);
+  });
+
+  it('bounds a hung native tool with the shared per-tool deadline (R14)', async () => {
+    vi.useFakeTimers();
+    try {
+      let signal: AbortSignal | undefined;
+      const context = {
+        requestContext: {
+          get: (key: string) =>
+            ({ userId: 'user-1', runId: 'run-hung', threadId: 'thread-1' })[key],
+        },
+      } as unknown as Parameters<typeof executeMastraTool>[1];
+
+      const pending = executeMastraTool(
+        'get-xauusd-hung-tool',
+        context,
+        async (effectiveContext) => {
+          signal = effectiveContext.abortSignal;
+          return new Promise<never>(() => undefined);
+        },
+      );
+      const observed = expect(pending).rejects.toMatchObject({ code: 'TIMEOUT' });
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(25_001);
+      await observed;
+      expect(signal?.aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps the per-tool override on the native path (kestrel-get_price → 5s)', async () => {
+    vi.useFakeTimers();
+    try {
+      const context = {
+        requestContext: {
+          get: (key: string) =>
+            ({ userId: 'user-1', runId: 'run-price-hang', threadId: 'thread-1' })[key],
+        },
+      } as unknown as Parameters<typeof executeMastraTool>[1];
+
+      const pending = executeMastraTool('kestrel-get_price', context, async () => {
+        return new Promise<never>(() => undefined);
+      });
+      const observed = expect(pending).rejects.toMatchObject({ code: 'TIMEOUT' });
+      await Promise.resolve();
+      // The default deadline (25s) must NOT have fired at 5s+1ms.
+      await vi.advanceTimersByTimeAsync(5_001);
+      await observed;
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('records a terminal run, database telemetry, and exporter flushes', async () => {

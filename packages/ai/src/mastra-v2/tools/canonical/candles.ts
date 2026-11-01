@@ -24,8 +24,13 @@
  * prompt and the model can't accidentally hallucinate over noisy bars.
  */
 
-import { getCandles } from '@kestrel/data';
-import { type CandlePeriodSummary, type GetCandlesOutput } from '@kestrel/shared';
+import { candlesAgeSeconds, getCandles } from '@kestrel/data';
+import {
+  msPerTimeframe,
+  type Candle,
+  type CandlePeriodSummary,
+  type GetCandlesOutput,
+} from '@kestrel/shared';
 import { createTool } from '@mastra/core/tools';
 import { type z } from 'zod';
 
@@ -51,10 +56,13 @@ export async function executeCanonicalCandles(
 ): Promise<GetCandlesOutput> {
   const { symbol, tf, count } = input;
   const effectiveSignal = signal ?? maybeGetToolContext()?.signal ?? undefined;
-  const candles = await getCandles(symbol, tf, {
+  // R8 (audit 2026-10-31): use the meta-returning getter so a stale-while-
+  // revalidate window is disclosed instead of silently grounding cold bars.
+  const result = await getCandles(symbol, tf, {
     count,
     ...(effectiveSignal ? { signal: effectiveSignal } : {}),
   });
+  const candles = result.candles;
 
   let summary: CandlePeriodSummary | null = null;
   if (candles.length > 0) {
@@ -80,10 +88,30 @@ export async function executeCanonicalCandles(
       lowAtIso: new Date(lowBar.t).toISOString(),
       close: last.c,
       change: Number((last.c - first.o).toFixed(5)),
-      changePct: first.o !== 0 ? Number((((last.c - first.o) / first.o) * 100).toFixed(3)) : 0,
+      // Never fabricate a 0% move: an open of 0 has no percentage (R8).
+      changePct: first.o !== 0 ? Number((((last.c - first.o) / first.o) * 100).toFixed(3)) : null,
       avgBarRange: Number((totalRange / candles.length).toFixed(5)),
       totalVolume: Number(totalVolume.toFixed(2)),
     };
+  }
+
+  const now = Date.now();
+  const barMs = msPerTimeframe(tf);
+  let lastClosedBar: Candle | null = null;
+  for (let i = candles.length - 1; i >= 0; i -= 1) {
+    const bar = candles[i]!;
+    if (bar.t + barMs <= now) {
+      lastClosedBar = bar;
+      break;
+    }
+  }
+
+  const warnings: string[] = [];
+  if (result.stale) {
+    const age = candlesAgeSeconds(result, now);
+    warnings.push(
+      `${symbol} ${tf}: the candle window was served from a stale cache after an upstream failure (age ${age}s) — recent bars may be missing; do not present it as the current window.`,
+    );
   }
 
   return {
@@ -91,6 +119,16 @@ export async function executeCanonicalCandles(
     tf,
     candles: candles.slice(-TAIL_BARS),
     summary,
+    freshness: {
+      stale: result.stale,
+      producedAt: result.producedAt,
+      ageSeconds: candlesAgeSeconds(result, now),
+      lastClosedBarAgeSeconds:
+        lastClosedBar === null
+          ? null
+          : Math.max(0, Math.round((now - (lastClosedBar.t + barMs)) / 100) / 10),
+    },
+    warnings,
   };
 }
 

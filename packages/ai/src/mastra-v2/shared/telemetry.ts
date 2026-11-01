@@ -19,6 +19,7 @@ export { capabilityTelemetryLabels, type MastraCapabilityUiMetadata } from '../c
 export {
   errorCodeForMastra,
   getMastraGenerationStats,
+  isDeadlineAbort,
   mastraOutcomeForError,
   outputLength,
   type MastraGenerationStats,

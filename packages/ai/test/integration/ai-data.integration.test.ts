@@ -38,8 +38,8 @@ const mockGetCandles = vi.fn();
 const mockGetPrice = vi.fn();
 
 vi.mock('@kestrel/data', () => ({
-  getCandles: (...args: unknown[]) => mockGetCandles(...args),
-  getPrice: (...args: unknown[]) => mockGetPrice(...args),
+  getCandlesUnchecked: (...args: unknown[]) => mockGetCandles(...args),
+  getPriceUnchecked: (...args: unknown[]) => mockGetPrice(...args),
 }));
 
 const execIndicators = getIndicatorsTool.execute as unknown as (input: {

@@ -24,6 +24,11 @@
 // intentionally narrow intermarket feature using EURUSD and GBPUSD. The formula is captured verbatim in
 // `dxyProxy.formula` so any agent answer that quotes the value can also
 // quote the formula, and the UI labels the value as a proxy clearly.
+//
+// R8 (audit 2026-10-31): when an input is missing this tool reports absence
+// (`dxyProxy: null`, an omitted matrix pair) and says so in `notes`. It never
+// substitutes 0 for an unknown measurement, because a number present in tool
+// output is treated as grounded evidence by the verifier.
 
 import { getCandles } from '@kestrel/data';
 import {
@@ -32,7 +37,6 @@ import {
   type CorrelationCell,
   type GetCorrelationOutput,
   type Symbol,
-  type Timeframe,
 } from '@kestrel/shared';
 import { tool, type Tool } from 'ai';
 import type { z } from 'zod';
@@ -59,13 +63,18 @@ export const getCorrelationTool: Tool<z.infer<typeof InputSchema>, GetCorrelatio
   inputSchema: InputSchema,
   execute: async ({ tf, windowBars }): Promise<GetCorrelationOutput> => {
     const need = windowBars + 1;
-    const candlesBySymbol = new Map<Symbol, ReturnType<typeof bareReturns>>();
+    const candlesBySymbol = new Map<Symbol, SymbolReturns>();
+    let partial = false;
+    let stale = false;
     for (const symbol of SYMBOLS) {
       try {
-        const bars = await getCandles(symbol, tf, { count: need });
-        candlesBySymbol.set(symbol, bareReturns(bars));
+        const result = await getCandles(symbol, tf, { count: need });
+        stale = stale || result.stale;
+        candlesBySymbol.set(symbol, bareReturns(result.candles));
       } catch {
-        // Per-symbol failure tolerated; skip the matrix entry below.
+        // Per-symbol failure tolerated; the pair is omitted below rather than
+        // being assigned an invented correlation.
+        partial = true;
       }
     }
 
@@ -76,19 +85,36 @@ export const getCorrelationTool: Tool<z.infer<typeof InputSchema>, GetCorrelatio
         const b = SYMBOLS[j]!;
         const ra = candlesBySymbol.get(a);
         const rb = candlesBySymbol.get(b);
+        // R8 (audit 2026-10-31): an absent or too-short window means there is
+        // no correlation to report, so the pair is omitted. It used to fall
+        // through to r = 0, which reads as "no relationship" and grounds a
+        // claim the data cannot support.
         if (!ra || !rb || ra.returns.length < windowBars || rb.returns.length < windowBars)
           continue;
         const r = pearson(ra.returns.slice(-windowBars), rb.returns.slice(-windowBars));
-        matrix.push({ a, b, r: clampUnit(r) });
+        // Zero variance makes Pearson undefined; an undefined correlation is
+        // not a zero correlation.
+        if (r === null) continue;
+        matrix.push({ a, b, r });
       }
     }
+
+    const dxyProxy = computeDxyProxy(candlesBySymbol);
 
     return {
       tf,
       windowBars,
       asOf: Date.now(),
       matrix,
-      dxyProxy: computeDxyProxy(candlesBySymbol, tf, windowBars),
+      dxyProxy,
+      notes: buildNotes({
+        dxyProxy,
+        matrixSize: matrix.length,
+        partial,
+        stale,
+      }),
+      partial,
+      stale,
     };
   },
 });
@@ -124,9 +150,9 @@ function bareReturns(bars: { c: number; t: number }[]): SymbolReturns {
   return { closes, returns, times };
 }
 
-function pearson(xs: number[], ys: number[]): number {
+function pearson(xs: number[], ys: number[]): number | null {
   const n = Math.min(xs.length, ys.length);
-  if (n < 2) return 0;
+  if (n < 2) return null;
   let sx = 0;
   let sy = 0;
   let sxy = 0;
@@ -145,57 +171,83 @@ function pearson(xs: number[], ys: number[]): number {
   const denomX = n * sxx - sx * sx;
   const denomY = n * syy - sy * sy;
   const den = Math.sqrt(denomX * denomY);
-  return den === 0 ? 0 : num / den;
-}
-
-function clampUnit(x: number): number {
-  if (!Number.isFinite(x)) return 0;
-  return Math.max(-1, Math.min(1, x));
+  if (den === 0 || !Number.isFinite(den)) return null;
+  const r = num / den;
+  if (!Number.isFinite(r)) return null;
+  return Math.max(-1, Math.min(1, r));
 }
 
 // ---------------------------------------------------------------------------
 // DXY proxy
 // ---------------------------------------------------------------------------
 
-function computeDxyProxy(
-  data: Map<Symbol, SymbolReturns>,
-  tf: Timeframe,
-  windowBars: number,
-): GetCorrelationOutput['dxyProxy'] {
+function computeDxyProxy(data: Map<Symbol, SymbolReturns>): GetCorrelationOutput['dxyProxy'] {
   const eur = data.get('EURUSD');
   const gbp = data.get('GBPUSD');
 
   const formula =
     'DXY proxy = 100 / (EURUSD^0.5 * GBPUSD^0.5). Two-leg approximation; not a true DXY (no JPY/CAD/SEK/CHF).';
 
+  // R8 (audit 2026-10-31): never fabricate a numeric proxy. Returning null
+  // keeps the value out of the tool output entirely, so the numeric evidence
+  // gate cannot ground a claim like "the DXY proxy is 0".
   if (!eur || !gbp || eur.closes.length === 0 || gbp.closes.length === 0) {
-    return { value: 0, change24h: 0, samples: 0, formula };
+    return null;
   }
 
   const lastEur = eur.closes[eur.closes.length - 1]!;
   const lastGbp = gbp.closes[gbp.closes.length - 1]!;
   const value = 100 / (Math.pow(lastEur, 0.5) * Math.pow(lastGbp, 0.5));
+  if (!Number.isFinite(value) || value <= 0) return null;
 
-  // 24h change — find the bar closest to 24h before the last bar.
+  // 24h change — find the bar closest to 24h before the last bar. When no
+  // usable bar is found the change is unknown, so it stays null instead of 0.
   const lastTime = eur.times[eur.times.length - 1] ?? Date.now();
   const targetTime = lastTime - ONE_DAY_MS;
   const eurAtTarget = closestPrice(eur, targetTime);
   const gbpAtTarget = closestPrice(gbp, targetTime);
 
-  let change24h = 0;
+  let change24h: number | null = null;
   if (eurAtTarget !== null && gbpAtTarget !== null) {
     const past = 100 / (Math.pow(eurAtTarget, 0.5) * Math.pow(gbpAtTarget, 0.5));
-    if (past > 0) change24h = ((value - past) / past) * 100;
+    if (past > 0 && Number.isFinite(past)) change24h = ((value - past) / past) * 100;
   }
 
-  void tf;
-  void windowBars;
   return {
     value,
     change24h,
     samples: Math.min(eur.closes.length, gbp.closes.length),
     formula,
   };
+}
+
+/**
+ * Deterministic interpretation. Every reading that could not be computed is
+ * stated as unavailable rather than restated as a number (R8).
+ */
+function buildNotes(args: {
+  dxyProxy: GetCorrelationOutput['dxyProxy'];
+  matrixSize: number;
+  partial: boolean;
+  stale: boolean;
+}): string {
+  const proxyLine =
+    args.dxyProxy === null
+      ? 'USD-strength proxy unavailable: EURUSD and/or GBPUSD closes could not be read, so no proxy value is reported.'
+      : args.dxyProxy.change24h === null
+        ? 'USD-strength proxy value available; its 24h change is unavailable because no bar sits near a day before the last close.'
+        : 'USD-strength proxy computed from the latest EURUSD and GBPUSD closes.';
+  const matrixLine =
+    args.matrixSize === 0
+      ? 'Correlation matrix unavailable: no symbol pair had enough overlapping returns in this window.'
+      : 'Correlation matrix computed over close-to-close returns in the requested window.';
+  const missingLine = args.partial
+    ? ' One or more symbol candle windows could not be fetched.'
+    : '';
+  const staleLine = args.stale
+    ? ' At least one candle window was served from a stale cache; treat this reading as provisional.'
+    : '';
+  return `${proxyLine} ${matrixLine}${missingLine}${staleLine}`;
 }
 
 function closestPrice(s: SymbolReturns, targetMs: number): number | null {

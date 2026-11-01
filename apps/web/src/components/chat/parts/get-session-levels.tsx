@@ -59,6 +59,8 @@ export function GetSessionLevelsPart({
 
       <SessionList rows={output.today} title="Today" />
       {output.prior ? <SessionList rows={output.prior} title="Prior day" /> : null}
+
+      {output.notes ? <p className="text-fg-muted text-xs">{output.notes}</p> : null}
     </div>
   );
 }

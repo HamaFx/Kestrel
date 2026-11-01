@@ -38,8 +38,8 @@
 // F7 — per-tool timeout enforcement. Each tool has a configurable deadline
 // (default 25s). If the tool doesn't complete within the deadline, it's
 // aborted via the AbortSignal. This prevents a hung tool from consuming
-// the entire turn budget. The deadline can be overridden per-tool via
-// TOOL_TIMEOUT_OVERRIDES.
+// the entire turn budget. The deadline table lives in the shared leaf
+// `tool-timeout.ts`, so the Mastra-native path enforces the same values.
 //
 // Tools that already surface their own telemetry (none today) can opt
 // out by importing the raw factory and skipping the wrap.
@@ -50,30 +50,7 @@ import type { Tool } from 'ai';
 import { completeStep, recordError, recordStep } from '../diagnostics';
 import { recordToolTelemetry } from '../persistence';
 import { maybeGetToolContext, type BatchedToolTelemetry } from '../runtime/tool-context';
-
-/** Custom error class for tool timeout detection. */
-class ToolTimeoutError extends Error {
-  readonly code = 'TIMEOUT';
-  constructor(toolName: string, ms: number) {
-    super(`Tool ${toolName} timed out after ${ms}ms`);
-    this.name = 'ToolTimeoutError';
-  }
-}
-
-/** Default per-tool timeout in milliseconds. */
-const DEFAULT_TOOL_TIMEOUT_MS = 25_000;
-
-/** Per-tool timeout overrides for especially slow or fast tools (ms). */
-const TOOL_TIMEOUT_OVERRIDES: Record<string, number> = {
-  // Vision model analysis can take longer.
-  analyze_chart_image: 45_000,
-  // Historical backtests can be slow.
-  replay_setup: 40_000,
-  // Fast tools can be stricter.
-  get_price: 5_000,
-  get_candles: 10_000,
-  get_indicators: 10_000,
-};
+import { resolveToolTimeoutMs, ToolTimeoutError } from './tool-timeout';
 
 /**
  * Wrap a tool with execute-side telemetry + signal propagation. The
@@ -109,7 +86,7 @@ export function withTelemetry<T extends Tool<any, any>>(name: string, t: T): T {
       else parentSignal.addEventListener('abort', onParentAbort, { once: true });
     }
     const opts2 = { ...(opts ?? {}), abortSignal: toolController.signal };
-    const timeoutMs = TOOL_TIMEOUT_OVERRIDES[name] ?? DEFAULT_TOOL_TIMEOUT_MS;
+    const timeoutMs = resolveToolTimeoutMs(name);
     let timeout: ReturnType<typeof setTimeout> | undefined;
     let parentAbortListener: (() => void) | undefined;
     try {

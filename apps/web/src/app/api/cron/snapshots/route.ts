@@ -37,7 +37,7 @@ import { createScopedLoggerWithContext } from '@/lib/logger';
 import {
   ALL_SYMBOLS,
   computeDailySnapshot,
-  getCandles,
+  getCandlesUnchecked,
   previousUtcMidnight,
   upsertSnapshot,
 } from '@/lib/services/api-boundary';
@@ -57,7 +57,7 @@ export async function GET(req: Request): Promise<Response> {
 
     for (const symbol of ALL_SYMBOLS) {
       try {
-        const candles = await getCandles(symbol, SOURCE_TF, { count: SOURCE_COUNT });
+        const candles = await getCandlesUnchecked(symbol, SOURCE_TF, { count: SOURCE_COUNT });
         const data = computeDailySnapshot({ candles, asOf });
         await upsertSnapshot({ symbol, kind: 'daily', asOf, data });
         processed += 1;

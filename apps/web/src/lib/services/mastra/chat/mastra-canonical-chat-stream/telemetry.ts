@@ -26,6 +26,7 @@ import type { z } from 'zod';
 import type { CanonicalCompletion, CanonicalToolPart } from './tool-parts';
 
 export type MemoryDegradedPart = z.infer<typeof MemoryDegradedPartSchema>;
+export type CanonicalFallbackPart = NonNullable<CanonicalCompletion['fallbackParts']>[number];
 
 export function buildMemoryDegradedPart(
   memoryMode: CanonicalCompletion['memoryMode'],
@@ -61,6 +62,11 @@ export function buildCanonicalMetaData(
     memoryMode: completed.memoryMode,
     memoryBackfill: completed.memoryBackfill,
     modelSnapshot: completed.modelSnapshot,
+    // R14 — honest answer metadata: when a mid-turn provider switch happened,
+    // the metadata reports which providers were tried and why.
+    ...(completed.fallbackParts?.length
+      ? { fallbacks: completed.fallbackParts, fallbackApplied: true }
+      : { fallbackApplied: false }),
     terminalReason: 'stream-completed',
   };
 }
@@ -71,6 +77,7 @@ export function buildCanonicalAssistantMessage(
   text: string,
   memoryDegradedPart: MemoryDegradedPart | null,
   metaData: ReturnType<typeof buildCanonicalMetaData>,
+  fallbackParts: readonly CanonicalFallbackPart[] = [],
 ): UIMessage {
   return {
     id: messageId,
@@ -79,6 +86,7 @@ export function buildCanonicalAssistantMessage(
       ...(toolParts as unknown as UIMessage['parts']),
       { type: 'text', text },
       ...(memoryDegradedPart ? [memoryDegradedPart as unknown as UIMessage['parts'][number]] : []),
+      ...(fallbackParts as unknown as UIMessage['parts']),
       {
         type: 'data-multi-agent-meta',
         data: metaData,

@@ -28,12 +28,15 @@ export const CandleSchema = z.object({
   tf: TimeframeSchema,
   /** Open time, ms epoch UTC. */
   t: z.int(),
-  o: z.number(),
-  h: z.number(),
-  l: z.number(),
-  c: z.number(),
+  // Prices must be finite: a provider that returns NaN or Infinity must fail
+  // validation here rather than flow into indicators and the AI as a number
+  // that serialises to `null` in JSON (audit 2026-10-31 R8).
+  o: z.number().finite(),
+  h: z.number().finite(),
+  l: z.number().finite(),
+  c: z.number().finite(),
   /** Volume — nullable because FX volume is synthetic / per-broker. */
-  v: z.number().nullable(),
+  v: z.number().finite().nullable(),
   /** Provider that produced this candle, e.g. "twelve-data". */
   source: z.string(),
   /** When we fetched it, ms epoch UTC — drives freshness UI. */

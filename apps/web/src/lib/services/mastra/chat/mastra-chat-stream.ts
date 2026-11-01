@@ -184,22 +184,28 @@ export async function runMastraXauusdConversationStreamChat(
           ledgerId: `title:${runId}`,
         });
         observedCost = ledger.total();
-        const meta = createMastraChatMeta({
-          runId,
-          modelId: completed.modelId,
-          providerId: completed.providerId,
-          researchStatus: completed.packet.status,
-          dataQuality: completed.packet.dataQuality,
-          packetId: completed.packet.packetId,
-          observedCost,
-          report: null,
-          executionOutcome: 'completed',
-          answerOutcome: 'ready',
-          memoryMode: completed.memoryMode,
-          memoryBackfill: completed.memoryBackfill,
-          modelSnapshot: undefined,
-          terminalReason: 'stream-completed',
-        });
+        const meta = {
+          ...createMastraChatMeta({
+            runId,
+            modelId: completed.modelId,
+            providerId: completed.providerId,
+            researchStatus: completed.packet.status,
+            dataQuality: completed.packet.dataQuality,
+            packetId: completed.packet.packetId,
+            observedCost,
+            report: null,
+            executionOutcome: 'completed',
+            answerOutcome: 'ready',
+            memoryMode: completed.memoryMode,
+            memoryBackfill: completed.memoryBackfill,
+            modelSnapshot: undefined,
+            terminalReason: 'stream-completed',
+          }),
+          // R14 — honest answer metadata when a mid-turn provider switch happened.
+          ...(completed.fallbackParts?.length
+            ? { fallbacks: completed.fallbackParts, fallbackApplied: true }
+            : { fallbackApplied: false }),
+        };
         postTextEvents.push({
           type: 'data-multi-agent-meta',
           id: messageId,
@@ -211,6 +217,7 @@ export async function runMastraXauusdConversationStreamChat(
           parts: [
             ...(toolParts as unknown as UIMessage['parts']),
             { type: 'text', text: completed.result.text },
+            ...((completed.fallbackParts ?? []) as unknown as UIMessage['parts']),
             { type: 'data-multi-agent-meta', data: meta } as UIMessage['parts'][number],
           ],
         };

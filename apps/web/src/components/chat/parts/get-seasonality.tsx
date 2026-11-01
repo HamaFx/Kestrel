@@ -51,7 +51,12 @@ export function GetSeasonalityPart({
 
       <ul className="text-body-sm grid grid-cols-2 gap-1 tabular-nums sm:grid-cols-3">
         {output.buckets.map((b) => {
-          const tone = b.medianReturnPct >= 0 ? 'text-bull' : 'text-bear';
+          const tone =
+            b.medianReturnPct === null
+              ? 'text-fg-muted'
+              : b.medianReturnPct >= 0
+                ? 'text-bull'
+                : 'text-bear';
           return (
             <li
               key={b.key}
@@ -59,16 +64,20 @@ export function GetSeasonalityPart({
             >
               <span className="text-fg-muted w-12 font-medium">{b.label}</span>
               <span className={`${tone} font-semibold`}>
-                {b.medianReturnPct >= 0 ? '+' : ''}
-                {b.medianReturnPct.toFixed(2)}%
+                {b.medianReturnPct === null
+                  ? '—'
+                  : `${b.medianReturnPct >= 0 ? '+' : ''}${b.medianReturnPct.toFixed(2)}%`}
               </span>
               <span className="text-fg-subtle text-caption">
-                {(b.winRate * 100).toFixed(0)}% win · n={b.count}
+                {b.winRate === null ? 'no data' : `${(b.winRate * 100).toFixed(0)}% win`} · n=
+                {b.count}
               </span>
             </li>
           );
         })}
       </ul>
+
+      {output.notes ? <p className="text-fg-muted text-xs">{output.notes}</p> : null}
     </div>
   );
 }

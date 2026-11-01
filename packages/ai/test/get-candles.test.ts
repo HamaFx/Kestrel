@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+// get_candles tool tests. R8 (audit 2026-10-31): the tool reads the
+// meta-returning adapter getter, so mocks supply `CandlesResult` envelopes
+// and the assertions cover the freshness disclosure.
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getCandlesTool } from '../src/tools/get-candles';
@@ -22,13 +26,25 @@ const exec = getCandlesTool.execute as unknown as (input: {
   symbol: string;
   tf: string;
   count?: number;
-}) => Promise<{ symbol: string; tf: string; candles: unknown[] }>;
+}) => Promise<{
+  symbol: string;
+  tf: string;
+  candles: unknown[];
+  freshness?: {
+    stale: boolean;
+    producedAt: number;
+    ageSeconds: number;
+    lastClosedBarAgeSeconds: number | null;
+  };
+  warnings?: string[];
+}>;
 
 const mockGetCandles = vi.fn();
 
-vi.mock('@kestrel/data', () => ({
-  getCandles: (...args: unknown[]) => mockGetCandles(...args),
-}));
+vi.mock('@kestrel/data', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@kestrel/data')>();
+  return { ...actual, getCandles: (...args: unknown[]) => mockGetCandles(...args) };
+});
 
 function makeCandle(overrides: {
   time?: number;
@@ -52,6 +68,14 @@ function makeCandle(overrides: {
   };
 }
 
+function candlesResult(candles: unknown[], overrides: { stale?: boolean } = {}) {
+  return {
+    candles,
+    stale: overrides.stale ?? false,
+    producedAt: Date.now(),
+  };
+}
+
 describe('get_candles — Phase 0.10', () => {
   beforeEach(() => {
     mockGetCandles.mockReset();
@@ -59,7 +83,7 @@ describe('get_candles — Phase 0.10', () => {
 
   it('returns candles for a symbol and timeframe', async () => {
     const candles = [makeCandle({}), makeCandle({ time: Date.now() - 3600_000 })];
-    mockGetCandles.mockResolvedValue(candles);
+    mockGetCandles.mockResolvedValue(candlesResult(candles));
 
     const result = await exec({ symbol: 'EURUSD', tf: '1h' });
 
@@ -69,7 +93,7 @@ describe('get_candles — Phase 0.10', () => {
   });
 
   it('passes count through to getCandles (defaults applied by AI SDK wrapper, not execute itself)', async () => {
-    mockGetCandles.mockResolvedValue([]);
+    mockGetCandles.mockResolvedValue(candlesResult([]));
 
     // When calling execute() directly (bypassing the AI SDK tool wrapper),
     // the Zod .default(120) is not applied — that's the SDK's job.
@@ -80,7 +104,7 @@ describe('get_candles — Phase 0.10', () => {
   });
 
   it('passes a custom count when provided', async () => {
-    mockGetCandles.mockResolvedValue([]);
+    mockGetCandles.mockResolvedValue(candlesResult([]));
 
     await exec({ symbol: 'EURUSD', tf: '15m', count: 50 });
 
@@ -91,7 +115,7 @@ describe('get_candles — Phase 0.10', () => {
     const candles = [
       makeCandle({ time: Date.now(), open: 2400, high: 2405, low: 2395, close: 2402 }),
     ];
-    mockGetCandles.mockResolvedValue(candles);
+    mockGetCandles.mockResolvedValue(candlesResult(candles));
 
     const result = await exec({ symbol: 'XAUUSD', tf: '4h' });
 
@@ -104,12 +128,50 @@ describe('get_candles — Phase 0.10', () => {
     const candles = [
       makeCandle({ time: Date.now(), open: 1.27, high: 1.275, low: 1.265, close: 1.272 }),
     ];
-    mockGetCandles.mockResolvedValue(candles);
+    mockGetCandles.mockResolvedValue(candlesResult(candles));
 
     const result = await exec({ symbol: 'GBPUSD', tf: '1d' });
 
     expect(result.symbol).toBe('GBPUSD');
     expect(result.candles).toHaveLength(1);
+  });
+
+  it('surfaces window freshness without a warning for a fresh window (R8)', async () => {
+    mockGetCandles.mockResolvedValue(candlesResult([makeCandle({ time: Date.now() - 7200_000 })]));
+
+    const result = await exec({ symbol: 'EURUSD', tf: '1h' });
+
+    expect(result.freshness?.stale).toBe(false);
+    expect(result.freshness?.ageSeconds).toBeGreaterThanOrEqual(0);
+    expect(result.freshness?.lastClosedBarAgeSeconds).toBeGreaterThan(0);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('flags a stale-while-revalidate window with a warning (R8)', async () => {
+    mockGetCandles.mockResolvedValue(
+      candlesResult([makeCandle({ time: Date.now() - 7200_000 })], { stale: true }),
+    );
+
+    const result = await exec({ symbol: 'EURUSD', tf: '1h' });
+
+    expect(result.freshness?.stale).toBe(true);
+    expect(result.warnings?.[0]).toMatch(/stale cache/);
+    expect(result.warnings?.[0]).toMatch(/EURUSD 1h/);
+  });
+
+  it('never fabricates a 0% change when the window open is zero (R8)', async () => {
+    mockGetCandles.mockResolvedValue(
+      candlesResult([
+        makeCandle({ time: Date.now() - 7200_000, open: 0, close: 1 }),
+        makeCandle({ time: Date.now() - 3600_000, open: 0, close: 1 }),
+      ]),
+    );
+
+    const result = (await exec({ symbol: 'EURUSD', tf: '1h' })) as {
+      summary?: { changePct: number | null };
+    };
+
+    expect(result.summary?.changePct).toBeNull();
   });
 
   it('validates input schema — count min 10', () => {

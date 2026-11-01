@@ -46,11 +46,17 @@ import { searchKnowledgeTool } from '../src/tools/search-knowledge';
 const dataMocks = vi.hoisted(() => ({
   getPrice: vi.fn(),
   getCandles: vi.fn(),
+  getCandlesUnchecked: vi.fn(),
 }));
 
 vi.mock('@kestrel/data', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
-  return { ...actual, getPrice: dataMocks.getPrice, getCandles: dataMocks.getCandles };
+  return {
+    ...actual,
+    getPrice: dataMocks.getPrice,
+    getCandles: dataMocks.getCandles,
+    getCandlesUnchecked: dataMocks.getCandlesUnchecked,
+  };
 });
 
 const requestContext = {
@@ -125,19 +131,26 @@ describe('native canonical tools (B-01)', () => {
   });
 
   it('native get_price produces the same output as the legacy AI SDK shim', async () => {
-    dataMocks.getPrice.mockResolvedValue(tick);
+    dataMocks.getPrice.mockResolvedValue({
+      tick,
+      stale: false,
+      producedAt: 1_760_000_000_000,
+      ageMs: 250,
+    });
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-10-18T12:00:00.000Z'));
     try {
       const nativeOutput = (await asAnyTool(canonicalPriceTool).execute(
         { symbols: ['XAUUSD'] },
         toolContext,
-      )) as { ticks: (typeof tick)[]; asOf: string };
+      )) as { ticks: (typeof tick)[]; asOf: string; freshness: Array<{ stale: boolean }> };
       const legacyOutput = await asAnyTool(getPriceTool).execute({ symbols: ['XAUUSD'] }, {});
 
       expect(nativeOutput).toEqual(legacyOutput);
       expect(nativeOutput.ticks[0]?.mid).toBe(2648.3);
       expect(nativeOutput.asOf).toBe('2026-10-18T12:00:00.000Z');
+      // R8 — the freshness block survives to both output paths.
+      expect(nativeOutput.freshness[0]?.stale).toBe(false);
       expect(dataMocks.getPrice).toHaveBeenCalledTimes(2);
     } finally {
       vi.useRealTimers();
@@ -145,30 +158,46 @@ describe('native canonical tools (B-01)', () => {
   });
 
   it('native get_candles preserves the legacy period-summary output shape', async () => {
-    dataMocks.getCandles.mockResolvedValue(candles);
-
-    const nativeOutput = (await asAnyTool(canonicalCandlesTool).execute(
-      { symbol: 'XAUUSD', tf: '1h', count: 120 },
-      toolContext,
-    )) as { summary: Record<string, unknown> | null; candles: unknown[] };
-    const legacyOutput = await asAnyTool(getCandlesTool).execute(
-      { symbol: 'XAUUSD', tf: '1h', count: 120 },
-      {},
-    );
-
-    expect(nativeOutput).toEqual(legacyOutput);
-    expect(nativeOutput.candles).toHaveLength(30);
-    expect(nativeOutput.summary).toMatchObject({
-      open: 2647,
-      high: 2652.9,
-      low: 2645,
-      close: 2651.9,
-      totalVolume: 4780,
+    dataMocks.getCandles.mockResolvedValue({
+      candles,
+      stale: false,
+      producedAt: 1_760_000_000_000,
     });
+    // The freshness block includes wall-clock ages; freeze them so the two
+    // executions are byte-identical.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-18T12:00:00.000Z'));
+    try {
+      const nativeOutput = (await asAnyTool(canonicalCandlesTool).execute(
+        { symbol: 'XAUUSD', tf: '1h', count: 120 },
+        toolContext,
+      )) as {
+        summary: Record<string, unknown> | null;
+        candles: unknown[];
+        freshness?: { stale: boolean };
+      };
+      const legacyOutput = await asAnyTool(getCandlesTool).execute(
+        { symbol: 'XAUUSD', tf: '1h', count: 120 },
+        {},
+      );
+
+      expect(nativeOutput).toEqual(legacyOutput);
+      expect(nativeOutput.candles).toHaveLength(30);
+      expect(nativeOutput.freshness?.stale).toBe(false);
+      expect(nativeOutput.summary).toMatchObject({
+        open: 2647,
+        high: 2652.9,
+        low: 2645,
+        close: 2651.9,
+        totalVolume: 4780,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('native get_indicators returns the same series as the legacy shim', async () => {
-    dataMocks.getCandles.mockResolvedValue(candles);
+    dataMocks.getCandlesUnchecked.mockResolvedValue(candles);
 
     const input = {
       symbol: 'XAUUSD',

@@ -71,7 +71,12 @@ vi.mock('@kestrel/shared/encryption', () => ({
 }));
 
 vi.mock('@kestrel/data', () => ({
-  getPrice: vi.fn(() => ({ bid: 1.08, ask: 1.0802, mid: 1.0801, timestamp: Date.now() })),
+  getPrice: vi.fn(async () => ({
+    tick: { bid: 1.08, ask: 1.0802, mid: 1.0801, ts: Date.now(), source: 'test' },
+    stale: false,
+    producedAt: Date.now(),
+    ageMs: 0,
+  })),
   ProviderError: class ProviderError extends Error {},
 }));
 

@@ -29,16 +29,36 @@ import type { MarketTick, OrderSide, PaperPositionState, Quotes } from './types'
  * Some providers return bid === ask (a mid-only quote). In that case we
  * synthesise a symmetric spread from the plugin settings so P&L is never
  * frictionless.
+ *
+ * R8 (audit 2026-10-31): a zero/near-zero or non-finite price is rejected,
+ * not clamped to `1e-7`. Clamping invented a tradable quote where the feed
+ * had none; callers must gate with `isTickTradable` first, and this throw is
+ * the backstop for a price-free tick reaching the money math.
  */
 export function quotesFromTick(tick: MarketTick, spread: number): Quotes {
+  const rawMid = Number.isFinite(tick.mid) && tick.mid > 0 ? tick.mid : (tick.bid + tick.ask) / 2;
+  if (!Number.isFinite(rawMid) || rawMid <= 0) {
+    throw new Error(
+      `Cannot build a quote for ${tick.symbol}: no usable price (bid ${tick.bid}, ask ${tick.ask}, mid ${tick.mid}).`,
+    );
+  }
+
   const half = Math.max(0, spread) / 2;
   const hasRealSpread = tick.bid > 0 && tick.ask > 0 && tick.ask > tick.bid;
-  const mid = Number.isFinite(tick.mid) && tick.mid > 0 ? tick.mid : (tick.bid + tick.ask) / 2;
-  const bid = hasRealSpread ? tick.bid : mid - half;
-  const ask = hasRealSpread ? tick.ask : mid + half;
+  const bid = hasRealSpread ? tick.bid : rawMid - half;
+  const ask = hasRealSpread ? tick.ask : rawMid + half;
+  if (!Number.isFinite(bid) || !Number.isFinite(ask) || bid <= 0 || ask <= bid) {
+    throw new Error(
+      `Cannot build a quote for ${tick.symbol}: spread ${spread} produces an invalid bid/ask (${bid}/${ask}).`,
+    );
+  }
+
+  // Keep a minimum tick between the sides: identity/zero spreads still need a
+  // two-sided market for the domain matcher.
+  const MIN_QUOTE_INCREMENT = 1e-7;
   return {
-    bid: round(Math.max(0.0000001, bid), 8),
-    ask: round(Math.max(bid + 0.0000001, ask), 8),
+    bid: round(bid, 8),
+    ask: round(Math.max(bid + MIN_QUOTE_INCREMENT, ask), 8),
     mid: round((bid + ask) / 2, 8),
   };
 }

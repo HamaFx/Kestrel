@@ -26,7 +26,7 @@
 // ~4 MB/month — we don't need it to. (Spec §4.3 retention.)
 
 import { computeDailySnapshot, previousUtcMidnight, upsertSnapshot } from '@kestrel/ai';
-import { getCandles } from '@kestrel/data';
+import { getCandlesUnchecked } from '@kestrel/data';
 import { getDb } from '@kestrel/db';
 import { candles1m } from '@kestrel/db/schema';
 import { ALL_SYMBOLS } from '@kestrel/shared';
@@ -55,7 +55,7 @@ export async function runSnapshots(ctx: JobContext): Promise<JobResult> {
       break;
     }
     try {
-      const candles = await getCandles(symbol, SOURCE_TF, {
+      const candles = await getCandlesUnchecked(symbol, SOURCE_TF, {
         count: SOURCE_COUNT,
         signal: ctx.signal,
       });

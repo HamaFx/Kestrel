@@ -18,9 +18,14 @@
 //
 // Uses the same @kestrel/data failover/cache path as the rest of Kestrel; a
 // mid-only provider is widened to a synthetic spread in the domain layer.
+//
+// R8 (audit 2026-10-31): reads the meta-returning getters so the broker sees
+// stale-while-revalidate cache fallbacks and the total quote age. A stale
+// quote can no longer look "fresh" just because the provider omitted
+// `quoteAgeSeconds`.
 
-import { getPrice, getPrices } from '@kestrel/data';
-import { pipSize, type Symbol } from '@kestrel/shared';
+import { getPrice, getPrices, priceAgeSeconds, type PriceResult } from '@kestrel/data';
+import { pipSize, type Symbol, type Tick } from '@kestrel/shared';
 
 import type { MarketTick } from '../domain';
 import type { PaperSettings } from '../settings';
@@ -33,17 +38,15 @@ export function slippageFor(symbol: string, settings: PaperSettings): number {
   return settings.slippagePips * pipSize(symbol);
 }
 
-export function toMarketTick(tick: {
-  symbol: string;
-  bid: number;
-  ask: number;
-  mid: number;
-  ts: number;
-  source?: string | undefined;
-  marketState?: 'open' | 'closed' | undefined;
-  stale?: boolean | undefined;
-  quoteAgeSeconds?: number | null | undefined;
-}): MarketTick {
+/**
+ * Normalise an adapter tick to the broker's tick shape, folding the adapter's
+ * freshness metadata into `stale` / `quoteAgeSeconds` so the tradability gate
+ * can act on it even when the provider itself reported neither.
+ */
+export function toMarketTick(tick: Tick, meta?: PriceResult): MarketTick {
+  const ageSeconds = meta ? priceAgeSeconds(meta) : undefined;
+  const stale = meta ? meta.stale || tick.stale === true : tick.stale;
+  const quoteAgeSeconds = ageSeconds ?? tick.quoteAgeSeconds;
   return {
     symbol: tick.symbol,
     bid: tick.bid,
@@ -52,8 +55,8 @@ export function toMarketTick(tick: {
     ts: tick.ts,
     ...(tick.source ? { source: tick.source } : {}),
     ...(tick.marketState ? { marketState: tick.marketState } : {}),
-    ...(tick.stale !== undefined ? { stale: tick.stale } : {}),
-    ...(tick.quoteAgeSeconds !== undefined ? { quoteAgeSeconds: tick.quoteAgeSeconds } : {}),
+    ...(stale !== undefined ? { stale } : {}),
+    ...(quoteAgeSeconds !== undefined ? { quoteAgeSeconds } : {}),
   };
 }
 
@@ -63,10 +66,11 @@ export const MAX_QUOTE_AGE_SECONDS = 300;
 /**
  * A market order or stop trigger may only execute against a live quote.
  *
- * `marketState === 'closed'` (weekend/holiday), an explicit upstream `stale`
- * flag, or a quote older than five minutes all block execution. Resting
- * limit/stop orders may still be *placed*; they simply do not fill until the
- * market reopens with a fresh quote.
+ * `marketState === 'closed'` (weekend/holiday), an explicit upstream or cache
+ * `stale` flag, a quote older than five minutes, or a quote with no positive
+ * finite price all block execution. Resting limit/stop orders may still be
+ * *placed*; they simply do not fill until the market reopens with a fresh
+ * quote.
  */
 export function isTickTradable(tick: MarketTick): { ok: true } | { ok: false; reason: string } {
   if (tick.marketState === 'closed') {
@@ -89,12 +93,21 @@ export function isTickTradable(tick: MarketTick): { ok: true } | { ok: false; re
       )}s old; market orders cannot fill on a quote older than ${MAX_QUOTE_AGE_SECONDS}s.`,
     };
   }
+  // R8 — a zero/near-zero or non-finite price is not a quote. This used to be
+  // clamped to 1e-7 downstream, which turned a dead feed into a fillable one.
+  const mid = Number.isFinite(tick.mid) && tick.mid > 0 ? tick.mid : (tick.bid + tick.ask) / 2;
+  if (!Number.isFinite(mid) || mid <= 0) {
+    return {
+      ok: false,
+      reason: `The quote for ${tick.symbol} has no usable price (bid ${tick.bid}, ask ${tick.ask}, mid ${tick.mid}); market orders cannot fill against it.`,
+    };
+  }
   return { ok: true };
 }
 
 export async function loadTick(symbol: string, signal?: AbortSignal): Promise<MarketTick> {
-  const tick = await getPrice(symbol as Symbol, signal ? { signal } : {});
-  return toMarketTick(tick);
+  const result = await getPrice(symbol as Symbol, signal ? { signal } : {});
+  return toMarketTick(result.tick, result);
 }
 
 export async function loadTicks(
@@ -104,8 +117,8 @@ export async function loadTicks(
   const result = new Map<string, MarketTick>();
   if (symbols.length === 0) return result;
   try {
-    const ticks = await getPrices(symbols as Symbol[], signal ? { signal } : {});
-    for (const tick of ticks) result.set(tick.symbol, toMarketTick(tick));
+    const results = await getPrices(symbols as Symbol[], signal ? { signal } : {});
+    for (const r of results) result.set(r.tick.symbol, toMarketTick(r.tick, r));
   } catch {
     // Batch failure: fall back to per-symbol best effort so one bad symbol
     // does not strand every other position.

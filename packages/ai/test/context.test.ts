@@ -17,8 +17,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@kestrel/data', () => ({
-  getPrice: vi.fn(),
-  getPrices: vi.fn().mockResolvedValue([]),
+  getPriceUnchecked: vi.fn(),
+  getPricesUnchecked: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('@kestrel/db', () => ({

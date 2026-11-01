@@ -21,6 +21,7 @@ import { manifestForCapability } from '@ai/mastra-v2/capabilities';
 import type { XauusdResearchPacket } from '@ai/mastra-v2/packets/research-types';
 import type { MastraGenerationResultLike } from '@ai/mastra-v2/shared/stats';
 import type { XauusdRequestContext } from '@ai/mastra-v2/shared/types';
+import { isRetryableTransientError, withRetry } from '@ai/runtime/retry';
 import { telemetryConfig } from '@ai/runtime/telemetry';
 
 import { guardXauusdFollowupText } from '../followup-safety';
@@ -29,6 +30,23 @@ import { XauusdResearchReportSchema, type XauusdResearchReport } from './report-
 import { XauusdReportVerificationError } from './report-verifier';
 
 export type XauusdReportGenerationResult = Awaited<ReturnType<typeof generateXauusdReport>>;
+
+/**
+ * True when the error is a structured-output/schema validation rejection.
+ * Those are deterministic findings for the bounded repair loop, not transient
+ * provider failures — retrying the identical prompt cannot fix them.
+ */
+function isStructuredOutputError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const candidate = error as { issues?: unknown; cause?: unknown };
+  if (Array.isArray(candidate.issues)) return true;
+  const cause = candidate.cause;
+  return (
+    typeof cause === 'object' &&
+    cause !== null &&
+    Array.isArray((cause as { issues?: unknown }).issues)
+  );
+}
 
 /** Generate a plain-text explanation of a previously verified report. */
 export async function generateXauusdFollowup(
@@ -41,17 +59,23 @@ export async function generateXauusdFollowup(
   signal?: AbortSignal,
   memory?: AgentMemoryOption,
 ): Promise<MastraGenerationResultLike> {
-  const result = await agent.generate(prompt, {
-    requestContext,
-    toolChoice: 'none',
-    maxSteps: manifestForCapability('xauusd-research').maxSteps > 0 ? 1 : 0,
-    ...(memory ? { memory } : {}),
-    ...telemetryConfig({
-      functionId: 'mastra.xauusd.followup',
-      metadata: { provider: providerId },
-    }),
-    ...(signal ? { abortSignal: signal } : {}),
-  });
+  // R14 — the follow-up path previously had no retry at all; bounded
+  // retry/jitter matches the canonical chat path.
+  const result = await withRetry(
+    () =>
+      agent.generate(prompt, {
+        requestContext,
+        toolChoice: 'none',
+        maxSteps: manifestForCapability('xauusd-research').maxSteps > 0 ? 1 : 0,
+        ...(memory ? { memory } : {}),
+        ...telemetryConfig({
+          functionId: 'mastra.xauusd.followup',
+          metadata: { provider: providerId },
+        }),
+        ...(signal ? { abortSignal: signal } : {}),
+      }),
+    { maxAttempts: 2, signal },
+  );
   return {
     text: guardXauusdFollowupText(result.text, report, packet),
     ...(result.totalUsage ? { totalUsage: result.totalUsage } : {}),
@@ -69,34 +93,45 @@ export async function generateXauusdReport(
   signal?: AbortSignal,
   memory?: AgentMemoryOption,
 ) {
-  return agent.generate(prompt, {
-    requestContext,
-    // The packet has already been collected deterministically. Prevent the
-    // synthesis step from fetching a different snapshot or inventing a path.
-    toolChoice: 'none',
-    maxSteps: manifestForCapability('xauusd-research').maxSteps > 0 ? 1 : 0,
-    ...(memory ? { memory } : {}),
-    structuredOutput: {
-      schema: XauusdResearchReportSchema,
-      jsonPromptInjection: 'auto',
-      instructions: [
-        'Return every required field in the schema; never omit fields with arrays.',
-        'evidenceIds must be a non-empty array containing the cited evidence IDs.',
-        'sources must be a non-empty array with evidenceId, source, and ISO dataAsOf for each source.',
-        'Use the macro evidence for fundamentalSummary when it is present; if macro evidence is partial, explicitly name the missing categories.',
-        'numericClaims must contain only concrete market values you state: current price, indicator reading, or an observed candle high/low/open/close. Do not place years, counts, offsets, percentages, or arbitrary numbers there. Each entry needs label, value, and evidenceId; omit tolerance because it is optional and defaults to a small rounding window.',
-        'Scenario trigger, entryZone, targets, and invalidation are forward-looking projections, not observed facts. Put them only in the scenario fields, never in numericClaims, and anchor each scenario to the evidence it is derived from through scenario.evidenceIds.',
-        'Include at least two scenarios, and every scenario must include trigger, invalidation, risks, and evidenceIds.',
-        'List meaningful conflicts between timeframes or evidence in contradictions; do not leave contradictions empty when the packet shows conflicting signals.',
-        'Return only the structured object; do not substitute prose for required arrays.',
-      ].join('\n'),
+  // R14 — the verified-report generation previously had no retry. Provider
+  // failures (429/5xx/timeout) get one bounded re-attempt; schema/structured
+  // output rejections do not, because the workflow's repair loop owns those.
+  return withRetry(
+    () =>
+      agent.generate(prompt, {
+        requestContext,
+        // The packet has already been collected deterministically. Prevent the
+        // synthesis step from fetching a different snapshot or inventing a path.
+        toolChoice: 'none',
+        maxSteps: manifestForCapability('xauusd-research').maxSteps > 0 ? 1 : 0,
+        ...(memory ? { memory } : {}),
+        structuredOutput: {
+          schema: XauusdResearchReportSchema,
+          jsonPromptInjection: 'auto',
+          instructions: [
+            'Return every required field in the schema; never omit fields with arrays.',
+            'evidenceIds must be a non-empty array containing the cited evidence IDs.',
+            'sources must be a non-empty array with evidenceId, source, and ISO dataAsOf for each source.',
+            'Use the macro evidence for fundamentalSummary when it is present; if macro evidence is partial, explicitly name the missing categories.',
+            'numericClaims must contain only concrete market values you state: current price, indicator reading, or an observed candle high/low/open/close. Do not place years, counts, offsets, percentages, or arbitrary numbers there. Each entry needs label, value, and evidenceId; omit tolerance because it is optional and defaults to a small rounding window.',
+            'Scenario trigger, entryZone, targets, and invalidation are forward-looking projections, not observed facts. Put them only in the scenario fields, never in numericClaims, and anchor each scenario to the evidence it is derived from through scenario.evidenceIds.',
+            'Include at least two scenarios, and every scenario must include trigger, invalidation, risks, and evidenceIds.',
+            'List meaningful conflicts between timeframes or evidence in contradictions; do not leave contradictions empty when the packet shows conflicting signals.',
+            'Return only the structured object; do not substitute prose for required arrays.',
+          ].join('\n'),
+        },
+        ...telemetryConfig({
+          functionId: 'mastra.xauusd.report',
+          metadata: { provider: providerId },
+        }),
+        ...(signal ? { abortSignal: signal } : {}),
+      }),
+    {
+      maxAttempts: 2,
+      signal,
+      isRetryable: (error) => !isStructuredOutputError(error) && isRetryableTransientError(error),
     },
-    ...telemetryConfig({
-      functionId: 'mastra.xauusd.report',
-      metadata: { provider: providerId },
-    }),
-    ...(signal ? { abortSignal: signal } : {}),
-  });
+  );
 }
 
 export function repairPrompt(prompt: string, findings: readonly string[]): string {

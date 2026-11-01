@@ -242,6 +242,25 @@ describe('withTelemetry — diagnostics integration', () => {
     }
   });
 
+  it('uses the shared per-tool override for the deadline (get_price → 5s)', async () => {
+    vi.useFakeTimers();
+    try {
+      const tool = withTelemetry(
+        'get_price',
+        makeTool(async () => new Promise(() => undefined)),
+      );
+
+      const pending = tool.execute!({}, { toolCallId: 'test', messages: [] });
+      const observed = expect(pending).rejects.toMatchObject({ code: 'TIMEOUT' });
+      await Promise.resolve();
+      // The 25s default must not fire; the 5s override must.
+      await vi.advanceTimersByTimeAsync(5_001);
+      await observed;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('rejects promptly when the parent aborts even if the tool ignores its signal', async () => {
     const ac = new AbortController();
     const tool = withTelemetry(

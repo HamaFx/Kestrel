@@ -125,28 +125,35 @@ export async function runMastraXauusdChat(
       });
       const observedCost = Math.max(baseCost, ledger.total());
 
-      const meta = createMastraChatMeta({
-        agent: 'mastra-xauusd',
-        runId,
-        modelId: completedRun.modelId,
-        providerId: completedRun.providerId,
-        researchStatus: completedRun.packet.status,
-        dataQuality: completedRun.packet.dataQuality,
-        packetId: completedRun.packet.packetId,
-        observedCost,
-        report: completedRun.report,
-        executionOutcome: 'completed',
-        answerOutcome: completedRun.report ? 'ready' : 'blocked',
-        terminalReason: 'buffered-completed',
-        memoryMode: completedRun.memoryMode,
-        memoryBackfill: completedRun.memoryBackfill,
-        modelSnapshot: { providerId: completedRun.providerId, bareModelId: completedRun.modelId },
-      });
+      const meta = {
+        ...createMastraChatMeta({
+          agent: 'mastra-xauusd',
+          runId,
+          modelId: completedRun.modelId,
+          providerId: completedRun.providerId,
+          researchStatus: completedRun.packet.status,
+          dataQuality: completedRun.packet.dataQuality,
+          packetId: completedRun.packet.packetId,
+          observedCost,
+          report: completedRun.report,
+          executionOutcome: 'completed',
+          answerOutcome: completedRun.report ? 'ready' : 'blocked',
+          terminalReason: 'buffered-completed',
+          memoryMode: completedRun.memoryMode,
+          memoryBackfill: completedRun.memoryBackfill,
+          modelSnapshot: { providerId: completedRun.providerId, bareModelId: completedRun.modelId },
+        }),
+        // R14 — honest answer metadata when a mid-turn provider switch happened.
+        ...(completedRun.fallbackParts?.length
+          ? { fallbacks: completedRun.fallbackParts, fallbackApplied: true }
+          : { fallbackApplied: false }),
+      };
       const assistantMessage: UIMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
         parts: [
           { type: 'text', text: completedRun.result.text },
+          ...((completedRun.fallbackParts ?? []) as unknown as UIMessage['parts']),
           { type: 'data-multi-agent-meta', data: meta } as UIMessage['parts'][number],
         ],
       };

@@ -21,7 +21,7 @@
 // With a `trainRatio`, the first slice ranks parameters in-sample and the
 // remainder is evaluated out-of-sample for each combination.
 
-import { getCandles } from '@kestrel/data';
+import { candlesAgeSeconds, getCandles } from '@kestrel/data';
 import {
   msPerTimeframe,
   pipSize,
@@ -122,17 +122,26 @@ export interface PrepareSweepWindowArgs {
 /** Load the candle window and build every feature matrix the sweep needs. */
 export async function prepareSweepWindow(args: PrepareSweepWindowArgs): Promise<SweepWindow> {
   const count = Math.max(60, Math.min(args.count, 5000));
-  const candles = await getCandles(args.symbol, args.timeframe, {
+  // R8 (audit 2026-10-31): refuse a stale-while-revalidate window. A sweep is a
+  // backtest, and a window missing recent bars silently biases every parameter
+  // combination it ranks.
+  const result = await getCandles(args.symbol, args.timeframe, {
     count,
     includeOpenBar: false,
     ...(args.signal ? { signal: args.signal } : {}),
   });
+  if (result.stale) {
+    throw new Error(
+      `The ${args.symbol} ${args.timeframe} candle window was served from a stale cache after an ` +
+        `upstream failure (age ${candlesAgeSeconds(result)}s), so the sweep was refused. ` +
+        `Retry when the provider is reachable.`,
+    );
+  }
+  const candles = result.candles;
 
   const barMs = msPerTimeframe(args.timeframe);
   const now = Date.now();
-  const closed = candles
-    .filter((candle) => candle.t + barMs <= now)
-    .sort((a, b) => a.t - b.t);
+  const closed = candles.filter((candle) => candle.t + barMs <= now).sort((a, b) => a.t - b.t);
   if (closed.length < MIN_BARS) {
     throw new Error(
       `Only ${closed.length} closed ${args.timeframe} candles are available for ${args.symbol}. Fetch more history before sweeping.`,

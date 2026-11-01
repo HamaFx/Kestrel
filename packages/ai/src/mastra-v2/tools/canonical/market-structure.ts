@@ -26,7 +26,7 @@
  * scalars) so they live in their own envelope alongside `get_indicators`.
  */
 
-import { getCandles } from '@kestrel/data';
+import { getCandlesUnchecked } from '@kestrel/data';
 import { computeStructure } from '@kestrel/indicators';
 import {
   type Candle,
@@ -104,7 +104,7 @@ export async function executeCanonicalMarketStructure(
 ): Promise<GetMarketStructureOutput> {
   const { symbol, tf, count, kinds, lookback } = input;
   const effectiveSignal = signal ?? maybeGetToolContext()?.signal ?? undefined;
-  const candles = await getCandles(symbol, tf, {
+  const candles = await getCandlesUnchecked(symbol, tf, {
     count,
     ...(effectiveSignal ? { signal: effectiveSignal } : {}),
   });

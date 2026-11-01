@@ -20,6 +20,11 @@
 // for month + weekday (last 3 yrs); 1H candles for the hour-of-day view
 // (last ~90d). Buckets carry median, IQR, and win rate so the chat part
 // renders trader-grade numbers instead of "January is bullish".
+//
+// R8 (audit 2026-10-31): empty buckets report null statistics, never 0, and
+// a tool-level `notes` string states when no distribution could be derived.
+// The candle read is freshness-aware; a stale window is disclosed via
+// `stale` + `notes` rather than presented as current.
 
 import { getCandles } from '@kestrel/data';
 import {
@@ -70,8 +75,11 @@ export const getSeasonalityTool: Tool<z.infer<typeof InputSchema>, GetSeasonalit
     const count = granularity === 'hour' ? 2160 : 1100; // ~90d on 1H, ~3yrs on 1D.
 
     let candles: { c: number; t: number }[];
+    let stale = false;
     try {
-      candles = await getCandles(symbol, tf, { count, ...(signal ? { signal } : {}) });
+      const result = await getCandles(symbol, tf, { count, ...(signal ? { signal } : {}) });
+      candles = result.candles;
+      stale = result.stale;
     } catch {
       return {
         symbol,
@@ -80,6 +88,10 @@ export const getSeasonalityTool: Tool<z.infer<typeof InputSchema>, GetSeasonalit
         buckets: [],
         sampleSize: 0,
         thin: true,
+        stale,
+        // R8 (audit 2026-10-31): say the distribution is unavailable instead
+        // of letting per-bucket zeros read as measured flat returns.
+        notes: 'Seasonality unavailable: the candle window could not be fetched.',
       };
     }
 
@@ -92,6 +104,13 @@ export const getSeasonalityTool: Tool<z.infer<typeof InputSchema>, GetSeasonalit
     );
     const thin = !Number.isFinite(minSamplesPerBucket) || minSamplesPerBucket < 30;
 
+    const notes =
+      samples.length === 0
+        ? 'Seasonality unavailable: no close-to-close returns could be derived from the candle window.'
+        : stale
+          ? 'At least one candle window was served from a stale cache; treat these distributions as provisional.'
+          : undefined;
+
     return {
       symbol,
       granularity,
@@ -99,6 +118,8 @@ export const getSeasonalityTool: Tool<z.infer<typeof InputSchema>, GetSeasonalit
       buckets,
       sampleSize: samples.length,
       thin,
+      stale,
+      ...(notes ? { notes } : {}),
     };
   },
 });
@@ -141,9 +162,12 @@ function bucketize(samples: Sample[], g: SeasonalityGranularity): SeasonalityBuc
 
   return [...groups.entries()].map(([k, list]) => {
     const sorted = [...list].sort((a, b) => a - b);
-    const median = quantile(sorted, 0.5) ?? 0;
-    const q1 = quantile(sorted, 0.25) ?? 0;
-    const q3 = quantile(sorted, 0.75) ?? 0;
+    // R8 (audit 2026-10-31): quantile() is null for an empty bucket. Falling
+    // back to 0 turned "no samples" into a measured flat return that the
+    // evidence gate would accept.
+    const median = quantile(sorted, 0.5);
+    const q1 = quantile(sorted, 0.25);
+    const q3 = quantile(sorted, 0.75);
     const wins = list.filter((x) => x > 0).length;
     return {
       key: k,
@@ -152,7 +176,7 @@ function bucketize(samples: Sample[], g: SeasonalityGranularity): SeasonalityBuc
       medianReturnPct: median,
       q1Pct: q1,
       q3Pct: q3,
-      winRate: list.length === 0 ? 0 : wins / list.length,
+      winRate: list.length === 0 ? null : wins / list.length,
     };
   });
 }

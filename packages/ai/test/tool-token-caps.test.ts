@@ -22,10 +22,18 @@ import { getIndicatorsTool } from '../src/tools/get-indicators';
 import { computeMarketStructureOutput } from '../src/tools/get-market-structure';
 
 const mockGetCandles = vi.fn();
+const mockGetCandlesUnchecked = vi.fn();
 
-vi.mock('@kestrel/data', () => ({
-  getCandles: (...args: unknown[]) => mockGetCandles(...args),
-}));
+vi.mock('@kestrel/data', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@kestrel/data')>();
+  return {
+    ...actual,
+    getCandles: (...args: unknown[]) => mockGetCandles(...args),
+    getCandlesUnchecked: (...args: unknown[]) => mockGetCandlesUnchecked(...args),
+  };
+});
+
+const candlesResult = (candles: Candle[]) => ({ candles, stale: false, producedAt: Date.now() });
 
 const execCandles = getCandlesTool.execute as unknown as (input: {
   symbol: string;
@@ -43,7 +51,7 @@ const execCandles = getCandlesTool.execute as unknown as (input: {
     low: number;
     close: number;
     change: number;
-    changePct: number;
+    changePct: number | null;
     avgBarRange: number;
     totalVolume: number;
   } | null;
@@ -90,7 +98,7 @@ describe('prevent LLM context token bloat (F-15)', () => {
 
   it('getCandlesTool caps returned candles array to max 30 recent bars and includes summary', async () => {
     const rawCandles = generateCandles(200);
-    mockGetCandles.mockResolvedValueOnce(rawCandles);
+    mockGetCandles.mockResolvedValueOnce(candlesResult(rawCandles));
 
     const res = await execCandles({
       symbol: 'XAUUSD',
@@ -110,7 +118,7 @@ describe('prevent LLM context token bloat (F-15)', () => {
 
   it('getIndicatorsTool caps tail points to 15', async () => {
     const rawCandles = generateCandles(100);
-    mockGetCandles.mockResolvedValueOnce(rawCandles);
+    mockGetCandlesUnchecked.mockResolvedValueOnce(rawCandles);
 
     const res = await execIndicators({
       symbol: 'XAUUSD',

@@ -18,8 +18,14 @@
 
 import { estimateCostUsd } from '@ai/budget/cost';
 import { getDiagnosticContext, withDiagnostics } from '@ai/diagnostics';
-import type { ChatModelResolution } from '@ai/models/model';
+import {
+  MAX_TURN_FALLBACKS,
+  resolveFallbackChain,
+  runWithModelFallback,
+  type ChatModelResolution,
+} from '@ai/models/model';
 import { createGenerationLedger } from '@ai/persistence/generation-ledger';
+import { withRetry } from '@ai/runtime/retry';
 import { telemetryConfig } from '@ai/runtime/telemetry';
 
 import { manifestForCapability } from '../../capabilities';
@@ -50,6 +56,9 @@ export async function executeXauusdMastraConversationRun(
   const startedAt = Date.now();
   const generationLedger = args.ledger ?? createGenerationLedger();
   let resolution: ChatModelResolution | null = null;
+  // The model whose attempt failed last, so a terminal failure is attributed
+  // to the provider that actually failed (R14).
+  let lastAttemptedResolution: ChatModelResolution | null = null;
   // Until native memory preparation succeeds, report the run as degraded.
   let memoryMode: 'native' | 'degraded' = 'degraded';
   let memoryBackfill = false;
@@ -163,27 +172,53 @@ export async function executeXauusdMastraConversationRun(
         args.onToolEvent,
       );
     }
-    const result = await agent.generate(args.prompt, {
-      requestContext,
-      memory: prepared.callOptions,
-      toolChoice: 'auto',
-      activeTools: [...xauusdMastraConversationToolNames],
-      maxSteps: manifestForCapability('xauusd-conversation').maxSteps,
-      ...telemetryConfig({
-        functionId: 'mastra.xauusd.conversation',
-        metadata: { provider: resolution.providerId },
-      }),
-      ...(args.signal ? { abortSignal: args.signal } : {}),
-      tracingOptions: runTracingOptions({
-        runId: args.runId,
-        userId: args.userId,
-        threadId: args.threadId,
-        kind: args.telemetryKind ?? 'mastra_xauusd_research',
-        capabilityId: 'xauusd-conversation',
-        tags: ['xauusd-conversation'],
-        memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
-        memoryBackfill: prepared.backfillAttempted,
-      }),
+    const {
+      result,
+      resolution: activeResolution,
+      fallbackParts,
+    } = await runWithModelFallback({
+      primary: resolution,
+      candidates: args.executionPlan?.model
+        ? []
+        : resolveFallbackChain({
+            settings: args.settings,
+            env: args.env,
+            domain: 'technical',
+            primaryModelId: resolution.modelId,
+          }),
+      signal: args.signal,
+      maxFallbacks: MAX_TURN_FALLBACKS,
+      onAttempt: (attempted) => {
+        lastAttemptedResolution = attempted;
+      },
+      attempt: (candidate) =>
+        withRetry(
+          () =>
+            agent.generate(args.prompt, {
+              requestContext,
+              memory: prepared.callOptions,
+              toolChoice: 'auto',
+              model: candidate.model as never,
+              activeTools: [...xauusdMastraConversationToolNames],
+              maxSteps: manifestForCapability('xauusd-conversation').maxSteps,
+              ...telemetryConfig({
+                functionId: 'mastra.xauusd.conversation',
+                metadata: { provider: candidate.providerId },
+              }),
+              ...(args.signal ? { abortSignal: args.signal } : {}),
+              tracingOptions: runTracingOptions({
+                runId: args.runId,
+                userId: args.userId,
+                threadId: args.threadId,
+                kind: args.telemetryKind ?? 'mastra_xauusd_research',
+                capabilityId: 'xauusd-conversation',
+                tags: ['xauusd-conversation'],
+                memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
+                memoryBackfill: prepared.backfillAttempted,
+              }),
+            }),
+          { maxAttempts: 2, signal: args.signal },
+        ),
     });
     const stats = getMastraGenerationStats(result);
     const toolParts = extractToolPartsFromMessages(
@@ -196,7 +231,7 @@ export async function executeXauusdMastraConversationRun(
     generationLedger.recordUsage(
       `primary:${args.runId}`,
       'primary',
-      resolution.modelId,
+      activeResolution.modelId,
       stats.inputTokens,
       stats.outputTokens,
       estimateCostUsd,
@@ -205,8 +240,8 @@ export async function executeXauusdMastraConversationRun(
       userId: args.userId,
       threadId: args.threadId,
       runId: args.runId,
-      model: resolution.modelId,
-      providerId: resolution.providerId,
+      model: activeResolution.modelId,
+      providerId: activeResolution.providerId,
       startedAt,
       ...stats,
       outcome: 'success',
@@ -218,25 +253,30 @@ export async function executeXauusdMastraConversationRun(
       result,
       report: null,
       packet,
-      modelId: resolution.modelId,
-      providerId: resolution.providerId,
-      bareModelId: resolution.bareModelId,
+      modelId: activeResolution.modelId,
+      providerId: activeResolution.providerId,
+      bareModelId: activeResolution.bareModelId,
       stats,
       totalCostUsd: generationLedger.total(),
       toolParts,
       answerOutcome: 'ready',
-      modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
+      ...(fallbackParts.length > 0 ? { fallbackParts } : {}),
+      modelSnapshot: {
+        providerId: activeResolution.providerId,
+        bareModelId: activeResolution.bareModelId,
+      },
       memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
       memoryBackfill: prepared.backfillAttempted,
     };
   } catch (error) {
     const outcome = mastraOutcomeForError(error, args.signal);
+    const failedResolution = lastAttemptedResolution ?? resolution;
     await finishMastraRun({
       userId: args.userId,
       threadId: args.threadId,
       runId: args.runId,
-      model: resolution?.modelId ?? 'unresolved',
-      providerId: resolution?.providerId ?? 'unresolved',
+      model: failedResolution?.modelId ?? 'unresolved',
+      providerId: failedResolution?.providerId ?? 'unresolved',
       startedAt,
       inputTokens: 0,
       outputTokens: 0,

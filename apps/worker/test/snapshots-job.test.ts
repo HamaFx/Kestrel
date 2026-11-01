@@ -30,7 +30,7 @@ vi.mock('@kestrel/ai', () => ({
 }));
 
 vi.mock('@kestrel/data', () => ({
-  getCandles: vi.fn(),
+  getCandlesUnchecked: vi.fn(),
 }));
 
 // We don't need a real DB. Patch getDb() to return a fake client whose
@@ -60,12 +60,12 @@ const testRouter = new TenantRouter();
 beforeEach(() => {
   vi.mocked(ai.computeDailySnapshot).mockReset();
   vi.mocked(ai.upsertSnapshot).mockReset();
-  vi.mocked(data.getCandles).mockReset();
+  vi.mocked(data.getCandlesUnchecked).mockReset();
 });
 
 describe('runSnapshots', () => {
   it('processes every supported catalog symbol (18 symbols) and tail-prunes candles_1m', async () => {
-    vi.mocked(data.getCandles).mockResolvedValue([] as never);
+    vi.mocked(data.getCandlesUnchecked).mockResolvedValue([] as never);
     vi.mocked(ai.computeDailySnapshot).mockReturnValue({} as never);
     vi.mocked(ai.upsertSnapshot).mockResolvedValue(undefined as never);
 
@@ -77,12 +77,12 @@ describe('runSnapshots', () => {
     expect(r.processed).toBe(18);
     expect(r.note).toMatch(/symbols=18\/18/);
     expect(r.note).toMatch(/pruned=0/);
-    expect(data.getCandles).toHaveBeenCalledTimes(18);
+    expect(data.getCandlesUnchecked).toHaveBeenCalledTimes(18);
     expect(ai.upsertSnapshot).toHaveBeenCalledTimes(18);
   });
 
   it('counts errors but keeps going across all 18 symbols', async () => {
-    vi.mocked(data.getCandles)
+    vi.mocked(data.getCandlesUnchecked)
       .mockRejectedValueOnce(new Error('upstream down'))
       .mockResolvedValue([] as never);
     vi.mocked(ai.computeDailySnapshot).mockReturnValue({} as never);

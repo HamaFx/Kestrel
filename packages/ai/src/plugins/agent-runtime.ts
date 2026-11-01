@@ -20,7 +20,14 @@ import type { UserSettingsRow } from '@kestrel/db/schema';
 import { convertToModelMessages, type ModelMessage, type UIMessage } from 'ai';
 
 import { estimateCostUsd } from '@ai/budget/cost';
+import {
+  MAX_TURN_FALLBACKS,
+  resolveFallbackChain,
+  runWithModelFallback,
+  type FallbackPartPayload,
+} from '@ai/models/model';
 import type { GenerationLedger } from '@ai/persistence/generation-ledger';
+import { withRetry } from '@ai/runtime/retry';
 import { withToolContext } from '@ai/runtime/tool-context';
 
 import {
@@ -102,6 +109,8 @@ export interface CustomAgentStreamResult {
     providerId: string;
     totalCostUsd: number;
     totalLatencyMs: number;
+    /** `data-fallback` parts emitted when a mid-turn provider switch happened (R14). */
+    fallbackParts?: FallbackPartPayload[];
     memoryMode: 'native' | 'degraded';
     memoryBackfill: boolean;
     modelSnapshot: { providerId: string; bareModelId: string };
@@ -147,25 +156,76 @@ export async function runCustomAgentStream(
         parts: [{ type: 'text', text: args.prompt }],
       });
 
-  const output = await withToolContext(built.toolContext, () =>
-    built.agent.stream(messages, {
-      requestContext: built.requestContext,
-      ...(built.callMemory ? { memory: built.callMemory } : {}),
-      toolChoice: 'auto',
-      maxSteps: 8,
-      ...(args.signal ? { abortSignal: args.signal } : {}),
-      tracingOptions: runTracingOptions({
-        runId,
+  // R14 — custom agents previously had no retry and no mid-turn failover.
+  // The chain is the user's configured providers; `built` owns the primary.
+  const fallbackCandidates = resolveFallbackChain({
+    settings: args.settings,
+    env: args.env,
+    domain: 'summary',
+    primaryModelId: built.modelId,
+  });
+  // Attribute a terminal failure to the model whose attempt failed.
+  let lastAttemptedResolution = built.resolution;
+  const openAttempt = async () => {
+    try {
+      return await runWithModelFallback({
+        primary: built.resolution,
+        candidates: fallbackCandidates,
+        signal: args.signal,
+        maxFallbacks: MAX_TURN_FALLBACKS,
+        onAttempt: (attempted) => {
+          lastAttemptedResolution = attempted;
+        },
+        attempt: (candidate) =>
+          withToolContext(built.toolContext, () =>
+            withRetry(
+              () =>
+                built.agent.stream(messages, {
+                  requestContext: built.requestContext,
+                  // Per-call model keeps the one built agent; a provider failure
+                  // switches provider without rebuilding tools/memory (R14).
+                  model: candidate.model as never,
+                  ...(built.callMemory ? { memory: built.callMemory } : {}),
+                  toolChoice: 'auto',
+                  maxSteps: 8,
+                  ...(args.signal ? { abortSignal: args.signal } : {}),
+                  tracingOptions: runTracingOptions({
+                    runId,
+                    userId: args.userId,
+                    threadId: args.threadId,
+                    kind: 'mastra_custom_agent',
+                    capabilityId: 'canonical-chat',
+                    tags: ['chat', 'custom-agent', args.descriptor.agent.slug],
+                    memoryMode: built.memoryMode,
+                    memoryBackfill: built.memoryBackfill,
+                  }),
+                }),
+              { maxAttempts: 2, signal: args.signal },
+            ),
+          ),
+      });
+    } catch (error) {
+      await finishMastraRun({
         userId: args.userId,
         threadId: args.threadId,
-        kind: 'mastra_custom_agent',
-        capabilityId: 'canonical-chat',
-        tags: ['chat', 'custom-agent', args.descriptor.agent.slug],
+        runId,
+        model: lastAttemptedResolution.modelId,
+        providerId: lastAttemptedResolution.providerId,
+        startedAt,
+        inputTokens: 0,
+        outputTokens: 0,
+        toolCalls: 0,
+        steps: 0,
+        outcome: mastraOutcomeForError(error, args.signal),
         memoryMode: built.memoryMode,
         memoryBackfill: built.memoryBackfill,
-      }),
-    }),
-  );
+        telemetryKind: 'mastra_custom_agent',
+        error,
+      });
+      throw error;
+    }
+  };
+  const { result: output, resolution: activeResolution, fallbackParts } = await openAttempt();
 
   async function* textIter(): AsyncIterable<string> {
     try {
@@ -180,8 +240,8 @@ export async function runCustomAgentStream(
         userId: args.userId,
         threadId: args.threadId,
         runId,
-        model: built.modelId,
-        providerId: built.providerId,
+        model: activeResolution.modelId,
+        providerId: activeResolution.providerId,
         startedAt,
         inputTokens: 0,
         outputTokens: 0,
@@ -206,21 +266,24 @@ export async function runCustomAgentStream(
         built.toolPartsBuffer,
       );
       const toolNames = [...new Set(toolParts.map((part) => part.toolName))];
-      const cost = estimateCostUsd(built.modelId, stats.inputTokens, stats.outputTokens);
+      const cost = estimateCostUsd(activeResolution.modelId, stats.inputTokens, stats.outputTokens);
       args.ledger?.recordCost(`custom-agent:${runId}`, 'primary', cost);
       await finishMastraRun({
         userId: args.userId,
         threadId: args.threadId,
         runId,
-        model: built.modelId,
-        providerId: built.providerId,
+        model: activeResolution.modelId,
+        providerId: activeResolution.providerId,
         startedAt,
         ...stats,
         outcome: 'success',
         answerOutcome: full.text.trim().length > 0 ? 'ready' : 'degraded',
         memoryMode: built.memoryMode,
         memoryBackfill: built.memoryBackfill,
-        modelSnapshot: built.modelSnapshot,
+        modelSnapshot: {
+          providerId: activeResolution.providerId,
+          bareModelId: activeResolution.bareModelId,
+        },
         telemetryKind: 'mastra_custom_agent',
       });
       return {
@@ -228,21 +291,25 @@ export async function runCustomAgentStream(
         stats,
         toolNames,
         toolParts,
-        modelId: built.modelId,
-        providerId: built.providerId,
+        modelId: activeResolution.modelId,
+        providerId: activeResolution.providerId,
         totalCostUsd: cost,
         totalLatencyMs: Date.now() - startedAt,
         memoryMode: built.memoryMode,
         memoryBackfill: built.memoryBackfill,
-        modelSnapshot: built.modelSnapshot,
+        ...(fallbackParts.length > 0 ? { fallbackParts } : {}),
+        modelSnapshot: {
+          providerId: activeResolution.providerId,
+          bareModelId: activeResolution.bareModelId,
+        },
       };
     } catch (error) {
       await finishMastraRun({
         userId: args.userId,
         threadId: args.threadId,
         runId,
-        model: built.modelId,
-        providerId: built.providerId,
+        model: activeResolution.modelId,
+        providerId: activeResolution.providerId,
         startedAt,
         inputTokens: 0,
         outputTokens: 0,

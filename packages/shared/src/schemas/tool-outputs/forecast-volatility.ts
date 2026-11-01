@@ -41,12 +41,16 @@ export const ForecastVolatilityOutputSchema = z.object({
   tf: TimeframeSchema,
   horizonHours: z.int(),
   asOf: z.int(),
-  /** ATR(14) on the chosen timeframe, in pips. */
-  atrPips: z.number(),
+  /**
+   * ATR(14) on the chosen timeframe, in pips. Null when the candle window is
+   * unavailable or ATR is undefined — never a fabricated 0 (R8, audit
+   * 2026-10-31), which the evidence gate could quote as "±0.0 pips".
+   */
+  atrPips: z.number().nullable(),
   /** ATR(14) over a 30-day baseline window for context. */
   atrPipsBaseline30d: z.number().nullable(),
-  /** Expected move in pips across `horizonHours`. */
-  expectedMovePips: z.number(),
+  /** Expected move in pips across `horizonHours`; null when ATR is unknown. */
+  expectedMovePips: z.number().nullable(),
   /** Live mid ± expectedMove projected to price space; null when no live mid. */
   expectedRange: z
     .object({

@@ -53,6 +53,12 @@ export function GetCorrelationPart({
   }
 
   const dxy = output.dxyProxy;
+  const dxyTone =
+    dxy === null || dxy.change24h === null
+      ? 'text-fg-muted'
+      : dxy.change24h >= 0
+        ? 'text-bull'
+        : 'text-bear';
 
   return (
     <div className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-3">
@@ -105,14 +111,18 @@ export function GetCorrelationPart({
       <section className="border-border border-t pt-2">
         <header className="flex items-baseline justify-between gap-2">
           <span className="text-fg text-xs font-semibold">DXY proxy</span>
-          <span
-            className={`text-body-sm tabular-nums ${dxy.change24h >= 0 ? 'text-bull' : 'text-bear'}`}
-          >
-            {dxy.value.toFixed(4)} ({dxy.change24h >= 0 ? '+' : ''}
-            {dxy.change24h.toFixed(2)}% 24h)
+          <span className={`text-body-sm tabular-nums ${dxyTone}`}>
+            {dxy === null
+              ? 'unavailable'
+              : dxy.change24h === null
+                ? `${dxy.value.toFixed(4)} · 24h change unavailable`
+                : `${dxy.value.toFixed(4)} (${dxy.change24h >= 0 ? '+' : ''}${dxy.change24h.toFixed(2)}% 24h)`}
           </span>
         </header>
-        <p className="text-fg-subtle text-caption mt-1 font-mono">{dxy.formula}</p>
+        {dxy !== null ? (
+          <p className="text-fg-subtle text-caption mt-1 font-mono">{dxy.formula}</p>
+        ) : null}
+        {output.notes ? <p className="text-fg-muted mt-1 text-xs">{output.notes}</p> : null}
       </section>
     </div>
   );

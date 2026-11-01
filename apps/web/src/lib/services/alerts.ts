@@ -178,8 +178,11 @@ async function fetchCandles(rule: AlertRule, lookbackDays: number): Promise<SimC
     const tf = lookbackDays <= 1 ? '1m' : lookbackDays <= 7 ? '5m' : '15m';
     const barsPerDay = tf === '1m' ? 1440 : tf === '5m' ? 288 : 96;
     const count = Math.min(1000, Math.max(100, lookbackDays * barsPerDay));
-    const onDemand = await getCandles(rule.symbol, tf, { count }).catch(() => []);
-    return onDemand.map((bar) => ({
+    // R8 (audit 2026-10-31): a stale-while-revalidate window would simulate the
+    // rule over bars that may be missing. Treat it as no data instead.
+    const result = await getCandles(rule.symbol, tf, { count }).catch(() => null);
+    if (!result || result.stale) return [];
+    return result.candles.map((bar) => ({
       t: bar.t,
       o: bar.o,
       h: bar.h,

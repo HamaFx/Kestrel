@@ -16,23 +16,24 @@
 
 // Token-streaming XAUUSD conversation.
 
+import { metrics } from '@kestrel/shared';
+
 import { estimateCostUsd } from '@ai/budget/cost';
 import { getDiagnosticContext, withDiagnostics } from '@ai/diagnostics';
-import type { ChatModelResolution } from '@ai/models/model';
+import { type ChatModelResolution } from '@ai/models/model';
 import { createGenerationLedger } from '@ai/persistence/generation-ledger';
+import { withRetry } from '@ai/runtime/retry';
 import { telemetryConfig } from '@ai/runtime/telemetry';
 
 import { manifestForCapability } from '../../capabilities';
 import { kestrelMemoryOptions } from '../../memory';
 import { collectXauusdResearchPacket } from '../../packets/research-packet';
-import type { XauusdResearchPacket } from '../../packets/research-types';
 import { assertExecutionPlanRoute } from '../../planning/execution-plan';
 import { prepareResearchRunContext } from '../../research-context';
-import type { MastraGenerationResultLike, MastraGenerationStats } from '../../shared/stats';
+import type { MastraGenerationResultLike } from '../../shared/stats';
 import {
   beginMastraRun,
   createMastraRunFinalizer,
-  finishMastraRun,
   getMastraGenerationStats,
   mastraOutcomeForError,
 } from '../../shared/telemetry';
@@ -41,27 +42,16 @@ import { assertCanonicalEvidence, checkCanonicalEvidence } from '../canonical/ev
 import { createXauusdMastraAgent } from './agent';
 import { blockedStats, contextForRun, resolveXauusdMastraModel } from './context';
 import { buildConversationToolEvidence } from './conversation-evidence';
+import {
+  blockedConversationStream,
+  openXauusdConversationStream,
+} from './conversation-stream-attempt';
 import { extractToolPartsFromMessages, type MastraToolInvocationPart } from './legacy-tool-adapter';
 import { blockedXauusdResearchText } from './report/report-text';
-import type { RunXauusdMastraArgs } from './run-types';
+import type { RunXauusdMastraArgs, XauusdMastraConversationStream } from './run-types';
 import { xauusdMastraConversationToolNames } from './tools';
 
-export interface XauusdMastraConversationStream {
-  text: AsyncIterable<string>;
-  completion: Promise<{
-    result: MastraGenerationResultLike;
-    packet: XauusdResearchPacket;
-    modelId: string;
-    providerId: string;
-    bareModelId: string;
-    stats: MastraGenerationStats;
-    toolParts: MastraToolInvocationPart[];
-    answerOutcome: 'ready' | 'blocked' | 'degraded';
-    modelSnapshot: { providerId: string; bareModelId: string };
-    memoryMode: 'native' | 'degraded';
-    memoryBackfill: boolean;
-  }>;
-}
+export type { XauusdMastraConversationStream } from './run-types';
 
 export async function runXauusdMastraConversationStream(
   args: RunXauusdMastraArgs,
@@ -69,6 +59,9 @@ export async function runXauusdMastraConversationStream(
   if (args.executionPlan) assertExecutionPlanRoute(args.executionPlan, 'xauusd-conversation');
   const startedAt = Date.now();
   let resolution: ChatModelResolution | null = null;
+  // The model whose attempt failed last, so a terminal failure is attributed
+  // to the provider that actually failed (R14).
+  let lastAttemptedResolution: ChatModelResolution | null = null;
   let memoryMode: 'native' | 'degraded' = 'degraded';
   let memoryBackfill = false;
   const generationLedger = args.ledger ?? createGenerationLedger();
@@ -128,44 +121,16 @@ export async function runXauusdMastraConversationStream(
         }),
       ]);
       if (packet.status === 'blocked') {
-        const stats = blockedStats();
-        const result: MastraGenerationResultLike = { text: blockedXauusdResearchText(packet) };
-        await finishMastraRun({
-          userId: args.userId,
-          threadId: args.threadId,
-          runId: args.runId,
-          model: resolution.modelId,
-          providerId: resolution.providerId,
+        return await blockedConversationStream({
+          run: args,
+          packet,
+          resolution,
           startedAt,
-          ...stats,
-          outcome: 'success',
-          memoryMode: runContext.prepared.memoryDegraded ? 'degraded' : 'native',
-          memoryBackfill: runContext.prepared.backfillAttempted,
-          ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
+          stats: blockedStats(),
+          text: blockedXauusdResearchText(packet),
+          memoryDegraded: runContext.prepared.memoryDegraded,
+          backfillAttempted: runContext.prepared.backfillAttempted,
         });
-        return {
-          text: (async function* () {
-            yield result.text;
-          })(),
-          completion: Promise.resolve({
-            result,
-            packet,
-            modelId: resolution.modelId,
-            providerId: resolution.providerId,
-            bareModelId: resolution.bareModelId,
-            stats,
-            toolParts: [],
-            totalCostUsd: 0,
-            answerOutcome: 'blocked' as const,
-            modelSnapshot: {
-              providerId: resolution.providerId,
-              bareModelId: resolution.bareModelId,
-            },
-            memoryMode: (runContext.prepared.memoryDegraded ? 'degraded' : 'native') as
-              'native' | 'degraded',
-            memoryBackfill: runContext.prepared.backfillAttempted,
-          }),
-        };
       }
       const memory = runContext.memory;
       const prepared = runContext.prepared;
@@ -191,28 +156,50 @@ export async function runXauusdMastraConversationStream(
           args.onToolEvent,
         );
       }
-      const output = await agent.stream(args.prompt, {
-        requestContext,
-        memory: prepared.callOptions,
-        toolChoice: 'auto',
-        activeTools: [...xauusdMastraConversationToolNames],
-        maxSteps: manifestForCapability('xauusd-conversation').maxSteps,
-        ...telemetryConfig({
-          functionId: 'mastra.xauusd.conversation',
-          metadata: { provider: resolution.providerId },
-        }),
-        ...(args.signal ? { abortSignal: args.signal } : {}),
-        tracingOptions: runTracingOptions({
-          runId: args.runId,
-          userId: args.userId,
-          threadId: args.threadId,
-          kind: args.telemetryKind ?? 'mastra_xauusd_research',
-          capabilityId: 'xauusd-conversation',
-          tags: ['xauusd-conversation'],
-          memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
-          memoryBackfill: prepared.backfillAttempted,
-        }),
+      const {
+        output,
+        resolution: activeResolution,
+        fallbackParts,
+      } = await openXauusdConversationStream({
+        run: args,
+        primary: resolution,
+        onAttempt: (attempted) => {
+          lastAttemptedResolution = attempted;
+        },
+        stream: (candidate) =>
+          withRetry(
+            () =>
+              agent.stream(args.prompt, {
+                requestContext,
+                memory: prepared.callOptions,
+                toolChoice: 'auto',
+                model: candidate.model as never,
+                activeTools: [...xauusdMastraConversationToolNames],
+                maxSteps: manifestForCapability('xauusd-conversation').maxSteps,
+                ...telemetryConfig({
+                  functionId: 'mastra.xauusd.conversation',
+                  metadata: { provider: candidate.providerId },
+                }),
+                ...(args.signal ? { abortSignal: args.signal } : {}),
+                tracingOptions: runTracingOptions({
+                  runId: args.runId,
+                  userId: args.userId,
+                  threadId: args.threadId,
+                  kind: args.telemetryKind ?? 'mastra_xauusd_research',
+                  capabilityId: 'xauusd-conversation',
+                  tags: ['xauusd-conversation'],
+                  memoryMode: prepared.memoryDegraded ? 'degraded' : 'native',
+                  memoryBackfill: prepared.backfillAttempted,
+                }),
+              }),
+            { maxAttempts: 2, signal: args.signal },
+          ),
       });
+      if (fallbackParts.length > 0) {
+        metrics.increment('provider_fallback_total', {
+          tags: { kind: 'mastra_xauusd_conversation', model: resolution.modelId },
+        });
+      }
       async function* textIter(): AsyncIterable<string> {
         try {
           for await (const chunk of output.textStream) {
@@ -225,8 +212,8 @@ export async function runXauusdMastraConversationStream(
             userId: args.userId,
             threadId: args.threadId,
             runId: args.runId,
-            model: resolution?.modelId ?? 'unresolved',
-            providerId: resolution?.providerId ?? 'unresolved',
+            model: activeResolution.modelId,
+            providerId: activeResolution.providerId,
             startedAt,
             inputTokens: 0,
             outputTokens: 0,
@@ -256,7 +243,7 @@ export async function runXauusdMastraConversationStream(
           generationLedger.recordUsage(
             `primary:${args.runId}`,
             'primary',
-            resolution.modelId,
+            activeResolution.modelId,
             stats.inputTokens,
             stats.outputTokens,
             estimateCostUsd,
@@ -269,8 +256,8 @@ export async function runXauusdMastraConversationStream(
             userId: args.userId,
             threadId: args.threadId,
             runId: args.runId,
-            model: resolution.modelId,
-            providerId: resolution.providerId,
+            model: activeResolution.modelId,
+            providerId: activeResolution.providerId,
             startedAt,
             ...stats,
             outcome: args.signal?.aborted
@@ -283,16 +270,17 @@ export async function runXauusdMastraConversationStream(
           return {
             result,
             packet,
-            modelId: resolution.modelId,
-            providerId: resolution.providerId,
-            bareModelId: resolution.bareModelId,
+            modelId: activeResolution.modelId,
+            providerId: activeResolution.providerId,
+            bareModelId: activeResolution.bareModelId,
             stats,
             toolParts,
             totalCostUsd: generationLedger.total(),
             answerOutcome: full.text.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
+            ...(fallbackParts.length > 0 ? { fallbackParts } : {}),
             modelSnapshot: {
-              providerId: resolution.providerId,
-              bareModelId: resolution.bareModelId,
+              providerId: activeResolution.providerId,
+              bareModelId: activeResolution.bareModelId,
             },
             memoryMode: prepared.memoryDegraded ? ('degraded' as const) : ('native' as const),
             memoryBackfill: prepared.backfillAttempted,
@@ -302,8 +290,8 @@ export async function runXauusdMastraConversationStream(
             userId: args.userId,
             threadId: args.threadId,
             runId: args.runId,
-            model: resolution?.modelId ?? 'unresolved',
-            providerId: resolution?.providerId ?? 'unresolved',
+            model: activeResolution.modelId,
+            providerId: activeResolution.providerId,
             startedAt,
             inputTokens: 0,
             outputTokens: 0,
@@ -320,12 +308,13 @@ export async function runXauusdMastraConversationStream(
       })();
       return { text: textIter(), completion };
     } catch (error) {
+      const failedResolution = lastAttemptedResolution ?? resolution;
       await finishRun({
         userId: args.userId,
         threadId: args.threadId,
         runId: args.runId,
-        model: resolution?.modelId ?? 'unresolved',
-        providerId: resolution?.providerId ?? 'unresolved',
+        model: failedResolution?.modelId ?? 'unresolved',
+        providerId: failedResolution?.providerId ?? 'unresolved',
         startedAt,
         inputTokens: 0,
         outputTokens: 0,

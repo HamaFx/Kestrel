@@ -45,7 +45,10 @@ export function ForecastVolatilityPart({
       </header>
 
       <dl className="text-body-sm grid grid-cols-3 gap-2 tabular-nums">
-        <Stat k={`ATR (${output.tf})`} v={`${output.atrPips.toFixed(1)} pips`} />
+        <Stat
+          k={`ATR (${output.tf})`}
+          v={output.atrPips !== null ? `${output.atrPips.toFixed(1)} pips` : '—'}
+        />
         <Stat
           k="ATR · 30d avg"
           v={
@@ -54,7 +57,10 @@ export function ForecastVolatilityPart({
               : '—'
           }
         />
-        <Stat k="Expected move" v={`${output.expectedMovePips.toFixed(1)} pips`} />
+        <Stat
+          k="Expected move"
+          v={output.expectedMovePips !== null ? `${output.expectedMovePips.toFixed(1)} pips` : '—'}
+        />
       </dl>
 
       {output.expectedRange ? (

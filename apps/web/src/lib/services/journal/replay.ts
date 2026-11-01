@@ -20,7 +20,7 @@
 // execution-efficiency stats for a completed or open journal entry.
 
 import { getEntry } from '@kestrel/ai';
-import { getCandles } from '@kestrel/data';
+import { getCandlesUnchecked } from '@kestrel/data';
 import { ema, rsi } from '@kestrel/indicators';
 import { msPerTimeframe, pipSize, TimeframeSchema, type Timeframe } from '@kestrel/shared';
 
@@ -135,7 +135,7 @@ export async function getTradeSetupReplayService(args: {
   const window = computeReplayWindow(entry.openedAt, entry.closedAt, tf);
 
   let replayWindowFallback = false;
-  let candleList = await getCandles(entry.symbol, tf, {
+  let candleList = await getCandlesUnchecked(entry.symbol, tf, {
     count: window.count,
     from: window.from,
     to: window.to,
@@ -143,7 +143,7 @@ export async function getTradeSetupReplayService(args: {
 
   if (candleList.length === 0) {
     replayWindowFallback = true;
-    candleList = await getCandles(entry.symbol, tf, {
+    candleList = await getCandlesUnchecked(entry.symbol, tf, {
       count: REPLAY_MIN_BARS,
     });
   }

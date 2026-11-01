@@ -67,5 +67,13 @@ export const GetSessionLevelsOutputSchema = z.object({
   prior: z.array(SessionRangeSchema).nullable(),
   /** True if no candles were available in the lookback window. */
   pipelinePending: z.boolean(),
+  /**
+   * True when the candle window was served from the stale-while-revalidate
+   * cache (R8, audit 2026-10-31). Optional so outputs persisted before the
+   * fix still parse.
+   */
+  stale: z.boolean().optional(),
+  /** Deterministic note stating when levels are unavailable or provisional. */
+  notes: z.string().optional(),
 });
 export type GetSessionLevelsOutput = z.infer<typeof GetSessionLevelsOutputSchema>;

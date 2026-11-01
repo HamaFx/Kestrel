@@ -45,7 +45,7 @@ const mockComputeIndicator = vi.fn();
 const mockComputeStructure = vi.fn();
 
 vi.mock('@kestrel/data', () => ({
-  getCandles: (...args: unknown[]) => mockGetCandles(...args),
+  getCandlesUnchecked: (...args: unknown[]) => mockGetCandles(...args),
 }));
 
 vi.mock('@kestrel/indicators', () => ({

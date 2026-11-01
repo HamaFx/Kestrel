@@ -45,6 +45,8 @@ const exec = getSessionLevelsTool.execute as unknown as (input: unknown) => Prom
     close: number | null;
   }> | null;
   pipelinePending: boolean;
+  stale?: boolean;
+  notes?: string;
 }>;
 
 function bar(c: number, t: number): Candle {
@@ -60,6 +62,10 @@ function bar(c: number, t: number): Candle {
     source: 'test',
     fetchedAt: 0,
   };
+}
+
+function window(candles: Candle[], stale = false) {
+  return { candles, stale, producedAt: Date.now() };
 }
 
 afterEach(() => {
@@ -83,7 +89,7 @@ describe('get_session_levels — session slicing', () => {
     for (let h = 0; h <= 9; h += 1) {
       candles.push(bar(2400 + h, today + h * 60 * 60 * 1000));
     }
-    vi.mocked(getCandles).mockResolvedValueOnce(candles);
+    vi.mocked(getCandles).mockResolvedValueOnce(window(candles));
 
     const r = await exec({ symbol: 'XAUUSD', includePrior: false });
     expect(r.pipelinePending).toBe(false);
@@ -108,10 +114,25 @@ describe('get_session_levels — session slicing', () => {
   });
 
   it('returns pipelinePending=true with no candles', async () => {
-    vi.mocked(getCandles).mockResolvedValueOnce([] as Candle[]);
+    vi.mocked(getCandles).mockResolvedValueOnce(window([]));
     const r = await exec({ symbol: 'XAUUSD', includePrior: false });
     expect(r.pipelinePending).toBe(true);
     expect(r.today).toEqual([]);
+    expect(r.notes).toMatch(/unavailable/i);
+  });
+
+  it('discloses a stale candle window instead of presenting levels as current', async () => {
+    const today = new Date('2026-05-26T00:00:00Z').getTime();
+    const candles: Candle[] = [];
+    for (let h = 0; h <= 9; h += 1) {
+      candles.push(bar(2400 + h, today + h * 60 * 60 * 1000));
+    }
+    vi.mocked(getCandles).mockResolvedValueOnce(window(candles, true));
+
+    const r = await exec({ symbol: 'XAUUSD', includePrior: false });
+    expect(r.pipelinePending).toBe(false);
+    expect(r.stale).toBe(true);
+    expect(r.notes).toMatch(/stale/i);
   });
 
   it('emits prior-day rows when includePrior=true', async () => {
@@ -127,7 +148,7 @@ describe('get_session_levels — session slicing', () => {
     for (let h = 0; h <= 9; h += 1) {
       candles.push(bar(2400 + h, today + h * 60 * 60 * 1000));
     }
-    vi.mocked(getCandles).mockResolvedValueOnce(candles);
+    vi.mocked(getCandles).mockResolvedValueOnce(window(candles));
 
     const r = await exec({ symbol: 'XAUUSD', includePrior: true });
     expect(r.prior).not.toBeNull();

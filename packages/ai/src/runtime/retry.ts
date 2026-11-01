@@ -116,7 +116,7 @@ function jitteredDelay(base: number, attempt: number, max: number): number {
  * causes unnecessary user-facing chat failures (C3 fix —
  * RELIABILITY_AUDIT_REPORT.md).
  */
-function isTransientByDefault(err: unknown): boolean {
+export function isRetryableTransientError(err: unknown): boolean {
   const { reason } = classifyStreamError(err);
   // 'unknown' covers provider SDK errors with novel shapes that the
   // classifier doesn't recognise yet — retrying once is cheap insurance.
@@ -136,7 +136,7 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
     maxDelayMs = 10_000,
     maxRetryAfterMs = 30_000,
     signal = null,
-    isRetryable = isTransientByDefault,
+    isRetryable = isRetryableTransientError,
     onRetry,
   } = options;
 

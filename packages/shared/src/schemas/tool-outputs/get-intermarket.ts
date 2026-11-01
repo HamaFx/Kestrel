@@ -43,21 +43,34 @@ export const GetIntermarketOutputSchema = z.object({
   asOf: z.int(),
   tf: TimeframeSchema,
   windowBars: z.int(),
-  /** USD-strength proxy snapshot — same formula as `get_correlation`. */
-  dxyProxy: z.object({
-    value: z.number(),
-    change24h: z.number(),
-    formula: z.string(),
-  }),
+  /**
+   * USD-strength proxy snapshot — same formula as `get_correlation`.
+   *
+   * R8 (audit 2026-10-31): null when EURUSD/GBPUSD data is unavailable. It
+   * used to be `{ value: 0, change24h: 0 }`, a fabricated number the numeric
+   * evidence gate would accept as a real reading.
+   */
+  dxyProxy: z
+    .object({
+      value: z.number(),
+      change24h: z.number().nullable(),
+      formula: z.string(),
+    })
+    .nullable(),
   /** Gold pulse: 24-hour percent change of XAUUSD, signed. */
   goldChange24h: z.number().nullable(),
-  /** Pearson correlation between XAUUSD and the DXY proxy in the window. */
-  xauDxyCorrelation: z.number(),
+  /**
+   * Pearson correlation between XAUUSD and the DXY proxy in the window.
+   * Null (not 0) when there are fewer than five overlapping returns — an
+   * absent correlation is not a zero correlation (R8).
+   */
+  xauDxyCorrelation: z.number().nullable(),
   /**
    * High-level regime tag. Derived from {dxyProxy.change24h, goldChange24h}:
    *   - dxy down + xau up + eu/gu up           → risk-on
    *   - dxy up + xau down + eu/gu down         → risk-off
    *   - mixed signals or |moves| < threshold   → neutral
+   * `neutral` also covers missing inputs — `notes` and `partial` disclose that.
    */
   regime: RiskRegimeSchema,
   /**

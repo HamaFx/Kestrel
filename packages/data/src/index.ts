@@ -20,14 +20,19 @@
 export {
   getPrice,
   getPriceWithMeta,
+  getPriceUnchecked,
   getPrices,
   getPricesWithMeta,
+  getPricesUnchecked,
+  priceAgeSeconds,
   type GetPriceOptions,
   type PriceResult,
 } from './adapters/price';
 export {
   getCandles,
   getCandlesWithMeta,
+  getCandlesUnchecked,
+  candlesAgeSeconds,
   type GetCandlesOptions,
   type CandlesResult,
 } from './adapters/candles';

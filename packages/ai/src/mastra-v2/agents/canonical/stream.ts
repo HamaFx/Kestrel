@@ -21,7 +21,6 @@ import { metrics } from '@kestrel/shared';
 import { estimateCostUsd } from '@ai/budget/cost';
 import { getDiagnosticContext, persistDiagnosticContext, withDiagnostics } from '@ai/diagnostics';
 import { createGenerationLedger } from '@ai/persistence/generation-ledger';
-import { withRetry } from '@ai/runtime/retry';
 import { withToolContext } from '@ai/runtime/tool-context';
 
 import { manifestForCapability } from '../../capabilities';
@@ -34,6 +33,7 @@ import {
 } from '../../shared/telemetry';
 import { runTracingOptions } from '../../telemetry';
 import { extractToolPartsFromMessages } from '../xauusd/legacy-tool-adapter';
+import { openCanonicalAttempt } from './attempt';
 import { attemptCanonicalSelfCorrection } from './correction';
 import { assertCanonicalEvidence, checkCanonicalEvidence } from './evidence';
 import { setupCanonicalChat } from './setup';
@@ -83,11 +83,37 @@ async function executeCanonicalChatStream(
     telemetryKind: 'mastra_canonical_chat',
   });
 
-  const output = await withToolContext(context, () =>
-    withRetry(
-      () =>
+  const finishMastra = createMastraRunFinalizer();
+  let terminalPromise: Promise<void> | null = null;
+  // One terminal finalizer for the stream: the run record and the diagnostic
+  // trace land together, exactly once, when the stream completes or fails.
+  const finishRun = (obs: MastraRunObservation): Promise<void> => {
+    terminalPromise ??= (async () => {
+      await finishMastra(obs);
+      await persistDiagnosticContext(diagCtx, obs.outcome === 'success' ? 'completed' : 'failed');
+    })();
+    return terminalPromise;
+  };
+
+  // R14 — a rate limit or 5xx mid-turn continues on the user's next
+  // configured model. The chain is empty when the plan pinned a snapshot or
+  // the user has no other provider.
+  const {
+    output,
+    resolution: activeResolution,
+    fallbackParts,
+  } = await openCanonicalAttempt({
+    run: args,
+    runId,
+    primary: resolution,
+    domain: routing.domain === 'generic' ? 'summary' : routing.domain,
+    stream: (candidate) =>
+      withToolContext(context, () =>
         agent.stream(messages, {
           requestContext,
+          // Per-call model keeps one agent (tools, memory, guardrails)
+          // while the provider behind it changes (R14).
+          model: candidate.model as never,
           ...(callMemory ? { memory: callMemory } : {}),
           toolChoice: 'auto',
           maxSteps: Math.min(
@@ -107,21 +133,34 @@ async function executeCanonicalChatStream(
             memoryBackfill: setup.memoryBackfill,
           }),
         }),
-      { maxAttempts: 2, signal: args.signal },
-    ),
-  );
-
-  const finishMastra = createMastraRunFinalizer();
-  let terminalPromise: Promise<void> | null = null;
-  // One terminal finalizer for the stream: the run record and the diagnostic
-  // trace land together, exactly once, when the stream completes or fails.
-  const finishRun = (obs: MastraRunObservation): Promise<void> => {
-    terminalPromise ??= (async () => {
-      await finishMastra(obs);
-      await persistDiagnosticContext(diagCtx, obs.outcome === 'success' ? 'completed' : 'failed');
-    })();
-    return terminalPromise;
-  };
+      ),
+    onFailure: async (failed, error) => {
+      // The stream was never created: record exactly one terminal run for the
+      // model whose attempt failed so the breaker learns about it.
+      await finishRun({
+        userId: args.userId,
+        threadId: args.threadId,
+        runId,
+        model: failed.modelId,
+        providerId: failed.providerId,
+        startedAt,
+        inputTokens: 0,
+        outputTokens: 0,
+        toolCalls: 0,
+        steps: 0,
+        outcome: mastraOutcomeForError(error, args.signal),
+        memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
+        memoryBackfill: setup.memoryBackfill,
+        telemetryKind: 'mastra_canonical_chat',
+        error,
+      });
+    },
+  });
+  if (fallbackParts.length > 0) {
+    metrics.increment('provider_fallback_total', {
+      tags: { kind: 'mastra_canonical_chat', model: resolution.modelId },
+    });
+  }
 
   async function* textIter(): AsyncIterable<string> {
     try {
@@ -136,8 +175,8 @@ async function executeCanonicalChatStream(
         userId: args.userId,
         threadId: args.threadId,
         runId,
-        model: resolution.modelId,
-        providerId: resolution.providerId,
+        model: activeResolution.modelId,
+        providerId: activeResolution.providerId,
         startedAt,
         inputTokens: 0,
         outputTokens: 0,
@@ -208,7 +247,7 @@ async function executeCanonicalChatStream(
       }
 
       const primaryCostUsd = estimateCostUsd(
-        resolution.modelId,
+        activeResolution.modelId,
         stats.inputTokens,
         stats.outputTokens,
       );
@@ -228,15 +267,18 @@ async function executeCanonicalChatStream(
           userId: args.userId,
           threadId: args.threadId,
           runId,
-          model: resolution.modelId,
-          providerId: resolution.providerId,
+          model: activeResolution.modelId,
+          providerId: activeResolution.providerId,
           startedAt,
           ...stats,
           outcome: 'success',
           answerOutcome: 'blocked',
           memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
           memoryBackfill: setup.memoryBackfill,
-          modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
+          modelSnapshot: {
+            providerId: activeResolution.providerId,
+            bareModelId: activeResolution.bareModelId,
+          },
           telemetryKind: 'mastra_canonical_chat',
         });
         assertCanonicalEvidence(evidence);
@@ -245,8 +287,8 @@ async function executeCanonicalChatStream(
         userId: args.userId,
         threadId: args.threadId,
         runId,
-        model: resolution.modelId,
-        providerId: resolution.providerId,
+        model: activeResolution.modelId,
+        providerId: activeResolution.providerId,
         startedAt,
         ...stats,
         outcome: args.signal?.aborted
@@ -255,7 +297,10 @@ async function executeCanonicalChatStream(
         answerOutcome: finalText.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
         memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
         memoryBackfill: setup.memoryBackfill,
-        modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
+        modelSnapshot: {
+          providerId: activeResolution.providerId,
+          bareModelId: activeResolution.bareModelId,
+        },
         telemetryKind: 'mastra_canonical_chat',
       });
       return {
@@ -267,21 +312,25 @@ async function executeCanonicalChatStream(
         toolParts,
         evidence,
         routing,
-        modelId: resolution.modelId,
-        providerId: resolution.providerId,
+        modelId: activeResolution.modelId,
+        providerId: activeResolution.providerId,
         answerOutcome: finalText.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
         ...(repaired ? { repaired: true } : {}),
         memoryMode: setup.memoryDegraded ? ('degraded' as const) : ('native' as const),
         memoryBackfill: setup.memoryBackfill,
-        modelSnapshot: { providerId: resolution.providerId, bareModelId: resolution.bareModelId },
+        ...(fallbackParts.length > 0 ? { fallbackParts } : {}),
+        modelSnapshot: {
+          providerId: activeResolution.providerId,
+          bareModelId: activeResolution.bareModelId,
+        },
       };
     } catch (error) {
       await finishRun({
         userId: args.userId,
         threadId: args.threadId,
         runId,
-        model: resolution.modelId,
-        providerId: resolution.providerId,
+        model: activeResolution.modelId,
+        providerId: activeResolution.providerId,
         startedAt,
         inputTokens: 0,
         outputTokens: 0,

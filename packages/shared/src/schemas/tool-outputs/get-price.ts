@@ -17,16 +17,26 @@
 // Output envelope returned by the `get_price` AI tool. Reuses the existing
 // per-row `TickSchema` primitive — this file only describes the wrapper.
 //
-// Source of truth: packages/ai/src/tools/get-price.ts execute() return type.
+// Source of truth: packages/ai/src/mastra-v2/tools/canonical/price.ts execute().
+//
+// R8 (audit 2026-10-31): the wrapper carries per-symbol freshness so the model
+// can disclose that a quote was served stale instead of presenting it as live.
+// `freshness`/`warnings` are optional so tool outputs persisted before R8
+// still parse in the chat replay path.
 
 import { z } from 'zod';
 
 import { TickSchema } from '../tick';
+import { QuoteFreshnessSchema } from './freshness';
 
 export const GetPriceOutputSchema = z.object({
   ticks: z.array(TickSchema),
   /** ISO timestamp the answer was assembled at — drives freshness UI. */
   asOf: z.string(),
+  /** One entry per requested symbol; omitted by pre-R8 persisted outputs. */
+  freshness: z.array(QuoteFreshnessSchema).optional(),
+  /** Pre-rendered disclosure lines the model should surface when data is stale. */
+  warnings: z.array(z.string()).optional(),
 });
 
 export type GetPriceOutput = z.infer<typeof GetPriceOutputSchema>;

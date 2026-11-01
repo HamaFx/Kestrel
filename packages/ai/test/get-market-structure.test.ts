@@ -40,7 +40,7 @@ const mockGetCandles = vi.fn();
 const mockComputeStructure = vi.fn();
 
 vi.mock('@kestrel/data', () => ({
-  getCandles: (...args: unknown[]) => mockGetCandles(...args),
+  getCandlesUnchecked: (...args: unknown[]) => mockGetCandles(...args),
 }));
 
 vi.mock('@kestrel/indicators', () => ({
@@ -114,7 +114,7 @@ describe('get_market_structure — Phase 0.10', () => {
     expect(result.summary).toMatch(/unmitigated/i);
   });
 
-  it('calls getCandles with correct parameters', async () => {
+  it('calls getCandlesUnchecked with correct parameters', async () => {
     mockGetCandles.mockResolvedValue([]);
     mockComputeStructure.mockReturnValue({
       symbol: 'EURUSD',

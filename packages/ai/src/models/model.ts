@@ -85,6 +85,18 @@ export type {
   MastraResolvedModel,
 } from './resolution';
 
+// ── Mid-turn provider failover (R14) ─────────────────────────────────
+export {
+  MAX_TURN_FALLBACKS,
+  resolveFallbackChain,
+  runWithModelFallback,
+  type FallbackModelCandidate,
+  type ResolveFallbackChainArgs,
+  type RunWithModelFallbackArgs,
+  type RunWithModelFallbackResult,
+} from './model-fallback';
+export type { FallbackPartPayload } from './fallback';
+
 // ── Vision model resolution ──────────────────────────────────────────
 export { resolveVisionModel } from './vision';
 export type { VisionModelResolution } from './vision';

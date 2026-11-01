@@ -21,7 +21,7 @@
 // independently so a single failure only drops one row and sets
 // `partial: true`.
 
-import { getPrice } from '@kestrel/data';
+import { getPriceUnchecked } from '@kestrel/data';
 import {
   ComputePositionHealthInputSchema,
   pipSize,
@@ -77,7 +77,9 @@ export const computePositionHealthTool: Tool<
       let mid = priceCache.get(e.symbol);
       if (mid === undefined) {
         try {
-          const tick = await (signal ? getPrice(e.symbol, { signal }) : getPrice(e.symbol));
+          const tick = await (signal
+            ? getPriceUnchecked(e.symbol, { signal })
+            : getPriceUnchecked(e.symbol));
           mid = tick.mid;
           priceCache.set(e.symbol, mid);
         } catch {

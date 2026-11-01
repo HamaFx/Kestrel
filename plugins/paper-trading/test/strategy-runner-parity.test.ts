@@ -117,7 +117,7 @@ function getSignal(ctx) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.getCandles.mockResolvedValue(candles());
+  mocks.getCandles.mockResolvedValue({ candles: candles(), stale: false, producedAt: Date.now() });
   mocks.updateStrategyRun.mockResolvedValue(undefined);
   mocks.listOpenPositionsForSymbol.mockResolvedValue([]);
   mocks.listOrders.mockResolvedValue([]);
@@ -226,7 +226,11 @@ describe('paper strategy runner parity', () => {
     expect(mocks.placeOrderForUser).not.toHaveBeenCalled();
 
     vi.clearAllMocks();
-    mocks.getCandles.mockResolvedValue(candles());
+    mocks.getCandles.mockResolvedValue({
+      candles: candles(),
+      stale: false,
+      producedAt: Date.now(),
+    });
     mocks.updateStrategyRun.mockResolvedValue(undefined);
     mocks.listOpenPositionsForSymbol.mockResolvedValue([]);
     mocks.listOrders.mockResolvedValue([]);

@@ -21,14 +21,54 @@
 // All rule inputs (prices, candle windows) are grouped by (symbol, tf) and
 // pre-fetched in parallel before each rule is evaluated purely from the
 // prefetched cache, so a single tick never issues duplicated upstream calls.
+//
+// R8 (audit 2026-10-31): readings refused when the market data is stale, so an
+// alert can never fire on a cached-after-failure quote or a window whose last
+// closed bar is days old. The refusal is logged, not silent.
 
-import { getCandles, getPrice } from '@kestrel/data';
+import {
+  candlesAgeSeconds,
+  getCandles,
+  getPrice,
+  priceAgeSeconds,
+  type CandlesResult,
+  type PriceResult,
+} from '@kestrel/data';
 import { computeIndicator } from '@kestrel/indicators';
-import type { AlertRule, Candle, Symbol, Tick, Timeframe } from '@kestrel/shared';
+import {
+  msPerTimeframe,
+  type AlertRule,
+  type Candle,
+  type Symbol,
+  type Timeframe,
+} from '@kestrel/shared';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 import type { RuleReading } from '../spec';
 import { lastClosedBar } from './bars';
 import { parseIndicatorSpec } from './indicator-spec';
+
+const rlog = createCategorizedLogger('ai', { component: 'alerts-readings' });
+
+/**
+ * A priceCross reading whose total age (provider quote age + cache time)
+ * exceeds this is not evaluated. Five minutes matches the paper broker's
+ * tradability gate so "live quote" means one thing across the product.
+ */
+export const ALERT_MAX_PRICE_AGE_SECONDS = 300;
+
+/**
+ * A candleClose/indicatorCross reading whose newest fully closed bar is older
+ * than this many bar durations (with a 15-minute floor for intraday
+ * timeframes) is not evaluated. The floor keeps 1m/5m rules alive between
+ * prints; the multiple absorbs provider latency and short market pauses while
+ * still refusing Friday's bar on Sunday.
+ */
+export const ALERT_MAX_CLOSED_BAR_AGE_BARS = 5;
+
+export function alertCandleAgeLimitSeconds(tf: Timeframe): number {
+  return Math.max((msPerTimeframe(tf) * ALERT_MAX_CLOSED_BAR_AGE_BARS) / 1000, 15 * 60);
+}
 
 type AlertObj = { id: string; rule: AlertRule };
 
@@ -63,16 +103,16 @@ export async function readReadingsBatch(
   }
 
   // 2. Pre-fetch all dependencies in parallel
-  const priceCache = new Map<Symbol, Tick | Error>();
-  const candleCache = new Map<string, Candle[] | Error>();
+  const priceCache = new Map<Symbol, PriceResult | Error>();
+  const candleCache = new Map<string, CandlesResult | Error>();
 
   const fetches: Promise<void>[] = [];
 
   for (const sym of neededPrices) {
     fetches.push(
       getPrice(sym)
-        .then((t) => {
-          priceCache.set(sym, t);
+        .then((r) => {
+          priceCache.set(sym, r);
         })
         .catch((e) => {
           priceCache.set(sym, e instanceof Error ? e : new Error(String(e)));
@@ -82,8 +122,8 @@ export async function readReadingsBatch(
   for (const [key, req] of neededCandles.entries()) {
     fetches.push(
       getCandles(req.symbol, req.tf, { count: req.count })
-        .then((c) => {
-          candleCache.set(key, c);
+        .then((r) => {
+          candleCache.set(key, r);
         })
         .catch((e) => {
           candleCache.set(key, e instanceof Error ? e : new Error(String(e)));
@@ -100,22 +140,39 @@ export async function readReadingsBatch(
     const { rule } = a;
     try {
       if (rule.type === 'priceCross') {
-        const tick = priceCache.get(rule.symbol);
-        if (tick instanceof Error) throw tick;
-        if (!tick) {
+        const result = priceCache.get(rule.symbol);
+        if (result instanceof Error) throw result;
+        if (!result) {
           results.set(a.id, null);
           continue;
         }
-        results.set(a.id, { value: tick.mid, source: tick.source });
+        // R8 — refuse stale readings instead of firing an alert on them.
+        const stale = result.stale || result.tick.stale === true;
+        const ageSeconds = priceAgeSeconds(result);
+        if (stale || ageSeconds > ALERT_MAX_PRICE_AGE_SECONDS) {
+          rlog.warn('alert reading skipped: price is stale', {
+            alertId: a.id,
+            symbol: rule.symbol,
+            stale,
+            ageSeconds,
+          });
+          results.set(a.id, null);
+          continue;
+        }
+        results.set(a.id, { value: result.tick.mid, source: result.tick.source });
       } else if (rule.type === 'candleClose') {
         const key = `${rule.symbol}-${rule.tf}`;
-        const candles = candleCache.get(key);
-        if (candles instanceof Error) throw candles;
-        if (!candles || candles.length === 0) {
+        const result = candleCache.get(key);
+        if (result instanceof Error) throw result;
+        if (!result || result.candles.length === 0) {
           results.set(a.id, null);
           continue;
         }
-        const last = lastClosedBar(candles, rule.tf);
+        if (!candleWindowIsFresh(result, rule.tf, a.id, rule.symbol)) {
+          results.set(a.id, null);
+          continue;
+        }
+        const last = lastClosedBar(result.candles, rule.tf);
         if (!last) results.set(a.id, null);
         else results.set(a.id, { value: last.c, source: last.source });
       } else if (rule.type === 'indicatorCross') {
@@ -125,14 +182,19 @@ export async function readReadingsBatch(
           continue;
         }
         const key = `${rule.symbol}-${rule.tf}`;
-        const candles = candleCache.get(key);
-        if (candles instanceof Error) throw candles;
-        if (!candles || candles.length === 0) {
+        const result = candleCache.get(key);
+        if (result instanceof Error) throw result;
+        if (!result || result.candles.length === 0) {
           results.set(a.id, null);
           continue;
         }
+        if (!candleWindowIsFresh(result, rule.tf, a.id, rule.symbol)) {
+          results.set(a.id, null);
+          continue;
+        }
+        const candles = result.candles;
 
-        const result = computeIndicator({
+        const result2 = computeIndicator({
           symbol: rule.symbol,
           tf: rule.tf,
           kind: parsed.kind,
@@ -141,8 +203,8 @@ export async function readReadingsBatch(
         });
 
         let found: RuleReading | null = null;
-        for (let i = result.values.length - 1; i >= 0; i -= 1) {
-          const v = result.values[i];
+        for (let i = result2.values.length - 1; i >= 0; i -= 1) {
+          const v = result2.values[i];
           if (v == null) continue;
           if (typeof v === 'number') {
             found = { value: v, source: `${parsed.kind}@${rule.tf}` };
@@ -171,4 +233,42 @@ export async function readReadingsBatch(
   }
 
   return results;
+}
+
+/**
+ * R8 staleness gate for candle-driven rules: the window must not be a
+ * stale-while-revalidate fallback, and its newest fully closed bar must not be
+ * older than `alertCandleAgeLimitSeconds(tf)`.
+ */
+function candleWindowIsFresh(
+  result: CandlesResult,
+  tf: Timeframe,
+  alertId: string,
+  symbol: Symbol,
+): boolean {
+  const ageSeconds = newestClosedBarAgeSeconds(result.candles, tf);
+  const fresh =
+    !result.stale && ageSeconds !== null && ageSeconds <= alertCandleAgeLimitSeconds(tf);
+  if (!fresh) {
+    rlog.warn('alert reading skipped: candle window is stale', {
+      alertId,
+      symbol,
+      tf,
+      cacheStale: result.stale,
+      cacheAgeSeconds: candlesAgeSeconds(result),
+      lastClosedBarAgeSeconds: ageSeconds,
+    });
+  }
+  return fresh;
+}
+
+/** Seconds since the newest fully closed bar closed; null when none is closed. */
+function newestClosedBarAgeSeconds(candles: readonly Candle[], tf: Timeframe): number | null {
+  const tfDur = msPerTimeframe(tf);
+  const now = Date.now();
+  for (let i = candles.length - 1; i >= 0; i -= 1) {
+    const bar = candles[i]!;
+    if (bar.t + tfDur <= now) return (now - (bar.t + tfDur)) / 1000;
+  }
+  return null;
 }

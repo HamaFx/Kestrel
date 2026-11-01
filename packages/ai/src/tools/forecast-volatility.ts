@@ -24,7 +24,7 @@
 //   barsInHorizon  = horizonHours * 60 / barMinutes
 //   expectedPips   = atr_pips * sqrt(barsInHorizon) * eventMultiplier
 
-import { getCandles, getPrice } from '@kestrel/data';
+import { getCandles, getPrice, priceAgeSeconds, type CandlesResult } from '@kestrel/data';
 import { schema } from '@kestrel/db';
 import { atr } from '@kestrel/indicators';
 import {
@@ -81,15 +81,21 @@ export const forecastVolatilityTool: Tool<
   inputSchema: InputSchema,
   execute: async ({ symbol, tf, horizonHours }): Promise<ForecastVolatilityOutput> => {
     const candles = await getCandles(symbol, tf, { count: 200 });
-    const baselineCandles = await getCandles(symbol, '1d', { count: 60 }).catch(() => []);
+    const baselineCandles: CandlesResult = await getCandles(symbol, '1d', { count: 60 }).catch(
+      (): CandlesResult => ({ candles: [], stale: false, producedAt: Date.now() }),
+    );
     const pip = pipSize(symbol);
     const now = Date.now();
 
-    const atrSeries = atr(candles, 14);
+    const atrSeries = atr(candles.candles, 14);
     const lastAtr = lastFiniteNumber(atrSeries);
-    const atrPips = lastAtr !== null ? lastAtr / pip : 0;
+    // R8 (audit 2026-10-31): null, never 0. A missing ATR has no pips value,
+    // and a fabricated 0 let the model print "expected ±0.0 pips" as if it
+    // were measured.
+    const atrPips = lastAtr !== null && lastAtr > 0 ? lastAtr / pip : null;
 
-    const baselineAtrSeries = baselineCandles.length >= 30 ? atr(baselineCandles, 14) : [];
+    const baselineAtrSeries =
+      baselineCandles.candles.length >= 30 ? atr(baselineCandles.candles, 14) : [];
     const baselineLast = baselineAtrSeries.length > 0 ? lastFiniteNumber(baselineAtrSeries) : null;
     const atrPipsBaseline30d = baselineLast !== null ? baselineLast / pipSize(symbol) : null;
 
@@ -104,19 +110,37 @@ export const forecastVolatilityTool: Tool<
     const eventAdjusted = eventCount > 0;
 
     const barsInHorizon = (horizonHours * 60 * 60 * 1000) / BAR_MS[tf];
-    const expectedMovePips = atrPips * Math.sqrt(Math.max(barsInHorizon, 0)) * eventMultiplier;
+    const expectedMovePips =
+      atrPips === null ? null : atrPips * Math.sqrt(Math.max(barsInHorizon, 0)) * eventMultiplier;
 
     let expectedRange: ForecastVolatilityOutput['expectedRange'] = null;
-    try {
-      const tick = await getPrice(symbol);
-      const offset = expectedMovePips * pip;
-      expectedRange = {
-        low: tick.mid - offset,
-        high: tick.mid + offset,
-        mid: tick.mid,
-      };
-    } catch {
-      // Mid unavailable — leave null.
+    let rangeNote = '';
+    if (expectedMovePips !== null) {
+      try {
+        const quote = await getPrice(symbol);
+        const ageSeconds = priceAgeSeconds(quote, now);
+        const usable =
+          !quote.stale &&
+          quote.tick.stale !== true &&
+          Number.isFinite(quote.tick.mid) &&
+          quote.tick.mid > 0 &&
+          ageSeconds <= FORECAST_MAX_PRICE_AGE_SECONDS;
+        if (usable) {
+          const offset = expectedMovePips * pip;
+          expectedRange = {
+            low: quote.tick.mid - offset,
+            high: quote.tick.mid + offset,
+            mid: quote.tick.mid,
+          };
+        } else {
+          rangeNote = ` The live ${symbol} mid was stale or ${Math.round(
+            ageSeconds,
+          )}s old, so the projected price range was omitted rather than anchored to it.`;
+        }
+      } catch {
+        // Mid unavailable — leave null.
+        rangeNote = ` A live ${symbol} mid was unavailable, so the projected price range was omitted.`;
+      }
     }
 
     const next = events[0];
@@ -128,6 +152,7 @@ export const forecastVolatilityTool: Tool<
         }
       : null;
 
+    const candlesStale = candles.stale || baselineCandles.stale === true;
     const notes = buildNotes({
       symbol,
       tf,
@@ -137,6 +162,8 @@ export const forecastVolatilityTool: Tool<
       eventAdjusted,
       eventCount,
       atrPipsBaseline30d,
+      stale: candlesStale,
+      extra: rangeNote,
     });
 
     return {
@@ -155,6 +182,13 @@ export const forecastVolatilityTool: Tool<
     };
   },
 });
+
+/**
+ * A live mid older than this cannot anchor a projected range (R8). Five
+ * minutes matches the paper-broker's tradability window so "usable live
+ * quote" means the same thing across the product.
+ */
+export const FORECAST_MAX_PRICE_AGE_SECONDS = 300;
 
 interface EventLookupArgs {
   currencies: EventCurrency[];
@@ -202,14 +236,16 @@ function buildNotes(args: {
   symbol: Symbol;
   tf: Timeframe;
   horizonHours: number;
-  atrPips: number;
-  expectedMovePips: number;
+  atrPips: number | null;
+  expectedMovePips: number | null;
   eventAdjusted: boolean;
   eventCount: number;
   atrPipsBaseline30d: number | null;
+  stale: boolean;
+  extra: string;
 }): string {
   const baselineLine =
-    args.atrPipsBaseline30d !== null
+    args.atrPips !== null && args.atrPipsBaseline30d !== null
       ? args.atrPips > args.atrPipsBaseline30d * 1.25
         ? ' Realized vol is elevated vs the 30-day baseline.'
         : args.atrPips < args.atrPipsBaseline30d * 0.8
@@ -219,5 +255,14 @@ function buildNotes(args: {
   const eventLine = args.eventAdjusted
     ? ` ${args.eventCount} high-impact event${args.eventCount === 1 ? '' : 's'} in the window — multiplier applied.`
     : '';
-  return `${args.symbol} ${args.tf} ATR(14) is ${args.atrPips.toFixed(1)} pips; expected ±${args.expectedMovePips.toFixed(1)} pips over the next ${args.horizonHours}h.${eventLine}${baselineLine}`;
+  const staleLine = args.stale
+    ? ' The candle window was served from a stale cache; treat this estimate as provisional.'
+    : '';
+  // R8: an unavailable ATR is stated as unavailable. No "±0.0 pips" reading,
+  // because that number never existed.
+  const estimateLine =
+    args.atrPips === null || args.expectedMovePips === null
+      ? `${args.symbol} ${args.tf}: ATR(14) could not be computed from the available candle window, so no expected move is available.`
+      : `${args.symbol} ${args.tf} ATR(14) is ${args.atrPips.toFixed(1)} pips; expected ±${args.expectedMovePips.toFixed(1)} pips over the next ${args.horizonHours}h.`;
+  return `${estimateLine}${args.extra}${eventLine}${baselineLine}${staleLine}`;
 }

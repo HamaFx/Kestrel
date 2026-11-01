@@ -41,7 +41,13 @@ export function GetIntermarketPart({
   if (state === 'loading' || !output) return <SkeletonCard />;
 
   const tone = REGIME_TONE[output.regime];
-  const dxyTone = output.dxyProxy.change24h >= 0 ? 'text-bull' : 'text-bear';
+  const dxy = output.dxyProxy;
+  const dxyTone =
+    dxy === null || dxy.change24h === null
+      ? 'text-fg-muted'
+      : dxy.change24h >= 0
+        ? 'text-bull'
+        : 'text-bear';
   const goldTone =
     output.goldChange24h === null
       ? 'text-fg-muted'
@@ -62,8 +68,12 @@ export function GetIntermarketPart({
       <dl className="text-body-sm grid grid-cols-3 gap-2 tabular-nums">
         <Stat
           k="DXY proxy"
-          v={output.dxyProxy.value.toFixed(4)}
-          sub={`${output.dxyProxy.change24h >= 0 ? '+' : ''}${output.dxyProxy.change24h.toFixed(2)}% 24h`}
+          v={dxy !== null ? dxy.value.toFixed(4) : '—'}
+          sub={
+            dxy !== null && dxy.change24h !== null
+              ? `${dxy.change24h >= 0 ? '+' : ''}${dxy.change24h.toFixed(2)}% 24h`
+              : 'unavailable'
+          }
           tone={dxyTone}
         />
         <Stat
@@ -77,19 +87,21 @@ export function GetIntermarketPart({
         />
         <Stat
           k="XAU↔DXY corr"
-          v={output.xauDxyCorrelation.toFixed(2)}
+          v={output.xauDxyCorrelation !== null ? output.xauDxyCorrelation.toFixed(2) : '—'}
           tone={
-            output.xauDxyCorrelation <= -0.4
-              ? 'text-bull'
-              : output.xauDxyCorrelation >= 0.4
-                ? 'text-bear'
-                : 'text-fg-muted'
+            output.xauDxyCorrelation === null
+              ? 'text-fg-muted'
+              : output.xauDxyCorrelation <= -0.4
+                ? 'text-bull'
+                : output.xauDxyCorrelation >= 0.4
+                  ? 'text-bear'
+                  : 'text-fg-muted'
           }
         />
       </dl>
 
       <p className="text-fg-muted text-xs">{output.notes}</p>
-      <p className="text-fg-subtle text-caption font-mono">{output.dxyProxy.formula}</p>
+      <p className="text-fg-subtle text-caption font-mono">{dxy?.formula ?? ''}</p>
     </div>
   );
 }

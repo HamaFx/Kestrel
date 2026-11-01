@@ -28,7 +28,7 @@
 // `verify-warning` chat part which renders caveats next to the agent's
 // directional call rather than silencing it.
 
-import { getCandles, getPrice } from '@kestrel/data';
+import { getCandlesUnchecked, getPriceUnchecked } from '@kestrel/data';
 import { computeStructure } from '@kestrel/indicators';
 import {
   pipSize,
@@ -67,7 +67,9 @@ export const verifyCallTool: Tool<z.infer<typeof InputSchema>, VerifyCallOutput>
     let marketTolerance: number | null = null;
 
     try {
-      const tick = await (signal ? getPrice(symbol, { signal }) : getPrice(symbol));
+      const tick = await (signal
+        ? getPriceUnchecked(symbol, { signal })
+        : getPriceUnchecked(symbol));
       marketPrice = tick.mid;
       marketTolerance = marketDistanceTolerance(symbol, tick.mid, tf);
 
@@ -133,7 +135,7 @@ export const verifyCallTool: Tool<z.infer<typeof InputSchema>, VerifyCallOutput>
     // Structure scan for nearest opposing liquidity.
     let nearestOpposingLiquidity: VerifyCallOutput['nearestOpposingLiquidity'] = null;
     try {
-      const candles = await getCandles(symbol, tf, {
+      const candles = await getCandlesUnchecked(symbol, tf, {
         count: lookbackBars,
         ...(signal ? { signal } : {}),
       });

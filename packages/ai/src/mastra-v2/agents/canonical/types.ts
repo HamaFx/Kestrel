@@ -22,7 +22,7 @@ import type { Agent, AgentMemoryOption } from '@mastra/core/agent';
 import type { RequestContext } from '@mastra/core/request-context';
 import type { ModelMessage, UIMessage } from 'ai';
 
-import type { ChatModelResolution } from '@ai/models/model';
+import type { ChatModelResolution, FallbackPartPayload } from '@ai/models/model';
 import type { GenerationLedger } from '@ai/persistence/generation-ledger';
 import type { RoutingDecision } from '@ai/routing';
 import type { SemanticRoutingAccounting } from '@ai/routing/semantic';
@@ -79,6 +79,8 @@ export interface MastraCanonicalChatResult {
   answerOutcome: 'ready' | 'blocked' | 'degraded';
   /** True when the silent self-correction pass rewrote an ungrounded draft (Q10). */
   repaired?: boolean;
+  /** `data-fallback` parts emitted when a mid-turn provider switch happened (R14). */
+  fallbackParts?: FallbackPartPayload[];
   /** 'degraded' when native-memory preparation partially failed (Phase 9). */
   memoryMode: 'native' | 'degraded';
   /** Whether native memory preparation attempted legacy history backfill. */
@@ -118,6 +120,8 @@ export interface MastraCanonicalChatStream {
     evidence: ReturnType<typeof checkCanonicalEvidence>;
     answerOutcome: 'ready' | 'blocked' | 'degraded';
     repaired?: boolean;
+    /** `data-fallback` parts emitted when a mid-turn provider switch happened (R14). */
+    fallbackParts?: FallbackPartPayload[];
     memoryMode: 'native' | 'degraded';
     memoryBackfill: boolean;
     modelSnapshot: { providerId: string; bareModelId: string };

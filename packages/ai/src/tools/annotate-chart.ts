@@ -24,7 +24,7 @@
 // The palette is hard-coded (matches the chart's CSS-token defaults) so
 // the tool runs in any environment without reading the DOM.
 
-import { getCandles } from '@kestrel/data';
+import { getCandlesUnchecked } from '@kestrel/data';
 import { computeAsianRange, computePdhPdl, computeStructure } from '@kestrel/indicators';
 import {
   AnnotateChartInputSchema,
@@ -65,7 +65,7 @@ export const annotateChartTool: Tool<z.infer<typeof InputSchema>, AnnotateChartO
     "Compute chart annotations (swings, BOS/CHoCH, FVG, order blocks, liquidity sweeps, previous-day high/low, Asian session range) for a symbol/timeframe. Use when the user asks to 'mark', 'show', or 'annotate' something on the chart. The chat part renders a summary card with counts per kind and a deep link to open the Pro chart at this symbol/timeframe.",
   inputSchema: InputSchema,
   execute: async ({ symbol, tf, kinds, lookback, count }): Promise<AnnotateChartOutput> => {
-    const candles = await getCandles(symbol, tf, { count });
+    const candles = await getCandlesUnchecked(symbol, tf, { count });
 
     const markers: ChartMarker[] = [];
     const priceLines: ChartPriceLine[] = [];

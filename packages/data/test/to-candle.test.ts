@@ -113,4 +113,34 @@ describe('toCandleFromBiquote', () => {
     );
     expect(result.v).toBe(412);
   });
+
+  it('rejects non-finite prices at the schema boundary (R8)', () => {
+    // A NaN/Infinity bar must fail here rather than flowing into indicators
+    // and the AI as a value that JSON-serialises to null.
+    expect(() =>
+      toCandle(
+        { t: 1_700_000_000_000, o: Number.NaN, h: 2010, l: 1995, c: 2005, v: 150 },
+        DEFAULT_OPTS,
+      ),
+    ).toThrow();
+    expect(() =>
+      toCandle(
+        { t: 1_700_000_000_000, o: 2000, h: Number.POSITIVE_INFINITY, l: 1995, c: 2005, v: 150 },
+        DEFAULT_OPTS,
+      ),
+    ).toThrow();
+    expect(() =>
+      toCandleFromBiquote(
+        {
+          openTime: '2026-02-24T12:00:00Z',
+          open: 2650.1,
+          high: 2655.0,
+          low: 2648.5,
+          close: Number.NaN,
+          volume: 10,
+        },
+        { symbol: 'XAUUSD' as const, tf: '1h' as const, fetchedAt: 1771934400000 },
+      ),
+    ).toThrow();
+  });
 });

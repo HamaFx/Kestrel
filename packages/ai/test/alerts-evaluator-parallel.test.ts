@@ -19,17 +19,21 @@
 // We mock `getPrice` / `getCandles` with controllable delays and assert
 // that wall-time scales as max(rule_latency) rather than sum(rule_latency).
 
-import { getCandles, getPrice } from '@kestrel/data';
+import { getCandles, getPrice, type PriceResult } from '@kestrel/data';
 import type { Tick } from '@kestrel/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { evaluateAlerts } from '../src/alerts/evaluator';
 import { listEvaluable } from '../src/alerts/persistence';
 
-vi.mock('@kestrel/data', () => ({
-  getPrice: vi.fn(),
-  getCandles: vi.fn(),
-}));
+vi.mock('@kestrel/data', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@kestrel/data')>();
+  return {
+    ...actual,
+    getPrice: vi.fn(),
+    getCandles: vi.fn(),
+  };
+});
 
 vi.mock('@kestrel/db', () => ({
   hasAdminDbScope: () => false,
@@ -109,6 +113,28 @@ function makeAlert(
   };
 }
 
+function tick(symbol: string): Tick {
+  return {
+    symbol,
+    bid: 2390,
+    ask: 2390,
+    mid: 2390,
+    ts: Date.now(),
+    source: 'test',
+  } as Tick;
+}
+
+/** Fresh PriceResult envelope — what the adapter returns post-R8. */
+function freshPrice(symbol: string, overrides: Partial<PriceResult> = {}): PriceResult {
+  return {
+    tick: tick(symbol),
+    stale: false,
+    producedAt: Date.now(),
+    ageMs: 250,
+    ...overrides,
+  };
+}
+
 describe('evaluateAlerts — parallel readings', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -128,19 +154,12 @@ describe('evaluateAlerts — parallel readings', () => {
     // alerts; concurrently it should be roughly 100 ms.
     let activeAtPeak = 0;
     let active = 0;
-    vi.mocked(getPrice).mockImplementation(async () => {
+    vi.mocked(getPrice).mockImplementation(async (symbol) => {
       active += 1;
       activeAtPeak = Math.max(activeAtPeak, active);
       await new Promise((r) => setTimeout(r, 100));
       active -= 1;
-      return {
-        symbol: 'XAUUSD',
-        bid: 2390,
-        ask: 2390,
-        mid: 2390,
-        ts: Date.now(),
-        source: 'test',
-      } as Tick;
+      return freshPrice(symbol);
     });
 
     const promise = evaluateAlerts();
@@ -164,20 +183,12 @@ describe('evaluateAlerts — parallel readings', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.mocked(listEvaluable).mockResolvedValue(alerts as any);
 
-    vi.mocked(getPrice).mockImplementation(async (s) => {
-      void s;
+    vi.mocked(getPrice).mockImplementation(async (symbol) => {
       // Fail for the second alert specifically. Since we can't tell
       // which is which from getPrice args, key on call count.
       const callCount = vi.mocked(getPrice).mock.calls.length;
       if (callCount === 2) throw new Error('upstream blew up');
-      return {
-        symbol: 'XAUUSD',
-        bid: 2390,
-        ask: 2390,
-        mid: 2390,
-        ts: Date.now(),
-        source: 'test',
-      } as Tick;
+      return freshPrice(symbol);
     });
     // satisfy the import
     void getCandles;
@@ -191,5 +202,98 @@ describe('evaluateAlerts — parallel readings', () => {
     expect(result.errors[0]?.alertId).toBe('bad');
     // The other two alerts were still evaluated and matched (level=0).
     expect(result.matched).toBe(2);
+  });
+
+  it('skips price alerts whose quote is stale instead of firing on it (R8)', async () => {
+    const alerts = [
+      makeAlert('fresh', 'SYM1' as string),
+      makeAlert('stale', 'SYM2' as string),
+      makeAlert('old', 'SYM3' as string),
+    ];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(listEvaluable).mockResolvedValue(alerts as any);
+
+    vi.mocked(getPrice).mockImplementation(async (symbol) => {
+      if (symbol === 'SYM2') return freshPrice(symbol, { stale: true });
+      if (symbol === 'SYM3') {
+        // A live fetch whose provider quote is ten minutes old.
+        return freshPrice(symbol, { ageMs: 600_000, producedAt: Date.now() });
+      }
+      return freshPrice(symbol);
+    });
+
+    const result = await evaluateAlerts();
+
+    expect(result.total).toBe(3);
+    // The stale and over-age readings are skipped, not delivered.
+    expect(result.matched).toBe(1);
+    expect(result.fired).toBe(1);
+    expect(result.skipped).toBe(2);
+  });
+
+  it('skips candle alerts whose window is stale or whose last closed bar is too old (R8)', async () => {
+    const recentBar = {
+      symbol: 'XAUUSD',
+      tf: '1h' as const,
+      t: Date.now() - 2 * 3_600_000,
+      o: 2390,
+      h: 2395,
+      l: 2385,
+      c: 2392,
+      v: null,
+      source: 'test',
+      fetchedAt: Date.now(),
+    };
+    const staleWindow = {
+      candles: [recentBar],
+      stale: true,
+      producedAt: Date.now(),
+    };
+    const oldWindow = {
+      candles: [
+        {
+          ...recentBar,
+          t: Date.now() - 10 * 3_600_000,
+        },
+      ],
+      stale: false,
+      producedAt: Date.now(),
+    };
+    const alerts = [
+      {
+        id: 'c1',
+        rule: {
+          type: 'candleClose' as const,
+          symbol: 'XAUUSD',
+          tf: '1h' as const,
+          direction: 'above' as const,
+          level: 0,
+        },
+      },
+      {
+        id: 'c2',
+        rule: {
+          type: 'candleClose' as const,
+          symbol: 'EURUSD' as const,
+          tf: '1h' as const,
+          direction: 'above' as const,
+          level: 0,
+        },
+      },
+    ];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(listEvaluable).mockResolvedValue(alerts as any);
+    vi.mocked(getCandles).mockImplementation(
+      async (symbol) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (symbol === 'XAUUSD' ? staleWindow : oldWindow) as any,
+    );
+
+    const result = await evaluateAlerts();
+
+    expect(result.total).toBe(2);
+    expect(result.matched).toBe(0);
+    expect(result.skipped).toBe(2);
+    expect(vi.mocked(getCandles)).toHaveBeenCalled();
   });
 });

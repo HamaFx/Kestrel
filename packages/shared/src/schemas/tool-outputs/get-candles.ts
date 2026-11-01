@@ -16,11 +16,17 @@
 
 // Output envelope returned by the `get_candles` AI tool.
 //
-// Source of truth: packages/ai/src/tools/get-candles.ts execute() return type.
+// Source of truth: packages/ai/src/mastra-v2/tools/canonical/candles.ts execute().
+//
+// R8 (audit 2026-10-31): the wrapper carries window freshness, and `changePct`
+// is nullable instead of fabricating 0% when the window's open is zero (or the
+// window is empty in a way the summary cannot express). `freshness`/`warnings`
+// are optional so tool outputs persisted before R8 still parse.
 
 import { z } from 'zod';
 
 import { CandleSchema } from '../candle';
+import { CandlesFreshnessSchema } from './freshness';
 
 export const CandlePeriodSummarySchema = z.object({
   fromIso: z.string(),
@@ -32,7 +38,8 @@ export const CandlePeriodSummarySchema = z.object({
   lowAtIso: z.string().optional(),
   close: z.number(),
   change: z.number(),
-  changePct: z.number(),
+  /** Null when the window's open is zero, so no percentage exists — never a fabricated 0. */
+  changePct: z.number().nullable(),
   avgBarRange: z.number(),
   totalVolume: z.number(),
 });
@@ -43,6 +50,10 @@ export const GetCandlesOutputSchema = z.object({
   tf: z.string(),
   candles: z.array(CandleSchema),
   summary: CandlePeriodSummarySchema.optional().nullable(),
+  /** Omitted by pre-R8 persisted outputs. */
+  freshness: CandlesFreshnessSchema.optional(),
+  /** Pre-rendered disclosure lines the model should surface when data is stale. */
+  warnings: z.array(z.string()).optional(),
 });
 
 export type GetCandlesOutput = z.infer<typeof GetCandlesOutputSchema>;

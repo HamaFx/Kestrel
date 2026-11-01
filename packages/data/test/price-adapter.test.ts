@@ -23,7 +23,14 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getPrice, getPrices, getPricesWithMeta, getPriceWithMeta } from '../src/adapters/price';
+import {
+  getPrice,
+  getPricesUnchecked,
+  getPricesWithMeta,
+  getPriceUnchecked,
+  getPriceWithMeta,
+  priceAgeSeconds,
+} from '../src/adapters/price';
 import { setDefaultCache } from '../src/cache';
 import { MemoryCache } from '../src/cache/memory';
 import { _resetThrottle } from '../src/cache/throttle';
@@ -170,8 +177,8 @@ describe('getPrice — provider order (on-demand BiQuote REST primary, live_tick
     ]);
     globalThis.fetch = fetchSpy;
 
-    await getPrice('EURUSD');
-    await getPrice('EURUSD');
+    await getPriceUnchecked('EURUSD');
+    await getPriceUnchecked('EURUSD');
     // First call hits BiQuote; second is served from cache.
     expect(fetchSpy as unknown as ReturnType<typeof vi.fn>).toHaveBeenCalledTimes(1);
   });
@@ -198,7 +205,7 @@ describe('getPrice — provider order (on-demand BiQuote REST primary, live_tick
       },
     ]);
 
-    const tick = await getPrice('GBPUSD', {
+    const tick = await getPriceUnchecked('GBPUSD', {
       apiKeys: { finnhub: 'Y' },
     });
     expect(tick.source).toBe('finnhub');
@@ -214,7 +221,7 @@ describe('getPrice — provider order (on-demand BiQuote REST primary, live_tick
         respond: () => ({ body: VALID_BIQUOTE_TICK('XAUUSD', 2400) }),
       },
     ]);
-    const tick = await getPrice('XAUUSD');
+    const tick = await getPriceUnchecked('XAUUSD');
     expect(tick.source).toBe('biquote');
   });
 });
@@ -271,7 +278,7 @@ describe('getPricesWithMeta — multi-symbol batching', () => {
     expect(latestCalls).toBe(1);
     expect(singleCalls).toBe(0);
 
-    const ticks = await getPrices(['XAUUSD', 'EURUSD']);
+    const ticks = await getPricesUnchecked(['XAUUSD', 'EURUSD']);
     expect(ticks).toHaveLength(2);
   });
 });
@@ -324,7 +331,7 @@ describe('getPrice — live_ticks pseudo-provider (opt-in via WORKER_ENABLE_TICK
       ageMs: 250,
     }));
 
-    const tick = await getPrice('XAUUSD');
+    const tick = await getPriceUnchecked('XAUUSD');
     expect(tick.source).toBe('biquote-signalr');
     expect(tick.mid).toBe(2390.5);
     expect(fetchSpy).not.toHaveBeenCalled();
@@ -339,7 +346,7 @@ describe('getPrice — live_ticks pseudo-provider (opt-in via WORKER_ENABLE_TICK
       },
     ]);
 
-    const tick = await getPrice('XAUUSD');
+    const tick = await getPriceUnchecked('XAUUSD');
     expect(tick.source).toBe('biquote');
     expect(tick.mid).toBe(2400);
   });
@@ -371,7 +378,7 @@ describe('getPrice — live_ticks pseudo-provider (opt-in via WORKER_ENABLE_TICK
       },
     ]);
 
-    const tick = await getPrice('BTCUSDT');
+    const tick = await getPriceUnchecked('BTCUSDT');
 
     expect(tick.source).toBe('binance');
     expect(tick.mid).toBe(65000.25);
@@ -399,12 +406,93 @@ describe('getPrice — live_ticks pseudo-provider (opt-in via WORKER_ENABLE_TICK
       },
     ]);
 
-    const tick = await getPrice('BTCUSDT');
+    const tick = await getPriceUnchecked('BTCUSDT');
 
     expect(tick.source).toBe('biquote');
     expect(tick.mid).toBeCloseTo(65000);
     expect(tick.bid).toBeLessThan(tick.ask);
     expect(binanceCalls).toBe(1);
     expect(biquoteCalls).toBe(1);
+  });
+});
+
+describe('R8 — freshness survives the default getters', () => {
+  it('getPrice returns the tick plus stale / producedAt / ageMs metadata', async () => {
+    globalThis.fetch = createRoutedFetch([
+      {
+        match: (u) => u.includes('biquote.io/api/'),
+        respond: () => ({ body: { ...VALID_BIQUOTE_TICK('XAUUSD', 2400), quoteAgeSeconds: 1 } }),
+      },
+    ]);
+
+    const result = await getPrice('XAUUSD');
+
+    expect(result.tick.mid).toBeCloseTo(2400);
+    expect(result.stale).toBe(false);
+    expect(result.producedAt).toBeGreaterThan(0);
+    expect(result.ageMs).toBe(1000);
+    expect(priceAgeSeconds(result)).toBeLessThan(5);
+  });
+
+  it('rejects a zero provider price and fails over to the next provider', async () => {
+    let biquoteCalls = 0;
+    globalThis.fetch = createRoutedFetch([
+      {
+        match: (u) => u.includes('biquote.io/api/'),
+        respond: () => {
+          biquoteCalls += 1;
+          return {
+            body: {
+              ...VALID_BIQUOTE_TICK('EURUSD', 0),
+              bid: 0,
+              ask: 0,
+              mid: 0,
+            },
+          };
+        },
+      },
+      {
+        match: (u) => u.includes('finnhub.io'),
+        respond: () => ({
+          body: { c: 1.27, h: 1.28, l: 1.26, o: 1.27, pc: 1.265, t: 1700000000 },
+        }),
+      },
+    ]);
+
+    const result = await getPrice('EURUSD', { apiKeys: { finnhub: 'Y' } });
+
+    expect(result.tick.source).toBe('finnhub');
+    expect(result.tick.mid).toBe(1.27);
+    expect(biquoteCalls).toBe(1);
+  });
+
+  it('drops a non-positive bid/ask but keeps the valid mid', async () => {
+    globalThis.fetch = createRoutedFetch([
+      {
+        match: (u) => u.includes('biquote.io/api/'),
+        respond: () => ({
+          body: { ...VALID_BIQUOTE_TICK('XAUUSD', 2400), bid: 0, ask: 0, mid: 2400 },
+        }),
+      },
+    ]);
+
+    const result = await getPrice('XAUUSD');
+
+    expect(result.tick.bid).toBe(2400);
+    expect(result.tick.ask).toBe(2400);
+  });
+
+  it('priceAgeSeconds adds the provider quote age to the cache age', () => {
+    const now = 1_700_000_100_000;
+    const age = priceAgeSeconds(
+      {
+        tick: { symbol: 'XAUUSD', bid: 2400, ask: 2400.2, mid: 2400.1, ts: now, source: 'test' },
+        stale: false,
+        producedAt: 1_700_000_000_000,
+        ageMs: 30_000,
+      },
+      now,
+    );
+    expect(age).toBe(130);
   });
 });
