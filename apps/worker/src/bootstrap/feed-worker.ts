@@ -38,7 +38,7 @@ import {
 import { TickBuffer } from '../signalr/tick-buffer.js';
 import { SymbolManager } from '../symbol-manager.js';
 import { createTickBus, type TickBus } from '../tick-bus.js';
-import { createCandleFlushRig } from './candle-flush';
+import { createCandleFlushRig, type CandlePipelineStats } from './candle-flush';
 import { createTickFlusher } from './tick-flush';
 
 /**
@@ -70,6 +70,8 @@ export interface RunningWorker {
   tickBus: TickBus;
   /** Returns the epoch ms of the last tick (0 if none received yet). */
   getLastTickAt(): number;
+  /** Candle pipeline counters for the health payload (R9). */
+  getCandlePipelineStats(): CandlePipelineStats;
   /** Idempotent. Cleanly tears down timers + the hub. */
   stop(): Promise<void>;
 }
@@ -90,7 +92,7 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
   // pending batch without limit before the 50ms timer can fire.
   const MAX_PENDING_TICKS = 5_000;
 
-  // Closed-candle flush rig (per-flush timeout + in-flight tracking).
+  // Closed-candle flush rig (retry + durable hand-off + gap backfill, R9).
   const candleRig = createCandleFlushRig({ db, log });
   const aggregator = candleRig.aggregator;
 
@@ -232,7 +234,16 @@ export async function runWorker(args: RunWorkerArgs): Promise<RunningWorker> {
 
   const getLastTickAt = (): number => lastTickAt;
 
-  return { consumer, binanceConsumer, buffer, aggregator, tickBus, getLastTickAt, stop };
+  return {
+    consumer,
+    binanceConsumer,
+    buffer,
+    aggregator,
+    tickBus,
+    getLastTickAt,
+    getCandlePipelineStats: candleRig.stats,
+    stop,
+  };
 }
 
 /** The subset of the running worker the HTTP servers + shutdown hooks need. */
@@ -242,6 +253,8 @@ export interface WorkerRuntime {
   isSignalRConnected(): boolean;
   isBinanceConnected(): boolean;
   getDroppedTicks(): number;
+  /** Null in on-demand mode (no tick stream, so no candle pipeline). */
+  getCandlePipelineStats(): CandlePipelineStats | null;
 }
 
 /**
@@ -265,6 +278,7 @@ export async function startWorkerRuntime({
       isSignalRConnected: () => running.consumer.isStarted(),
       isBinanceConnected: () => running.binanceConsumer.isConnected(),
       getDroppedTicks: () => running.consumer.droppedTicks(),
+      getCandlePipelineStats: running.getCandlePipelineStats,
     };
   }
 
@@ -278,5 +292,6 @@ export async function startWorkerRuntime({
     isSignalRConnected: () => false,
     isBinanceConnected: () => false,
     getDroppedTicks: () => 0,
+    getCandlePipelineStats: () => null,
   };
 }

@@ -180,6 +180,49 @@ describe('worker health server', () => {
     expect(response.status).toBe(404);
   });
 
+  it('surfaces the candle pipeline counters so dropped bars and gaps are visible (R9)', async () => {
+    const candlePipeline = {
+      barsClosed: 3,
+      written: 2,
+      writeAttempts: 4,
+      queued: 1,
+      dropped: 0,
+      backfilled: 2,
+      backfillMisses: 0,
+      gaps: 1,
+      gapMinutes: 2,
+      staleCloseTicks: 5,
+      lastGap: {
+        symbol: 'XAUUSD',
+        fromMs: 1_700_000_040_000,
+        toMs: 1_700_000_100_000,
+        missingMinutes: 2,
+      },
+      recentGaps: [
+        { symbol: 'XAUUSD', fromMs: 1_700_000_040_000, toMs: 1_700_000_100_000, missingMinutes: 2 },
+      ],
+      lastError: null,
+      pending: 0,
+    };
+    const server = createHealthServer({
+      log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), with: vi.fn() },
+      getLastTickAt: () => Date.now(),
+      isSignalRConnected: () => true,
+      getCandlePipelineStats: () => candlePipeline,
+    });
+
+    const response = await request(server, '/health/ready');
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.candlePipeline).toMatchObject({ queued: 1, gaps: 1, gapMinutes: 2 });
+    expect(body.candlePipeline.recentGaps).toHaveLength(1);
+
+    // On-demand mode has no candle pipeline; the field is present and null
+    // rather than absent, so dashboards can tell "off" from "zero".
+    const onDemand = await request(createServer(Date.now(), true), '/health/ready');
+    await expect(onDemand.json()).resolves.toMatchObject({ candlePipeline: null });
+  });
+
   it('rejects non-GET/HEAD requests on the BiQuote proxy with 405', async () => {
     process.env.BIQUOTE_PROXY_TOKEN = 'secret-token';
     const proxy = createProxyServer({

@@ -19,7 +19,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { Candle1mAggregator, type ClosedCandle } from '../src/aggregator/candle-1m';
+import { Candle1mAggregator, type CandleGap, type ClosedCandle } from '../src/aggregator/candle-1m';
 import type { NormalizedTick } from '../src/signalr/consumer';
 
 const MINUTE_MS = 60_000;
@@ -121,6 +121,122 @@ describe('Candle1mAggregator', () => {
 
     const open = agg.peek('XAUUSD');
     expect(open?.o).toBe(2400);
+  });
+
+  it('reports the missing minute range when a rollover skips minutes (R9)', () => {
+    const closed: ClosedCandle[] = [];
+    const gaps: CandleGap[] = [];
+    const agg = new Candle1mAggregator(
+      (b) => closed.push(b),
+      (g) => gaps.push(g),
+    );
+
+    agg.feed(tick('XAUUSD', 2390, 0)); // minute 0
+    agg.feed(tick('XAUUSD', 2400, 4 * MINUTE_MS + 1_000)); // jump to minute 4
+
+    // Minutes 1, 2 and 3 went missing.
+    expect(gaps).toEqual([
+      {
+        symbol: 'XAUUSD',
+        fromMs: BASE_TS + MINUTE_MS,
+        toMs: BASE_TS + 3 * MINUTE_MS,
+        missingMinutes: 3,
+      },
+    ]);
+    expect(agg.stats()).toMatchObject({ gaps: 1, gapMinutes: 3 });
+    expect(agg.stats().recentGaps).toHaveLength(1);
+  });
+
+  it('does not report a gap when the rollover is exactly one minute (R9)', () => {
+    const gaps: CandleGap[] = [];
+    const agg = new Candle1mAggregator(
+      () => {},
+      (g) => gaps.push(g),
+    );
+
+    agg.feed(tick('XAUUSD', 2390, 0));
+    agg.feed(tick('XAUUSD', 2391, MINUTE_MS + 1_000));
+    agg.feed(tick('XAUUSD', 2392, 2 * MINUTE_MS + 1_000));
+
+    expect(gaps).toHaveLength(0);
+    expect(agg.stats()).toMatchObject({ gaps: 0, gapMinutes: 0, recentGaps: [] });
+  });
+
+  it('does not regress the close when a replayed older tick arrives (R9)', () => {
+    const closed: ClosedCandle[] = [];
+    const agg = new Candle1mAggregator((b) => closed.push(b));
+
+    agg.feed(tick('XAUUSD', 2390, 0));
+    agg.feed(tick('XAUUSD', 2395, 30_000)); // close moves forward legitimately
+    expect(agg.peek('XAUUSD')?.c).toBe(2395);
+
+    // A reconnect/feed replay re-delivers an earlier snapshot of the same
+    // minute with a lower close. The close must stay at the last traded
+    // price already observed, not move backwards.
+    agg.feed(tick('XAUUSD', 2391, 10_000));
+    expect(agg.peek('XAUUSD')?.c).toBe(2395);
+    expect(agg.peek('XAUUSD')?.ticks).toBe(3);
+    expect(agg.stats().staleCloseTicks).toBe(1);
+
+    // The replay's high/low are still folded in: max/min are idempotent.
+    agg.feed({
+      symbol: 'XAUUSD',
+      bid: 2396,
+      ask: 2396,
+      mid: 2396,
+      high: 2397.5,
+      low: 2385.25,
+      ts: BASE_TS + 20_000,
+      source: 'biquote-signalr',
+    });
+    const open = agg.peek('XAUUSD');
+    expect(open?.h).toBe(2397.5);
+    expect(open?.l).toBe(2385.25);
+    expect(open?.c).toBe(2395); // still the newest tick's close
+
+    // A genuinely newer tick still moves the close forward.
+    agg.feed(tick('XAUUSD', 2399, 55_000));
+    expect(agg.peek('XAUUSD')?.c).toBe(2399);
+
+    // Rollover emits the monotonic close.
+    agg.feed(tick('XAUUSD', 2400, MINUTE_MS + 1_000));
+    expect(closed).toHaveLength(1);
+    expect(closed[0]?.c).toBe(2399);
+  });
+
+  it('does not regress cumulative kline volume on a replayed Binance snapshot (R9)', () => {
+    const agg = new Candle1mAggregator(() => {});
+
+    agg.feed({
+      symbol: 'BTCUSDT',
+      bid: 65000,
+      ask: 65000,
+      mid: 65000,
+      high: 65100,
+      low: 64900,
+      volume: 42.5,
+      ts: BASE_TS + 40_000,
+      source: 'binance-ws',
+    });
+    // Replay of the same minute with an older event time and smaller
+    // cumulative volume.
+    agg.feed({
+      symbol: 'BTCUSDT',
+      bid: 65010,
+      ask: 65010,
+      mid: 65010,
+      high: 65050,
+      low: 65000,
+      volume: 12.25,
+      ts: BASE_TS + 20_000,
+      source: 'binance-ws',
+    });
+
+    const open = agg.peek('BTCUSDT');
+    expect(open?.c).toBe(65000); // not 65010
+    expect(open?.v).toBe(42.5); // not 12.25
+    expect(open?.h).toBe(65100);
+    expect(open?.l).toBe(64900);
   });
 
   it('ignores stale (out-of-order) ticks from earlier minutes', () => {

@@ -47,7 +47,7 @@ Trading gold (`XAUUSD`), forex, and crypto requires analyzing price action, inst
 - 🧠 **4-Agent AI Committee**: Technical, Fundamental, Risk, and Sentiment specialist agents collaborate using [Mastra](https://mastra.ai) to synthesize multi-factor trade ideas with strict citations and guardrails.
 - 📐 **Institutional Smart Money Concepts (SMC)**: Native detection of Order Blocks, Fair Value Gaps (FVG), Liquidity Sweeps, Asian Session Killzones, and Market Structure Shifts (BOS/CHoCH).
 - 🏛️ **Kestrel Design Standard**: Institutional dark-chrome terminal blending Classical Antiquity with cyber-industrial hardware — Funnel Display typography, Redaction Italic emphasis, Geist Mono tabular figures, recessed instrument wells, and bottom-up ember illumination. See [Design System](docs/design-system.md).
-- ⚡ **Dual Real-Time Feeds**: SignalR sub-second streaming for Gold & Forex, plus Binance WebSockets for 24/7 crypto candles.
+- ⚡ **Dual Real-Time Feeds**: SignalR sub-second streaming for Gold & Forex, plus Binance WebSockets for 24/7 crypto candles. The streaming worker pipeline is opt-in (`WORKER_ENABLE_TICK_STREAM=1`); the default install reads the same instruments on demand over REST.
 - 🛠️ **Zero-Friction Self-Hosting**: Launch the full private multi-user stack with 1-click Docker Compose or connect to your own PostgreSQL.
 
 ---

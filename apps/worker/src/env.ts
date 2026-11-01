@@ -50,6 +50,26 @@ const WorkerEnvSchema = z.object({
   /**
    * Opt-in flag for the legacy 24/7 SignalR + Binance -> Postgres (`live_ticks` /
    * `candles_1m`) streaming pipeline. Defaults to `'0'` (100% on-demand BiQuote REST mode).
+   *
+   * R9 (audit 2026-10-31) — keeping this default is a deliberate product
+   * decision, not an oversight, but the consequence has to be stated: with
+   * `'0'` the SignalR consumer, the Binance consumer, the tick buffer, the
+   * `live_ticks` flusher and the 1m candle aggregator are all inert, so
+   * `candles_1m` only receives rows while the stream is explicitly enabled
+   * and paper fills run off the once-a-minute REST job. Readers of
+   * `candles_1m` (the `candles-1m` provider, 1m indicator reads) therefore
+   * fall through to the REST adapters rather than a locally persisted series.
+   *
+   * Before this default is flipped to `'1'`, all of the following must hold:
+   *   - the deployment can carry 24/7 WebSocket consumers plus the
+   *     per-minute `live_ticks`/`candles_1m` write load;
+   *   - `BIQUOTE_PROXY_TOKEN` is set (production requires it when the stream
+   *     is enabled, see `loadEnv` below);
+   *   - the durable candle write path (bounded retry plus the `candle-flush`
+   *     queue) is deployed and the `/health/ready` `candlePipeline` counters
+   *     are monitored, because a default install would then depend on it;
+   *   - the self-hosting docs are updated: the README markets realtime feeds
+   *     while the shipped default is on-demand REST.
    */
   WORKER_ENABLE_TICK_STREAM: z.preprocess(
     (v) => (v === '' ? undefined : v),

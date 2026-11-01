@@ -58,3 +58,21 @@ export async function startBacktestQueues(log: Logger): Promise<void> {
     );
   }
 }
+
+/**
+ * Register the `candle-flush` consumer. Closed bars whose direct write failed
+ * are handed to this queue (R9); registering it on every boot — not only when
+ * the tick stream is enabled — means bars queued before a restart or by the
+ * shutdown hand-off still land in `candles_1m`.
+ */
+export async function startCandleFlushQueue(log: Logger): Promise<void> {
+  try {
+    const { startCandleFlushQueueWorker } = await import('../persistence/candle-outbox.js');
+    await startCandleFlushQueueWorker(log);
+    log.info('candle-flush queue worker registered');
+  } catch (err) {
+    log.warn('candle-flush queue worker unavailable; failed bar writes have no durable fallback', {
+      err: err instanceof Error ? err.message : String(err),
+    });
+  }
+}

@@ -3,6 +3,7 @@ import { timingSafeEqual } from 'node:crypto';
 
 import { assertSafeOutboundUrl, getCapabilityReport } from '@kestrel/shared';
 
+import type { CandlePipelineStats } from './bootstrap/candle-flush.js';
 import type { Logger } from './log.js';
 
 export interface HealthServerDeps {
@@ -13,6 +14,11 @@ export interface HealthServerDeps {
   /** Whether the legacy 24/7 tick streaming pipeline is enabled (defaults to true for legacy callers). */
   isTickStreamEnabled?: () => boolean;
   getDroppedTicks?: () => number;
+  /**
+   * Candle pipeline counters: retries, durable queue hand-offs, dropped
+   * bars, and the recent gap ranges (R9). Null when the tick stream is off.
+   */
+  getCandlePipelineStats?: () => CandlePipelineStats | null;
   isProxyConfigured?: () => boolean;
   getRequestId?: () => string;
   /**
@@ -115,6 +121,9 @@ function createHealthHandler(deps: HealthServerDeps): http.RequestListener {
                 signalrConnected: isSignalRConnected(),
                 ...(deps.isBinanceConnected ? { binanceConnected: deps.isBinanceConnected() } : {}),
                 droppedTicks: deps.getDroppedTicks?.() ?? 0,
+                // R9 — candle pipeline health: retries, durable queue
+                // hand-offs, dropped bars and the recent gap ranges.
+                candlePipeline: deps.getCandlePipelineStats?.() ?? null,
                 proxyConfigured:
                   deps.isProxyConfigured?.() ?? Boolean(process.env.BIQUOTE_PROXY_TOKEN),
                 capabilities: getCapabilityReport(process.env),

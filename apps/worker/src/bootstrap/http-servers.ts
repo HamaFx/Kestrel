@@ -75,6 +75,7 @@ export function createWorkerHttpServers({
     isBinanceConnected: worker.isBinanceConnected,
     isTickStreamEnabled: () => tickStreamEnabled,
     getDroppedTicks: worker.getDroppedTicks,
+    getCandlePipelineStats: worker.getCandlePipelineStats,
     getRequestId: () => env.DEPLOYED_SHA,
     getStuckJobs: () => getStuckJobSummary().stuck,
   });

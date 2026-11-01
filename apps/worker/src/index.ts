@@ -38,7 +38,11 @@ import {
   listenWorkerHttpServers,
   type WorkerHttpServers,
 } from './bootstrap/http-servers';
-import { registerBundledPlugins, startBacktestQueues } from './bootstrap/plugins';
+import {
+  registerBundledPlugins,
+  startBacktestQueues,
+  startCandleFlushQueue,
+} from './bootstrap/plugins';
 import { installSignalHandlers, registerPostStartupShutdown } from './bootstrap/shutdown';
 import { isWorkerTickStreamEnabled, loadEnv } from './env.js';
 import { createLogger } from './log.js';
@@ -64,6 +68,7 @@ export async function main(): Promise<void> {
   // Durable async jobs. A queue/schema failure must not stop core ingestion;
   // the synchronous backtest path keeps working without it.
   await startBacktestQueues(log);
+  await startCandleFlushQueue(log);
 
   initLangfuse({ service: 'worker' });
 
