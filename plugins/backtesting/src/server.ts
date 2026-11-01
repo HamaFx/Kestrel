@@ -42,12 +42,8 @@ export {
 export { getBacktestRun } from './db/queries/runs';
 export { getBacktestStrategy } from './db/queries/strategies';
 export { normaliseSettings, type BacktestSettings } from './settings';
-export {
-  executeSweep,
-  getSweepDetail,
-  listSweepViews,
-  runSweepForUser,
-} from './services/sweep-service';
+export { executeSweep, getSweepDetail, listSweepViews } from './services/sweep-service';
+export { enqueueSweepForUser, SweepQueueUnavailableError } from './services/sweep-enqueue';
 export {
   RunBacktestInputSchema,
   RunResultSchema,

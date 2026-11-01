@@ -16,17 +16,17 @@
 
 // Parameter-sweep routes: listing, creation (with queue hand-off), detail,
 // deletion and cancellation.
+//
+// Creation is queue-only (R16): the route persists the sweep and enqueues it,
+// returning 202 with the job id. The UI polls `GET /sweeps/:sweepId` for
+// progress instead of holding a request open for the whole grid.
 
-import { BACKTEST_SWEEP_QUEUE, enqueueJob } from '@kestrel/db/queue';
 import type { PluginApiRouteHandler } from '@kestrel/plugin-sdk';
 
-import {
-  deleteBacktestSweep,
-  requestBacktestSweepCancel,
-  updateBacktestSweep,
-} from '../../db/queries';
+import { deleteBacktestSweep, requestBacktestSweepCancel } from '../../db/queries';
 import { CreateSweepOutputSchema, ListSweepsOutputSchema, SweepInputSchema } from '../../schemas';
-import { createSweepForUser, getSweepDetail, listSweepViews } from '../../services/sweep-service';
+import { enqueueSweepForUser, SweepQueueUnavailableError } from '../../services/sweep-enqueue';
+import { getSweepDetail, listSweepViews } from '../../services/sweep-service';
 import { ApiError, byMethod, json, parseBody, queryNumber, wrap } from './shared';
 
 // ── Parameter sweeps ─────────────────────────────────────────────────────
@@ -40,47 +40,30 @@ const listSweeps = wrap(async (ctx) => {
 const createSweep = wrap(
   async (ctx) => {
     const input = await parseBody(ctx.request, SweepInputSchema);
-    const row = await createSweepForUser({
-      userId: ctx.userId,
-      input,
-      settings: ctx.settings,
-    });
-    const detail = await getSweepDetail(ctx.userId, row.id);
-    if (!detail) throw new ApiError(500, 'Sweep could not be created.', 'SWEEP_CREATE_FAILED');
-
-    let jobId: string | null;
     try {
-      jobId = await enqueueJob(BACKTEST_SWEEP_QUEUE, {
+      const { row, jobId } = await enqueueSweepForUser({
         userId: ctx.userId,
         tenantId: ctx.tenantId,
-        sweepId: row.id,
+        input,
         settings: ctx.settings,
       });
-      if (!jobId) {
-        throw new Error('queue rejected the job');
-      }
-    } catch (err) {
-      await updateBacktestSweep(ctx.userId, row.id, {
-        status: 'failed',
-        error: `The background queue is unavailable: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      });
-      throw new ApiError(
-        503,
-        'The background queue is unavailable. The sweep was not started.',
-        'QUEUE_UNAVAILABLE',
-      );
-    }
+      const detail = await getSweepDetail(ctx.userId, row.id);
+      if (!detail) throw new ApiError(500, 'Sweep could not be created.', 'SWEEP_CREATE_FAILED');
 
-    return json(
-      CreateSweepOutputSchema.parse({
-        sweep: detail,
-        jobId,
-        message: `Sweep queued (${detail.total} combinations). The worker will update progress.`,
-      }),
-      202,
-    );
+      return json(
+        CreateSweepOutputSchema.parse({
+          sweep: detail,
+          jobId,
+          message: `Sweep queued (${detail.total} combinations). The worker will update progress.`,
+        }),
+        202,
+      );
+    } catch (err) {
+      if (err instanceof SweepQueueUnavailableError) {
+        throw new ApiError(503, err.message, 'QUEUE_UNAVAILABLE');
+      }
+      throw err;
+    }
   },
   { userErrorStatus: 400 },
 );

@@ -20,6 +20,10 @@
 // normal backtest, ranks results by an explicit objective, and persists
 // progress so the worker/UI can resume viewing a long sweep.
 //
+// Creation is queue-only (R16): `sweep-enqueue.ts` persists the sweep and
+// hands it to the `backtest-sweep` queue; only the worker's `executeSweep`
+// runs the engine. HTTP callers poll the sweep row for progress.
+//
 // The candle window and feature matrices are prepared once per sweep (see
 // `sweep-execution.ts`); `persistRuns: true` keeps the legacy per-combination
 // persisted-run path, while OOS (`trainRatio`) sweeps always run in memory.
@@ -305,19 +309,4 @@ export async function executeSweep(args: {
     });
     throw err;
   }
-}
-
-export async function runSweepForUser(args: {
-  userId: string;
-  input: SweepInput;
-  settings: Readonly<Record<string, unknown>>;
-  signal?: AbortSignal;
-}): Promise<BacktestSweepRow> {
-  const row = await createSweepForUser(args);
-  return executeSweep({
-    userId: args.userId,
-    sweepId: row.id,
-    settings: args.settings,
-    ...(args.signal ? { signal: args.signal } : {}),
-  });
 }

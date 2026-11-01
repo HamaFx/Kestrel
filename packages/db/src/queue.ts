@@ -25,89 +25,21 @@
 // schema. Set ADMIN_DATABASE_URL for the web process, or pre-create the
 // `pgboss` schema with the owner role. Single-role/self-hosted deployments
 // (the default) just use DATABASE_URL.
+//
+// Queue names and policies live in `queue/definitions.ts`, the heartbeat
+// helpers in `queue/heartbeat.ts`; both are re-exported here so callers keep
+// the single `@kestrel/db/queue` entry point.
 
 import { sql } from 'drizzle-orm';
-import { fromDrizzle, PgBoss, type Job, type JobWithMetadata, type QueueOptions } from 'pg-boss';
+import { fromDrizzle, PgBoss, type Job, type JobWithMetadata } from 'pg-boss';
 
 import { getDb, getTenantDbScope } from './client';
 import { SUPABASE_ROOT_CA_2021 } from './connection/supabase-ca';
+import { DEAD_LETTER_QUEUE_OPTIONS, DEAD_LETTER_QUEUES, MANAGED_QUEUES } from './queue/definitions';
+import { runJobWithHeartbeat } from './queue/heartbeat';
 
-export const BACKTEST_RUN_QUEUE = 'backtest-run';
-export const BACKTEST_SWEEP_QUEUE = 'backtest-sweep';
-
-// -----------------------------------------------------------------------
-// R16 (audit 2026-10-31) — dead-letter queues.
-//
-// Without a `deadLetter`, a backtest job that exhausts `retryLimit` sits in
-// `failed` and is deleted an hour later with nothing to alert on. Each queue
-// now copies a terminally-failed job into its own DLQ (pg-boss keeps the
-// original payload plus `source_*` metadata and the error output), where it
-// stays for 30 days: long enough for the worker health payload / an operator
-// to see it and redrive it with `boss.redrive()`.
-//
-// pg-boss refuses a `deadLetter` that does not exist yet, so the DLQ rows are
-// created before their source queues.
-// -----------------------------------------------------------------------
-
-/** Dead-letter queues, one per retrying queue. Created by `getQueue()`. */
-export const BACKTEST_RUN_DLQ = 'backtest-run-dlq';
-export const BACKTEST_SWEEP_DLQ = 'backtest-sweep-dlq';
-
-/** How long a dead-lettered job stays visible. 30 days. */
-export const DEAD_LETTER_RETENTION_SECONDS = 30 * 24 * 3_600;
-
-/**
- * DLQ policy: nothing consumes a DLQ, so retries and completion are
- * irrelevant; the retention window is the whole point (`retentionSeconds`
- * caps a job in `created` state, which is how a dead-lettered copy lands).
- * `deleteAfterSeconds` matches it so a row an operator processes or fails by
- * hand cannot accumulate forever either.
- */
-export const DEAD_LETTER_QUEUE_OPTIONS: QueueOptions = {
-  retryLimit: 0,
-  retryDelay: 0,
-  retryBackoff: false,
-  expireInSeconds: 3_600,
-  retentionSeconds: DEAD_LETTER_RETENTION_SECONDS,
-  deleteAfterSeconds: DEAD_LETTER_RETENTION_SECONDS,
-};
-
-/** Queues this build owns, with their DLQ wiring. Exported for tests. */
-export const MANAGED_QUEUES: ReadonlyArray<{
-  name: string;
-  deadLetter: string;
-  options: QueueOptions;
-}> = [
-  {
-    name: BACKTEST_RUN_QUEUE,
-    deadLetter: BACKTEST_RUN_DLQ,
-    options: {
-      retryLimit: 2,
-      retryDelay: 15,
-      retryBackoff: true,
-      expireInSeconds: 600,
-      retentionSeconds: 86_400,
-      deleteAfterSeconds: 3_600,
-    },
-  },
-  {
-    name: BACKTEST_SWEEP_QUEUE,
-    deadLetter: BACKTEST_SWEEP_DLQ,
-    options: {
-      retryLimit: 1,
-      retryDelay: 30,
-      retryBackoff: true,
-      expireInSeconds: 1_800,
-      retentionSeconds: 86_400,
-      deleteAfterSeconds: 3_600,
-    },
-  },
-];
-
-/** Every dead-letter queue this build creates. */
-export const DEAD_LETTER_QUEUES: readonly string[] = MANAGED_QUEUES.map(
-  (queue) => queue.deadLetter,
-);
+export * from './queue/definitions';
+export * from './queue/heartbeat';
 
 let bossInstance: PgBoss | null = null;
 let starting: Promise<PgBoss> | null = null;
@@ -278,7 +210,8 @@ export interface WorkQueueOptions {
 
 /**
  * Register a worker. The handler receives one job at a time (batchSize 1) and
- * its return value is stored as the job output.
+ * its return value is stored as the job output. While a handler runs, its
+ * claim is heartbeated (see `queue/heartbeat.ts`).
  */
 export async function workQueue(
   queue: string,
@@ -296,7 +229,14 @@ export async function workQueue(
     async (jobs) => {
       let output: unknown = null;
       for (const job of jobs) {
-        output = await handler(job as Job<Record<string, unknown>>);
+        const target = job as Job<Record<string, unknown>>;
+        output = await runJobWithHeartbeat(boss, queue, target, handler, {
+          onError: (error) =>
+            console.error(
+              `[queue] heartbeat failed for ${queue} job ${job.id}:`,
+              error instanceof Error ? error.message : String(error),
+            ),
+        });
       }
       return output;
     },

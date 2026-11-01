@@ -16,9 +16,11 @@
 
 // Parameter-sweep tools.
 //
-// Execution (`backtest_sweep_strategy`) is a heavy sandbox run and is scoped
-// to canonical-chat. Lookup/inspection tools are read-only and also reachable
-// from the committee specialist desks.
+// `backtest_sweep_strategy` is queue-only (R16): it creates the sweep and
+// hands it to the worker, returning the queued row. The model reads progress
+// and results with `backtest_get_sweep`; the Sweeps tab polls the same row.
+// Lookup/inspection tools are read-only and also reachable from the committee
+// specialist desks.
 
 import type { PluginToolRegistration } from '@kestrel/plugin-sdk';
 import type { z } from 'zod';
@@ -30,15 +32,21 @@ import {
   SweepDetailSchema,
   SweepInputSchema,
 } from '../schemas';
-import { getSweepDetail, listSweepViews, runSweepForUser } from '../services/sweep-service';
+import { enqueueSweepForUser } from '../services/sweep-enqueue';
+import { getSweepDetail, listSweepViews } from '../services/sweep-service';
 
 const sweepTool: PluginToolRegistration<
   z.infer<typeof SweepInputSchema>,
   z.infer<typeof SweepDetailSchema>
 > = {
   name: 'backtest_sweep_strategy',
-  description:
-    'Run a small parameter sweep over a saved strategy or inline source. Provide a parameterSpace of at most 6 parameters (each with up to 10 values) and an objective (expectancyR, profitFactor, netPnl, returnPct, sharpeRatio or maxDrawdownPct). The tool caps at 30 combinations in-chat; use the Sweeps tab for larger grids. Returns the ranked combinations and the best parameter set that met minTrades. Heavy sandbox execution is available in canonical-chat.',
+  description: [
+    'Start a parameter sweep over a saved strategy or inline source on the background worker.',
+    'This tool creates the sweep and enqueues it, then returns immediately with the queued sweep (status `queued`, progress 0). The engine runs in the worker; it never runs in this chat turn.',
+    'Provide a parameterSpace of at most 6 parameters (each with up to 10 values) and an objective (expectancyR, profitFactor, netPnl, returnPct, sharpeRatio or maxDrawdownPct).',
+    'The tool caps at 30 combinations in-chat; use the Sweeps tab for larger grids.',
+    'Call backtest_get_sweep with the returned sweep id to read progress and, once the status is `completed`, the ranked combinations and the best parameter set that met minTrades.',
+  ].join(' '),
   inputSchema: SweepInputSchema,
   outputSchema: SweepDetailSchema,
   access: 'read-only',
@@ -48,14 +56,14 @@ const sweepTool: PluginToolRegistration<
       ...input,
       maxCombinations: Math.min(input.maxCombinations, 30),
     });
-    const row = await runSweepForUser({
+    const { row } = await enqueueSweepForUser({
       userId: ctx.userId,
+      tenantId: ctx.tenantId,
       input: parsed,
       settings: ctx.settings,
-      ...(ctx.signal ? { signal: ctx.signal } : {}),
     });
     const detail = await getSweepDetail(ctx.userId, row.id);
-    if (!detail) throw new Error('Sweep result disappeared before it could be read.');
+    if (!detail) throw new Error('Sweep was queued but its detail could not be read.');
     return detail;
   },
 };
