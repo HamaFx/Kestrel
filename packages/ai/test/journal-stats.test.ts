@@ -15,9 +15,10 @@
  */
 
 // Pure-logic tests for journal stats math, plus the tool-level honesty guards
-// from R8 (audit 2026-10-31): `summarize()` still collapses unmeasured win
-// rate / average R to 0, so `get_journal_stats` must null them at the tool
-// boundary before they can be quoted as evidence-backed facts.
+// from R8 (audit 2026-10-31): `summarize()` reports null (never 0) for every
+// metric the window had nothing to measure over, and `get_journal_stats`
+// keeps that contract at the tool boundary before a number can be quoted as
+// evidence-backed fact.
 
 import {
   GetJournalStatsOutputSchema,
@@ -127,12 +128,16 @@ describe('computeRMultiple', () => {
 });
 
 describe('summarize', () => {
-  it('returns zeros for empty input', () => {
+  it('reports counts as 0 and every measured metric as null for empty input', () => {
     const s = summarize([]);
     expect(s).toMatchObject({ count: 0, wins: 0, losses: 0, breakevens: 0, open: 0 });
-    expect(s.winRate).toBe(0);
-    expect(s.avgR).toBe(0);
-    expect(s.totalR).toBe(0);
+    // Counts are real; derived metrics were never measured, so 0 would be a
+    // fabricated reading (R8).
+    expect(s.winRate).toBeNull();
+    expect(s.avgR).toBeNull();
+    expect(s.totalR).toBeNull();
+    expect(s.byDayOfWeek.every((d) => d.trades === 0 && d.winRate === null)).toBe(true);
+    expect(s.byDayOfWeek.every((d) => d.totalR === null)).toBe(true);
   });
 
   it('counts open trades but excludes them from win-rate / avgR', () => {
@@ -163,13 +168,16 @@ describe('summarize', () => {
 });
 
 describe('Phase B item 13 — extended journal stats', () => {
-  it('reports zero for all extended metrics on empty input', () => {
+  it('reports null for unmeasured extended metrics and 0 only for real counts', () => {
     const s = summarize([]);
-    expect(s.maxDrawdown).toBe(0);
+    expect(s.maxDrawdown).toBeNull();
     expect(s.longestWinStreak).toBe(0);
     expect(s.longestLossStreak).toBe(0);
-    expect(s.profitFactor).toBe(0);
-    expect(s.avgHoldMs).toBe(0);
+    expect(s.profitFactor).toBeNull();
+    expect(s.avgHoldMs).toBeNull();
+    expect(s.avgWinR).toBeNull();
+    expect(s.avgLossR).toBeNull();
+    expect(s.recoveryFactor).toBeNull();
     expect(s.perDayOfWeek).toEqual({
       sunday: 0,
       monday: 0,
@@ -179,6 +187,65 @@ describe('Phase B item 13 — extended journal stats', () => {
       friday: 0,
       saturday: 0,
     });
+  });
+
+  it('leaves R-derived metrics null when trades closed without an R multiple', () => {
+    const s = summarize([
+      entry({ outcome: 'win', rMultiple: null }),
+      entry({ outcome: 'loss', rMultiple: null }),
+      entry({ outcome: 'win', rMultiple: null }),
+    ]);
+    // The outcome itself is measured...
+    expect(s.winRate).toBeCloseTo(2 / 3);
+    expect(s.wins).toBe(2);
+    // ...but nothing carried an R multiple, so every R-based metric is
+    // unmeasured rather than a fabricated 0.
+    expect(s.avgR).toBeNull();
+    expect(s.totalR).toBeNull();
+    expect(s.avgWinR).toBeNull();
+    expect(s.avgLossR).toBeNull();
+    expect(s.maxDrawdown).toBeNull();
+    expect(s.profitFactor).toBeNull();
+    expect(s.recoveryFactor).toBeNull();
+    expect(s.bySymbol[0]).toMatchObject({
+      trades: 3,
+      winRate: 2 / 3,
+      totalR: null,
+      expectancy: null,
+    });
+    expect(s.byTag).toEqual([]);
+  });
+
+  it('keeps a genuine 0 max drawdown when R multiples were measured', () => {
+    const s = summarize([
+      entry({ outcome: 'win', rMultiple: 1 }),
+      entry({ outcome: 'win', rMultiple: 1 }),
+    ]);
+    expect(s.maxDrawdown).toBe(0);
+    expect(s.totalR).toBeCloseTo(2);
+    // Recovery against a zero drawdown is 0/0, so it stays unmeasured.
+    expect(s.recoveryFactor).toBeNull();
+  });
+
+  it('needs a scored win and a scored loss to compute a profit factor', () => {
+    const s = summarize([
+      entry({ outcome: 'win', rMultiple: null }),
+      entry({ outcome: 'loss', rMultiple: -1 }),
+    ]);
+    // The loss is measured; the win was never scored, so the ratio is unknown.
+    expect(s.profitFactor).toBeNull();
+    expect(s.avgLossR).toBe(-1);
+    expect(s.avgWinR).toBeNull();
+  });
+
+  it('counts a win at exactly 0R as a scored win for the win average', () => {
+    const s = summarize([
+      entry({ outcome: 'win', rMultiple: 0 }),
+      entry({ outcome: 'win', rMultiple: null }),
+    ]);
+    // One scored win at 0R is a real measurement, so avgWinR is 0 — not null.
+    expect(s.avgWinR).toBe(0);
+    expect(s.totalR).toBe(0);
   });
 
   it('computes max drawdown from a sequence of R-multiples', () => {
@@ -239,9 +306,10 @@ describe('Phase B item 13 — extended journal stats', () => {
     expect(s.profitFactor).toBeNull();
   });
 
-  it('returns 0 profit factor when there are no wins and no losses', () => {
+  it('returns null profit factor when nothing scored a measurable ratio', () => {
     const s = summarize([entry({ outcome: 'breakeven', rMultiple: 0 })]);
-    expect(s.profitFactor).toBe(0);
+    // 0/0 is undefined, not a flat performance.
+    expect(s.profitFactor).toBeNull();
   });
 
   it('computes avg hold time from closedAt - openedAt', () => {
@@ -348,9 +416,9 @@ describe('get_journal_stats — unmeasured metrics are null, not 0 (R8)', () => 
     mocks.computeStats.mockReset();
   });
 
-  it('nulls the win rate / average R when nothing closed and no R multiples exist', async () => {
-    // summarize() is the real one: it returns winRate 0 / avgR 0, which is
-    // exactly the fabricated reading the tool must not forward.
+  it('reports null, never 0, for every unmeasured metric in an empty window', async () => {
+    // summarize() is the real one: an empty window has no measurement to
+    // report, so the tool must not forward a single fabricated 0.
     mocks.computeStats.mockResolvedValue(summarize([]));
     const output = await runTool(
       fakeDb({
@@ -363,6 +431,16 @@ describe('get_journal_stats — unmeasured metrics are null, not 0 (R8)', () => 
     expect(output.stats.winRate).toBeNull();
     expect(output.stats.avgR).toBeNull();
     expect(output.stats.totalR).toBeNull();
+    // Deeper extended metrics were unmeasured too (R8 follow-up).
+    expect(output.stats.maxDrawdown).toBeNull();
+    expect(output.stats.avgWinR).toBeNull();
+    expect(output.stats.avgLossR).toBeNull();
+    expect(output.stats.recoveryFactor).toBeNull();
+    expect(output.stats.avgHoldMs).toBeNull();
+    expect(output.stats.profitFactor).toBeNull();
+    expect(
+      (output.stats.byDayOfWeek ?? []).every((d) => d.winRate === null && d.totalR === null),
+    ).toBe(true);
     expect(output.bySymbol[0]).toMatchObject({
       key: 'EURUSD',
       count: 2,
@@ -371,11 +449,22 @@ describe('get_journal_stats — unmeasured metrics are null, not 0 (R8)', () => 
     });
     expect(output.notes).toMatch(/null rather than 0/i);
 
-    // No exact 0 survives where a measurement would be quoted.
+    // No exact 0 survives where a measurement would be quoted, including the
+    // extended metrics. Genuine counts (`trades: 0`) are excluded on purpose.
     const evidence = extractNumbersFromToolOutput({
       winRate: output.stats.winRate,
       avgR: output.stats.avgR,
       totalR: output.stats.totalR,
+      maxDrawdown: output.stats.maxDrawdown,
+      avgWinR: output.stats.avgWinR,
+      avgLossR: output.stats.avgLossR,
+      recoveryFactor: output.stats.recoveryFactor,
+      avgHoldMs: output.stats.avgHoldMs,
+      profitFactor: output.stats.profitFactor,
+      byDayOfWeek: (output.stats.byDayOfWeek ?? []).map((d) => ({
+        winRate: d.winRate,
+        totalR: d.totalR,
+      })),
       bySymbol: output.bySymbol,
     });
     expect(evidence).not.toContain(0);
@@ -406,12 +495,55 @@ describe('get_journal_stats — unmeasured metrics are null, not 0 (R8)', () => 
     expect(output.notes).toBeUndefined();
   });
 
-  it('parses a previously persisted all-zero output', () => {
-    const legacy = {
-      stats: summarize([]),
+  it('parses previously persisted outputs, whether zeros or nulls', () => {
+    // Pre-R8 output: measured metrics persisted as fabricated zeros.
+    const zeros = {
+      stats: {
+        count: 0,
+        wins: 0,
+        losses: 0,
+        breakevens: 0,
+        open: 0,
+        winRate: 0,
+        avgR: 0,
+        totalR: 0,
+        maxDrawdown: 0,
+        profitFactor: 0,
+        avgHoldMs: 0,
+        avgWinR: 0,
+        avgLossR: 0,
+        recoveryFactor: 0,
+        bySymbol: [{ symbol: 'EURUSD', trades: 0, winRate: 0, totalR: 0, expectancy: 0 }],
+        byDayOfWeek: [{ day: 'Monday', trades: 0, winRate: 0, totalR: 0 }],
+      },
       bySymbol: [{ key: 'EURUSD', count: 1, winRate: 0, avgR: 0 }],
       byTag: [],
     };
-    expect(GetJournalStatsOutputSchema.safeParse(legacy).success).toBe(true);
+    expect(GetJournalStatsOutputSchema.safeParse(zeros).success).toBe(true);
+
+    // Pre-Phase-B output: the extended fields are absent entirely.
+    const preExtended = {
+      stats: {
+        count: 0,
+        wins: 0,
+        losses: 0,
+        breakevens: 0,
+        open: 0,
+        winRate: 0,
+        avgR: 0,
+        totalR: 0,
+      },
+      bySymbol: [],
+      byTag: [],
+    };
+    expect(GetJournalStatsOutputSchema.safeParse(preExtended).success).toBe(true);
+
+    // Current output: unmeasured metrics are null.
+    const nulls = {
+      stats: summarize([]),
+      bySymbol: [{ key: 'EURUSD', count: 1, winRate: null, avgR: null }],
+      byTag: [],
+    };
+    expect(GetJournalStatsOutputSchema.safeParse(nulls).success).toBe(true);
   });
 });

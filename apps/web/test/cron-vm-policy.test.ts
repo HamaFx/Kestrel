@@ -157,4 +157,52 @@ describe('cron VM operational policy', () => {
     const unit = read('infra/cron-vm/units/kestrel-light-cleanup-uploads.service');
     expect(unit).toContain('test -z "$HC_CLEANUP_UPLOADS_UUID"');
   });
+
+  it('gates the self-update on an idle worker and defers when busy (R16)', () => {
+    const update = read('infra/cron-vm/scripts/docker-update.sh');
+
+    expect(update).toContain('/health/idle');
+    expect(update).toContain('wait_for_worker_idle');
+    expect(update).toContain('deferring the container recreate');
+
+    // Order matters: the idle gate must run before the container is recreated,
+    // and the metadata must only claim the new commit after the gate passes.
+    const gateAt = update.indexOf('if ! wait_for_worker_idle');
+    expect(gateAt).toBeGreaterThan(-1);
+    const recreateAt = update.indexOf('up -d --force-recreate', gateAt);
+    expect(recreateAt).toBeGreaterThan(gateAt);
+    expect(update.indexOf('write_deployed_metadata "$NEW_SHA"', gateAt)).toBeGreaterThan(gateAt);
+    // Deferral leaves the running code's commit in place for the next run.
+    expect(update.slice(gateAt)).toContain('sync_host_files_for_commit "$PREV_SHA"');
+  });
+
+  it('probes /health/jobs before restarting so busy is not treated as wedged (R16)', () => {
+    const autoheal = read('infra/cron-vm/scripts/docker-autoheal.sh');
+
+    expect(autoheal).toContain('probe_worker');
+    expect(autoheal).toContain('/health/jobs');
+    expect(autoheal).toContain('not counting towards a restart');
+    expect(autoheal).toContain('counting towards a restart');
+  });
+
+  it('keeps the worker host scripts syntactically valid', async () => {
+    const { execFileSync } = await import('node:child_process');
+    for (const script of ['docker-update.sh', 'docker-autoheal.sh']) {
+      const path = resolve(root, 'infra/cron-vm/scripts', script);
+      expect(() => execFileSync('bash', ['-n', path]), script).not.toThrow();
+    }
+  });
+
+  it('gives alerts exactly one scheduler per deployment profile (R16)', () => {
+    const botkeep = read('scripts/botkeep-start.mjs');
+    // The Botkeep profile owns alerts through the worker's own job; the light
+    // cron poker must not poke the web route as well.
+    expect(botkeep).not.toContain("path: '/api/cron/alerts'");
+
+    // If the route is the owner in some profile, it must respect the worker
+    // partition so it cannot process another partition's users.
+    const route = read('apps/web/src/app/api/cron/alerts/route.ts');
+    expect(route).toContain('ownsTenant');
+    expect(route).toContain('worker-partition');
+  });
 });

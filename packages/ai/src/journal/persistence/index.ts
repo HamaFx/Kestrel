@@ -36,5 +36,5 @@
 export type { CreateJournalInput, UpdateJournalInput } from './types';
 export { listEntries, getEntry, createEntry, updateEntry, deleteEntry } from './crud';
 export { computeRMultiple } from './stats/r-multiple';
-export { summarize } from './stats/summarize';
+export { summarize, type JournalStatsSummary } from './stats/summarize';
 export { computeStats } from './stats/query';

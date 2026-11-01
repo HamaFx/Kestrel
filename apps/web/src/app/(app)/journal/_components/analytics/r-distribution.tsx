@@ -17,12 +17,12 @@
  */
 
 // Histogram of R-multiple buckets. Positive buckets are bullish, negative bearish.
-import type { JournalStats } from '@kestrel/shared';
+import type { JournalStatsWithNulls } from '@kestrel/shared';
 
 import { cn } from '@/lib/formatters/cn';
 
 interface RDistributionProps {
-  stats: JournalStats;
+  stats: JournalStatsWithNulls;
   className?: string;
 }
 

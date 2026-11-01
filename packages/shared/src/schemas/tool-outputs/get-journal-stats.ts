@@ -55,11 +55,13 @@ export const StatBreakdownSchema = z.object({
 export type StatBreakdown = z.infer<typeof StatBreakdownSchema>;
 
 /**
- * The global stats block with the R8 honesty override: `winRate`, `avgR` and
- * `totalR` are null rather than 0 when nothing has closed / nothing carries an
- * R multiple. Kept as an extension of `JournalStatsSchema` so the base
- * contract (and every other consumer of it) is unchanged, while previously
- * persisted tool outputs that carry numeric zeros still parse.
+ * The global stats block with the R8 honesty override: every measured value
+ * is null rather than 0 when the window held nothing to measure (no closed
+ * trade, no R multiple, no closed holding period). Kept as an extension of
+ * `JournalStatsSchema` so the base contract (and every other consumer of it)
+ * is unchanged, while previously persisted tool outputs that carry numeric
+ * zeros still parse. The optional fields stay optional so pre-Phase-B outputs
+ * that omit them entirely still parse too.
  */
 export const JournalStatsWithNullsSchema = JournalStatsSchema.extend({
   /** [0, 1]; null when no trade in the window has closed. */
@@ -68,6 +70,66 @@ export const JournalStatsWithNullsSchema = JournalStatsSchema.extend({
   avgR: z.number().nullable(),
   /** Sum of R over trades that carry one; null when none do. */
   totalR: z.number().nullable(),
+  /** Null when no R multiple was measured, so no drawdown path exists. */
+  maxDrawdown: z.number().nullable().optional(),
+  avgHoldMs: z.number().nullable().optional(),
+  /** Null when no scored win / loss exists to average. */
+  avgWinR: z.number().nullable().optional(),
+  avgLossR: z.number().nullable().optional(),
+  /** Null when the drawdown is unmeasured or zero (0/0 recovery). */
+  recoveryFactor: z.number().nullable().optional(),
+  bySymbol: z
+    .array(
+      z.object({
+        symbol: z.string(),
+        trades: z.int(),
+        winRate: z.number().min(0).max(1).nullable(),
+        totalR: z.number().nullable(),
+        expectancy: z.number().nullable(),
+      }),
+    )
+    .optional(),
+  bySession: z
+    .array(
+      z.object({
+        session: z.string(),
+        trades: z.int(),
+        winRate: z.number().min(0).max(1).nullable(),
+        totalR: z.number().nullable(),
+      }),
+    )
+    .optional(),
+  byHour: z
+    .array(
+      z.object({
+        hour: z.int(),
+        trades: z.int(),
+        winRate: z.number().min(0).max(1).nullable(),
+        totalR: z.number().nullable(),
+      }),
+    )
+    .optional(),
+  byDayOfWeek: z
+    .array(
+      z.object({
+        day: z.string(),
+        trades: z.int(),
+        winRate: z.number().min(0).max(1).nullable(),
+        totalR: z.number().nullable(),
+      }),
+    )
+    .optional(),
+  byTag: z
+    .array(
+      z.object({
+        tag: z.string(),
+        trades: z.int(),
+        winRate: z.number().min(0).max(1).nullable(),
+        totalR: z.number().nullable(),
+        expectancy: z.number().nullable(),
+      }),
+    )
+    .optional(),
 });
 
 export const GetJournalStatsOutputSchema = z.object({
@@ -81,3 +143,10 @@ export const GetJournalStatsOutputSchema = z.object({
   notes: z.string().optional(),
 });
 export type GetJournalStatsOutput = z.infer<typeof GetJournalStatsOutputSchema>;
+
+/**
+ * The honest stats block as it leaves the tool / API boundary: measured
+ * values are null when the window had nothing to measure. Used by the web
+ * journal UI so it renders absence instead of a number.
+ */
+export type JournalStatsWithNulls = z.infer<typeof JournalStatsWithNullsSchema>;

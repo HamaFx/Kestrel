@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import type { CoachInsightsResult } from '@kestrel/ai';
-import type { JournalStats } from '@kestrel/shared';
+import type { JournalStatsWithNulls } from '@kestrel/shared';
 import {
   IconAlertTriangle,
   IconBrain,
@@ -32,7 +32,7 @@ import { fetchCsrf } from '@/lib/auth/csrf';
 import { cn } from '@/lib/formatters/cn';
 
 interface AiCoachCardProps {
-  stats: JournalStats;
+  stats: JournalStatsWithNulls;
 }
 
 export function AiCoachCard({ stats }: AiCoachCardProps) {

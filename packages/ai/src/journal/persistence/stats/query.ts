@@ -17,18 +17,17 @@
 // Tenant-scoped stats query over the journal entries.
 
 import { requireTenantIdForUser, schema } from '@kestrel/db';
-import type { JournalStats } from '@kestrel/shared';
 import { and, asc, eq, gte, lte } from 'drizzle-orm';
 
 import { getDb } from '@ai/runtime/db';
 
 import { rowToEntry } from '../rows';
-import { summarize } from './summarize';
+import { summarize, type JournalStatsSummary } from './summarize';
 
 export async function computeStats(
   userId: string,
   opts: { sinceMs?: number; untilMs?: number } = {},
-): Promise<JournalStats> {
+): Promise<JournalStatsSummary> {
   const db = getDb();
   const tenantId = await requireTenantIdForUser(userId, db);
   const filters = [

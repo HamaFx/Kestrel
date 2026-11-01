@@ -23,6 +23,8 @@
 import { google } from '@ai-sdk/google';
 import type { LanguageModel } from 'ai';
 
+import { withImageResolution } from '../media/image-model-middleware';
+
 export interface ResolveModelEnv {
   AI_GATEWAY_API_KEY?: string | undefined;
   GOOGLE_GENERATIVE_AI_API_KEY?: string | undefined;
@@ -46,6 +48,9 @@ export function resolveModel(
   _tenantId?: string,
 ): LanguageModel | string {
   if (env.AI_GATEWAY_API_KEY) {
+    // A gateway id string cannot carry middleware; the byok providers (which
+    // every chat/vision path resolves through) do. This env path is used for
+    // titles, semantic routing and the chart tool's no-context fallback.
     return modelId;
   }
 
@@ -56,7 +61,8 @@ export function resolveModel(
       );
     }
     const bareId = modelId.slice('google/'.length);
-    return google(bareId);
+    // Audit R7 follow-up — provider-boundary image resolution.
+    return withImageResolution(google(bareId));
   }
 
   throw new Error(

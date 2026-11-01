@@ -20,7 +20,7 @@
 // journal stats so the model can compare this trade to the user's baseline.
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
-import type { JournalEntry, JournalStats, ServerEnv } from '@kestrel/shared';
+import type { JournalEntry, ServerEnv } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 import { acquireBudget } from '../budget';
@@ -37,7 +37,7 @@ import {
   mastraOutcomeForError,
 } from '../mastra-v2/shared/telemetry';
 import { resolveChatModel } from '../models/model';
-import { computeStats } from './persistence';
+import { computeStats, type JournalStatsSummary } from './persistence';
 
 export interface ReviewTradeArgs {
   userId: string;
@@ -81,7 +81,7 @@ Rules:
 - Never give financial advice; this is a review of a completed trade.
 - Keep the total response under 250 words.`;
 
-function formatEntryForPrompt(entry: JournalEntry, stats: JournalStats): string {
+function formatEntryForPrompt(entry: JournalEntry, stats: JournalStatsSummary): string {
   const lines = [
     `Symbol: ${entry.symbol}`,
     `Side: ${entry.side}`,
@@ -97,9 +97,10 @@ function formatEntryForPrompt(entry: JournalEntry, stats: JournalStats): string 
     `Notes: ${entry.notes ? sanitizeExternalText(entry.notes, 500) : 'none'}`,
     '',
     `User baseline (last closed trades):`,
-    `- Win rate: ${(stats.winRate * 100).toFixed(1)}%`,
-    `- Average R: ${stats.avgR.toFixed(2)}`,
-    `- Total R: ${stats.totalR.toFixed(2)}`,
+    // A null baseline was not measured; say so instead of printing 0.
+    `- Win rate: ${stats.winRate === null ? 'not measured yet' : `${(stats.winRate * 100).toFixed(1)}%`}`,
+    `- Average R: ${stats.avgR === null ? 'not measured yet' : stats.avgR.toFixed(2)}`,
+    `- Total R: ${stats.totalR === null ? 'not measured yet' : stats.totalR.toFixed(2)}`,
     `- Best trade: +${(stats.maxWinStreak ?? 0).toFixed(2)}R streak count shown; extremes not available in stats`,
   ];
   return lines.join('\n');

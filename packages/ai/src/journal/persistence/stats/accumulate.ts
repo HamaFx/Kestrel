@@ -29,7 +29,7 @@ export const DOW_KEYS = [
   'saturday',
 ] as const;
 
-type Group = { trades: number; wins: number; totalR: number };
+type Group = { trades: number; wins: number; withR: number; totalR: number };
 
 export interface StatsAccumulator {
   wins: number;
@@ -38,6 +38,10 @@ export interface StatsAccumulator {
   open: number;
   totalR: number;
   countWithR: number;
+  // Wins / losses that actually carry an R multiple. `sumWinningR` alone
+  // cannot tell "no scored win" from "a win at exactly 0R".
+  winsWithR: number;
+  lossesWithR: number;
   // Phase B — UX_UPGRADE_PLAN.md item 13.
   // Trackers for the extended metrics.
   sumWinningR: number;
@@ -75,9 +79,9 @@ export interface StatsAccumulator {
 }
 
 /**
- * Extended-metric trackers are initialised to safe defaults so the legacy
- * return shape (without the optional fields) is preserved when entries is
- * empty.
+ * Counters start at zero because a count of zero is a real measurement
+ * ("no wins in this window"). Derived metrics built from them are null
+ * when their population is empty — see `summarize`.
  */
 export function createStatsAccumulator(): StatsAccumulator {
   return {
@@ -87,6 +91,8 @@ export function createStatsAccumulator(): StatsAccumulator {
     open: 0,
     totalR: 0,
     countWithR: 0,
+    winsWithR: 0,
+    lossesWithR: 0,
     sumWinningR: 0,
     sumLosingR: 0,
     longestWinStreak: 0,
@@ -166,35 +172,50 @@ export function accumulateEntry(acc: StatsAccumulator, e: JournalEntry): void {
   const openedDow = new Date(e.openedAt).getUTCDay();
   const dowKey = DOW_KEYS[openedDow] ?? 'sunday';
 
-  const symbolGroup = acc.bySymbolMap.get(e.symbol) ?? { trades: 0, wins: 0, totalR: 0 };
+  const symbolGroup = acc.bySymbolMap.get(e.symbol) ?? { trades: 0, wins: 0, withR: 0, totalR: 0 };
   symbolGroup.trades += 1;
   if (e.outcome === 'win') symbolGroup.wins += 1;
-  if (e.rMultiple !== null) symbolGroup.totalR += e.rMultiple;
+  if (e.rMultiple !== null) {
+    symbolGroup.withR += 1;
+    symbolGroup.totalR += e.rMultiple;
+  }
   acc.bySymbolMap.set(e.symbol, symbolGroup);
 
-  const hourGroup = acc.byHourMap.get(openedHour) ?? { trades: 0, wins: 0, totalR: 0 };
+  const hourGroup = acc.byHourMap.get(openedHour) ?? { trades: 0, wins: 0, withR: 0, totalR: 0 };
   hourGroup.trades += 1;
   if (e.outcome === 'win') hourGroup.wins += 1;
-  if (e.rMultiple !== null) hourGroup.totalR += e.rMultiple;
+  if (e.rMultiple !== null) {
+    hourGroup.withR += 1;
+    hourGroup.totalR += e.rMultiple;
+  }
   acc.byHourMap.set(openedHour, hourGroup);
 
-  const dowGroup = acc.byDowMap.get(dowKey) ?? { trades: 0, wins: 0, totalR: 0 };
+  const dowGroup = acc.byDowMap.get(dowKey) ?? { trades: 0, wins: 0, withR: 0, totalR: 0 };
   dowGroup.trades += 1;
   if (e.outcome === 'win') dowGroup.wins += 1;
-  if (e.rMultiple !== null) dowGroup.totalR += e.rMultiple;
+  if (e.rMultiple !== null) {
+    dowGroup.withR += 1;
+    dowGroup.totalR += e.rMultiple;
+  }
   acc.byDowMap.set(dowKey, dowGroup);
 
   for (const tag of e.tags ?? []) {
-    const tagGroup = acc.byTagMap.get(tag) ?? { trades: 0, wins: 0, totalR: 0 };
+    const tagGroup = acc.byTagMap.get(tag) ?? { trades: 0, wins: 0, withR: 0, totalR: 0 };
     tagGroup.trades += 1;
     if (e.outcome === 'win') tagGroup.wins += 1;
-    if (e.rMultiple !== null) tagGroup.totalR += e.rMultiple;
+    if (e.rMultiple !== null) {
+      tagGroup.withR += 1;
+      tagGroup.totalR += e.rMultiple;
+    }
     acc.byTagMap.set(tag, tagGroup);
   }
 
   if (e.outcome === 'win') {
     acc.wins += 1;
-    if (e.rMultiple !== null) acc.sumWinningR += e.rMultiple;
+    if (e.rMultiple !== null) {
+      acc.sumWinningR += e.rMultiple;
+      acc.winsWithR += 1;
+    }
     if (acc.currentStreak === 'win') {
       acc.currentStreakLen += 1;
     } else {
@@ -204,7 +225,10 @@ export function accumulateEntry(acc: StatsAccumulator, e: JournalEntry): void {
     if (acc.currentStreakLen > acc.longestWinStreak) acc.longestWinStreak = acc.currentStreakLen;
   } else if (e.outcome === 'loss') {
     acc.losses += 1;
-    if (e.rMultiple !== null) acc.sumLosingR += e.rMultiple;
+    if (e.rMultiple !== null) {
+      acc.sumLosingR += e.rMultiple;
+      acc.lossesWithR += 1;
+    }
     if (acc.currentStreak === 'loss') {
       acc.currentStreakLen += 1;
     } else {

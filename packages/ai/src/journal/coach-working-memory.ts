@@ -29,10 +29,11 @@
  */
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
-import type { JournalStats, ServerEnv } from '@kestrel/shared';
+import type { ServerEnv } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 import { syncTraderProfileToWorkingMemory } from '../mastra-v2/context/working-memory-seed';
+import type { JournalStatsSummary } from './persistence';
 
 const clog = createCategorizedLogger('ai', { component: 'journal-coach' });
 
@@ -50,7 +51,7 @@ export interface CoachWorkingMemorySyncArgs {
     leaks: readonly string[];
     actionRules: readonly string[];
   };
-  stats: Pick<JournalStats, 'winRate' | 'avgR'>;
+  stats: Pick<JournalStatsSummary, 'winRate' | 'avgR'>;
 }
 
 /**
@@ -79,7 +80,10 @@ export async function syncCoachInsightsToWorkingMemory(
       },
       profile: {
         disciplineGrade: args.insights.disciplineGrade,
-        winRatePct: args.stats.winRate * 100,
+        // R8 (audit 2026-10-31): a null win rate / average R means the journal
+        // has nothing closed to measure; keep it null so the profile says
+        // "not enough data" instead of a fabricated 0.
+        winRatePct: args.stats.winRate === null ? null : args.stats.winRate * 100,
         avgR: args.stats.avgR,
         strengths: args.insights.strengths,
         leaks: args.insights.leaks,

@@ -15,7 +15,7 @@
  */
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
-import type { JournalEntry, JournalStats, ServerEnv } from '@kestrel/shared';
+import type { JournalEntry, ServerEnv } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 import { acquireBudget } from '../budget';
@@ -38,7 +38,7 @@ import {
   parseCoachPayload,
 } from './coach-insights-schema';
 import { syncCoachInsightsToWorkingMemory } from './coach-working-memory';
-import { computeStats, listEntries } from './persistence';
+import { computeStats, listEntries, type JournalStatsSummary } from './persistence';
 
 // R13 (audit 2026-10-31): the schema, content caps, and model-output
 // normalization live in `./coach-insights-schema`; re-exported here so the
@@ -114,7 +114,14 @@ Rules:
 - Be direct, data-driven, and actionable. Never give generic platitudes.
 - If fewer than 5 trades exist, note that sample size is small while still providing process guidance.`;
 
-function formatStatsForCoachPrompt(stats: JournalStats, entries: JournalEntry[]): string {
+function formatStatsForCoachPrompt(stats: JournalStatsSummary, entries: JournalEntry[]): string {
+  // A null metric was not measured. Print "n/a" so the model cannot quote a
+  // fabricated 0 (R8, audit 2026-10-31).
+  const pct = (v: number | null): string => (v === null ? 'n/a' : `${(v * 100).toFixed(0)}%`);
+  const r1 = (v: number | null): string => (v === null ? 'n/a' : `${v.toFixed(1)}R`);
+  const r2 = (v: number | null): string => (v === null ? 'n/a' : v.toFixed(2));
+  const orDash = (v: number | null): string => (v === null ? 'no sample' : `${v}`);
+
   const recentNotes = entries
     .filter((e) => e.notes && e.notes.trim().length > 0)
     .slice(0, 10)
@@ -127,21 +134,21 @@ function formatStatsForCoachPrompt(stats: JournalStats, entries: JournalEntry[])
   const symbolsSummary = (stats.bySymbol ?? [])
     .map(
       (s) =>
-        `  - ${s.symbol}: ${s.trades} trades, ${(s.winRate * 100).toFixed(0)}% win rate, Total R: ${s.totalR.toFixed(1)}R, Exp: ${s.expectancy.toFixed(2)}`,
+        `  - ${s.symbol}: ${s.trades} trades, ${pct(s.winRate)} win rate, Total R: ${r1(s.totalR)}, Exp: ${r2(s.expectancy)}`,
     )
     .join('\n');
 
   const sessionsSummary = (stats.bySession ?? [])
     .map(
       (s) =>
-        `  - ${s.session}: ${s.trades} trades, ${(s.winRate * 100).toFixed(0)}% win rate, Total R: ${s.totalR.toFixed(1)}R`,
+        `  - ${s.session}: ${s.trades} trades, ${pct(s.winRate)} win rate, Total R: ${r1(s.totalR)}`,
     )
     .join('\n');
 
   const daysSummary = (stats.byDayOfWeek ?? [])
     .map(
       (d) =>
-        `  - ${d.day}: ${d.trades} trades, ${(d.winRate * 100).toFixed(0)}% win rate, Total R: ${d.totalR.toFixed(1)}R`,
+        `  - ${d.day}: ${d.trades} trades, ${pct(d.winRate)} win rate, Total R: ${r1(d.totalR)}`,
     )
     .join('\n');
 
@@ -149,14 +156,14 @@ function formatStatsForCoachPrompt(stats: JournalStats, entries: JournalEntry[])
 Aggregate Journal Statistics:
 - Total Trades: ${stats.count} (Closed: ${stats.wins + stats.losses + stats.breakevens}, Open: ${stats.open})
 - Wins: ${stats.wins}, Losses: ${stats.losses}, Breakevens: ${stats.breakevens}
-- Win Rate: ${(stats.winRate * 100).toFixed(1)}%
-- Avg Realized R: ${stats.avgR.toFixed(2)}R (Win Avg: +${(stats.avgWinR ?? 0).toFixed(2)}R, Loss Avg: ${(stats.avgLossR ?? 0).toFixed(2)}R)
-- Total Realized R: ${stats.totalR.toFixed(2)}R
-- Profit Factor: ${stats.profitFactor !== null && stats.profitFactor !== undefined ? stats.profitFactor.toFixed(2) : 'N/A'}
-- Max Drawdown: ${(stats.maxDrawdown ?? 0).toFixed(2)}R
+- Win Rate: ${stats.winRate === null ? 'n/a (no closed trades)' : `${(stats.winRate * 100).toFixed(1)}%`}
+- Avg Realized R: ${stats.avgR === null ? 'n/a (no R multiples)' : `${stats.avgR.toFixed(2)}R`} (Win Avg: ${orDash(stats.avgWinR)}, Loss Avg: ${orDash(stats.avgLossR)})
+- Total Realized R: ${stats.totalR === null ? 'n/a (no R multiples)' : `${stats.totalR.toFixed(2)}R`}
+- Profit Factor: ${stats.profitFactor === null ? 'n/a' : stats.profitFactor.toFixed(2)}
+- Max Drawdown: ${stats.maxDrawdown === null ? 'n/a (no R multiples)' : `${stats.maxDrawdown.toFixed(2)}R`}
 - Streaks: Best Win Streak: ${stats.maxWinStreak ?? stats.longestWinStreak ?? 0}, Worst Loss Streak: ${stats.maxLossStreak ?? stats.longestLossStreak ?? 0}
 - Current Streak: ${stats.currentStreak ? `${stats.currentStreak.count} ${stats.currentStreak.type}(s)` : 'None'}
-- Avg Hold Time: ${stats.avgHoldMs ? `${Math.round(stats.avgHoldMs / 60000)} mins` : 'N/A'}
+- Avg Hold Time: ${stats.avgHoldMs === null ? 'n/a' : `${Math.round(stats.avgHoldMs / 60000)} mins`}
 
 Performance by Symbol:
 ${symbolsSummary || '  - None recorded'}

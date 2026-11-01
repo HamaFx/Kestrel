@@ -137,14 +137,17 @@ export const getSystemDiagnosticsTool: Tool<
         .limit(1);
       resonanceSyncLastRun = resonanceRecent[0]?.date ?? null;
 
+      // Found in the same pass as R8: this probe used to read the newest
+      // `briefings_emitted` row, which is not a COT sync at all (that table
+      // only holds 'pre' | 'post' | 'weekly_review'). Read the actual
+      // `cot_reports` table so "Pending execution" means none was ingested.
       const cotRecent = await db
-        .select({ occurredAt: schema.briefingsEmitted.createdAt })
-        .from(schema.briefingsEmitted)
-        .where(eq(schema.briefingsEmitted.tenantId, tenantId))
-        .orderBy(desc(schema.briefingsEmitted.createdAt))
+        .select({ reportDate: schema.cotReports.reportDate })
+        .from(schema.cotReports)
+        .orderBy(desc(schema.cotReports.reportDate))
         .limit(1);
-      cotSyncLastRun = cotRecent[0]?.occurredAt
-        ? cotRecent[0].occurredAt.toISOString().slice(0, 10)
+      cotSyncLastRun = cotRecent[0]?.reportDate
+        ? cotRecent[0].reportDate.toISOString().slice(0, 10)
         : null;
     } catch {
       // best-effort
@@ -169,11 +172,19 @@ export const getSystemDiagnosticsTool: Tool<
       envCheck.FRED_API_KEY &&
       envCheck.GOOGLE_GENERATIVE_AI_API_KEY;
 
-    const status: GetSystemDiagnosticsOutput['status'] = !isHealthy
-      ? 'degraded'
-      : dbStatus === 'error'
-        ? 'unhealthy'
-        : 'healthy';
+    // R8 follow-up (audit 2026-10-31): the old order checked `!isHealthy`
+    // first, and `isHealthy` already requires `dbStatus === 'connected'`, so
+    // every database error reported as merely 'degraded' and 'unhealthy' was
+    // unreachable. A failed database probe is the one status we must not
+    // understate, so it is classified first.
+    const status: GetSystemDiagnosticsOutput['status'] =
+      dbStatus === 'error' ? 'unhealthy' : !isHealthy ? 'degraded' : 'healthy';
+    const statusDetail =
+      status === 'unhealthy'
+        ? ' (database probe failed)'
+        : status === 'degraded'
+          ? ' (a probe reading is unavailable or over the latency budget)'
+          : '';
 
     const latencyText = latencyMs === null ? 'unavailable' : `${latencyMs}ms`;
     const countsText =
@@ -183,7 +194,7 @@ export const getSystemDiagnosticsTool: Tool<
       memoryEmbeddingsCount === null
         ? 'table counts unavailable'
         : `${journalEntriesCount} journals, ${snapshotsCount} market snapshots, ${resonanceCount} macro intermarket rows, ${memoryEmbeddingsCount} vectorized memories`;
-    const narrative = `System status is ${status.toUpperCase()}. DB latency: ${latencyText}. Table stats: ${countsText}. Remaining daily AI spend budget is $${remainingUsd.toFixed(2)} USD out of a cap of $${limitUsd.toFixed(2)} USD.`;
+    const narrative = `System status is ${status.toUpperCase()}${statusDetail}. DB latency: ${latencyText}. Table stats: ${countsText}. Remaining daily AI spend budget is $${remainingUsd.toFixed(2)} USD out of a cap of $${limitUsd.toFixed(2)} USD.`;
 
     return {
       status,

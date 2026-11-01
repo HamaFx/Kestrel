@@ -133,6 +133,11 @@ export const analyzeChartImageTool: Tool<
             type: 'text',
             text: `${hint || 'Analyse this chart screenshot.'} Identify the symbol if it is in the supported gold, forex, or crypto catalog (otherwise null) and timeframe; list the visible price levels with short labels; describe the trend / bias; emit a one-paragraph observation.`,
           },
+          // R7: keep the stored reference here. The owner-authorised proxy
+          // (and legacy Supabase URLs) cannot be fetched by the provider, so
+          // the provider-boundary image middleware inlines the bytes from
+          // the service-role read at the model call; nothing persistent ever
+          // holds the base64.
           asContentImagePart(imagePart),
         ],
       },
@@ -267,8 +272,8 @@ function asContentImagePart(part: ImagePartShape): {
   mediaType: string;
 } {
   // The AI SDK accepts either a URL string (data URL or http/s) or a
-  // Buffer/ArrayBuffer; we store data URLs in the parts JSON, so the
-  // string form is the right shape here.
+  // Buffer/ArrayBuffer; stored parts keep the reference URL, and the
+  // provider-boundary middleware swaps in the bytes at the model call.
   const value = (part.data ?? part.url ?? '').toString();
   return {
     type: 'file',

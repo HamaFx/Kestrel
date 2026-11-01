@@ -19,6 +19,8 @@
 import { type WebSearchOutput, type WebSearchProvider } from '@kestrel/shared';
 import { z } from 'zod';
 
+import type { ContentScreenMode } from '../../mastra-v2/packets/external-content';
+
 export const InputSchema = z.object({
   query: z.string().trim().min(3).max(500),
   symbol: z.string().trim().min(2).max(20).optional(),
@@ -41,6 +43,12 @@ export type SearchConfig = {
   maxCallsPerTurn: number;
   cacheTtlMs: number;
   timeoutMs: number;
+  /**
+   * Audit R15 — screening posture for web results. `strict` (default) withholds
+   * results when the injection screen cannot run; `availability` keeps serving
+   * with the deterministic screen only and reports the degradation.
+   */
+  screenMode: ContentScreenMode;
 };
 
 export type ProviderItem = {

@@ -20,6 +20,7 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 
+import { withImageResolution } from '../../media/image-model-middleware';
 import type { ByokProviderSpec, ModelDomain } from '../types';
 
 /** Full capability set — vision + tools + jsonMode + streaming. */
@@ -93,5 +94,13 @@ export function defineProvider(spec: ByokProviderSpec): ByokProviderSpec {
       );
     }
   }
-  return spec;
+  // Audit 2026-10-31 (R7 follow-up) — every BYOK model instance carries the
+  // provider-boundary image resolver. Call sites (canonical chat, custom
+  // agents, the chart tool, the worker payload) keep the storage reference;
+  // only the final provider prompt gets inline bytes, so no message store
+  // (Drizzle or Mastra memory) can persist them.
+  return {
+    ...spec,
+    factory: (apiKey) => (modelId) => withImageResolution(spec.factory(apiKey)(modelId)),
+  };
 }

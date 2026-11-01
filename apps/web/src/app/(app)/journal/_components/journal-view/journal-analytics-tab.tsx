@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Analytics tab: AI coach/review cards plus the breakdown and streak widgets.
-import type { JournalEntry, JournalStats } from '@kestrel/shared';
+import type { JournalEntry, JournalStatsWithNulls } from '@kestrel/shared';
 
 import { AiCoachCard } from '../ai-coach-card';
 import { AiReviewPanel } from '../ai-review-panel';
@@ -17,7 +17,7 @@ export function JournalAnalyticsTab({
   stats,
 }: {
   entries: JournalEntry[];
-  stats: JournalStats;
+  stats: JournalStatsWithNulls;
 }) {
   return (
     <div className="flex flex-col gap-4">

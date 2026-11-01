@@ -42,6 +42,7 @@ vi.mock('@kestrel/db', () => {
       createdAt: 'be.created_at',
     },
     intermarketResonance: { id: 'intermarket_resonance', date: 'ir.date' },
+    cotReports: { reportDate: 'cot.report_date' },
     memoryEmbeddings: { id: 'memory_embeddings', userId: 'me.user_id', tenantId: 'me.tenant_id' },
     alerts: { userId: 'alerts.user_id', tenantId: 'alerts.tenant_id', active: 'alerts.active' },
   };
@@ -56,7 +57,7 @@ vi.mock('@kestrel/db', () => {
   ];
   const recent: Array<[unknown, unknown[]]> = [
     [schema.intermarketResonance, [{ date: '2026-05-28' }]],
-    [schema.briefingsEmitted, [{ occurredAt: new Date('2026-05-27T00:00:00Z') }]],
+    [schema.cotReports, [{ reportDate: new Date('2026-05-26T00:00:00Z') }]],
   ];
 
   return {
@@ -122,6 +123,10 @@ describe('Diagnostics Tools', () => {
     expect(result.database.journalEntriesCount).toBe(42);
     expect(result.database.memoryEmbeddingsCount).toBe(67);
     expect(result.worker.activeAlertsCount).toBe(3);
+    // The COT freshness reading now comes from `cot_reports`, not the
+    // briefings table (found while fixing R8).
+    expect(result.worker.resonanceSyncLastRun).toBe('2026-05-28');
+    expect(result.worker.cotSyncLastRun).toBe('2026-05-26');
     expect(GetSystemDiagnosticsOutputSchema.safeParse(result).success).toBe(true);
   });
 
@@ -130,6 +135,9 @@ describe('Diagnostics Tools', () => {
 
     const result = await runDiagnostics();
 
+    // A failed database probe is 'unhealthy', not merely 'degraded' — the
+    // old status expression made 'unhealthy' unreachable (R8 follow-up).
+    expect(result.status).toBe('unhealthy');
     expect(result.database.status).toBe('error');
     expect(result.database.latencyMs).toBeNull();
     expect(result.database.journalEntriesCount).toBeNull();
@@ -138,6 +146,8 @@ describe('Diagnostics Tools', () => {
     expect(result.database.resonanceCount).toBeNull();
     expect(result.database.memoryEmbeddingsCount).toBeNull();
     expect(result.worker.activeAlertsCount).toBeNull();
+    expect(result.narrative).toMatch(/unhealthy/i);
+    expect(result.narrative).toMatch(/database probe failed/i);
     expect(result.narrative).toMatch(/unavailable/i);
     expect(result.narrative).not.toMatch(/0 journals/);
 
@@ -150,6 +160,22 @@ describe('Diagnostics Tools', () => {
     });
     expect(evidence).not.toContain(0);
     expect(GetSystemDiagnosticsOutputSchema.safeParse(result).success).toBe(true);
+  });
+
+  it('reports degraded (not unhealthy) when the database works but a key is missing', async () => {
+    const saved = process.env['GOOGLE_GENERATIVE_AI_API_KEY'];
+    delete process.env['GOOGLE_GENERATIVE_AI_API_KEY'];
+    try {
+      const result = await runDiagnostics();
+
+      expect(result.database.status).toBe('connected');
+      expect(result.status).toBe('degraded');
+      expect(result.narrative).toContain('DEGRADED');
+      expect(result.narrative).toMatch(/latency budget/i);
+      expect(GetSystemDiagnosticsOutputSchema.safeParse(result).success).toBe(true);
+    } finally {
+      if (saved !== undefined) process.env['GOOGLE_GENERATIVE_AI_API_KEY'] = saved;
+    }
   });
 
   it('keeps parsing a previously persisted probe output that used -1 for offline', () => {

@@ -85,7 +85,9 @@ export async function runResonanceSync(ctx: JobContext): Promise<JobResult> {
   for (const s of goldSnapshots) {
     const dateStr = s.asOf.toISOString().slice(0, 10);
     const data = s.data as { close?: number };
-    if (data && typeof data.close === 'number') {
+    // A non-finite close is an unmeasured price; feeding it to the regression
+    // would poison every coefficient. Skip it instead.
+    if (data && typeof data.close === 'number' && Number.isFinite(data.close)) {
       goldMap.set(dateStr, data.close);
     }
   }
@@ -140,31 +142,57 @@ export async function runResonanceSync(ctx: JobContext): Promise<JobResult> {
   }
 
   const denominator = n * sumXX - sumX * sumX;
-  let b = 0;
-  let a: number;
-  if (denominator !== 0) {
-    b = (n * sumXY - sumX * sumY) / denominator;
-    a = (sumY - b * sumX) / n;
-  } else {
-    a = sumY / n;
+  if (!Number.isFinite(denominator) || denominator === 0) {
+    // R8 (audit 2026-10-31): zero variance in real yields leaves the OLS
+    // slope undefined. A 0 slope (and the intercept-only baseline) would be
+    // persisted as measured coefficients and turned into fake divergence
+    // scores, so skip the run entirely and leave stored rows untouched.
+    // Mirrors `run_system_action`, which throws before writing.
+    log.warn('real yields show no variance — regression cannot be estimated; nothing written', {
+      aligned: n,
+    });
+    return {
+      processed: 0,
+      note: `regression not estimable (no variance in real yields, aligned=${n}); nothing written`,
+    };
+  }
+  const slope = (n * sumXY - sumX * sumY) / denominator;
+  const intercept = (sumY - slope * sumX) / n;
+  if (!Number.isFinite(slope) || !Number.isFinite(intercept)) {
+    log.warn('regression produced non-finite coefficients; nothing written', { aligned: n });
+    return {
+      processed: 0,
+      note: `regression not estimable (non-finite coefficients, aligned=${n}); nothing written`,
+    };
   }
 
   // Calculate residuals and standard deviation of residuals
   const residuals: number[] = [];
   for (const pt of aligned) {
-    const expected = a + b * pt.realYield;
+    const expected = intercept + slope * pt.realYield;
     residuals.push(pt.gold - expected);
   }
 
   const meanResidual = residuals.reduce((sum, r) => sum + r, 0) / n;
   const varianceResidual = residuals.reduce((sum, r) => sum + Math.pow(r - meanResidual, 2), 0) / n;
-  const stdDevResidual = Math.sqrt(varianceResidual) || 1.0;
+  // R8 (audit 2026-10-31): a zero (or non-finite) residual spread makes the
+  // standardized divergence 0/0. The observations themselves are real, so they
+  // are still stored, but `divergence_score` is NULL — never `residual / 1`,
+  // which would persist a fake z-score as a measurement.
+  const stdDevResidual = Math.sqrt(varianceResidual);
+  const divergencesDefined = Number.isFinite(stdDevResidual) && stdDevResidual > 0;
+  if (!divergencesDefined) {
+    log.warn(
+      'residual standard deviation is zero or non-finite — divergence scores stored as NULL',
+      { aligned: n, stdDevResidual },
+    );
+  }
 
   // 6. Generate rows to persist
   const dbRows = aligned.map((pt, i) => {
     const residual = residuals[i]!;
     // Standardized z-score representing the institutional safe-haven premium divergence.
-    const divergenceScore = residual / stdDevResidual;
+    const divergenceScore = divergencesDefined ? residual / stdDevResidual : null;
 
     return {
       date: pt.date,
@@ -209,6 +237,8 @@ export async function runResonanceSync(ctx: JobContext): Promise<JobResult> {
   log.info('resonance-sync complete', { processed });
   return {
     processed,
-    note: `synchronized=${processed} observations`,
+    note:
+      `synchronized=${processed} observations` +
+      (divergencesDefined ? '' : ' (divergence scores null: residual spread not positive)'),
   };
 }

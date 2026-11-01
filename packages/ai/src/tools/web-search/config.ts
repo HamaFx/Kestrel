@@ -16,9 +16,15 @@
 
 // Environment-derived search configuration: provider order, keys, and the
 // bounds that keep a single turn from hammering the providers.
+//
+// Audit R15 — `WEB_SEARCH_SCREEN_MODE` selects the indirect-injection
+// screening posture for web results: `strict` (default; withhold results when
+// the screen cannot run) or `availability` (keep serving with the
+// deterministic screen only, reported as degraded).
 
 import type { WebSearchProvider } from '@kestrel/shared';
 
+import type { ContentScreenMode } from '../../mastra-v2/packets/external-content';
 import { PROVIDERS, type SearchConfig } from './types';
 import { stringValue } from './values';
 
@@ -43,7 +49,16 @@ export function readSearchConfig(env?: Record<string, unknown>): SearchConfig {
     maxCallsPerTurn: asNumber(source.WEB_SEARCH_MAX_CALLS_PER_TURN, 2, 1, 4),
     cacheTtlMs: asNumber(source.WEB_SEARCH_CACHE_TTL_SECONDS, 600, 30, 3600) * 1000,
     timeoutMs: asNumber(source.WEB_SEARCH_TIMEOUT_MS, 8000, 2000, 20000),
+    // Audit R15 — web results are untrusted external content, so the default
+    // posture is strict: no results rather than unscreened results. A deployer
+    // that deliberately runs without an injection detector must say so here,
+    // and the degradation is reported either way.
+    screenMode: asScreenMode(source.WEB_SEARCH_SCREEN_MODE),
   };
+}
+
+function asScreenMode(value: unknown): ContentScreenMode {
+  return value === 'availability' ? 'availability' : 'strict';
 }
 
 export function orderedConfiguredProviders(config: SearchConfig): WebSearchProvider[] {

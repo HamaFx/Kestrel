@@ -45,6 +45,22 @@ export function resolveSnapshotModel(
   });
 }
 
+/**
+ * Reconstruct the enqueue-time user message for a durable full-analysis run.
+ *
+ * Audit 2026-10-31 (R7): the payload carries the user's original chat parts,
+ * whose images point at the owner-authorised `/api/uploads/...` proxy (or a
+ * legacy public Supabase URL). Those references are kept verbatim: this
+ * message is persisted by `appendUserMessage` and backfilled into Mastra
+ * memory, so it must never carry inline bytes. The bytes are produced later,
+ * at the provider boundary, by the image middleware attached to every model
+ * (`packages/ai/src/media/image-model-middleware.ts`); Mastra's pre-flight
+ * downloader is told those URL shapes are provider-handled, so it hands the
+ * reference through to the middleware instead of fetching it anonymously.
+ *
+ * Ordering: persist reference -> memory backfill keeps reference ->
+ * provider prompt inlines bytes (transient, never stored).
+ */
 export function userMessageFromPayload(payload: FullAnalysisPayload): UIMessage {
   const storedParts = Array.isArray(payload.userMessageParts) ? payload.userMessageParts : [];
   const hasTextPart = storedParts.some(

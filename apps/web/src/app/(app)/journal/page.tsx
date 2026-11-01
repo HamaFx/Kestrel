@@ -17,7 +17,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { computeStats, listEntries } from '@kestrel/ai';
-import type { JournalEntry, JournalStats } from '@kestrel/shared';
+import type { JournalEntry, JournalStatsWithNulls } from '@kestrel/shared';
 import type { Metadata } from 'next';
 
 import { auth } from '@/auth';
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function JournalPage() {
-  let initialData: { entries: JournalEntry[]; stats: JournalStats } | undefined;
+  let initialData: { entries: JournalEntry[]; stats: JournalStatsWithNulls } | undefined;
 
   const session = await auth();
   if (session?.user?.id) {

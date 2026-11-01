@@ -94,11 +94,13 @@ export {
   computeRMultiple,
   computeStats,
   summarize,
+  type JournalStatsSummary,
   type CreateJournalInput,
   type UpdateJournalInput,
 } from '../journal/persistence';
 export { reviewTrade, type ReviewTradeArgs, type TradeReviewResult } from '../journal/review';
 export {
+  CoachInsightsUnavailableError,
   getCoachInsights,
   type CoachInsightsArgs,
   type CoachInsightsResult,

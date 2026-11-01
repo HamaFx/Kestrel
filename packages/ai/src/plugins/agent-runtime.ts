@@ -30,6 +30,7 @@ import type { GenerationLedger } from '@ai/persistence/generation-ledger';
 import { withRetry } from '@ai/runtime/retry';
 import { withToolContext } from '@ai/runtime/tool-context';
 
+import { latestUserModelMessages } from '../mastra-v2/agents/canonical/prompts';
 import {
   extractToolPartsFromMessages,
   type MastraToolInvocationPart,
@@ -68,13 +69,11 @@ async function messageHistory(
     totalChars += charCount;
     bounded.unshift(msg);
   }
+  // R7: references stay unresolved; the provider-boundary middleware inlines
+  // them, so Mastra never persists the bytes.
   return await convertToModelMessages(
     bounded.map((message) => ({ id: message.id, role: message.role, parts: message.parts })),
   );
-}
-
-function latestUserModelMessages(prompt: string): Promise<ModelMessage[]> {
-  return convertToModelMessages([{ role: 'user', parts: [{ type: 'text', text: prompt }] }]);
 }
 
 export interface CustomAgentStreamArgs {
@@ -149,12 +148,18 @@ export async function runCustomAgentStream(
   });
 
   built.toolContext.latestUserMessageText = args.prompt;
+  // The stored prompt text replaces the raw text (@handle), but the turn's
+  // attachments must still reach the provider (inlined at the model boundary).
+  const latestUserMessage: UIMessage = {
+    ...args.userMessage,
+    parts: [
+      { type: 'text', text: args.prompt },
+      ...(args.userMessage.parts ?? []).filter((part) => part.type === 'file'),
+    ],
+  };
   const messages = built.callMemory
-    ? await latestUserModelMessages(args.prompt)
-    : await messageHistory(args.history, {
-        ...args.userMessage,
-        parts: [{ type: 'text', text: args.prompt }],
-      });
+    ? await latestUserModelMessages(latestUserMessage)
+    : await messageHistory(args.history, latestUserMessage);
 
   // R14 — custom agents previously had no retry and no mid-turn failover.
   // The chain is the user's configured providers; `built` owns the primary.

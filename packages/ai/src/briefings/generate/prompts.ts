@@ -80,9 +80,20 @@ export function surpriseLabel(event: EconomicEvent): string {
 }
 
 /** Exported for testing — deterministic fallback for the weekly review summary. */
-export function deterministicWeeklyReview(stats: Awaited<ReturnType<typeof computeStats>>): string {
+export function deterministicWeeklyReview(
+  stats: Pick<
+    Awaited<ReturnType<typeof computeStats>>,
+    'count' | 'wins' | 'losses' | 'breakevens' | 'open' | 'winRate' | 'avgR' | 'totalR'
+  >,
+): string {
+  // R8 (audit 2026-10-31): null metrics were not measured; print that instead
+  // of a fabricated 0% / 0R the model could quote as fact.
+  const winRate =
+    stats.winRate === null ? 'not measured yet' : `${(stats.winRate * 100).toFixed(1)}%`;
+  const avgR = stats.avgR === null ? 'not measured yet' : stats.avgR.toFixed(2);
+  const totalR = stats.totalR === null ? 'not measured yet' : stats.totalR.toFixed(2);
   return [
     `Last 7 days — ${stats.count} trade${stats.count === 1 ? '' : 's'} (${stats.wins}W / ${stats.losses}L / ${stats.breakevens}BE / ${stats.open} open).`,
-    `Win rate: ${(stats.winRate * 100).toFixed(1)}% · Avg R: ${stats.avgR.toFixed(2)} · Total R: ${stats.totalR.toFixed(2)}.`,
+    `Win rate: ${winRate} · Avg R: ${avgR} · Total R: ${totalR}.`,
   ].join('\n');
 }

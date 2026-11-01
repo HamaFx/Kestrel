@@ -19,7 +19,7 @@
 // Upgraded Stats Summary Dashboard with advanced risk analytics.
 // Displays core metrics, a horizontal segmented trade distribution gauge,
 // and institutional stats (Profit Factor, Max Drawdown, Expectancy, and Extreme trade boundaries).
-import type { JournalEntry, JournalStats } from '@kestrel/shared';
+import type { JournalEntry, JournalStatsWithNulls } from '@kestrel/shared';
 import { IconBook } from '@tabler/icons-react';
 import { useMemo } from 'react';
 
@@ -32,12 +32,13 @@ import { OutcomeDistribution } from './outcome-distribution';
 import { useStatSparks } from './use-stat-sparks';
 
 interface StatsSummaryProps {
-  stats: JournalStats;
+  stats: JournalStatsWithNulls;
   entries?: readonly JournalEntry[];
 }
 
 export function StatsSummary({ stats, entries = [] }: StatsSummaryProps) {
-  const winRatePct = (stats.winRate * 100).toFixed(0);
+  // A null win rate is unmeasured (R8); render an em dash rather than 0%.
+  const winRatePct = stats.winRate == null ? '—' : `${(stats.winRate * 100).toFixed(0)}%`;
 
   // Calculate historical closed trades
   const closedTrades = useMemo(() => {

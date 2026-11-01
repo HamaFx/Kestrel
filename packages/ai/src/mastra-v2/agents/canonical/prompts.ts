@@ -123,6 +123,9 @@ export async function messageHistory(
     tail.unshift(msg);
   }
   const bounded = [anchor, ...tail];
+  // R7: image references stay unresolved here. Mastra persists the messages
+  // it is given, so the bytes are inlined only in the provider-boundary
+  // middleware (`media/image-model-middleware.ts`).
   return await convertToModelMessages(
     bounded.map((message) => ({
       id: message.id,

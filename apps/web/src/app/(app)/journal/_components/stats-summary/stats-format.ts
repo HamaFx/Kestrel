@@ -2,20 +2,19 @@
 
 // Small formatters/guards shared by the journal stats-summary sections.
 
-import type { JournalStats } from '@kestrel/shared';
+import type { JournalStatsWithNulls } from '@kestrel/shared';
 
 /**
  * Phase B — UX_UPGRADE_PLAN.md item 13.
- * The extended stats are optional on the schema (for backward
- * compat with data persisted before item 13). We check for the
- * presence of the marker field so the new tiles only render when
- * the server actually computed them.
+ * The extended tiles only render when the server actually measured something
+ * for them. Null (or absent) values mean "nothing closed to measure" — R8
+ * (audit 2026-10-31) — so they are not shown as zeros.
  */
-export function hasExtendedStats(stats: JournalStats): boolean {
+export function hasExtendedStats(stats: JournalStatsWithNulls): boolean {
   return (
-    stats.maxDrawdown !== undefined ||
-    stats.longestWinStreak !== undefined ||
-    stats.profitFactor !== undefined
+    stats.maxDrawdown != null ||
+    stats.avgHoldMs != null ||
+    (stats.perDayOfWeek != null && Object.values(stats.perDayOfWeek).some((n) => n > 0))
   );
 }
 

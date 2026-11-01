@@ -50,10 +50,13 @@ const TRADER_PROFILE_BULLET_CHARS = 200;
 export interface TraderProfileSummary {
   /** Coach discipline grade (`A+`…`F`). */
   disciplineGrade: string;
-  /** Realized win rate in percent (0–100). */
-  winRatePct: number;
-  /** Average realized R multiple. */
-  avgR: number;
+  /**
+   * Realized win rate in percent (0–100), or null when the journal has no
+   * closed trades to measure one from (R8, audit 2026-10-31).
+   */
+  winRatePct: number | null;
+  /** Average realized R multiple, or null when no trade carries one. */
+  avgR: number | null;
   strengths: readonly string[];
   leaks: readonly string[];
   actionRules: readonly string[];
@@ -107,10 +110,11 @@ function renderTraderProfile(profile: TraderProfileSummary): string {
       .map((item) => sanitizeExternalText(item, TRADER_PROFILE_BULLET_CHARS))
       .filter((item) => item.length > 0)
       .map((item) => `  - ${item}`);
-  const lines = [
-    TRADER_PROFILE_HEADING,
-    `- **Edge snapshot**: ${profile.winRatePct.toFixed(1)}% win rate · avg ${profile.avgR.toFixed(2)}R · discipline grade ${profile.disciplineGrade}`,
-  ];
+  const edgeSnapshot =
+    profile.winRatePct === null || profile.avgR === null
+      ? `not enough closed journal trades to measure an edge yet · discipline grade ${profile.disciplineGrade}`
+      : `${profile.winRatePct.toFixed(1)}% win rate · avg ${profile.avgR.toFixed(2)}R · discipline grade ${profile.disciplineGrade}`;
+  const lines = [TRADER_PROFILE_HEADING, `- **Edge snapshot**: ${edgeSnapshot}`];
   const strengths = bullets(profile.strengths);
   if (strengths.length > 0) lines.push('- **Strengths**:', ...strengths);
   const leaks = bullets(profile.leaks);

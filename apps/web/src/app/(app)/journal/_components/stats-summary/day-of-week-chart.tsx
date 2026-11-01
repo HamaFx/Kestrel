@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // 7-bar monochrome weekday chart used by the extended stats section.
-import type { JournalStats } from '@kestrel/shared';
+import type { JournalStatsWithNulls } from '@kestrel/shared';
 
 /**
  * 7-bar monochrome bar chart. Height proportional to the max
@@ -11,9 +11,9 @@ import type { JournalStats } from '@kestrel/shared';
  * with the 3-letter day abbreviation and the count.
  */
 const DOW_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
-type DowKey = keyof JournalStats['perDayOfWeek'] extends never
+type DowKey = keyof JournalStatsWithNulls['perDayOfWeek'] extends never
   ? 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday'
-  : NonNullable<JournalStats['perDayOfWeek']> extends Record<infer K, number>
+  : NonNullable<JournalStatsWithNulls['perDayOfWeek']> extends Record<infer K, number>
     ? K & string
     : string;
 const DOW_KEYS: DowKey[] = [
@@ -29,7 +29,7 @@ const DOW_KEYS: DowKey[] = [
 export function DayOfWeekChart({
   perDayOfWeek,
 }: {
-  perDayOfWeek: NonNullable<JournalStats['perDayOfWeek']>;
+  perDayOfWeek: NonNullable<JournalStatsWithNulls['perDayOfWeek']>;
 }) {
   const counts = DOW_KEYS.map((k) => perDayOfWeek[k] ?? 0);
   const max = Math.max(1, ...counts); // avoid div-by-zero

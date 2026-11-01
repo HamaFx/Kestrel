@@ -19,7 +19,7 @@
 // Wires the form (in a Drawer), list, stats summary, and performance curve together.
 // Implements an advanced, responsive two-column grid on desktop, showing the equity curve and list
 // on the left, and stats summary / analytics on the right.
-import type { JournalEntry, JournalStats } from '@kestrel/shared';
+import type { JournalEntry, JournalStatsWithNulls } from '@kestrel/shared';
 import { IconActivity, IconPlus, IconRefresh, IconUpload } from '@tabler/icons-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -50,7 +50,7 @@ const QKEY = ['journal'] as const;
 
 interface JournalResponse {
   entries: JournalEntry[];
-  stats: JournalStats;
+  stats: JournalStatsWithNulls;
 }
 
 export function JournalView({ initialData }: { initialData?: JournalResponse } = {}) {

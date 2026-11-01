@@ -24,9 +24,11 @@ import { cn } from '@/lib/formatters/cn';
 interface BreakdownRow {
   label: string;
   trades: number;
-  winRate: number;
-  totalR: number;
-  expectancy?: number;
+  /** Null when the bucket had no closed trade to measure one from. */
+  winRate: number | null;
+  /** Null when no trade in the bucket carries an R multiple. */
+  totalR: number | null;
+  expectancy?: number | null;
 }
 
 interface BreakdownTableProps {
@@ -38,6 +40,14 @@ interface BreakdownTableProps {
 type SortKey = 'label' | 'trades' | 'winRate' | 'totalR' | 'expectancy';
 type SortDir = 'asc' | 'desc';
 
+function sortValue(row: BreakdownRow, key: SortKey): number | string | null {
+  if (key === 'label') return row.label;
+  if (key === 'expectancy') return row.expectancy ?? null;
+  if (key === 'trades') return row.trades;
+  if (key === 'winRate') return row.winRate;
+  return row.totalR;
+}
+
 export function BreakdownTable({ title, data, sortBy = 'totalR' }: BreakdownTableProps) {
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({
     key: sortBy,
@@ -48,21 +58,15 @@ export function BreakdownTable({ title, data, sortBy = 'totalR' }: BreakdownTabl
     const sorted = [...data];
     sorted.sort((a, b) => {
       const { key, dir } = sort;
-      let aVal: number | string;
-      let bVal: number | string;
-      if (key === 'label') {
-        aVal = a.label;
-        bVal = b.label;
-      } else if (key === 'expectancy') {
-        aVal = a.expectancy ?? 0;
-        bVal = b.expectancy ?? 0;
-      } else {
-        aVal = a[key];
-        bVal = b[key];
-      }
+      const aVal = sortValue(a, key);
+      const bVal = sortValue(b, key);
       if (typeof aVal === 'string' && typeof bVal === 'string') {
         return dir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       }
+      // Unmeasured (null) rows sort after measured ones in either direction.
+      if (aVal === null && bVal === null) return 0;
+      if (bVal === null) return -1;
+      if (aVal === null) return 1;
       const aNum = typeof aVal === 'number' ? aVal : 0;
       const bNum = typeof bVal === 'number' ? bVal : 0;
       return dir === 'asc' ? aNum - bNum : bNum - aNum;
@@ -124,32 +128,41 @@ export function BreakdownTable({ title, data, sortBy = 'totalR' }: BreakdownTabl
                 data-label="Win rate"
                 className={cn(
                   'px-3 py-2 text-right font-medium tabular-nums',
-                  row.winRate > 0.55
-                    ? 'text-bull'
-                    : row.winRate < 0.4
-                      ? 'text-bear'
-                      : 'text-fg-muted',
+                  row.winRate === null
+                    ? 'text-fg-muted'
+                    : row.winRate > 0.55
+                      ? 'text-bull'
+                      : row.winRate < 0.4
+                        ? 'text-bear'
+                        : 'text-fg-muted',
                 )}
               >
-                {(row.winRate * 100).toFixed(0)}%
+                {row.winRate === null ? '—' : `${(row.winRate * 100).toFixed(0)}%`}
               </td>
               <td
                 data-label="Total R"
                 className={cn(
                   'px-3 py-2 text-right font-medium tabular-nums',
-                  row.totalR > 0 ? 'text-bull' : row.totalR < 0 ? 'text-bear' : 'text-fg-muted',
+                  row.totalR === null
+                    ? 'text-fg-muted'
+                    : row.totalR > 0
+                      ? 'text-bull'
+                      : row.totalR < 0
+                        ? 'text-bear'
+                        : 'text-fg-muted',
                 )}
               >
-                {row.totalR > 0 ? '+' : ''}
-                {row.totalR.toFixed(2)}R
+                {row.totalR === null
+                  ? '—'
+                  : `${row.totalR > 0 ? '+' : ''}${row.totalR.toFixed(2)}R`}
               </td>
               <td
                 data-label="Expectancy"
                 className="text-fg-muted px-3 py-2 text-right tabular-nums"
               >
-                {row.expectancy !== undefined
-                  ? `${row.expectancy > 0 ? '+' : ''}${row.expectancy.toFixed(2)}R`
-                  : '—'}
+                {row.expectancy == null
+                  ? '—'
+                  : `${row.expectancy > 0 ? '+' : ''}${row.expectancy.toFixed(2)}R`}
               </td>
             </tr>
           ))}

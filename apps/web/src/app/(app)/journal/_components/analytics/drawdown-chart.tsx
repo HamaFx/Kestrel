@@ -17,14 +17,14 @@
  */
 
 // Mini equity-curve chart with drawdown periods shaded below the running peak.
-import type { JournalEntry, JournalStats } from '@kestrel/shared';
+import type { JournalEntry, JournalStatsWithNulls } from '@kestrel/shared';
 import { useMemo } from 'react';
 
 import { cn } from '@/lib/formatters/cn';
 
 interface DrawdownChartProps {
   entries: readonly JournalEntry[];
-  stats: JournalStats;
+  stats: JournalStatsWithNulls;
   className?: string;
 }
 

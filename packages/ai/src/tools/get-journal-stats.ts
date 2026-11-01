@@ -20,10 +20,10 @@
 // per-tag breakdowns via SQL group-bys. Empty filter sets return empty
 // breakdown arrays — never throws.
 //
-// R8 (audit 2026-10-31): win rate, average R and total R are measurements, so
-// when nothing has closed / nothing carries an R multiple they are null, not
-// 0. A fabricated "average R = 0" or "win rate = 0%" is accepted by the chat's
-// numeric evidence gate as fact. Counts stay real integers.
+// R8 (audit 2026-10-31): `summarize` already reports null (not 0) for every
+// metric the window had nothing to measure over. The coverage probe below is
+// a redundant cross-check of the same window, and the notes explain the
+// absence so the model never reads a null as a 0.
 
 import { requireTenantIdForUser, schema } from '@kestrel/db';
 import {
@@ -49,7 +49,7 @@ declare module '@kestrel/shared' {
 
 export const getJournalStatsTool: Tool<z.infer<typeof InputSchema>, GetJournalStatsOutput> = tool({
   description:
-    "Compute journal stats — count, win rate, average R-multiple, total R — globally and broken down by symbol and by tag. Optional filters: time window (`sinceMs`/`untilMs`, ms epoch), `symbol`, `side`. Use for any 'how am I doing on X' or 'win rate this month' prompt. Returns top breakdowns sorted by trade count. Counts are always real; win rate, average R and total R are null (with a `notes` explanation) when no closed trades or no R multiples exist, so never read a null as a 0.",
+    "Compute journal stats — count, win rate, average R-multiple, total R — globally and broken down by symbol and by tag. Optional filters: time window (`sinceMs`/`untilMs`, ms epoch), `symbol`, `side`. Use for any 'how am I doing on X' or 'win rate this month' prompt. Returns top breakdowns sorted by trade count. Counts are always real; measured metrics (win rate, average/total R, drawdown, expectancy, hold time) are null (with a `notes` explanation) when the window had nothing to measure them over, so never read a null as a 0.",
   inputSchema: InputSchema,
   execute: async ({ sinceMs, untilMs, symbol, side }): Promise<GetJournalStatsOutput> => {
     const userId = getToolContext().userId;
@@ -85,8 +85,9 @@ export const getJournalStatsTool: Tool<z.infer<typeof InputSchema>, GetJournalSt
       breakdownByTag(breakdownWhere),
     ]);
 
-    // R8 (audit 2026-10-31): `summarize()` still collapses these to 0 when
-    // nothing was measured. Never let that 0 leave the tool as an observation.
+    // R8 (audit 2026-10-31): `summarize()` now reports null itself for every
+    // unmeasured metric; this same-window coverage probe is a redundant
+    // cross-check so a 0 can never leave the tool as an observation.
     const winRateUnavailable = coverage.closed === null || coverage.closed === 0;
     const rStatsUnavailable = coverage.withR === null || coverage.withR === 0;
     const notes = buildNotes({
@@ -246,5 +247,5 @@ function buildNotes(args: {
     );
   }
   if (reasons.length === 0) return undefined;
-  return `Counts are real; unmeasured win rate, average R and total R are null rather than 0 (${reasons.join('; ')}).`;
+  return `Counts are real; unmeasured metrics (including drawdown, expectancy and hold time) are null rather than 0 (${reasons.join('; ')}).`;
 }
