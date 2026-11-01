@@ -9,6 +9,7 @@ import Image from 'next/image';
 import type { ChangeEvent } from 'react';
 
 import { cn } from '@/lib/formatters/cn';
+import { resolveChatImageSrc } from '@/lib/http/chat-image-paths';
 
 interface ScreenshotFieldProps {
   screenshotUrl: string | null;
@@ -31,7 +32,7 @@ export function ScreenshotField({
       {screenshotUrl ? (
         <div className="relative inline-block">
           <Image
-            src={screenshotUrl}
+            src={resolveChatImageSrc(screenshotUrl)}
             alt="Trade chart"
             width={80}
             height={80}

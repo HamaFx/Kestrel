@@ -20,9 +20,13 @@
 //
 // Phase 3 hardening §7. Replaces the old "base64 the file into the
 // chat JSON body" path. The composer now POSTs each image here as
-// `multipart/form-data`, gets back a public URL, and ships the URL
+// `multipart/form-data`, gets back an app-owned proxy URL, and ships the URL
 // (not the bytes) in the chat message. With four 5 MB images this
 // keeps `/api/chat` request bodies under ~50 KB instead of ~27 MB.
+//
+// R7: the returned URL is `/api/uploads/<userId>/<day>/<file>` on this
+// deployment. The Supabase bucket is private and the proxy route checks that
+// the caller owns the `<userId>` prefix, so the link is not world-readable.
 //
 // Auth: this is gated by the global request proxy so only the logged-in
 // user can upload. CSRF risk is the same as for other state-changing
@@ -148,8 +152,17 @@ export const POST = withAuth<void>(async (req, { user }) => {
       },
     );
 
+    // R7: the bucket is private, so the stored value points at the app's
+    // owner-checked proxy. Absolute because chat message parts require a URL
+    // (`UserMessagePartsSchema.url` is `z.url()`); `NEXT_PUBLIC_APP_URL` is
+    // the deployment's canonical public origin.
+    const proxyUrl = new URL(
+      result.url,
+      env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
+    ).toString();
+
     return Response.json({
-      url: result.url,
+      url: proxyUrl,
       path: result.path,
       mediaType: result.mediaType,
       uploadedAt: result.uploadedAt,

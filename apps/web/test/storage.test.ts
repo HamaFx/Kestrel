@@ -172,13 +172,25 @@ describe('uploadChatImage — validation', () => {
     );
   });
 
-  it('accepts various image media types', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 200 }));
-    const types = ['image/jpeg', 'image/webp', 'image/gif', 'image/svg+xml'];
+  it('accepts the permitted raster image media types', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response(null, { status: 200 }));
+    const types = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     for (const mediaType of types) {
       await expect(uploadChatImage(env, { ...validInput, mediaType })).resolves.toBeDefined();
     }
+    // R7: objects go to the private object endpoint, never the public one.
+    const uploadUrl = String(fetchMock.mock.calls[0]?.[0]);
+    expect(uploadUrl).toContain('/storage/v1/object/chat-images/user-123/');
+    expect(uploadUrl).not.toContain('/object/public/');
     vi.restoreAllMocks();
+  });
+
+  it('rejects image/svg+xml so a future caller cannot write active content', async () => {
+    await expect(
+      uploadChatImage(env, { ...validInput, mediaType: 'image/svg+xml' }),
+    ).rejects.toThrow('media type image/svg+xml is not an allowed image type');
   });
 
   it('throws when Supabase returns non-2xx', async () => {
@@ -189,15 +201,18 @@ describe('uploadChatImage — validation', () => {
     vi.restoreAllMocks();
   });
 
-  it('returns the correct result shape on success', async () => {
+  it('returns an owner-checked proxy path instead of a Supabase public URL', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 200 }));
     const result = await uploadChatImage(env, validInput);
     expect(result).toMatchObject({
-      url: expect.stringContaining('/storage/v1/object/public/chat-images/'),
-      path: expect.stringContaining('user-123/'),
+      url: expect.stringMatching(
+        /^\/api\/uploads\/user-123\/\d{4}-\d{2}-\d{2}\/[0-9a-f]{12}-screenshot\.png$/,
+      ),
+      path: expect.stringMatching(/^user-123\/\d{4}-\d{2}-\d{2}\/[0-9a-f]{12}-screenshot\.png$/),
       mediaType: 'image/png',
       uploadedAt: expect.any(Number),
     });
+    expect(result.url).toBe(`/api/uploads/${result.path}`);
     vi.restoreAllMocks();
   });
 });

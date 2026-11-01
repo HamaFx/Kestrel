@@ -16,27 +16,25 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// GET /api/cron/cleanup-uploads — deletes chat-attachment blobs from
-// Supabase Storage that are older than 7 days.
+// GET /api/cron/cleanup-uploads — deletes chat-attachment blobs older than the
+// retention window from the private `chat-images` bucket.
 //
-// Phase 3 hardening §7. The upload route writes blobs under a
-// `YYYY-MM-DD/<hex>-<filename>` path. We list all objects in the
-// `chat-images` bucket, filter by the date prefix, and delete any
-// whose date is ≥ 7 days ago.
+// Audit 2026-10-31 (R7): the previous version listed bare `YYYY-MM-DD`
+// prefixes, but objects are written to `<userId>/<YYYY-MM-DD>/<file>`, so it
+// matched nothing and `RETENTION_DAYS` was decorative. The sweep now lives in
+// `lib/http/upload-cleanup.ts` and walks the same layout the uploader builds.
 //
 // Triggered by a daily systemd timer on the GCE VM (see
 // infra/cron-vm/units/kestrel-light-cleanup-uploads.{service,timer}).
 
 import { getServerEnv } from '@/lib/env';
 import { withCronAuth } from '@/lib/http/cron';
+import { runUploadCleanup, UPLOAD_RETENTION_DAYS } from '@/lib/http/upload-cleanup';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
-
-const BUCKET = 'chat-images';
-const RETENTION_DAYS = 7;
 
 export async function GET(req: Request): Promise<Response> {
   const log = createScopedLoggerWithContext({ component: 'cron', job: 'cleanup-uploads' });
@@ -49,65 +47,23 @@ export async function GET(req: Request): Promise<Response> {
       };
     }
 
-    const base = env.SUPABASE_URL.replace(/\/+$/, '');
-    const headers = {
-      authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
-      'content-type': 'application/json',
+    const summary = await runUploadCleanup({
+      supabaseUrl: env.SUPABASE_URL,
+      serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
+      warn: (message, fields) => log.warn(message, fields ?? {}),
+    });
+
+    const result = {
+      processed: summary.deleted,
+      // Human-readable line for the systemd journal / cron runner. The
+      // structured fields below are what a monitor should alert on.
+      note:
+        `deleted=${summary.deleted} errors=${summary.errors} ` +
+        `users=${summary.usersScanned} dayFolders=${summary.dayFoldersSwept}/` +
+        `${summary.dayFoldersExpired} cutoff=${summary.cutoffDay}` +
+        ` retentionDays=${UPLOAD_RETENTION_DAYS}${summary.truncated ? ' truncated=true' : ''}`,
+      ...summary,
     };
-
-    // Build the list of date-prefixes that are old enough to delete.
-    const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
-    const prefixesToDelete = buildExpiredPrefixes(cutoff);
-
-    let deleted = 0;
-    let errors = 0;
-
-    for (const prefix of prefixesToDelete) {
-      // List objects under this prefix.
-      const listRes = await fetch(`${base}/storage/v1/object/list/${BUCKET}`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ prefix, limit: 1000, offset: 0 }),
-      });
-      if (!listRes.ok) {
-        log.warn('list failed', { prefix, status: listRes.status });
-        errors += 1;
-        continue;
-      }
-      const objects = (await listRes.json()) as Array<{ name: string }>;
-      if (!Array.isArray(objects) || objects.length === 0) continue;
-
-      const paths = objects.map((o) => `${prefix}/${o.name}`);
-      const delRes = await fetch(`${base}/storage/v1/object/${BUCKET}`, {
-        method: 'DELETE',
-        headers,
-        body: JSON.stringify({ prefixes: paths }),
-      });
-      if (!delRes.ok) {
-        log.warn('delete failed', { prefix, status: delRes.status });
-        errors += 1;
-        continue;
-      }
-      deleted += paths.length;
-    }
-
-    return {
-      processed: deleted,
-      note: `deleted=${deleted} errors=${errors} cutoff=${cutoff.toISOString().slice(0, 10)}`,
-    };
+    return result;
   });
-}
-
-/**
- * Return the ISO date strings (YYYY-MM-DD) for every day from
- * `cutoff` back to 30 days before it. We cap at 30 days so a
- * misconfigured cron can't scan the entire bucket history.
- */
-function buildExpiredPrefixes(cutoff: Date): string[] {
-  const out: string[] = [];
-  for (let i = 0; i < 30; i += 1) {
-    const d = new Date(cutoff.getTime() - i * 24 * 60 * 60 * 1000);
-    out.push(d.toISOString().slice(0, 10));
-  }
-  return out;
 }

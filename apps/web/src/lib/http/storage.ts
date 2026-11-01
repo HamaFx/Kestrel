@@ -22,24 +22,51 @@
 // We talk to the storage REST API directly instead of pulling in
 // `@supabase/supabase-js` because:
 //
-//   - The SDK is large; we only need two operations (PUT object,
-//     signed-URL).
+//   - The SDK is large; we only need one operation (PUT object).
 //   - We already have `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` in
 //     the server env. No additional config needed.
 //   - The web bundle stays Edge-friendly for any future migration.
 //
-// The bucket (`CHAT_IMAGES_BUCKET`) must exist in Supabase Storage and
-// be marked PUBLIC. We never expose the service-role key to the
-// browser; the only thing the client gets back is the public URL.
+// Audit 2026-10-31 (R7): the bucket (`chat-images`) is PRIVATE. Uploads are
+// written with the service-role key, and the only thing a caller gets back is
+// an app-owned proxy path (`/api/uploads/<userId>/<day>/<file>`); object bytes
+// are streamed by `GET /api/uploads/[[...path]]` after an ownership check.
+// There is no public Supabase URL and therefore no permanent, unauthenticated
+// link to a user's chart screenshot.
 //
-// Cleanup is the operator's responsibility — set up a bucket-level
-// `expiry` policy in Supabase or run a small "delete blobs > 7 days"
-// cron from the worker. The metadata header on each upload encodes
-// the upload epoch so a sweeping job can filter cheaply.
+// OPERATOR ACTION — one line, once per deployment (Supabase SQL editor or
+// `psql "$SUPABASE_DB_URL"`):
+//
+//   update storage.buckets set public = false where id = 'chat-images';
+//
+// (Dashboard equivalent: Storage → chat-images → Settings → uncheck "Public
+// bucket".) Until that runs, objects already in the bucket stay readable by
+// anyone holding the old `/object/public/...` URL; the proxy and the cleanup
+// cron work either way. Note that machine consumers of these URLs (the AI
+// providers that fetch attached images) need the AI layer to inline uploads
+// as data URLs before the bucket is flipped; see the R7 finding.
+//
+// Retention is enforced by the daily cleanup cron
+// (`/api/cron/cleanup-uploads`), which walks the `userId/day` prefixes built
+// by `chat-image-paths.ts` and deletes day folders older than the retention
+// window. The `x-metadata` header still records the upload epoch for
+// diagnostics.
 
-const CHAT_IMAGES_BUCKET = 'chat-images';
+import {
+  buildChatImageObjectPath,
+  CHAT_IMAGE_BUCKET_NAME,
+  CHAT_IMAGE_PROXY_PREFIX,
+} from './chat-image-paths';
+
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // mirrors composer-side cap
 const MAX_STORAGE_RESPONSE_BYTES = 256 * 1024;
+
+/**
+ * Image types the storage helper will write. Kept in sync with the upload
+ * route's allowlist: raster only, no `image/svg+xml` (SVG is active content
+ * and would be an XSS vector if a future caller served it inline).
+ */
+const ALLOWED_MEDIA_TYPE_PATTERN = /^image\/(jpeg|png|webp|gif)$/;
 
 export interface ChatImageUploadEnv {
   SUPABASE_URL: string;
@@ -47,7 +74,11 @@ export interface ChatImageUploadEnv {
 }
 
 export interface ChatImageUploadResult {
-  /** Public URL the chat composer hands to the model. */
+  /**
+   * App-owned proxy path (`/api/uploads/<userId>/<day>/<file>`) the caller
+   * reaches the object through. Relative by design: the upload route makes it
+   * absolute with `NEXT_PUBLIC_APP_URL` before handing it to the client.
+   */
   url: string;
   /** Storage path inside the bucket — useful for delete operations. */
   path: string;
@@ -71,12 +102,14 @@ export interface ChatImageUploadInput {
 }
 
 /**
- * Upload a single chat-attachment image to Supabase Storage. Returns
- * the public URL the chat composer can ship in the chat-message's
- * `parts` array, and the path so a future cleanup can remove the
- * blob.
+ * Upload a single chat-attachment image to Supabase Storage. Returns the
+ * proxy path the caller can store and render, plus the storage path so the
+ * cleanup cron (and future delete operations) can address the object.
+ *
+ * The bucket is private; the object is never world-readable.
  *
  * Throws when:
+ *   - The media type is not a permitted raster image.
  *   - The byte payload exceeds `MAX_UPLOAD_BYTES`.
  *   - Supabase Storage returns a non-2xx (passes the body through so
  *     the route handler's error envelope surfaces a useful message).
@@ -88,7 +121,7 @@ export async function uploadChatImage(
   if (!input.mediaType.startsWith('image/')) {
     throw new Error(`media type ${input.mediaType} is not an image`);
   }
-  if (!/^image\/(jpeg|png|webp|gif|svg\+xml)$/.test(input.mediaType)) {
+  if (!ALLOWED_MEDIA_TYPE_PATTERN.test(input.mediaType)) {
     throw new Error(`media type ${input.mediaType} is not an allowed image type`);
   }
   if (!input.userId || !/^[a-zA-Z0-9_-]{1,128}$/.test(input.userId)) {
@@ -102,13 +135,12 @@ export async function uploadChatImage(
   if (bytes.byteLength > MAX_UPLOAD_BYTES) {
     throw new Error(`upload exceeds ${MAX_UPLOAD_BYTES} bytes (got ${bytes.byteLength})`);
   }
-  const safeBase = input.filename.replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 64);
-  const path = buildObjectPath(input.userId, safeBase);
+  const path = buildChatImageObjectPath(input.userId, input.filename);
   const base = new URL(env.SUPABASE_URL);
   if (base.protocol !== 'https:' && process.env.NODE_ENV === 'production') {
     throw new Error('Supabase Storage requires HTTPS in production');
   }
-  const uploadUrl = `${base.toString().replace(/\/+$/, '')}/storage/v1/object/${CHAT_IMAGES_BUCKET}/${path}`;
+  const uploadUrl = `${base.toString().replace(/\/+$/, '')}/storage/v1/object/${CHAT_IMAGE_BUCKET_NAME}/${path}`;
   const uploadedAt = Date.now();
 
   const res = await fetch(uploadUrl, {
@@ -123,7 +155,8 @@ export async function uploadChatImage(
       // (statistically improbable) collision. The randomised path
       // generator keeps this safe in practice.
       'x-upsert': 'false',
-      // Cleanup metadata — see the file-level comment.
+      // Upload-epoch metadata for diagnostics. Deletion is driven by the
+      // day partition, not by this header.
       'x-metadata': JSON.stringify({ uploadedAt }),
     },
     body: bytes as unknown as BodyInit,
@@ -134,39 +167,17 @@ export async function uploadChatImage(
     throw new Error(`Supabase Storage upload failed: HTTP ${res.status} — ${detail.slice(0, 200)}`);
   }
 
-  const publicUrl = `${base.toString().replace(/\/+$/, '')}/storage/v1/object/public/${CHAT_IMAGES_BUCKET}/${path}`;
   return {
-    url: publicUrl,
+    url: `${CHAT_IMAGE_PROXY_PREFIX}/${path}`,
     path,
     mediaType: input.mediaType,
     uploadedAt,
   };
 }
 
-/**
- * Random-prefixed path so the same filename uploaded twice doesn't
- * collide. The prefix is a 12-char hex slug (≈48 bits of entropy);
- * good enough for personal-mode at our upload rate.
- */
-function buildObjectPath(userId: string, filename: string): string {
-  const safeBase = filename.replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 64);
-  const prefix = bytesToHex(crypto.getRandomValues(new Uint8Array(6)));
-  // YYYY-MM-DD partition so a future cleanup cron can target one day
-  // at a time without scanning the whole bucket.
-  const day = new Date().toISOString().slice(0, 10);
-  return `${userId}/${day}/${prefix}-${safeBase}`;
-}
-
-function bytesToHex(bytes: Uint8Array): string {
-  let out = '';
-  for (let i = 0; i < bytes.length; i += 1) {
-    out += bytes[i]!.toString(16).padStart(2, '0');
-  }
-  return out;
-}
-
-export const CHAT_IMAGE_BUCKET_NAME = CHAT_IMAGES_BUCKET;
 export const CHAT_IMAGE_MAX_BYTES = MAX_UPLOAD_BYTES;
+
+export { CHAT_IMAGE_BUCKET_NAME };
 
 const LEGACY_STORAGE_PREFIXES = ['hamafx:', 'hfx_'] as const;
 
