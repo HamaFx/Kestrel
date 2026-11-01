@@ -36,6 +36,14 @@ declare module '@kestrel/shared' {
   }
 }
 
+/** A `count(*)` probe row, or null when the row is missing or non-numeric. */
+function readCount(rows: ReadonlyArray<{ count: number | string }> | undefined): number | null {
+  const raw = rows?.[0]?.count;
+  if (raw === undefined || raw === null) return null;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export const getSystemDiagnosticsTool: Tool<
   z.infer<typeof InputSchema>,
   GetSystemDiagnosticsOutput
@@ -50,16 +58,19 @@ export const getSystemDiagnosticsTool: Tool<
 
     const dbStart = Date.now();
     let dbStatus: 'connected' | 'error' = 'connected';
-    let latencyMs: number;
+    // R8 (audit 2026-10-31): these are null until the probe actually reads
+    // them. A 0 would read as a measured "empty table" instead of "unknown".
+    let latencyMs: number | null = null;
 
-    let journalEntriesCount = 0;
-    let snapshotsCount = 0;
-    let briefingsCount = 0;
-    let resonanceCount = 0;
-    let memoryEmbeddingsCount = 0;
+    let journalEntriesCount: number | null = null;
+    let snapshotsCount: number | null = null;
+    let briefingsCount: number | null = null;
+    let resonanceCount: number | null = null;
+    let memoryEmbeddingsCount: number | null = null;
+    let activeAlertsCount: number | null = null;
 
     try {
-      // Fetch table counts
+      // Fetch table counts plus the caller's active alerts.
       const counts = await Promise.all([
         db
           .select({ count: sql<number>`count(*)` })
@@ -90,17 +101,29 @@ export const getSystemDiagnosticsTool: Tool<
               eq(schema.memoryEmbeddings.tenantId, tenantId),
             ),
           ),
+        db
+          .select({ count: sql<number>`count(*)` })
+          .from(schema.alerts)
+          .where(
+            and(
+              eq(schema.alerts.userId, ctx.userId),
+              eq(schema.alerts.tenantId, tenantId),
+              eq(schema.alerts.active, true),
+            ),
+          ),
       ]);
 
       latencyMs = Date.now() - dbStart;
-      journalEntriesCount = Number(counts[0]?.[0]?.count ?? 0);
-      snapshotsCount = Number(counts[1]?.[0]?.count ?? 0);
-      briefingsCount = Number(counts[2]?.[0]?.count ?? 0);
-      resonanceCount = Number(counts[3]?.[0]?.count ?? 0);
-      memoryEmbeddingsCount = Number(counts[4]?.[0]?.count ?? 0);
-    } catch (err) {
+      journalEntriesCount = readCount(counts[0]);
+      snapshotsCount = readCount(counts[1]);
+      briefingsCount = readCount(counts[2]);
+      resonanceCount = readCount(counts[3]);
+      memoryEmbeddingsCount = readCount(counts[4]);
+      // Was a hard-coded 0 placeholder; now a real count of the alerts table.
+      activeAlertsCount = readCount(counts[5]);
+    } catch {
       dbStatus = 'error';
-      latencyMs = -1;
+      latencyMs = null;
     }
 
     // Check last sync runs
@@ -141,6 +164,7 @@ export const getSystemDiagnosticsTool: Tool<
 
     const isHealthy =
       dbStatus === 'connected' &&
+      latencyMs !== null &&
       latencyMs < 250 &&
       envCheck.FRED_API_KEY &&
       envCheck.GOOGLE_GENERATIVE_AI_API_KEY;
@@ -151,7 +175,15 @@ export const getSystemDiagnosticsTool: Tool<
         ? 'unhealthy'
         : 'healthy';
 
-    const narrative = `System status is ${status.toUpperCase()}. DB latency: ${latencyMs}ms. Table stats: ${journalEntriesCount} journals, ${snapshotsCount} market snapshots, ${resonanceCount} macro intermarket rows, ${memoryEmbeddingsCount} vectorized memories. Remaining daily AI spend budget is $${remainingUsd.toFixed(2)} USD out of a cap of $${limitUsd.toFixed(2)} USD.`;
+    const latencyText = latencyMs === null ? 'unavailable' : `${latencyMs}ms`;
+    const countsText =
+      journalEntriesCount === null ||
+      snapshotsCount === null ||
+      resonanceCount === null ||
+      memoryEmbeddingsCount === null
+        ? 'table counts unavailable'
+        : `${journalEntriesCount} journals, ${snapshotsCount} market snapshots, ${resonanceCount} macro intermarket rows, ${memoryEmbeddingsCount} vectorized memories`;
+    const narrative = `System status is ${status.toUpperCase()}. DB latency: ${latencyText}. Table stats: ${countsText}. Remaining daily AI spend budget is $${remainingUsd.toFixed(2)} USD out of a cap of $${limitUsd.toFixed(2)} USD.`;
 
     return {
       status,
@@ -168,7 +200,7 @@ export const getSystemDiagnosticsTool: Tool<
       worker: {
         resonanceSyncLastRun,
         cotSyncLastRun,
-        activeAlertsCount: 0, // Placeholder alert counter
+        activeAlertsCount,
       },
       budget: {
         spentUsd,

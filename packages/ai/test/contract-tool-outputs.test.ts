@@ -380,7 +380,27 @@ describe('GetCorrelationOutputSchema', () => {
 });
 
 describe('ReplaySetupOutputSchema', () => {
-  it('validates a thin (no-trade) result', () => {
+  it('validates a thin (no-trade) result with unmeasured rates as null', () => {
+    expect(
+      ReplaySetupOutputSchema.safeParse({
+        symbol: 'EURUSD',
+        tf: '1h',
+        asOf: Date.now(),
+        ruleLabel: 'ema_cross 5/20 long',
+        trades: [],
+        count: 0,
+        wins: 0,
+        losses: 0,
+        hitRate: null,
+        avgR: null,
+        totalR: null,
+        thin: true,
+        notes: 'No trades.',
+      }).success,
+    ).toBe(true);
+  });
+
+  it('still parses a previously persisted thin result that stored zeros', () => {
     expect(
       ReplaySetupOutputSchema.safeParse({
         symbol: 'EURUSD',

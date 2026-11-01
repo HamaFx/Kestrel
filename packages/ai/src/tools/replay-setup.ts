@@ -21,6 +21,11 @@
 // multiples (default) or fixed pips. Trades exit on the first bar that
 // touches stop/target, or after `maxBars` (forced exit at close). No
 // look-ahead.
+//
+// R8 (audit 2026-10-31): a trade whose entry-to-stop distance is zero cannot
+// be scored, so its R is null and it is excluded from hit rate / avg R /
+// total R rather than counted as a fabricated 0R. The same applies to the
+// aggregates when no trade could be scored. Counts stay real integers.
 
 import { getCandlesUnchecked } from '@kestrel/data';
 import { atr, ema, rsi } from '@kestrel/indicators';
@@ -46,7 +51,7 @@ declare module '@kestrel/shared' {
 
 export const replaySetupTool: Tool<z.infer<typeof InputSchema>, ReplaySetupOutput> = tool({
   description:
-    "Replay a closed-set rule over recent candles and return per-trade entries/exits + win-rate / avg R / total R. Two rule kinds: `ema_cross` (fast/slow EMA crossover) and `rsi_threshold` (RSI crossing a level). Stop and target are ATR multiples (default 1.5 / 2 RR) or fixed pips. Use when the user describes a setup ('does an EMA50 cross with RSI > 60 actually work on EURUSD 1H'). Returns thin=true when fewer than 5 trades fired.",
+    "Replay a closed-set rule over recent candles and return per-trade entries/exits + win-rate / avg R / total R. Two rule kinds: `ema_cross` (fast/slow EMA crossover) and `rsi_threshold` (RSI crossing a level). Stop and target are ATR multiples (default 1.5 / 2 RR) or fixed pips. Use when the user describes a setup ('does an EMA50 cross with RSI > 60 actually work on EURUSD 1H'). Returns thin=true when fewer than 5 trades fired. hitRate / avgR / totalR are null when no trade had a measurable risk distance; never read those nulls as 0.",
   inputSchema: InputSchema,
   execute: async (input, options?: { abortSignal?: AbortSignal }): Promise<ReplaySetupOutput> => {
     const signal = options?.abortSignal ?? maybeGetToolContext()?.signal ?? undefined;
@@ -79,11 +84,16 @@ export const replaySetupTool: Tool<z.infer<typeof InputSchema>, ReplaySetupOutpu
       if (trade) trades.push(trade);
     }
 
-    const wins = trades.filter((t) => t.rMultiple > 0.05).length;
-    const losses = trades.filter((t) => t.rMultiple < -0.05).length;
-    const totalR = trades.reduce((s, t) => s + t.rMultiple, 0);
-    const avgR = trades.length === 0 ? 0 : totalR / trades.length;
-    const hitRate = trades.length === 0 ? 0 : wins / trades.length;
+    const scored = trades.filter((t): t is ReplayTrade & { rMultiple: number } => {
+      return t.rMultiple !== null;
+    });
+    const wins = scored.filter((t) => t.rMultiple > 0.05).length;
+    const losses = scored.filter((t) => t.rMultiple < -0.05).length;
+    const totalR = scored.length === 0 ? null : scored.reduce((s, t) => s + t.rMultiple, 0);
+    // R8 (audit 2026-10-31): hit rate / avg R over zero scored trades are
+    // not 0, they are unmeasured. `count` stays a real integer.
+    const avgR = totalR === null ? null : totalR / scored.length;
+    const hitRate = scored.length === 0 ? null : wins / scored.length;
 
     return {
       symbol,
@@ -98,7 +108,14 @@ export const replaySetupTool: Tool<z.infer<typeof InputSchema>, ReplaySetupOutpu
       avgR,
       totalR,
       thin: trades.length < 5,
-      notes: buildNotes({ count: trades.length, wins, losses, avgR, totalR }),
+      notes: buildNotes({
+        count: trades.length,
+        scoredCount: scored.length,
+        wins,
+        losses,
+        avgR,
+        totalR,
+      }),
     };
   },
 });
@@ -183,81 +200,36 @@ function simulateTrade(args: SimulateArgs): ReplayTrade | null {
 
   const stop = side === 'long' ? entryPrice - stopOffset : entryPrice + stopOffset;
   const target = side === 'long' ? entryPrice + targetOffset : entryPrice - targetOffset;
+  const entryAt = candles[index]!.t;
+  const at = (bar: Candle, exitPrice: number, reason: ReplayTrade['reason'], bars: number) =>
+    makeTrade({
+      entryAt,
+      exitAt: bar.t,
+      side,
+      entry: entryPrice,
+      exit: exitPrice,
+      stop,
+      target,
+      reason,
+      barsInTrade: bars,
+    });
 
   const lastBarIdx = Math.min(index + exit.maxBars, candles.length - 1);
   for (let j = index + 1; j <= lastBarIdx; j += 1) {
     const bar = candles[j]!;
     if (side === 'long') {
       // Tie-break: assume stop fills before target if both touched in the same bar.
-      if (bar.l <= stop) {
-        return makeTrade({
-          entryAt: candles[index]!.t,
-          exitAt: bar.t,
-          side,
-          entry: entryPrice,
-          exit: stop,
-          stop,
-          target,
-          reason: 'sl',
-          barsInTrade: j - index,
-        });
-      }
-      if (bar.h >= target) {
-        return makeTrade({
-          entryAt: candles[index]!.t,
-          exitAt: bar.t,
-          side,
-          entry: entryPrice,
-          exit: target,
-          stop,
-          target,
-          reason: 'tp',
-          barsInTrade: j - index,
-        });
-      }
+      if (bar.l <= stop) return at(bar, stop, 'sl', j - index);
+      if (bar.h >= target) return at(bar, target, 'tp', j - index);
     } else {
-      if (bar.h >= stop) {
-        return makeTrade({
-          entryAt: candles[index]!.t,
-          exitAt: bar.t,
-          side,
-          entry: entryPrice,
-          exit: stop,
-          stop,
-          target,
-          reason: 'sl',
-          barsInTrade: j - index,
-        });
-      }
-      if (bar.l <= target) {
-        return makeTrade({
-          entryAt: candles[index]!.t,
-          exitAt: bar.t,
-          side,
-          entry: entryPrice,
-          exit: target,
-          stop,
-          target,
-          reason: 'tp',
-          barsInTrade: j - index,
-        });
-      }
+      if (bar.h >= stop) return at(bar, stop, 'sl', j - index);
+      if (bar.l <= target) return at(bar, target, 'tp', j - index);
     }
   }
 
   // maxBars hit — exit at the last bar's close.
   const last = candles[lastBarIdx]!;
-  return makeTrade({
-    entryAt: candles[index]!.t,
-    exitAt: last.t,
-    side,
-    entry: entryPrice,
-    exit: last.c,
-    stop,
-    target,
-    reason: 'time',
-    barsInTrade: lastBarIdx - index,
-  });
+  return at(last, last.c, 'time', lastBarIdx - index);
 }
 
 interface MakeTradeArgs {
@@ -275,7 +247,10 @@ interface MakeTradeArgs {
 function makeTrade(args: MakeTradeArgs): ReplayTrade {
   const risk = Math.abs(args.entry - args.stop);
   const pnl = args.side === 'long' ? args.exit - args.entry : args.entry - args.exit;
-  const rMultiple = risk > 0 ? pnl / risk : 0;
+  // R8 (audit 2026-10-31): zero (or non-finite) risk distance means the R is
+  // undefined. Null keeps the trade out of the R statistics instead of
+  // recording a fabricated 0R.
+  const rMultiple = Number.isFinite(risk) && risk > 0 ? pnl / risk : null;
   return {
     entryAt: args.entryAt,
     exitAt: args.exitAt,
@@ -303,13 +278,22 @@ function describeRule(rule: z.infer<typeof InputSchema>['rule']): string {
 
 function buildNotes(args: {
   count: number;
+  scoredCount: number;
   wins: number;
   losses: number;
-  avgR: number;
-  totalR: number;
+  avgR: number | null;
+  totalR: number | null;
 }): string {
   if (args.count === 0) return 'No signals fired in the window.';
-  return `${args.count} trade${args.count === 1 ? '' : 's'} (${args.wins}W / ${args.losses}L) · avg ${args.avgR.toFixed(2)}R · total ${args.totalR.toFixed(2)}R.`;
+  if (args.avgR === null || args.totalR === null) {
+    return `${args.count} trade${args.count === 1 ? '' : 's'} fired, but none had a measurable risk distance, so hit rate / avg R / total R are unavailable.`;
+  }
+  const unscored = args.count - args.scoredCount;
+  const skipped =
+    unscored > 0
+      ? ` ${unscored} trade${unscored === 1 ? '' : 's'} had no measurable risk distance and ${unscored === 1 ? 'was' : 'were'} excluded from the R statistics.`
+      : '';
+  return `${args.count} trade${args.count === 1 ? '' : 's'} (${args.wins}W / ${args.losses}L) · avg ${args.avgR.toFixed(2)}R · total ${args.totalR.toFixed(2)}R.${skipped}`;
 }
 
 function emptyResult(
@@ -326,9 +310,10 @@ function emptyResult(
     count: 0,
     wins: 0,
     losses: 0,
-    hitRate: 0,
-    avgR: 0,
-    totalR: 0,
+    // R8 (audit 2026-10-31): no trades means no measured 0% hit rate or 0R.
+    hitRate: null,
+    avgR: null,
+    totalR: null,
     thin: true,
     notes: 'Insufficient candles to replay.',
   };

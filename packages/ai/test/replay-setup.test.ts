@@ -33,11 +33,11 @@ const exec = replaySetupTool.execute as unknown as (input: unknown) => Promise<{
   count: number;
   wins: number;
   losses: number;
-  hitRate: number;
-  avgR: number;
-  totalR: number;
+  hitRate: number | null;
+  avgR: number | null;
+  totalR: number | null;
   thin: boolean;
-  trades: Array<{ rMultiple: number; reason: 'tp' | 'sl' | 'time' }>;
+  trades: Array<{ rMultiple: number | null; reason: 'tp' | 'sl' | 'time' }>;
 }>;
 
 function bar(o: number, h: number, l: number, c: number, t: number): Candle {
@@ -72,6 +72,10 @@ describe('replay_setup — pure logic', () => {
     expect(r.count).toBe(0);
     expect(r.thin).toBe(true);
     expect(r.trades).toEqual([]);
+    // R8: no trades means the rates were never measured; null, not 0.
+    expect(r.hitRate).toBeNull();
+    expect(r.avgR).toBeNull();
+    expect(r.totalR).toBeNull();
   });
 
   it('treats a no-signal series as zero trades, not zero wins', async () => {
@@ -95,8 +99,10 @@ describe('replay_setup — pure logic', () => {
       },
     });
     expect(r.count).toBe(0);
-    expect(r.hitRate).toBe(0);
-    expect(r.totalR).toBe(0);
+    // R8: no scored trades means no measured 0% hit rate or 0R total.
+    expect(r.hitRate).toBeNull();
+    expect(r.avgR).toBeNull();
+    expect(r.totalR).toBeNull();
   });
 
   it('records a winning trade when target is hit before stop', async () => {

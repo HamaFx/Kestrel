@@ -82,13 +82,21 @@ export const ComputeRiskOutputSchema = z.object({
   pipValueUsdPerLot: z.number(),
   /**
    * Position size to put on the ticket. Both forms emitted so the user
-   * picks whichever their broker UI accepts.
+   * picks whichever their broker UI accepts. Null (not 0) when the sizing
+   * division is undefined (zero stop distance or zero per-unit value) — R8
+   * (audit 2026-10-31). A 0-lot answer would read as "size zero", which is a
+   * different claim from "cannot size".
    */
-  positionSizeLots: z.number(),
-  positionSizeUnits: z.number(),
+  positionSizeLots: z.number().nullable(),
+  positionSizeUnits: z.number().nullable(),
   /** True when entry/stop direction is inconsistent with `side`. */
   invalidDirection: z.boolean(),
   /** Human-readable summary the chat part renders directly. */
   summary: z.string(),
+  /**
+   * Explains an unavailable position size. Optional so tool outputs persisted
+   * before the R8 fix still parse.
+   */
+  notes: z.string().optional(),
 });
 export type ComputeRiskOutput = z.infer<typeof ComputeRiskOutputSchema>;

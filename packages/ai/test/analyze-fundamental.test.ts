@@ -228,4 +228,49 @@ describe('analyze_fundamental — Phase 0.10', () => {
     expect(result.sentiment.negative).toBeGreaterThanOrEqual(0);
     expect(result.sentiment.neutral).toBeGreaterThanOrEqual(0);
   });
+
+  it('omits sentiment percentages entirely when there are no headlines (R8)', async () => {
+    mockEventRows.push({
+      id: 'event-1',
+      title: 'CPI y/y',
+      country: 'US',
+      currency: 'USD',
+      importance: 'high',
+      date: new Date(Date.now() + 60 * 60 * 1000),
+      actual: null,
+      forecast: null,
+      previous: null,
+      unit: null,
+      source: null,
+    });
+
+    const result = await exec({ symbol: 'EURUSD', horizonHours: 24 });
+
+    expect(result.pipelinePending).toBe(false);
+    expect(result.headlines).toHaveLength(0);
+    // Zero counts are real measurements; a 0% split is not reported at all.
+    expect(result.sentiment).toEqual({ positive: 0, negative: 0, neutral: 0 });
+    expect(result.summary).toMatch(/no recent headlines/i);
+    expect(result.summary).not.toMatch(/%\s*pos/i);
+  });
+
+  it('still reports measured sentiment percentages when headlines exist', async () => {
+    mockNewsRows.push({
+      id: 'news-1',
+      title: 'Dollar firms on hot CPI print',
+      summary: null,
+      url: 'https://example.com/news-1',
+      source: 'test',
+      publisher: null,
+      publishedAt: new Date(),
+      sentiment: 'positive',
+      sentimentScore: 0.6,
+      symbols: ['EURUSD'],
+    });
+
+    const result = await exec({ symbol: 'EURUSD', horizonHours: 24 });
+
+    // 0% neg / 0% neutral are measured here: 0 of 1 headline.
+    expect(result.summary).toMatch(/1 headline skewing 100% pos \/ 0% neg \/ 0% neutral/);
+  });
 });

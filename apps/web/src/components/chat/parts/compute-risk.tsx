@@ -134,8 +134,9 @@ function RrGauge({ rrRatio }: { rrRatio: number }) {
   );
 }
 
-function pretty(n: number, decimals: number): string {
-  if (!Number.isFinite(n)) return '—';
+function pretty(n: number | null, decimals: number): string {
+  // Null is "cannot size" (R8), rendered as a dash rather than 0.
+  if (n === null || !Number.isFinite(n)) return '—';
   return n.toLocaleString(undefined, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,

@@ -38,16 +38,46 @@ export type GetJournalStatsInput = z.infer<typeof GetJournalStatsInputSchema>;
 export const StatBreakdownSchema = z.object({
   /** The bucket key — symbol code or tag string. */
   key: z.string(),
+  /** Number of entries in the bucket. A count, so 0 is honest here. */
   count: z.int().min(0),
-  /** [0, 1]; closed trades only. 0 when count is 0. */
-  winRate: z.number().min(0).max(1),
-  avgR: z.number(),
+  /**
+   * [0, 1]; closed trades only. Null (not 0) when the bucket has no closed
+   * trades — R8 (audit 2026-10-31). A fabricated 0 would read as a measured
+   * 0% win rate and the numeric evidence gate would accept it.
+   */
+  winRate: z.number().min(0).max(1).nullable(),
+  /**
+   * Mean realized R over trades carrying an R multiple. Null (not 0) when the
+   * bucket has none — R8 (audit 2026-10-31).
+   */
+  avgR: z.number().nullable(),
 });
 export type StatBreakdown = z.infer<typeof StatBreakdownSchema>;
 
+/**
+ * The global stats block with the R8 honesty override: `winRate`, `avgR` and
+ * `totalR` are null rather than 0 when nothing has closed / nothing carries an
+ * R multiple. Kept as an extension of `JournalStatsSchema` so the base
+ * contract (and every other consumer of it) is unchanged, while previously
+ * persisted tool outputs that carry numeric zeros still parse.
+ */
+export const JournalStatsWithNullsSchema = JournalStatsSchema.extend({
+  /** [0, 1]; null when no trade in the window has closed. */
+  winRate: z.number().min(0).max(1).nullable(),
+  /** Null when no trade in the window carries an R multiple. */
+  avgR: z.number().nullable(),
+  /** Sum of R over trades that carry one; null when none do. */
+  totalR: z.number().nullable(),
+});
+
 export const GetJournalStatsOutputSchema = z.object({
-  stats: JournalStatsSchema,
+  stats: JournalStatsWithNullsSchema,
   bySymbol: z.array(StatBreakdownSchema),
   byTag: z.array(StatBreakdownSchema),
+  /**
+   * Deterministic explanation of any null win-rate / average-R reading.
+   * Optional so tool outputs persisted before the R8 fix still parse.
+   */
+  notes: z.string().optional(),
 });
 export type GetJournalStatsOutput = z.infer<typeof GetJournalStatsOutputSchema>;

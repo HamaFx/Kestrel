@@ -24,6 +24,7 @@ import { runSystemActionTool } from '../src/tools/run-system-action';
 const mocks = vi.hoisted(() => ({
   fetchResonanceInputsMock: vi.fn(),
   onConflictDoUpdateMock: vi.fn(),
+  insertValuesMock: vi.fn(),
   state: { currentUserRole: 'admin' as 'admin' | 'user' },
 }));
 
@@ -60,9 +61,10 @@ vi.mock('@kestrel/db', () => {
         }),
       }),
       insert: () => ({
-        values: () => ({
-          onConflictDoUpdate: mocks.onConflictDoUpdateMock,
-        }),
+        values: (values: unknown) => {
+          mocks.insertValuesMock(values);
+          return { onConflictDoUpdate: mocks.onConflictDoUpdateMock };
+        },
       }),
     }),
     schema,
@@ -84,41 +86,78 @@ function makeContext(latestUserMessageText: string) {
   });
 }
 
+/** Dates matching the mocked gold snapshots, so every point aligns. */
+const DATES = ['2026-05-28', '2026-05-27', '2026-05-26', '2026-05-25', '2026-05-22'];
+
+function resonanceInputs(realYields: number[], inflation = 2.2) {
+  return {
+    realYields: DATES.map((date, i) => ({ date, value: realYields[i]! })),
+    breakevenInflation: DATES.map((date) => ({ date, value: inflation })),
+  };
+}
+
+async function runSync() {
+  return (await withToolContext(makeContext('Please run the resonance sync now.'), () =>
+    Promise.resolve(runSystemActionTool.execute!({ action: 'resonance_sync' }, {} as any)),
+  )) as RunSystemActionOutput;
+}
+
 describe('run_system_action', () => {
   beforeEach(() => {
     mocks.state.currentUserRole = 'admin';
     vi.clearAllMocks();
     process.env['FRED_API_KEY'] = 'test-fred-key';
 
-    mocks.fetchResonanceInputsMock.mockResolvedValue({
-      realYields: [
-        { date: '2026-05-28', value: 2.1 },
-        { date: '2026-05-27', value: 2.05 },
-        { date: '2026-05-26', value: 2.0 },
-        { date: '2026-05-25', value: 1.95 },
-        { date: '2026-05-22', value: 1.9 },
-      ],
-      breakevenInflation: [
-        { date: '2026-05-28', value: 2.3 },
-        { date: '2026-05-27', value: 2.28 },
-        { date: '2026-05-26', value: 2.25 },
-        { date: '2026-05-25', value: 2.22 },
-        { date: '2026-05-22', value: 2.2 },
-      ],
-    });
+    // Not collinear with the mocked gold closes (the last yield breaks the
+    // even spacing), so residuals are non-zero and divergences are defined.
+    mocks.fetchResonanceInputsMock.mockResolvedValue(
+      resonanceInputs([2.1, 2.05, 2.0, 1.95, 1.7], 2.2),
+    );
     mocks.onConflictDoUpdateMock.mockResolvedValue({});
   });
 
   it('runs the resonance sync for an admin on an explicit request', async () => {
-    const result = (await withToolContext(makeContext('Please run the resonance sync now.'), () =>
-      Promise.resolve(runSystemActionTool.execute!({ action: 'resonance_sync' }, {} as any)),
-    )) as RunSystemActionOutput;
+    const result = await runSync();
 
     expect(result.action).toBe('resonance_sync');
     expect(result.status).toBe('success');
     expect(result.consoleLogs[0]).toContain('Initiating action: RESONANCE_SYNC');
     expect(mocks.fetchResonanceInputsMock).toHaveBeenCalledOnce();
     expect(mocks.onConflictDoUpdateMock).toHaveBeenCalled();
+
+    // R8: dxyIndex has no real feed in this sync, so it stays NULL instead of
+    // a hard-coded 100; the divergence scores are real numbers.
+    const rows = mocks.insertValuesMock.mock.calls.map(([v]) => v as Record<string, unknown>);
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((row) => row['dxyIndex'] === null)).toBe(true);
+    expect(rows.every((row) => typeof row['divergenceScore'] === 'number')).toBe(true);
+  });
+
+  it('refuses to write a fabricated slope when real yields have no variance', async () => {
+    // All real yields identical → the OLS denominator is 0 and the slope is
+    // undefined. Nothing may be persisted as a "measured" coefficient.
+    mocks.fetchResonanceInputsMock.mockResolvedValue(resonanceInputs([2.0, 2.0, 2.0, 2.0, 2.0]));
+
+    const result = await runSync();
+
+    expect(result.status).toBe('error');
+    expect(result.message).toMatch(/no variance/i);
+    expect(mocks.insertValuesMock).not.toHaveBeenCalled();
+    expect(mocks.onConflictDoUpdateMock).not.toHaveBeenCalled();
+  });
+
+  it('stores NULL divergence when the fit is exact (0/0 is not a z-score)', async () => {
+    // Gold falls exactly 10 per unit of real yield, so every residual is 0 and
+    // the residual spread is 0. `residual / 1` would fabricate a z-score.
+    mocks.fetchResonanceInputsMock.mockResolvedValue(resonanceInputs([1, 2, 3, 4, 5]));
+
+    const result = await runSync();
+
+    expect(result.status).toBe('success');
+    expect(result.message).toMatch(/divergence scores are NULL/i);
+    const rows = mocks.insertValuesMock.mock.calls.map(([v]) => v as Record<string, unknown>);
+    expect(rows.every((row) => row['divergenceScore'] === null)).toBe(true);
+    expect(rows.every((row) => row['dxyIndex'] === null)).toBe(true);
   });
 
   it('rejects non-admin callers before any FRED fetch or DB write', async () => {

@@ -40,18 +40,18 @@ export function ReplaySetupPart({ output, state, errorMessage }: ToolPartProps<'
         <Stat k="Trades" v={String(output.count)} />
         <Stat
           k="Win rate"
-          v={`${(output.hitRate * 100).toFixed(0)}%`}
-          tone={output.hitRate >= 0.5 ? 'text-bull' : 'text-bear'}
+          v={output.hitRate === null ? '—' : `${(output.hitRate * 100).toFixed(0)}%`}
+          tone={metricTone(output.hitRate, (v) => v >= 0.5)}
         />
         <Stat
           k="Avg R"
-          v={output.avgR.toFixed(2)}
-          tone={output.avgR > 0 ? 'text-bull' : 'text-bear'}
+          v={output.avgR === null ? '—' : output.avgR.toFixed(2)}
+          tone={metricTone(output.avgR, (v) => v > 0)}
         />
         <Stat
           k="Total R"
-          v={output.totalR.toFixed(2)}
-          tone={output.totalR > 0 ? 'text-bull' : 'text-bear'}
+          v={output.totalR === null ? '—' : output.totalR.toFixed(2)}
+          tone={metricTone(output.totalR, (v) => v > 0)}
         />
       </dl>
 
@@ -81,9 +81,10 @@ export function ReplaySetupPart({ output, state, errorMessage }: ToolPartProps<'
                 </span>
                 <span>{t.entry.toFixed(5)}</span>
                 <span>{t.exit.toFixed(5)}</span>
-                <span className={t.rMultiple >= 0 ? 'text-bull' : 'text-bear'}>
-                  {t.rMultiple >= 0 ? '+' : ''}
-                  {t.rMultiple.toFixed(2)}
+                <span className={metricTone(t.rMultiple, (v) => v >= 0)}>
+                  {t.rMultiple === null
+                    ? '—'
+                    : `${t.rMultiple >= 0 ? '+' : ''}${t.rMultiple.toFixed(2)}`}
                 </span>
                 <span className="text-fg-muted uppercase">{t.reason}</span>
               </li>
@@ -95,6 +96,12 @@ export function ReplaySetupPart({ output, state, errorMessage }: ToolPartProps<'
       <p className="text-fg-muted text-xs">{output.notes}</p>
     </div>
   );
+}
+
+/** Null metrics are unmeasured, so they render muted rather than "bad". */
+function metricTone(value: number | null, positive: (v: number) => boolean): string {
+  if (value === null) return 'text-fg-muted';
+  return positive(value) ? 'text-bull' : 'text-bear';
 }
 
 function Stat({ k, v, tone }: { k: string; v: string; tone?: string }) {

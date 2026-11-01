@@ -40,7 +40,7 @@ export function GetJournalStatsPart({
     return <SkeletonCard />;
   }
 
-  const { stats, bySymbol, byTag } = output;
+  const { stats, bySymbol, byTag, notes } = output;
 
   if (stats.count === 0) {
     return (
@@ -60,13 +60,11 @@ export function GetJournalStatsPart({
         <dt className="text-fg-subtle">avg R</dt>
 
         <dd className="text-fg font-semibold">{stats.count}</dd>
-        <dd
-          className={stats.winRate >= 0.5 ? 'text-bull font-semibold' : 'text-bear font-semibold'}
-        >
-          {Math.round(stats.winRate * 100)}%
+        <dd className={`font-semibold ${valueTone(stats.winRate, (v) => v >= 0.5)}`}>
+          {stats.winRate === null ? '—' : `${Math.round(stats.winRate * 100)}%`}
         </dd>
-        <dd className={stats.avgR >= 0 ? 'text-bull font-semibold' : 'text-bear font-semibold'}>
-          {stats.avgR.toFixed(2)}R
+        <dd className={`font-semibold ${valueTone(stats.avgR, (v) => v >= 0)}`}>
+          {stats.avgR === null ? '—' : `${stats.avgR.toFixed(2)}R`}
         </dd>
 
         <dt className="text-fg-subtle">wins</dt>
@@ -75,8 +73,8 @@ export function GetJournalStatsPart({
 
         <dd className="text-bull">{stats.wins}</dd>
         <dd className="text-bear">{stats.losses}</dd>
-        <dd className={stats.totalR >= 0 ? 'text-bull' : 'text-bear'}>
-          {stats.totalR.toFixed(2)}R
+        <dd className={valueTone(stats.totalR, (v) => v >= 0)}>
+          {stats.totalR === null ? '—' : `${stats.totalR.toFixed(2)}R`}
         </dd>
       </dl>
 
@@ -90,8 +88,16 @@ export function GetJournalStatsPart({
         rows={byTag}
         hrefBuilder={(k) => `/journal?tag=${encodeURIComponent(k)}`}
       />
+
+      {notes ? <p className="text-fg-muted text-caption">{notes}</p> : null}
     </div>
   );
+}
+
+/** Null metrics are unmeasured, so they render muted rather than "bad". */
+function valueTone(value: number | null, positive: (v: number) => boolean): string {
+  if (value === null) return 'text-fg-muted';
+  return positive(value) ? 'text-bull' : 'text-bear';
 }
 
 function BreakdownList({
@@ -116,10 +122,12 @@ function BreakdownList({
             >
               <span className="text-fg truncate font-medium">{r.key}</span>
               <span className="text-fg-muted">{r.count}</span>
-              <span className={r.winRate >= 0.5 ? 'text-bull' : 'text-bear'}>
-                {Math.round(r.winRate * 100)}%
+              <span className={valueTone(r.winRate, (v) => v >= 0.5)}>
+                {r.winRate === null ? '—' : `${Math.round(r.winRate * 100)}%`}
               </span>
-              <span className={r.avgR >= 0 ? 'text-bull' : 'text-bear'}>{r.avgR.toFixed(2)}R</span>
+              <span className={valueTone(r.avgR, (v) => v >= 0)}>
+                {r.avgR === null ? '—' : `${r.avgR.toFixed(2)}R`}
+              </span>
             </Link>
           </li>
         ))}

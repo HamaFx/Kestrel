@@ -86,7 +86,9 @@ export function GetSystemDiagnosticsPart({
           <IconDatabase className="text-fg-subtle mb-1 size-4" />
           <span className="text-fg-subtle text-xs font-medium uppercase">DB Latency</span>
           <span className="text-fg mt-0.5 text-xs font-extrabold tabular-nums">
-            {database.latencyMs >= 0 ? `${database.latencyMs}ms` : 'offline'}
+            {database.latencyMs !== null && database.latencyMs >= 0
+              ? `${database.latencyMs}ms`
+              : 'offline'}
           </span>
         </div>
         <div className="bg-bg-elev-2/50 border-border/25 flex flex-col items-center justify-center rounded-sm border p-2">
@@ -100,7 +102,7 @@ export function GetSystemDiagnosticsPart({
           <IconCpu className="text-fg-subtle mb-1 size-4" />
           <span className="text-fg-subtle text-xs font-medium uppercase">Vector Memory</span>
           <span className="text-fg mt-0.5 text-xs font-extrabold tabular-nums">
-            {database.memoryEmbeddingsCount} nodes
+            {countValue(database.memoryEmbeddingsCount)} nodes
           </span>
         </div>
       </div>
@@ -113,19 +115,27 @@ export function GetSystemDiagnosticsPart({
         <div className="border-divider/50 text-caption grid grid-cols-2 gap-2 border-t pt-2">
           <div className="flex justify-between py-0.5">
             <span className="text-fg-muted">Journal Entries:</span>
-            <span className="text-fg font-medium tabular-nums">{database.journalEntriesCount}</span>
+            <span className="text-fg font-medium tabular-nums">
+              {countValue(database.journalEntriesCount)}
+            </span>
           </div>
           <div className="flex justify-between py-0.5">
             <span className="text-fg-muted">Market Closes:</span>
-            <span className="text-fg font-medium tabular-nums">{database.snapshotsCount}</span>
+            <span className="text-fg font-medium tabular-nums">
+              {countValue(database.snapshotsCount)}
+            </span>
           </div>
           <div className="flex justify-between py-0.5">
             <span className="text-fg-muted">Briefings Archive:</span>
-            <span className="text-fg font-medium tabular-nums">{database.briefingsCount}</span>
+            <span className="text-fg font-medium tabular-nums">
+              {countValue(database.briefingsCount)}
+            </span>
           </div>
           <div className="flex justify-between py-0.5">
             <span className="text-fg-muted">Intermarket Resonance:</span>
-            <span className="text-fg font-medium tabular-nums">{database.resonanceCount}</span>
+            <span className="text-fg font-medium tabular-nums">
+              {countValue(database.resonanceCount)}
+            </span>
           </div>
         </div>
       </div>
@@ -180,6 +190,11 @@ export function GetSystemDiagnosticsPart({
       </footer>
     </div>
   );
+}
+
+/** Null counts mean the probe failed; show a dash, not a fabricated 0. */
+function countValue(value: number | null): string {
+  return value === null ? '—' : String(value);
 }
 
 function SkeletonCard() {

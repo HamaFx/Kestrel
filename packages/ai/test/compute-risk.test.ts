@@ -16,6 +16,7 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { extractNumbersFromToolOutput } from '../src/committee/grounding';
 import { computeRiskTool } from '../src/tools/compute-risk';
 
 // The tool is registered via `tool({ ..., execute })`; we get at the
@@ -31,10 +32,11 @@ const exec = computeRiskTool.execute as unknown as (input: unknown) => Promise<{
   distanceUnit: 'pips' | 'price';
   quantityUnit: 'lots' | 'ounces' | 'coins';
   pipValueUsdPerLot: number;
-  positionSizeLots: number;
-  positionSizeUnits: number;
+  positionSizeLots: number | null;
+  positionSizeUnits: number | null;
   invalidDirection: boolean;
   summary: string;
+  notes?: string;
 }>;
 
 describe('compute_risk — Phase 7b', () => {
@@ -172,6 +174,34 @@ describe('compute_risk — Phase 7b', () => {
         riskPct: 11,
       }).success,
     ).toBe(false);
+  });
+
+  it('returns null sizing, not 0 lots, when the stop distance is zero (R8)', async () => {
+    // The input schema rejects entry === stop; this exercises the arithmetic
+    // guard directly, which is what a bypassed/legacy caller would hit.
+    const r = await exec({
+      symbol: 'EURUSD',
+      side: 'long',
+      entry: 1.08,
+      stop: 1.08,
+      target: 1.09,
+      accountUsd: 10_000,
+      riskPct: 1,
+    });
+
+    expect(r.positionSizeLots).toBeNull();
+    expect(r.positionSizeUnits).toBeNull();
+    expect(r.rewardUsd).toBeNull();
+    expect(r.notes).toMatch(/unavailable/i);
+    expect(r.summary).toMatch(/unavailable/i);
+    // "Cannot size" must not surface a 0 that reads as "size zero".
+    expect(
+      extractNumbersFromToolOutput({
+        positionSizeLots: r.positionSizeLots,
+        positionSizeUnits: r.positionSizeUnits,
+        rewardUsd: r.rewardUsd,
+      }),
+    ).not.toContain(0);
   });
 
   it('emits a useful summary string the agent can echo verbatim', async () => {

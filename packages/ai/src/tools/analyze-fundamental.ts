@@ -237,16 +237,25 @@ function deterministicSummary(args: {
   const eventCount = args.events.length;
   const high = args.events.filter((e) => e.importance === 'high').length;
   const total = args.headlines.length;
-  const pct = (n: number) => (total === 0 ? 0 : Math.round((n / total) * 100));
+  // R8 (audit 2026-10-31): with no headlines there is no measured sentiment
+  // split. Percentages stay unavailable (null) rather than collapsing to 0%,
+  // which the evidence gate could quote as a real reading.
+  const sentimentPct =
+    total === 0
+      ? null
+      : {
+          positive: Math.round((args.sentiment.positive / total) * 100),
+          negative: Math.round((args.sentiment.negative / total) * 100),
+          neutral: Math.round((args.sentiment.neutral / total) * 100),
+        };
 
   const eventClause =
     eventCount > 0
       ? `${eventCount} ${args.currencies.join('/')} event${eventCount === 1 ? '' : 's'}${high > 0 ? ` (${high} high-impact)` : ''}`
       : `no scheduled ${args.currencies.join('/')} events`;
-  const sentimentClause =
-    total > 0
-      ? `${total} headline${total === 1 ? '' : 's'} skewing ${pct(args.sentiment.positive)}% pos / ${pct(args.sentiment.negative)}% neg / ${pct(args.sentiment.neutral)}% neutral`
-      : 'no recent headlines on file';
+  const sentimentClause = sentimentPct
+    ? `${total} headline${total === 1 ? '' : 's'} skewing ${sentimentPct.positive}% pos / ${sentimentPct.negative}% neg / ${sentimentPct.neutral}% neutral`
+    : 'no recent headlines on file';
 
   return `${args.symbol} window ${fromIso}Z → ${toIso}Z: ${eventClause}; ${sentimentClause}.`;
 }

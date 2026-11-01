@@ -29,6 +29,10 @@
 // Both shapes are returned (lots and units). `invalidDirection` flags the
 // case where the stop is on the same side as the target relative to entry,
 // which would mean the agent suggested a contradictory setup.
+//
+// R8 (audit 2026-10-31): rule 3 is only defined when the stop distance and
+// the per-unit value are both positive. Otherwise the size is null ("cannot
+// size", with a note) rather than a fabricated 0 lots.
 
 import {
   ComputeRiskInputSchema,
@@ -50,7 +54,7 @@ declare module '@kestrel/shared' {
 
 export const computeRiskTool: Tool<z.infer<typeof InputSchema>, ComputeRiskOutput> = tool({
   description:
-    "Compute position size, USD risk/reward, and catalog distance-to-stop/target from a (symbol, side, entry, stop, target?, accountUsd, riskPct) tuple. Pure-function — no provider calls. Forex and gold distances use pips; crypto distances use raw price units. Use when the user asks 'how big should I be on this trade' or 'what size for X% risk'. Reward + RR are null when no target is supplied. Sets `invalidDirection: true` when stop is on the wrong side of entry for the given direction.",
+    "Compute position size, USD risk/reward, and catalog distance-to-stop/target from a (symbol, side, entry, stop, target?, accountUsd, riskPct) tuple. Pure-function — no provider calls. Forex and gold distances use pips; crypto distances use raw price units. Use when the user asks 'how big should I be on this trade' or 'what size for X% risk'. Reward + RR are null when no target is supplied. positionSizeLots / positionSizeUnits are null (with a `notes` explanation) when the stop distance or per-unit value is zero and the size cannot be computed; never read that null as 0 lots. Sets `invalidDirection: true` when stop is on the wrong side of entry for the given direction.",
   inputSchema: InputSchema,
   execute: async (input): Promise<ComputeRiskOutput> => {
     const { symbol, side, entry, stop, accountUsd, riskPct } = input;
@@ -74,17 +78,27 @@ export const computeRiskTool: Tool<z.infer<typeof InputSchema>, ComputeRiskOutpu
 
     const riskUsd = accountUsd * (riskPct / 100);
     // Total value at risk across the catalog distance unit per lot/coin.
-    const positionSizeLots =
-      distanceToStop > 0 && valuePerDistanceUnit > 0
-        ? riskUsd / (distanceToStop * valuePerDistanceUnit)
-        : 0;
+    // R8 (audit 2026-10-31): when the stop distance or the per-unit value is
+    // zero the sizing division is undefined. This is a pure calculator, so
+    // the honest answer is "cannot size" (null), not a fabricated 0 lots.
+    const sizeable =
+      distanceToStop > 0 && Number.isFinite(valuePerDistanceUnit) && valuePerDistanceUnit > 0;
+    const rawLots = sizeable ? riskUsd / (distanceToStop * valuePerDistanceUnit) : null;
+    const positionSizeLots = rawLots !== null && Number.isFinite(rawLots) ? rawLots : null;
     const unitsPerLot = definition.capabilities.contractSize;
-    const positionSizeUnits = positionSizeLots * unitsPerLot;
+    const positionSizeUnits = positionSizeLots === null ? null : positionSizeLots * unitsPerLot;
 
     const rewardUsd =
-      distanceToTarget !== null ? distanceToTarget * valuePerDistanceUnit * positionSizeLots : null;
+      distanceToTarget !== null && positionSizeLots !== null
+        ? distanceToTarget * valuePerDistanceUnit * positionSizeLots
+        : null;
     const rrRatio =
       distanceToTarget !== null && distanceToStop > 0 ? distanceToTarget / distanceToStop : null;
+
+    const notes =
+      positionSizeLots === null
+        ? 'Position size is unavailable: the stop distance or the per-unit value is zero, so the sizing division is undefined.'
+        : undefined;
 
     const invalidDirection = isInvalidDirection({ side, entry, stop, target });
 
@@ -119,6 +133,7 @@ export const computeRiskTool: Tool<z.infer<typeof InputSchema>, ComputeRiskOutpu
       positionSizeUnits,
       invalidDirection,
       summary,
+      ...(notes ? { notes } : {}),
     };
   },
 });
@@ -167,12 +182,15 @@ function buildSummary(args: {
   riskUsd: number;
   rewardUsd: number | null;
   rrRatio: number | null;
-  positionSizeLots: number;
+  positionSizeLots: number | null;
 }): string {
   const sideStr = args.side === 'long' ? 'Long' : 'Short';
   const definition = getSymbolDefinition(args.symbol);
   const quantityLabel = definition.capabilities.quantityUnit;
-  const sizeStr = `${args.positionSizeLots.toFixed(quantityLabel === 'coins' ? 4 : 2)} ${quantityLabel}`;
+  const sizeStr =
+    args.positionSizeLots === null
+      ? 'position size unavailable (no measurable stop distance)'
+      : `${args.positionSizeLots.toFixed(quantityLabel === 'coins' ? 4 : 2)} ${quantityLabel}`;
   const distanceLabel = getSymbolDefinition(args.symbol).capabilities.priceDistanceUnit;
   const stopStr = `${args.pipsToStop.toFixed(1)} ${distanceLabel} stop`;
   const rewardStr =

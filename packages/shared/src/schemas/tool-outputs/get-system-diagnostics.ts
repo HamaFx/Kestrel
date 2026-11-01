@@ -23,20 +23,33 @@ export const GetSystemDiagnosticsInputSchema = z.object({
 
 export type GetSystemDiagnosticsInput = z.infer<typeof GetSystemDiagnosticsInputSchema>;
 
+/**
+ * Numeric readings here are nullable (R8, audit 2026-10-31): when the count
+ * probe fails they are null rather than 0, because 0 would read as a measured
+ * "empty table" instead of "could not read the table". `status: 'error'`
+ * says which case applies. Previously persisted outputs with numbers still
+ * parse.
+ */
 export const DatabaseStatsSchema = z.object({
   status: z.enum(['connected', 'error']),
-  latencyMs: z.number(),
-  journalEntriesCount: z.number(),
-  snapshotsCount: z.number(),
-  briefingsCount: z.number(),
-  resonanceCount: z.number(),
-  memoryEmbeddingsCount: z.number(),
+  /** Probe round-trip in ms; null when the probe failed. */
+  latencyMs: z.number().nullable(),
+  journalEntriesCount: z.number().nullable(),
+  snapshotsCount: z.number().nullable(),
+  briefingsCount: z.number().nullable(),
+  resonanceCount: z.number().nullable(),
+  memoryEmbeddingsCount: z.number().nullable(),
 });
 
 export const WorkerStatsSchema = z.object({
   resonanceSyncLastRun: z.string().nullable(),
   cotSyncLastRun: z.string().nullable(),
-  activeAlertsCount: z.number(),
+  /**
+   * Active alerts for the caller. A real count of the `alerts` table (0 is an
+   * honest "none"), null when the count could not be read — R8 (audit
+   * 2026-10-31). This used to be a hard-coded 0 placeholder.
+   */
+  activeAlertsCount: z.number().nullable(),
 });
 
 export const BudgetStatsSchema = z.object({

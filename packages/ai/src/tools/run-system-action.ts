@@ -163,13 +163,20 @@ export const runSystemActionTool: Tool<z.infer<typeof InputSchema>, RunSystemAct
       }
 
       const denominator = n * sumXX - sumX * sumX;
-      let slope = 0;
-      let intercept = 0;
-      if (denominator !== 0) {
-        slope = (n * sumXY - sumX * sumY) / denominator;
-        intercept = (sumY - slope * sumX) / n;
-      } else {
-        intercept = sumY / n;
+      if (!Number.isFinite(denominator) || denominator === 0) {
+        // R8 (audit 2026-10-31): zero variance in real yields makes the OLS
+        // slope undefined. A 0 slope would be written to the DB as a measured
+        // coefficient, so refuse the run instead of persisting it.
+        throw new Error(
+          `Real yields show no variance across ${n} aligned observations, so the gold/yield regression (and its divergence scores) cannot be estimated. Nothing was written.`,
+        );
+      }
+      const slope = (n * sumXY - sumX * sumY) / denominator;
+      const intercept = (sumY - slope * sumX) / n;
+      if (!Number.isFinite(slope) || !Number.isFinite(intercept)) {
+        throw new Error(
+          'The gold/yield regression produced non-finite coefficients; refusing to persist fabricated divergence scores.',
+        );
       }
 
       const residuals: number[] = [];
@@ -180,13 +187,19 @@ export const runSystemActionTool: Tool<z.infer<typeof InputSchema>, RunSystemAct
       const meanResidual = residuals.reduce((sum, residual) => sum + residual, 0) / n;
       const varianceResidual =
         residuals.reduce((sum, residual) => sum + Math.pow(residual - meanResidual, 2), 0) / n;
-      const stdDevResidual = Math.sqrt(varianceResidual) || 1;
+      // R8 (audit 2026-10-31): a zero residual spread makes the standardized
+      // divergence 0/0. Writing `residual / 1` would store a fake z-score, so
+      // divergence is stored as NULL in that case instead.
+      const stdDevResidual = Math.sqrt(varianceResidual);
+      const divergencesDefined = Number.isFinite(stdDevResidual) && stdDevResidual > 0;
 
       consoleLogs.push(
         `[resonance-sync] OLS formula: ExpectedGold = ${intercept.toFixed(1)} + (${slope.toFixed(2)} * RealYield)`,
       );
       consoleLogs.push(
-        `[resonance-sync] Residual Standard Deviation: ${stdDevResidual.toFixed(2)} USD`,
+        divergencesDefined
+          ? `[resonance-sync] Residual Standard Deviation: ${stdDevResidual.toFixed(2)} USD`
+          : '[resonance-sync] Residual standard deviation is zero or non-finite, so standardized divergence is undefined; divergence_score will be stored as NULL.',
       );
 
       consoleLogs.push(
@@ -197,7 +210,7 @@ export const runSystemActionTool: Tool<z.infer<typeof InputSchema>, RunSystemAct
       for (const point of aligned) {
         const expected = intercept + slope * point.realYield;
         const residual = point.gold - expected;
-        const divergenceScore = residual / stdDevResidual;
+        const divergenceScore = divergencesDefined ? residual / stdDevResidual : null;
 
         await db
           .insert(schema.intermarketResonance)
@@ -205,7 +218,10 @@ export const runSystemActionTool: Tool<z.infer<typeof InputSchema>, RunSystemAct
             date: point.date,
             realYieldPct: point.realYield,
             breakevenInflationPct: point.inflation,
-            dxyIndex: 100,
+            // R8 (audit 2026-10-31): no DXY feed is part of this sync, so the
+            // column stays NULL (matching the worker job). A hard-coded 100
+            // would read as a measured dollar index.
+            dxyIndex: null,
             goldClose: point.gold,
             divergenceScore,
             createdAt: new Date(),
@@ -227,7 +243,10 @@ export const runSystemActionTool: Tool<z.infer<typeof InputSchema>, RunSystemAct
       consoleLogs.push(`[resonance-sync] Successfully upserted ${upsertedCount} observations.`);
       message =
         'Intermarket resonance database sync successfully executed. ' +
-        `Refreshed ${upsertedCount} daily macro-divergence records.`;
+        `Refreshed ${upsertedCount} daily macro-divergence records.` +
+        (divergencesDefined
+          ? ''
+          : ' Standardized divergence scores are NULL because the residual standard deviation is not positive.');
     } catch (err) {
       status = 'error';
       const errMsg = err instanceof Error ? err.message : String(err);

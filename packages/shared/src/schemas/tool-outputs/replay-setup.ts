@@ -89,7 +89,12 @@ export const ReplayTradeSchema = z.object({
   target: z.number(),
   /** "tp" (target hit), "sl" (stop hit), "time" (maxBars reached). */
   reason: z.enum(['tp', 'sl', 'time']),
-  rMultiple: z.number(),
+  /**
+   * Realized R for the trade. Null (not 0) when the entry-to-stop distance is
+   * zero or non-finite, so the trade cannot be scored — R8 (audit
+   * 2026-10-31). A fabricated 0R would read as a measured flat trade.
+   */
+  rMultiple: z.number().nullable(),
   barsInTrade: z.int(),
 });
 export type ReplayTrade = z.infer<typeof ReplayTradeSchema>;
@@ -100,12 +105,22 @@ export const ReplaySetupOutputSchema = z.object({
   asOf: z.int(),
   ruleLabel: z.string(),
   trades: z.array(ReplayTradeSchema),
+  /** Number of trades that fired. A count, so 0 is honest here. */
   count: z.int(),
+  /** Wins among R-scored trades. A count, so 0 is honest. */
   wins: z.int(),
+  /** Losses among R-scored trades. A count, so 0 is honest. */
   losses: z.int(),
-  hitRate: z.number().min(0).max(1),
-  avgR: z.number(),
-  totalR: z.number(),
+  /**
+   * Wins / R-scored trades. Null (not 0) when no trade could be scored (no
+   * trades fired, or none had a measurable risk distance) — R8 (audit
+   * 2026-10-31). A fabricated 0 reads as a measured 0% hit rate.
+   */
+  hitRate: z.number().min(0).max(1).nullable(),
+  /** Mean R over R-scored trades. Null when none could be scored. */
+  avgR: z.number().nullable(),
+  /** Sum of R over R-scored trades. Null when none could be scored. */
+  totalR: z.number().nullable(),
   /** True when fewer than 5 trades fired — stats are noisy. */
   thin: z.boolean(),
   notes: z.string(),
