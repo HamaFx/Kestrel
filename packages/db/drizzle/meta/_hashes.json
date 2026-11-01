@@ -474,7 +474,7 @@
     },
     {
       "tag": "0119_grant_app_role_privileges",
-      "hash": "d6df32dab15c240ae14131d3e7894e52104cc668d77d175e22fbcf44d8458e39"
+      "hash": "80be2ba36e466f2b4fcff92cd7182a91a34ae2f84b717db2319134f0e30f9455"
     },
     {
       "tag": "0120_mastra_storage_schema",

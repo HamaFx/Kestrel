@@ -34,35 +34,64 @@ BEGIN
   EXECUTE 'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO kestrel_app';
   EXECUTE 'GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO kestrel_app';
 
-  -- Objects created later by the role running this migration. `current_user`
-  -- covers the Docker migrator (hamafx) and self-hosted operator roles.
-  EXECUTE format(
-    'ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO kestrel_app',
-    current_user
-  );
-  EXECUTE format(
-    'ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO kestrel_app',
-    current_user
-  );
+  -- Default privileges are advisory: they only matter for objects created
+  -- later, and `ALTER DEFAULT PRIVILEGES FOR ROLE <other-role>` is permitted
+  -- only for a member of that role or a superuser. A managed database's deploy
+  -- role is commonly neither, so every block below tolerates insufficient
+  -- privilege with a notice instead of failing the migration. The plain GRANTs
+  -- above stay strict: those are the point of this migration.
+  --
+  -- This is what broke the first deploy of this migration: the guard found
+  -- `hamafx_admin` (created by migration 0037 on the very first deploy) and the
+  -- ALTER was denied - SQLSTATE 42501, "permission denied to change default
+  -- privileges" - which stopped the build. Only the defaults were affected;
+  -- they exist to cover objects a future migration creates, so skipping them
+  -- costs nothing today.
+  BEGIN
+    -- Objects created later by the role running this migration. `current_user`
+    -- covers the Docker migrator (hamafx) and self-hosted operator roles.
+    EXECUTE format(
+      'ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO kestrel_app',
+      current_user
+    );
+    EXECUTE format(
+      'ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO kestrel_app',
+      current_user
+    );
+  EXCEPTION WHEN insufficient_privilege THEN
+    RAISE NOTICE '0119: not permitted to set default privileges for % (skipped; the grants to kestrel_app were still applied)', current_user;
+  END;
 
   -- Supabase-style deployments migrate as `postgres`; keep that path armed
   -- whether or not it is the current role.
-  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'postgres') THEN
-    EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO kestrel_app';
-    EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO kestrel_app';
-  END IF;
+  BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'postgres') THEN
+      EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO kestrel_app';
+      EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO kestrel_app';
+    END IF;
+  EXCEPTION WHEN insufficient_privilege THEN
+    RAISE NOTICE '0119: not permitted to set default privileges for postgres (skipped)';
+  END;
 
   -- The bundled Docker database owns objects with `hamafx`, and the worker's
   -- BYPASSRLS role is `hamafx_admin`. Arm both when they exist so neither the
   -- app role nor a future worker role is left without grants.
-  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'hamafx') THEN
-    EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE hamafx IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO kestrel_app';
-    EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE hamafx IN SCHEMA public GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO kestrel_app';
-  END IF;
+  BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'hamafx') THEN
+      EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE hamafx IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO kestrel_app';
+      EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE hamafx IN SCHEMA public GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO kestrel_app';
+    END IF;
+  EXCEPTION WHEN insufficient_privilege THEN
+    RAISE NOTICE '0119: not permitted to set default privileges for hamafx (skipped)';
+  END;
 
-  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'hamafx_admin') THEN
-    EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE hamafx_admin IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO kestrel_app';
-    EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE hamafx_admin IN SCHEMA public GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO kestrel_app';
-  END IF;
+  BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'hamafx_admin') THEN
+      EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE hamafx_admin IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO kestrel_app';
+      EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE hamafx_admin IN SCHEMA public GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO kestrel_app';
+    END IF;
+  EXCEPTION WHEN insufficient_privilege THEN
+    RAISE NOTICE '0119: not permitted to set default privileges for hamafx_admin (skipped)';
+  END;
 END
 $$;
