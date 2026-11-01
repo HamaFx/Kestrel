@@ -39,4 +39,22 @@ describe('JOBS registry', () => {
     expect(JOBS.alerts?.timeoutMs).toBeUndefined();
     expect(JOBS['persistence-recovery']?.timeoutMs).toBeUndefined();
   });
+
+  it('wires a healthchecks.io UUID to every job (R16)', () => {
+    // Every registered job must have an external health signal; a job without
+    // one fails silently — the audit's R16 defect 4.
+    for (const [name, def] of Object.entries(JOBS)) {
+      expect(def.hcUuidEnvVar, `${name} missing hcUuidEnvVar`).toBeDefined();
+      expect(def.hcUuidEnvVar).toMatch(/^HC_/);
+    }
+  });
+
+  it('wires the six previously-silent jobs to their documented env vars (R16)', () => {
+    expect(JOBS['budget-recovery']?.hcUuidEnvVar).toBe('HC_JOB_BUDGET_RECOVERY_UUID');
+    expect(JOBS['persistence-recovery']?.hcUuidEnvVar).toBe('HC_JOB_PERSISTENCE_RECOVERY_UUID');
+    expect(JOBS.retention?.hcUuidEnvVar).toBe('HC_JOB_RETENTION_UUID');
+    expect(JOBS['metrics-flush']?.hcUuidEnvVar).toBe('HC_JOB_METRICS_FLUSH_UUID');
+    expect(JOBS['dataset-export']?.hcUuidEnvVar).toBe('HC_JOB_DATASET_EXPORT_UUID');
+    expect(JOBS['multi-agent-analysis']?.hcUuidEnvVar).toBe('HC_JOB_MULTI_AGENT_ANALYSIS_UUID');
+  });
 });

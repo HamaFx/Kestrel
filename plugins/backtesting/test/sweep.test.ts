@@ -252,4 +252,38 @@ describe('sweep execution', () => {
       expect(result.metrics).not.toBeNull();
     }
   });
+
+  it('lets the event loop turn between combinations (R16)', async () => {
+    getCandlesSpy.mockResolvedValue({
+      candles: closedCandles(200),
+      stale: false,
+      producedAt: Date.now(),
+    });
+    sweepRows.set(
+      'sweep-1',
+      sweepRow({
+        source: 'function getSignal(ctx) { return null; }',
+        parameterSpace: [{ name: 'threshold', values: [1, 2, 3, 4] }],
+        total: 4,
+      }),
+    );
+
+    // Count event-loop turns with a self-rescheduling immediate while the
+    // sweep runs. Each combination must yield at least one macrotask turn;
+    // without the yields this counter only advances after the whole sweep.
+    let turns = 0;
+    let counting = true;
+    const count = () => {
+      if (!counting) return;
+      turns += 1;
+      setImmediate(count);
+    };
+    setImmediate(count);
+
+    const detail = await executeSweep({ userId: 'user-1', sweepId: 'sweep-1', settings: {} });
+    counting = false;
+
+    expect(detail.results).toHaveLength(4);
+    expect(turns).toBeGreaterThanOrEqual(4);
+  });
 });

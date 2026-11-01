@@ -96,6 +96,22 @@ describe('loadEnv', () => {
     );
   });
 
+  it('defaults WORKER_MODE to docker, the profile this repo ships (R16)', () => {
+    const env = loadEnv(VALID as unknown as NodeJS.ProcessEnv);
+    expect(env.WORKER_MODE).toBe('docker');
+  });
+
+  it('still honors an explicit systemd mode for operator-provided units', () => {
+    const env = loadEnv({ ...VALID, WORKER_MODE: 'systemd' } as unknown as NodeJS.ProcessEnv);
+    expect(env.WORKER_MODE).toBe('systemd');
+  });
+
+  it('rejects an unknown WORKER_MODE', () => {
+    expect(() => loadEnv({ ...VALID, WORKER_MODE: 'k8s' } as unknown as NodeJS.ProcessEnv)).toThrow(
+      /Invalid worker environment/,
+    );
+  });
+
   it('validates the worker HTTP port', () => {
     expect(() =>
       loadEnv({ ...VALID, WORKER_HTTP_PORT: '70000' } as unknown as NodeJS.ProcessEnv),
@@ -130,6 +146,16 @@ describe('loadEnv', () => {
     const env = loadEnv(VALID as unknown as NodeJS.ProcessEnv);
     expect(env.HC_SIGNALR_UUID).toBeUndefined();
     expect(env.HC_BACKUP_DB_UUID).toBeUndefined();
+  });
+
+  it('accepts the metrics-flush and multi-agent-analysis healthcheck UUIDs added for R16', () => {
+    const env = loadEnv({
+      ...VALID,
+      HC_JOB_METRICS_FLUSH_UUID: 'metrics-uuid',
+      HC_JOB_MULTI_AGENT_ANALYSIS_UUID: 'committee-uuid',
+    } as unknown as NodeJS.ProcessEnv);
+    expect(env.HC_JOB_METRICS_FLUSH_UUID).toBe('metrics-uuid');
+    expect(env.HC_JOB_MULTI_AGENT_ANALYSIS_UUID).toBe('committee-uuid');
   });
 
   it('treats empty HC UUIDs as undefined (operator can leave the row blank)', () => {

@@ -36,6 +36,12 @@ import type { Logger } from '../log.js';
 import { candle1mBarSchema, flushClosedCandle } from './candles-1m.js';
 
 export const CANDLE_FLUSH_QUEUE = 'candle-flush';
+/**
+ * R16 (audit 2026-10-31) — terminally-failed bars are copied here instead of
+ * being deleted after the retention window. The bar payload is what a replay
+ * needs, so it must outlive a queue retry cycle.
+ */
+export const CANDLE_FLUSH_DLQ = 'candle-flush-dlq';
 
 /** Queue policy: a few retries with backoff, then the failed job is retained. */
 const CANDLE_FLUSH_QUEUE_OPTIONS = {
@@ -45,6 +51,7 @@ const CANDLE_FLUSH_QUEUE_OPTIONS = {
   expireInSeconds: 60,
   retentionSeconds: 7 * 24 * 3600,
   deleteAfterSeconds: 3_600,
+  deadLetter: CANDLE_FLUSH_DLQ,
 } as const;
 
 export const CandleFlushJobSchema = z.object({
@@ -68,11 +75,19 @@ let candleQueueReady: Promise<void> | null = null;
 
 function ensureCandleFlushQueue(): Promise<void> {
   candleQueueReady ??= (async () => {
-    const { getQueue } = await import('@kestrel/db/queue');
+    const { DEAD_LETTER_QUEUE_OPTIONS, getQueue } = await import('@kestrel/db/queue');
     const boss = await getQueue();
+    // pg-boss refuses a `deadLetter` that does not exist yet (R16).
+    const existingDlq = await boss.getQueue(CANDLE_FLUSH_DLQ).catch(() => null);
+    if (!existingDlq) {
+      await boss.createQueue(CANDLE_FLUSH_DLQ, DEAD_LETTER_QUEUE_OPTIONS);
+    }
     const existing = await boss.getQueue(CANDLE_FLUSH_QUEUE).catch(() => null);
     if (!existing) {
       await boss.createQueue(CANDLE_FLUSH_QUEUE, CANDLE_FLUSH_QUEUE_OPTIONS);
+    } else if (existing.deadLetter !== CANDLE_FLUSH_DLQ) {
+      // The queue predates the DLQ wiring; `create_queue` skips existing rows.
+      await boss.updateQueue(CANDLE_FLUSH_QUEUE, { deadLetter: CANDLE_FLUSH_DLQ });
     }
   })().catch((err: unknown) => {
     candleQueueReady = null;

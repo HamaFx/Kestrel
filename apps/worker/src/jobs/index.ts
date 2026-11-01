@@ -118,6 +118,9 @@ export const JOBS: Record<JobName, JobRegistration> = {
       'U2 — Claims Mastra durable full-analysis workflow runs (replacing analysis_jobs), executes the Full committee, writes terminal results back into the run records.',
     // Uses setTimeout-based scheduling, not cron.
     schedule: null,
+    // R16 — the durable committee job is one of the slowest on the box and
+    // was previously invisible to healthchecks.io when it stopped running.
+    hcUuidEnvVar: 'HC_JOB_MULTI_AGENT_ANALYSIS_UUID',
     // Durable committee runs take minutes, and one invocation may process up
     // to MAX_JOBS_PER_RUN claimed runs; the default 120s budget aborts a run
     // mid-LLM-call (losing the lease and burning a retry). Give this job its
@@ -129,12 +132,14 @@ export const JOBS: Record<JobName, JobRegistration> = {
     run: runBudgetRecovery,
     description: 'Releases stale AI budget reservations left open by interrupted runs.',
     schedule: '*/10 * * * *',
+    hcUuidEnvVar: 'HC_JOB_BUDGET_RECOVERY_UUID',
   },
   'persistence-recovery': {
     name: 'persistence-recovery',
     run: runPersistenceRecovery,
     description: 'Replays failed AI messages, opinions, telemetry, and diagnostic traces.',
     schedule: '* * * * *',
+    hcUuidEnvVar: 'HC_JOB_PERSISTENCE_RECOVERY_UUID',
   },
   retention: {
     name: 'retention',
@@ -142,6 +147,7 @@ export const JOBS: Record<JobName, JobRegistration> = {
     description:
       'DB-1 — Daily retention cleanup of telemetry, traces, rate_limits, and provider_daily_quota.',
     schedule: '15 3 * * *',
+    hcUuidEnvVar: 'HC_JOB_RETENTION_UUID',
   },
   'metrics-flush': {
     name: 'metrics-flush',
@@ -149,6 +155,7 @@ export const JOBS: Record<JobName, JobRegistration> = {
     description:
       'Pushes the in-process metrics registry to Grafana Cloud every minute with live-tick freshness.',
     schedule: '* * * * *',
+    hcUuidEnvVar: 'HC_JOB_METRICS_FLUSH_UUID',
   },
   'dataset-export': {
     name: 'dataset-export',
@@ -156,6 +163,7 @@ export const JOBS: Record<JobName, JobRegistration> = {
     description:
       'Nightly governed training-dataset export (eval reports + reviewed feedback → JSONL + manifest → B2).',
     schedule: '30 3 * * *',
+    hcUuidEnvVar: 'HC_JOB_DATASET_EXPORT_UUID',
   },
   'opinion-calibration': {
     name: 'opinion-calibration',

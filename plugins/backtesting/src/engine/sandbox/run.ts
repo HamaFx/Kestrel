@@ -18,6 +18,7 @@
 
 import { SERIES_NAMES, type FeatureMatrix } from '../features';
 import type { GeneratedSignal, SandboxLimits, StrategySandboxResult } from '../types';
+import { yieldToEventLoop } from '../yield';
 import { DRIVER } from './driver';
 import { DEFAULT_SANDBOX_LIMITS, StrategySandboxError } from './limits';
 import { describeDump, toSignal, type RawSandboxOutput, type SandboxPayload } from './output';
@@ -62,6 +63,11 @@ export async function runStrategySandbox(args: {
     throw new StrategySandboxError('Backtest cancelled before the sandbox started.');
   }
 
+  // R16 — hand the event loop back before taking it over. Callers (a sweep
+  // combination, the worker's cron tick, or a web request) get a macrotask
+  // turn before the synchronous QuickJS evaluation starts.
+  await yieldToEventLoop();
+
   let quickJS: QuickJSModule;
   try {
     quickJS = await loadQuickJS();
@@ -73,10 +79,17 @@ export async function runStrategySandbox(args: {
     );
   }
 
-  const deadline = Date.now() + limits.timeoutMs;
+  // The signal may have been aborted while the WASM module was loading.
+  if (args.signal?.aborted) {
+    throw new StrategySandboxError('Backtest cancelled before the sandbox started.');
+  }
+
   const runtime = quickJS.newRuntime();
   runtime.setMemoryLimit(limits.memoryBytes);
   runtime.setMaxStackSize(limits.stackBytes);
+  // The deadline is anchored where the synchronous work starts, so a slow
+  // WASM load cannot eat into the strategy's evaluation budget.
+  const deadline = Date.now() + limits.timeoutMs;
   runtime.setInterruptHandler(() => {
     if (args.signal?.aborted) return true;
     return Date.now() > deadline;
@@ -139,5 +152,9 @@ export async function runStrategySandbox(args: {
   } finally {
     context.dispose();
     runtime.dispose();
+    // R16 — hand the loop back again. The evaluation that just finished may
+    // have blocked it for up to `limits.timeoutMs`, and a sweep runs this
+    // once or twice per combination.
+    await yieldToEventLoop();
   }
 }

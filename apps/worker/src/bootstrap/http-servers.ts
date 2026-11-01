@@ -22,8 +22,9 @@ import type http from 'node:http';
 import type { WorkerEnv } from '../env.js';
 import { createHealthServer, createProxyServer } from '../http-server.js';
 import type { Logger } from '../log.js';
-import { getStuckJobSummary } from '../scheduler/job-runtime.js';
+import { getJobHealthSummary } from '../scheduler/job-runtime.js';
 import type { WorkerRuntime } from './feed-worker';
+import { getQueueHealthSnapshot } from './queue-health.js';
 
 export interface WorkerHttpServers {
   healthServer: http.Server;
@@ -77,7 +78,11 @@ export function createWorkerHttpServers({
     getDroppedTicks: worker.getDroppedTicks,
     getCandlePipelineStats: worker.getCandlePipelineStats,
     getRequestId: () => env.DEPLOYED_SHA,
-    getStuckJobs: () => getStuckJobSummary().stuck,
+    // R16 — one classification (busy versus wedged) feeding the health
+    // surface and the updater's idle gate, plus the sampled queue/DLQ state.
+    getStuckJobs: () => getJobHealthSummary().stuck,
+    getRunningJobs: () => getJobHealthSummary().running,
+    getQueueHealth: () => getQueueHealthSnapshot(),
   });
 
   let proxyServer: http.Server | null = null;

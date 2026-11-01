@@ -43,6 +43,7 @@ import {
   startBacktestQueues,
   startCandleFlushQueue,
 } from './bootstrap/plugins';
+import { startQueueHealthProbe } from './bootstrap/queue-health.js';
 import { installSignalHandlers, registerPostStartupShutdown } from './bootstrap/shutdown';
 import { isWorkerTickStreamEnabled, loadEnv } from './env.js';
 import { createLogger } from './log.js';
@@ -103,6 +104,11 @@ export async function main(): Promise<void> {
     tickStreamEnabled,
   });
 
+  // R16 — sample queue/dead-letter state so /health/jobs and the updater's
+  // idle gate can see in-flight and failed queue work. This is independent of
+  // the cron scheduler: pg-boss queue workers run in both WORKER_MODE values.
+  const stopQueueHealth = startQueueHealthProbe(log);
+
   // The scheduler stop handle is registered LAST (cleanups run in reverse
   // registration order), so in-flight jobs are aborted BEFORE the DB pool is
   // closed — otherwise a long-running job keeps issuing queries against a
@@ -110,6 +116,12 @@ export async function main(): Promise<void> {
   let stopScheduler: (() => void) | null = null;
   if (env.WORKER_MODE === 'docker') {
     stopScheduler = startScheduler(log, env);
+  } else {
+    log.warn(
+      'WORKER_MODE=systemd: the internal scheduler is off and this repository ships no job ' +
+        'units, so no core or plugin job runs unless the operator installed external units ' +
+        'invoking `node dist/runner/cli.js <job>`. Queue workers still run.',
+    );
   }
 
   process.on('unhandledRejection', (reason) => {
@@ -140,6 +152,7 @@ export async function main(): Promise<void> {
       proxyServer: servers.proxyServer,
       worker,
       stopScheduler,
+      stopQueueHealth,
     });
   } catch (err) {
     log.error('post-startup initialisation failed — tearing down worker', { err: String(err) });

@@ -50,10 +50,10 @@ PostgreSQL is required in every environment; provide `DATABASE_URL` or `POSTGRES
 
 Two database roles back a deployment:
 
-| Role           | Attributes                          | Used by                                                                    |
-| -------------- | ----------------------------------- | -------------------------------------------------------------------------- |
-| `kestrel_app`  | `LOGIN`, `NOBYPASSRLS`              | Web application and worker app traffic (`DATABASE_URL`)                     |
-| `hamafx_admin` | `LOGIN`, `BYPASSRLS`, `NOSUPERUSER` | Worker, cron, and administrative paths via `ADMIN_DATABASE_URL`             |
+| Role           | Attributes                          | Used by                                                         |
+| -------------- | ----------------------------------- | --------------------------------------------------------------- |
+| `kestrel_app`  | `LOGIN`, `NOBYPASSRLS`              | Web application and worker app traffic (`DATABASE_URL`)         |
+| `hamafx_admin` | `LOGIN`, `BYPASSRLS`, `NOSUPERUSER` | Worker, cron, and administrative paths via `ADMIN_DATABASE_URL` |
 
 Postgres row-level security only applies to a connection whose role cannot bypass it.
 Migration `0094` creates `kestrel_app` deliberately `NOLOGIN` — credentials must never
@@ -217,21 +217,31 @@ their own provider keys (BYOK), and spend is tracked locally in USD.
 
 ## Worker configuration
 
-| Variable                    | Default/required                                              | Description                                                                    |
-| --------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `WORKER_MODE`               | `systemd`                                                     | `systemd` uses external scheduling; `docker` uses internal scheduling          |
-| `WORKER_ENABLE_TICK_STREAM` | `0` (default on-demand REST mode)                             | `0` disables 24/7 SignalR/Binance DB tick streaming; `1` enables legacy stream |
-| `WORKER_HEALTH_TOKEN`       | Required in production; optional locally                      | Bearer token for worker health endpoints                                       |
-| `BIQUOTE_HUB_URL`           | BiQuote SignalR URL                                           | Live market feed endpoint (used when `WORKER_ENABLE_TICK_STREAM=1`)            |
-| `BIQUOTE_PROXY_TOKEN`       | Optional in on-demand mode; required when tick stream enabled | Bearer token for the worker’s optional `:8082` BiQuote proxy                   |
-| `BINANCE_CRYPTO_SYMBOLS`    | Catalog default                                               | Comma-separated crypto symbols                                                 |
-| `BINANCE_WS_URL`            | Optional                                                      | Binance WebSocket base URL                                                     |
-| `WORKER_DB_POOL_MAX`        | Code default                                                  | Worker PostgreSQL pool size                                                    |
-| `DATASETS_DIR`              | Worker default                                                | Dataset export directory                                                       |
-| `EVAL_REPORTS_DIR`          | Derived default                                               | Evaluation report directory                                                    |
-| `DEPLOYED_SHA`              | `unknown`                                                     | Deployment revision label                                                      |
+| Variable                    | Default/required                                              | Description                                                                                                                                                      |
+| --------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `WORKER_MODE`               | `docker`                                                      | `docker` runs the internal node-cron scheduler (the profile this repo ships); `systemd` expects operator-provided job units, and with none installed no job runs |
+| `WORKER_ENABLE_TICK_STREAM` | `0` (default on-demand REST mode)                             | `0` disables 24/7 SignalR/Binance DB tick streaming; `1` enables legacy stream                                                                                   |
+| `WORKER_HEALTH_TOKEN`       | Required in production; optional locally                      | Bearer token for worker health endpoints                                                                                                                         |
+| `BIQUOTE_HUB_URL`           | BiQuote SignalR URL                                           | Live market feed endpoint (used when `WORKER_ENABLE_TICK_STREAM=1`)                                                                                              |
+| `BIQUOTE_PROXY_TOKEN`       | Optional in on-demand mode; required when tick stream enabled | Bearer token for the worker’s optional `:8082` BiQuote proxy                                                                                                     |
+| `BINANCE_CRYPTO_SYMBOLS`    | Catalog default                                               | Comma-separated crypto symbols                                                                                                                                   |
+| `BINANCE_WS_URL`            | Optional                                                      | Binance WebSocket base URL                                                                                                                                       |
+| `WORKER_DB_POOL_MAX`        | Code default                                                  | Worker PostgreSQL pool size                                                                                                                                      |
+| `DATASETS_DIR`              | Worker default                                                | Dataset export directory                                                                                                                                         |
+| `EVAL_REPORTS_DIR`          | Derived default                                               | Evaluation report directory                                                                                                                                      |
+| `DEPLOYED_SHA`              | `unknown`                                                     | Deployment revision label                                                                                                                                        |
 
 The worker exposes `/health/live` and `/health/ready` on port `8081`, and the optional `/biquote` proxy on port `8082` (when `BIQUOTE_PROXY_TOKEN` is set). Both bind privately by default; if either must be reachable by an orchestrator, use a private network or loopback binding and pass the matching bearer token. Production worker startup requires `WORKER_HEALTH_TOKEN` (and `BIQUOTE_PROXY_TOKEN` when `WORKER_ENABLE_TICK_STREAM=1`). Never expose either port directly to the public internet.
+
+Every registered scheduler job has a healthchecks.io signal. Set the matching `HC_JOB_*_UUID` to turn a ping on; an unset UUID is a no-op, so a job can stop running silently until it is configured. The vars are `HC_JOB_ALERTS_UUID`, `HC_JOB_BRIEFINGS_UUID`, `HC_JOB_SNAPSHOTS_UUID`, `HC_JOB_COT_UUID`, `HC_JOB_FRED_ACTUALS_UUID`, `HC_JOB_WEEKLY_REVIEW_UUID`, `HC_JOB_RESONANCE_SYNC_UUID`, `HC_JOB_EMBEDDING_BACKFILL_UUID`, `HC_JOB_OPINION_CALIBRATION_UUID`, `HC_JOB_BUDGET_RECOVERY_UUID`, `HC_JOB_PERSISTENCE_RECOVERY_UUID`, `HC_JOB_RETENTION_UUID`, `HC_JOB_METRICS_FLUSH_UUID`, `HC_JOB_DATASET_EXPORT_UUID`, and `HC_JOB_MULTI_AGENT_ANALYSIS_UUID`.
+
+Three job-oriented endpoints sit alongside them:
+
+- `/health/jobs` (200/503) reports `stuckJobs` (a scheduled job past its budget plus a five-minute grace — the in-flight guard would otherwise skip it forever), `runningJobs` (in-flight and inside budget, so a long backtest or committee run is **busy**, not wedged), and a sampled `queueHealth` block with per-queue counts plus the newest dead letters.
+- `/health/idle` (200/503) is the restart gate: 200 only when no scheduled job and no queue job is in flight. The VM self-update script waits on it before recreating the worker container and defers the update when the worker stays busy.
+- `/health/dependencies` reports the redacted capability report.
+
+A pg-boss job that exhausts its retries is copied to a dead-letter queue (`backtest-run-dlq`, `backtest-sweep-dlq`, `candle-flush-dlq`) and kept for 30 days instead of being deleted silently. It appears in `queueHealth` and is logged once as `background job dead-lettered`; redrive it with pg-boss `redrive()` when the cause is fixed.
 
 ## Custom Agents and MCP
 

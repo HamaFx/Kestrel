@@ -96,3 +96,19 @@ export class TenantRouter {
 
 /** Global singleton — import this in job files to check partition ownership. */
 export const tenantRouter = new TenantRouter();
+
+/**
+ * R16 (audit 2026-10-31) — filter rows carrying a `tenantId` down to this
+ * worker's partition.
+ *
+ * Core jobs call `isMyTenant` inline while scanning, but plugin jobs and the
+ * plugin tick bus enumerate users through `listEnabledPluginUsers` across all
+ * tenants; without this filter every replica on a multi-worker deployment
+ * would run every tenant's paper-trading strategies and briefings.
+ */
+export function filterMyTenants<T extends { tenantId: string }>(
+  rows: readonly T[],
+  router: TenantRouter = tenantRouter,
+): T[] {
+  return rows.filter((row) => router.isMyTenant(row.tenantId));
+}

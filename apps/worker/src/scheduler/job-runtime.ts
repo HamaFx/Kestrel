@@ -60,33 +60,70 @@ export interface StuckJobSummary {
   oldestStuckMs: number | null;
 }
 
+/** A scheduled job that is in flight but still inside its budget. */
+export interface RunningJobSummary {
+  name: string;
+  runningForMs: number;
+}
+
+export interface JobHealthSummary extends StuckJobSummary {
+  /**
+   * Jobs currently running and not past their budget. A long run (the
+   * 15-minute Full-analysis committee) shows up here, not in `stuck`.
+   */
+  running: RunningJobSummary[];
+}
+
 /**
- * Pure stuck-detection over start timestamps. A job counts as stuck when it
- * has been running longer than its own timeout plus the grace period — the
- * in-flight guard only releases when the job's promise settles, so a wedged
- * job blocks every future run of that job until the process restarts.
+ * Pure busy-versus-wedged classification over start timestamps. A job counts
+ * as stuck when it has been running longer than its own timeout plus the grace
+ * period; anything else in flight is busy. The in-flight guard only releases
+ * when the job's promise settles, so a wedged job blocks every future run of
+ * that job until the process restarts — while a busy job must not be
+ * restarted out from under its work.
  */
+export function summarizeJobHealth(
+  entries: Iterable<[string, number]>,
+  now: number,
+  timeoutFor: (name: string) => number,
+): JobHealthSummary {
+  const stuck: StuckJobSummary['stuck'] = [];
+  const running: RunningJobSummary[] = [];
+  let oldest = 0;
+  for (const [name, startedAt] of entries) {
+    const runningForMs = now - startedAt;
+    if (runningForMs > timeoutFor(name) + STUCK_GRACE_MS) {
+      stuck.push({ name, stuckForMs: runningForMs });
+      if (runningForMs > oldest) oldest = runningForMs;
+    } else {
+      running.push({ name, runningForMs });
+    }
+  }
+  stuck.sort((a, b) => b.stuckForMs - a.stuckForMs);
+  running.sort((a, b) => b.runningForMs - a.runningForMs);
+  return { stuck, running, oldestStuckMs: stuck.length > 0 ? oldest : null };
+}
+
+/** Wedged jobs only — see `summarizeJobHealth` for the full classification. */
 export function summarizeStuckJobs(
   entries: Iterable<[string, number]>,
   now: number,
   timeoutFor: (name: string) => number,
 ): StuckJobSummary {
-  const stuck: StuckJobSummary['stuck'] = [];
-  let oldest = 0;
-  for (const [name, startedAt] of entries) {
-    const stuckForMs = now - startedAt;
-    if (stuckForMs > timeoutFor(name) + STUCK_GRACE_MS) {
-      stuck.push({ name, stuckForMs });
-      if (stuckForMs > oldest) oldest = stuckForMs;
-    }
-  }
-  stuck.sort((a, b) => b.stuckForMs - a.stuckForMs);
-  return { stuck, oldestStuckMs: stuck.length > 0 ? oldest : null };
+  const { stuck, oldestStuckMs } = summarizeJobHealth(entries, now, timeoutFor);
+  return { stuck, oldestStuckMs };
 }
 
 /** Current wedged jobs, for the health endpoint and self-healing. */
 export function getStuckJobSummary(now: number = Date.now()): StuckJobSummary {
   return summarizeStuckJobs(_jobStartedAt.entries(), now, (name) =>
+    effectiveJobTimeoutMs(name as keyof typeof JOBS),
+  );
+}
+
+/** Current in-flight jobs, classified busy versus wedged (R16). */
+export function getJobHealthSummary(now: number = Date.now()): JobHealthSummary {
+  return summarizeJobHealth(_jobStartedAt.entries(), now, (name) =>
     effectiveJobTimeoutMs(name as keyof typeof JOBS),
   );
 }

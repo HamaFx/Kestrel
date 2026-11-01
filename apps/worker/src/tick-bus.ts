@@ -35,6 +35,7 @@ import {
 import { decryptPluginSettings } from '@kestrel/plugin-sdk/settings';
 
 import type { Logger } from './log.js';
+import { filterMyTenants } from './tenant-router.js';
 
 const INSTALLED_USERS_TTL_MS = 30_000;
 const MAX_IN_FLIGHT_PER_SUBSCRIBER = 100;
@@ -138,7 +139,10 @@ export class TickBus {
     if (cached && cached.expiresAt > now) return cached.users;
 
     try {
-      const rows = await listEnabledPluginUsers(pluginId);
+      const allRows = await listEnabledPluginUsers(pluginId);
+      // R16 — like the plugin cron jobs, tick fan-out must only serve tenants
+      // this worker owns, or every replica fills every tenant's paper trades.
+      const rows = filterMyTenants(allRows);
       const manifest = pluginHost.getPlugin(pluginId)?.manifest;
       const users: readonly PluginInstalledUser[] = rows.map((row) => {
         const settings = decryptPluginSettings(manifest?.settingsSchema, row.settings ?? {});

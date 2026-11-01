@@ -69,6 +69,8 @@ interface PostStartupShutdownArgs {
   proxyServer: { close: () => void } | null;
   worker: Pick<RunningWorker, 'stop'>;
   stopScheduler: (() => void) | null;
+  /** R16 — stops the queue/dead-letter health sampler. */
+  stopQueueHealth: (() => void) | null;
 }
 
 /**
@@ -82,6 +84,7 @@ export function registerPostStartupShutdown({
   proxyServer,
   worker,
   stopScheduler,
+  stopQueueHealth,
 }: PostStartupShutdownArgs): void {
   onShutdown(() => closeDb());
   // Registered after closeDb so reverse-order shutdown stops the queue
@@ -90,6 +93,9 @@ export function registerPostStartupShutdown({
     const { stopQueue } = await import('@kestrel/db/queue');
     await stopQueue();
   });
+  // The sampler queries the queue through the pool, so it stops before the
+  // queue does.
+  if (stopQueueHealth) onShutdown(stopQueueHealth);
 
   onShutdown(() => shutdownLangfuse());
   onShutdown(async () => {

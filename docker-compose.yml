@@ -217,6 +217,11 @@ services:
     healthcheck:
       # Production health endpoints require the token; keep the token out of
       # the command line and let Compose expand it inside the container.
+      # R16 (audit 2026-10-31): /health/jobs is 200 while jobs are merely
+      # busy and 503 when one has overrun its budget plus grace (or the
+      # process cannot answer at all). The engine yields between sandbox
+      # combinations, so a long backtest no longer looks wedged. The VM
+      # autoheal loop re-checks /health/jobs directly before restarting.
       test:
         [
           'CMD-SHELL',
@@ -235,6 +240,10 @@ services:
         reservations:
           memory: 128m
     restart: unless-stopped
+    # R16: give in-flight jobs (a sweep combination, a candle flush) time to
+    # honor SIGTERM before the container is killed, instead of a 10s default.
+    stop_signal: SIGTERM
+    stop_grace_period: 60s
     # Docker's default json-file logger is bounded to prevent disk exhaustion.
     logging:
       driver: 'json-file'

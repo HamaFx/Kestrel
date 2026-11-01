@@ -28,11 +28,12 @@
  *      devDependencies and the pnpm store so total disk usage stays ~180 MB
  *      (well inside Botkeep Founder Free's 2 GB storage limit).
  *   4. Runs an in-process Light Cron Poker loop for Vercel's `/api/cron/*`
- *      routes (`warm-cache`, `news`, `alerts`, `health-alerts`, `calendar`,
+ *      routes (`warm-cache`, `news`, `health-alerts`, `calendar`,
  *      `cleanup-uploads`, `cleanup-tokens`, `cleanup-telemetry`)
  *      so host `systemd` timers and GitHub Actions are not needed.
+ *      `alerts` is intentionally not poked: the worker's own `alerts` job
+ *      runs every minute under this profile and is the single owner (R16).
  */
-
 import { execSync } from 'node:child_process';
 import { createHmac, randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -128,10 +129,7 @@ function applySmartEnvDefaults() {
   }
 
   // Deterministic fallback secrets derived from ENCRYPTION_SECRET or DATABASE_URL
-  const seed =
-    process.env.ENCRYPTION_SECRET ||
-    dbUrl ||
-    randomBytes(32).toString('hex');
+  const seed = process.env.ENCRYPTION_SECRET || dbUrl || randomBytes(32).toString('hex');
 
   const autoDerived = [];
   if (!process.env.WORKER_HEALTH_TOKEN) {
@@ -195,7 +193,8 @@ function ensureWorkerBuilt() {
     ? readFileSync(WORKER_BUILT_SHA_FILE, 'utf8').trim()
     : '';
 
-  const forceRebuild = process.argv.includes('--rebuild') || process.env.BOTKEEP_FORCE_REBUILD === '1';
+  const forceRebuild =
+    process.argv.includes('--rebuild') || process.env.BOTKEEP_FORCE_REBUILD === '1';
   if (!forceRebuild && existsSync(WORKER_DIST_ENTRY) && builtSha === currentSha) {
     log('info', 'Worker bundle already up to date; skipping install & build', { sha: currentSha });
     return;
@@ -219,7 +218,9 @@ function ensureWorkerBuilt() {
   };
 
   // 1. Install only packages required by @kestrel/worker (skips apps/web, Next.js, Playwright, Sharp)
-  run('pnpm install --filter @kestrel/worker... --frozen-lockfile --config.confirmModulesPurge=false');
+  run(
+    'pnpm install --filter @kestrel/worker... --frozen-lockfile --config.confirmModulesPurge=false',
+  );
 
   // 2. Bundle @kestrel/worker into apps/worker/dist/index.js and apps/worker/dist/runner/cli.js
   run('pnpm --filter @kestrel/worker build');
@@ -277,7 +278,11 @@ function startLightCronPoker() {
   const schedules = [
     { path: '/api/cron/warm-cache', intervalMs: 2 * 60_000 },
     { path: '/api/cron/news', intervalMs: 5 * 60_000 },
-    { path: '/api/cron/alerts', intervalMs: 5 * 60_000 },
+    // R16 (audit 2026-10-31) — `/api/cron/alerts` is deliberately NOT poked
+    // here. The worker's own `alerts` job (JOBS.alerts, every minute) owns
+    // alert evaluation under this profile; poking the web route too ran the
+    // evaluator twice per interval, firing the same alert from two places.
+    // One profile, one alerts scheduler.
     { path: '/api/cron/health-alerts', intervalMs: 5 * 60_000 },
     { path: '/api/cron/calendar', intervalMs: 15 * 60_000 },
     { path: '/api/cron/cleanup-uploads', intervalMs: 24 * 60 * 60_000 },

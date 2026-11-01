@@ -25,6 +25,17 @@
 // scheduler. The eval is fast (one cached price call per priceCross + one
 // candle call per (symbol, tf) deduped via the data cache).
 //
+// R16 (audit 2026-10-31) — ownership and partitioning:
+//   * The worker's own `alerts` job (`JOBS.alerts`, every minute) is the
+//     owner under the Docker/Botkeep profiles; the external schedulers that
+//     used to also poke this route every 5 minutes were removed so a profile
+//     has exactly one alerts scheduler. Keep it that way: if this route is
+//     poked by a deployment profile, that profile must disable the worker job
+//     (or its poker) instead of running both.
+//   * The evaluator now filters through the same tenant partition the worker
+//     uses, so a partitioned deployment cannot have this route process
+//     another partition's users.
+//
 // Audit 2026-10-31 (R1): `alerts` and the `user_settings` join are
 // RLS-protected and the evaluator is cross-tenant by design (one pass over
 // every user's alerts, then per-user writes with explicit tenant
@@ -34,6 +45,7 @@
 import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import { evaluateAlerts, withAdminDb } from '@/lib/services/api-boundary';
+import { ownsTenantInPartition, resolveWorkerPartition } from '@/lib/services/worker-partition';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -41,8 +53,14 @@ export const maxDuration = 60;
 
 export async function GET(req: Request): Promise<Response> {
   return withCronAuth(req, async () => {
+    // Resolve once per request: an invalid WORKER_PARTITION pair fails before
+    // any alert is evaluated rather than mid-pass.
+    const partition = resolveWorkerPartition();
     const result = await withAdminDb(() =>
-      evaluateAlerts({ ...(req.signal ? { signal: req.signal } : {}) }),
+      evaluateAlerts({
+        ...(req.signal ? { signal: req.signal } : {}),
+        ownsTenant: (userId) => ownsTenantInPartition(userId, partition),
+      }),
     );
 
     // OBS-04 (Phase 5.3): Capture per-alert errors to Sentry + pino logger

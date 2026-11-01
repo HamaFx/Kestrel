@@ -33,6 +33,7 @@ import cron from 'node-cron';
 
 import { acquireCronLock } from './cron-lock.js';
 import type { Logger } from './log.js';
+import { filterMyTenants, tenantRouter, type TenantRouter } from './tenant-router.js';
 
 const JOB_TIMEOUT_MS = Number(process.env.JOB_TIMEOUT_MS) || 120_000;
 
@@ -165,12 +166,23 @@ async function runPluginJobSafely(job: RegisteredPluginJob, log: Logger): Promis
   }
 }
 
-async function loadInstalledUsers(
+/**
+ * Resolve the plugin's enabled users, filtered to this worker's partition.
+ *
+ * Exported for tests; production code reaches it through the job closure in
+ * `startPluginJobs`. `router` and `listUsers` are injectable so the partition
+ * filter can be tested without a database or a process-wide partition config.
+ */
+export async function loadInstalledUsers(
   pluginId: string,
   log: Logger,
+  router: TenantRouter = tenantRouter,
+  listUsers: typeof listEnabledPluginUsers = listEnabledPluginUsers,
 ): Promise<readonly PluginInstalledUser[]> {
   try {
-    const rows = await listEnabledPluginUsers(pluginId);
+    const allRows = await listUsers(pluginId);
+    // R16 — only this worker partition's tenants, like core jobs.
+    const rows = filterMyTenants(allRows, router);
     const manifest = pluginHost.getPlugin(pluginId)?.manifest;
     return rows.map((row) => {
       const settings = decryptPluginSettings(manifest?.settingsSchema, row.settings ?? {});

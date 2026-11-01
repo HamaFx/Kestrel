@@ -27,13 +27,87 @@
 // (the default) just use DATABASE_URL.
 
 import { sql } from 'drizzle-orm';
-import { fromDrizzle, PgBoss, type Job, type JobWithMetadata } from 'pg-boss';
+import { fromDrizzle, PgBoss, type Job, type JobWithMetadata, type QueueOptions } from 'pg-boss';
 
 import { getDb, getTenantDbScope } from './client';
 import { SUPABASE_ROOT_CA_2021 } from './connection/supabase-ca';
 
 export const BACKTEST_RUN_QUEUE = 'backtest-run';
 export const BACKTEST_SWEEP_QUEUE = 'backtest-sweep';
+
+// -----------------------------------------------------------------------
+// R16 (audit 2026-10-31) — dead-letter queues.
+//
+// Without a `deadLetter`, a backtest job that exhausts `retryLimit` sits in
+// `failed` and is deleted an hour later with nothing to alert on. Each queue
+// now copies a terminally-failed job into its own DLQ (pg-boss keeps the
+// original payload plus `source_*` metadata and the error output), where it
+// stays for 30 days: long enough for the worker health payload / an operator
+// to see it and redrive it with `boss.redrive()`.
+//
+// pg-boss refuses a `deadLetter` that does not exist yet, so the DLQ rows are
+// created before their source queues.
+// -----------------------------------------------------------------------
+
+/** Dead-letter queues, one per retrying queue. Created by `getQueue()`. */
+export const BACKTEST_RUN_DLQ = 'backtest-run-dlq';
+export const BACKTEST_SWEEP_DLQ = 'backtest-sweep-dlq';
+
+/** How long a dead-lettered job stays visible. 30 days. */
+export const DEAD_LETTER_RETENTION_SECONDS = 30 * 24 * 3_600;
+
+/**
+ * DLQ policy: nothing consumes a DLQ, so retries and completion are
+ * irrelevant; the retention window is the whole point (`retentionSeconds`
+ * caps a job in `created` state, which is how a dead-lettered copy lands).
+ * `deleteAfterSeconds` matches it so a row an operator processes or fails by
+ * hand cannot accumulate forever either.
+ */
+export const DEAD_LETTER_QUEUE_OPTIONS: QueueOptions = {
+  retryLimit: 0,
+  retryDelay: 0,
+  retryBackoff: false,
+  expireInSeconds: 3_600,
+  retentionSeconds: DEAD_LETTER_RETENTION_SECONDS,
+  deleteAfterSeconds: DEAD_LETTER_RETENTION_SECONDS,
+};
+
+/** Queues this build owns, with their DLQ wiring. Exported for tests. */
+export const MANAGED_QUEUES: ReadonlyArray<{
+  name: string;
+  deadLetter: string;
+  options: QueueOptions;
+}> = [
+  {
+    name: BACKTEST_RUN_QUEUE,
+    deadLetter: BACKTEST_RUN_DLQ,
+    options: {
+      retryLimit: 2,
+      retryDelay: 15,
+      retryBackoff: true,
+      expireInSeconds: 600,
+      retentionSeconds: 86_400,
+      deleteAfterSeconds: 3_600,
+    },
+  },
+  {
+    name: BACKTEST_SWEEP_QUEUE,
+    deadLetter: BACKTEST_SWEEP_DLQ,
+    options: {
+      retryLimit: 1,
+      retryDelay: 30,
+      retryBackoff: true,
+      expireInSeconds: 1_800,
+      retentionSeconds: 86_400,
+      deleteAfterSeconds: 3_600,
+    },
+  },
+];
+
+/** Every dead-letter queue this build creates. */
+export const DEAD_LETTER_QUEUES: readonly string[] = MANAGED_QUEUES.map(
+  (queue) => queue.deadLetter,
+);
 
 let bossInstance: PgBoss | null = null;
 let starting: Promise<PgBoss> | null = null;
@@ -132,22 +206,21 @@ export async function getQueue(): Promise<PgBoss> {
       console.error('[queue] pg-boss error', err instanceof Error ? err.message : String(err));
     });
     await boss.start();
-    await boss.createQueue(BACKTEST_RUN_QUEUE, {
-      retryLimit: 2,
-      retryDelay: 15,
-      retryBackoff: true,
-      expireInSeconds: 600,
-      retentionSeconds: 86_400,
-      deleteAfterSeconds: 3_600,
-    });
-    await boss.createQueue(BACKTEST_SWEEP_QUEUE, {
-      retryLimit: 1,
-      retryDelay: 30,
-      retryBackoff: true,
-      expireInSeconds: 1_800,
-      retentionSeconds: 86_400,
-      deleteAfterSeconds: 3_600,
-    });
+    // DLQs first: pg-boss rejects a source queue whose deadLetter does not
+    // exist (R16).
+    for (const dlq of DEAD_LETTER_QUEUES) {
+      await boss.createQueue(dlq, DEAD_LETTER_QUEUE_OPTIONS);
+    }
+    for (const queue of MANAGED_QUEUES) {
+      await boss.createQueue(queue.name, { ...queue.options, deadLetter: queue.deadLetter });
+      // `create_queue` is `ON CONFLICT DO NOTHING`, so a queue that already
+      // existed before this deploy keeps its old config (no dead letter). Apply
+      // the current definition explicitly so the DLQ wiring reaches upgrades.
+      await boss.updateQueue(queue.name, {
+        ...queue.options,
+        deadLetter: queue.deadLetter,
+      });
+    }
     bossInstance = boss;
     return boss;
   })().finally(() => {

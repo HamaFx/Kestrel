@@ -5,8 +5,16 @@
 # checkout's HEAD to origin/main; if they differ:
 #   1. git reset --hard origin/main
 #   2. docker compose build (uses layer cache — fast when only source changes)
-#   3. docker compose up -d --force-recreate (restart with new image)
+#   3. wait for the worker to be idle, then docker compose up -d --force-recreate
 #   4. 30s health check — auto-rollback if unhealthy
+#
+# R16 (audit 2026-10-31) — the recreate used to be blind: a long-but-healthy
+# backtest (or any in-flight job) was killed every time a commit landed. Step
+# 3 now asks the worker's `/health/idle` endpoint and waits for in-flight work
+# to finish before recreating. When it is still busy after
+# KESTREL_UPDATE_IDLE_WAIT_SEC the update is deferred to the next timer run
+# instead, and the host files are rolled back so the next run sees the same
+# diff and retries.
 #
 # No GitHub Actions, no GHCR, no external registry. The image is built on the VM.
 #
@@ -22,6 +30,11 @@ readonly SHA_FILE="/opt/kestrel/.deployed-sha"
 readonly ENV_FILE="/opt/kestrel/.env"
 readonly CONTAINER="kestrel-worker"
 readonly UNIT_SYNC_HELPER='/usr/local/sbin/kestrel-sync-systemd-units'
+
+# R16 — how long to wait for in-flight work before deferring the recreate.
+readonly WORKER_IDLE_URL="${KESTREL_WORKER_IDLE_URL:-http://127.0.0.1:8081/health/idle}"
+readonly IDLE_WAIT_SEC="${KESTREL_UPDATE_IDLE_WAIT_SEC:-240}"
+readonly IDLE_POLL_SEC="${KESTREL_UPDATE_IDLE_POLL_SEC:-15}"
 
 # Load HC_UPDATE_UUID safely
 HC_UUID=''
@@ -43,6 +56,51 @@ ping_hc() {
 }
 
 log() { printf '%s [docker-update] %s\n' "$(date -u +%FT%TZ)" "$*"; }
+
+# R16 — the worker health token guards /health/idle; read it from the same env
+# file the container was started with.
+worker_health_token() {
+  local token=''
+  if [[ -f "$ENV_FILE" ]]; then
+    token=$(grep -E '^WORKER_HEALTH_TOKEN=' "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" || true)
+  fi
+  printf '%s' "$token"
+}
+
+# idle | busy | down
+worker_idle_state() {
+  local token code
+  token=$(worker_health_token)
+  if ! code=$(curl -sS -m 5 -o /dev/null -w '%{http_code}' \
+    -H "Authorization: Bearer ${token}" "$WORKER_IDLE_URL" 2>/dev/null); then
+    printf 'down'
+    return
+  fi
+  case "$code" in
+    200) printf 'idle' ;;
+    503) printf 'busy' ;;
+    *) printf 'down' ;;
+  esac
+}
+
+# Wait for an idle worker. 0 = idle (or already down, which a recreate
+# fixes), 1 = still busy after IDLE_WAIT_SEC.
+wait_for_worker_idle() {
+  local state deadline
+  deadline=$(( $(date +%s) + IDLE_WAIT_SEC ))
+  while :; do
+    state=$(worker_idle_state)
+    case "$state" in
+      idle) return 0 ;;
+      down) log 'worker health endpoint unreachable — recreating without waiting'; return 0 ;;
+    esac
+    if (( $(date +%s) >= deadline )); then
+      return 1
+    fi
+    log "worker busy with in-flight work — rechecking in ${IDLE_POLL_SEC}s"
+    sleep "$IDLE_POLL_SEC"
+  done
+}
 
 write_deployed_metadata() {
   local sha="$1"
@@ -171,6 +229,20 @@ if ! DOCKER_BUILDKIT=1 docker compose -f "$COMPOSE_FILE" build --quiet 2>&1; the
   sync_host_files_for_commit "$PREV_SHA" >/dev/null 2>&1 || true
   ping_hc fail "build failed at $NEW_SHA"
   exit 1
+fi
+
+# R16 — gate the recreate on idle. The worker answers /health/idle 200 only
+# when no scheduled job and no queue job is in flight, so a long backtest is
+# never killed by a deploy. If it is still busy after the wait window, defer
+# this commit to the next timer run rather than forcing the restart.
+if ! wait_for_worker_idle; then
+  log "worker still busy after ${IDLE_WAIT_SEC}s — deferring the container recreate to the next update run"
+  # Roll the checkout and host files back to the running image's commit so the
+  # next run sees the same diff and retries. Nothing was recreated, so the
+  # deployed metadata still names the code the container is actually running.
+  sync_host_files_for_commit "$PREV_SHA" >/dev/null 2>&1 || true
+  ping_hc success "deferred $NEW_SHA: worker busy with in-flight work"
+  exit 0
 fi
 
 # Stage runtime metadata before recreating the container so its logs and

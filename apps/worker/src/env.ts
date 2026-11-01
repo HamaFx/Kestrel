@@ -113,6 +113,8 @@ const WorkerEnvSchema = z.object({
   HC_JOB_PERSISTENCE_RECOVERY_UUID: optionalNonEmpty,
   HC_JOB_RETENTION_UUID: optionalNonEmpty,
   HC_JOB_DATASET_EXPORT_UUID: optionalNonEmpty,
+  HC_JOB_METRICS_FLUSH_UUID: optionalNonEmpty,
+  HC_JOB_MULTI_AGENT_ANALYSIS_UUID: optionalNonEmpty,
   HC_JOB_OPINION_CALIBRATION_UUID: optionalNonEmpty,
   HC_DISK_CHECK_UUID: optionalNonEmpty,
   HC_TENANT_DELETE_UUID: optionalNonEmpty,
@@ -146,10 +148,18 @@ const WorkerEnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 
   /**
-   * 'systemd' relies on external cron for jobs.
-   * 'docker' starts an internal node-cron scheduler.
+   * 'docker' runs the internal node-cron scheduler, which is what this repo
+   * ships (see `infra/cron-vm/` compose files and `scripts/botkeep-start.mjs`;
+   * no job systemd units exist in the repository).
+   * 'systemd' expects the operator to provide their own one-shot units
+   * invoking `node dist/runner/cli.js <job>`; with no units, no core or
+   * plugin job runs at all.
+   *
+   * R16 (audit 2026-10-31) — the default used to be 'systemd', so a bare
+   * `node dist/index.js` silently ran zero jobs. Default to what the repo
+   * actually supports; operators who wrote their own units still opt in.
    */
-  WORKER_MODE: z.enum(['systemd', 'docker']).default('systemd'),
+  WORKER_MODE: z.enum(['systemd', 'docker']).default('docker'),
 
   JOB_TIMEOUT_MS: z.coerce.number().int().min(1000).max(3_600_000).prefault(120_000),
   WORKER_PARTITION: z.preprocess(

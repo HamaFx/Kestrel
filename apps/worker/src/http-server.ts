@@ -4,6 +4,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { assertSafeOutboundUrl, getCapabilityReport } from '@kestrel/shared';
 
 import type { CandlePipelineStats } from './bootstrap/candle-flush.js';
+import type { QueueHealthSnapshot } from './bootstrap/queue-health.js';
 import type { Logger } from './log.js';
 
 export interface HealthServerDeps {
@@ -28,6 +29,18 @@ export interface HealthServerDeps {
    * healthcheck trips and the autoheal loop restarts the process.
    */
   getStuckJobs?: () => Array<{ name: string; stuckForMs: number }>;
+  /**
+   * R16 — in-flight scheduled jobs that are inside their budget. Busy is not
+   * wedged: a 15-minute committee run or a long backtest shows up here and
+   * must not trip a restart.
+   */
+  getRunningJobs?: () => Array<{ name: string; runningForMs: number }>;
+  /**
+   * R16 — latest queue sample: active/queued/failed counts per queue and the
+   * newest dead-letter rows. Sampled on a timer so the health handler never
+   * queries the database itself.
+   */
+  getQueueHealth?: () => QueueHealthSnapshot | null;
 }
 
 export interface WorkerHttpServers {
@@ -68,6 +81,7 @@ function createHealthHandler(deps: HealthServerDeps): http.RequestListener {
       req.url !== '/health/live' &&
       req.url !== '/health/ready' &&
       req.url !== '/health/jobs' &&
+      req.url !== '/health/idle' &&
       req.url !== '/health/dependencies'
     ) {
       res.writeHead(404);
@@ -82,6 +96,7 @@ function createHealthHandler(deps: HealthServerDeps): http.RequestListener {
     const liveOnly = req.url === '/health/live';
     const dependenciesOnly = req.url === '/health/dependencies';
     const jobsOnly = req.url === '/health/jobs';
+    const idleOnly = req.url === '/health/idle';
     const tickStreamEnabled = deps.isTickStreamEnabled?.() ?? true;
     const lastTickAt = getLastTickAt();
     const ageMs = lastTickAt > 0 ? Date.now() - lastTickAt : null;
@@ -94,6 +109,15 @@ function createHealthHandler(deps: HealthServerDeps): http.RequestListener {
     // so the container healthcheck can fail without also depending on tick
     // freshness, and the VM autoheal loop can restart the process.
     const stuckJobs = deps.getStuckJobs?.() ?? [];
+    const runningJobs = deps.getRunningJobs?.() ?? [];
+    const queueHealth = deps.getQueueHealth?.() ?? null;
+    const activeQueueJobs = (queueHealth?.queues ?? [])
+      .filter((queue) => queue.active > 0)
+      .map((queue) => queue.name);
+    // R16 — "idle" means nothing is in flight: no scheduled job and no queue
+    // job being worked. The VM self-update script gates its container
+    // recreate on this instead of killing a long backtest mid-flight.
+    const idle = runningJobs.length === 0 && activeQueueJobs.length === 0;
     const jobsHealthy = stuckJobs.length === 0;
     const jobsBody = {
       jobsHealthy,
@@ -102,7 +126,20 @@ function createHealthHandler(deps: HealthServerDeps): http.RequestListener {
         stuckJobs.length > 0
           ? stuckJobs.reduce((max, job) => Math.max(max, job.stuckForMs), 0)
           : null,
+      runningJobs,
+      activeQueueJobs,
+      idle,
+      queueHealth,
     };
+    if (idleOnly) {
+      sendJson(res, idle ? 200 : 503, {
+        status: idle ? 'ok' : 'busy',
+        idle,
+        runningJobs,
+        activeQueueJobs,
+      });
+      return;
+    }
     const ready = feedReady && jobsHealthy;
     const healthy = liveOnly || dependenciesOnly || (jobsOnly ? jobsHealthy : ready);
     sendJson(res, healthy ? 200 : 503, {

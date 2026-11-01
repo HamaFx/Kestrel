@@ -33,6 +33,7 @@ import {
   updateBacktestSweep,
 } from '../db/queries';
 import type { BacktestSweepRow } from '../db/tables';
+import { yieldToEventLoop } from '../engine/yield';
 import type { SweepInput, SweepObjective } from '../schemas';
 import { normaliseSettings } from '../settings';
 import { runBacktestForUser } from './run-service';
@@ -207,6 +208,12 @@ export async function executeSweep(args: {
 
     for (let index = 0; index < combinations.length; index += 1) {
       if (args.signal?.aborted) throw new SweepCancelledError();
+      // R16 — a combination is CPU-bound synchronous work (QuickJS evaluation
+      // plus the simulator). Yield a macrotask turn between combinations so
+      // health checks, tick ingestion, cancellation and every other job on
+      // this process get to run; the sandbox deadline bounds the block inside
+      // one combination.
+      await yieldToEventLoop();
       const params = combinations[index]!;
 
       try {

@@ -180,6 +180,92 @@ describe('worker health server', () => {
     expect(response.status).toBe(404);
   });
 
+  it('reports a busy worker as healthy but not idle (R16)', async () => {
+    const busy = createHealthServer({
+      log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), with: vi.fn() },
+      getLastTickAt: () => 0,
+      isSignalRConnected: () => false,
+      isTickStreamEnabled: () => false,
+      getRunningJobs: () => [{ name: 'multi-agent-analysis', runningForMs: 600_000 }],
+    });
+
+    // Busy is not wedged: a 10-minute committee run must not fail the job
+    // healthcheck or trip the autoheal loop.
+    const jobs = await request(busy, '/health/jobs');
+    expect(jobs.status).toBe(200);
+    await expect(jobs.json()).resolves.toMatchObject({
+      status: 'ok',
+      jobsHealthy: true,
+      stuckJobs: [],
+      runningJobs: [{ name: 'multi-agent-analysis', runningForMs: 600_000 }],
+      idle: false,
+    });
+
+    const ready = await request(busy, '/health');
+    expect(ready.status).toBe(200);
+
+    // The self-update gate reads /health/idle: in-flight work is not idle.
+    const idle = await request(busy, '/health/idle');
+    expect(idle.status).toBe(503);
+    await expect(idle.json()).resolves.toMatchObject({ status: 'busy', idle: false });
+  });
+
+  it('reports an idle worker through /health/idle', async () => {
+    const response = await request(createServer(Date.now(), true), '/health/idle');
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      status: 'ok',
+      idle: true,
+      runningJobs: [],
+      activeQueueJobs: [],
+    });
+  });
+
+  it('treats an active queue job as busy and surfaces dead letters (R16)', async () => {
+    const server = createHealthServer({
+      log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), with: vi.fn() },
+      getLastTickAt: () => 0,
+      isSignalRConnected: () => false,
+      isTickStreamEnabled: () => false,
+      getQueueHealth: () => ({
+        capturedAt: '2026-10-31T12:00:00.000Z',
+        queues: [
+          { name: 'backtest-sweep', active: 1, queued: 0, failed: 0, deadLettered: 0 },
+          { name: 'backtest-run-dlq', active: 0, queued: 0, failed: 0, deadLettered: 2 },
+        ],
+        deadLetters: [
+          {
+            queue: 'backtest-run-dlq',
+            id: 'job-1',
+            sourceQueue: 'backtest-run',
+            sourceJobId: 'original-1',
+            deadLetteredAt: '2026-10-31T11:00:00.000Z',
+            retries: 2,
+            error: 'strategy sandbox unavailable',
+          },
+        ],
+        error: null,
+      }),
+    });
+
+    const jobs = await request(server, '/health/jobs');
+    expect(jobs.status).toBe(200);
+    const body = await jobs.json();
+    expect(body.idle).toBe(false);
+    expect(body.activeQueueJobs).toEqual(['backtest-sweep']);
+    expect(body.queueHealth.deadLetters[0]).toMatchObject({
+      sourceQueue: 'backtest-run',
+      error: 'strategy sandbox unavailable',
+    });
+
+    const idle = await request(server, '/health/idle');
+    expect(idle.status).toBe(503);
+    await expect(idle.json()).resolves.toMatchObject({
+      status: 'busy',
+      activeQueueJobs: ['backtest-sweep'],
+    });
+  });
+
   it('surfaces the candle pipeline counters so dropped bars and gaps are visible (R9)', async () => {
     const candlePipeline = {
       barsClosed: 3,
