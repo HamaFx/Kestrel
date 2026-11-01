@@ -73,6 +73,31 @@ export function resolveJevEndpoint(
   env?: JevEnv | null,
   tier: JevTaskTier = 'complex',
 ): ResolvedJevEndpoint | null {
+  const candidates = configuredJevCandidates(settings, env, tier);
+  for (const candidate of candidates) {
+    if (!isCircuitOpen(jevCircuitKey(candidate.providerId, candidate.modelId))) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+/**
+ * True when at least one Jev provider key is configured, regardless of circuit
+ * state. Distinguishes "the deployer never configured a detector" from "the
+ * detector is configured but currently unreachable" — the strict posture
+ * fails closed on both, but the run report should say which one it was.
+ */
+export function hasJevConfiguration(settings?: JevSettings | null, env?: JevEnv | null): boolean {
+  return configuredJevCandidates(settings, env).length > 0;
+}
+
+/** Every endpoint this request could use, in resolution order. */
+function configuredJevCandidates(
+  settings?: JevSettings | null,
+  env?: JevEnv | null,
+  tier: JevTaskTier = 'complex',
+): ResolvedJevEndpoint[] {
   let byok: ByokPayload | null = null;
   if (settings?.aiApiKeys) {
     try {
@@ -138,10 +163,5 @@ export function resolveJevEndpoint(
     });
   }
 
-  for (const candidate of candidates) {
-    if (!isCircuitOpen(jevCircuitKey(candidate.providerId, candidate.modelId))) {
-      return candidate;
-    }
-  }
-  return null;
+  return candidates;
 }

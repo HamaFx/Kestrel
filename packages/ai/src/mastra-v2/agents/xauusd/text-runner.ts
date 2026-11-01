@@ -16,16 +16,17 @@
 
 import { Agent } from '@mastra/core/agent';
 import type { MastraModelConfig } from '@mastra/core/llm';
-import {
-  PromptInjectionDetector,
-  UnicodeNormalizer,
-  type InputProcessorOrWorkflow,
-} from '@mastra/core/processors';
+import { UnicodeNormalizer, type InputProcessorOrWorkflow } from '@mastra/core/processors';
 import { RequestContext } from '@mastra/core/request-context';
 import type { LanguageModel, ModelMessage } from 'ai';
 import type { z } from 'zod';
 
 import { jsonPromptInjectionForModel } from '../../../committee/structured-output';
+import {
+  buildGuardrailInputProcessors,
+  createIndirectContentGuardrailProcessor,
+  type GuardrailMode,
+} from '../../guardrails';
 import { getMastraGenerationStats } from '../../shared/telemetry';
 import { runTracingOptions } from '../../telemetry';
 
@@ -38,31 +39,37 @@ const NORMALIZER = new UnicodeNormalizer({
 });
 
 /**
- * Build input processors for the text-runner. The UnicodeNormalizer is
- * always applied. When a model is available and `skipInputGuardrails` is not
- * set, a PromptInjectionDetector with the `block` strategy is added so
- * injection attempts in extraction prompts are rejected before reaching the
- * model — defense-in-depth on top of the route-level regex gate.
+ * Build input processors for the text-runner.
+ *
+ * The UnicodeNormalizer is always applied. When a model is available and
+ * `skipInputGuardrails` is not set, the shared guardrail bundle is used:
+ * the user-turn `PromptInjectionDetector` (block strategy) plus the
+ * provider-boundary indirect-content screen, so tool results and assembled
+ * external content are screened before the model sees them (audit R15).
+ * Detector construction is wrapped because edge-case model shapes can fail;
+ * the indirect screen is deterministic and stays attached either way.
  */
 function buildInputProcessors(
   model?: LanguageModel,
   skipInputGuardrails = false,
+  guardrailMode: GuardrailMode = 'availability',
 ): InputProcessorOrWorkflow[] {
   if (!model || skipInputGuardrails) return [NORMALIZER];
   try {
-    const detector = new PromptInjectionDetector({
-      model: model as never,
-      threshold: 0.7,
+    return buildGuardrailInputProcessors({
+      // The runner resolves the model itself; the builder must not resolve a
+      // second one (P2-03) and has no BYOK settings to resolve Jev from.
+      settings: { aiApiKeys: null, chatModel: null },
+      env: {},
+      model,
       strategy: 'block',
-      detectionTypes: ['injection', 'jailbreak', 'system-override'],
-      lastMessageOnly: true,
-      includeScores: false,
-    });
-    return [NORMALIZER, detector];
+      mode: guardrailMode,
+    }).processors;
   } catch {
-    // Detector construction can fail on edge-case model shapes; degrade
-    // to normalizer-only rather than blocking the extraction call.
-    return [NORMALIZER];
+    // Detector construction can fail on edge-case model shapes; degrade to
+    // the normalizer plus the deterministic indirect screen rather than
+    // blocking the extraction call.
+    return [NORMALIZER, createIndirectContentGuardrailProcessor({ mode: guardrailMode })];
   }
 }
 
@@ -87,6 +94,13 @@ export interface MastraTextRunArgs {
    * UnicodeNormalizer always stays active.
    */
   skipInputGuardrails?: boolean;
+  /**
+   * Audit R15 — guardrail posture for the user-turn detector. `availability`
+   * (default) degrades to the deterministic indirect screen when the detector
+   * cannot be built; `strict` refuses the run instead. Indirect tool output is
+   * screened in both modes.
+   */
+  guardrailMode?: GuardrailMode;
 }
 
 export interface MastraTextRunResult {
@@ -121,7 +135,7 @@ export async function runMastraText(args: MastraTextRunArgs): Promise<MastraText
     description: 'Bounded Kestrel generation executed through Mastra.',
     model: args.model as unknown as MastraModelConfig,
     instructions: args.instructions,
-    inputProcessors: buildInputProcessors(args.model, args.skipInputGuardrails),
+    inputProcessors: buildInputProcessors(args.model, args.skipInputGuardrails, args.guardrailMode),
     ...(args.tools ? { tools: args.tools } : {}),
   } as never;
   const agent = new Agent(agentOptions);
@@ -167,7 +181,7 @@ export async function runMastraStructured<TOutput>(
     description: 'Bounded structured Kestrel generation executed through Mastra.',
     model: args.model as unknown as MastraModelConfig,
     instructions: args.instructions,
-    inputProcessors: buildInputProcessors(args.model, args.skipInputGuardrails),
+    inputProcessors: buildInputProcessors(args.model, args.skipInputGuardrails, args.guardrailMode),
   });
   const result = await agent.generate(args.prompt, {
     requestContext,

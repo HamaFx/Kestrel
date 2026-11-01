@@ -22,7 +22,10 @@
 import { schema } from '@kestrel/db';
 import type { NewsSentiment, SearchKnowledgeItem } from '@kestrel/shared';
 
-import { quarantineExternalText } from '../../mastra-v2/packets/external-content';
+import {
+  MAX_EXTERNAL_CONTENT_LENGTH,
+  quarantineExternalText,
+} from '../../mastra-v2/packets/external-content';
 import type { MemoryRow } from '../../memory/memory-index';
 import { getDb } from '../../runtime/db';
 import type { RagRow } from './types';
@@ -62,6 +65,11 @@ export function ragRowToItem(r: RagRow): SearchKnowledgeItem {
  * can render journal / briefing memories alongside news without a second
  * UI primitive. We synthesise a "title" from kind + symbol and use the
  * `text` body as the summary.
+ *
+ * Audit R15 — the recalled text is quarantined here as well as in
+ * `runMemoryQuery`: a journal note or synopsis that pasted external prose must
+ * never be handed to the model (or the UI) as ordinary content, even when a
+ * caller reaches this adapter directly.
  */
 export function memoryRowToItem(r: MemoryRow): SearchKnowledgeItem {
   const titleHead =
@@ -71,10 +79,11 @@ export function memoryRowToItem(r: MemoryRow): SearchKnowledgeItem {
         ? 'Briefing'
         : 'Thread synopsis';
   const sim = Math.max(0, Math.min(1, r.similarity));
+  const summary = quarantineExternalText(r.text, MAX_EXTERNAL_CONTENT_LENGTH);
   return {
     id: `mem:${r.id}`,
     title: titleHead.trim(),
-    summary: r.text,
+    summary: summary.text || null,
     // No outbound URL for memory rows — surface the journal/chat deep
     // link in the part renderer if needed.
     url: '',

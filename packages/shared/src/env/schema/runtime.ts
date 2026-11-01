@@ -55,6 +55,13 @@ export const RuntimeEnv = z.object({
   WEB_SEARCH_MAX_CALLS_PER_TURN: z.coerce.number().int().min(1).max(4).prefault(2),
   WEB_SEARCH_CACHE_TTL_SECONDS: z.coerce.number().int().min(30).max(3600).prefault(600),
   WEB_SEARCH_TIMEOUT_MS: z.coerce.number().int().min(2000).max(20000).prefault(8000),
+  /**
+   * Audit R15 — indirect-injection screening posture for web results.
+   * `strict` (default) withholds results when the screening detector is
+   * unconfigured or unreachable; `availability` keeps serving after the
+   * deterministic screen only and reports the degradation.
+   */
+  WEB_SEARCH_SCREEN_MODE: z.enum(['strict', 'availability']).default('strict'),
 
   /** Deterministic no-network market-data mode for local development. */
   KESTREL_OFFLINE_MODE: z

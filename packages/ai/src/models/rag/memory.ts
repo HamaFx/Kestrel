@@ -17,8 +17,15 @@
 // ---------------------------------------------------------------------------
 // Memory-side hybrid search (DEC-05 split of rag.ts): journal / briefing /
 // thread_synopsis recall from `memory_embeddings`, decayed the same way.
+//
+// Audit R15 — recalled memory is screened before it becomes tool output. A
+// journal note or thread synopsis can contain pasted external prose ("here is
+// the headline I read"), so the same two-layer screen runs here: the
+// deterministic regex floor always, and the model-backed snippet screen with
+// the caller's strict/availability posture.
 // ---------------------------------------------------------------------------
 
+import { quarantineAndRerankSnippets } from '../../jev/rag-quarantine';
 import { searchMemory, type MemoryRow } from '../../memory/memory-index';
 import { DEFAULT_HALFLIFE_DAYS_MEMORY, type RunMemoryQueryArgs } from './types';
 
@@ -34,9 +41,31 @@ export async function runMemoryQuery(args: RunMemoryQueryArgs): Promise<MemoryRo
   if (args.since !== undefined) memArgs.since = args.since;
   if (args.model !== undefined) memArgs.model = args.model;
   const rows = await searchMemory(memArgs);
-  return rows.map((r) => {
+  const decayed = rows.map((r) => {
     const ageDays = Math.max(0, (Date.now() - r.occurredAtMs) / (24 * 60 * 60 * 1000));
     const factor = Math.exp(-Math.LN2 * (ageDays / halflife));
     return { ...r, similarity: r.similarity * factor };
+  });
+  if (decayed.length === 0) return decayed;
+
+  // Memory rows are the user's own records, so relevance gating stays off:
+  // only injection screening runs here.
+  const screened = await quarantineAndRerankSnippets({
+    query: args.query ?? '',
+    items: decayed.map((row) => ({ id: row.id, text: row.text })),
+    mode: args.screenMode,
+    minRelevanceScore: 0,
+    settings: args.jevSettings ?? null,
+    env: args.jevEnv ?? null,
+    ...(args.jevSignal !== undefined ? { signal: args.jevSignal } : {}),
+    ledgerEntryId: 'memory-query',
+    reportPath: 'memory',
+    reportSink: args.reportSink ?? null,
+  });
+  if (screened.failedClosed) return [];
+  const byId = new Map(decayed.map((row) => [row.id, row]));
+  return screened.kept.flatMap((item) => {
+    const row = byId.get(item.id);
+    return row ? [row] : [];
   });
 }

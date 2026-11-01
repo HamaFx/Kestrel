@@ -53,7 +53,9 @@ export type AiEnvKeys =
   | 'WEB_SEARCH_MAX_RESULTS'
   | 'WEB_SEARCH_MAX_CALLS_PER_TURN'
   | 'WEB_SEARCH_CACHE_TTL_SECONDS'
-  | 'WEB_SEARCH_TIMEOUT_MS';
+  | 'WEB_SEARCH_TIMEOUT_MS'
+  // Audit R15 — screening posture for untrusted web results.
+  | 'WEB_SEARCH_SCREEN_MODE';
 
 export function pickAiEnv(env: Pick<ServerEnv, AiEnvKeys>) {
   return {
@@ -81,5 +83,6 @@ export function pickAiEnv(env: Pick<ServerEnv, AiEnvKeys>) {
     WEB_SEARCH_MAX_CALLS_PER_TURN: env.WEB_SEARCH_MAX_CALLS_PER_TURN,
     WEB_SEARCH_CACHE_TTL_SECONDS: env.WEB_SEARCH_CACHE_TTL_SECONDS,
     WEB_SEARCH_TIMEOUT_MS: env.WEB_SEARCH_TIMEOUT_MS,
+    WEB_SEARCH_SCREEN_MODE: env.WEB_SEARCH_SCREEN_MODE,
   };
 }

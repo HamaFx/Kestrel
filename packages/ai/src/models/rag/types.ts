@@ -19,6 +19,10 @@
 import type { Symbol } from '@kestrel/shared';
 
 import type { JevEnv, JevSettings } from '../../jev/types';
+import type {
+  ContentScreenMode,
+  ContentScreenReportSink,
+} from '../../mastra-v2/packets/external-content';
 import type { MemoryKind } from '../../memory/memory-index';
 
 /** Exported for testing — RAG result row shape. */
@@ -52,12 +56,24 @@ export interface RunRagQueryArgs {
   /** Halflife in days for time-decay. */
   halflifeDays?: number;
   /**
+   * Audit R15 — screening posture for the untrusted news snippets. Required:
+   * research/untrusted callers pass `strict` (refuse unscreened snippets),
+   * conversation callers may pass `availability`.
+   */
+  screenMode: ContentScreenMode;
+  /**
    * Phase 2 (Jev) — settings/env for the snippet quarantine & rerank pass.
-   * When both are omitted the RRF result is returned untouched (no call).
+   * When both are omitted in `availability` mode the RRF result is returned
+   * untouched (the deployer chose the uncalibrated path). `strict` never skips
+   * the screen.
    */
   jevSettings?: JevSettings | null | undefined;
   jevEnv?: JevEnv | null | undefined;
   jevSignal?: AbortSignal | null | undefined;
+  /** Test seam / custom transport for the screening batch. Defaults to global fetch. */
+  jevFetchImpl?: typeof fetch | undefined;
+  /** Run context that receives the screening event. */
+  reportSink?: ContentScreenReportSink | null | undefined;
 }
 
 export interface RunMemoryQueryArgs {
@@ -70,4 +86,17 @@ export interface RunMemoryQueryArgs {
   symbol?: Symbol | undefined;
   halflifeDays?: number;
   userId: string;
+  /** Recall query text carried into the screening batch. */
+  query?: string | undefined;
+  /**
+   * Audit R15 — screening posture for recalled memory text. Memory can hold
+   * pasted external prose (journal notes, thread synopses), so it gets the
+   * same strict/availability treatment as news retrieval.
+   */
+  screenMode: ContentScreenMode;
+  jevSettings?: JevSettings | null | undefined;
+  jevEnv?: JevEnv | null | undefined;
+  jevSignal?: AbortSignal | null | undefined;
+  /** Run context that receives the screening event. */
+  reportSink?: ContentScreenReportSink | null | undefined;
 }

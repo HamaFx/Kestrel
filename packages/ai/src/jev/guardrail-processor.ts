@@ -28,18 +28,27 @@
  * Contracts:
  *   - Deterministic lexical gates (`isInjectionAttempt` at the chat boundary)
  *     still run first — this processor can only add blocks.
- *   - Runtime unavailability (timeout / network / malformed response) warns
- *     and lets content through, matching Mastra's generative detector (which
- *     also warns on model errors). Build-time unavailability is handled by
+ *   - Runtime unavailability (timeout / network / malformed response) follows
+ *     the caller's posture (audit R15): `availability` warns and lets content
+ *     through, matching Mastra's generative detector (which also warns on model
+ *     errors); `strict` refuses the turn, so unscreened user input never
+ *     reaches the model. Build-time unavailability is handled by
  *     `buildGuardrailInputProcessors`, which only attaches this processor
  *     when `resolveJevEndpoint` returned an endpoint and otherwise keeps the
- *     strict `GuardrailUnavailableError` behavior.
+ *     strict `GuardrailUnavailableError` behavior. Both runtime outcomes are
+ *     published to the run's content-screen report.
  */
 
 import { metrics } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import type { InputProcessor, ProcessInputArgs } from '@mastra/core/processors';
 
+import { hashLogValue } from '../diagnostics/redact';
+import {
+  appendContentScreenEvents,
+  asContentScreenReportSink,
+  type ContentScreenMode,
+} from '../mastra-v2/packets/external-content';
 import { evaluateJev } from './client';
 import type { JevEnv, JevSettings, ResolvedJevEndpoint } from './types';
 
@@ -133,6 +142,13 @@ export interface JevGuardrailProcessorArgs {
   endpoint?: ResolvedJevEndpoint | null | undefined;
   /** Test seam / custom transport. */
   fetchImpl?: typeof fetch | undefined;
+  /**
+   * Audit R15 — availability posture when the detector is unreachable at
+   * runtime. `strict` refuses the turn (research/untrusted paths): unscreened
+   * user input never reaches the model. `availability` (default) warns and
+   * lets the turn through, recorded as a degraded screening event.
+   */
+  mode?: ContentScreenMode | undefined;
 }
 
 type ProcessorMessages = ProcessInputArgs['messages'];
@@ -157,14 +173,21 @@ function extractMessageText(message: ProcessorMessage): string {
  */
 export function createJevGuardrailProcessor(args: JevGuardrailProcessorArgs): InputProcessor {
   const threshold = args.threshold ?? 0.7;
+  const mode: ContentScreenMode = args.mode ?? 'availability';
   return {
     id: 'kestrel-jev-guardrail',
     name: 'Kestrel Jev Prompt-Injection Guardrail',
-    async processInput({ messages, abort }: ProcessInputArgs): Promise<ProcessorMessages> {
+    async processInput({
+      messages,
+      abort,
+      requestContext,
+    }: ProcessInputArgs): Promise<ProcessorMessages> {
       if (messages.length === 0) return messages;
 
       // Last user message only — mirrors Mastra's `lastMessageOnly` detector
-      // and keeps the batch small.
+      // and keeps the batch small. Indirect content (tool results, retrieved
+      // snippets) is screened by the provider-boundary indirect screen and the
+      // retrieval-path quarantine instead.
       let lastUserIndex = -1;
       for (let index = messages.length - 1; index >= 0; index -= 1) {
         if (messages[index]!.role === 'user') {
@@ -187,20 +210,55 @@ export function createJevGuardrailProcessor(args: JevGuardrailProcessorArgs): In
       });
 
       if (!check) {
-        // Runtime unavailability: warn + allow, matching Mastra's generative
-        // detector's model-error behavior. The deterministic lexical gate and
-        // the output verifiers still protect the turn.
-        metrics.increment('guardrail_jev_unavailable_total');
-        glog.warn('Jev guardrail unavailable; injection detection skipped for this turn');
+        // Audit R15 — runtime unavailability. On a strict path the turn is
+        // refused: an unverified user turn must not reach the model. On an
+        // availability path the previous behaviour stands (warn + allow), and
+        // the degradation is published to the run report.
+        metrics.increment('guardrail_jev_unavailable_total', { tags: { mode } });
+        appendContentScreenEvents(asContentScreenReportSink(requestContext), [
+          {
+            path: 'user-turn',
+            mode,
+            screened: 0,
+            quarantined: 0,
+            withheld: mode === 'strict' ? 1 : 0,
+            unscreened: mode === 'strict' ? 0 : 1,
+            detectorUnavailable: true,
+            failedClosed: mode === 'strict',
+            refs: [hashLogValue(text)],
+          },
+        ]);
+        if (mode === 'strict') {
+          glog.warn('Jev guardrail unavailable; refusing the turn (strict mode)');
+          abort(
+            'Prompt-injection screening is unavailable and this path runs in strict mode, so the turn was refused. Retry shortly.',
+          );
+        }
+        glog.warn('Jev guardrail unavailable; injection detection skipped for this turn', {
+          mode,
+        });
         return messages;
       }
 
       if (!check.flagged) return messages;
 
-      metrics.increment('guardrail_jev_flagged_total');
+      metrics.increment('guardrail_jev_flagged_total', { tags: { mode, strategy: args.strategy } });
       const reason = `Prompt injection detected by Jev guardrail. Categories: ${check.flaggedCategories
         .map((category) => `${category}: ${check.categories[category].toFixed(2)}`)
         .join(', ')}`;
+      appendContentScreenEvents(asContentScreenReportSink(requestContext), [
+        {
+          path: 'user-turn',
+          mode,
+          screened: 1,
+          quarantined: 1,
+          withheld: 1,
+          unscreened: 0,
+          detectorUnavailable: false,
+          failedClosed: args.strategy === 'block',
+          refs: [hashLogValue(text), ...check.flaggedCategories],
+        },
+      ]);
 
       if (args.strategy === 'block') {
         abort(reason);

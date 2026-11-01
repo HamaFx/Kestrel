@@ -43,8 +43,12 @@ describe('mastra guardrails', () => {
       throw new Error('No AI API keys configured');
     });
     const { processors, warnings } = buildConversationGuardrails(settings as never, env as never);
-    expect(processors.length).toBe(1);
-    expect(processors[0]?.id).toBe('unicode-normalizer');
+    // Audit R15 — the deterministic indirect-content screen is always attached,
+    // so a missing detector model never means unscreened tool output.
+    expect(processors.map((p) => p.id)).toEqual([
+      'unicode-normalizer',
+      'kestrel-indirect-content-guardrail',
+    ]);
     expect(warnings.length).toBe(1);
   });
 
@@ -73,6 +77,7 @@ describe('mastra guardrails', () => {
     expect(processors.map((p) => p.id)).toEqual([
       'unicode-normalizer',
       'prompt-injection-detector',
+      'kestrel-indirect-content-guardrail',
     ]);
     expect(mocks.resolveChatModel).toHaveBeenCalledWith(
       expect.objectContaining({ aiApiKeys: null }),
@@ -107,7 +112,7 @@ describe('mastra guardrails', () => {
       strategy: 'block',
       threshold: 0.9,
     });
-    expect(processors.length).toBe(2);
+    expect(processors.length).toBe(3);
   });
 
   it('reuses a caller-provided model instead of resolving the fast tier again (P2-03)', () => {
@@ -126,6 +131,7 @@ describe('mastra guardrails', () => {
     expect(processors.map((p) => p.id)).toEqual([
       'unicode-normalizer',
       'prompt-injection-detector',
+      'kestrel-indirect-content-guardrail',
     ]);
     // The second resolution (the P2-03 waste) never happened.
     expect(mocks.resolveChatModel).not.toHaveBeenCalled();

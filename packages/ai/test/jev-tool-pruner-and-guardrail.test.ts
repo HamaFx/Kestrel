@@ -21,9 +21,9 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { createJevGuardrailProcessor, evaluateJevGuardrail } from '../src/jev/guardrail-processor';
 import {
-  pruneToolsWithJev,
-  JEV_TOOL_PRUNE_MIN_CANDIDATES,
   JEV_TOOL_PROBABILITY_THRESHOLD,
+  JEV_TOOL_PRUNE_MIN_CANDIDATES,
+  pruneToolsWithJev,
 } from '../src/jev/tool-pruner';
 import { buildGuardrailInputProcessors } from '../src/mastra-v2/guardrails';
 
@@ -53,6 +53,18 @@ function flaggedGuardrailFetch() {
 function userMessage(text: string) {
   return { id: 'msg-1', role: 'user' as const, content: { parts: [{ type: 'text', text }] } };
 }
+
+/** Minimal structural view of the Jev guardrail processor for tests. */
+type GuardrailProcessorProbe = {
+  processInput: (args: {
+    messages: Array<ReturnType<typeof userMessage>>;
+    abort: (reason?: string) => never;
+    requestContext?: {
+      getRaw: (key: string) => unknown;
+      setRaw: (key: string, value: unknown) => void;
+    };
+  }) => Promise<unknown>;
+};
 
 describe('Jev tool pruner & input guardrail', () => {
   it('prunes 10 candidate tools down to only tools with noul >= 0.25 plus mandatory core tools', async () => {
@@ -231,6 +243,7 @@ describe('Jev tool pruner & input guardrail', () => {
     expect(processors.map((processor) => processor.id)).toEqual([
       'unicode-normalizer',
       'kestrel-jev-guardrail',
+      'kestrel-indirect-content-guardrail',
     ]);
     expect(warnings).toEqual([]);
     expect(mode).toBe('strict');
@@ -241,12 +254,7 @@ describe('Jev tool pruner & input guardrail', () => {
       strategy: 'block',
       endpoint: OPENCODE_ENDPOINT,
       fetchImpl: flaggedGuardrailFetch() as unknown as typeof fetch,
-    }) as unknown as {
-      processInput: (args: {
-        messages: Array<ReturnType<typeof userMessage>>;
-        abort: (reason?: string) => never;
-      }) => Promise<unknown>;
-    };
+    }) as unknown as GuardrailProcessorProbe;
 
     await expect(
       processor.processInput({
@@ -258,6 +266,65 @@ describe('Jev tool pruner & input guardrail', () => {
         },
       }),
     ).rejects.toThrow(/injection/i);
+  });
+
+  it('fails closed when the Jev detector is unreachable on a strict path (R15)', async () => {
+    const sink = { getRaw: () => undefined, setRaw: () => undefined };
+    const processor = createJevGuardrailProcessor({
+      strategy: 'block',
+      mode: 'strict',
+      endpoint: OPENCODE_ENDPOINT,
+      // Runtime outage: the request rejects inside evaluateJev, which returns null.
+      fetchImpl: vi.fn().mockRejectedValue(new Error('ECONNRESET')) as unknown as typeof fetch,
+    }) as unknown as GuardrailProcessorProbe;
+
+    await expect(
+      processor.processInput({
+        messages: [userMessage('Why is XAUUSD rallying?')] as never,
+        abort: (reason?: string) => {
+          throw new Error(reason ?? 'aborted');
+        },
+        requestContext: sink,
+      }),
+    ).rejects.toThrow(/screening is unavailable/i);
+  });
+
+  it('warns and continues when the Jev detector is unreachable on a conversation path (R15)', async () => {
+    const events: unknown[] = [];
+    const sink = {
+      getRaw: () => undefined,
+      setRaw: (_key: string, value: unknown) => {
+        events.push(value);
+      },
+    };
+    const processor = createJevGuardrailProcessor({
+      strategy: 'rewrite',
+      mode: 'availability',
+      endpoint: OPENCODE_ENDPOINT,
+      fetchImpl: vi.fn().mockRejectedValue(new Error('ECONNRESET')) as unknown as typeof fetch,
+    }) as unknown as GuardrailProcessorProbe;
+
+    const messages = [userMessage('Why is XAUUSD rallying?')];
+    const result = await processor.processInput({
+      messages: messages as never,
+      abort: (reason?: string) => {
+        throw new Error(reason ?? 'aborted');
+      },
+      requestContext: sink,
+    });
+
+    expect(result).toEqual(messages);
+    // The degradation is published to the run report rather than hidden.
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject([
+      expect.objectContaining({
+        path: 'user-turn',
+        mode: 'availability',
+        detectorUnavailable: true,
+        failedClosed: false,
+        unscreened: 1,
+      }),
+    ]);
   });
 
   it('neutralizes a flagged turn under the rewrite strategy (non-generative)', async () => {

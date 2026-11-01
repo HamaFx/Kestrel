@@ -122,6 +122,16 @@ export const METRIC_NAMES = [
   'committee_deliberation_skipped_total',
   // Phase 2 (Jev) — RAG/web-search indirect-injection quarantine and rerank.
   'jev_rag_quarantine_total',
+  // Audit R15 — indirect-content screening: strict/availability posture, the
+  // provider-boundary tool-result screen, and unscreened/withheld disclosure.
+  'jev_rag_unscreened_total',
+  'jev_rag_withheld_total',
+  'jev_rag_failed_closed_total',
+  'jev_rag_quarantine_degraded_total',
+  'guardrail_indirect_quarantine_total',
+  'guardrail_indirect_quarantined_strings',
+  'guardrail_indirect_unscreened_total',
+  'guardrail_indirect_screen_failed_total',
   // Phase 2 (Jev) — semantic disclosure verifier verdicts.
   'committee_disclosure_verification_total',
   // Phase 3 (Jev) — market-regime memory writes (JEPA-style recall corpus).

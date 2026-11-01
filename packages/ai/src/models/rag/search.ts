@@ -27,10 +27,13 @@ import { DEFAULT_HALFLIFE_DAYS_NEWS, type RagRow, type RunRagQueryArgs } from '.
  * Hybrid news retrieval (dense + FTS) with time-decay. Returns at most
  * `limit` rows, RRF-fused.
  *
- * Phase 2 (Jev): when the caller provides Jev settings/env, the fused rows
- * pass through the indirect-injection quarantine & rerank batch. Quarantined
- * or irrelevant rows are dropped; any Jev failure returns the RRF order
- * unchanged.
+ * Audit R15 — retrieved snippets pass through the indirect-injection screen
+ * with the caller's posture:
+ *
+ *   - `strict`: never returns snippets the screen could not clear. If the
+ *     model-backed screen is unavailable, nothing is returned.
+ *   - `availability`: the deterministic screen still applies to every row; a
+ *     degraded model screen keeps the input order and is reported.
  */
 export async function runRagQuery(args: RunRagQueryArgs): Promise<RagRow[]> {
   const halflife = args.halflifeDays ?? DEFAULT_HALFLIFE_DAYS_NEWS;
@@ -51,23 +54,40 @@ export async function runRagQuery(args: RunRagQueryArgs): Promise<RagRow[]> {
   const decayed = fused.map((r) => decayRow(r, halflife));
   decayed.sort((a, b) => b.similarity - a.similarity);
   const top = decayed.slice(0, args.limit);
+  if (top.length === 0) return top;
 
-  // No Jev configuration → the deployer chose the uncalibrated path.
-  if (args.jevEnv === undefined && args.jevSettings === undefined) return top;
+  // Availability + no Jev configuration at all: the deployer chose the
+  // uncalibrated path. The strict posture never skips the screen.
+  if (
+    args.screenMode === 'availability' &&
+    args.jevEnv === undefined &&
+    args.jevSettings === undefined
+  ) {
+    return top;
+  }
 
-  const { kept } = await quarantineAndRerankSnippets({
+  const screened = await quarantineAndRerankSnippets({
     query: args.query ?? '',
     items: top.map((row) => ({
       id: row.id,
       text: [row.title, row.summary ?? ''].filter((part) => part.length > 0).join(' — '),
     })),
+    mode: args.screenMode,
     settings: args.jevSettings ?? null,
     env: args.jevEnv ?? null,
     ...(args.jevSignal !== undefined ? { signal: args.jevSignal } : {}),
+    ...(args.jevFetchImpl !== undefined ? { fetchImpl: args.jevFetchImpl } : {}),
     ledgerEntryId: 'rag-query',
+    reportPath: 'rag',
+    reportSink: args.reportSink ?? null,
   });
+  if (screened.failedClosed) {
+    // Strict posture: the screen could not clear these rows, so none of them
+    // reach the model. The reason is recorded in the run report and metrics.
+    return [];
+  }
   const byId = new Map(top.map((row) => [row.id, row]));
-  return kept.flatMap((item) => {
+  return screened.kept.flatMap((item) => {
     const row = byId.get(item.id);
     return row ? [row] : [];
   });
