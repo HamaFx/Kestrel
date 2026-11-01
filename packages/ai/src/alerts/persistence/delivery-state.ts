@@ -21,6 +21,19 @@ import type { Alert } from '@kestrel/shared';
 import { and, eq, isNull, lt, or } from 'drizzle-orm';
 
 import { getDb } from '../../runtime/db';
+import { plog } from './log';
+
+/**
+ * R10 (audit 2026-10-31) — how long a delivery claim survives on its own.
+ *
+ * The lease is only a backstop for a worker that dies mid-delivery: every
+ * attempt is bounded by the delivery budget (20s per channel, 30s per alert),
+ * and the evaluator releases the claims it no longer owns when the run ends.
+ * A 30-minute lease meant a timed-out run could hide an alert for half an hour;
+ * five minutes still dwarfs the longest legitimate delivery and keeps the gap
+ * to one that a single stuck process can cause.
+ */
+export const ALERT_DELIVERY_CLAIM_LEASE_MS = 5 * 60_000;
 
 /**
  * Atomically claim an alert for external delivery.
@@ -33,7 +46,7 @@ export async function claimAlertDelivery(
   userId: string,
   id: string,
   claimedAt = new Date(),
-  leaseMs = 30 * 60_000,
+  leaseMs = ALERT_DELIVERY_CLAIM_LEASE_MS,
   tenantId?: string,
 ): Promise<boolean> {
   const staleBefore = new Date(claimedAt.getTime() - leaseMs);
@@ -58,6 +71,12 @@ export async function claimAlertDelivery(
       ),
     )
     .returning({ id: schema.alerts.id });
+  if (claimed.length === 0) {
+    // Not an error: another runner holds a live claim (or the alert is no
+    // longer eligible). Logged so a held alert is observable instead of
+    // silently skipped.
+    plog.debug('alert delivery claim not acquired', { id, userId, leaseMs });
+  }
   return claimed.length > 0;
 }
 

@@ -17,10 +17,15 @@
 // Public Telegram webhook behaviour under Postgres RLS.
 //
 // The webhook is unauthenticated, so it has no request tenant transaction.
-// These tests pin the phase-1 contract: dedupe + handling + ledger write run
+// These tests pin the phase-1 contract: claim + handling + ledger write run
 // inside `withTenantDb(install.tenantId, ..., { userId })`, and a failed
 // post-reply ledger write must never surface as a 5xx (Telegram would retry
 // the update and re-run the prompt).
+//
+// R10 (audit 2026-10-31) — the dedup claim is now a single atomic insert
+// (`claimTelegramUpdate`, proven against real PostgreSQL in
+// `update-ledger.test.ts`). This suite covers what the route does with the
+// claim it is given: exactly one of two concurrent deliveries runs the prompt.
 
 import type * as dbModule from '@kestrel/db';
 import type {
@@ -36,6 +41,7 @@ import { handleTelegramWebhookRoute } from '../src/server/webhook';
 const mocks = vi.hoisted(() => ({
   withTenantDb: vi.fn(),
   handleTelegramUpdate: vi.fn(),
+  claimTelegramUpdate: vi.fn(),
 }));
 
 vi.mock('@kestrel/db', async (importOriginal) => {
@@ -48,6 +54,11 @@ vi.mock('@kestrel/db', async (importOriginal) => {
 
 vi.mock('../src/bot/runner', () => ({
   handleTelegramUpdate: mocks.handleTelegramUpdate,
+}));
+
+vi.mock('../src/server/update-ledger', () => ({
+  UPDATE_COLLECTION: 'updates',
+  claimTelegramUpdate: mocks.claimTelegramUpdate,
 }));
 
 const TENANT_ID = 'tenant-1';
@@ -124,12 +135,14 @@ describe('telegram webhook — tenant scope and idempotency', () => {
     process.env.TELEGRAM_PLUGIN_SECRET = 'test-secret-that-is-long-enough';
     mocks.withTenantDb.mockReset();
     mocks.handleTelegramUpdate.mockReset();
+    mocks.claimTelegramUpdate.mockReset();
+    mocks.claimTelegramUpdate.mockResolvedValue({ claimed: true, reClaimed: false });
     mocks.withTenantDb.mockImplementation(
       async (_tenantId: string, work: (db: unknown) => Promise<Response>) => work(undefined),
     );
   });
 
-  it('runs dedupe, handling and the ledger write inside the install tenant scope', async () => {
+  it('runs the atomic claim, handling and the ledger write inside the install tenant scope', async () => {
     const harness = createStorageHarness();
     const ctx = buildWebhookContext(harness);
     mocks.handleTelegramUpdate.mockResolvedValue({ text: 'ok' });
@@ -139,6 +152,12 @@ describe('telegram webhook — tenant scope and idempotency', () => {
     expect(response.status).toBe(200);
     expect(mocks.withTenantDb).toHaveBeenCalledWith(TENANT_ID, expect.any(Function), {
       userId: USER_ID,
+    });
+    expect(mocks.claimTelegramUpdate).toHaveBeenCalledWith({
+      tenantId: TENANT_ID,
+      userId: USER_ID,
+      pluginId: 'telegram-bot',
+      updateId: UPDATE_ID,
     });
     expect(mocks.handleTelegramUpdate).toHaveBeenCalledTimes(1);
     expect(mocks.handleTelegramUpdate.mock.calls[0]?.[0]).toMatchObject({
@@ -151,9 +170,9 @@ describe('telegram webhook — tenant scope and idempotency', () => {
     });
   });
 
-  it('deduplicates a repeated update without invoking the handler again', async () => {
+  it('does not run the prompt when the claim says the update is already held', async () => {
+    mocks.claimTelegramUpdate.mockResolvedValue({ claimed: false, reClaimed: false });
     const harness = createStorageHarness();
-    harness.documents.set(`updates:${UPDATE_ID}`, { processedAt: 'earlier' });
     const ctx = buildWebhookContext(harness);
 
     const response = await handleTelegramWebhookRoute(ctx);
@@ -161,6 +180,61 @@ describe('telegram webhook — tenant scope and idempotency', () => {
     expect(response.status).toBe(200);
     expect(mocks.handleTelegramUpdate).not.toHaveBeenCalled();
     expect(harness.storage.set).not.toHaveBeenCalled();
+    expect(ctx.log.info).toHaveBeenCalledWith(
+      'Skipping duplicate Telegram update',
+      expect.objectContaining({ updateId: UPDATE_ID }),
+    );
+  });
+
+  it('runs the prompt exactly once when two deliveries of one update arrive together', async () => {
+    // The real claim is a single `INSERT … ON CONFLICT DO NOTHING RETURNING`,
+    // so the database hands the update to exactly one of the two attempts.
+    const claimedIds = new Set<number>();
+    mocks.claimTelegramUpdate.mockImplementation(async ({ updateId }: { updateId: number }) => {
+      if (claimedIds.has(updateId)) return { claimed: false, reClaimed: false };
+      claimedIds.add(updateId);
+      return { claimed: true, reClaimed: false };
+    });
+
+    const handlerStarted: { resolve: () => void } = { resolve: () => undefined };
+    const started = new Promise<void>((resolve) => {
+      handlerStarted.resolve = resolve;
+    });
+    const handlerFinished: { resolve: () => void } = { resolve: () => undefined };
+    const finished = new Promise<void>((resolve) => {
+      handlerFinished.resolve = resolve;
+    });
+    mocks.handleTelegramUpdate.mockImplementation(() => {
+      handlerStarted.resolve();
+      return finished;
+    });
+
+    const ctxA = buildWebhookContext(createStorageHarness());
+    const ctxB = buildWebhookContext(createStorageHarness());
+    const first = handleTelegramWebhookRoute(ctxA);
+    const second = handleTelegramWebhookRoute(ctxB);
+    // The handler only runs after the claim has been decided.
+    await started;
+    handlerFinished.resolve();
+    const [responseA, responseB] = await Promise.all([first, second]);
+
+    expect(responseA.status).toBe(200);
+    expect(responseB.status).toBe(200);
+    expect(mocks.handleTelegramUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  it('logs a re-claimed abandoned update', async () => {
+    mocks.claimTelegramUpdate.mockResolvedValue({ claimed: true, reClaimed: true });
+    const harness = createStorageHarness();
+    const ctx = buildWebhookContext(harness);
+    mocks.handleTelegramUpdate.mockResolvedValue({ text: 'ok' });
+
+    await handleTelegramWebhookRoute(ctx);
+
+    expect(ctx.log.warn).toHaveBeenCalledWith(
+      'Re-claimed an abandoned Telegram update',
+      expect.objectContaining({ updateId: UPDATE_ID }),
+    );
   });
 
   it('answers 200 when the post-reply ledger write fails, so Telegram does not retry', async () => {
@@ -178,7 +252,7 @@ describe('telegram webhook — tenant scope and idempotency', () => {
     );
   });
 
-  it('releases the idempotency key and returns 500 when handling fails', async () => {
+  it('releases the claim and returns 500 when handling fails', async () => {
     const harness = createStorageHarness();
     const ctx = buildWebhookContext(harness);
     mocks.handleTelegramUpdate.mockRejectedValue(new Error('send failed'));

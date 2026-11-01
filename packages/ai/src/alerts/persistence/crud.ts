@@ -17,9 +17,11 @@
 // Alert CRUD + read helpers. Used by route handlers, the cron evaluator,
 // and the AI `set_alert` tool.
 
+import { createHash } from 'node:crypto';
+
 import { requireTenantIdForUser, schema } from '@kestrel/db';
 import { AlertChannelSchema, AlertRuleSchema, type Alert } from '@kestrel/shared';
-import { and, asc, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 
 import { getDb } from '../../runtime/db';
 import { plog } from './log';
@@ -57,6 +59,42 @@ export async function listAlerts(
 }
 
 /**
+ * R10 (audit 2026-10-31) — hard cap on the number of alerts one cron tick
+ * evaluates.
+ *
+ * The evaluator used to pull every active alert with no bound and deliver them
+ * one at a time, so a large install (or a stuck provider) could run past the
+ * worker's 120s job budget. A bounded batch keeps one run inside its budget;
+ * the rotation below makes sure the cap does not permanently favour the front
+ * of the list.
+ */
+export const EVALUATION_BATCH_LIMIT = 200;
+
+/**
+ * How long one rotation seed stays valid. Every tick inside the window sees the
+ * same ordering, and the next window re-hashes the whole set, so the bounded
+ * window slides across every alert. An alert's expected wait is
+ * `total / limit` ticks and the chance of missing `k` consecutive windows
+ * decays geometrically — no alert is permanently starved the way
+ * `ORDER BY created_at ASC LIMIT n` starves the newest rows.
+ */
+export const EVALUATION_ROTATION_WINDOW_MS = 60_000;
+
+/** Rotation seed for a point in time (deterministic, so tests can pin it). */
+export function evaluationRotationSeed(now: number = Date.now()): number {
+  return Math.floor(now / EVALUATION_ROTATION_WINDOW_MS);
+}
+
+/**
+ * Order key for one alert under one seed. Mirrors the SQL
+ * `md5(id::text || ':' || seed)` so the fan-out can be reasoned about (and
+ * asserted) in JavaScript.
+ */
+export function alertRotationKey(id: string, seed: number): string {
+  return createHash('md5').update(`${id}:${seed}`).digest('hex');
+}
+
+/**
  * Active and not-yet-fired — what the cron evaluator iterates over.
  *
  * Phase 1 hardening §11 — invalid `indicatorCross.indicator` strings
@@ -64,22 +102,30 @@ export async function listAlerts(
  * The schema is now strict, so a row with a malformed indicator throws
  * during `rowToAlert`. We catch that here and skip the row instead of
  * crashing the cron tick — the user can fix the rule in the UI.
+ *
+ * R10 — the read is bounded (`limit`, default {@link EVALUATION_BATCH_LIMIT})
+ * and rotated (`rotationSeed`). Rows are ordered by a hash of (id, seed) rather
+ * than `created_at`, so consecutive ticks walk different slices of the active
+ * set instead of re-evaluating the same oldest rows forever.
  */
-export async function listEvaluable(): Promise<Alert[]> {
+export async function listEvaluable(
+  opts: { limit?: number; rotationSeed?: number } = {},
+): Promise<Alert[]> {
   // Phase C — UX_UPGRADE_PLAN.md item 17. Snooze filter.
   //
   // We can't do a "now >= lastFiredAt + snoozeHours" check in raw
   // SQL (Drizzle's pg-core doesn't expose a clean interval-arithmetic
-  // builder for hours across all our drivers), so we pull
-  // active rows and filter in JS. The set is small — the cron
-  // pulls only active alerts that haven't fired-and-deactivated,
-  // and after Phase 17 the snoozed set is a subset of that.
+  // builder for hours across all our drivers), so we pull the bounded,
+  // rotated batch and filter in JS.
+  const limit = Math.max(1, Math.trunc(opts.limit ?? EVALUATION_BATCH_LIMIT));
+  const seed = opts.rotationSeed ?? evaluationRotationSeed();
   const db = getDb();
   const rows = await db
     .select()
     .from(schema.alerts)
     .where(and(eq(schema.alerts.active, true), isNull(schema.alerts.firedAt)))
-    .orderBy(asc(schema.alerts.createdAt));
+    .orderBy(sql`md5(${schema.alerts.id}::text || ':' || ${String(seed)})`)
+    .limit(limit);
   const out: Alert[] = [];
   const now = Date.now();
   for (const row of rows) {

@@ -32,4 +32,11 @@ export type { RuleReading, CrossContext } from '../spec';
 export { parseIndicatorSpec } from './indicator-spec';
 export { lastClosedBar } from './bars';
 export type { EvaluatorEnv } from './env';
-export { type EvaluationResult, evaluateAlerts, describeRule } from './evaluate';
+export { interleaveByUser, type EvaluationStopReason } from './fan-out';
+export type { EvaluationOptions } from './evaluate';
+export {
+  DEFAULT_EVALUATION_BUDGET_MS,
+  type EvaluationResult,
+  evaluateAlerts,
+  describeRule,
+} from './evaluate';

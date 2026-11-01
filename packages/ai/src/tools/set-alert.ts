@@ -19,13 +19,20 @@
 // Lets the model create a one-shot alert. Mirrors the AlertRule schema
 // directly so the tool input is the same shape the DB row stores.
 
-import { AlertChannelSchema, AlertRuleSchema, type SetAlertOutput } from '@kestrel/shared';
+import {
+  AlertChannelSchema,
+  AlertRuleSchema,
+  isPriceLevelRule,
+  validationError,
+  type SetAlertOutput,
+} from '@kestrel/shared';
 import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 
 import { createAlert } from '../alerts/persistence';
 import { alertRuleRegistry } from '../alerts/rule-registry';
-import { getToolContext } from '../runtime/tool-context';
+import { checkLevelsAgainstMarket } from '../mastra-v2/mutation/level-sanity';
+import { getToolContext, maybeGetToolContext } from '../runtime/tool-context';
 import { assertMutationIntent } from './mutation-guard';
 
 const InputSchema = z.object({
@@ -53,6 +60,31 @@ export const setAlertTool: Tool<z.infer<typeof InputSchema>, SetAlertOutput> = t
   inputSchema: InputSchema,
   execute: async ({ rule, channels, note }): Promise<SetAlertOutput> => {
     assertMutationIntent('set_alert');
+
+    // R13 (audit 2026-10-31): a price-rule level is checked against the live
+    // market before the row is written, exactly like the journal's trade
+    // levels. The alert band is deliberately wide (an alert is
+    // forward-looking: "tell me when gold reaches 3,300" is legitimate far
+    // from the current price), so this only refuses a level no market could
+    // print for the symbol. Out of band is a hard failure with the reason and
+    // never a clamped substitute; an unavailable market fails closed and
+    // leaves nothing written.
+    //
+    // Indicator levels are not prices (an RSI of 30, a MACD below zero), so
+    // they keep the schema-only bound — see `isPriceLevelRule`.
+    if (isPriceLevelRule(rule)) {
+      const signal = maybeGetToolContext()?.signal ?? undefined;
+      const levelCheck = await checkLevelsAgainstMarket({
+        symbol: rule.symbol,
+        levels: [{ name: 'level', value: rule.level }],
+        band: 'alert',
+        ...(signal ? { signal } : {}),
+      });
+      if (!levelCheck.ok) {
+        throw validationError(`Alert not created: ${levelCheck.message}`);
+      }
+    }
+
     const alert = await createAlert({ userId: getToolContext().userId, rule, channels, note });
     return { alertId: alert.id, describes: describeRule(rule) };
   },

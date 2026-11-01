@@ -34,6 +34,7 @@ import { verifyTelegramToken } from '../bot/link';
 import { handleTelegramUpdate } from '../bot/runner';
 import { normaliseSettings } from '../settings';
 import { secretMatches } from './secret';
+import { claimTelegramUpdate, UPDATE_COLLECTION } from './update-ledger';
 
 const TelegramUpdateSchema = z.object({
   update_id: z.int(),
@@ -66,7 +67,6 @@ const TelegramUpdateSchema = z.object({
     .optional(),
 });
 
-const UPDATE_COLLECTION = 'updates';
 const MAX_UPDATE_AGE_MS = 24 * 60 * 60 * 1000;
 
 function ok(): Response {
@@ -117,16 +117,28 @@ export async function handleTelegramWebhookRoute(
     const response = await withTenantDb(
       install.tenantId,
       async () => {
-        const seen = await install.storage.get<{ processedAt?: string }>(
-          UPDATE_COLLECTION,
-          idempotencyKey,
-        );
-        if (seen) {
+        // R10 — claim the update atomically (INSERT … ON CONFLICT DO NOTHING
+        // RETURNING) instead of check-then-set: Telegram retries while the
+        // first handler is still running, and two concurrent deliveries must
+        // not both run the prompt.
+        const claim = await claimTelegramUpdate({
+          tenantId: install.tenantId,
+          userId: install.userId,
+          pluginId: ctx.pluginId,
+          updateId: update.update_id,
+        });
+        if (!claim.claimed) {
           ctx.log.info('Skipping duplicate Telegram update', {
             userId: verified.userId,
             updateId: update.update_id,
           });
           return ok();
+        }
+        if (claim.reClaimed) {
+          ctx.log.warn('Re-claimed an abandoned Telegram update', {
+            userId: verified.userId,
+            updateId: update.update_id,
+          });
         }
 
         await handleTelegramUpdate(

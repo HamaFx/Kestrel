@@ -36,7 +36,8 @@ import { logErrorContext } from '@kestrel/shared/logger';
 import { deletePushSubscription, listPushSubscriptions } from '../../push/persistence';
 import { sendWebPush } from '../../push/send';
 import type { AlertChannelDeliveryResult } from '../channel-registry';
-import { alog, describeRule, EXTERNAL_DELIVERY_TIMEOUT_MS } from './context';
+import { budgetSignal, DELIVERY_ATTEMPT_TIMEOUT_MS } from './budget';
+import { alog, describeRule } from './context';
 import { renderEmailBody } from './render';
 import type { DeliverArgs } from './types';
 
@@ -44,6 +45,7 @@ export async function deliverEmail({
   alert,
   reading,
   env,
+  signal,
 }: DeliverArgs): Promise<AlertChannelDeliveryResult> {
   if (!env.RESEND_API_KEY || !env.ALERT_FROM_EMAIL || !env.ALERT_TO_EMAIL) {
     // No Resend call happens, so delivery is not confirmed and the alert
@@ -72,7 +74,9 @@ export async function deliverEmail({
         subject,
         text: body,
       }),
-      signal: AbortSignal.timeout(EXTERNAL_DELIVERY_TIMEOUT_MS),
+      // R10 — explicit HTTP timeout (and the run signal when the evaluator
+      // supplied one) so a stalled Resend connection fails fast.
+      signal: budgetSignal(DELIVERY_ATTEMPT_TIMEOUT_MS, signal),
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'fetch failed';
@@ -119,6 +123,7 @@ export async function deliverWebPush({
   alert,
   reading,
   env,
+  signal,
 }: DeliverArgs): Promise<AlertChannelDeliveryResult> {
   if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) {
     return {
@@ -144,6 +149,12 @@ export async function deliverWebPush({
   let allOkOrGone = true;
   let anyOk = false;
   for (const sub of subs) {
+    if (signal?.aborted) {
+      // R10 — the run gave up on this attempt. web-push takes no AbortSignal,
+      // so stop fanning out to further devices and let the evaluator release
+      // the claim; the next tick retries.
+      return { ok: false, message: 'delivery abandoned at its time budget' };
+    }
     const r = await sendWebPush(sub, payload, {
       VAPID_PUBLIC_KEY: env.VAPID_PUBLIC_KEY,
       VAPID_PRIVATE_KEY: env.VAPID_PRIVATE_KEY,

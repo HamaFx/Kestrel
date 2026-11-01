@@ -18,10 +18,22 @@ import { evaluateAlerts } from '@kestrel/ai';
 
 import type { JobContext, JobResult } from './types.js';
 
+/**
+ * R10 (audit 2026-10-31) — the scheduler aborts a job at its configured
+ * timeout (120s by default) and its `signal` is only advisory. The evaluator is
+ * given a budget that sits below that window, so the run stops claiming new
+ * work in time to release its delivery claims and report what it did not reach
+ * instead of being killed mid-delivery with a claim held.
+ */
+const JOB_TIMEOUT_MS = Number(process.env.JOB_TIMEOUT_MS) || 120_000;
+const RUN_HEADROOM_MS = 30_000;
+const RUN_BUDGET_MS = Math.max(30_000, JOB_TIMEOUT_MS - RUN_HEADROOM_MS);
+
 export async function runAlerts(ctx: JobContext): Promise<JobResult> {
   const result = await evaluateAlerts({
     ...(ctx.signal ? { signal: ctx.signal } : {}),
     ownsTenant: (userId) => ctx.tenantRouter.isMyTenant(userId),
+    budgetMs: RUN_BUDGET_MS,
   });
 
   ctx.log.info('alerts evaluated', {
@@ -30,10 +42,14 @@ export async function runAlerts(ctx: JobContext): Promise<JobResult> {
     fired: result.fired,
     skipped: result.skipped,
     errors: result.errors.length,
+    stopReason: result.stopReason,
+    claimsReleased: result.claimsReleased,
   });
+
+  const early = result.stopReason === 'complete' ? '' : `, stop=${result.stopReason}`;
 
   return {
     processed: result.total,
-    note: `matched=${result.matched}, fired=${result.fired}, errors=${result.errors.length}`,
+    note: `matched=${result.matched}, fired=${result.fired}, errors=${result.errors.length}${early}`,
   };
 }

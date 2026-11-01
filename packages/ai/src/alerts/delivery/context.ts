@@ -30,7 +30,12 @@ export function describeRule(rule: AlertRule): string {
 }
 
 export const alog = createCategorizedLogger('ai', { component: 'alerts-delivery' });
-export const EXTERNAL_DELIVERY_TIMEOUT_MS = 30_000;
+/**
+ * HTTP timeout for one provider request. R10 — every adapter call is bounded;
+ * the orchestrator additionally bounds the whole channel attempt and races it
+ * so a provider that ignores its signal cannot hold the run.
+ */
+export const EXTERNAL_DELIVERY_TIMEOUT_MS = 20_000;
 /**
  * Triggered price alerts rank as `warning`: above `info` chatter, below the
  * `critical` tier that punches through quiet hours by default.

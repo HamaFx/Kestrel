@@ -124,7 +124,9 @@ export const dailyBriefingJob: PluginJobRegistration = {
         };
 
         const text = await buildBriefing(botContext);
-        await sendTelegramText(settings.botToken, settings.linkedChatId, text);
+        await sendTelegramText(settings.botToken, settings.linkedChatId, text, {
+          signal: ctx.signal,
+        });
         await user.storage.set(BRIEFING_COLLECTION, key, {
           sentAt: new Date().toISOString(),
         });

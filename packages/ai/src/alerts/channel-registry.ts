@@ -31,6 +31,11 @@ export interface AlertChannelDeliveryArgs {
   env: EvaluatorEnv;
   /** Lease acquired by the evaluator before invoking external providers. */
   claimAt?: Date | undefined;
+  /**
+   * Cancellation for this delivery attempt: the run's abort/deadline signal
+   * combined with the per-alert budget. Providers must honour it.
+   */
+  signal?: AbortSignal | undefined;
 }
 
 export interface AlertChannelDeliveryResult {

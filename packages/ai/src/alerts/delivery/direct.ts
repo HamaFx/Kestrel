@@ -22,7 +22,7 @@
 
 import { logErrorContext } from '@kestrel/shared/logger';
 
-import { TELEGRAM_API } from './context';
+import { EXTERNAL_DELIVERY_TIMEOUT_MS, TELEGRAM_API } from './context';
 import { escapeMd } from './render';
 
 export async function sendDirectNotification(
@@ -59,6 +59,8 @@ export async function sendDirectNotification(
           subject,
           text: body,
         }),
+        // R10 — bound both direct sends; this path has no evaluator budget.
+        signal: AbortSignal.timeout(EXTERNAL_DELIVERY_TIMEOUT_MS),
       });
       emailSent = res.ok;
     } catch (err) {
@@ -77,6 +79,7 @@ export async function sendDirectNotification(
           text,
           parse_mode: 'MarkdownV2',
         }),
+        signal: AbortSignal.timeout(EXTERNAL_DELIVERY_TIMEOUT_MS),
       });
       telegramSent = res.ok;
     } catch (err) {

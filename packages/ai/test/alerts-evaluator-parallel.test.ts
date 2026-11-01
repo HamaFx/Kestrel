@@ -38,6 +38,7 @@ vi.mock('@kestrel/data', async (importOriginal) => {
 vi.mock('@kestrel/db', () => ({
   hasAdminDbScope: () => false,
   hasTenantDbScope: () => false,
+  requireTenantIdForUser: async (userId: string) => `tenant-${userId}`,
   getDb: () => ({
     update: () => ({ set: () => ({ where: () => Promise.resolve([]) }) }),
     // Phase A: the evaluator now joins users + userSettings to pull per-user
@@ -77,13 +78,21 @@ vi.mock('../src/alerts/persistence', () => ({
   markFiredForAlert: vi.fn(async () => undefined),
 }));
 
-vi.mock('../src/alerts/delivery', () => ({
-  deliverAlert: vi.fn(async ({ alert }: { alert: { id: string } }) => ({
-    alertId: alert.id,
-    channel: 'email',
-    ok: true,
-  })),
-}));
+vi.mock('../src/alerts/delivery', async () => {
+  // R10 — `evaluateAlerts` also uses the delivery budget helpers; only
+  // `deliverAlert` is replaced here.
+  const budget = await vi.importActual<typeof import('../src/alerts/delivery/budget')>(
+    '../src/alerts/delivery/budget',
+  );
+  return {
+    ...budget,
+    deliverAlert: vi.fn(async ({ alert }: { alert: { id: string } }) => ({
+      alertId: alert.id,
+      channel: 'email',
+      ok: true,
+    })),
+  };
+});
 
 function makeAlert(
   id: string,

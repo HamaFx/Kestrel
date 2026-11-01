@@ -26,6 +26,13 @@
 // orchestrate.ts) — the same load-time side effect the original module had.
 
 export type { DeliveryResult } from './types';
+export {
+  ALERT_DELIVERY_BUDGET_MS,
+  budgetSignal,
+  DELIVERY_ATTEMPT_TIMEOUT_MS,
+  isDeliveryAbandoned,
+  raceWithAbort,
+} from './budget';
 export { deliverAlert } from './orchestrate';
 export { escapeMd } from './render';
 export { sendDirectNotification } from './direct';

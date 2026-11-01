@@ -37,10 +37,30 @@ export const AlertChannelSchema = z
     'channel must be a kebab-case id (e.g. "email", "web-push", "discord")',
   );
 
+/**
+ * R13 (audit 2026-10-31) — a price level for a price rule.
+ *
+ * Zod's `z.number()` already refuses NaN and ±Infinity, so `.positive()` is the
+ * whole check this leaf package can make: zero or a negative price is never a
+ * magnitude any market prints, and it is what a hallucinated or wrong-symbol
+ * value collapses to. The *contextual* part of the check (is this price
+ * plausible for this symbol right now) needs live market data and therefore
+ * lives at the write boundaries that accept model output, through
+ * `checkLevelsAgainstMarket({ band: 'alert' })` in
+ * `packages/ai/src/mastra-v2/mutation/level-sanity.ts`.
+ *
+ * Backward compatibility: rules already persisted with a non-positive price
+ * keep their row; `rowToAlert` skips them with a warning (the documented
+ * behaviour for an unparseable rule) instead of firing on a value no market
+ * could print.
+ */
+const PriceLevel = z.number().positive();
+
 const PriceCrossRule = z.object({
   type: z.literal('priceCross'),
   symbol: SymbolSchema,
-  level: z.number(),
+  /** Price level; see {@link PriceLevel}. */
+  level: PriceLevel,
   direction: z.enum(['above', 'below']),
 });
 
@@ -48,7 +68,8 @@ const CandleCloseRule = z.object({
   type: z.literal('candleClose'),
   symbol: SymbolSchema,
   tf: TimeframeSchema,
-  level: z.number(),
+  /** Closing price of a bar; see {@link PriceLevel}. */
+  level: PriceLevel,
   direction: z.enum(['above', 'below']),
 });
 
@@ -68,6 +89,18 @@ const IndicatorCrossRule = z.object({
       /^[a-z][a-z0-9_]*(?::[0-9]+(?:,[0-9]+){0,2})?$/i,
       'indicator must match `<kind>` or `<kind>:n[,n[,n]]`',
     ),
+  /**
+   * R13 — deliberately NOT `.positive()` and deliberately not price-banded.
+   *
+   * The value is in the *indicator's* units, not the symbol's price units: RSI
+   * 30 and a MACD crossing at 0 or below are legitimate levels, and the scale
+   * of a given `indicator` (including plugin indicators) is owned by the
+   * indicator registry, which this leaf package cannot import. Bounding it with
+   * the price band would reject valid oscillator alerts; an out-of-scale
+   * indicator level is inert (it simply never fires) rather than dangerous, and
+   * nothing clamps it. Use {@link isPriceLevelRule} to find the rules whose
+   * level really is a price.
+   */
   level: z.number(),
   direction: z.enum(['above', 'below']),
   /**
@@ -91,6 +124,21 @@ export const AlertRuleSchema = z.discriminatedUnion('type', [
   IndicatorCrossRule,
 ]);
 export type AlertRule = z.infer<typeof AlertRuleSchema>;
+export type PriceLevelRule = z.infer<typeof PriceCrossRule> | z.infer<typeof CandleCloseRule>;
+
+/**
+ * R13 — true when a rule's `level` is a *price* for its symbol (and therefore
+ * subject to the market plausibility check at write time), false when it is an
+ * indicator reading.
+ *
+ * Callers that accept model-supplied rules should run
+ * `checkLevelsAgainstMarket({ symbol: rule.symbol, levels: [{ name: 'level',
+ * value: rule.level }], band: 'alert' })` and surface the failure, never a
+ * clamped substitute.
+ */
+export function isPriceLevelRule(rule: AlertRule): rule is PriceLevelRule {
+  return rule.type === 'priceCross' || rule.type === 'candleClose';
+}
 
 export const AlertSchema = z.object({
   id: z.uuid(),

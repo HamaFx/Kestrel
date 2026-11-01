@@ -26,7 +26,7 @@ import { saveSettingsForInstall } from '../settings';
 import { agentsReply, analyzeReply, askReply, committeeReply } from './ai-commands';
 import { dispatchDataCommand } from './commands';
 import { consumeLinkToken, linkChat } from './link';
-import { sendTelegramText, sendTelegramTyping, telegramApi } from './telegram-api';
+import { answerTelegramCallback, sendTelegramText, sendTelegramTyping } from './telegram-api';
 import type { BotReply, TelegramBotContext } from './types';
 
 export interface TelegramInstall {
@@ -210,16 +210,17 @@ export async function handleTelegramUpdate(
 
   const callbackData = update.callback_query?.data;
   if (callbackData) {
-    await telegramApi(ctx.botToken)
-      .answerCallbackQuery(update.callback_query!.id)
-      .catch(() => undefined);
+    await answerTelegramCallback(ctx.botToken, update.callback_query!.id, ctx.signal);
     const reply = await callbackReply(callbackData, ctx);
     if (!reply) {
-      await sendTelegramText(ctx.botToken, chatId, 'That button is no longer available.');
+      await sendTelegramText(ctx.botToken, chatId, 'That button is no longer available.', {
+        ...(ctx.signal ? { signal: ctx.signal } : {}),
+      });
       return null;
     }
     await sendTelegramText(ctx.botToken, chatId, reply.text, {
       ...(reply.keyboard ? { keyboard: reply.keyboard } : {}),
+      ...(ctx.signal ? { signal: ctx.signal } : {}),
     });
     return reply;
   }
@@ -233,6 +234,7 @@ export async function handleTelegramUpdate(
     const reply = await handleStart(ctx, String(chatId), startMatch[1]?.trim());
     await sendTelegramText(ctx.botToken, chatId, reply.text, {
       ...(reply.keyboard ? { keyboard: reply.keyboard } : {}),
+      ...(ctx.signal ? { signal: ctx.signal } : {}),
     });
     return reply;
   }
@@ -242,6 +244,7 @@ export async function handleTelegramUpdate(
     const reply = await askReply(text, ctx);
     await sendTelegramText(ctx.botToken, chatId, reply.text, {
       ...(reply.keyboard ? { keyboard: reply.keyboard } : {}),
+      ...(ctx.signal ? { signal: ctx.signal } : {}),
     });
     return reply;
   }
@@ -256,6 +259,7 @@ export async function handleTelegramUpdate(
   const reply = await dispatchTelegramCommand(command, args, ctx);
   await sendTelegramText(ctx.botToken, chatId, reply.text, {
     ...(reply.keyboard ? { keyboard: reply.keyboard } : {}),
+    ...(ctx.signal ? { signal: ctx.signal } : {}),
   });
   return reply;
 }

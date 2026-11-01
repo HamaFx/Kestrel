@@ -30,6 +30,12 @@ export interface DeliveryResult {
   channel: string;
   ok: boolean;
   message?: string;
+  /**
+   * True when the attempt was abandoned at its time budget after the provider
+   * accepted. The alert stays active so a later tick retries; callers must not
+   * record dedup/cooldown state for it.
+   */
+  abandoned?: boolean | undefined;
 }
 
 export interface DeliverArgs {
@@ -38,4 +44,16 @@ export interface DeliverArgs {
   env: EvaluatorEnv;
   /** Lease acquired by the evaluator before invoking external providers. */
   claimAt?: Date | undefined;
+  /**
+   * Run cancellation (job abort / run budget) combined with this alert's own
+   * delivery budget. Channels must pass it to their provider call so a hung
+   * HTTP request is cut off instead of holding the cron tick.
+   */
+  signal?: AbortSignal | undefined;
+  /**
+   * Override the per-channel attempt budget for this delivery. Defaults to
+   * `DELIVERY_ATTEMPT_TIMEOUT_MS`; the evaluator wraps the whole alert in its
+   * own budget, so this only has to bound a single channel.
+   */
+  attemptTimeoutMs?: number | undefined;
 }

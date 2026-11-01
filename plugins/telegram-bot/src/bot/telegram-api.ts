@@ -16,13 +16,50 @@
 
 // Thin grammY transport helpers shared by the webhook, jobs, tools and the
 // alert channel. No business logic lives here.
+//
+// R10 (audit 2026-10-31) — grammY's default request timeout is 500s, which is
+// longer than the worker's entire 120s alert job, and the abort signal is a
+// separate argument of every `Api` method (passing it inside the payload
+// object throws at runtime: "Incorrect abort signal instance found!"). Every
+// send made through here is now bounded twice: by the client's own
+// `timeoutSeconds` and by a per-send `AbortSignal` that also carries the
+// caller's cancellation.
 
 import { Api, type InlineKeyboard } from 'grammy';
 
 const SAFE_CHUNK_LENGTH = 4000;
 
-export function telegramApi(botToken: string): Api {
-  return new Api(botToken);
+/** Wall clock for one logical send (all chunks of one message). */
+export const TELEGRAM_SEND_TIMEOUT_MS = 15_000;
+/** `sendChatAction` is decorative; never let it hold a reply back. */
+export const TELEGRAM_TYPING_TIMEOUT_MS = 5_000;
+
+/**
+ * grammY types its signal parameter as `abort-controller`'s `AbortSignal`
+ * (see `grammy/out/shim.node.d.ts`), while the runtime only checks for an
+ * `addEventListener` method, so a native `AbortSignal` works and needs this
+ * one cast.
+ */
+type GrammyAbortSignal = Parameters<Api['sendMessage']>[3];
+function asGrammySignal(signal: AbortSignal): GrammyAbortSignal {
+  return signal as unknown as GrammyAbortSignal;
+}
+
+export function telegramApi(botToken: string, timeoutMs: number = TELEGRAM_SEND_TIMEOUT_MS): Api {
+  // grammY's default is 500s. Bound it here so even a call site that forgets
+  // the signal argument cannot hold the event loop for minutes.
+  return new Api(botToken, {
+    timeoutSeconds: Math.max(1, Math.ceil(timeoutMs / 1000)),
+  });
+}
+
+/** Bound a send: the caller's signal plus a hard timeout. */
+export function telegramSendSignal(
+  signal?: AbortSignal | undefined,
+  timeoutMs: number = TELEGRAM_SEND_TIMEOUT_MS,
+): AbortSignal {
+  const timeout = AbortSignal.timeout(Math.max(1, timeoutMs));
+  return signal ? AbortSignal.any([signal, timeout]) : timeout;
 }
 
 export function chunkTelegramText(text: string): string[] {
@@ -52,22 +89,56 @@ export async function sendTelegramText(
     keyboard?: InlineKeyboard;
     signal?: AbortSignal;
     disablePreview?: boolean;
+    /** Override the per-send wall clock (ms). */
+    timeoutMs?: number;
   },
 ): Promise<void> {
-  const api = telegramApi(botToken);
+  const timeoutMs = options?.timeoutMs ?? TELEGRAM_SEND_TIMEOUT_MS;
+  const api = telegramApi(botToken, timeoutMs);
   const chunks = chunkTelegramText(text);
+  // One budget for the whole message: a long message must not reset the clock
+  // for every chunk.
+  const signal = asGrammySignal(telegramSendSignal(options?.signal, timeoutMs));
   for (let index = 0; index < chunks.length; index += 1) {
-    await api.sendMessage(chatId, chunks[index]!, {
-      ...(options?.disablePreview === false ? {} : { link_preview_options: { is_disabled: true } }),
-      ...(index === 0 && options?.keyboard ? { reply_markup: options.keyboard } : {}),
-      ...(options?.signal ? { signal: options.signal } : {}),
-    });
+    await api.sendMessage(
+      chatId,
+      chunks[index]!,
+      {
+        ...(options?.disablePreview === false
+          ? {}
+          : { link_preview_options: { is_disabled: true } }),
+        ...(index === 0 && options?.keyboard ? { reply_markup: options.keyboard } : {}),
+      },
+      signal,
+    );
   }
 }
 
 export async function sendTelegramTyping(botToken: string, chatId: string | number): Promise<void> {
   try {
-    await telegramApi(botToken).sendChatAction(chatId, 'typing');
+    await telegramApi(botToken, TELEGRAM_TYPING_TIMEOUT_MS).sendChatAction(
+      chatId,
+      'typing',
+      {},
+      asGrammySignal(AbortSignal.timeout(TELEGRAM_TYPING_TIMEOUT_MS)),
+    );
+  } catch {
+    // Best-effort UX only.
+  }
+}
+
+/** Dismiss a callback button, bounded — Telegram shows a spinner until this lands. */
+export async function answerTelegramCallback(
+  botToken: string,
+  callbackQueryId: string,
+  signal?: AbortSignal | undefined,
+): Promise<void> {
+  try {
+    await telegramApi(botToken, TELEGRAM_TYPING_TIMEOUT_MS).answerCallbackQuery(
+      callbackQueryId,
+      {},
+      asGrammySignal(telegramSendSignal(signal, TELEGRAM_TYPING_TIMEOUT_MS)),
+    );
   } catch {
     // Best-effort UX only.
   }

@@ -51,6 +51,7 @@ export async function deliverTelegramViaPlugin(
     tenantId: runtime.tenantId,
     pluginId: 'telegram-bot',
     settings,
+    ...(args.signal ? { signal: args.signal } : {}),
   });
   return plugin.deliver({
     alert: {
@@ -62,5 +63,6 @@ export async function deliverTelegramViaPlugin(
     reading: { value: args.reading.value, source: args.reading.source },
     settings: ctx.settings,
     log: ctx.log,
+    ...(args.signal ? { signal: args.signal } : {}),
   });
 }

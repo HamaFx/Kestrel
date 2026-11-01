@@ -23,6 +23,11 @@
 // noise control settings (dedup / cooldown / quiet hours) are consulted
 // through `evaluateNoise`. Suppressed alerts are never delivered but stay
 // active, so they fire normally once the suppression window lifts.
+//
+// R10 (audit 2026-10-31) — every channel attempt runs under a time budget and
+// under the run's abort signal. A provider that hangs is abandoned (the alert
+// is left active for the next tick) instead of holding the cron tick and every
+// other user's alerts behind it.
 
 import { pluginHost } from '@kestrel/plugin-sdk';
 import { metrics } from '@kestrel/shared';
@@ -31,6 +36,12 @@ import { createPluginExecutionContext, getInstalledPluginRuntime } from '../../p
 import { alertChannelRegistry, type AlertChannelDeliveryResult } from '../channel-registry';
 import { markFiredForAlert } from '../persistence';
 import { deliverEmail, deliverWebPush } from './adapters';
+import {
+  budgetSignal,
+  DELIVERY_ATTEMPT_TIMEOUT_MS,
+  isDeliveryAbandoned,
+  raceWithAbort,
+} from './budget';
 import { alog } from './context';
 import { evaluateAlertNoise } from './noise';
 import { deliverTelegramViaPlugin } from './telegram';
@@ -41,7 +52,21 @@ export async function deliverAlert({
   reading,
   env,
   claimAt,
+  signal,
+  attemptTimeoutMs,
 }: DeliverArgs): Promise<DeliveryResult> {
+  // R10 — the run is already cancelled (job abort / run budget): do not touch
+  // a provider at all. The caller releases the claim so the next tick retries.
+  if (signal?.aborted) {
+    return {
+      alertId: alert.id,
+      channel: alert.channels[0] ?? 'none',
+      ok: false,
+      abandoned: true,
+      message: 'run cancelled before delivery started',
+    };
+  }
+
   // Audit plan §1.11 / P1-16 — consult dedup/cooldown/quiet-hours state
   // before any external call. A suppressed alert returns without calling
   // markFired; the evaluator releases the claim and the alert stays active,
@@ -71,15 +96,55 @@ export async function deliverAlert({
   // configured channel still gets its chance; the previous "not configured"
   // short-circuit silently starved every channel after the first gap.
   let lastAttempt: DeliveryResult | null = null;
+  const budgetMs = attemptTimeoutMs ?? DELIVERY_ATTEMPT_TIMEOUT_MS;
   for (const ch of alert.channels) {
-    const r = await deliverChannel(ch, { alert, reading, env, claimAt });
+    // R10 — one bounded attempt per channel, under the run's signal.
+    const attemptSignal = budgetSignal(budgetMs, signal);
+    let r: DeliveryResult | null;
+    try {
+      r = await raceWithAbort(
+        deliverChannel(ch, {
+          alert,
+          reading,
+          env,
+          claimAt,
+          signal: attemptSignal,
+          attemptTimeoutMs: budgetMs,
+        }),
+        attemptSignal,
+        `channel "${ch}" did not answer within ${budgetMs}ms`,
+      );
+    } catch (err) {
+      if (!isDeliveryAbandoned(err)) throw err;
+      // A hung provider must fail fast and move on: the alert stays active
+      // and the evaluator releases the claim, so the next tick retries it
+      // (at-least-once). Trying a second channel here would risk notifying
+      // the user twice for one alert, since the abandoned attempt may yet
+      // have reached the provider.
+      const message = err instanceof Error ? err.message : String(err);
+      alog.warn('alert channel abandoned at its time budget', {
+        alertId: alert.id,
+        channel: ch,
+        err: message,
+      });
+      return {
+        alertId: alert.id,
+        channel: ch,
+        ok: false,
+        abandoned: true,
+        message,
+      };
+    }
     if (!r) continue; // Unknown channel id — skip, never fatal.
     if (r.ok) {
       // Delivery confirmed — persist dedup/cooldown state so subsequent
-      // noisy repeats of this content are suppressed.
-      await noise?.record().catch((err) => {
-        alog.warn('noise-control record failed', { alertId: alert.id, err: String(err) });
-      });
+      // noisy repeats of this content are suppressed. Never record for an
+      // abandoned attempt: that would suppress its own retry.
+      if (!r.abandoned) {
+        await noise?.record().catch((err) => {
+          alog.warn('noise-control record failed', { alertId: alert.id, err: String(err) });
+        });
+      }
       return r;
     }
     lastAttempt = r;
@@ -123,6 +188,7 @@ async function deliverChannel(ch: string, args: DeliverArgs): Promise<DeliveryRe
       tenantId: runtime.tenantId,
       pluginId: plugin.pluginId,
       settings: runtime.plugins.find((entry) => entry.pluginId === plugin.pluginId)?.settings ?? {},
+      ...(args.signal ? { signal: args.signal } : {}),
     });
     const result = await plugin.deliver({
       alert: {
@@ -134,6 +200,7 @@ async function deliverChannel(ch: string, args: DeliverArgs): Promise<DeliveryRe
       reading: { value: args.reading.value, source: args.reading.source },
       settings: ctx.settings,
       log: ctx.log,
+      ...(args.signal ? { signal: args.signal } : {}),
     });
     return finalizeDelivery(ch, result, args);
   }
@@ -146,6 +213,11 @@ async function deliverChannel(ch: string, args: DeliverArgs): Promise<DeliveryRe
 /**
  * Single place that marks an alert fired. Channels only report provider
  * acceptance; they never mutate alert state themselves.
+ *
+ * R10 — a provider that accepted after the run abandoned the attempt never
+ * marks the alert fired. The claim is released instead, so the alert is
+ * re-delivered on a later tick rather than being silently dropped (or being
+ * marked fired for a delivery the run refused to wait for).
  */
 async function finalizeDelivery(
   channel: string,
@@ -158,6 +230,15 @@ async function finalizeDelivery(
       channel,
       ok: false,
       ...(result.message !== undefined ? { message: result.message } : {}),
+    };
+  }
+  if (args.signal?.aborted) {
+    return {
+      alertId: args.alert.id,
+      channel,
+      ok: false,
+      abandoned: true,
+      message: 'delivery abandoned at its time budget after provider acceptance',
     };
   }
   const finalized = await markFiredForAlert(args.alert, new Date(), args.claimAt);

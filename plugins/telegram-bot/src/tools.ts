@@ -156,7 +156,9 @@ const sendBriefingTool: PluginToolRegistration<
     }
 
     const text = await buildBriefing(contextFrom(ctx, settings));
-    await sendTelegramText(settings.botToken, chatId, text);
+    await sendTelegramText(settings.botToken, chatId, text, {
+      ...(ctx.signal ? { signal: ctx.signal } : {}),
+    });
     return { ok: true, message: 'Briefing sent to the linked Telegram chat.' };
   },
 };

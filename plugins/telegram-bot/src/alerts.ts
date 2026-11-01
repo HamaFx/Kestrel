@@ -28,7 +28,7 @@ import { normaliseSettings, type TelegramSettings } from './settings';
 export const telegramAlertChannel: PluginAlertChannelRegistration = {
   id: 'telegram-bot',
   label: 'Telegram (personal bot)',
-  deliver: async ({ alert, reading, settings, log }) => {
+  deliver: async ({ alert, reading, settings, log, signal }) => {
     let parsed: TelegramSettings;
     try {
       parsed = normaliseSettings(settings);
@@ -59,7 +59,11 @@ export const telegramAlertChannel: PluginAlertChannelRegistration = {
     ].join('\n');
 
     try {
-      await sendTelegramText(parsed.botToken, parsed.linkedChatId, text);
+      // R10 — the evaluator's run signal and the transport's own timeout both
+      // apply: a stalled send must not hold the alert job or this user's claim.
+      await sendTelegramText(parsed.botToken, parsed.linkedChatId, text, {
+        ...(signal ? { signal } : {}),
+      });
       return { ok: true };
     } catch (err) {
       log.warn('Telegram alert delivery failed', {
