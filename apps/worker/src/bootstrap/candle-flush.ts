@@ -17,45 +17,50 @@
 // Closed-candle flush rig: wires the 1m aggregator to the persistence layer
 // with retries, a durable hand-off, gap backfill, and shutdown draining.
 //
-// R9 (audit 2026-10-31) — a closed bar is no longer fire-and-forget:
+// R9 (audit 2026-10-31) — a closed bar is no longer fire-and-forget. This
+// file owns the wiring and lifecycle; the cohesive pieces live next door:
 //
-//   1. Each bar is written with a bounded retry loop (default 3 attempts,
-//      backoff 250ms/1s, per-attempt timeout 10s).
-//   2. When the retries are exhausted the bar is handed to the durable
-//      pg-boss queue (`persistence/candle-outbox.ts`), which the worker
-//      consumes on a later cycle or on the next boot. The write is
-//      idempotent, so a replay is a no-op.
-//   3. Only when the write AND the queue both fail is the bar logged as
-//      lost, with its full OHLC payload, and counted.
+//   1. `candle-writer.ts` writes each bar with a bounded retry loop
+//      (default 3 attempts, backoff 250ms/1s, per-attempt timeout 10s).
+//   2. When the retries are exhausted `candle-queue.ts` hands the bar to the
+//      durable pg-boss queue (`persistence/candle-outbox.ts`), which the
+//      worker consumes on a later cycle or on the next boot. The write is
+//      idempotent, so a replay is a no-op. Only when the write AND the queue
+//      both fail is the bar logged as lost, with its full OHLC payload, and
+//      counted.
+//   3. `candle-gaps.ts` reports a rollover that skipped minutes and asks the
+//      REST OHLC adapters for the missing bars; provider-answered bars are
+//      written through the same durable path. Nothing is synthesised, and
+//      the first closed bar per symbol after a restart is compared against
+//      `candles_1m` so downtime between processes is detected too.
 //   4. `drain()` closes the open bars, gives in-flight work a bounded grace
 //      window, then hands every still-unpersisted bar to the queue. Shutdown
 //      no longer silently discards a bar in flight.
-//   5. A rollover that skipped minutes reports the gap and asks the REST
-//      OHLC adapters for the missing bars; provider-answered bars are
-//      written through the same durable path. Nothing is synthesised.
-//   6. The first closed bar for a symbol after a restart also compares
-//      against the newest row in `candles_1m`, so downtime between two
-//      worker processes is detected and backfilled instead of leaving a
-//      quiet hole.
+//
+// This rig only tracks bars; it never inspects their prices, so it stays
+// testable with a fake db and injected writer/gap seams.
 
 import type { DbClient } from '@kestrel/db';
-import { candles1m } from '@kestrel/db/schema';
-import { desc, eq } from 'drizzle-orm';
 
 import { Candle1mAggregator, type Candle1mBar, type CandleGap } from '../aggregator/candle-1m.js';
 import type { Logger } from '../log.js';
 import type { GapBackfillResult } from '../persistence/candle-backfill.js';
-import { flushClosedCandle } from '../persistence/candles-1m.js';
+import { createCandleGapTracker, GAP_DRAIN_WAIT_MS, type FetchGapBars } from './candle-gaps.js';
+import {
+  DEFAULT_HAND_OFF_TIMEOUT_MS,
+  defaultEnqueueFailedBar,
+  handOffBar,
+  type EnqueueFailedBar,
+} from './candle-queue.js';
+import { sleep } from './candle-timing.js';
+import {
+  DEFAULT_FLUSH_TIMEOUT_MS,
+  DEFAULT_MAX_ATTEMPTS,
+  DEFAULT_RETRY_DELAYS_MS,
+  writeCandleBar,
+} from './candle-writer.js';
 
-const MINUTE_MS = 60_000;
-
-const DEFAULT_MAX_ATTEMPTS = 3;
-const DEFAULT_RETRY_DELAYS_MS = [250, 1_000];
-const DEFAULT_FLUSH_TIMEOUT_MS = 10_000;
 const DEFAULT_SHUTDOWN_GRACE_MS = 5_000;
-const DEFAULT_HAND_OFF_TIMEOUT_MS = 2_000;
-/** How long drain() waits on best-effort gap work before giving up on it. */
-const GAP_DRAIN_WAIT_MS = 750;
 
 export interface CandlePipelineStats {
   /** Bars emitted by the aggregator (rollover + closeAll). */
@@ -104,9 +109,9 @@ export interface CandleFlushRigOptions {
   /** Timeout for one durable hand-off attempt. */
   handOffTimeoutMs?: number;
   /** Durable hand-off. Defaults to the pg-boss `candle-flush` queue. */
-  enqueueFailedBar?: (bar: Candle1mBar, reason: string) => Promise<boolean>;
+  enqueueFailedBar?: EnqueueFailedBar;
   /** Gap source. Defaults to the REST OHLC adapters via `@kestrel/data`. */
-  fetchGapBars?: (gap: CandleGap, signal?: AbortSignal) => Promise<GapBackfillResult>;
+  fetchGapBars?: FetchGapBars;
   /** Compare the first closed bar per symbol against `candles_1m`. Default true. */
   detectRestartGaps?: boolean;
 }
@@ -144,19 +149,8 @@ export function createCandleFlushRig({
   const shutdownGraceMs = options.shutdownGraceMs ?? DEFAULT_SHUTDOWN_GRACE_MS;
   const handOffTimeoutMs = options.handOffTimeoutMs ?? DEFAULT_HAND_OFF_TIMEOUT_MS;
   const detectRestartGaps = options.detectRestartGaps ?? true;
-  const sleep = (ms: number): Promise<void> =>
-    new Promise<void>((resolve) => {
-      const timer = setTimeout(resolve, ms);
-      timer.unref();
-    });
 
-  const enqueueFailedBar =
-    options.enqueueFailedBar ??
-    (async (bar: Candle1mBar, reason: string): Promise<boolean> => {
-      const { enqueueClosedCandle } = await import('../persistence/candle-outbox.js');
-      return enqueueClosedCandle(bar, { reason });
-    });
-
+  const enqueueFailedBar = options.enqueueFailedBar ?? defaultEnqueueFailedBar;
   const fetchGapBars =
     options.fetchGapBars ??
     (async (gap: CandleGap, signal?: AbortSignal): Promise<GapBackfillResult> => {
@@ -169,123 +163,66 @@ export function createCandleFlushRig({
   let writeAttempts = 0;
   let queued = 0;
   let dropped = 0;
-  let backfilled = 0;
-  let backfillMisses = 0;
   let lastError: string | null = null;
 
   let nextId = 0;
   const pending = new Map<number, PendingBar>();
-  const symbolsSeen = new Set<string>();
-  const gapFetches = new Set<Promise<void>>();
-  const gapAbort = new AbortController();
   let shutdownDeadlineMs: number | null = null;
 
-  const writeWithTimeout = async (bar: Candle1mBar, timeoutMs: number): Promise<void> => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => {
-      controller.abort(new DOMException('candle flush timed out', 'TimeoutError'));
-    }, timeoutMs);
-    timer.unref();
-    try {
-      await flushClosedCandle({ db, log, bar, signal: controller.signal });
-    } finally {
-      clearTimeout(timer);
+  /** Milliseconds left in the shutdown grace window, null while running. */
+  const remainingShutdownMs = (): number | null =>
+    shutdownDeadlineMs === null ? null : shutdownDeadlineMs - Date.now();
+
+  /** Write one tracked bar, then map the outcome to the rig's counters. */
+  const persistEntry = async (entry: PendingBar): Promise<void> => {
+    const outcome = await writeCandleBar({
+      bar: entry.bar,
+      db,
+      log,
+      maxAttempts,
+      retryDelaysMs,
+      flushTimeoutMs,
+      handOffTimeoutMs,
+      remainingShutdownMs,
+      enqueue: enqueueFailedBar,
+    });
+    writeAttempts += outcome.attempts;
+
+    if (outcome.status === 'written') {
+      entry.durable = true;
+      written += 1;
+      return;
     }
-  };
-
-  const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number): Promise<T | 'timeout'> =>
-    Promise.race([promise, sleep(timeoutMs).then(() => 'timeout' as const)]);
-
-  const handOff = async (entry: PendingBar, reason: string, err: unknown): Promise<void> => {
-    try {
-      const outcome = await withTimeout(
-        enqueueFailedBar(entry.bar, reason),
-        Math.max(250, handOffTimeoutMs),
-      );
-      if (outcome === true) {
-        entry.durable = true;
-        queued += 1;
-        log.warn('candle bar queued for durable replay', {
-          symbol: entry.bar.symbol,
-          t: new Date(entry.bar.t).toISOString(),
-          reason,
-          err: err === undefined ? null : String(err),
-        });
-        return;
-      }
-      lastError =
-        outcome === 'timeout' ? 'durable queue hand-off timed out' : 'durable queue refused';
-    } catch (queueErr) {
-      lastError = String(queueErr);
+    if (outcome.status === 'queued') {
+      entry.durable = true;
+      queued += 1;
+      return;
     }
     dropped += 1;
-    // Last resort: the write failed and the queue failed. Emit the whole bar
-    // so it can be reconstructed from logs instead of vanishing.
-    log.error('candle bar LOST (write and durable queue both failed)', {
-      symbol: entry.bar.symbol,
-      t: new Date(entry.bar.t).toISOString(),
-      o: entry.bar.o,
-      h: entry.bar.h,
-      l: entry.bar.l,
-      c: entry.bar.c,
-      v: entry.bar.v,
-      tickVolume: entry.bar.tickVolume,
-      source: entry.bar.source,
-      reason,
-      lastError,
+    lastError = outcome.failure;
+  };
+
+  /**
+   * Shutdown hand-off for a bar whose write never settled in the grace
+   * window. The writer's own path already covers a bar that failed while
+   * running; this is the last chance before the process exits.
+   */
+  const handOffLeftover = async (entry: PendingBar): Promise<void> => {
+    const outcome = await handOffBar({
+      bar: entry.bar,
+      reason: 'shutdown',
+      cause: undefined,
+      timeoutMs: handOffTimeoutMs,
+      enqueue: enqueueFailedBar,
+      log,
     });
-  };
-
-  const attemptTimeoutMs = (): number => {
-    if (shutdownDeadlineMs === null) return flushTimeoutMs;
-    const remaining = shutdownDeadlineMs - Date.now();
-    return Math.max(250, Math.min(flushTimeoutMs, remaining));
-  };
-
-  /** Retry loop, then durable hand-off. Never throws. */
-  const persistEntry = async (entry: PendingBar): Promise<void> => {
-    const { bar } = entry;
-    let attempt = 0;
-    let lastErr: unknown;
-
-    while (attempt < maxAttempts) {
-      if (attempt > 0) {
-        const delay = retryDelaysMs[Math.min(attempt - 1, retryDelaysMs.length - 1)] ?? 0;
-        if (shutdownDeadlineMs !== null && Date.now() + delay >= shutdownDeadlineMs) break;
-        await sleep(delay);
-      }
-      if (shutdownDeadlineMs !== null && Date.now() >= shutdownDeadlineMs) break;
-
-      attempt += 1;
-      writeAttempts += 1;
-      try {
-        await writeWithTimeout(bar, attemptTimeoutMs());
-        entry.durable = true;
-        written += 1;
-        log.info('candle closed', {
-          symbol: bar.symbol,
-          t: new Date(bar.t).toISOString(),
-          o: bar.o,
-          h: bar.h,
-          l: bar.l,
-          c: bar.c,
-          ticks: bar.tickVolume,
-          attempts: attempt,
-        });
-        return;
-      } catch (err) {
-        lastErr = err;
-        log.warn('flushClosedCandle attempt failed', {
-          symbol: bar.symbol,
-          t: new Date(bar.t).toISOString(),
-          attempt,
-          maxAttempts,
-          err: String(err),
-        });
-      }
+    if (outcome.status === 'queued') {
+      entry.durable = true;
+      queued += 1;
+      return;
     }
-
-    await handOff(entry, shutdownDeadlineMs !== null ? 'shutdown' : 'flush-failed', lastErr);
+    dropped += 1;
+    lastError = outcome.reason;
   };
 
   /** Track a bar from now until it is written, queued, or reported lost. */
@@ -293,7 +230,7 @@ export function createCandleFlushRig({
     const entry: PendingBar = { bar, durable: false, promise: Promise.resolve() };
     const id = nextId++;
     const work = (async () => {
-      if (opts.startupCheck) await checkRestartGap(bar);
+      if (opts.startupCheck) await gaps.checkRestartGap(bar);
       await persistEntry(entry);
     })();
     entry.promise = work
@@ -310,97 +247,22 @@ export function createCandleFlushRig({
     return entry;
   };
 
-  const reportGap = (gap: CandleGap, origin: 'rollover' | 'restart'): void => {
-    if (gap.missingMinutes <= 0) return;
-    log.warn('candle gap detected', {
-      symbol: gap.symbol,
-      from: new Date(gap.fromMs).toISOString(),
-      to: new Date(gap.toMs).toISOString(),
-      missingMinutes: gap.missingMinutes,
-      origin,
-    });
-    const work = (async () => {
-      try {
-        const result = await fetchGapBars(gap, gapAbort.signal);
-        if (result.bars.length === 0) {
-          backfillMisses += 1;
-          log.warn('candle gap not backfilled', {
-            symbol: gap.symbol,
-            from: new Date(gap.fromMs).toISOString(),
-            to: new Date(gap.toMs).toISOString(),
-            missingMinutes: gap.missingMinutes,
-            status: result.status,
-            detail: result.detail ?? null,
-          });
-          return;
-        }
-        // Register every fetched bar before starting writes so a shutdown
-        // mid-backfill still hands the untouched bars to the durable queue.
-        const entries = result.bars.map((bar) => trackBar(bar, { startupCheck: false }));
-        for (const entry of entries) await entry.promise;
-        const fetched = result.bars.length;
-        backfilled += fetched;
-        if (fetched < gap.missingMinutes) backfillMisses += 1;
-        log.info('candle gap backfilled', {
-          symbol: gap.symbol,
-          from: new Date(gap.fromMs).toISOString(),
-          to: new Date(gap.toMs).toISOString(),
-          missingMinutes: gap.missingMinutes,
-          fetched,
-          status: result.status,
-          stale: result.stale ?? false,
-          origin,
-        });
-      } catch (err) {
-        backfillMisses += 1;
-        log.warn('candle gap backfill failed', {
-          symbol: gap.symbol,
-          from: new Date(gap.fromMs).toISOString(),
-          to: new Date(gap.toMs).toISOString(),
-          err: String(err),
-        });
-      }
-    })();
-    gapFetches.add(work);
-    void work.finally(() => gapFetches.delete(work));
-  };
-
-  /**
-   * Restart gap: on the first closed bar for a symbol, compare with the
-   * newest persisted bar. A worker restart (or a stretch where the tick
-   * stream was off) leaves a hole the in-process aggregator cannot see.
-   */
-  const checkRestartGap = async (bar: Candle1mBar): Promise<void> => {
-    if (!detectRestartGaps) return;
-    if (symbolsSeen.has(bar.symbol)) return;
-    symbolsSeen.add(bar.symbol);
-    try {
-      const [row] = await db
-        .select({ t: candles1m.t })
-        .from(candles1m)
-        .where(eq(candles1m.symbol, bar.symbol))
-        .orderBy(desc(candles1m.t))
-        .limit(1);
-      const newestMs = row?.t ? new Date(row.t).getTime() : null;
-      if (newestMs === null) return;
-      const fromMs = newestMs + MINUTE_MS;
-      const toMs = bar.t - MINUTE_MS;
-      if (toMs < fromMs) return;
-      reportGap(
-        { symbol: bar.symbol, fromMs, toMs, missingMinutes: (toMs - fromMs) / MINUTE_MS + 1 },
-        'restart',
-      );
-    } catch (err) {
-      log.warn('candle restart-gap probe failed', { symbol: bar.symbol, err: String(err) });
-    }
-  };
+  const gaps = createCandleGapTracker({
+    db,
+    log,
+    fetchGapBars,
+    detectRestartGaps,
+    // The tracker registers every fetched bar synchronously, then awaits the
+    // guarantees below, so a shutdown mid-backfill still hands them over.
+    trackBackfilledBar: (bar) => trackBar(bar, { startupCheck: false }).promise,
+  });
 
   const aggregator = new Candle1mAggregator(
     (bar) => {
       barsClosed += 1;
       trackBar(bar, { startupCheck: true });
     },
-    (gap) => reportGap(gap, 'rollover'),
+    (gap) => gaps.report(gap, 'rollover'),
   );
 
   const waitForPending = async (budgetMs: number): Promise<void> => {
@@ -430,9 +292,7 @@ export function createCandleFlushRig({
 
     // 2. Let in-flight gap backfills land, then abort whatever is left. The
     //    next boot's restart-gap check re-detects an unfetched range.
-    if (gapFetches.size > 0) {
-      await Promise.race([Promise.allSettled([...gapFetches]), sleep(GAP_DRAIN_WAIT_MS)]);
-      gapAbort.abort(new DOMException('worker shutting down', 'AbortError'));
+    if (await gaps.drain()) {
       await waitForPending(GAP_DRAIN_WAIT_MS);
     }
 
@@ -441,7 +301,7 @@ export function createCandleFlushRig({
     //    the write is idempotent on (symbol, t), so that is safe.
     const leftovers = [...pending.values()].filter((entry) => !entry.durable);
     for (const entry of leftovers) {
-      await handOff(entry, 'shutdown', undefined);
+      await handOffLeftover(entry);
     }
 
     const report: CandleDrainReport = {
@@ -457,14 +317,15 @@ export function createCandleFlushRig({
 
   const stats = (): CandlePipelineStats => {
     const agg = aggregator.stats();
+    const gapStats = gaps.stats();
     return {
       barsClosed,
       written,
       writeAttempts,
       queued,
       dropped,
-      backfilled,
-      backfillMisses,
+      backfilled: gapStats.backfilled,
+      backfillMisses: gapStats.backfillMisses,
       gaps: agg.gaps,
       gapMinutes: agg.gapMinutes,
       staleCloseTicks: agg.staleCloseTicks,
