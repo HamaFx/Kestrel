@@ -330,7 +330,7 @@ kestrel/
 │   ├── config/            # Shared TypeScript & ESLint configs
 │   └── test-utils/        # Testing factories, mocks, and Vitest fixtures
 ├── docker/                # Docker compose configs, entrypoints, backup scripts
-└── docs/                  # Architecture, configuration, and troubleshooting guides
+└── docs/                  # Configuration reference, design system, and audit notes
 ```
 
 ### Essential Commands

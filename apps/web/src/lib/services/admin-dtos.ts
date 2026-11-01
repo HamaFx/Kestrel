@@ -211,9 +211,3 @@ export interface OnboardingInspectDTO {
   hasApiKeys: boolean;
   apiProviders: string[];
 }
-
-// ── Feature flags ──────────────────────────────────────────────────────────
-
-export interface FeatureFlagsDTO {
-  features: Record<string, boolean>;
-}

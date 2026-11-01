@@ -21,7 +21,8 @@
 // long/short pairs (dealer / asset / leveraged / other); the agent
 // computes net = long - short for trend reasoning.
 //
-// Source of truth: packages/ai/src/tools/get-cot.ts execute() return type.
+// Source of truth: packages/ai/src/mastra-v2/tools/canonical/cot.ts execute()
+// return type.
 
 import { z } from 'zod';
 

@@ -27,6 +27,7 @@ import { TOOL_NAMES, type ToolName } from '@kestrel/shared';
 import { cache } from 'react';
 
 import { capabilityUiMetadata, type MastraCapabilityId } from '../mastra-v2/capabilities';
+import { resolveNativeCanonicalTool } from '../mastra-v2/tools/canonical';
 import { registerAllTools, toolRegistry } from '../tools';
 
 export interface CatalogueEntry {
@@ -69,7 +70,13 @@ export const buildToolCatalogue = cache(
     return TOOL_NAMES.filter((name) => !disabledTools?.includes(name)).map(
       (name): CatalogueEntry => {
         const plugin = toolRegistry.getPlugin(name);
-        const desc = plugin?.description ?? '(no description)';
+        // P2-01 removal: the natively-migrated tools have no legacy registry
+        // plugin, so fall back to the canonical Mastra registration for the
+        // real description instead of the '(no description)' placeholder.
+        const native: { description?: string } | null = plugin
+          ? null
+          : (resolveNativeCanonicalTool(name) as { description?: string } | null);
+        const desc = plugin?.description ?? native?.description ?? '(no description)';
         const agg = stats.get(name);
         const invocations = agg?.invocations ?? 0;
         const failures = agg?.failures ?? 0;

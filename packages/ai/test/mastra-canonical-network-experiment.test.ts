@@ -71,6 +71,34 @@ describe('canonical Agent Network experiment (I-02)', () => {
     ]);
   });
 
+  it('resolves every named reader tool, including the native-only names', async () => {
+    const experiment = createCanonicalNetworkExperiment({ model });
+
+    for (const [name, definition] of Object.entries(CANONICAL_NETWORK_READERS)) {
+      const tools =
+        await experiment.readers[name as keyof typeof CANONICAL_NETWORK_READERS].listTools();
+      // P2-01 removal: the registry alone no longer holds the native-only
+      // tools, so this fails when resolution is not native-first.
+      expect(Object.keys(tools)).toEqual(expect.arrayContaining([...definition.toolNames]));
+    }
+
+    // The seven native-only names, pinned per desk that names them.
+    const technical = Object.keys(await experiment.readers.technicalReader.listTools());
+    expect(technical).toEqual(
+      expect.arrayContaining([
+        'get_price',
+        'get_candles',
+        'get_indicators',
+        'get_market_structure',
+      ]),
+    );
+    expect(Object.keys(await experiment.readers.fundamentalReader.listTools())).toContain(
+      'get_news',
+    );
+    const journal = Object.keys(await experiment.readers.journalReader.listTools());
+    expect(journal).toEqual(expect.arrayContaining(['get_cot', 'search_knowledge']));
+  });
+
   it('fails closed when run without the opt-in flag', async () => {
     const experiment = createCanonicalNetworkExperiment({ model });
     await expect(

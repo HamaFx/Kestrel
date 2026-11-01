@@ -8,7 +8,6 @@ import {
   IconBug,
   IconCpu,
   IconDatabase,
-  IconFlag,
   IconFlask,
   IconHeartbeat,
   IconHistory,
@@ -58,11 +57,6 @@ const AdminDiagnosticTraces = dynamic(
 const AdminUserTable = dynamic(() => import('./admin-user-table').then((m) => m.AdminUserTable), {
   loading: AdminTabFallback,
 }) as ComponentType;
-
-const AdminFeatureFlags = dynamic(
-  () => import('./admin-feature-flags').then((m) => m.AdminFeatureFlags),
-  { loading: AdminTabFallback },
-) as ComponentType;
 
 const AdminLogViewer = dynamic(() => import('./admin-log-viewer').then((m) => m.AdminLogViewer), {
   loading: AdminTabFallback,
@@ -123,13 +117,6 @@ export const TABS = [
     label: 'Users',
     icon: IconUsers,
     Component: AdminUserTable,
-    group: 'access',
-  },
-  {
-    id: 'features',
-    label: 'Features',
-    icon: IconFlag,
-    Component: AdminFeatureFlags,
     group: 'access',
   },
   {

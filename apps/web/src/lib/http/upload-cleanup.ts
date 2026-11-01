@@ -23,13 +23,19 @@
 // before the retention cutoff. It used to list bare `YYYY-MM-DD` prefixes,
 // which matched nothing, so nothing was ever deleted.
 //
-// Cohort choice: the bucket listing is authoritative, not the database. The
-// database only sees uploads that ended up in a chat message part or a journal
-// row; an upload that was never sent is invisible there and would leak storage
-// forever. The object path already carries the owner and the day, so the
-// listing needs no database rows to be correct, and it reclaims orphans too.
-// Deleting a blob still referenced by an old row is the intended retention
-// policy: the reference is older than the window.
+// Cohort choice: the bucket listing is authoritative, not the database. An
+// upload that was never sent to a chat or attached to a journal row is
+// invisible in the database and would leak storage forever if the sweep
+// depended on rows. The object path already carries the owner and the day, so
+// the listing needs no rows to be correct, and it reclaims orphans too.
+//
+// Journal exemption (owner decision, R7 follow-up): a screenshot deliberately
+// attached to a journal entry is not disposable storage. Before deleting a
+// user's expired days the sweep asks `loadJournalReferences` for the paths
+// those rows store, and skips every object they reference. The lookup is
+// scoped to the day folders being swept and bounded by the caller; when it
+// fails or its bound is hit, that user's expired objects are kept for another
+// run rather than risking deletion of a referenced file.
 //
 // The sweep is bounded (`maxUsers`, `maxDeletes`) so the 60s cron budget can
 // never be spent walking a pathological bucket. Within a visited user, day
@@ -41,6 +47,7 @@ import {
   CHAT_IMAGE_DAY_PATTERN,
   chatImageDay,
   chatImageObjectPrefix,
+  parseChatImageObjectPath,
 } from './chat-image-paths';
 
 export const UPLOAD_RETENTION_DAYS = 7;
@@ -54,9 +61,37 @@ interface StorageEntry {
   id?: unknown;
 }
 
+/**
+ * Stored journal references for one user's expired day folders, as returned
+ * by the database-aware loader. `references` holds the raw stored values
+ * (`journal_entries.screenshot_url` and every `attachments` entry); values
+ * that are not chat-image paths are ignored by the sweep.
+ */
+export interface JournalReferenceLookup {
+  references: readonly string[];
+  /** True when the loader hit its own row bound, so the list is incomplete. */
+  truncated: boolean;
+}
+
+/**
+ * Fetch the journal references scoped to the day folders about to be swept.
+ * The loader owns its bound; a truncated or failed lookup must never be
+ * treated as "no references".
+ */
+export type JournalReferenceLoader = (
+  userId: string,
+  expiredDays: readonly string[],
+) => Promise<JournalReferenceLookup>;
+
 export interface UploadCleanupOptions {
   supabaseUrl: string;
   serviceRoleKey: string;
+  /**
+   * Journal-reference source. Required so the sweep can never silently delete
+   * a screenshot a logged trade still points at; callers without a database
+   * pass a loader that reports no references.
+   */
+  loadJournalReferences: JournalReferenceLoader;
   now?: Date;
   retentionDays?: number;
   listPageSize?: number;
@@ -82,7 +117,11 @@ export interface UploadCleanupSummary {
   dayFoldersSwept: number;
   /** Day folders at or before the cutoff, including empty ones. */
   dayFoldersExpired: number;
-  /** Listing or deletion failures. */
+  /** Objects kept because a journal entry still references them. */
+  journalReferencedKept: number;
+  /** Users whose expired objects were kept because the reference lookup failed or was truncated. */
+  journalUsersDeferred: number;
+  /** Listing or deletion failures, including failed reference lookups. */
   errors: number;
   /** A safety cap stopped the sweep early; the remainder waits for a later run. */
   truncated: boolean;
@@ -96,6 +135,7 @@ export async function runUploadCleanup(
   const {
     supabaseUrl,
     serviceRoleKey,
+    loadJournalReferences,
     now = new Date(),
     retentionDays = UPLOAD_RETENTION_DAYS,
     listPageSize = LIST_PAGE_SIZE,
@@ -117,6 +157,8 @@ export async function runUploadCleanup(
     usersScanned: 0,
     dayFoldersSwept: 0,
     dayFoldersExpired: 0,
+    journalReferencedKept: 0,
+    journalUsersDeferred: 0,
     errors: 0,
     truncated: false,
     cutoffDay,
@@ -211,6 +253,32 @@ export async function runUploadCleanup(
       .filter((day) => CHAT_IMAGE_DAY_PATTERN.test(day) && day <= cutoffDay)
       .sort();
     summary.dayFoldersExpired += expiredDays.length;
+    if (expiredDays.length === 0) continue;
+
+    let referencedPaths: ReadonlySet<string>;
+    try {
+      const lookup = await loadJournalReferences(userId, expiredDays);
+      if (lookup.truncated) {
+        // Incomplete list: keep everything this user's expired days hold and
+        // let an operator raise the bound before the next run.
+        summary.journalUsersDeferred += 1;
+        warn?.('upload cleanup journal reference bound hit; keeping expired uploads', {
+          userId,
+          expiredDays: expiredDays.length,
+        });
+        continue;
+      }
+      referencedPaths = collectReferencedPaths(lookup.references);
+    } catch (err) {
+      // Cannot prove an object is unreferenced, so do not delete any of them.
+      summary.journalUsersDeferred += 1;
+      summary.errors += 1;
+      warn?.('upload cleanup journal reference lookup failed; keeping expired uploads', {
+        userId,
+        err: String(err),
+      });
+      continue;
+    }
 
     for (const day of expiredDays) {
       const remaining = maxDeletes - summary.deleted;
@@ -224,10 +292,15 @@ export async function runUploadCleanup(
 
       const objectPaths = objectNames(objects).map((name) => `${prefix}/${name}`);
       if (objectPaths.length === 0) continue;
+      const deletable = objectPaths.filter((path) => {
+        if (!referencedPaths.has(path)) return true;
+        summary.journalReferencedKept += 1;
+        return false;
+      });
       // Never exceed the run's deletion budget: whatever is left waits for the
       // next tick (day folders are swept oldest first).
-      const batch = objectPaths.slice(0, remaining);
-      if (batch.length < objectPaths.length) summary.truncated = true;
+      const batch = deletable.slice(0, remaining);
+      if (batch.length < deletable.length) summary.truncated = true;
 
       const deleted = await deleteObjects(batch, deleteBatchSize);
       if (deleted > 0) summary.dayFoldersSwept += 1;
@@ -236,6 +309,16 @@ export async function runUploadCleanup(
   }
 
   return summary;
+}
+
+/** Normalise stored journal references to bucket object paths; ignore foreign values. */
+function collectReferencedPaths(references: readonly string[]): Set<string> {
+  const paths = new Set<string>();
+  for (const reference of references) {
+    const path = parseChatImageObjectPath(reference);
+    if (path !== null) paths.add(path);
+  }
+  return paths;
 }
 
 /** Folder entries are the ones without an object id. */

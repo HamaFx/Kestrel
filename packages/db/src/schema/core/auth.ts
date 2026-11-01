@@ -72,7 +72,6 @@ export type UserInsert = typeof users.$inferInsert;
 export const organization = pgTable('organization', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
-  plan: text('plan').notNull().default('free'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 });
@@ -169,7 +168,11 @@ export const verificationTokens = pgTable(
     purpose: text('purpose').notNull(),
     expires: timestamp('expires', { withTimezone: true }).notNull(),
   },
-  (t) => [primaryKey({ columns: [t.identifier, t.purpose, t.token] })],
+  (t) => [
+    primaryKey({ columns: [t.identifier, t.purpose, t.token] }),
+    // Cleanup deletes WHERE expires < now() (audit 2026-10-31).
+    index('verificationToken_expires_idx').on(t.expires),
+  ],
 );
 
 export type VerificationTokenRow = typeof verificationTokens.$inferSelect;

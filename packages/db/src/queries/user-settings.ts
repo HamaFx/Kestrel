@@ -53,7 +53,6 @@ export interface UserWithSettings {
   user: {
     name: string | null;
     email: string | null;
-    plan: string | null;
     role?: string | null;
   } | null;
 }
@@ -108,7 +107,7 @@ export async function getPlatformAdminUserId(): Promise<string | null> {
 }
 
 /**
- * Fetch userSettings + basic user info (name, email, plan, role) in parallel.
+ * Fetch userSettings + basic user info (name, email, role) in parallel.
  * For non-admin subscribers, operator-controlled AI/model/feed fields fall back
  * to the platform admin's settings row when the admin connection allows the
  * cross-tenant read (see `getPlatformAdminSettings`).
@@ -129,17 +128,8 @@ export async function getUserWithSettings(userId: string): Promise<UserWithSetti
         name: schema.users.name,
         email: schema.users.email,
         role: schema.users.role,
-        plan: schema.organization.plan,
       })
       .from(schema.users)
-      .leftJoin(
-        schema.organizationMember,
-        and(
-          eq(schema.organizationMember.userId, schema.users.id),
-          eq(schema.organizationMember.orgId, tenantId),
-        ),
-      )
-      .leftJoin(schema.organization, eq(schema.organization.id, schema.organizationMember.orgId))
       .where(eq(schema.users.id, userId))
       .then((rows) => rows[0] ?? null),
     getPlatformAdminSettings(),

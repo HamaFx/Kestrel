@@ -17,26 +17,25 @@
 // PF-13 — Journal / management tool category.
 // Imported by tools/index.ts for self-registration and also exposed
 // as a sub-path export: @kestrel/ai/tools/journal
-
-import { readFeatureFlag } from '@kestrel/shared';
+//
+// P2-01 removal: the natively-migrated tools (`get_news`, `search_knowledge`)
+// are no longer registered here. Their canonical Mastra registrations in
+// `mastra-v2/tools/canonical/` are the only implementations; consumers
+// resolve them natively (`resolveNativeCanonicalTool`) instead of through
+// this legacy registry.
 
 import { getCalendarTool } from './get-calendar';
 import { getJournalStatsTool } from './get-journal-stats';
-import { getNewsTool } from './get-news';
 import { logJournalTool } from './log-journal';
-import { isNativeMigratedTool } from './native-migrated';
 import { toolRegistry } from './registry';
-import { searchKnowledgeTool } from './search-knowledge';
 import { setAlertTool } from './set-alert';
 import { shareSnapshotTool } from './share-snapshot';
 
 const journalTools = [
   ['log_journal', logJournalTool],
   ['get_journal_stats', getJournalStatsTool],
-  ['get_news', getNewsTool],
   ['get_calendar', getCalendarTool],
   ['set_alert', setAlertTool],
-  ['search_knowledge', searchKnowledgeTool],
   ['share_snapshot', shareSnapshotTool],
 ] as const;
 
@@ -46,11 +45,7 @@ const journalTools = [
  * no longer mutates the singleton registry.
  */
 export function registerJournalTools(registry: typeof toolRegistry = toolRegistry): void {
-  // P2-01: get_news and search_knowledge are natively migrated; with the
-  // shim flag off they are not registered from their legacy wrappers.
-  const legacyShimsEnabled = readFeatureFlag('PHASE_TOOLS_SHIMS');
   for (const [name, tool] of journalTools) {
-    if (!legacyShimsEnabled && isNativeMigratedTool(name)) continue;
     registry.register(name, tool);
   }
 }

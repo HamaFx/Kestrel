@@ -21,8 +21,7 @@ export type FeatureFlagName =
   | 'ENABLE_COMMITTEE_DEBATE'
   | 'ENFORCE_BUDGET'
   | 'ENABLE_GENERIC_MACRO'
-  | 'ENABLE_COMPARISON_RISK_DESK'
-  | 'PHASE_TOOLS_SHIMS';
+  | 'ENABLE_COMPARISON_RISK_DESK';
 
 /** Documented defaults (Q12: PHASE3_STRUCTURED_FUSION enabled by default). */
 const FLAG_DEFAULTS: Record<FeatureFlagName, boolean> = {
@@ -37,7 +36,6 @@ const FLAG_DEFAULTS: Record<FeatureFlagName, boolean> = {
   ENFORCE_BUDGET: true,
   ENABLE_GENERIC_MACRO: true,
   ENABLE_COMPARISON_RISK_DESK: true,
-  PHASE_TOOLS_SHIMS: true,
 };
 
 /**

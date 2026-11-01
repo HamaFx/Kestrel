@@ -43,7 +43,8 @@ import type { LanguageModel } from 'ai';
 
 import { registerAllTools, toolRegistry } from '@ai/tools';
 
-import { adaptLegacyReadOnlyTools } from '../../agents/xauusd/legacy-tool-adapter';
+import { adaptLegacyReadOnlyTool } from '../../agents/xauusd/legacy-tool-adapter';
+import { resolveNativeCanonicalTool } from '../../tools/canonical';
 
 const nlog = createCategorizedLogger('ai', { component: 'mastra:canonical-network' });
 
@@ -110,6 +111,35 @@ export interface CanonicalNetworkExperiment {
 }
 
 /**
+ * Resolve one reader desk's tool names native-first, the same order
+ * canonical-chat `setup.ts` and the committee desks use: prefer the native
+ * canonical registration, fall back to the registry for names that are not
+ * migrated.
+ *
+ * P2-01 removal follow-up: the seven native-only names (`get_price`,
+ * `get_candles`, `get_indicators`, `get_market_structure`, `get_news`,
+ * `get_cot`, `search_knowledge`) no longer exist in the registry, so a
+ * registry-only resolve silently dropped them from every reader desk.
+ */
+export function resolveCanonicalNetworkReaderTools(
+  toolNames: readonly string[],
+): Record<string, unknown> {
+  registerAllTools(toolRegistry);
+  const legacyTools = toolRegistry.resolve([...toolNames]);
+  const resolved: Record<string, unknown> = {};
+  for (const toolName of toolNames) {
+    const native = resolveNativeCanonicalTool(toolName);
+    if (native) {
+      resolved[toolName] = native;
+      continue;
+    }
+    const legacyTool = legacyTools[toolName];
+    if (legacyTool) resolved[toolName] = adaptLegacyReadOnlyTool(toolName, legacyTool);
+  }
+  return resolved;
+}
+
+/**
  * Build the reader sub-agents + routing supervisor. Pure construction — the
  * caller decides whether to run it (and only evaluation environments should).
  */
@@ -124,7 +154,7 @@ export function createCanonicalNetworkExperiment(
         [CanonicalNetworkReaderName, (typeof CANONICAL_NETWORK_READERS)[CanonicalNetworkReaderName]]
       >
     ).map(([name, definition]) => {
-      const tools = adaptLegacyReadOnlyTools(toolRegistry.resolve([...definition.toolNames]));
+      const tools = resolveCanonicalNetworkReaderTools(definition.toolNames);
       const agent = new Agent({
         id: definition.agentId,
         name: definition.agentId,

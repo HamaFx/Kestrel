@@ -20,17 +20,10 @@ import { xauusdMarketStructureTool } from '../src/mastra-v2/agents/xauusd/tools/
 import { xauusdSessionLevelsTool } from '../src/mastra-v2/agents/xauusd/tools/session-levels-tool';
 import { xauusdTechnicalAnalysisTool } from '../src/mastra-v2/agents/xauusd/tools/technical-tool';
 import type * as AnalyzeTechnicalModule from '../src/tools/analyze-technical';
-import type * as GetMarketStructureModule from '../src/tools/get-market-structure';
 import type * as GetSessionLevelsModule from '../src/tools/get-session-levels';
 
 const mocks = vi.hoisted(() => ({
   getCandlesWithMeta: vi.fn(),
-  computeMarketStructureOutput: vi.fn(),
-  getMarketStructureTool: {
-    description: 'mock market structure tool',
-    inputSchema: {},
-    execute: vi.fn(),
-  },
   computeSessionLevels: vi.fn(),
   computeTechnicalReading: vi.fn(),
   deterministicSummary: vi.fn(),
@@ -39,16 +32,6 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@kestrel/data', () => ({
   getCandlesWithMeta: mocks.getCandlesWithMeta,
 }));
-// Preserve every real export: the tool-registry barrel is evaluated by the
-// Mastra instance in the same process and imports the full category modules.
-vi.mock('../src/tools/get-market-structure', async (importOriginal) => {
-  const actual = await importOriginal<typeof GetMarketStructureModule>();
-  return {
-    ...actual,
-    computeMarketStructureOutput: mocks.computeMarketStructureOutput,
-    getMarketStructureTool: mocks.getMarketStructureTool,
-  };
-});
 vi.mock('../src/tools/get-session-levels', async (importOriginal) => {
   const actual = await importOriginal<typeof GetSessionLevelsModule>();
   return { ...actual, computeSessionLevels: mocks.computeSessionLevels };
@@ -104,13 +87,6 @@ describe('Mastra migrated market tools', () => {
       (_symbol: string, _tf: string, options: { count: number }) =>
         Promise.resolve(candleResult(options.count)),
     );
-    mocks.computeMarketStructureOutput.mockReturnValue({
-      symbol: 'XAUUSD',
-      tf: '1h',
-      bars: 200,
-      swings: [{ index: 1, time: 1_700_000_000_000, price: 2000, type: 'high', lookback: 3 }],
-      summary: '1 swing',
-    });
     mocks.computeSessionLevels.mockReturnValue({
       symbol: 'XAUUSD',
       asOf: 1_700_000_000_000,

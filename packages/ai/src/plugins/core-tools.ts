@@ -21,9 +21,16 @@
 // package owns the canonical allowlist, so it publishes the reviewed subset on
 // the plugin host at boot. The plugin reads `pluginHost.getCoreTools()`.
 //
-// The tool registry is imported dynamically: this module is reached from the
-// `@kestrel/ai/plugins` barrel while a Mastra agent/capability import graph is
-// still initializing, and the registry pulls every tool module.
+// P2-01 removal: the seven natively-migrated tools have no legacy registry
+// plugin, so the catalog falls back to the canonical Mastra registration for
+// name/description metadata (registry first, then native, mirroring
+// `mastra-v2/agents/canonical/setup.ts`). Resolution semantics are unchanged:
+// `coreToolsFor` still resolves native-first at execution time.
+//
+// The tool registry and the canonical map are imported dynamically: this
+// module is reached from the `@kestrel/ai/plugins` barrel while a Mastra
+// agent/capability import graph is still initializing, and the registry pulls
+// every tool module.
 
 import { pluginHost, type PluginCoreToolInfo } from '@kestrel/plugin-sdk';
 
@@ -75,7 +82,10 @@ const SAFE_SENSITIVE_TOOLS = new Set<string>(SENSITIVE_USER_READ_TOOL_NAMES);
  * tools are never included.
  */
 export async function buildPluginCoreToolCatalog(): Promise<PluginCoreToolInfo[]> {
-  const { registerAllTools, toolRegistry } = await import('../tools');
+  const [{ registerAllTools, toolRegistry }, { resolveNativeCanonicalTool }] = await Promise.all([
+    import('../tools'),
+    import('../mastra-v2/tools/canonical'),
+  ]);
   registerAllTools(toolRegistry);
 
   const names = [
@@ -88,10 +98,16 @@ export async function buildPluginCoreToolCatalog(): Promise<PluginCoreToolInfo[]
   return names
     .map((name): PluginCoreToolInfo | null => {
       const entry = toolRegistry.getPlugin(name);
-      if (!entry) return null;
+      // Registry first, then native: a name with neither source is dropped so
+      // a catalog typo cannot offer an unregistered tool.
+      const native: { description?: string } | null = entry
+        ? null
+        : (resolveNativeCanonicalTool(name) as { description?: string } | null);
+      if (!entry && !native) return null;
+      const description = entry?.description ?? native?.description ?? '(no description)';
       return {
         name,
-        description: entry.description,
+        description,
         access: SAFE_SENSITIVE_TOOLS.has(name) ? 'sensitive-read' : 'read-only',
         group: GROUP_BY_TOOL[name] ?? 'other',
       };

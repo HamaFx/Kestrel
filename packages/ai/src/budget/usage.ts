@@ -39,7 +39,6 @@ export interface TelemetryRow {
   toolCalls: number;
   ms: number;
   estCostUsd: number;
-  creditsCharged: number;
   providerMode: 'byok' | 'managed' | null;
   createdAt: number;
 }
@@ -65,7 +64,6 @@ export interface ModelBreakdown {
   inputTokens: number;
   outputTokens: number;
   costUsd: number;
-  credits: number;
 }
 
 export interface ProviderBreakdown {
@@ -84,7 +82,6 @@ export interface ProviderBreakdown {
   inputTokens: number;
   outputTokens: number;
   costUsd: number;
-  credits: number;
 }
 
 export interface DayBucket {
@@ -92,7 +89,6 @@ export interface DayBucket {
   date: string;
   turns: number;
   costUsd: number;
-  credits: number;
 }
 
 export interface UsageStats {
@@ -107,8 +103,6 @@ export interface UsageStats {
   thirtyDayOutputTokens: number;
   /** Total chat turns recorded in the window. */
   thirtyDayTurns: number;
-  /** Credits charged across the 30-day window. */
-  thirtyDayCredits: number;
   /** Per-model totals across the 30-day window, sorted by cost desc. */
   byModel: ModelBreakdown[];
   /** Per-provider totals across the 30-day window, sorted by cost desc. */
@@ -201,7 +195,6 @@ export async function computeUsage(userId: string, now = new Date()): Promise<Us
 
   let inputTokens = 0;
   let outputTokens = 0;
-  let thirtyDayCredits = 0;
   const byModelMap = new Map<string, ModelBreakdown>();
   const byProviderMap = new Map<string, ProviderBreakdown>();
 
@@ -209,7 +202,7 @@ export async function computeUsage(userId: string, now = new Date()): Promise<Us
   for (let i = 0; i < 7; i += 1) {
     const date = new Date(sevenStart.getTime() + i * DAY_MS);
     const key = date.toISOString().slice(0, 10);
-    dailyMap.set(key, { date: key, turns: 0, costUsd: 0, credits: 0 });
+    dailyMap.set(key, { date: key, turns: 0, costUsd: 0 });
   }
 
   for (const spendRow of spendRows) {
@@ -222,16 +215,8 @@ export async function computeUsage(userId: string, now = new Date()): Promise<Us
     const costUsd = Number(row.estCostUsd ?? 0);
     const input = row.inputTokens ?? 0;
     const output = row.outputTokens ?? 0;
-    const credits = Number(row.creditsCharged ?? 0);
     inputTokens += input;
     outputTokens += output;
-    thirtyDayCredits += credits;
-
-    const sevenDayBucket =
-      row.createdAt.getTime() >= sevenStart.getTime()
-        ? dailyMap.get(row.createdAt.toISOString().slice(0, 10))
-        : undefined;
-    if (sevenDayBucket) sevenDayBucket.credits += credits;
 
     const model = byModelMap.get(row.model) ?? {
       model: row.model,
@@ -239,13 +224,11 @@ export async function computeUsage(userId: string, now = new Date()): Promise<Us
       inputTokens: 0,
       outputTokens: 0,
       costUsd: 0,
-      credits: 0,
     };
     model.turns += 1;
     model.inputTokens += input;
     model.outputTokens += output;
     model.costUsd += costUsd;
-    model.credits += credits;
     byModelMap.set(row.model, model);
 
     const providerPrefix = providerIdFromModel(row.model);
@@ -258,13 +241,11 @@ export async function computeUsage(userId: string, now = new Date()): Promise<Us
         inputTokens: 0,
         outputTokens: 0,
         costUsd: 0,
-        credits: 0,
       };
       provider.turns += 1;
       provider.inputTokens += input;
       provider.outputTokens += output;
       provider.costUsd += costUsd;
-      provider.credits += credits;
       byProviderMap.set(byokProviderId, provider);
     }
   }
@@ -282,7 +263,6 @@ export async function computeUsage(userId: string, now = new Date()): Promise<Us
     thirtyDayInputTokens: inputTokens,
     thirtyDayOutputTokens: outputTokens,
     thirtyDayTurns: turnRows.length,
-    thirtyDayCredits,
     byModel: [...byModelMap.values()].sort((a, b) => b.costUsd - a.costUsd),
     byProvider: [...byProviderMap.values()].sort((a, b) => b.costUsd - a.costUsd),
     daily7: [...dailyMap.values()].sort((a, b) => a.date.localeCompare(b.date)),
@@ -303,7 +283,6 @@ function rowToTelemetry(row: typeof schema.chatTelemetry.$inferSelect): Telemetr
     toolCalls: row.toolCalls ?? 0,
     ms: row.ms ?? 0,
     estCostUsd: Number(row.estCostUsd ?? 0),
-    creditsCharged: Number(row.creditsCharged ?? 0),
     providerMode: row.providerMode ?? null,
     createdAt: row.createdAt.getTime(),
   };

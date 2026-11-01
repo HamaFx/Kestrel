@@ -82,16 +82,11 @@ vi.mock('@kestrel/data', () => ({
 
 describe('tools registry', () => {
   it('contains all expected tool entries', () => {
-    // PF-13: Tools are now registered in category-group order
-    // (market → analysis → journal → system)
+    // Tool registration order: market → analysis → journal → system → web.
     const expectedKeys = [
-      // Market (10)
-      'get_price',
-      'get_candles',
-      'get_indicators',
-      'get_market_structure',
+      // Market (5) — the natively-migrated market tools are no longer
+      // registered here; resolveNativeCanonicalTool serves them.
       'get_correlation',
-      'get_cot',
       'get_intermarket',
       'get_intermarket_resonance',
       'get_session_levels',
@@ -104,15 +99,13 @@ describe('tools registry', () => {
       'forecast_volatility',
       'compute_risk',
       'compute_position_health',
-      // Journal (7)
+      // Journal (5) — get_news and search_knowledge are native registrations.
       'log_journal',
       'get_journal_stats',
-      'get_news',
       'get_calendar',
       'set_alert',
-      'search_knowledge',
       'share_snapshot',
-      // System (7 — includes convene_committee per Decision Q11)
+      // System (6 — includes convene_committee per Decision Q11)
       'get_system_diagnostics',
       'run_system_action',
       'get_social_sentiment',
@@ -123,7 +116,7 @@ describe('tools registry', () => {
       'web_search',
     ];
     expect(toolRegistry.listNames()).toEqual(expectedKeys);
-    expect(toolRegistry.listNames().length).toBe(31);
+    expect(toolRegistry.listNames().length).toBe(24);
   });
 
   it('every tool has description, inputSchema, and execute', () => {

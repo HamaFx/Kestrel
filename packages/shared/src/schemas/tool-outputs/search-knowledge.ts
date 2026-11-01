@@ -18,7 +18,8 @@
 // `ToolNewsItem` plus a `similarity` score in [0, 1] (1 = identical) derived
 // from pgvector cosine distance.
 //
-// Source of truth: packages/ai/src/tools/search-knowledge.ts execute() return type.
+// Source of truth: packages/ai/src/mastra-v2/tools/canonical/knowledge.ts
+// execute() return type.
 
 import { z } from 'zod';
 

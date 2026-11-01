@@ -31,8 +31,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // indicator tests it feeds (shared fixture — DO NOT DELETE).
 // eslint-disable-next-line no-restricted-imports -- cross-package test fixture, not production code
 import { makeCandles } from '../../../indicators/test/fixtures';
-import { getIndicatorsTool } from '../../src/tools/get-indicators';
-import { getMarketStructureTool } from '../../src/tools/get-market-structure';
+import { executeCanonicalIndicators } from '../../src/mastra-v2/tools/canonical/indicators';
+import { executeCanonicalMarketStructure } from '../../src/mastra-v2/tools/canonical/market-structure';
 import { verifyCallTool } from '../../src/tools/verify-call';
 
 const mockGetCandles = vi.fn();
@@ -64,7 +64,7 @@ function liveQuote(mid: number) {
   };
 }
 
-const execIndicators = getIndicatorsTool.execute as unknown as (input: {
+const execIndicators = executeCanonicalIndicators as unknown as (input: {
   symbol: string;
   tf: string;
   count: number;
@@ -79,7 +79,7 @@ const execIndicators = getIndicatorsTool.execute as unknown as (input: {
   }>;
 }>;
 
-const execStructure = getMarketStructureTool.execute as unknown as (input: {
+const execStructure = executeCanonicalMarketStructure as unknown as (input: {
   symbol: string;
   tf: string;
   count: number;

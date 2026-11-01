@@ -14,11 +14,15 @@
  * limitations under the License.
  */
 
+// P2-01 removal: the AI SDK shim is gone; this suite now exercises the
+// canonical execute core that the native Mastra registration runs.
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getNewsTool } from '../src/tools/get-news';
+import { CanonicalNewsInputSchema } from '../src/mastra-v2/tools/canonical/input-schemas';
+import { executeCanonicalNews } from '../src/mastra-v2/tools/canonical/news';
 
-const exec = getNewsTool.execute as unknown as (input: {
+const exec = executeCanonicalNews as unknown as (input: {
   symbol?: string;
   since?: number;
   limit?: number;
@@ -92,38 +96,31 @@ describe('get_news — Phase 0.10', () => {
   });
 
   it('validates input schema — limit min 1', () => {
-    const schema = getNewsTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
-    expect(schema.safeParse({ limit: 0 }).success).toBe(false);
-    expect(schema.safeParse({ limit: 1 }).success).toBe(true);
+    expect(CanonicalNewsInputSchema.safeParse({ limit: 0 }).success).toBe(false);
+    expect(CanonicalNewsInputSchema.safeParse({ limit: 1 }).success).toBe(true);
   });
 
   it('validates input schema — limit max 20', () => {
-    const schema = getNewsTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
-    expect(schema.safeParse({ limit: 20 }).success).toBe(true);
-    expect(schema.safeParse({ limit: 21 }).success).toBe(false);
+    expect(CanonicalNewsInputSchema.safeParse({ limit: 20 }).success).toBe(true);
+    expect(CanonicalNewsInputSchema.safeParse({ limit: 21 }).success).toBe(false);
   });
 
   it('validates input schema — limit defaults to 8', () => {
-    const schema = getNewsTool.inputSchema as {
-      safeParse: (v: unknown) => { success: boolean; data?: { limit: number } };
-    };
-    const parsed = schema.safeParse({});
+    const parsed = CanonicalNewsInputSchema.safeParse({});
     expect(parsed.success).toBe(true);
     if (parsed.data) expect(parsed.data.limit).toBe(8);
   });
 
   it('validates input schema — optional symbol filter', () => {
-    const schema = getNewsTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
-    expect(schema.safeParse({ symbol: 'EURUSD' }).success).toBe(true);
-    expect(schema.safeParse({ symbol: 'XAUUSD' }).success).toBe(true);
-    expect(schema.safeParse({ symbol: 'INVALID' }).success).toBe(false);
+    expect(CanonicalNewsInputSchema.safeParse({ symbol: 'EURUSD' }).success).toBe(true);
+    expect(CanonicalNewsInputSchema.safeParse({ symbol: 'XAUUSD' }).success).toBe(true);
+    expect(CanonicalNewsInputSchema.safeParse({ symbol: 'INVALID' }).success).toBe(false);
   });
 
   it('validates input schema — minSentiment range 0 to 1', () => {
-    const schema = getNewsTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
-    expect(schema.safeParse({ minSentiment: 0 }).success).toBe(true);
-    expect(schema.safeParse({ minSentiment: 1 }).success).toBe(true);
-    expect(schema.safeParse({ minSentiment: 1.1 }).success).toBe(false);
-    expect(schema.safeParse({ minSentiment: -0.1 }).success).toBe(false);
+    expect(CanonicalNewsInputSchema.safeParse({ minSentiment: 0 }).success).toBe(true);
+    expect(CanonicalNewsInputSchema.safeParse({ minSentiment: 1 }).success).toBe(true);
+    expect(CanonicalNewsInputSchema.safeParse({ minSentiment: 1.1 }).success).toBe(false);
+    expect(CanonicalNewsInputSchema.safeParse({ minSentiment: -0.1 }).success).toBe(false);
   });
 });

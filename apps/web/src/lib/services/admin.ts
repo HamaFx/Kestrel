@@ -18,7 +18,7 @@
 
 // PF-22 — Admin service layer.
 //
-// Handles admin-only operations: feature flags and user management.
+// Handles admin-only operations: user management.
 //
 // Pattern: Service (PF-22). Controllers remain thin: parse request →
 // call service → format Response.
@@ -27,41 +27,16 @@ import {
   countAdmins,
   countUsers,
   getDb,
-  listFeatureFlags,
   listUsersWithSettings,
   recordAdminAudit as recordAdminAuditDb,
   schema,
   updateUserRole,
-  upsertFeatureFlag,
 } from '@kestrel/db';
 import { eq } from 'drizzle-orm';
 
-import type { FeatureFlagsDTO, UserListDTO } from './admin-dtos';
+import type { UserListDTO } from './admin-dtos';
 
 // ── Service functions ────────────────────────────────────────────────────────
-
-export async function listFeaturesService(): Promise<FeatureFlagsDTO> {
-  const rows = await listFeatureFlags();
-  const features: Record<string, boolean> = {};
-  for (const row of rows) {
-    features[row.key] = row.enabled;
-  }
-  return { features };
-}
-
-export async function upsertFeaturesService(
-  toggles: Record<string, boolean>,
-  userId: string,
-): Promise<void> {
-  const entries = Object.entries(toggles);
-  if (entries.length === 0) return;
-
-  for (const [key, enabled] of entries) {
-    await upsertFeatureFlag(key, enabled, userId);
-  }
-
-  await recordAdminAuditDb(userId, 'feature.toggle', undefined, { toggles });
-}
 
 export async function listUsersService(
   limit: number,

@@ -17,37 +17,23 @@
 // PF-13 — Market data tool category.
 // Imported by tools/index.ts for self-registration and also exposed
 // as a sub-path export: @kestrel/ai/tools/market
+//
+// P2-01 removal: the natively-migrated market tools (`get_price`,
+// `get_candles`, `get_indicators`, `get_market_structure`, `get_cot`) are no
+// longer registered here. Their canonical Mastra registrations in
+// `mastra-v2/tools/canonical/` are the only implementations; consumers
+// resolve them natively (`resolveNativeCanonicalTool`) instead of through
+// this legacy registry.
 
-import { readFeatureFlag } from '@kestrel/shared';
-
-import { getCandlesTool } from './get-candles';
 import { getCorrelationTool } from './get-correlation';
-import { getCoTTool } from './get-cot';
-import { getIndicatorsTool } from './get-indicators';
 import { getIntermarketTool } from './get-intermarket';
 import { getIntermarketResonanceTool } from './get-intermarket-resonance';
-import { getMarketStructureTool } from './get-market-structure';
-import { getPriceTool } from './get-price';
 import { getSeasonalityTool } from './get-seasonality';
 import { getSessionLevelsTool } from './get-session-levels';
-import { isNativeMigratedTool, NATIVE_MIGRATED_TOOL_NAMES } from './native-migrated';
 import { toolRegistry } from './registry';
 
-/**
- * P2-01 (audit 2026-10-18) — exported for tests and docs; the gate itself
- * lives in `native-migrated.ts`. `PHASE_TOOLS_SHIMS=0` stops registering the
- * migrated legacy shims so a deployment can prove the native path before
- * their dated deletion (see CHANGELOG).
- */
-export { NATIVE_MIGRATED_TOOL_NAMES };
-
 const marketTools = [
-  ['get_price', getPriceTool],
-  ['get_candles', getCandlesTool],
-  ['get_indicators', getIndicatorsTool],
-  ['get_market_structure', getMarketStructureTool],
   ['get_correlation', getCorrelationTool],
-  ['get_cot', getCoTTool],
   ['get_intermarket', getIntermarketTool],
   ['get_intermarket_resonance', getIntermarketResonanceTool],
   ['get_session_levels', getSessionLevelsTool],
@@ -60,11 +46,7 @@ const marketTools = [
  * no longer mutates the singleton registry.
  */
 export function registerMarketTools(registry: typeof toolRegistry = toolRegistry): void {
-  // P2-01: with the shim flag off, the migrated names are served by the
-  // native canonical registrations instead of these legacy wrappers.
-  const legacyShimsEnabled = readFeatureFlag('PHASE_TOOLS_SHIMS');
   for (const [name, tool] of marketTools) {
-    if (!legacyShimsEnabled && isNativeMigratedTool(name)) continue;
     registry.register(name, tool);
   }
 }

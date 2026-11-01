@@ -7,6 +7,7 @@
  * two verifiers cannot disagree about what counts as a supported number.
  */
 
+import { partitionNumbersByFreshness } from '../mastra-v2/agents/canonical/freshness';
 import { extractNarrativeNumbers } from '../mastra-v2/agents/xauusd/report/report-grounding';
 import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
 import type { MastraModeOpinion } from './types';
@@ -24,31 +25,15 @@ const SCENARIO_CONTEXT_CHARS = 24;
 /**
  * Recursively extract finite numeric values from structured tool outputs so
  * numbers fetched by a specialist's domain tools are grounded in the verifier.
+ *
+ * R8 (audit 2026-10-31): a value under a stale freshness envelope (or older
+ * than the emitter's documented live window) is left out. It therefore cannot
+ * ground anything the specialist or the fusion answer asserts; a value that
+ * also appears in a fresh tool output still grounds, because the caller
+ * extracts every tool output independently and merges the results.
  */
 export function extractNumbersFromToolOutput(value: unknown, depth = 0): number[] {
-  if (depth > 6 || value === null || value === undefined) return [];
-  if (typeof value === 'number') {
-    return Number.isFinite(value) ? [value] : [];
-  }
-  if (typeof value === 'string') {
-    return extractNarrativeNumbers(value);
-  }
-  if (Array.isArray(value)) {
-    const out: number[] = [];
-    for (const item of value) {
-      out.push(...extractNumbersFromToolOutput(item, depth + 1));
-    }
-    return out;
-  }
-  if (typeof value === 'object') {
-    const out: number[] = [];
-    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
-      if (key === 't' || key === 'ts' || key === 'fetchedAt' || key === 'producedAt') continue;
-      out.push(...extractNumbersFromToolOutput(entry, depth + 1));
-    }
-    return out;
-  }
-  return [];
+  return partitionNumbersByFreshness(value, { maxDepth: Math.max(0, 6 - depth) }).fresh;
 }
 
 export function packetEvidenceValues(

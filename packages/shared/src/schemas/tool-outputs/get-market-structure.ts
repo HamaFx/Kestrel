@@ -19,8 +19,8 @@
 // envelope is bespoke (it is NOT `StructureResultSchema`). We reuse the
 // per-event sub-schemas directly.
 //
-// Source of truth: packages/ai/src/tools/get-market-structure.ts execute()
-// return type.
+// Source of truth: packages/ai/src/mastra-v2/tools/canonical/market-structure.ts
+// execute() return type.
 
 import { z } from 'zod';
 

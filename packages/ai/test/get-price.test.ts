@@ -17,13 +17,17 @@
 // get_price tool tests. R8 (audit 2026-10-31): the tool reads the
 // meta-returning adapter getter, so these mocks must supply `PriceResult`
 // envelopes and the assertions cover the freshness disclosure.
+//
+// P2-01 removal: the AI SDK shim is gone; this suite now exercises the
+// canonical execute core that the native Mastra registration runs.
 
 import type { PriceResult } from '@kestrel/data';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getPriceTool } from '../src/tools/get-price';
+import { CanonicalPriceInputSchema } from '../src/mastra-v2/tools/canonical/input-schemas';
+import { executeCanonicalPrice } from '../src/mastra-v2/tools/canonical/price';
 
-const exec = getPriceTool.execute as unknown as (input: { symbols: string[] }) => Promise<{
+const exec = executeCanonicalPrice as unknown as (input: { symbols: string[] }) => Promise<{
   ticks: unknown[];
   asOf: string;
   freshness?: Array<{
@@ -160,14 +164,11 @@ describe('get_price — Phase 0.10', () => {
   });
 
   it('validates input schema — min 1 symbol', () => {
-    const schema = getPriceTool.inputSchema as {
-      safeParse: (v: unknown) => { success: boolean; error?: { issues?: unknown[] } };
-    };
-    expect(schema.safeParse({ symbols: [] }).success).toBe(false);
+    expect(CanonicalPriceInputSchema.safeParse({ symbols: [] }).success).toBe(false);
   });
 
   it('validates input schema — max canonical catalog size', () => {
-    const schema = getPriceTool.inputSchema as { safeParse: (v: unknown) => { success: boolean } };
+    const schema = CanonicalPriceInputSchema;
     const canonicalSymbols = [
       'XAUUSD',
       'EURUSD',
@@ -193,7 +194,7 @@ describe('get_price — Phase 0.10', () => {
   });
 
   it('normalizes aliases and rejects unknown symbols', () => {
-    const schema = getPriceTool.inputSchema as {
+    const schema = CanonicalPriceInputSchema as unknown as {
       safeParse: (v: unknown) => { success: boolean; data?: { symbols: string[] } };
     };
     // BTCUSD is a supported catalog alias for the canonical BTCUSDT ticker.

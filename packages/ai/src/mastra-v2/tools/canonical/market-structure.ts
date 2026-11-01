@@ -64,8 +64,8 @@ export interface MarketStructureComputationArgs {
 }
 
 /**
- * Pure projection shared by the native registration, the legacy AI SDK shim,
- * and the XAUUSD market-structure tool.
+ * Pure projection shared by the native registration and the XAUUSD
+ * market-structure tool.
  */
 export function computeMarketStructureOutput({
   symbol,

@@ -100,7 +100,9 @@ export const paperAccounts = pgTable(
   },
   (t) => [
     index('plg_paper_trading_accounts_tenant_user_idx').on(t.tenantId, t.userId),
-    index('plg_paper_trading_accounts_user_mode_idx').on(t.userId, t.mode),
+    // One account per (user, mode), enforced by the unique constraint created
+    // in 0109. plg_paper_trading_accounts_user_mode_idx duplicated that key's
+    // leading columns and was dropped in 0122 (audit 2026-10-31 Phase 4).
     tenantIsolation(),
   ],
 ).enableRLS();

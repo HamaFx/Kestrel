@@ -102,8 +102,8 @@ export { SPECIALIST_DESK_TOOL_NAMES };
  *
  * P2-01 (audit 2026-10-18) — each name prefers its native Mastra
  * registration; unmigrated names keep the legacy registry + adapter path.
- * This keeps the desks intact when the legacy shims are disabled
- * (`PHASE_TOOLS_SHIMS=0`) and matches how canonical-chat resolves tools.
+ * The legacy shims are gone, so this native-first lookup is the only path
+ * for the migrated names and matches how canonical-chat resolves tools.
  */
 export function resolveSpecialistDeskTools(
   name: MastraSpecialistName,

@@ -14,11 +14,15 @@
  * limitations under the License.
  */
 
+// P2-01 removal: the AI SDK shim is gone; this suite now exercises the
+// canonical execute core that the native Mastra registration runs.
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getMarketStructureTool } from '../src/tools/get-market-structure';
+import { CanonicalMarketStructureInputSchema } from '../src/mastra-v2/tools/canonical/input-schemas';
+import { executeCanonicalMarketStructure } from '../src/mastra-v2/tools/canonical/market-structure';
 
-const exec = getMarketStructureTool.execute as unknown as (input: {
+const exec = executeCanonicalMarketStructure as unknown as (input: {
   symbol: string;
   tf: string;
   count?: number;
@@ -129,38 +133,50 @@ describe('get_market_structure — Phase 0.10', () => {
   });
 
   it('validates input schema — count min 50', () => {
-    const schema = getMarketStructureTool.inputSchema as {
-      safeParse: (v: unknown) => { success: boolean };
-    };
-    expect(schema.safeParse({ symbol: 'EURUSD', tf: '1h', count: 49 }).success).toBe(false);
-    expect(schema.safeParse({ symbol: 'EURUSD', tf: '1h', count: 50 }).success).toBe(true);
+    expect(
+      CanonicalMarketStructureInputSchema.safeParse({ symbol: 'EURUSD', tf: '1h', count: 49 })
+        .success,
+    ).toBe(false);
+    expect(
+      CanonicalMarketStructureInputSchema.safeParse({ symbol: 'EURUSD', tf: '1h', count: 50 })
+        .success,
+    ).toBe(true);
   });
 
   it('validates input schema — count max 1000', () => {
-    const schema = getMarketStructureTool.inputSchema as {
-      safeParse: (v: unknown) => { success: boolean };
-    };
-    expect(schema.safeParse({ symbol: 'EURUSD', tf: '1h', count: 1000 }).success).toBe(true);
-    expect(schema.safeParse({ symbol: 'EURUSD', tf: '1h', count: 1001 }).success).toBe(false);
+    expect(
+      CanonicalMarketStructureInputSchema.safeParse({ symbol: 'EURUSD', tf: '1h', count: 1000 })
+        .success,
+    ).toBe(true);
+    expect(
+      CanonicalMarketStructureInputSchema.safeParse({ symbol: 'EURUSD', tf: '1h', count: 1001 })
+        .success,
+    ).toBe(false);
   });
 
   it('validates input schema — count defaults to 300', () => {
-    const schema = getMarketStructureTool.inputSchema as {
-      safeParse: (v: unknown) => { success: boolean; data?: { count: number } };
-    };
-    const parsed = schema.safeParse({ symbol: 'EURUSD', tf: '1h' });
+    const parsed = CanonicalMarketStructureInputSchema.safeParse({ symbol: 'EURUSD', tf: '1h' });
     expect(parsed.success).toBe(true);
     if (parsed.data) expect(parsed.data.count).toBe(300);
   });
 
   it('validates input schema — lookback range 2 to 10', () => {
-    const schema = getMarketStructureTool.inputSchema as {
-      safeParse: (v: unknown) => { success: boolean };
-    };
-    expect(schema.safeParse({ symbol: 'EURUSD', tf: '1h', lookback: 1 }).success).toBe(false);
-    expect(schema.safeParse({ symbol: 'EURUSD', tf: '1h', lookback: 2 }).success).toBe(true);
-    expect(schema.safeParse({ symbol: 'EURUSD', tf: '1h', lookback: 10 }).success).toBe(true);
-    expect(schema.safeParse({ symbol: 'EURUSD', tf: '1h', lookback: 11 }).success).toBe(false);
+    expect(
+      CanonicalMarketStructureInputSchema.safeParse({ symbol: 'EURUSD', tf: '1h', lookback: 1 })
+        .success,
+    ).toBe(false);
+    expect(
+      CanonicalMarketStructureInputSchema.safeParse({ symbol: 'EURUSD', tf: '1h', lookback: 2 })
+        .success,
+    ).toBe(true);
+    expect(
+      CanonicalMarketStructureInputSchema.safeParse({ symbol: 'EURUSD', tf: '1h', lookback: 10 })
+        .success,
+    ).toBe(true);
+    expect(
+      CanonicalMarketStructureInputSchema.safeParse({ symbol: 'EURUSD', tf: '1h', lookback: 11 })
+        .success,
+    ).toBe(false);
   });
 
   it('passes kinds and lookback through to computeStructure', async () => {

@@ -17,9 +17,9 @@
 import type { Candle } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getCandlesTool } from '../src/tools/get-candles';
-import { getIndicatorsTool } from '../src/tools/get-indicators';
-import { computeMarketStructureOutput } from '../src/tools/get-market-structure';
+import { executeCanonicalCandles } from '../src/mastra-v2/tools/canonical/candles';
+import { executeCanonicalIndicators } from '../src/mastra-v2/tools/canonical/indicators';
+import { computeMarketStructureOutput } from '../src/mastra-v2/tools/canonical/market-structure';
 
 const mockGetCandles = vi.fn();
 const mockGetCandlesUnchecked = vi.fn();
@@ -35,7 +35,7 @@ vi.mock('@kestrel/data', async (importOriginal) => {
 
 const candlesResult = (candles: Candle[]) => ({ candles, stale: false, producedAt: Date.now() });
 
-const execCandles = getCandlesTool.execute as unknown as (input: {
+const execCandles = executeCanonicalCandles as unknown as (input: {
   symbol: string;
   tf: string;
   count: number;
@@ -57,7 +57,7 @@ const execCandles = getCandlesTool.execute as unknown as (input: {
   } | null;
 }>;
 
-const execIndicators = getIndicatorsTool.execute as unknown as (input: {
+const execIndicators = executeCanonicalIndicators as unknown as (input: {
   symbol: string;
   tf: string;
   count: number;
@@ -96,7 +96,7 @@ describe('prevent LLM context token bloat (F-15)', () => {
     vi.clearAllMocks();
   });
 
-  it('getCandlesTool caps returned candles array to max 30 recent bars and includes summary', async () => {
+  it('get_candles caps returned candles array to max 30 recent bars and includes summary', async () => {
     const rawCandles = generateCandles(200);
     mockGetCandles.mockResolvedValueOnce(candlesResult(rawCandles));
 
@@ -116,7 +116,7 @@ describe('prevent LLM context token bloat (F-15)', () => {
     expect(res.summary?.totalVolume).toBeGreaterThan(0);
   });
 
-  it('getIndicatorsTool caps tail points to 15', async () => {
+  it('get_indicators caps tail points to 15', async () => {
     const rawCandles = generateCandles(100);
     mockGetCandlesUnchecked.mockResolvedValueOnce(rawCandles);
 

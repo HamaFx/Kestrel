@@ -21,9 +21,9 @@
  * canonical chat's core market-data tools.
  *
  * The canonical agent registers these names directly (no legacy adapter
- * indirection). The legacy AI SDK modules in `src/tools/` remain the
- * stable shape for non-Mastra consumers and delegate to the same execute
- * cores, so both paths always produce identical numbers.
+ * indirection). P2-01 removal: the one-release AI SDK shims were deleted on
+ * 2026-11-01, so these `createTool` registrations are the only
+ * implementations of the seven names.
  */
 
 import { canonicalCandlesTool } from './candles';

@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Research-session summary card: today / 7-day / 30-day turn counts and
-// the 30-day credit total shown at the top of the usage page.
+// Research-session summary card: today / 7-day / 30-day turn counts shown at
+// the top of the usage page. (The 30-day credits stat was removed with the
+// dead `chat_telemetry.credits_charged` column, audit 2026-10-31 Phase 4.)
 
 import type { UsageStats } from '@kestrel/ai';
 
@@ -26,7 +27,7 @@ export function ActivitySummaryCard({ stats }: { stats: UsageStats }) {
         </span>
       </header>
 
-      <dl className="surface-well grid grid-cols-2 gap-3 rounded-xl border border-white/5 p-3.5 text-xs tabular-nums shadow-inner sm:grid-cols-4">
+      <dl className="surface-well grid grid-cols-2 gap-3 rounded-xl border border-white/5 p-3.5 text-xs tabular-nums shadow-inner sm:grid-cols-3">
         <Stat label="Today" value={`${todayTurns} ${todayTurns === 1 ? 'analysis' : 'analyses'}`} />
         <Stat
           label="Last 7 Days"
@@ -36,7 +37,6 @@ export function ActivitySummaryCard({ stats }: { stats: UsageStats }) {
           label="Last 30 Days"
           value={`${stats.thirtyDayTurns} ${stats.thirtyDayTurns === 1 ? 'session' : 'sessions'}`}
         />
-        <Stat label="30d Credits" value={stats.thirtyDayCredits.toLocaleString()} />
       </dl>
     </section>
   );

@@ -74,7 +74,7 @@ export interface RunMastraCanonicalChatStreamInput {
 export async function runMastraCanonicalChatStreamService(
   input: RunMastraCanonicalChatStreamInput,
 ): Promise<Response> {
-  const { settings, user } = await getUserWithSettings(input.userId);
+  const { settings } = await getUserWithSettings(input.userId);
   if (!settings) throw new Error('User settings not found. Please complete onboarding.');
 
   const env = getServerEnv();
@@ -128,7 +128,6 @@ export async function runMastraCanonicalChatStreamService(
       userMessage: input.userMessage,
       history,
       settings,
-      plan: user?.plan ?? null,
       env,
       ...(input.customInstructions ? { customInstructions: input.customInstructions } : {}),
       responseStyle: input.responseStyle,

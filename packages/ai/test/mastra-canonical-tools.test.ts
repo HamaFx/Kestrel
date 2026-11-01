@@ -15,9 +15,9 @@
  */
 
 // B-01 (audit 2026-10-18, I-03) — native canonical tool registrations.
-// The Mastra-native tools and the legacy AI SDK shims must produce the same
-// output for the same input, so the migration cannot change what the model
-// (or any non-Mastra consumer) sees.
+// P2-01 removal: the legacy AI SDK shims are gone, so these tests assert the
+// native registrations' outputs directly (the shims only delegated to the
+// same execute cores).
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -37,11 +37,12 @@ import {
   nativeCanonicalTools,
   resolveNativeCanonicalTool,
 } from '../src/mastra-v2/tools/canonical';
+import {
+  CANONICAL_KNOWLEDGE_DESCRIPTION,
+  CANONICAL_PRICE_DESCRIPTION,
+} from '../src/mastra-v2/tools/canonical/descriptions';
+import { CanonicalKnowledgeInputSchema } from '../src/mastra-v2/tools/canonical/input-schemas';
 import { registerAllTools, toolRegistry } from '../src/tools';
-import { getCandlesTool } from '../src/tools/get-candles';
-import { getIndicatorsTool } from '../src/tools/get-indicators';
-import { getPriceTool } from '../src/tools/get-price';
-import { searchKnowledgeTool } from '../src/tools/search-knowledge';
 
 const dataMocks = vi.hoisted(() => ({
   getPrice: vi.fn(),
@@ -130,7 +131,7 @@ describe('native canonical tools (B-01)', () => {
     );
   });
 
-  it('native get_price produces the same output as the legacy AI SDK shim', async () => {
+  it('native get_price returns the tick with freshness metadata', async () => {
     dataMocks.getPrice.mockResolvedValue({
       tick,
       stale: false,
@@ -144,27 +145,25 @@ describe('native canonical tools (B-01)', () => {
         { symbols: ['XAUUSD'] },
         toolContext,
       )) as { ticks: (typeof tick)[]; asOf: string; freshness: Array<{ stale: boolean }> };
-      const legacyOutput = await asAnyTool(getPriceTool).execute({ symbols: ['XAUUSD'] }, {});
 
-      expect(nativeOutput).toEqual(legacyOutput);
+      expect(nativeOutput.ticks).toHaveLength(1);
       expect(nativeOutput.ticks[0]?.mid).toBe(2648.3);
       expect(nativeOutput.asOf).toBe('2026-10-18T12:00:00.000Z');
-      // R8 — the freshness block survives to both output paths.
+      // R8 — the freshness block survives to the tool output.
       expect(nativeOutput.freshness[0]?.stale).toBe(false);
-      expect(dataMocks.getPrice).toHaveBeenCalledTimes(2);
+      expect(dataMocks.getPrice).toHaveBeenCalledTimes(1);
     } finally {
       vi.useRealTimers();
     }
   });
 
-  it('native get_candles preserves the legacy period-summary output shape', async () => {
+  it('native get_candles preserves the period-summary output shape', async () => {
     dataMocks.getCandles.mockResolvedValue({
       candles,
       stale: false,
       producedAt: 1_760_000_000_000,
     });
-    // The freshness block includes wall-clock ages; freeze them so the two
-    // executions are byte-identical.
+    // The freshness block includes wall-clock ages; freeze them for stable assertions.
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-10-18T12:00:00.000Z'));
     try {
@@ -176,12 +175,7 @@ describe('native canonical tools (B-01)', () => {
         candles: unknown[];
         freshness?: { stale: boolean };
       };
-      const legacyOutput = await asAnyTool(getCandlesTool).execute(
-        { symbol: 'XAUUSD', tf: '1h', count: 120 },
-        {},
-      );
 
-      expect(nativeOutput).toEqual(legacyOutput);
       expect(nativeOutput.candles).toHaveLength(30);
       expect(nativeOutput.freshness?.stale).toBe(false);
       expect(nativeOutput.summary).toMatchObject({
@@ -196,7 +190,7 @@ describe('native canonical tools (B-01)', () => {
     }
   });
 
-  it('native get_indicators returns the same series as the legacy shim', async () => {
+  it('native get_indicators returns the tail-trimmed series', async () => {
     dataMocks.getCandlesUnchecked.mockResolvedValue(candles);
 
     const input = {
@@ -205,15 +199,12 @@ describe('native canonical tools (B-01)', () => {
       count: 200,
       indicators: [{ kind: 'rsi', params: { period: 14 } }],
     };
-    // `computeIndicator` stamps `fetchedAt` with the wall clock; freeze it so
-    // the two executions are byte-identical.
+    // `computeIndicator` stamps `fetchedAt` with the wall clock; freeze it.
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-10-18T12:00:00.000Z'));
     try {
       const nativeOutput = await asAnyTool(canonicalIndicatorsTool).execute(input, toolContext);
-      const legacyOutput = await asAnyTool(getIndicatorsTool).execute(input, {});
 
-      expect(nativeOutput).toEqual(legacyOutput);
       const results = (nativeOutput as { results: Array<{ values: number[] }> }).results;
       expect(results[0]?.values.length).toBeGreaterThan(0);
       expect(results[0]?.values.length).toBeLessThanOrEqual(15);
@@ -222,28 +213,37 @@ describe('native canonical tools (B-01)', () => {
     }
   });
 
-  it('keeps the knowledge schemas identical between native and legacy registrations', () => {
-    // The native and shim registrations must accept exactly the same inputs;
-    // the shim re-exports the native schema object, so identity is the proof.
+  it('keeps the native registrations wired to their canonical schemas and descriptions', () => {
+    // The createTool registrations must reuse the exact canonical leaf values
+    // so the schema/description the model sees cannot drift from the shared
+    // definitions.
     expect((canonicalKnowledgeTool as { inputSchema?: unknown }).inputSchema).toBe(
-      (searchKnowledgeTool as { inputSchema?: unknown }).inputSchema,
+      CanonicalKnowledgeInputSchema,
+    );
+    expect((canonicalKnowledgeTool as { description?: string }).description).toBe(
+      CANONICAL_KNOWLEDGE_DESCRIPTION,
     );
     expect((canonicalPriceTool as { description?: string }).description).toBe(
-      (getPriceTool as { description?: string }).description,
+      CANONICAL_PRICE_DESCRIPTION,
     );
   });
 
-  it('freezes and asserts the canonical read-only allowlist against the registry (B-11)', () => {
+  it('freezes and asserts the canonical read-only allowlist against the native path (B-11)', () => {
     // The manifest allowlist is frozen at module init and every name must
-    // resolve in the legacy registry — a manifest typo fails here, not on the
-    // first user call that happens to select the missing tool.
+    // resolve from the legacy registry or a native canonical registration —
+    // a manifest typo fails here, not on the first user call that happens to
+    // select the missing tool. P2-01 removal: the seven migrated names are
+    // native-only, so the registry alone no longer covers the list.
     expect(Object.isFrozen(CANONICAL_READ_ONLY_TOOL_NAMES)).toBe(true);
     expect([...CANONICAL_READ_ONLY_TOOL_NAMES]).toEqual([...manifestToolNames('canonical-chat')]);
     expect(() => assertCanonicalToolAllowlist()).not.toThrow();
 
     registerAllTools(toolRegistry);
     for (const name of CANONICAL_READ_ONLY_TOOL_NAMES) {
-      expect(toolRegistry.has(name), `unregistered canonical tool: ${name}`).toBe(true);
+      expect(
+        toolRegistry.has(name) || resolveNativeCanonicalTool(name) !== null,
+        `unresolved canonical tool: ${name}`,
+      ).toBe(true);
     }
   });
 });

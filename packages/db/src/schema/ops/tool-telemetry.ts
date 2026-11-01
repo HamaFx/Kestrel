@@ -76,7 +76,6 @@ export const chatToolTelemetry = pgTable(
   },
   (t) => [
     index('chat_tool_telemetry_tenant_id_idx').on(t.tenantId),
-    index('chat_tool_telemetry_user_id_idx').on(t.userId),
     index('tool_telemetry_created_idx').on(t.createdAt),
     index('tool_telemetry_thread_idx').on(t.threadId, t.createdAt),
     index('chat_tool_telemetry_trace_idx').on(t.traceId, t.createdAt),
@@ -85,6 +84,7 @@ export const chatToolTelemetry = pgTable(
     uniqueIndex('chat_tool_telemetry_idempotency_uk').on(t.idempotencyKey),
     index('tool_telemetry_tool_idx').on(t.tool),
     // Phase 2 (0098) — listToolTelemetry: user_id + created_at DESC.
+    // Covers chat_tool_telemetry_user_id_idx (dropped in 0122).
     index('tool_telemetry_user_created_idx').on(t.userId, t.createdAt),
   ],
 );

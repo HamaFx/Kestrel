@@ -67,13 +67,13 @@ export const journalEntries = pgTable(
       .$onUpdate(() => new Date()),
   },
   (t) => [
-    index('journal_entries_user_id_idx').on(t.userId),
     index('journal_entries_tenant_opened_idx').on(t.tenantId, t.openedAt),
     index('journal_symbol_idx').on(t.symbol),
     index('journal_opened_idx').on(t.openedAt),
     // Phase 2 (0032) — soft-delete index, absent from the TypeScript schema.
     index('journal_entries_deleted_at_idx').on(t.deletedAt),
     // Phase 2 (0098) — listEntries(user_id, opened_at DESC) predicate.
+    // Covers journal_entries_user_id_idx (dropped in 0122).
     index('journal_entries_user_opened_idx').on(t.userId, t.openedAt),
     // Phase 2 (0028) — outcome/closedAt consistency CHECK.
     check(

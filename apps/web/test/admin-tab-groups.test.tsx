@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-// Phase 3 Task 4 — the Admin Control Plane used to hide 7–8 of its 16 tabs
+// Phase 3 Task 4 — the Admin Control Plane used to hide 7–8 of its tabs
 // behind a scrollbar-less overflow strip. Every section must now be rendered
 // together with its domain heading, in one click.
 
@@ -65,10 +65,10 @@ describe('Admin Control Plane grouping (Phase 3)', () => {
     expect(new Set(grouped).size).toBe(TABS.length);
   });
 
-  it('renders all 16 section tabs with their four domain headings', () => {
+  it('renders every section tab with its domain heading', () => {
     render(<AdminPage />);
 
-    expect(screen.getAllByRole('tab')).toHaveLength(16);
+    expect(screen.getAllByRole('tab')).toHaveLength(TABS.length);
     for (const group of TAB_GROUPS) {
       expect(screen.getByText(group.label)).toBeTruthy();
     }

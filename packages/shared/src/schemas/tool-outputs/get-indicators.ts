@@ -18,7 +18,8 @@
 // each result's `values` array to the last 30 points but otherwise the shape
 // matches `IndicatorResultSchema`, so we reuse it here.
 //
-// Source of truth: packages/ai/src/tools/get-indicators.ts execute() return type.
+// Source of truth: packages/ai/src/mastra-v2/tools/canonical/indicators.ts
+// execute() return type.
 
 import { z } from 'zod';
 

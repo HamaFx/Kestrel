@@ -85,13 +85,15 @@ export const alerts = pgTable(
   },
   (t) => [
     index('alerts_tenant_id_idx').on(t.tenantId),
-    index('alerts_user_id_idx').on(t.userId),
     index('alerts_active_idx').on(t.active),
     index('alerts_fired_at_idx').on(t.firedAt),
     index('alerts_last_fired_at_idx').on(t.lastFiredAt),
     index('alerts_delivery_claimed_at_idx').on(t.deliveryClaimedAt),
     // Phase 2 (0098) — high-frequency listAlerts / listEvaluable predicates.
     index('alerts_user_active_created_idx').on(t.userId, t.active, t.createdAt),
+    // listAlerts: user_id filter + created_at DESC sort (audit 2026-10-31).
+    // The composite above cannot serve the sort because `active` sits between.
+    index('alerts_user_created_idx').on(t.userId, t.createdAt.desc()),
     index('alerts_evaluable_idx')
       .on(t.createdAt)
       .where(sql`${t.active} = true AND ${t.firedAt} IS NULL`),

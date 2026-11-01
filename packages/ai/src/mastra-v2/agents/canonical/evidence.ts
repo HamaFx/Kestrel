@@ -13,16 +13,36 @@ import {
   extractNarrativeNumberTokens,
   type NarrativeNumberToken,
 } from '../xauusd/report/report-grounding';
+import { partitionNumbersByFreshness, type StaleNumber } from './freshness';
 
 export interface CanonicalToolEvidence {
   name: string;
   resultText: string;
 }
 
+/**
+ * A claim refused because its only freshness support was stale (R8): the
+ * emitter's own envelope said the value came from a fallback cache or was
+ * older than the tool's live window. Carried on the check so the refusal
+ * message can name the datum and its age.
+ */
+export interface CanonicalStaleDatum {
+  /** The claimed value whose only support is stale. */
+  value: number;
+  /** Datum label from the freshness envelope (`XAUUSD`, `XAUUSD 1h`). */
+  label: string;
+  /** `flagged` = fallback cache; `aged` = older than the emitter's live window. */
+  reason: 'flagged' | 'aged';
+  /** Seconds since the upstream observed the value; null when the envelope does not say. */
+  ageSeconds: number | null;
+}
+
 export interface CanonicalEvidenceCheck {
   ok: boolean;
   findings: string[];
   numericClaimCount: number;
+  /** Present when a claim was refused because its only support was stale (R8). */
+  staleData?: CanonicalStaleDatum[];
 }
 
 /**
@@ -127,6 +147,11 @@ function collectCanonicalClaims(text: string): number[] {
  * Dates, years, and timeframes are structural and never claimed. Percentages
  * are claims when signed or next to market context, and small integers are
  * claims when they read as an indicator/positioning value (P1-06).
+ *
+ * R8 (audit 2026-10-31): a value whose only support is a tool output the
+ * emitter flagged stale (or that is older than the tool's documented live
+ * window) does not ground. A value that also appears in a fresh output stays
+ * grounded; the tolerance and every other check are unchanged.
  */
 export function checkCanonicalEvidence(
   text: string,
@@ -138,37 +163,160 @@ export function checkCanonicalEvidence(
   if (claims.length > 0 && marketTools.length === 0) {
     findings.push('numeric market claims were generated without a market-data tool result');
   } else if (claims.length > 0) {
-    const evidenceValues = extractNarrativeNumbers(
-      marketTools.map((tool) => tool.resultText).join('\n'),
-    );
+    const { fresh, stale } = collectPartitionedEvidence(marketTools);
     const ungrounded = claims.filter(
-      (claim) => !evidenceValues.some((value) => Math.abs(value - claim) <= EVIDENCE_TOLERANCE),
+      (claim) => !fresh.some((value) => Math.abs(value - claim) <= EVIDENCE_TOLERANCE),
     );
-    if (ungrounded.length > 0) {
+    const staleData: CanonicalStaleDatum[] = [];
+    const invented: number[] = [];
+    for (const claim of ungrounded) {
+      const staleMatch = findStaleSupport(claim, stale);
+      if (staleMatch === undefined) {
+        invented.push(claim);
+        continue;
+      }
+      const datum = staleDatumFor(claim, staleMatch);
+      staleData.push(datum);
       findings.push(
-        `numeric market claim(s) ${ungrounded.join(', ')} were not found in the market-data tool output`,
+        `numeric market claim ${claim} is supported only by stale ${datum.label} data (${describeStaleDatum(datum)}); a fresh tool result is required`,
       );
     }
+    if (invented.length > 0) {
+      findings.push(
+        `numeric market claim(s) ${invented.join(', ')} were not found in the market-data tool output`,
+      );
+    }
+    return {
+      ok: findings.length === 0,
+      findings,
+      numericClaimCount: claims.length,
+      ...(staleData.length > 0 ? { staleData } : {}),
+    };
   }
   return { ok: findings.length === 0, findings, numericClaimCount: claims.length };
+}
+
+/**
+ * Split every market tool's numeric values into fresh and stale using the
+ * freshness envelope the output carries (R8). A non-JSON output discloses
+ * nothing, so it grounds exactly as before.
+ */
+function collectPartitionedEvidence(marketTools: readonly CanonicalToolEvidence[]): {
+  fresh: number[];
+  stale: StaleNumber[];
+} {
+  const fresh: number[] = [];
+  const stale: StaleNumber[] = [];
+  for (const tool of marketTools) {
+    const parsed = parseToolOutput(tool.resultText);
+    if (parsed === undefined) {
+      fresh.push(...extractNarrativeNumbers(tool.resultText));
+      continue;
+    }
+    const partition = partitionNumbersByFreshness(parsed, { toolName: tool.name });
+    fresh.push(...partition.fresh);
+    stale.push(...partition.stale);
+  }
+  return { fresh, stale };
+}
+
+/** Parsed JSON output, or undefined when the result text is not JSON. */
+function parseToolOutput(resultText: string): unknown {
+  const trimmed = resultText.trim();
+  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return undefined;
+  try {
+    return JSON.parse(trimmed) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Closest stale value that could explain the claim, or undefined. */
+function findStaleSupport(claim: number, stale: readonly StaleNumber[]): StaleNumber | undefined {
+  let best: StaleNumber | undefined;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (const candidate of stale) {
+    const distance = Math.abs(candidate.value - claim);
+    if (distance <= EVIDENCE_TOLERANCE && distance < bestDistance) {
+      best = candidate;
+      bestDistance = distance;
+    }
+  }
+  return best;
+}
+
+function staleDatumFor(claim: number, stale: StaleNumber): CanonicalStaleDatum {
+  return {
+    value: claim,
+    label: stale.entry.label,
+    reason: stale.entry.staleReason === 'aged' ? 'aged' : 'flagged',
+    ageSeconds: stale.entry.ageSeconds,
+  };
 }
 
 export const CANONICAL_EVIDENCE_BLOCKED_MESSAGE =
   'I could not verify the numbers in that answer against market data, so I did not return it. Please ask again or request a fresh market check.';
 
+/** How many stale data points the refusal message names before truncating. */
+const MAX_STALE_DETAILS = 3;
+
+/**
+ * The refusal the user sees. The base sentence matches the historical
+ * constant; when a value was refused because it was stale, the message also
+ * names that datum and how old it was, so the user knows what to retry.
+ */
+export function canonicalEvidenceBlockedMessage(
+  staleData: readonly CanonicalStaleDatum[] = [],
+): string {
+  if (staleData.length === 0) return CANONICAL_EVIDENCE_BLOCKED_MESSAGE;
+  const details = staleData.slice(0, MAX_STALE_DETAILS).map(describeStaleDatumForUser);
+  const extra =
+    staleData.length > MAX_STALE_DETAILS
+      ? ` (and ${staleData.length - MAX_STALE_DETAILS} more)`
+      : '';
+  return `${CANONICAL_EVIDENCE_BLOCKED_MESSAGE} ${details.join('; ')}${extra}`;
+}
+
+function describeStaleDatum(datum: CanonicalStaleDatum): string {
+  return datum.reason === 'aged'
+    ? `age ${formatAge(datum.ageSeconds)}, past its live window`
+    : `served from a stale cache, ${datum.ageSeconds === null ? 'age unknown' : `age ${formatAge(datum.ageSeconds)}`}`;
+}
+
+function describeStaleDatumForUser(datum: CanonicalStaleDatum): string {
+  if (datum.reason === 'aged') {
+    return datum.ageSeconds === null
+      ? `${datum.label} was older than its live window.`
+      : `${datum.label} was ${formatAge(datum.ageSeconds)} old, past its live window.`;
+  }
+  return `${datum.label} was served from a stale cache${
+    datum.ageSeconds === null ? '' : ` (age ${formatAge(datum.ageSeconds)})`
+  }.`;
+}
+
+function formatAge(ageSeconds: number | null): string {
+  return ageSeconds === null ? 'an unknown time' : `${Math.round(ageSeconds)}s`;
+}
+
 /**
  * Thrown instead of returning an answer whose numeric claims are unsupported
- * (audit plan §1.3, Q1: block hard, no repaired or degraded answer).
+ * (audit plan §1.3, Q1: block hard, no repaired or degraded answer). When the
+ * refusal came from a stale-only value, `message` names the datum and age.
  */
 export class CanonicalEvidenceBlockedError extends Error {
   readonly code = 'CANONICAL_EVIDENCE_BLOCKED';
 
-  constructor(readonly findings: readonly string[]) {
-    super(CANONICAL_EVIDENCE_BLOCKED_MESSAGE);
+  constructor(
+    readonly findings: readonly string[],
+    readonly staleData: readonly CanonicalStaleDatum[] = [],
+  ) {
+    super(canonicalEvidenceBlockedMessage(staleData));
     this.name = 'CanonicalEvidenceBlockedError';
   }
 }
 
 export function assertCanonicalEvidence(evidence: CanonicalEvidenceCheck): void {
-  if (!evidence.ok) throw new CanonicalEvidenceBlockedError(evidence.findings);
+  if (!evidence.ok) {
+    throw new CanonicalEvidenceBlockedError(evidence.findings, evidence.staleData ?? []);
+  }
 }

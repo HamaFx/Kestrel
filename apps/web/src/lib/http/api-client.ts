@@ -217,10 +217,10 @@ async function parseErrorBody(res: Response): Promise<ApiErrorBody> {
  *   const data = await apiFetch<{ runs: CronRun[] }>('/api/admin/cron-history?days=7');
  *
  * Usage (POST with CSRF — automatic):
- *   const result = await apiFetch<{ ok: true }>('/api/admin/features', {
+ *   const result = await apiFetch<{ ok: true }>('/api/admin/onboarding/reset', {
  *     method: 'POST',
  *     headers: { 'Content-Type': 'application/json' },
- *     body: JSON.stringify({ [key]: next }),
+ *     body: JSON.stringify({ userId, mode: 'soft' }),
  *   });
  *
  * Usage (download — raw Response):

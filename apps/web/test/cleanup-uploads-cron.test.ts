@@ -30,6 +30,7 @@ import { runUploadCleanup } from '@/lib/http/upload-cleanup';
 
 const mocks = vi.hoisted(() => ({
   withCronAuth: vi.fn(),
+  loadJournalReferences: vi.fn(),
 }));
 
 // Set before any import-time `getServerEnv()` call can cache an env snapshot
@@ -50,6 +51,10 @@ vi.mock('@/lib/http/cron', () => ({
   getActiveUserIdsForCron: vi.fn(),
 }));
 
+vi.mock('@/app/api/cron/cleanup-uploads/journal-references', () => ({
+  loadJournalReferences: mocks.loadJournalReferences,
+}));
+
 vi.mock('@/lib/logger', () => ({
   createScopedLoggerWithContext: () => ({
     error: vi.fn(),
@@ -60,6 +65,17 @@ vi.mock('@/lib/logger', () => ({
 
 const USER_A = 'user-a';
 const USER_B = 'user-b';
+
+/**
+ * Journal-reference loader stub for direct sweep calls. The route-level tests
+ * use the mocked `loadJournalReferences` module instead.
+ */
+function noJournalReferences(): {
+  references: string[];
+  truncated: boolean;
+} {
+  return { references: [], truncated: false };
+}
 
 /** Every fixture object is built by the uploader's own path builder. */
 const uploadedPaths = [
@@ -131,6 +147,7 @@ beforeEach(() => {
     async (_req: Request, fn: (ctx: unknown) => Promise<unknown>) =>
       Response.json({ ok: true, ...((await fn({ via: 'bearer', userId: null })) as object) }),
   );
+  mocks.loadJournalReferences.mockResolvedValue(noJournalReferences());
 });
 
 afterEach(() => {
@@ -151,6 +168,7 @@ describe('runUploadCleanup', () => {
     const summary = await runUploadCleanup({
       supabaseUrl: 'https://project.supabase.co',
       serviceRoleKey: 'service-role-key',
+      loadJournalReferences: async () => noJournalReferences(),
     });
 
     expect(summary).toMatchObject({
@@ -158,6 +176,8 @@ describe('runUploadCleanup', () => {
       usersScanned: 2,
       dayFoldersExpired: 3,
       dayFoldersSwept: 3,
+      journalReferencedKept: 0,
+      journalUsersDeferred: 0,
       errors: 0,
       truncated: false,
       cutoffDay: '2026-10-25',
@@ -169,6 +189,81 @@ describe('runUploadCleanup', () => {
     );
     // The day folder inside the retention window is untouched.
     expect(deleted.has(uploadedPaths[3]!)).toBe(false);
+  });
+
+  it('keeps an expired object a journal entry references, and deletes the rest', async () => {
+    installStorageMock();
+
+    const summary = await runUploadCleanup({
+      supabaseUrl: 'https://project.supabase.co',
+      serviceRoleKey: 'service-role-key',
+      // Legacy public URL shape for the first upload: the sweep normalises it
+      // with the uploader's own path parser.
+      loadJournalReferences: async () =>
+        ({
+          references: [
+            `https://project.supabase.co/storage/v1/object/public/chat-images/${uploadedPaths[0]!}`,
+          ],
+          truncated: false,
+        }) as const,
+    });
+
+    const deleted = new Set(deletedBatches.flat());
+    expect(deleted.has(uploadedPaths[0]!)).toBe(false);
+    expect(deleted).toEqual(new Set([uploadedPaths[1]!, uploadedPaths[2]!, uploadedPaths[4]!]));
+    expect(summary).toMatchObject({
+      deleted: 3,
+      journalReferencedKept: 1,
+      journalUsersDeferred: 0,
+    });
+  });
+
+  it('keeps a user’s expired objects when the reference lookup is truncated', async () => {
+    installStorageMock();
+
+    const summary = await runUploadCleanup({
+      supabaseUrl: 'https://project.supabase.co',
+      serviceRoleKey: 'service-role-key',
+      loadJournalReferences: async (userId) =>
+        userId === USER_A ? { references: [], truncated: true } : noJournalReferences(),
+    });
+
+    const deleted = new Set(deletedBatches.flat());
+    // Truncation is a "cannot prove unreferenced" answer, so nothing in that
+    // user's expired days is deleted; the other user is still swept.
+    expect(deleted.has(uploadedPaths[0]!)).toBe(false);
+    expect(deleted.has(uploadedPaths[1]!)).toBe(false);
+    expect(deleted.has(uploadedPaths[2]!)).toBe(false);
+    expect(deleted.has(uploadedPaths[4]!)).toBe(true);
+    expect(summary).toMatchObject({
+      deleted: 1,
+      journalReferencedKept: 0,
+      journalUsersDeferred: 1,
+      errors: 0,
+    });
+  });
+
+  it('keeps a user’s expired objects when the reference lookup fails', async () => {
+    installStorageMock();
+
+    const summary = await runUploadCleanup({
+      supabaseUrl: 'https://project.supabase.co',
+      serviceRoleKey: 'service-role-key',
+      warn: () => {},
+      loadJournalReferences: async (userId) => {
+        if (userId === USER_A) throw new Error('database unavailable');
+        return noJournalReferences();
+      },
+    });
+
+    const deleted = new Set(deletedBatches.flat());
+    expect(deleted.has(uploadedPaths[0]!)).toBe(false);
+    expect(deleted.has(uploadedPaths[4]!)).toBe(true);
+    expect(summary).toMatchObject({
+      deleted: 1,
+      journalUsersDeferred: 1,
+      errors: 1,
+    });
   });
 
   it('keeps going when one user prefix cannot be listed', async () => {
@@ -183,6 +278,7 @@ describe('runUploadCleanup', () => {
     const summary = await runUploadCleanup({
       supabaseUrl: 'https://project.supabase.co',
       serviceRoleKey: 'service-role-key',
+      loadJournalReferences: async () => noJournalReferences(),
       warn: () => {},
     });
 
@@ -200,6 +296,7 @@ describe('runUploadCleanup', () => {
       supabaseUrl: 'https://project.supabase.co',
       serviceRoleKey: 'service-role-key',
       maxDeletes: 2,
+      loadJournalReferences: async () => noJournalReferences(),
     });
 
     expect(summary.deleted).toBe(2);
@@ -213,6 +310,7 @@ describe('runUploadCleanup', () => {
       supabaseUrl: 'https://project.supabase.co',
       serviceRoleKey: 'service-role-key',
       maxDeletes: 1,
+      loadJournalReferences: async () => noJournalReferences(),
     });
 
     expect(summary.deleted).toBe(1);
@@ -226,6 +324,7 @@ describe('runUploadCleanup', () => {
     const summary = await runUploadCleanup({
       supabaseUrl: 'https://project.supabase.co',
       serviceRoleKey: 'service-role-key',
+      loadJournalReferences: async () => noJournalReferences(),
       warn: () => {},
     });
 
@@ -248,11 +347,38 @@ describe('GET /api/cron/cleanup-uploads', () => {
       usersScanned: 2,
       dayFoldersSwept: 3,
       dayFoldersExpired: 3,
+      journalReferencedKept: 0,
+      journalUsersDeferred: 0,
       errors: 0,
       truncated: false,
       cutoffDay: '2026-10-25',
     });
     expect(String(body.note)).toContain('deleted=4');
+    expect(String(body.note)).toContain('journalKept=0');
+    expect(String(body.note)).toContain('journalDeferredUsers=0');
     expect(String(body.note)).toContain('retentionDays=7');
+  });
+
+  it('keeps a journal-referenced upload and reports it in the note', async () => {
+    installStorageMock();
+    mocks.loadJournalReferences.mockResolvedValue({
+      references: [uploadedPaths[0]!],
+      truncated: false,
+    });
+
+    const response = await GET(new Request('http://localhost/api/cron/cleanup-uploads'));
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as Record<string, unknown>;
+    expect(body).toMatchObject({
+      processed: 3,
+      deleted: 3,
+      journalReferencedKept: 1,
+      journalUsersDeferred: 0,
+    });
+    expect(String(body.note)).toContain('journalKept=1');
+    const deleted = new Set(deletedBatches.flat());
+    expect(deleted.has(uploadedPaths[0]!)).toBe(false);
+    expect(mocks.loadJournalReferences).toHaveBeenCalledWith(USER_A, ['2026-10-15', '2026-10-25']);
   });
 });

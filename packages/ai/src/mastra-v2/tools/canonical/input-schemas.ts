@@ -3,11 +3,11 @@
 // Canonical tool input schemas — a leaf module that imports only `zod` and
 // `@kestrel/shared`.
 //
-// Same reason as `./descriptions.ts`: the legacy AI SDK shims read these
-// values at module scope, and the canonical tool modules sit inside an import
-// cycle, so a read could land on a binding that is still being initialised
-// (TDZ → masked React error #441 in production). Nothing here imports the app
-// graph, so the read can never race module evaluation.
+// Same reason as `./descriptions.ts`: the canonical tool modules sit inside
+// an import cycle, so a module-scope read of these values could land on a
+// binding that is still being initialised (TDZ → masked React error #441 in
+// production). Nothing here imports the app graph, so the read can never
+// race module evaluation.
 //
 // The canonical modules re-export these, so existing import paths keep working.
 

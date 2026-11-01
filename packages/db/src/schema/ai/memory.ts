@@ -76,9 +76,10 @@ export const memoryEmbeddings = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
-    index('memory_embeddings_tenant_id_idx').on(t.tenantId),
     index('memory_embeddings_user_id_idx').on(t.userId),
-    index('memory_kind_idx').on(t.kind),
+    // memory_kind_idx (dropped in 0122) is covered by memory_source_idx's
+    // leading column; memory_embeddings_tenant_id_idx is covered by the
+    // tenant/user/kind composite below.
     index('memory_source_idx').on(t.kind, t.sourceId),
     index('memory_symbol_idx').on(t.symbol),
     index('memory_occurred_idx').on(t.occurredAt),

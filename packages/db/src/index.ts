@@ -146,7 +146,6 @@ export {
   type UserSymbolRow,
 } from './queries/user-symbols';
 export { getToolStats, type ToolStats } from './queries/tool-telemetry';
-export { listActiveTenants, type OrganizationRow } from './queries/tenants';
 export {
   listDiagnosticTraces,
   getDiagnosticTrace,
@@ -157,12 +156,6 @@ export {
   type TraceExplorerEvent,
   type TraceExplorerFilters,
 } from './queries/diagnostic-traces';
-export {
-  getFeatureFlag,
-  listFeatureFlags,
-  upsertFeatureFlag,
-  type FeatureFlagRow,
-} from './queries/feature-flags';
 export { listCronRuns, deleteOldCronRuns, type CronRunRow } from './queries/cron-runs';
 export { lazyPurgeExpiredTokens } from './queries/verification-tokens';
 export {

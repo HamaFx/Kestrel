@@ -71,10 +71,10 @@ export const chatThreads = pgTable(
       .$onUpdate(() => new Date()),
   },
   (t) => [
-    index('chat_threads_updated_at_idx').on(t.updatedAt),
-    index('chat_threads_user_id_idx').on(t.userId),
     index('chat_threads_tenant_id_idx').on(t.tenantId),
     // Phase 2 (0098) — listThreads: user_id + updated_at DESC + id DESC.
+    // Covers chat_threads_user_id_idx and chat_threads_updated_at_idx for
+    // every per-user read (audit 2026-10-31); both were dropped in 0122.
     index('chat_threads_user_updated_id_idx').on(t.userId, t.updatedAt, t.id),
     uniqueIndex('chat_threads_one_briefings_per_user_idx')
       .on(t.userId)

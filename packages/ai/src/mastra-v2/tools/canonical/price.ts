@@ -19,10 +19,8 @@
 /**
  * B-01 (audit 2026-10-18, I-03) — native Mastra registration of `get_price`.
  *
- * The execute core moved here from `tools/get-price.ts`; the legacy module is
- * now a thin AI SDK shim over the same core, so the canonical Mastra agent
- * runs a genuine `createTool` registration while every non-Mastra consumer
- * keeps the identical output shape.
+ * P2-01 removal: the legacy `tools/get-price.ts` AI SDK shim was deleted, so
+ * this execute core is now the only `get_price` implementation.
  */
 
 import { getPrice, priceAgeSeconds, ProviderError } from '@kestrel/data';

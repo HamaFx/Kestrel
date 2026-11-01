@@ -17,12 +17,16 @@
 // get_candles tool tests. R8 (audit 2026-10-31): the tool reads the
 // meta-returning adapter getter, so mocks supply `CandlesResult` envelopes
 // and the assertions cover the freshness disclosure.
+//
+// P2-01 removal: the AI SDK shim is gone; this suite now exercises the
+// canonical execute core that the native Mastra registration runs.
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getCandlesTool } from '../src/tools/get-candles';
+import { executeCanonicalCandles } from '../src/mastra-v2/tools/canonical/candles';
+import { CanonicalCandlesInputSchema } from '../src/mastra-v2/tools/canonical/input-schemas';
 
-const exec = getCandlesTool.execute as unknown as (input: {
+const exec = executeCanonicalCandles as unknown as (input: {
   symbol: string;
   tf: string;
   count?: number;
@@ -92,11 +96,11 @@ describe('get_candles — Phase 0.10', () => {
     expect(result.candles).toEqual(candles);
   });
 
-  it('passes count through to getCandles (defaults applied by AI SDK wrapper, not execute itself)', async () => {
+  it('passes count through to getCandles (defaults applied by the tool schema, not execute itself)', async () => {
     mockGetCandles.mockResolvedValue(candlesResult([]));
 
-    // When calling execute() directly (bypassing the AI SDK tool wrapper),
-    // the Zod .default(120) is not applied — that's the SDK's job.
+    // When calling execute() directly (bypassing the tool input boundary),
+    // the Zod .default(120) is not applied — that's the tool layer's job.
     // The execute function just passes through whatever it receives.
     await exec({ symbol: 'EURUSD', tf: '1h', count: 120 });
 
@@ -175,24 +179,19 @@ describe('get_candles — Phase 0.10', () => {
   });
 
   it('validates input schema — count min 10', () => {
-    const schema = getCandlesTool.inputSchema as {
-      safeParse: (v: unknown) => { success: boolean; error?: { issues?: unknown[] } };
-    };
-    expect(schema.safeParse({ symbol: 'EURUSD', tf: '1h', count: 5 }).success).toBe(false);
+    expect(
+      CanonicalCandlesInputSchema.safeParse({ symbol: 'EURUSD', tf: '1h', count: 5 }).success,
+    ).toBe(false);
   });
 
   it('validates input schema — count max 500', () => {
-    const schema = getCandlesTool.inputSchema as {
-      safeParse: (v: unknown) => { success: boolean };
-    };
+    const schema = CanonicalCandlesInputSchema;
     expect(schema.safeParse({ symbol: 'EURUSD', tf: '1h', count: 500 }).success).toBe(true);
     expect(schema.safeParse({ symbol: 'EURUSD', tf: '1h', count: 501 }).success).toBe(false);
   });
 
   it('validates input schema — count defaults to 120', () => {
-    const schema = getCandlesTool.inputSchema as {
-      safeParse: (v: unknown) => { success: boolean; data?: { count: number } };
-    };
+    const schema = CanonicalCandlesInputSchema;
     const parsed = schema.safeParse({ symbol: 'EURUSD', tf: '1h' });
     expect(parsed.success).toBe(true);
     if (parsed.data) {
@@ -201,26 +200,21 @@ describe('get_candles — Phase 0.10', () => {
   });
 
   it('validates input schema — unknown symbol rejected', () => {
-    const schema = getCandlesTool.inputSchema as {
-      safeParse: (v: unknown) => { success: boolean };
-    };
-    expect(schema.safeParse({ symbol: 'UNKNOWN', tf: '1h' }).success).toBe(false);
+    expect(CanonicalCandlesInputSchema.safeParse({ symbol: 'UNKNOWN', tf: '1h' }).success).toBe(
+      false,
+    );
   });
 
   it('validates input schema — unknown timeframe rejected', () => {
-    const schema = getCandlesTool.inputSchema as {
-      safeParse: (v: unknown) => { success: boolean };
-    };
-    expect(schema.safeParse({ symbol: 'EURUSD', tf: '7h' }).success).toBe(false);
+    expect(CanonicalCandlesInputSchema.safeParse({ symbol: 'EURUSD', tf: '7h' }).success).toBe(
+      false,
+    );
   });
 
   it('accepts all standard timeframes', () => {
-    const schema = getCandlesTool.inputSchema as {
-      safeParse: (v: unknown) => { success: boolean };
-    };
     // TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w']
     for (const tf of ['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w']) {
-      expect(schema.safeParse({ symbol: 'EURUSD', tf }).success).toBe(true);
+      expect(CanonicalCandlesInputSchema.safeParse({ symbol: 'EURUSD', tf }).success).toBe(true);
     }
   });
 });
