@@ -70,7 +70,9 @@ export interface JevChoiceConfidence {
  * `choice` — modal label plus normalised concentration across the labels.
  * With one label there is nothing to concentrate, so confidence is 1.
  */
-export function computeChoiceConfidence(probabilities: Record<string, number>): JevChoiceConfidence {
+export function computeChoiceConfidence(
+  probabilities: Record<string, number>,
+): JevChoiceConfidence {
   const entries = Object.entries(probabilities);
   if (entries.length === 0) return { choice: '', confidence: 0 };
 

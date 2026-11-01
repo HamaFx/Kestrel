@@ -28,6 +28,7 @@ import {
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
+import { asContentScreenReportSink } from '@ai/mastra-v2/packets/external-content';
 import { executeCanonicalCoT } from '@ai/mastra-v2/tools/canonical/cot';
 import { executeCanonicalKnowledge } from '@ai/mastra-v2/tools/canonical/knowledge';
 import { getIntermarketResonanceTool } from '@ai/tools/get-intermarket-resonance';
@@ -243,7 +244,15 @@ export const mastraKnowledgeTool = createTool({
   outputSchema: KnowledgeOutputSchema,
   execute: async (input, context) =>
     executeMastraTool('search-untrusted-knowledge', context, async () => {
-      const data = await executeCanonicalKnowledge({ ...input, kinds: ['news'] });
+      const data = await executeCanonicalKnowledge(
+        { ...input, kinds: ['news'] },
+        {
+          // Audit R15 — research paths are strict: no unscreened external
+          // snippet reaches the model.
+          screenMode: 'strict',
+          reportSink: asContentScreenReportSink(context.requestContext),
+        },
+      );
       const fetchedAt = new Date().toISOString();
       const latest = data.items.map((item) => item.publishedAt).sort((a, b) => b - a)[0];
       return KnowledgeOutputSchema.parse({

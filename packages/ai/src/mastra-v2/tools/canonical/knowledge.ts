@@ -41,6 +41,11 @@ import type { SearchKnowledgeOutput } from '@kestrel/shared';
 import { createTool } from '@mastra/core/tools';
 import { type z } from 'zod';
 
+import {
+  asContentScreenReportSink,
+  type ContentScreenMode,
+  type ContentScreenReportSink,
+} from '@ai/mastra-v2/packets/external-content';
 import { countMemory, type MemoryKind } from '@ai/memory/memory-index';
 import {
   countEmbeddings,
@@ -65,11 +70,27 @@ export type CanonicalKnowledgeInput = z.infer<typeof CanonicalKnowledgeInputSche
 
 const FALLBACK_MODEL = 'openai/text-embedding-3-small';
 
+export interface ExecuteCanonicalKnowledgeOptions {
+  /**
+   * Audit R15 — screening posture for retrieved news and recalled memory.
+   * Defaults to `strict`: this tool is exposed on untrusted capabilities
+   * (canonical chat, XAUUSD research), where unscreened external content must
+   * never reach the model. Conversation callers that deliberately run
+   * uncalibrated pass `availability`.
+   */
+  screenMode?: ContentScreenMode;
+  /** Run context that receives the screening events (run metadata). */
+  reportSink?: ContentScreenReportSink | null | undefined;
+}
+
 /** Shared execute core: news + memory hybrid retrieval with RRF fusion. */
 export async function executeCanonicalKnowledge(
   input: CanonicalKnowledgeInput,
+  options: ExecuteCanonicalKnowledgeOptions = {},
 ): Promise<SearchKnowledgeOutput> {
   const { query, since, symbol, limit, kinds, halflifeDays } = input;
+  const screenMode: ContentScreenMode = options.screenMode ?? 'strict';
+  const reportSink = options.reportSink ?? null;
   const kindSet = new Set<string>(kinds ?? ['news']);
   const wantsNews = kindSet.has('news');
   // `search_knowledge` deliberately exposes only the user-facing kinds; the
@@ -127,11 +148,13 @@ export async function executeCanonicalKnowledge(
           ...(since !== undefined ? { since } : {}),
           ...(symbol !== undefined ? { symbol } : {}),
           ...(halflifeDays !== undefined ? { halflifeDays } : {}),
-          // Phase 2 (Jev) — indirect-injection quarantine & rerank for the
-          // untrusted news snippets before they can enter the context window.
+          // Audit R15 — untrusted news snippets are screened with this
+          // capability's posture before they can enter the context window.
+          screenMode,
           ...(ctx ? { jevEnv: ctx.env } : {}),
           ...(ctx?.userSettings ? { jevSettings: { aiApiKeys: ctx.userSettings.aiApiKeys } } : {}),
           ...(ctx?.signal ? { jevSignal: ctx.signal } : {}),
+          reportSink,
         })
       : Promise.resolve([]),
     memoryKinds.length > 0 && memoryCount > 0
@@ -141,9 +164,17 @@ export async function executeCanonicalKnowledge(
           limit,
           kinds: memoryKinds,
           userId: memoryUserId!,
+          query,
+          // Audit R15 — recalled memory (journal, briefing, thread synopsis)
+          // can embed pasted external prose, so it is screened too.
+          screenMode,
           ...(since !== undefined ? { since } : {}),
           ...(symbol !== undefined ? { symbol } : {}),
           ...(halflifeDays !== undefined ? { halflifeDays: halflifeDays * 4 } : {}),
+          ...(ctx ? { jevEnv: ctx.env } : {}),
+          ...(ctx?.userSettings ? { jevSettings: { aiApiKeys: ctx.userSettings.aiApiKeys } } : {}),
+          ...(ctx?.signal ? { jevSignal: ctx.signal } : {}),
+          reportSink,
         })
       : Promise.resolve([]),
   ]);
@@ -166,6 +197,10 @@ export const canonicalKnowledgeTool = createTool({
   execute: createReadOnlyToolExecute<CanonicalKnowledgeInput, SearchKnowledgeOutput>(
     'kestrel-search_knowledge',
     'search_knowledge',
-    (input) => executeCanonicalKnowledge(input),
+    (input, context) =>
+      executeCanonicalKnowledge(input, {
+        screenMode: 'strict',
+        reportSink: asContentScreenReportSink(context.requestContext),
+      }),
   ),
 });
