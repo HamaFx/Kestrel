@@ -28,6 +28,7 @@
 import { getDb, testProviderKey } from '@kestrel/ai';
 import {
   getUserWithSettings,
+  replaceProviderTestResults,
   requireTenantIdForUser,
   schema,
   updateUserSettingsField,
@@ -227,30 +228,23 @@ export function bulkTestKeysService(userId: string): Promise<{
             });
           }
 
-          // Persist health snapshots
-          const rows = results
+          // Persist health snapshots through the single provider-tests writer.
+          const records = results
             .filter((r) => r.status !== 'missing')
             .map((r) => ({
-              userId,
-              tenantId,
               providerId: r.provider,
               ok: r.status === 'ok',
               error: r.status === 'failed' ? (r.error ?? 'unknown error') : null,
-              testedAt: testedAt.toISOString(),
             }));
-          if (rows.length > 0) {
+          if (records.length > 0) {
             await withTenantDbFresh(
               tenantId,
               async (txDb) => {
-                await txDb
-                  .delete(schema.providerTests)
-                  .where(
-                    and(
-                      eq(schema.providerTests.userId, userId),
-                      eq(schema.providerTests.tenantId, tenantId),
-                    ),
-                  );
-                await txDb.insert(schema.providerTests).values(rows);
+                await replaceProviderTestResults(userId, records, {
+                  db: txDb,
+                  tenantId,
+                  testedAt,
+                });
               },
               { userId },
             );

@@ -175,6 +175,24 @@ export {
 export { resetOnboarding, type ResetMode } from './queries/onboarding';
 export { getProviderHealthForUser, getUserApiKeys } from './queries/provider-tests';
 export {
+  recordProviderTestResult,
+  replaceProviderTestResults,
+  deleteProviderTestResult,
+  type ProviderTestRecord,
+  type ProviderTestRateLimit,
+  type ProviderTestScope,
+} from './queries/provider-tests';
+export {
+  applyUserByokPatch,
+  mergeUserByokKeys,
+  readUserByokState,
+  removeUserByokKey,
+  type MergeUserByokKeysOptions,
+  type UserByokPatch,
+  type UserByokPatchResult,
+  type UserByokState,
+} from './queries/user-byok';
+export {
   getUserByEmail,
   userExistsByEmail,
   createUserWithSettings,

@@ -24,11 +24,50 @@
 
 import 'server-only';
 
-export {
-  BYOK_PROVIDERS,
-  computeUsage,
-  resolveProviderMode,
-  testProviderKey,
-  validateProviderConfig,
-} from '@kestrel/ai';
+import { testProviderKey, validateProviderConfig } from '@kestrel/ai';
+import { readUserByokState, recordProviderTestResult } from '@kestrel/db';
+import type { ProviderId } from '@kestrel/shared';
+
+export { BYOK_PROVIDERS, computeUsage, resolveProviderMode } from '@kestrel/ai';
 export { getUserApiKeys } from '@kestrel/db';
+
+export type ProviderTestOutcome = { ok: true } | { ok: false; error: string; statusCode: number };
+
+function failed(error: string, statusCode: number): ProviderTestOutcome {
+  return { ok: false, error, statusCode };
+}
+
+/**
+ * Test a provider key and persist the health result.
+ *
+ * When no plaintext key is supplied the stored vault value is resolved,
+ * matching the write-only settings UI. The health row is written through the
+ * shared `recordProviderTestResult` so this path cannot drift from the bulk
+ * check or the admin platform config.
+ */
+export async function testProviderService(
+  userId: string,
+  provider: ProviderId,
+  apiKey?: string,
+): Promise<ProviderTestOutcome> {
+  let key = apiKey;
+  if (!key) {
+    const state = await readUserByokState(userId);
+    key = state.keys[provider];
+    if (!key) return failed('No stored key for this provider', 400);
+  }
+
+  const validation = validateProviderConfig(provider, key);
+  if (!validation.ok) {
+    return failed(validation.reason ?? 'Invalid provider configuration', 400);
+  }
+
+  const result = await testProviderKey(provider, key);
+  await recordProviderTestResult(userId, {
+    providerId: provider,
+    ok: result.ok,
+    error: result.ok ? null : result.error,
+  });
+
+  return result.ok ? { ok: true } : failed(result.error, 400);
+}

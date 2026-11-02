@@ -43,6 +43,7 @@ vi.mock('@kestrel/db', () => ({
       userId: 'user_settings.user_id',
       tenantId: 'user_settings.tenant_id',
       aiApiKeys: 'user_settings.ai_api_keys',
+      aiApiKeysUpdatedAt: 'user_settings.ai_api_keys_updated_at',
       onboardingProgress: 'user_settings.onboarding_progress',
     },
     userSymbols: {
@@ -58,6 +59,21 @@ vi.mock('@kestrel/db', () => ({
   },
   requireTenantIdForUser: mocks.requireTenantIdForUser,
   withUserTenant: mocks.withUserTenant,
+  applyUserByokPatch: (
+    state: { keys: Record<string, string>; updatedAt: Record<string, string> },
+    patch: { set?: Record<string, string | null | undefined> },
+  ) => {
+    const keys = { ...state.keys };
+    const changed: string[] = [];
+    for (const [id, raw] of Object.entries(patch.set ?? {})) {
+      const value = raw?.trim() ?? '';
+      if (value.length > 0) {
+        keys[id] = value;
+        changed.push(id);
+      }
+    }
+    return { keys, updatedAt: {}, changed, removed: [] };
+  },
 }));
 vi.mock('@kestrel/shared', () => ({
   DEFAULT_WATCHLIST_SYMBOLS: ['XAUUSD'],

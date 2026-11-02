@@ -27,7 +27,12 @@ import {
 // but since @kestrel/db is mocked and getRawDb = mockGetDb, the container will
 // resolve to mockGetDb correctly.
 import { container } from '@kestrel/shared';
-import { decryptWithPassword, encryptByok, encryptWithPassword } from '@kestrel/shared/encryption';
+import {
+  decryptByok,
+  decryptWithPassword,
+  encryptByok,
+  encryptWithPassword,
+} from '@kestrel/shared/encryption';
 import bcrypt from 'bcryptjs';
 import { revalidatePath } from 'next/cache';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
@@ -105,6 +110,14 @@ const mockAddUserSymbol = vi.hoisted(() => vi.fn());
 const mockRemoveUserSymbol = vi.hoisted(() => vi.fn());
 const mockResetOnboarding = vi.hoisted(() => vi.fn());
 const mockValidateAndSaveChatModel = vi.hoisted(() => vi.fn());
+// Phase 3 Task 2 — the BYOK vault writer and provider-health writers moved
+// into @kestrel/db. The test double below mirrors their real contract over the
+// same mocked drizzle chain, so the preservation assertions still hold.
+const mockReadUserByokState = vi.hoisted(() => vi.fn());
+const mockMergeUserByokKeys = vi.hoisted(() => vi.fn());
+const mockRemoveUserByokKey = vi.hoisted(() => vi.fn());
+const mockRecordProviderTestResult = vi.hoisted(() => vi.fn());
+const mockDeleteProviderTestResult = vi.hoisted(() => vi.fn());
 // Self-referencing proxy: schema.anything.anything... always returns a truthy
 // object so drizzle column accesses (e.g. schema.symbolCatalog.symbol) don't throw.
 const schemaProxy = vi.hoisted(() => {
@@ -133,6 +146,11 @@ vi.mock('@kestrel/db', () => ({
   resetOnboarding: mockResetOnboarding,
   updatePaymentStatus: vi.fn(),
   updateSubscriptionFromPayment: vi.fn(),
+  readUserByokState: mockReadUserByokState,
+  mergeUserByokKeys: mockMergeUserByokKeys,
+  removeUserByokKey: mockRemoveUserByokKey,
+  recordProviderTestResult: mockRecordProviderTestResult,
+  deleteProviderTestResult: mockDeleteProviderTestResult,
   schema: schemaProxy,
 }));
 
@@ -218,6 +236,111 @@ function mockDb(results: unknown[][] = []) {
   mockGetDb.mockReturnValue(mockQueryChain(results));
 }
 
+interface ByokState {
+  keys: Record<string, string>;
+  updatedAt: Record<string, string>;
+}
+
+interface ByokPatch {
+  set?: Record<string, string | null | undefined>;
+  remove?: readonly string[];
+  replace?: boolean;
+  preserve?: readonly string[];
+}
+
+interface ByokWriteResult {
+  keys: Record<string, string>;
+  updatedAt: Record<string, string>;
+  changed: string[];
+  removed: string[];
+}
+
+type ByokAfterWrite = (db: unknown, result: ByokWriteResult) => Promise<void>;
+
+let byokDb: ReturnType<typeof mockQueryChain> | null = null;
+let byokLoaded = false;
+let byokState: ByokState = { keys: {}, updatedAt: {} };
+
+/** Mirror of the canonical patch semantics (preserve-by-default). */
+function applyByokPatch(state: ByokState, patch: ByokPatch): ByokState & { removed: string[] } {
+  const set = patch.set ?? {};
+  const remove = new Set(patch.remove ?? []);
+  const keys: Record<string, string> = {};
+  if (patch.replace) {
+    for (const id of patch.preserve ?? []) {
+      const value = state.keys[id];
+      if (value) keys[id] = value;
+    }
+  } else {
+    Object.assign(keys, state.keys);
+  }
+
+  for (const [id, raw] of Object.entries(set)) {
+    if (remove.has(id)) continue;
+    const value = (raw ?? '').trim();
+    if (value.length === 0) {
+      if (id in keys) remove.add(id);
+      continue;
+    }
+    keys[id] = value;
+  }
+
+  const removed: string[] = [];
+  for (const id of remove) {
+    if (!(id in keys)) continue;
+    delete keys[id];
+    removed.push(id);
+  }
+  return { keys, updatedAt: {}, removed };
+}
+
+async function loadByokState(dbOverride?: unknown): Promise<ByokState> {
+  if (byokLoaded) return byokState;
+  byokLoaded = true;
+  byokDb = (dbOverride ?? mockGetDb() ?? null) as ReturnType<typeof mockQueryChain> | null;
+  const rows = byokDb ? await byokDb.select().from().where() : [];
+  const row = (rows as Array<Record<string, unknown>>)[0];
+  byokState = {
+    keys: row?.aiApiKeys ? ((decryptByok(row.aiApiKeys as string) ?? {}) as ByokState['keys']) : {},
+    updatedAt: (row?.aiApiKeysUpdatedAt as ByokState['updatedAt'] | null) ?? {},
+  };
+  return byokState;
+}
+
+function resetByokDouble(): void {
+  byokDb = null;
+  byokLoaded = false;
+  byokState = { keys: {}, updatedAt: {} };
+
+  mockReadUserByokState.mockImplementation((_userId: string, db?: unknown) => loadByokState(db));
+  mockMergeUserByokKeys.mockImplementation(
+    async (_userId: string, patch: ByokPatch, options?: { afterWrite?: ByokAfterWrite }) => {
+      const state = await loadByokState();
+      const next = applyByokPatch(state, patch);
+      byokState = { keys: next.keys, updatedAt: next.updatedAt };
+      const db = byokDb ?? mockGetDb();
+      const written = {
+        aiApiKeys: Object.keys(next.keys).length > 0 ? encryptByok(next.keys) : null,
+      };
+      db.update().set(written).where();
+      const result = {
+        keys: next.keys,
+        updatedAt: next.updatedAt,
+        changed: [],
+        removed: next.removed,
+      };
+      if (options?.afterWrite) await options.afterWrite(db, result);
+      return result;
+    },
+  );
+  mockRemoveUserByokKey.mockImplementation(
+    (userId: string, provider: string, options?: { afterWrite?: ByokAfterWrite }) =>
+      mockMergeUserByokKeys(userId, { remove: [provider] }, options),
+  );
+  mockRecordProviderTestResult.mockResolvedValue(undefined);
+  mockDeleteProviderTestResult.mockResolvedValue(undefined);
+}
+
 let hashedTestPassword: string;
 
 beforeAll(async () => {
@@ -247,6 +370,7 @@ beforeEach(() => {
       chatModel: `${providerId}:${modelId}`,
     }),
   );
+  resetByokDouble();
 });
 
 afterEach(() => {
@@ -904,7 +1028,7 @@ describe('importKeysAction', () => {
     badDb.update = vi.fn(() => {
       throw new Error('update failed');
     });
-    mockGetDb.mockReturnValueOnce(badDb);
+    mockGetDb.mockReturnValue(badDb);
 
     const result = await importKeysAction(backup, TEST_PASSWORD);
     expect(result).toEqual({ ok: false, error: 'update failed' });

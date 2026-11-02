@@ -26,24 +26,26 @@
 // (migration 0039); every `user_settings` access is scoped with
 // `withUserTenant`.
 import { getDb } from '@kestrel/ai';
-import { requireTenantIdForUser, schema, withRateLimit, withUserTenant } from '@kestrel/db';
 import {
-  decryptByok,
-  decryptSecret,
+  mergeUserByokKeys,
+  readUserByokState,
+  schema,
+  withRateLimit,
+  withUserTenant,
+} from '@kestrel/db';
+import {
   decryptWithPassword,
-  encryptByok,
   encryptWithPassword,
   JEV_PROVIDER_IDS,
   PROVIDER_IDS,
 } from '@kestrel/shared/encryption';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { verifySync } from 'otplib';
 
 import { auth } from '@/auth';
 import { logActionError } from '@/lib/http/action-errors';
 
-import { verifyAccountPassword, type ActionResult } from './shared';
+import { verifyAccountPassword, verifyUserTwoFactorIfEnabled, type ActionResult } from './shared';
 
 /**
  * Server action to export user API keys.
@@ -72,15 +74,8 @@ export async function exportKeysAction(
     .from(schema.users)
     .where(eq(schema.users.id, session.user.id));
 
-  if (user?.twoFactorEnabled) {
-    if (!totpCode) {
-      return { ok: false as const, error: '2FA code is required' };
-    }
-    const decryptedSecret = user.twoFactorSecret ? decryptSecret(user.twoFactorSecret) : null;
-    if (!decryptedSecret || !verifySync({ secret: decryptedSecret, token: totpCode }).valid) {
-      return { ok: false as const, error: 'Invalid 2FA code' };
-    }
-  }
+  const twoFactorError = verifyUserTwoFactorIfEnabled(user ?? {}, totpCode);
+  if (twoFactorError) return twoFactorError;
 
   // Verify password against account credentials
   const passwordValid = await verifyAccountPassword(session.user.id, password);
@@ -96,32 +91,15 @@ export async function exportKeysAction(
   try {
     // Audit 2026-10-31 (R1): scope the vault read. Unscoped under `kestrel_app`
     // this row is invisible and the export would look empty.
-    const settings = await withUserTenant(session.user.id, async (db) => {
-      const tenantId = await requireTenantIdForUser(session.user.id, db);
-      const [row] = await db
-        .select({ aiApiKeys: schema.userSettings.aiApiKeys })
-        .from(schema.userSettings)
-        .where(
-          and(
-            eq(schema.userSettings.userId, session.user.id),
-            eq(schema.userSettings.tenantId, tenantId),
-          ),
-        );
-      return row;
-    });
-
-    const encryptedPayload = settings?.aiApiKeys;
-    if (!encryptedPayload) {
-      return { ok: false as const, error: 'No keys configured to export' };
-    }
-
-    const decrypted = decryptByok(encryptedPayload);
-    if (!decrypted || Object.keys(decrypted).length === 0) {
+    const state = await withUserTenant(session.user.id, (db) =>
+      readUserByokState(session.user.id, db),
+    );
+    if (Object.keys(state.keys).length === 0) {
       return { ok: false as const, error: 'No keys configured to export' };
     }
 
     // Encrypt with the user password
-    const backupPayload = encryptWithPassword(decrypted, password);
+    const backupPayload = encryptWithPassword(state.keys, password);
 
     return { ok: true as const, data: { payload: backupPayload } };
   } catch (err) {
@@ -176,65 +154,24 @@ export async function importKeysAction(
         validKeys[id] = val.trim();
       }
     }
-    const importedIds = new Set(Object.keys(validKeys));
 
     if (Object.keys(validKeys).length === 0) {
       return { ok: false as const, error: 'No valid keys found in backup payload' };
     }
 
-    // Audit 2026-10-31 (R1): the read used to preserve stored keys and the
-    // write that follows must share the user's tenant scope.
-    const importedCount = await withUserTenant(session.user.id, async (db) => {
-      const tenantId = await requireTenantIdForUser(session.user.id, db);
-
-      // Preservation invariant: a backup written before the decision-model
-      // keys existed must not wipe the stored ones on import — carry them
-      // forward when the backup does not carry its own.
-      const [oldSettings] = await db
-        .select({
-          aiApiKeys: schema.userSettings.aiApiKeys,
-          aiApiKeysUpdatedAt: schema.userSettings.aiApiKeysUpdatedAt,
-        })
-        .from(schema.userSettings)
-        .where(
-          and(
-            eq(schema.userSettings.userId, session.user.id),
-            eq(schema.userSettings.tenantId, tenantId),
-          ),
-        );
-      const oldDecrypted = oldSettings?.aiApiKeys ? decryptByok(oldSettings.aiApiKeys) : null;
-      const oldUpdatedAt = oldSettings?.aiApiKeysUpdatedAt ?? {};
-      for (const id of [...JEV_PROVIDER_IDS, 'finnhub'] as const) {
-        const existing = oldDecrypted?.[id];
-        if (existing && !validKeys[id]) validKeys[id] = existing;
-      }
-
-      const now = new Date().toISOString();
-      const newUpdatedAt: Record<string, string> = {};
-      for (const id of Object.keys(validKeys)) {
-        // Imported keys are marked now; carried-forward decision/market-data
-        // keys keep their original change time.
-        newUpdatedAt[id] = importedIds.has(id) ? now : (oldUpdatedAt[id] ?? now);
-      }
-
-      await db
-        .update(schema.userSettings)
-        .set({
-          aiApiKeys: encryptByok(validKeys),
-          aiApiKeysUpdatedAt: newUpdatedAt,
-        })
-        .where(
-          and(
-            eq(schema.userSettings.userId, session.user.id),
-            eq(schema.userSettings.tenantId, tenantId),
-          ),
-        );
-
-      return Object.keys(validKeys).length;
-    });
+    // Audit 2026-10-31 (R1): the write must share the user's tenant scope.
+    // A restore replaces the vault, carrying the decision-model and
+    // market-data keys forward when the backup predates them.
+    const merged = await withUserTenant(session.user.id, () =>
+      mergeUserByokKeys(session.user.id, {
+        set: validKeys,
+        replace: true,
+        preserve: [...JEV_PROVIDER_IDS, 'finnhub'],
+      }),
+    );
 
     revalidatePath('/settings/api-keys');
-    return { ok: true as const, data: { importedCount } };
+    return { ok: true as const, data: { importedCount: Object.keys(merged.keys).length } };
   } catch (err) {
     logActionError(err, 'settings-action');
     return {

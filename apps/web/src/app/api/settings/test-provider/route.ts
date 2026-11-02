@@ -17,13 +17,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { ProviderId } from '@kestrel/shared';
-import { decryptByok, PROVIDER_IDS } from '@kestrel/shared/encryption';
-import { and, eq } from 'drizzle-orm';
+import { PROVIDER_IDS } from '@kestrel/shared/encryption';
 import { z } from 'zod';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
-import { getDb, requireTenantIdForUser, schema } from '@/lib/services/db';
-import { testProviderKey, validateProviderConfig } from '@/lib/services/providers';
+import { testProviderService } from '@/lib/services/providers';
 import { withRateLimit } from '@/lib/services/rate-limit';
 
 export const runtime = 'nodejs';
@@ -57,70 +55,9 @@ export const POST = withAuth<void>(async (req, { user }) => {
     return errorResponse(err);
   }
 
-  const db = getDb();
-  const tenantId = await requireTenantIdForUser(user.userId, db);
-
-  let apiKey = body.apiKey;
-  if (!apiKey) {
-    const [row] = await db
-      .select({ aiApiKeys: schema.userSettings.aiApiKeys })
-      .from(schema.userSettings)
-      .where(
-        and(
-          eq(schema.userSettings.userId, user.userId),
-          eq(schema.userSettings.tenantId, tenantId),
-        ),
-      );
-    const stored = row?.aiApiKeys ? decryptByok(row.aiApiKeys) : null;
-    apiKey = stored?.[body.provider];
-    if (!apiKey) {
-      return Response.json(
-        { ok: false, error: 'No stored key for this provider' },
-        { status: 400 },
-      );
-    }
-  }
-
-  const validation = validateProviderConfig(body.provider, apiKey);
-  if (!validation.ok) {
-    return Response.json({ ok: false, error: validation.reason }, { status: 400 });
-  }
-
-  const result = await testProviderKey(body.provider, apiKey);
-
-  // Phase A — UX_UPGRADE_PLAN.md item 7. Upsert the latest test
-  // result for this (user, provider). Idempotent: re-testing
-  // overwrites the previous row rather than accumulating history.
-  // The health badge on /settings/api-keys reads from this table.
-  const testedAt = new Date();
-  await db
-    .delete(schema.providerTests)
-    .where(
-      and(
-        eq(schema.providerTests.userId, user.userId),
-        eq(schema.providerTests.tenantId, tenantId),
-        eq(schema.providerTests.providerId, body.provider),
-      ),
-    );
-  await db.insert(schema.providerTests).values({
-    userId: user.userId,
-    tenantId,
-    providerId: body.provider,
-    ok: result.ok,
-    error: result.ok ? null : (result.error ?? 'unknown error'),
-    testedAt: testedAt.toISOString(),
-    rateLimit: result.ok
-      ? ((result as Record<string, unknown>).rateLimit as {
-          remainingRequests?: number;
-          remainingTokens?: number;
-          resetRequests?: string;
-          resetTokens?: string;
-        } | null)
-      : undefined,
-  });
-
+  const result = await testProviderService(user.userId, body.provider, body.apiKey);
   if (!result.ok) {
-    return Response.json({ ok: false, error: result.error }, { status: 400 });
+    return Response.json({ ok: false, error: result.error }, { status: result.statusCode });
   }
   return Response.json({ ok: true });
 });

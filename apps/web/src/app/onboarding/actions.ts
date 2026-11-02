@@ -18,10 +18,10 @@
 import 'server-only';
 
 import { getDb } from '@kestrel/ai';
-import { requireTenantIdForUser, schema, withUserTenant } from '@kestrel/db';
+import { applyUserByokPatch, requireTenantIdForUser, schema, withUserTenant } from '@kestrel/db';
 import { DEFAULT_WATCHLIST_SYMBOLS, normalizeSymbol } from '@kestrel/shared';
 import type { PROVIDER_IDS } from '@kestrel/shared/byok';
-import { decryptByok, encryptByok, type ByokPayload } from '@kestrel/shared/encryption';
+import { decryptByok, encryptByok } from '@kestrel/shared/encryption';
 import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -144,31 +144,32 @@ export async function completeOnboardingAction(formData: FormData) {
         const [existing] = await tx
           .select({
             aiApiKeys: schema.userSettings.aiApiKeys,
+            aiApiKeysUpdatedAt: schema.userSettings.aiApiKeysUpdatedAt,
             onboardingProgress: schema.userSettings.onboardingProgress,
           })
           .from(schema.userSettings)
           .where(
             and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)),
           );
-        const currentKeys = decryptByok(existing?.aiApiKeys) ?? {};
-        const merged: ByokPayload = { ...currentKeys };
-        if (payload.apiKeys) {
-          for (const [id, raw] of Object.entries(payload.apiKeys)) {
-            const value = (raw ?? '').trim();
-            if (value.length > 0) {
-              merged[id as keyof ByokPayload] = value;
-            }
-            // Empty string = leave existing key in place (no-op). Use a
-            // dedicated "clear" flow if the user wants to remove a key.
-          }
-        }
+        const submittedKeys = Object.fromEntries(
+          Object.entries(payload.apiKeys ?? {}).filter(
+            ([, raw]) => typeof raw === 'string' && raw.trim().length > 0,
+          ),
+        );
+        const byok = applyUserByokPatch(
+          {
+            keys: decryptByok(existing?.aiApiKeys) ?? {},
+            updatedAt: existing?.aiApiKeysUpdatedAt ?? {},
+          },
+          { set: submittedKeys },
+        );
         const mergedProgress: Record<string, unknown> = { ...(existing?.onboardingProgress ?? {}) };
         if (validatedTradingStyle) {
           mergedProgress.tradingStyle = validatedTradingStyle;
         }
 
         // 2. Upsert user settings.
-        const encryptedKeys = encryptByok(merged);
+        const encryptedKeys = Object.keys(byok.keys).length > 0 ? encryptByok(byok.keys) : null;
         const existingSettings = await tx
           .select({ userId: schema.userSettings.userId })
           .from(schema.userSettings)

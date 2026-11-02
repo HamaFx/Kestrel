@@ -19,15 +19,14 @@
 // save_api_key / clear_api_key actions for /api/admin/platform-config.
 
 import { testProviderKey } from '@kestrel/ai';
-import { createAuditLog, schema } from '@kestrel/db';
 import {
-  decryptByok,
-  encryptByok,
-  PROVIDER_IDS,
-  type ByokPayload,
-  type ProviderId,
-} from '@kestrel/shared/encryption';
-import { and, eq } from 'drizzle-orm';
+  createAuditLog,
+  deleteProviderTestResult,
+  mergeUserByokKeys,
+  recordProviderTestResult,
+  removeUserByokKey,
+} from '@kestrel/db';
+import { PROVIDER_IDS, type ProviderId } from '@kestrel/shared/encryption';
 
 import type { AdminUser } from '@/lib/auth/admin-auth';
 
@@ -48,61 +47,30 @@ export async function saveApiKeyAction(
     );
   }
 
-  const [existing] = await db
-    .select({
-      aiApiKeys: schema.userSettings.aiApiKeys,
-      aiApiKeysUpdatedAt: schema.userSettings.aiApiKeysUpdatedAt,
-    })
-    .from(schema.userSettings)
-    .where(
-      and(eq(schema.userSettings.userId, targetUserId), eq(schema.userSettings.tenantId, tenantId)),
-    );
+  const apiKey = body.apiKey.trim();
+  const testResult = await testProviderKey(providerId, apiKey);
 
-  const currentKeys: ByokPayload = {
-    ...(existing?.aiApiKeys ? decryptByok(existing.aiApiKeys) : {}),
-    [providerId]: body.apiKey.trim(),
-  };
-  const currentUpdatedAt: Record<string, string> = {
-    ...((existing?.aiApiKeysUpdatedAt as Record<string, string> | null) ?? {}),
-    [providerId]: new Date().toISOString(),
-  };
-
-  const testResult = await testProviderKey(providerId, body.apiKey.trim());
-  const testedAt = new Date().toISOString();
-
-  await db.transaction(async (tx) => {
-    await tx
-      .update(schema.userSettings)
-      .set({
-        aiApiKeys: encryptByok(currentKeys),
-        aiApiKeysUpdatedAt: currentUpdatedAt,
-      })
-      .where(
-        and(
-          eq(schema.userSettings.userId, targetUserId),
-          eq(schema.userSettings.tenantId, tenantId),
-        ),
-      );
-
-    await tx
-      .delete(schema.providerTests)
-      .where(
-        and(
-          eq(schema.providerTests.userId, targetUserId),
-          eq(schema.providerTests.tenantId, tenantId),
-          eq(schema.providerTests.providerId, providerId),
-        ),
-      );
-
-    await tx.insert(schema.providerTests).values({
-      userId: targetUserId,
+  // The vault write and its provider-health row commit together, so a health
+  // badge can never describe a key the vault did not keep.
+  await mergeUserByokKeys(
+    targetUserId,
+    { set: { [providerId]: apiKey } },
+    {
+      db,
       tenantId,
-      providerId,
-      ok: testResult.ok,
-      error: testResult.ok ? null : (testResult.error ?? 'Connection check failed'),
-      testedAt,
-    });
-  });
+      afterWrite: async (tx) => {
+        await recordProviderTestResult(
+          targetUserId,
+          {
+            providerId,
+            ok: testResult.ok,
+            error: testResult.ok ? null : (testResult.error ?? 'Connection check failed'),
+          },
+          { db: tx, tenantId },
+        );
+      },
+    },
+  );
 
   await createAuditLog(user.userId, 'admin.platform_config.save_api_key', {
     providerId,
@@ -123,49 +91,13 @@ export async function clearApiKeyAction(
 ): Promise<Response> {
   const { db, targetUserId, tenantId } = ctx;
   const providerId = body.providerId as ProviderId;
-  const [existing] = await db
-    .select({
-      aiApiKeys: schema.userSettings.aiApiKeys,
-      aiApiKeysUpdatedAt: schema.userSettings.aiApiKeysUpdatedAt,
-    })
-    .from(schema.userSettings)
-    .where(
-      and(eq(schema.userSettings.userId, targetUserId), eq(schema.userSettings.tenantId, tenantId)),
-    );
 
-  const currentKeys: ByokPayload = {
-    ...(existing?.aiApiKeys ? decryptByok(existing.aiApiKeys) : {}),
-  };
-  delete currentKeys[providerId];
-
-  const currentUpdatedAt: Record<string, string> = {
-    ...((existing?.aiApiKeysUpdatedAt as Record<string, string> | null) ?? {}),
-  };
-  delete currentUpdatedAt[providerId];
-
-  await db.transaction(async (tx) => {
-    await tx
-      .update(schema.userSettings)
-      .set({
-        aiApiKeys: Object.keys(currentKeys).length > 0 ? encryptByok(currentKeys) : null,
-        aiApiKeysUpdatedAt: Object.keys(currentUpdatedAt).length > 0 ? currentUpdatedAt : null,
-      })
-      .where(
-        and(
-          eq(schema.userSettings.userId, targetUserId),
-          eq(schema.userSettings.tenantId, tenantId),
-        ),
-      );
-
-    await tx
-      .delete(schema.providerTests)
-      .where(
-        and(
-          eq(schema.providerTests.userId, targetUserId),
-          eq(schema.providerTests.tenantId, tenantId),
-          eq(schema.providerTests.providerId, providerId),
-        ),
-      );
+  await removeUserByokKey(targetUserId, providerId, {
+    db,
+    tenantId,
+    afterWrite: async (tx) => {
+      await deleteProviderTestResult(targetUserId, providerId, { db: tx, tenantId });
+    },
   });
 
   await createAuditLog(user.userId, 'admin.platform_config.clear_api_key', {
