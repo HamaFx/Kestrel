@@ -140,6 +140,24 @@ export function isPriceLevelRule(rule: AlertRule): rule is PriceLevelRule {
   return rule.type === 'priceCross' || rule.type === 'candleClose';
 }
 
+/**
+ * Canonical human-readable label for an alert rule.
+ *
+ * Shared by the alert list, confirmation dialogs, email/push subjects, and
+ * delivery bodies. Timeframe and indicator ids are upper-cased for display;
+ * the stored rule keeps its canonical lower-case form.
+ */
+export function describeAlertRule(rule: AlertRule): string {
+  switch (rule.type) {
+    case 'priceCross':
+      return `${rule.symbol} price ${rule.direction} ${rule.level}`;
+    case 'candleClose':
+      return `${rule.symbol} ${rule.tf.toUpperCase()} close ${rule.direction} ${rule.level}`;
+    case 'indicatorCross':
+      return `${rule.symbol} ${rule.tf.toUpperCase()} ${rule.indicator.toUpperCase()} ${rule.direction} ${rule.level}`;
+  }
+}
+
 export const AlertSchema = z.object({
   id: z.uuid(),
   userId: z.string(),

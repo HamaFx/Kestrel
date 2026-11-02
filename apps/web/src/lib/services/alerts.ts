@@ -28,6 +28,7 @@ import {
   listAlerts as aiListAlerts,
   updateAlert as aiUpdateAlert,
   getNoiseConfig,
+  isQuietHours,
   simulateAlert,
   type SimCandle,
 } from '@kestrel/ai';
@@ -248,13 +249,10 @@ const BASE_VOLUMES: Record<Severity, number> = {
 };
 
 function simulateBreakdown(config: NoiseConfig, time: Date): PreviewDigestDTO['breakdown'] {
-  const hour = time.getUTCHours();
-  const qh = config.quietHours;
-  const qhStart = qh?.start ?? '';
-  const qhEnd = qh?.end ?? '';
-  const qhStartH = parseInt(qhStart.split(':')[0] ?? '0', 10);
-  const qhEndH = parseInt(qhEnd.split(':')[0] ?? '0', 10);
-  const inQuietHours = qh !== null && hour >= qhStartH && hour < qhEndH;
+  // Timezone-aware and overnight-safe. The previous inline UTC-hours check
+  // silently ignored the user's timezone and failed for the default
+  // 22:00-07:00 window (start > end).
+  const inQuietHours = isQuietHours(config.quietHours, config.timezone, time);
 
   const effectiveMinSeverity = inQuietHours
     ? config.minSeverityDuringQuietHours

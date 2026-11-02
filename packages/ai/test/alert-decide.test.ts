@@ -50,7 +50,7 @@ describe('describeRule', () => {
         level: 1.085,
         direction: 'below',
       }),
-    ).toBe('EURUSD 1h close below 1.085');
+    ).toBe('EURUSD 1H close below 1.085');
   });
   it('formats indicator-cross rule', () => {
     expect(
@@ -62,6 +62,6 @@ describe('describeRule', () => {
         level: 70,
         direction: 'above',
       }),
-    ).toBe('GBPUSD 15m rsi:14 above 70');
+    ).toBe('GBPUSD 15M RSI:14 above 70');
   });
 });

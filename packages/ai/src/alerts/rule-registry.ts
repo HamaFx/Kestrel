@@ -22,28 +22,44 @@
 //
 // Pattern mirrors IndicatorRegistry (packages/indicators/src/registry.ts).
 
-import type { AlertRule } from '@kestrel/shared';
+import { describeAlertRule, type AlertRule } from '@kestrel/shared';
 
 import { CrossingSpec, LevelSpec, type AlertSpec } from './spec';
 
+type AlertRuleType = AlertRule['type'];
+type RuleOf<T extends AlertRuleType> = Extract<AlertRule, { type: T }>;
+
 // --- Plugin definition --------------------------------------------------
 
-/** Factory that creates an AlertSpec from a rule for evaluation. */
-type SpecFactory = (rule: AlertRule) => AlertSpec;
-
-/** Formatter that produces a human-readable label for a rule. */
-type RuleDescriber = (rule: AlertRule) => string;
-
-/** Metadata about a registered alert rule type. */
-interface AlertRuleTypePlugin {
+/**
+ * A registration for one rule type. `T` ties the factory and describer to
+ * the matching member of the `AlertRule` union, so neither needs a cast or
+ * an `any` annotation.
+ */
+interface AlertRuleTypePlugin<T extends AlertRuleType = AlertRuleType> {
   /** The rule type discriminator (e.g. 'priceCross', 'candleClose', 'indicatorCross'). */
-  type: AlertRule['type'];
+  type: T;
   /** Factory: rule → evaluable AlertSpec. */
-  specFactory: SpecFactory;
+  specFactory: (rule: RuleOf<T>) => AlertSpec;
   /** Human-readable label for this rule (e.g. "XAUUSD price above 2650"). */
-  describe: RuleDescriber;
+  describe: (rule: RuleOf<T>) => string;
   /** Short label for catalogues / documentation. */
   label: string;
+}
+
+/** Type-erased registration held by the registry. */
+interface RegisteredAlertRuleType {
+  type: AlertRuleType;
+  label: string;
+  specFactory: (rule: AlertRule) => AlertSpec;
+  describe: (rule: AlertRule) => string;
+}
+
+function ruleOfType<T extends AlertRuleType>(rule: AlertRule, type: T): RuleOf<T> {
+  if (rule.type !== type) {
+    throw new Error(`Alert rule type mismatch: expected "${type}", got "${rule.type}".`);
+  }
+  return rule as RuleOf<T>;
 }
 
 // --- Registry ------------------------------------------------------------
@@ -55,13 +71,18 @@ interface AlertRuleTypePlugin {
  * no switch statements to update in spec.ts or evaluator.ts.
  */
 class AlertRuleRegistry {
-  private plugins = new Map<AlertRule['type'], AlertRuleTypePlugin>();
+  private plugins = new Map<AlertRuleType, RegisteredAlertRuleType>();
 
-  register(plugin: AlertRuleTypePlugin): void {
-    this.plugins.set(plugin.type, plugin);
+  register<T extends AlertRuleType>(plugin: AlertRuleTypePlugin<T>): void {
+    this.plugins.set(plugin.type, {
+      type: plugin.type,
+      label: plugin.label,
+      specFactory: (rule) => plugin.specFactory(ruleOfType(rule, plugin.type)),
+      describe: (rule) => plugin.describe(ruleOfType(rule, plugin.type)),
+    });
   }
 
-  get(type: AlertRule['type']): AlertRuleTypePlugin {
+  get(type: AlertRuleType): RegisteredAlertRuleType {
     const plugin = this.plugins.get(type);
     if (!plugin) {
       throw new Error(
@@ -72,11 +93,11 @@ class AlertRuleRegistry {
     return plugin;
   }
 
-  has(type: AlertRule['type']): boolean {
+  has(type: AlertRuleType): boolean {
     return this.plugins.has(type);
   }
 
-  listTypes(): AlertRule['type'][] {
+  listTypes(): AlertRuleType[] {
     return [...this.plugins.keys()];
   }
 }
@@ -86,7 +107,7 @@ export const alertRuleRegistry = new AlertRuleRegistry();
 
 /** Human-readable label for a rule, delegated to its registered type plugin. */
 export function describeRule(rule: AlertRule): string {
-  return alertRuleRegistry.get(rule.type).describe(rule);
+  return describeAlertRule(rule);
 }
 
 // --- Registration (self-contained) --------------------------------------
@@ -99,8 +120,7 @@ alertRuleRegistry.register({
   type: 'priceCross',
   label: 'Price Cross',
   specFactory: (rule) => new LevelSpec(rule.direction, rule.level),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  describe: (rule: any) => `${rule.symbol} price ${rule.direction} ${rule.level}`,
+  describe: (rule) => `${rule.symbol} price ${rule.direction} ${rule.level}`,
 });
 
 // candleClose — fires when the most recent closed candle's close crosses a level.
@@ -108,8 +128,8 @@ alertRuleRegistry.register({
   type: 'candleClose',
   label: 'Candle Close',
   specFactory: (rule) => new LevelSpec(rule.direction, rule.level),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  describe: (rule: any) => `${rule.symbol} ${rule.tf} close ${rule.direction} ${rule.level}`,
+  describe: (rule) =>
+    `${rule.symbol} ${rule.tf.toUpperCase()} close ${rule.direction} ${rule.level}`,
 });
 
 // indicatorCross — fires when an indicator value transitions through a level
@@ -118,7 +138,6 @@ alertRuleRegistry.register({
   type: 'indicatorCross',
   label: 'Indicator Cross',
   specFactory: (rule) => new CrossingSpec(rule.direction, rule.level),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  describe: (rule: any) =>
-    `${rule.symbol} ${rule.tf} ${rule.indicator} ${rule.direction} ${rule.level}`,
+  describe: (rule) =>
+    `${rule.symbol} ${rule.tf.toUpperCase()} ${rule.indicator.toUpperCase()} ${rule.direction} ${rule.level}`,
 });

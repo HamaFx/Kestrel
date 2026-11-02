@@ -27,7 +27,12 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { AlertRuleSchema, AlertSchema, isPriceLevelRule } from '../src/schemas/alerts';
+import {
+  AlertRuleSchema,
+  AlertSchema,
+  describeAlertRule,
+  isPriceLevelRule,
+} from '../src/schemas/alerts';
 
 const priceCross = (level: number) => ({
   type: 'priceCross' as const,
@@ -124,5 +129,19 @@ describe('isPriceLevelRule', () => {
       expect(rule.symbol).toBe('XAUUSD');
       expect(rule.level).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('describeAlertRule', () => {
+  it('formats all three rule types identically for UI and notifications', () => {
+    expect(describeAlertRule(AlertRuleSchema.parse(priceCross(2400)))).toBe(
+      'XAUUSD price above 2400',
+    );
+    expect(describeAlertRule(AlertRuleSchema.parse({ ...candleClose(1.085), tf: '1h' }))).toBe(
+      'XAUUSD 1H close below 1.085',
+    );
+    expect(
+      describeAlertRule(AlertRuleSchema.parse({ ...indicatorCross(70, 'rsi:14'), tf: '15m' })),
+    ).toBe('XAUUSD 15M RSI:14 above 70');
   });
 });
