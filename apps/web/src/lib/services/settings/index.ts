@@ -117,6 +117,8 @@ export type BulkTestEvent = BulkTestProgressEvent | BulkTestResultEvent | BulkTe
 
 // ── Service functions ────────────────────────────────────────────────────────
 
+export { validateAndSaveChatModel } from './chat-model';
+
 export async function getAnalysisModeService(userId: string): Promise<AnalysisModeDTO> {
   const { settings } = await getUserWithSettings(userId);
   // Q2 compat shim: legacy persisted values read back as their mapped mode.

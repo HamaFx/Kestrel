@@ -18,47 +18,35 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Profile preferences action: display-name updates with rate limiting.
-import { updateUserDisplayName, withRateLimit } from '@kestrel/db';
-import { revalidatePath } from 'next/cache';
+// Clear-chat-history action: rate-limited deletion of all AI chat threads
+// owned by the signed-in user.
+import { deleteAllThreads } from '@kestrel/ai';
+import { withRateLimit } from '@kestrel/db';
 
 import { auth } from '@/auth';
 import { logActionError } from '@/lib/http/action-errors';
 
-import { NAME_MAX, NAME_MIN, type ActionResult } from './_actions-shared';
+import { type ActionResult } from './shared';
 
 /**
- * Server action to update user profile.
+ * Server action to delete all chat history.
  */
-export async function updateProfileAction(formData: FormData): Promise<ActionResult> {
+export async function clearChatHistoryAction(): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user?.id) {
-    return { ok: false as const, error: 'Unauthorized' };
+    return {
+      ok: false as const,
+      error: 'Unauthorized',
+    };
   }
 
-  const rl = await withRateLimit(session.user.id, 'settings_update_profile', 10);
+  const rl = await withRateLimit(session.user.id, 'settings_clear_chat', 5);
   if (!rl.allowed) {
     return { ok: false as const, error: 'Too many requests. Try again later.' };
   }
 
-  const raw = formData.get('name');
-  const name = typeof raw === 'string' ? raw.trim() : '';
-  if (name.length < NAME_MIN || name.length > NAME_MAX) {
-    return {
-      ok: false as const,
-      error: `Name must be between ${NAME_MIN} and ${NAME_MAX} characters`,
-    };
-  }
-
-  if (name === session.user.name) {
-    revalidatePath('/settings/profile');
-    return { ok: true as const };
-  }
-
   try {
-    await updateUserDisplayName(session.user.id, name);
-
-    revalidatePath('/settings/profile');
+    await deleteAllThreads(session.user.id);
     return { ok: true as const };
   } catch (err) {
     logActionError(err, 'settings-action');

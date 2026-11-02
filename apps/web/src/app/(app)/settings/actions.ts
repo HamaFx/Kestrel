@@ -17,10 +17,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Settings server actions — re-export barrel.
-// All action implementations live in domain-specific files under _actions-*.ts.
-// Import paths remain unchanged: `from '../actions'` still works everywhere.
+//
+// Implementations live under `_actions/` (Phase 3 Task 3 flattened the
+// former 2-layer `_actions-*.ts` pyramid). Import paths remain unchanged:
+// `from '../actions'` still works everywhere.
 
-export type { ActionResult, SaveKeysResult } from './_actions-shared';
+export type { ActionResult, SaveKeysResult } from './_actions/shared';
 
 // Security
 export {
@@ -28,40 +30,35 @@ export {
   verifyTwoFactorAction,
   regenerateBackupCodesAction,
   disableTwoFactorAction,
+} from './_actions/security-two-factor';
+export {
   listSessionsAction,
   revokeSessionAction,
   signOutEverywhereAction,
-  changePasswordAction,
-  deleteAccountAction,
-} from './_actions-security';
+} from './_actions/security-sessions';
+export { changePasswordAction } from './_actions/security-password';
+export { deleteAccountAction } from './_actions/security-account';
 
 // API keys
-export {
-  updateApiKeysAction,
-  updateJevApiKeysAction,
-  exportKeysAction,
-  importKeysAction,
-  updateMarketDataProviderAction,
-} from './_actions-api-keys';
+export { updateApiKeysAction, updateJevApiKeysAction } from './_actions/api-keys-save';
+export { exportKeysAction, importKeysAction } from './_actions/api-keys-transfer';
+export { updateMarketDataProviderAction } from './_actions/api-keys-market';
 
 // Preferences
-export {
-  updateProfileAction,
-  updateUIPrefsAction,
-  updateAiPrefsAction,
-  updateDisabledToolsAction,
-  updateNotificationPrefsAction,
-  updateUsageSettingsAction,
-  addSymbolAction,
-  removeSymbolAction,
-} from './_actions-preferences';
+export { updateProfileAction } from './_actions/preferences-profile';
+export { updateUIPrefsAction } from './_actions/preferences-ui';
+export { updateAiPrefsAction, updateDisabledToolsAction } from './_actions/preferences-ai';
+export { updateNotificationPrefsAction } from './_actions/preferences-notifications';
+export { updateUsageSettingsAction } from './_actions/preferences-usage';
+export { addSymbolAction, removeSymbolAction } from './_actions/preferences-symbols';
 
 // Data
-export { clearChatHistoryAction, exportDataAction } from './_actions-data';
+export { clearChatHistoryAction } from './_actions/data-clear';
+export { exportDataAction } from './_actions/data-export';
 
 // Models & Onboarding
 export {
   updateChatModelAction,
   clearChatModelAction,
   resetOnboardingAction,
-} from './_actions-models';
+} from './_actions/models';

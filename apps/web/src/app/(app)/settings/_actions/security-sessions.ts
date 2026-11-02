@@ -31,7 +31,7 @@ import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
 import { logActionError } from '@/lib/http/action-errors';
 
-import { type ActionResult } from './_actions-shared';
+import { type ActionResult } from './shared';
 
 export async function listSessionsAction(): Promise<
   ActionResult<{

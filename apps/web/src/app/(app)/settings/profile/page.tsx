@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { getDb, schema } from '@kestrel/db';
+import { schema, withUserTenantRO } from '@kestrel/db';
 import { and, eq } from 'drizzle-orm';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
@@ -41,20 +41,25 @@ export default async function ProfileSettingsPage() {
   if (!session?.user?.id) redirect('/login');
 
   const userId = session.user.id;
-  const db = getDb();
 
-  const [userRow] = await db
-    .select({ twoFactorEnabled: schema.users.twoFactorEnabled })
-    .from(schema.users)
-    .where(eq(schema.users.id, userId));
-  const [googleAccount] = await db
-    .select({ providerAccountId: schema.accounts.providerAccountId })
-    .from(schema.accounts)
-    .where(and(eq(schema.accounts.userId, userId), eq(schema.accounts.provider, 'google')))
-    .limit(1);
-
-  const twoFactorEnabled = userRow?.twoFactorEnabled ?? false;
-  const googleLinked = !!googleAccount;
+  // Audit 2026-10-31 (R1): the page runs outside `withAuth`'s tenant
+  // transaction, so reads of the RLS-protected `user` / `accounts` tables
+  // must open an explicit read-only tenant scope.
+  const { twoFactorEnabled, googleLinked } = await withUserTenantRO(userId, async (db) => {
+    const [userRow] = await db
+      .select({ twoFactorEnabled: schema.users.twoFactorEnabled })
+      .from(schema.users)
+      .where(eq(schema.users.id, userId));
+    const [googleAccount] = await db
+      .select({ providerAccountId: schema.accounts.providerAccountId })
+      .from(schema.accounts)
+      .where(and(eq(schema.accounts.userId, userId), eq(schema.accounts.provider, 'google')))
+      .limit(1);
+    return {
+      twoFactorEnabled: userRow?.twoFactorEnabled ?? false,
+      googleLinked: !!googleAccount,
+    };
+  });
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">

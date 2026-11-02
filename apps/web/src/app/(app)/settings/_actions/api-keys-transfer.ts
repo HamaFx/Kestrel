@@ -43,7 +43,7 @@ import { verifySync } from 'otplib';
 import { auth } from '@/auth';
 import { logActionError } from '@/lib/http/action-errors';
 
-import { verifyAccountPassword, type ActionResult } from './_actions-shared';
+import { verifyAccountPassword, type ActionResult } from './shared';
 
 /**
  * Server action to export user API keys.

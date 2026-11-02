@@ -41,7 +41,7 @@ import QRCode from 'qrcode';
 import { auth } from '@/auth';
 import { logActionError } from '@/lib/http/action-errors';
 
-import { type ActionResult } from './_actions-shared';
+import { type ActionResult } from './shared';
 
 // Visually distinct alphabet: excludes , O, I, l and ambiguous characters.
 const BACKUP_CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';

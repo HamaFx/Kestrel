@@ -69,8 +69,8 @@ describe.skipIf(!enabled || !appUrl || !adminUrl)(
   'settings actions run as the kestrel_app role',
   () => {
     let admin: Client;
-    let marketActionModule: typeof import('../src/app/(app)/settings/_actions-api-keys-market');
-    let apiKeysActionModule: typeof import('../src/app/(app)/settings/_actions-api-keys-save');
+    let marketActionModule: typeof import('../src/app/(app)/settings/_actions/api-keys-market');
+    let apiKeysActionModule: typeof import('../src/app/(app)/settings/_actions/api-keys-save');
     let dbModule: typeof import('@kestrel/db');
 
     beforeAll(async () => {
@@ -120,8 +120,8 @@ describe.skipIf(!enabled || !appUrl || !adminUrl)(
         expires: new Date(Date.now() + 3_600_000).toISOString(),
       }));
 
-      marketActionModule = await import('../src/app/(app)/settings/_actions-api-keys-market');
-      apiKeysActionModule = await import('../src/app/(app)/settings/_actions-api-keys-save');
+      marketActionModule = await import('../src/app/(app)/settings/_actions/api-keys-market');
+      apiKeysActionModule = await import('../src/app/(app)/settings/_actions/api-keys-save');
       dbModule = await import('@kestrel/db');
     });
 

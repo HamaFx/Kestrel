@@ -5,24 +5,35 @@
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 import 'server-only';
 
 // Audit 2026-10-31 (R1): server actions run outside the page's tenant scope.
 // `user_settings` has RLS, so every helper call below is wrapped in
 // `withUserTenant` — the helper's own getDb() then resolves the scoped client.
-import { requireTenantIdForUser, schema, withUserTenant } from '@kestrel/db';
-import { and, eq } from 'drizzle-orm';
+//
+// Phase 3 Task 3 — `updateChatModelAction` now calls the same
+// `validateAndSaveChatModel` service as `PUT /api/settings/chat-model`
+// (API-key ownership + catalog membership + embedding-tier rejection), and
+// `resetOnboardingAction` delegates to the canonical `resetOnboarding` modes
+// instead of re-implementing the reset with inline SQL.
+import { resetOnboarding, updateUserSettingsField, withUserTenant } from '@kestrel/db';
+import type { ProviderId } from '@kestrel/shared/encryption';
 import { revalidatePath } from 'next/cache';
 
 import { auth } from '@/auth';
-import {
-  BYOK_PROVIDERS,
-  updateUserSettingsField,
-  type ProviderId,
-} from '@/lib/services/api-boundary';
+import { validateAndSaveChatModel } from '@/lib/services/settings';
 
-import type { ActionResult } from './_actions-shared';
+import type { ActionResult } from './shared';
 
 export async function updateChatModelAction(
   providerId: ProviderId,
@@ -33,23 +44,12 @@ export async function updateChatModelAction(
     return { ok: false, error: 'Not authenticated' };
   }
 
-  const spec = BYOK_PROVIDERS[providerId];
-  if (!spec) {
-    return { ok: false, error: `Unknown provider: ${providerId}` };
-  }
-
-  const bareModelId = modelId.startsWith(`${providerId}/`)
-    ? modelId.slice(providerId.length + 1)
-    : modelId;
-
-  const value = `${providerId}:${bareModelId}`;
-
   try {
-    await withUserTenant(session.user.id, () =>
-      updateUserSettingsField(session.user.id, 'chatModel', value),
+    const { chatModel } = await withUserTenant(session.user.id, () =>
+      validateAndSaveChatModel(session.user.id, providerId, modelId),
     );
     revalidatePath('/settings');
-    return { ok: true, data: { chatModel: value } };
+    return { ok: true, data: { chatModel } };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Failed to update chat model' };
   }
@@ -81,33 +81,13 @@ export async function resetOnboardingAction(
   }
 
   try {
-    await withUserTenant(session.user.id, async (scopedDb) => {
-      const tenantId = await requireTenantIdForUser(session.user.id, scopedDb);
-      if (options.soft) {
-        await scopedDb
-          .update(schema.userSettings)
-          .set({ onboardingCompleted: false })
-          .where(
-            and(
-              eq(schema.userSettings.userId, session.user.id),
-              eq(schema.userSettings.tenantId, tenantId),
-            ),
-          );
-      } else {
-        await scopedDb
-          .update(schema.userSettings)
-          .set({
-            onboardingCompleted: false,
-            onboardingProgress: {},
-          })
-          .where(
-            and(
-              eq(schema.userSettings.userId, session.user.id),
-              eq(schema.userSettings.tenantId, tenantId),
-            ),
-          );
-      }
-    });
+    // Canonical reset modes: `soft` clears completion + progress; `full` also
+    // purges BYOK keys, watchlist symbols, and preferences (matching the
+    // "Full Factory Reset" copy in the UI, which the previous inline SQL
+    // never actually did).
+    await withUserTenant(session.user.id, () =>
+      resetOnboarding(session.user.id, options.soft ? 'soft' : 'full'),
+    );
 
     revalidatePath('/settings');
     revalidatePath('/onboarding');

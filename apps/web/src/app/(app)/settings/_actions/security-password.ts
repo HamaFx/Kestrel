@@ -35,7 +35,7 @@ import { verifySync } from 'otplib';
 import { auth } from '@/auth';
 import { passwordSchema } from '@/lib/http/validation';
 
-import { verifyAccountPassword, type ActionResult } from './_actions-shared';
+import { verifyAccountPassword, type ActionResult } from './shared';
 
 /**
  * LOW-04: Change account password.

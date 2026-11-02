@@ -40,9 +40,9 @@ import { revalidatePath } from 'next/cache';
 
 import { auth } from '@/auth';
 
-import { type SaveKeysResult } from './_actions-shared';
-import { BYOK_KEY_KEEP } from './api-keys/_components/byok-key-sentinel';
-import { JEV_DECISION_KEY_KEEP } from './api-keys/_components/jev-decision-keys';
+import { BYOK_KEY_KEEP } from '../api-keys/_components/byok-key-sentinel';
+import { JEV_DECISION_KEY_KEEP } from '../api-keys/_components/jev-decision-keys';
+import { type SaveKeysResult } from './shared';
 
 /**
  * Server action to save/update/clear API keys for all BYOK providers.

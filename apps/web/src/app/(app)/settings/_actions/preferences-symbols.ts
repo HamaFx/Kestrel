@@ -20,18 +20,27 @@
 
 // Watchlist symbol actions: add (catalog-validated) and remove.
 //
-// Audit 2026-10-31 (R1): `symbol_catalog` is global (`tenant_id =
-// '__system__'`, no RLS), so its read stays unscoped. `user_symbols` is
-// tenant-scoped and each access runs inside `withUserTenant`.
-import { getDb } from '@kestrel/ai';
-import { requireTenantIdForUser, schema, withRateLimit, withUserTenant } from '@kestrel/db';
-import { and, eq, sql } from 'drizzle-orm';
+// Audit 2026-10-31 (R1): `user_symbols` is tenant-scoped, so each access runs
+// inside `withUserTenant`.
+//
+// Phase 3 Task 3 — the former 70 lines of inline SQL are replaced by the
+// canonical `@kestrel/db` helpers (`isSymbolInCatalog`, `addUserSymbol`,
+// `removeUserSymbol`, which own the advisory-lock display-order allocation),
+// so this action, the settings API route, and the watchlist service share one
+// implementation.
+import {
+  addUserSymbol,
+  isSymbolInCatalog,
+  removeUserSymbol,
+  withRateLimit,
+  withUserTenant,
+} from '@kestrel/db';
 import { revalidatePath } from 'next/cache';
 
 import { auth } from '@/auth';
 import { logActionError } from '@/lib/http/action-errors';
 
-import { type ActionResult } from './_actions-shared';
+import { type ActionResult } from './shared';
 
 /**
  * Server action to add a symbol to watchlist.
@@ -58,54 +67,13 @@ export async function addSymbolAction(formData: FormData): Promise<ActionResult>
   }
 
   try {
-    const db = getDb();
-    // `symbol_catalog` holds global rows (tenant_id = '__system__') and has no
-    // RLS, so this cross-tenant read needs no scope.
-    const inCatalog = await db
-      .select({ symbol: schema.symbolCatalog.symbol })
-      .from(schema.symbolCatalog)
-      .where(
-        and(
-          eq(schema.symbolCatalog.symbol, symbol),
-          eq(schema.symbolCatalog.isActive, true),
-          eq(schema.symbolCatalog.tenantId, '__system__'),
-        ),
-      )
-      .limit(1);
-
-    if (inCatalog.length === 0) {
+    // `symbol_catalog` holds global rows (tenant_id = '__system__') and has
+    // no RLS, so this cross-tenant read needs no scope.
+    if (!(await isSymbolInCatalog(symbol))) {
       return { ok: false as const, error: `Symbol "${symbol}" is not supported or active.` };
     }
 
-    await withUserTenant(session.user.id, async (scopedDb) => {
-      const tenantId = await requireTenantIdForUser(session.user.id, scopedDb);
-
-      const orderResult = await scopedDb
-        .select({
-          maxOrder: sql<number>`coalesce(max(${schema.userSymbols.displayOrder}), -1)`,
-        })
-        .from(schema.userSymbols)
-        .where(
-          and(
-            eq(schema.userSymbols.userId, session.user.id),
-            eq(schema.userSymbols.tenantId, tenantId),
-          ),
-        );
-
-      const nextOrder = (orderResult[0]?.maxOrder ?? -1) + 1;
-
-      await scopedDb
-        .insert(schema.userSymbols)
-        .values({
-          userId: session.user.id,
-          tenantId,
-          symbol,
-          displayOrder: nextOrder,
-        })
-        .onConflictDoNothing({
-          target: [schema.userSymbols.userId, schema.userSymbols.symbol],
-        });
-    });
+    await withUserTenant(session.user.id, () => addUserSymbol(session.user.id, symbol));
 
     revalidatePath('/settings/symbols');
     return { ok: true as const };
@@ -138,18 +106,7 @@ export async function removeSymbolAction(formData: FormData): Promise<ActionResu
   }
 
   try {
-    await withUserTenant(session.user.id, async (db) => {
-      const tenantId = await requireTenantIdForUser(session.user.id, db);
-      await db
-        .delete(schema.userSymbols)
-        .where(
-          and(
-            eq(schema.userSymbols.userId, session.user.id),
-            eq(schema.userSymbols.tenantId, tenantId),
-            eq(schema.userSymbols.symbol, symbol),
-          ),
-        );
-    });
+    await withUserTenant(session.user.id, () => removeUserSymbol(session.user.id, symbol));
 
     revalidatePath('/settings/symbols');
     return { ok: true as const };

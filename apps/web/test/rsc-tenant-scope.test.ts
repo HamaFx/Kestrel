@@ -123,16 +123,6 @@ interface ScopeExemption {
  * reason they are safe (no RLS policy) or tracked as a known gap.
  */
 const EXEMPT: Record<string, ScopeExemption> = {
-  'apps/web/src/app/(app)/settings/profile/page.tsx': {
-    kind: 'unscoped-non-rls',
-    reason:
-      'Reads only the `user` table (schema.users.twoFactorEnabled) and `account` ' +
-      '(schema.accounts.providerAccountId). Neither has RLS: migration 0038 lists ' +
-      '`user` among the tables that intentionally get no policy, and migration 0039 ' +
-      'disables RLS on `account` (NextAuth adapter table with no tenant_id). The ' +
-      'unscoped getDb() is safe, so only the direct client is excused.',
-    accesses: ['getDb'],
-  },
   'apps/web/src/app/(app)/settings/symbols/page.tsx': {
     kind: 'unscoped-non-rls',
     reason:

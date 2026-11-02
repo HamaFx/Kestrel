@@ -34,13 +34,12 @@ import { z } from 'zod';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
 import {
-  BYOK_PROVIDERS,
-  decryptByok,
   getUserWithSettings,
   PROVIDER_IDS,
   updateUserSettingsField,
   type ProviderId,
 } from '@/lib/services/api-boundary';
+import { validateAndSaveChatModel } from '@/lib/services/settings';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -67,72 +66,16 @@ export const PUT = withAuth<void>(async (req, { user }) => {
     return errorResponse(err);
   }
 
-  const spec = BYOK_PROVIDERS[body.providerId];
-  if (!spec) {
-    return Response.json(
-      { error: { message: `Unknown provider: ${body.providerId}` } },
-      { status: 400 },
-    );
-  }
-
-  // The catalog only exposes providers with a user key. Enforce that same
-  // boundary here so a forged request cannot save an unavailable provider
-  // and later silently fall back to another model.
-  let userSettings;
+  // Phase 3 Task 3 — one validated save path shared with the Settings server
+  // action: provider exists, key ownership, catalog membership, and the
+  // embedding-tier rejection all live in `validateAndSaveChatModel`.
   try {
-    ({ settings: userSettings } = await getUserWithSettings(user.userId));
-  } catch (err) {
-    return errorResponse(err);
-  }
-  const keys = decryptByok(userSettings?.aiApiKeys);
-  const apiKey = keys?.[body.providerId];
-  if (typeof apiKey !== 'string' || apiKey.length === 0) {
-    return Response.json(
-      { error: { message: `No API key configured for provider: ${body.providerId}` } },
-      { status: 403 },
+    const { chatModel } = await validateAndSaveChatModel(
+      user.userId,
+      body.providerId,
+      body.modelId,
     );
-  }
-
-  // Preserve the exact catalog model id. Some providers (notably
-  // OpenRouter) intentionally use slash-containing ids such as
-  // "anthropic/claude-sonnet".
-  const bareModelId = body.modelId.startsWith(`${body.providerId}/`)
-    ? body.modelId.slice(body.providerId.length + 1)
-    : body.modelId;
-  // Phase D2 — defense in depth. The picker UI filters out tier:
-  // 'embedding' models, but a direct API call could still store one.
-  // Chat turns can't consume an embedding model (different capability,
-  // different dimension space) so reject the save up front.
-  const pickedModel = (spec.models ?? []).find(
-    (m: { modelId: string; tier?: string }) => m.modelId === bareModelId,
-  );
-  if (!pickedModel) {
-    return Response.json(
-      {
-        error: {
-          message: `Model ${body.modelId} is not in the ${body.providerId} catalog`,
-        },
-      },
-      { status: 400 },
-    );
-  }
-  if (pickedModel.tier === 'embedding') {
-    return Response.json(
-      {
-        error: {
-          message:
-            `${body.modelId} is an embedding-only model and can't be used as a chat model. ` +
-            `Pick a chat-capable model (flagship / pro / fast / lite) instead.`,
-        },
-      },
-      { status: 400 },
-    );
-  }
-
-  const value = `${body.providerId}:${bareModelId}`;
-  try {
-    await updateUserSettingsField(user.userId, 'chatModel', value);
-    return Response.json({ ok: true, chatModel: value });
+    return Response.json({ ok: true, chatModel });
   } catch (err) {
     return errorResponse(err);
   }

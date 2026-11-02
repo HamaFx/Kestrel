@@ -18,35 +18,53 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Market-data provider selection action.
-// Audit 2026-10-31 (R1): a server action inherits no scope from its page, so
-// the `user_settings` write opens its own `withUserTenant` scope.
+// Usage settings action: monthly budget limit, provider thresholds, and
+// spend-alert channels.
+//
+// Audit 2026-10-31 (R1): server actions do not inherit the page's tenant
+// scope, so the `user_settings` write opens its own with `withUserTenant`.
 import { requireTenantIdForUser, schema, withRateLimit, withUserTenant } from '@kestrel/db';
+import { PROVIDER_IDS } from '@kestrel/shared/encryption';
 import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
 import { auth } from '@/auth';
 import { logActionError } from '@/lib/http/action-errors';
 
-import { type ActionResult } from './_actions-shared';
+import { type ActionResult } from './shared';
 
 /**
- * Server action to update the selected market data provider.
+ * Server action to update usage budget and alerts configuration.
  */
-export async function updateMarketDataProviderAction(formData: FormData): Promise<ActionResult> {
+export async function updateUsageSettingsAction(formData: FormData): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: 'Unauthorized' };
   }
 
-  const rl = await withRateLimit(session.user.id, 'settings_update_provider', 10);
+  const rl = await withRateLimit(session.user.id, 'settings_update_usage', 10);
   if (!rl.allowed) {
     return { ok: false as const, error: 'Too many requests. Try again later.' };
   }
 
-  const provider = formData.get('marketDataProvider') as string;
-  if (!provider || !['biquote', 'finnhub', 'live-ticks'].includes(provider)) {
-    return { ok: false as const, error: 'Invalid provider selected' };
+  const monthlyLimitRaw = formData.get('monthlyBudgetLimit');
+  const monthlyBudgetLimit =
+    monthlyLimitRaw && String(monthlyLimitRaw).trim().length > 0
+      ? parseInt(String(monthlyLimitRaw), 10)
+      : null;
+
+  const emailAlert = formData.get('emailAlert') === 'on';
+  const telegramAlert = formData.get('telegramAlert') === 'on';
+
+  const providerSpendingThresholds: Record<string, number> = {};
+  for (const id of PROVIDER_IDS) {
+    const raw = formData.get(`threshold-${id}`);
+    if (raw && String(raw).trim().length > 0) {
+      const num = parseFloat(String(raw));
+      if (!isNaN(num) && num > 0) {
+        providerSpendingThresholds[id] = num;
+      }
+    }
   }
 
   try {
@@ -55,7 +73,10 @@ export async function updateMarketDataProviderAction(formData: FormData): Promis
       await db
         .update(schema.userSettings)
         .set({
-          marketDataProvider: provider,
+          monthlyBudgetLimit,
+          providerSpendingThresholds:
+            Object.keys(providerSpendingThresholds).length > 0 ? providerSpendingThresholds : null,
+          spendAlertsConfig: { email: emailAlert, telegram: telegramAlert },
         })
         .where(
           and(
@@ -65,8 +86,7 @@ export async function updateMarketDataProviderAction(formData: FormData): Promis
         );
     });
 
-    revalidatePath('/settings/api-keys');
-    revalidatePath('/settings');
+    revalidatePath('/settings/usage');
     return { ok: true as const };
   } catch (err) {
     logActionError(err, 'settings-action');

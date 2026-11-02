@@ -18,10 +18,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// UI preferences action: default symbol, time format, reduced motion, theme.
-//
-// Audit 2026-10-31 (R1): server actions do not inherit the page's tenant
-// scope, so the `user_settings` write opens its own with `withUserTenant`.
+// Market-data provider selection action.
+// Audit 2026-10-31 (R1): a server action inherits no scope from its page, so
+// the `user_settings` write opens its own `withUserTenant` scope.
 import { requireTenantIdForUser, schema, withRateLimit, withUserTenant } from '@kestrel/db';
 import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -29,25 +28,25 @@ import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
 import { logActionError } from '@/lib/http/action-errors';
 
-import { type ActionResult } from './_actions-shared';
+import { type ActionResult } from './shared';
 
 /**
- * Server action to update UI preferences (default symbol, time format, reduced motion).
+ * Server action to update the selected market data provider.
  */
-export async function updateUIPrefsAction(prefs: {
-  defaultSymbol?: string;
-  timeFormat?: string | null;
-  reduceMotion?: boolean;
-  theme?: string | null;
-}): Promise<ActionResult> {
+export async function updateMarketDataProviderAction(formData: FormData): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: 'Unauthorized' };
   }
 
-  const rl = await withRateLimit(session.user.id, 'settings_update_ui_prefs', 10);
+  const rl = await withRateLimit(session.user.id, 'settings_update_provider', 10);
   if (!rl.allowed) {
     return { ok: false as const, error: 'Too many requests. Try again later.' };
+  }
+
+  const provider = formData.get('marketDataProvider') as string;
+  if (!provider || !['biquote', 'finnhub', 'live-ticks'].includes(provider)) {
+    return { ok: false as const, error: 'Invalid provider selected' };
   }
 
   try {
@@ -55,7 +54,9 @@ export async function updateUIPrefsAction(prefs: {
       const tenantId = await requireTenantIdForUser(session.user.id, db);
       await db
         .update(schema.userSettings)
-        .set(prefs)
+        .set({
+          marketDataProvider: provider,
+        })
         .where(
           and(
             eq(schema.userSettings.userId, session.user.id),
@@ -64,6 +65,7 @@ export async function updateUIPrefsAction(prefs: {
         );
     });
 
+    revalidatePath('/settings/api-keys');
     revalidatePath('/settings');
     return { ok: true as const };
   } catch (err) {

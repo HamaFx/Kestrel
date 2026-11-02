@@ -105,6 +105,13 @@ const mockUpdateUserDisplayName = vi.hoisted(() => vi.fn());
 const mockGetUserPasswordHash = vi.hoisted(() => vi.fn());
 const mockRequireTenantIdForUser = vi.hoisted(() => vi.fn());
 const mockTestProviderKey = vi.hoisted(() => vi.fn());
+// Phase 3 Task 3 — canonical watchlist + onboarding helpers and the shared
+// chat-model save service the actions now delegate to.
+const mockIsSymbolInCatalog = vi.hoisted(() => vi.fn());
+const mockAddUserSymbol = vi.hoisted(() => vi.fn());
+const mockRemoveUserSymbol = vi.hoisted(() => vi.fn());
+const mockResetOnboarding = vi.hoisted(() => vi.fn());
+const mockValidateAndSaveChatModel = vi.hoisted(() => vi.fn());
 // Self-referencing proxy: schema.anything.anything... always returns a truthy
 // object so drizzle column accesses (e.g. schema.symbolCatalog.symbol) don't throw.
 const schemaProxy = vi.hoisted(() => {
@@ -127,9 +134,17 @@ vi.mock('@kestrel/db', () => ({
   updateUserDisplayName: mockUpdateUserDisplayName,
   getUserPasswordHash: mockGetUserPasswordHash,
   requireTenantIdForUser: mockRequireTenantIdForUser,
+  isSymbolInCatalog: mockIsSymbolInCatalog,
+  addUserSymbol: mockAddUserSymbol,
+  removeUserSymbol: mockRemoveUserSymbol,
+  resetOnboarding: mockResetOnboarding,
   updatePaymentStatus: vi.fn(),
   updateSubscriptionFromPayment: vi.fn(),
   schema: schemaProxy,
+}));
+
+vi.mock('@/lib/services/settings', () => ({
+  validateAndSaveChatModel: mockValidateAndSaveChatModel,
 }));
 
 vi.mock('@/lib/http/action-errors', () => ({ logActionError: vi.fn() }));
@@ -229,6 +244,16 @@ beforeEach(() => {
   // must return the known hash so bcrypt.compare can succeed.
   mockGetUserPasswordHash.mockResolvedValue(hashedTestPassword);
   mockRequireTenantIdForUser.mockResolvedValue('tenant-test');
+  // Phase 3 Task 3 helpers. Individual tests override as needed.
+  mockIsSymbolInCatalog.mockResolvedValue(true);
+  mockAddUserSymbol.mockResolvedValue(undefined);
+  mockRemoveUserSymbol.mockResolvedValue(undefined);
+  mockResetOnboarding.mockResolvedValue(undefined);
+  mockValidateAndSaveChatModel.mockImplementation(
+    async (_userId: string, providerId: string, modelId: string) => ({
+      chatModel: `${providerId}:${modelId}`,
+    }),
+  );
 });
 
 afterEach(() => {
@@ -319,55 +344,30 @@ describe('addSymbolAction', () => {
   });
 
   it('returns error when symbol is not in active catalog', async () => {
-    mockDb([[]]);
+    mockIsSymbolInCatalog.mockResolvedValue(false);
     const result = await addSymbolAction(formData({ symbol: 'UNKNOWN' }));
     expect(result).toEqual({ ok: false, error: 'Symbol "UNKNOWN" is not supported or active.' });
+    expect(mockAddUserSymbol).not.toHaveBeenCalled();
   });
 
-  it('adds symbol with correct display order', async () => {
-    mockDb([
-      [{ symbol: 'BTCUSD' }], // catalog select
-      [{ maxOrder: 4 }], // maxOrder select
-    ]);
+  it('adds the symbol through the canonical helper inside the tenant scope (R1)', async () => {
     const result = await addSymbolAction(formData({ symbol: 'BTCUSD' }));
     expect(result).toEqual({ ok: true });
+    expect(mockIsSymbolInCatalog).toHaveBeenCalledWith('BTCUSD');
+    expect(mockWithUserTenant).toHaveBeenCalledWith(USER_ID, expect.any(Function));
+    expect(mockAddUserSymbol).toHaveBeenCalledWith(USER_ID, 'BTCUSD');
     expect(revalidatePath).toHaveBeenCalledWith('/settings/symbols');
   });
 
-  it('starts displayOrder at 0 when user has no symbols', async () => {
-    mockDb([
-      [{ symbol: 'BTCUSD' }], // catalog select
-      [{ maxOrder: null }], // maxOrder select
-    ]);
-    const result = await addSymbolAction(formData({ symbol: 'BTCUSD' }));
+  it('trims and uppercases the submitted symbol', async () => {
+    const result = await addSymbolAction(formData({ symbol: ' btcusd ' }));
     expect(result).toEqual({ ok: true });
-  });
-
-  it('handles onConflictDoNothing for duplicate symbol', async () => {
-    mockDb([
-      [{ symbol: 'BTCUSD' }], // catalog select
-      [{ maxOrder: 2 }], // maxOrder select
-    ]);
-    const result = await addSymbolAction(formData({ symbol: 'btcusd' }));
-    expect(result).toEqual({ ok: true });
-  });
-
-  it('reads the watchlist and inserts inside the user’s tenant scope (R1)', async () => {
-    mockDb([
-      [{ symbol: 'BTCUSD' }], // global catalog read (no RLS)
-      [{ maxOrder: null }], // user_symbols read (RLS)
-    ]);
-    const result = await addSymbolAction(formData({ symbol: 'BTCUSD' }));
-    expect(result).toEqual({ ok: true });
-    expect(mockWithUserTenant).toHaveBeenCalledWith(USER_ID, expect.any(Function));
+    expect(mockIsSymbolInCatalog).toHaveBeenCalledWith('BTCUSD');
+    expect(mockAddUserSymbol).toHaveBeenCalledWith(USER_ID, 'BTCUSD');
   });
 
   it('logs server-action errors', async () => {
-    const db = mockQueryChain([]);
-    mockGetDb.mockReturnValue(db);
-    db.select = vi.fn(() => {
-      throw new Error('db timeout');
-    });
+    mockAddUserSymbol.mockRejectedValueOnce(new Error('db timeout'));
 
     const result = await addSymbolAction(formData({ symbol: 'BTCUSD' }));
     expect(result).toEqual({ ok: false, error: 'db timeout' });
@@ -391,19 +391,16 @@ describe('removeSymbolAction', () => {
     expect(result).toEqual({ ok: false, error: 'Symbol is required' });
   });
 
-  it('removes symbol successfully', async () => {
-    mockDb();
+  it('removes the symbol through the canonical helper inside the tenant scope (R1)', async () => {
     const result = await removeSymbolAction(formData({ symbol: 'XAUUSD' }));
     expect(result).toEqual({ ok: true });
+    expect(mockWithUserTenant).toHaveBeenCalledWith(USER_ID, expect.any(Function));
+    expect(mockRemoveUserSymbol).toHaveBeenCalledWith(USER_ID, 'XAUUSD');
     expect(revalidatePath).toHaveBeenCalledWith('/settings/symbols');
   });
 
   it('logs server-action errors', async () => {
-    const db = mockQueryChain([]);
-    mockGetDb.mockReturnValue(db);
-    db.delete = vi.fn(() => {
-      throw new Error('permission denied');
-    });
+    mockRemoveUserSymbol.mockRejectedValueOnce(new Error('permission denied'));
 
     const result = await removeSymbolAction(formData({ symbol: 'XAUUSD' }));
     expect(result).toEqual({ ok: false, error: 'permission denied' });
@@ -1033,16 +1030,24 @@ describe('model and onboarding actions', () => {
     (auth as Mock).mockImplementation(mockNextAuthSession(USER_ID));
   });
 
-  it('updates the chat model inside the user’s tenant scope (R1)', async () => {
+  it('updates the chat model through the shared validated service inside the tenant scope (R1)', async () => {
     const result = await updateChatModelAction('openai', 'gpt-test');
 
     expect(result).toEqual({ ok: true, data: { chatModel: 'openai:gpt-test' } });
     expect(mockWithUserTenant).toHaveBeenCalledWith(USER_ID, expect.any(Function));
-    expect(mockUpdateUserSettingsField).toHaveBeenCalledWith(
-      USER_ID,
-      'chatModel',
-      'openai:gpt-test',
+    // Phase 3 Task 3 — the action and PUT /api/settings/chat-model share one
+    // validation + save path instead of the action skipping every check.
+    expect(mockValidateAndSaveChatModel).toHaveBeenCalledWith(USER_ID, 'openai', 'gpt-test');
+  });
+
+  it('surfaces the validation failure when the shared service rejects', async () => {
+    mockValidateAndSaveChatModel.mockRejectedValueOnce(
+      new Error('No API key configured for provider: openai'),
     );
+
+    const result = await updateChatModelAction('openai', 'gpt-test');
+
+    expect(result).toEqual({ ok: false, error: 'No API key configured for provider: openai' });
   });
 
   it('clears the chat model inside the user’s tenant scope (R1)', async () => {
@@ -1053,12 +1058,22 @@ describe('model and onboarding actions', () => {
     expect(mockUpdateUserSettingsField).toHaveBeenCalledWith(USER_ID, 'chatModel', null);
   });
 
-  it('resets onboarding inside the user’s tenant scope (R1)', async () => {
+  it('resets onboarding in full mode inside the user’s tenant scope (R1)', async () => {
     mockDb();
 
     const result = await resetOnboardingAction();
 
     expect(result).toEqual({ ok: true, data: { reset: true } });
     expect(mockWithUserTenant).toHaveBeenCalledWith(USER_ID, expect.any(Function));
+    // The action delegates to the canonical helper (the previous inline SQL
+    // silently skipped the key/watchlist purge the UI copy promises).
+    expect(mockResetOnboarding).toHaveBeenCalledWith(USER_ID, 'full');
+  });
+
+  it('resets onboarding in soft mode when requested', async () => {
+    const result = await resetOnboardingAction({ soft: true });
+
+    expect(result).toEqual({ ok: true, data: { reset: true } });
+    expect(mockResetOnboarding).toHaveBeenCalledWith(USER_ID, 'soft');
   });
 });

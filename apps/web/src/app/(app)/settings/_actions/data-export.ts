@@ -18,40 +18,33 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Account-deletion action: password and optional 2FA gated soft delete that
-// scrubs PII, revokes sessions, and signs the user out.
-//
-// Audit 2026-10-31 (R1): `deleteUserAccount` purges tenant-scoped tables
-// (user_settings, chat_threads, alerts, user_symbols, …), all with RLS.
-// Unscoped under `kestrel_app` each DELETE would silently match zero rows, so
-// the purge runs inside `withUserTenant`. The `user` read before it has no RLS.
-import { deleteUserAccount, getDb, schema, withRateLimit, withUserTenant } from '@kestrel/db';
+// Data-export action: password and 2FA gated, rate-limited export of all
+// tenant-scoped user data as JSON. The payload builder lives in
+// data-export-payload.ts.
+import { getDb } from '@kestrel/ai';
+import { schema, withRateLimit } from '@kestrel/db';
 import { decryptSecret } from '@kestrel/shared/encryption';
 import { eq } from 'drizzle-orm';
 import { verifySync } from 'otplib';
 
-import { auth, signOut } from '@/auth';
+import { auth } from '@/auth';
 import { logActionError } from '@/lib/http/action-errors';
 
-import { verifyAccountPassword, type ActionResult } from './_actions-shared';
+import { buildUserDataExport } from './data-export-payload';
+import { verifyAccountPassword, type ActionResult } from './shared';
 
-/**
- * P1-4: Soft-delete user account. Sets deletedAt, bumps tokenVersion to
- * invalidate all sessions, nulls out PII, revokes sessions, and signs out.
- * Requires password + 2FA confirmation. A purge job handles permanent
- * deletion later.
- */
-export async function deleteAccountAction(
-  password: string,
+export async function exportDataAction(
+  password?: string,
   totpCode?: string,
-): Promise<ActionResult> {
+): Promise<ActionResult<string>> {
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false as const, error: 'Unauthorized' };
   }
 
-  if (!password) {
-    return { ok: false as const, error: 'Password is required' };
+  // Require password verification for data export (3.6.1)
+  if (!password || password.length < 8) {
+    return { ok: false as const, error: 'Password is required to export your data' };
   }
 
   // Check 2FA if enabled
@@ -66,7 +59,7 @@ export async function deleteAccountAction(
 
   if (user?.twoFactorEnabled) {
     if (!totpCode) {
-      return { ok: false as const, error: '2FA code is required' };
+      return { ok: false as const, error: '2FA code is required to export your data' };
     }
     const decryptedSecret = user.twoFactorSecret ? decryptSecret(user.twoFactorSecret) : null;
     if (!decryptedSecret || !verifySync({ secret: decryptedSecret, token: totpCode }).valid) {
@@ -76,20 +69,23 @@ export async function deleteAccountAction(
 
   const passwordValid = await verifyAccountPassword(session.user.id, password);
   if (!passwordValid) {
-    return { ok: false as const, error: 'Incorrect password' };
+    return { ok: false as const, error: 'Incorrect account password' };
   }
 
-  const rl = await withRateLimit(session.user.id, 'settings_delete_account', 2);
+  const rl = await withRateLimit(session.user.id, 'settings_export', 3);
   if (!rl.allowed) {
     return { ok: false as const, error: 'Too many requests. Try again later.' };
   }
 
   try {
-    // Audit 2026-10-31 (R1): run the purge inside the user's tenant scope so
-    // the RLS-protected deletes actually remove their rows.
-    await withUserTenant(session.user.id, () => deleteUserAccount(session.user.id));
-    await signOut({ redirectTo: '/' });
-    return { ok: true as const };
+    // Audit 2026-10-31 (R1): all tenant reads live in `buildUserDataExport`,
+    // which opens the user's tenant scope itself. The direct `db` reads above
+    // are the 2FA gate on `user`, which carries no RLS (migration 0039).
+    const data = await buildUserDataExport(session.user.id);
+    return {
+      ok: true as const,
+      data,
+    };
   } catch (err) {
     logActionError(err, 'settings-action');
     return {
