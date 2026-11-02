@@ -10,6 +10,17 @@
 
 **Spec:** `docs/roadmaps/00-kestrel-maintainability-audit-and-master-roadmap.md` (§2, §3.1)
 
+**Status: COMPLETE (2026-11-02).** Commits: `01b13d2e` (hygiene, lint, prettier), `7c71f298` (root + package handbooks), `4692c2a0` (Knip honesty + guard script).
+Verification on the completed tree: `pnpm lint` (15/15 workspaces, 0 errors / 0 warnings), `pnpm format:check`, `pnpm typecheck` (27 tasks), `pnpm check:maintainability`, `pnpm check:route-security`, `pnpm check:env-contract`, `pnpm check:knip-config` all green; full test suite green.
+
+Deviations and findings worth carrying forward:
+
+- The audit's "1 error, 4 warnings" came from a turbo run that aborted early. A complete `pnpm lint` surfaced 20 additional pre-existing ESLint errors in `packages/ai` (mostly `import()` type annotations in tests, two dead initial assignments, one deep relative import, `console.log` in a script); all were fixed in `01b13d2e` so the "fix all lint failures" goal could actually pass.
+- Prettier formatting pushed `apps/web/src/components/chat/parts/compact-telemetry-row.tsx` from 250 to 258 LOC; it was refactored (status class/label constants) back to exactly 250 to keep `RULE-F02` green.
+- `@data/*` needed more plumbing than the plan listed to stay build-safe: `packages/data/tsconfig.json` paths, a `packages/data/vitest.config.ts` alias, and generalizing `scripts/rewrite-dist-imports.mjs` to rewrite `@data/*` in published output. Verified by rebuilding `@kestrel/data`.
+- `pnpm check:knip-config` is a local script; it is **not yet wired into `.github/workflows/ci-fast.yml`** (CI still runs `pnpm knip` directly). Recommended follow-up.
+- With honest entries, `pnpm knip --no-progress` reports 9 unused files / 360 unused exports / 185 unused exported types (real findings: dead re-exports, unused components, dead barrels). Clearing these is Phase 3/4 work; until then the CI Knip step stays red by design rather than by gaming.
+
 ## Global Constraints
 
 - Backend `.ts` files MUST stay `<= 350` LOC (`RULE-F01`), React `.tsx` files `<= 250` LOC (`RULE-F02`), `<= 4` `useState`, `<= 2` `useEffect` (`RULE-F03`), enforced by `pnpm check:maintainability`.
@@ -43,7 +54,7 @@
 - Consumes: `@kestrel/db/queue`, `@kestrel/ai`, `@kestrel/data` internal modules.
 - Produces: Zero errors and zero warnings on `pnpm lint` and `pnpm format:check`.
 
-- [ ] **Step 1: Update `.gitignore` to allow tracked `AGENTS.md` and `CLAUDE.md` while ignoring `.entire/` and `.opencode/`**
+- [x] **Step 1: Update `.gitignore` to allow tracked `AGENTS.md` and `CLAUDE.md` while ignoring `.entire/` and `.opencode/`**
 
 In `.gitignore`, replace lines 97–102:
 
@@ -57,7 +68,7 @@ CLAUDE.local.md
 .vercel
 ```
 
-- [ ] **Step 2: Update `.prettierignore` to exclude agent runtime directories and scratch folders**
+- [x] **Step 2: Update `.prettierignore` to exclude agent runtime directories and scratch folders**
 
 Append to `.prettierignore`:
 
@@ -70,7 +81,7 @@ Append to `.prettierignore`:
 .codex
 ```
 
-- [ ] **Step 3: Fix the ESLint error in `apps/worker/test/queue-health.test.ts` and warning in `apps/worker/src/jobs/fred-actuals.ts`**
+- [x] **Step 3: Fix the ESLint error in `apps/worker/test/queue-health.test.ts` and warning in `apps/worker/src/jobs/fred-actuals.ts`**
 
 In `apps/worker/test/queue-health.test.ts`, add `import type * as DbQueueModule from '@kestrel/db/queue';` at line 25 and change line 77 to:
 
@@ -90,11 +101,11 @@ import {
 } from '@kestrel/ai';
 ```
 
-- [ ] **Step 4: Fix the 3 deep-relative import warnings in `packages/data/src/providers/biquote/rest/{call,ohlc}.ts`**
+- [x] **Step 4: Fix the 3 deep-relative import warnings in `packages/data/src/providers/biquote/rest/{call,ohlc}.ts`**
 
 Ensure `packages/data/tsconfig.json` maps `"@data/*": ["./src/*"]` (matching `@ai/*` in `packages/ai/tsconfig.json`), and update `call.ts` and `ohlc.ts` to import from `@data/cache/throttle` and `@data/errors`.
 
-- [ ] **Step 5: Run Prettier write and verify `lint`, `format:check`, and `typecheck` all pass with zero warnings**
+- [x] **Step 5: Run Prettier write and verify `lint`, `format:check`, and `typecheck` all pass with zero warnings**
 
 Run:
 
@@ -108,7 +119,7 @@ pnpm typecheck
 
 Expected: All commands exit `0` with `0 errors, 0 warnings`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add .gitignore .prettierignore apps/ packages/ docs/
@@ -133,7 +144,7 @@ git commit -m "chore(hygiene): unignore AGENTS.md, fix all lint/prettier issues,
 - Consumes: Repository conventions enforced by `scripts/check-maintainability.mjs`, `scripts/check-route-security.mjs`, and `scripts/check-env-contract.mjs`.
 - Produces: Deterministic context loaded automatically by Claude Code, Codex, Cursor, Gemini, OpenCode, and Copilot.
 
-- [ ] **Step 1: Create root `AGENTS.md` (<60 lines) and `CLAUDE.md`**
+- [x] **Step 1: Create root `AGENTS.md` (<60 lines) and `CLAUDE.md`**
 
 Write `/data/home/Kestrel/AGENTS.md`:
 
@@ -176,14 +187,14 @@ Write `/data/home/Kestrel/CLAUDE.md`:
 @AGENTS.md
 ```
 
-- [ ] **Step 2: Create package-scoped `AGENTS.md` files in `apps/web`, `apps/worker`, `packages/ai`, and `packages/db`**
+- [x] **Step 2: Create package-scoped `AGENTS.md` files in `apps/web`, `apps/worker`, `packages/ai`, and `packages/db`**
 
 - In `apps/web/AGENTS.md`: Preserve the `<!-- BEGIN:nextjs-agent-rules -->...<!-- END:nextjs-agent-rules -->` block at lines 1–11, and append rules for `/api/**` routes (`withAuth`, `withAdminAuth`, `withCronAuth`, `parseJsonBody`, `errorResponse`), RSC tenant scoping (`withUserTenantRO`), and UI design tokens (`surface-panel`, `surface-well`, `surface-chip`).
 - In `packages/ai/AGENTS.md`: Document Mastra v2 agent/workflow conventions, tool registration, `createGenerationLedger()`, and integer-cent budget reservation rules.
 - In `packages/db/AGENTS.md`: Document Drizzle schema conventions (`numeric(20,8)` for accumulated money, `double precision` for OHLC), migration monotonic `when` timestamps in `drizzle/meta/_journal.json`, and `kestrel_app` RLS grants.
 - In `apps/worker/AGENTS.md`: Document `JOBS` registry (`src/jobs/index.ts`), `AbortSignal` propagation, `withUserTenant` / `withAdminDb` requirements, and pg-boss dead-letter queues.
 
-- [ ] **Step 3: Verify formatting and maintainability checks pass**
+- [x] **Step 3: Verify formatting and maintainability checks pass**
 
 Run:
 
@@ -193,7 +204,7 @@ pnpm format:check && pnpm check:maintainability
 
 Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add AGENTS.md CLAUDE.md apps/web/AGENTS.md apps/worker/AGENTS.md packages/ai/AGENTS.md packages/db/AGENTS.md
@@ -215,7 +226,7 @@ git commit -m "docs(agents): add root and package-scoped AGENTS.md and CLAUDE.md
 - Consumes: Workspace `package.json` `exports` fields and Next.js App Router conventions (`page.tsx`, `layout.tsx`, `route.ts`, `actions.ts`, `instrumentation.ts`, `proxy.ts`).
 - Produces: Honest `knip.json` configuration where `src/**/*.{ts,tsx}` wildcard entry globs are forbidden.
 
-- [ ] **Step 1: Write `scripts/check-knip-config.mjs` to forbid wildcard `src/**/*` entry points in `knip.json`**
+- [x] **Step 1: Write `scripts/check-knip-config.mjs` to forbid wildcard `src/**/*` entry points in `knip.json`**
 
 ```js
 #!/usr/bin/env node
@@ -240,12 +251,12 @@ if (violations.length > 0) {
 console.log('knip.json validation passed.');
 ```
 
-- [ ] **Step 2: Run `node scripts/check-knip-config.mjs` to verify it catches the current gamed config**
+- [x] **Step 2: Run `node scripts/check-knip-config.mjs` to verify it catches the current gamed config**
 
 Run: `node scripts/check-knip-config.mjs`  
 Expected: FAIL with 9 workspace violations (`apps/web`, `apps/worker`, `packages/ai`, `packages/data`, `packages/db`, `packages/indicators`, `packages/plugin-sdk`, `packages/test-utils`, `plugins/*`).
 
-- [ ] **Step 3: Update `knip.json` to use true entry points for every workspace**
+- [x] **Step 3: Update `knip.json` to use true entry points for every workspace**
 
 Update `knip.json` so each workspace lists only its real entry points (matching its `package.json` `exports` and Next.js App Router entry files):
 
@@ -259,12 +270,12 @@ Update `knip.json` so each workspace lists only its real entry points (matching 
 - `packages/test-utils`: `["src/index.ts", "test/**/*.test.ts"]`
 - `plugins/*`: `["src/index.ts", "src/server.ts", "src/ui/index.tsx", "test/**/*.test.ts"]`
 
-- [ ] **Step 4: Run `node scripts/check-knip-config.mjs` to verify it passes**
+- [x] **Step 4: Run `node scripts/check-knip-config.mjs` to verify it passes**
 
 Run: `node scripts/check-knip-config.mjs`  
 Expected: PASS (`knip.json validation passed.`).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add knip.json scripts/check-knip-config.mjs

@@ -10,6 +10,17 @@
 
 **Spec:** `docs/roadmaps/00-kestrel-maintainability-audit-and-master-roadmap.md` (§3.1, §3.2, §4)
 
+**Status: COMPLETE (2026-11-02).** Commits: `f4af821d` (dead modules + SSRF checks), `65c3594a` (formatters/errors/indicator registry), `0c59ba22` (root-directory reorganization + empty baseline).
+Verification on the completed tree: full `pnpm test` (15/15 packages, incl. 1893 AI tests and 1510 web tests), `pnpm typecheck` (27 tasks), `pnpm lint` (15/15), `pnpm format:check`, `pnpm check:maintainability` (`0 baselined legacy files`), `pnpm check:route-security`, `pnpm check:env-contract`, `pnpm check:knip-config` all green.
+
+Deviations and findings worth carrying forward:
+
+- **`formatStamp` was not a duplicate.** The local helper in `analyze-fundamental.tsx` renders UTC calendar stamps (`11-02 14:23Z`); `datetime.ts`'s `formatStamp` renders local-time compact stamps. Instead of silently changing the displayed time format, the UTC helper moved into `datetime.ts` as `formatUtcStamp` and the caller imports it. Only `formatRelative` / `formatRelativeTime` were true duplicates (canonical: `formatRelative`).
+- `errors.ts` became `errors/index.ts` and `tenant.ts` became `tenant/index.ts`, so `@kestrel/shared/errors` and `./tenant` resolve to directory indexes naturally. All other moved files kept their names.
+- A resolve-based codemod rewrote **196 relative specifiers** across shared/db/worker before the `git mv` operations (including `.js`-suffixed worker imports, where directory-index resolution does not apply). The legacy `apps/worker/src/scheduler.ts` re-export shim was deleted and its importers repointed to `./scheduler/index.js`.
+- Ancillary path references updated beyond the plan's file list: `knip.json` entries, `scripts/check-maintainability.mjs` static-catalog paths, `scripts/check-env-contract.mjs`, `.github/labeler.yml`, `docs/configuration.md`, `packages/db/AGENTS.md`, and the worker build comment.
+- `pnpm knip` after Phase 2: 8 unused files / 359 unused exports / 185 unused exported types. The remaining clusters are Phase 3/4 targets (`api-boundary.ts`, settings `_actions-*`, `xauusd`/legacy tool stacks); the `packages/db/src/queries` dead-query deletions listed in the master roadmap move to Phase 3 Task 1, which owns the split-brain resolution.
+
 ## Global Constraints
 
 - Every package `src/` root must have `<= 10` loose `.ts` files (`RULE-F05`).
@@ -43,7 +54,7 @@
 - Consumes: `assertSafeOutboundUrl`, `isSafeOutboundUrl` in `packages/shared/src/safe-url.ts`.
 - Produces: Unified SSRF URL validator in `packages/shared/src/safe-url.ts`; removal of 3 dead modules and 2 dead test files.
 
-- [ ] **Step 1: Add cloud metadata hostnames and `0.0.0.0/8` + `::` checks to `packages/shared/test/safe-url.test.ts`**
+- [x] **Step 1: Add cloud metadata hostnames and `0.0.0.0/8` + `::` checks to `packages/shared/test/safe-url.test.ts`**
 
 Add assertions to `packages/shared/test/safe-url.test.ts`:
 
@@ -56,19 +67,19 @@ it('blocks cloud metadata hostnames and unspecified addresses', () => {
 });
 ```
 
-- [ ] **Step 2: Run `@kestrel/shared` test to verify the new test fails on `metadata.google.internal` / `0.0.0.0`**
+- [x] **Step 2: Run `@kestrel/shared` test to verify the new test fails on `metadata.google.internal` / `0.0.0.0`**
 
 Run: `pnpm --filter @kestrel/shared test`  
 Expected: FAIL on `metadata.google.internal` and `0.0.0.0`.
 
-- [ ] **Step 3: Enhance `packages/shared/src/safe-url.ts` and delete `url-safety.ts`, `with-user-scope.ts`, and the dead `tradingview-widget.tsx` shim**
+- [x] **Step 3: Enhance `packages/shared/src/safe-url.ts` and delete `url-safety.ts`, `with-user-scope.ts`, and the dead `tradingview-widget.tsx` shim**
 
 1. In `packages/shared/src/safe-url.ts`: Add `['0.0.0.0', 8]` to `PRIVATE_IPV4`, add `'metadata.google.internal'`, `'instance-data.ec2.internal'`, `'localhost.localdomain'` to blocked hostnames in `isPrivateHostname`, and check `host === '::'` in `isIpv6`.
 2. Remove `export * from './url-safety';` from `packages/shared/src/index.ts` and delete `packages/shared/src/url-safety.ts` and `packages/shared/test/url-safety.test.ts`.
 3. Remove `export { withUserScope } from './with-user-scope';` from `packages/db/src/index.ts` and delete `packages/db/src/with-user-scope.ts` and `packages/db/test/with-user-scope.test.ts`.
 4. Delete `apps/web/src/app/(app)/chart/[symbol]/_components/tradingview-widget.tsx`.
 
-- [ ] **Step 4: Run tests and typecheck to verify everything passes**
+- [x] **Step 4: Run tests and typecheck to verify everything passes**
 
 Run:
 
@@ -80,7 +91,7 @@ pnpm typecheck
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A packages/shared packages/db apps/web
@@ -108,24 +119,24 @@ git commit -m "refactor(shared,db,web): remove dead url-safety, with-user-scope,
 - Consumes: `apps/web/src/lib/formatters/datetime.ts`, `apps/web/src/lib/http/api/errors.ts`, `packages/indicators/src/registry.ts`.
 - Produces: Single canonical `formatRelative` in `datetime.ts`; single `jsonApiError` + `errorResponse` module in `lib/http/api/errors.ts`; single `registry.ts` in `packages/indicators`.
 
-- [ ] **Step 1: Move `formatRelative` into `apps/web/src/lib/formatters/datetime.ts` and remove duplicate `formatRelativeTime` and local `formatStamp`**
+- [x] **Step 1: Move `formatRelative` into `apps/web/src/lib/formatters/datetime.ts` and remove duplicate `formatRelativeTime` and local `formatStamp`**
 
 1. Move `formatRelative(timestamp: number | string | Date, now?: number): string` from `apps/web/src/lib/formatters/format.ts` into `apps/web/src/lib/formatters/datetime.ts`.
 2. In `apps/web/src/lib/formatters/format-number.ts`, delete `formatRelativeTime` (keep only `formatMs`, `formatNumber`, `formatAbsoluteTime`).
 3. Update imports of `formatRelative` (from `@/lib/formatters/format` → `@/lib/formatters/datetime`) and `formatRelativeTime` (in the 6 `admin/_components/*` files → `formatRelative` from `@/lib/formatters/datetime`), and delete `apps/web/src/lib/formatters/format.ts`.
 4. In `apps/web/src/components/chat/parts/analyze-fundamental.tsx`, delete the local `function formatStamp(iso: string)` at line 129 and import `{ formatStamp } from '@/lib/formatters/datetime'`.
 
-- [ ] **Step 2: Consolidate `jsonApiError` into `apps/web/src/lib/http/api/errors.ts`**
+- [x] **Step 2: Consolidate `jsonApiError` into `apps/web/src/lib/http/api/errors.ts`**
 
 1. Move `jsonApiError` from `apps/web/src/lib/http/api-errors.ts` into `apps/web/src/lib/http/api/errors.ts` and re-export it from `apps/web/src/lib/http/api/index.ts`.
 2. Update the 7 admin routes (`apps/web/src/app/api/admin/{impersonate,flush,onboarding/reset,feedback/[id],diagnostics/trace/[id],users/[id]/role,regression-cases/[id]}/route.ts`) and `apps/web/test/api-errors.test.ts` to import `jsonApiError` from `@/lib/http/api`.
 3. Delete `apps/web/src/lib/http/api-errors.ts`.
 
-- [ ] **Step 3: Merge `packages/indicators/src/indicator-registry.ts` and `packages/indicators/src/registry.ts`**
+- [x] **Step 3: Merge `packages/indicators/src/indicator-registry.ts` and `packages/indicators/src/registry.ts`**
 
 Combine `IndicatorRegistry`, `indicatorRegistry`, `IndicatorPlugin`, `parseIndicatorParams`, and `computeIndicator` into `packages/indicators/src/registry.ts` (~240 LOC total, well under the 350 LOC limit), update `packages/indicators/src/index.ts`, and delete `packages/indicators/src/indicator-registry.ts`.
 
-- [ ] **Step 4: Run tests and typecheck across `@kestrel/indicators` and `@kestrel/web`**
+- [x] **Step 4: Run tests and typecheck across `@kestrel/indicators` and `@kestrel/web`**
 
 Run:
 
@@ -137,7 +148,7 @@ pnpm typecheck
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A packages/indicators apps/web
@@ -161,7 +172,7 @@ git commit -m "refactor(web,indicators): consolidate duplicate formatters, error
 - Consumes: All subpath exports declared in `packages/shared/package.json` and `packages/db/package.json`.
 - Produces: `<= 10` loose files in every `src/` root across the entire monorepo; `scripts/maintainability-baseline.json` reduced to `{ "ts": {}, "tsx": {}, "looseRoots": {} }`.
 
-- [ ] **Step 1: Group loose files in `packages/shared/src` (currently 23 loose files → `<= 6` loose files)**
+- [x] **Step 1: Group loose files in `packages/shared/src` (currently 23 loose files → `<= 6` loose files)**
 
 Move loose files in `packages/shared/src/` into logical domain subdirectories while updating `packages/shared/src/index.ts` and `packages/shared/package.json` `exports`:
 
@@ -172,7 +183,7 @@ Move loose files in `packages/shared/src/` into logical domain subdirectories wh
 - `src/runtime/`: `capabilities.ts`, `container.ts`, `feature-flags.ts`, `safe-url.ts`, `env.ts` (merge into `src/env/index.ts`), `env-secrets.ts` (move into `src/env/secrets.ts`)
 - Keep only `src/index.ts` at the root of `packages/shared/src/`! Update `packages/shared/package.json` `exports` (`./encryption` → `./dist/crypto/encryption.js`, `./logger` → `./dist/logger/index.js`, etc.) so all external `@kestrel/shared/<subpath>` imports work without changes.
 
-- [ ] **Step 2: Group loose files in `packages/db/src` (currently 12 loose files → `<= 6` loose files)**
+- [x] **Step 2: Group loose files in `packages/db/src` (currently 12 loose files → `<= 6` loose files)**
 
 Move loose files in `packages/db/src/`:
 
@@ -181,7 +192,7 @@ Move loose files in `packages/db/src/`:
 - Fold `retention.ts` into `src/retention/index.ts` and `queue.ts` into `src/queue/index.ts` (update `packages/db/package.json` `./queue` export to `./dist/queue/index.js`).
 - Keep only `index.ts`, `client.ts`, `migration-plan.ts`, and `test-utils.ts` at the root of `packages/db/src/` (4 files <= 10).
 
-- [ ] **Step 3: Group loose files in `apps/worker/src` (currently 14 loose files → `<= 6` loose files)**
+- [x] **Step 3: Group loose files in `apps/worker/src` (currently 14 loose files → `<= 6` loose files)**
 
 Move loose files in `apps/worker/src/`:
 
@@ -191,7 +202,7 @@ Move loose files in `apps/worker/src/`:
 - Move `http-server.ts`, `healthchecks.ts`, `sd-notify.ts`, `tenant-router.ts` into `src/runtime/`.
 - Keep only `index.ts`, `env.ts`, and `log.ts` at the root of `apps/worker/src/` (3 files <= 10).
 
-- [ ] **Step 4: Empty `scripts/maintainability-baseline.json` and run `pnpm check:maintainability`**
+- [x] **Step 4: Empty `scripts/maintainability-baseline.json` and run `pnpm check:maintainability`**
 
 Write `scripts/maintainability-baseline.json`:
 
@@ -213,7 +224,7 @@ pnpm test
 
 Expected: `check-maintainability: PASS (0 baselined legacy files)`, `typecheck` PASS, `test` PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A packages/shared packages/db apps/worker scripts/maintainability-baseline.json
