@@ -32,6 +32,7 @@ export {
   hasAdminDbScope,
   hasTenantDbScope,
   isRlsEnabled,
+  setDbForTest,
   withAdminDb,
   withTenantDb,
   withTenantDbFresh,

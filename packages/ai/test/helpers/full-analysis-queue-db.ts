@@ -20,8 +20,8 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { setDbForTest } from '@kestrel/db';
 import * as schema from '@kestrel/db/schema';
-import { container as dependencyContainer } from '@kestrel/shared';
 import { LibSQLStore } from '@mastra/libsql';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
@@ -33,7 +33,6 @@ import {
   createKestrelMastra,
   initializeKestrelMastra,
 } from '../../src/mastra-v2';
-import { DB } from '../../src/runtime/tokens';
 
 export type QueueTestDb = ReturnType<typeof drizzle<typeof schema>>;
 
@@ -148,7 +147,7 @@ export async function withQueueStorage<T>(fn: (db: QueueTestDb) => Promise<T>): 
   await db.execute(
     sql`INSERT INTO "organization_member" ("org_id", "user_id", "role") VALUES ('user-1', 'user-1', 'owner') ON CONFLICT ("org_id", "user_id") DO NOTHING`,
   );
-  dependencyContainer.register(DB, () => db as never);
+  setDbForTest(db as never);
 
   const dir = mkdtempSync(join(tmpdir(), 'kestrel-full-analysis-'));
   const store = new LibSQLStore({ id: 'test-durable', url: `file:${join(dir, 'mastra.db')}` });
@@ -159,9 +158,7 @@ export async function withQueueStorage<T>(fn: (db: QueueTestDb) => Promise<T>): 
     return await fn(db);
   } finally {
     _resetKestrelMastra();
-    dependencyContainer.register(DB, () => {
-      throw new Error('Full-analysis test DB was not initialized');
-    });
+    setDbForTest(null);
     await raw.end({ timeout: 5 });
     if (databaseName) {
       const adminUrl = process.env.TEST_POSTGRES_ADMIN_URL!;

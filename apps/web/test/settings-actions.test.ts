@@ -23,10 +23,8 @@ import {
   updateUserDisplayName,
 } from '@kestrel/db';
 // Pre-register mock DB in the container BEFORE @kestrel/ai is imported.
-// importOriginal for @kestrel/ai runs db.ts which does container.register('db', ...),
 // but since @kestrel/db is mocked and getRawDb = mockGetDb, the container will
 // resolve to mockGetDb correctly.
-import { container } from '@kestrel/shared';
 import {
   decryptByok,
   decryptWithPassword,
@@ -169,8 +167,6 @@ vi.mock('@kestrel/ai', async (importOriginal) => {
     testProviderKey: mockTestProviderKey,
   };
 });
-
-container.register('db', () => mockGetDb());
 
 const USER_ID = 'user-test-001';
 const TEST_PASSWORD = 'my-strong-password-123';

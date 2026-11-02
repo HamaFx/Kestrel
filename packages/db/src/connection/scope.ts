@@ -37,6 +37,19 @@ interface TenantDbScope {
 const tenantDbScope = new AsyncLocalStorage<TenantDbScope>();
 const adminDbScope = new AsyncLocalStorage<DbClient>();
 
+// Test-only override. Disposable Postgres integration suites point the process
+// at their own database without a generic DI container. Always clear it in
+// `afterAll`.
+let dbOverrideForTest: DbClient | null = null;
+
+/** @internal Test-only seam. Pass `null` to restore normal scope resolution. */
+export function setDbForTest(db: DbClient | null): void {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('setDbForTest is only available in test environments.');
+  }
+  dbOverrideForTest = db;
+}
+
 /**
  * Whether RLS is enabled. RLS is required in every supported deployment —
  * `withTenantDb*` sets the `app.current_tenant` GUC so RLS policies enforce
@@ -67,6 +80,7 @@ function assertTenantIsolationConfig(): void {
  * connection when no replica is configured (single-node deployments).
  */
 export function getDbRO(): DbClient {
+  if (dbOverrideForTest) return dbOverrideForTest;
   const tenantScope = tenantDbScope.getStore();
   if (tenantScope) return tenantScope.db;
   const adminScope = adminDbScope.getStore();
@@ -79,6 +93,7 @@ export function getDbRO(): DbClient {
 }
 
 export function getDb(): DbClient {
+  if (dbOverrideForTest) return dbOverrideForTest;
   assertTenantIsolationConfig();
   const tenantScope = tenantDbScope.getStore();
   if (tenantScope) return tenantScope.db;

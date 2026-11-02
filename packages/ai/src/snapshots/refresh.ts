@@ -20,12 +20,12 @@
 // the manual path prunes the minute table exactly like the scheduled path.
 
 import * as marketData from '@kestrel/data';
-import { getDb } from '@kestrel/db';
 import { candles1m } from '@kestrel/db/schema';
 import { ALL_SYMBOLS } from '@kestrel/shared';
 import { lt, sql } from 'drizzle-orm';
 
 import type { CronRunOptions } from '../runtime/cron-runner';
+import { getDb } from '../runtime/db';
 import { computeDailySnapshot, previousUtcMidnight } from './compute';
 import { upsertSnapshot } from './persistence';
 

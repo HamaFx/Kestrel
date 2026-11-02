@@ -19,17 +19,19 @@
 // `withDiagnostics`, and a stream persists its `diagnostic_traces` row only in
 // its terminal finalizer (never when the HTTP response handle returns).
 
-import { container } from '@kestrel/shared';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { setDbForTest } from '@kestrel/db';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getDiagnosticContext } from '../src/diagnostics';
 import {
   runMastraCanonicalChat,
   runMastraCanonicalChatStream,
 } from '../src/mastra-v2/agents/canonical';
-import { DB } from '../src/runtime/tokens';
 
-container.register(DB, () => ({ select: () => undefined }) as never);
+// ToolContext resolves the DB lazily; no tool calls run in these tests, so a
+// stub client is enough.
+setDbForTest({ select: () => undefined } as never);
+afterAll(() => setDbForTest(null));
 
 const mocks = vi.hoisted(() => ({
   persistTrace: vi.fn().mockResolvedValue(undefined),

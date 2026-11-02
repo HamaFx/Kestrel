@@ -19,14 +19,16 @@
 // attempts stay in one Turn/budget, and the completion is honest about the
 // model that answered plus the emitted data-fallback part.
 
-import { container } from '@kestrel/shared';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { setDbForTest } from '@kestrel/db';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runMastraCanonicalChatStream } from '../src/mastra-v2/agents/canonical';
 import { _resetCircuits } from '../src/models/circuit-breaker';
-import { DB } from '../src/runtime/tokens';
 
-container.register(DB, () => ({ select: () => undefined }) as never);
+// ToolContext resolves the DB lazily; no tool calls run in these tests, so a
+// stub client is enough.
+setDbForTest({ select: () => undefined } as never);
+afterAll(() => setDbForTest(null));
 
 const mocks = vi.hoisted(() => ({
   beginMastraRun: vi.fn(),

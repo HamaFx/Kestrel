@@ -18,15 +18,15 @@
 // failure: fall back to the explicit-history path, mark the run degraded, and
 // still return the answer instead of a naked 502.
 
-import { container } from '@kestrel/shared';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { setDbForTest } from '@kestrel/db';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runMastraCanonicalChat } from '../src/mastra-v2/agents/canonical';
-import { DB } from '../src/runtime/tokens';
 
 // ToolContext resolves the DB lazily; no tool calls run in these tests, so a
-// stub client is enough. Register before any turn executes.
-container.register(DB, () => ({ select: () => undefined }) as never);
+// stub client is enough.
+setDbForTest({ select: () => undefined } as never);
+afterAll(() => setDbForTest(null));
 
 const mocks = vi.hoisted(() => ({
   resolveChatModel: vi.fn(),

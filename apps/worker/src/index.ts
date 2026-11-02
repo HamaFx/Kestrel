@@ -28,7 +28,7 @@
 // (`plugins.ts`), feed/worker startup (`feed-worker.ts`), HTTP servers
 // (`http-servers.ts`), and the shutdown registry (`shutdown.ts`).
 
-import { ensureAiBootstrapped, initLangfuse } from '@kestrel/ai';
+import { initLangfuse } from '@kestrel/ai';
 import { ensureDataProvidersRegistered } from '@kestrel/data';
 import { getCapabilityReport } from '@kestrel/shared';
 
@@ -54,7 +54,6 @@ export { runWorker } from './bootstrap/feed-worker';
 export type { RunWorkerArgs, RunningWorker } from './bootstrap/feed-worker';
 
 export async function main(): Promise<void> {
-  ensureAiBootstrapped();
   ensureDataProvidersRegistered();
   const { loadSecretsFromVault } = await import('@kestrel/shared/vault');
   await loadSecretsFromVault();

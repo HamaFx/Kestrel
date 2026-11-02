@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-// Structural guard: every database access inside @kestrel/ai must go through
-// `getDb()` from `src/runtime/db.ts`, which verifies that a tenant or admin
-// AsyncLocalStorage scope is active before returning the client. Resolving the
-// `DB` token directly from the container hands out the cached root pool and
-// silently bypasses that check under the NOBYPASSRLS application role.
+// Structural guard: every database access inside @kestrel/ai goes through
+// `getDb()` from `src/runtime/db.ts`. That module delegates to `@kestrel/db`,
+// the single owner of tenant/admin AsyncLocalStorage scope resolution. A
+// direct import of the raw client from `@kestrel/db` would skip the
+// package-local boundary and make future RLS changes easy to miss.
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -38,15 +38,17 @@ function walkTsFiles(dir: string): string[] {
   return results;
 }
 
+const RAW_DB_IMPORT = /\{[^}]*\b(?:getDb|getAdminDb)\b[^}]*\}\s*from\s*'@kestrel\/db'/s;
+
 describe('@kestrel/ai database access guard', () => {
-  it('never calls container.resolve(DB) outside src/runtime/db.ts', () => {
+  it('imports the raw database client only from src/runtime/db.ts', () => {
     const srcRoot = join(__dirname, '..', 'src');
     const offenders: string[] = [];
     for (const file of walkTsFiles(srcRoot)) {
       const rel = relative(srcRoot, file).replace(/\\/g, '/');
       if (rel === 'runtime/db.ts') continue;
       const content = readFileSync(file, 'utf8');
-      if (content.includes('container.resolve(DB)')) {
+      if (RAW_DB_IMPORT.test(content)) {
         offenders.push(rel);
       }
     }

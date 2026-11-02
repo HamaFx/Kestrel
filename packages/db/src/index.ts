@@ -38,6 +38,7 @@ export {
   isRlsEnabled,
   hasAdminDbScope,
   hasTenantDbScope,
+  setDbForTest,
   getTenantDbScope,
   schema,
   type DbClient,

@@ -20,12 +20,8 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { loadSecretsFromVault } = await import('@kestrel/shared/vault');
     await loadSecretsFromVault();
-    // RULE-R02 — explicit, idempotent DI/provider bootstrap.
-    const [{ ensureAiBootstrapped }, { ensureDataProvidersRegistered }] = await Promise.all([
-      import('@kestrel/ai'),
-      import('@kestrel/data'),
-    ]);
-    ensureAiBootstrapped();
+    // RULE-R02 — explicit, idempotent provider bootstrap.
+    const { ensureDataProvidersRegistered } = await import('@kestrel/data');
     ensureDataProvidersRegistered();
     // Fail closed during the Node server startup path as well as in
     // request callbacks. Vault loading must happen first because it may

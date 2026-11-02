@@ -31,8 +31,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { schema } from '@kestrel/db';
-import { container as dependencyContainer } from '@kestrel/shared';
+import { schema, setDbForTest } from '@kestrel/db';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -44,7 +43,6 @@ import {
   releaseAlertDeliveryClaim,
 } from '../src/alerts/persistence';
 import { alertRotationKey } from '../src/alerts/persistence/crud';
-import { DB } from '../src/runtime/tokens';
 
 const enabled = process.env.RUN_POSTGRES_RLS_TESTS === '1';
 const adminUrl = process.env.TEST_POSTGRES_ADMIN_URL;
@@ -139,8 +137,7 @@ describe.skipIf(!enabled || !adminUrl)('alert fan-out and claims — real Postgr
     ]);
 
     db = drizzle(raw, { schema });
-    // `packages/ai`'s runtime `getDb()` resolves through the DI container.
-    dependencyContainer.register(DB, () => db as never);
+    setDbForTest(db as never);
   }, 300_000);
 
   beforeEach(async () => {
@@ -148,9 +145,7 @@ describe.skipIf(!enabled || !adminUrl)('alert fan-out and claims — real Postgr
   });
 
   afterAll(async () => {
-    dependencyContainer.register(DB, () => {
-      throw new Error('R10 alert test database was not initialised');
-    });
+    setDbForTest(null);
     await raw?.end({ timeout: 5 });
     if (admin && databaseName) {
       try {

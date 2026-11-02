@@ -19,14 +19,13 @@
 // best-effort wrapper never fails a durable turn.
 
 import type * as KestrelDb from '@kestrel/db';
-import { container } from '@kestrel/shared';
+import { setDbForTest } from '@kestrel/db';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   saveAgentOpinions,
   saveAgentOpinionsBestEffort,
 } from '../src/committee/opinion-persistence';
-import { DB } from '../src/runtime/tokens';
 
 const { state, dbStub } = vi.hoisted(() => {
   const state = {
@@ -94,7 +93,7 @@ beforeEach(() => {
   state.rows = [];
   state.parentFound = true;
   state.insertFails = false;
-  container.register(DB, () => dbStub as never);
+  setDbForTest(dbStub as never);
 });
 
 describe('agent opinion persistence', () => {

@@ -1,7 +1,3 @@
-// RULE-R02 — importing this barrel has no side effects. App entrypoints
-// (web instrumentation, worker main, tests) call `ensureAiBootstrapped()`.
-export { ensureAiBootstrapped } from './runtime/services';
-
 /**
  * Copyright 2026 Kestrel
  *

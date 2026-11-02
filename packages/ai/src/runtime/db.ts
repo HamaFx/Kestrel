@@ -14,49 +14,11 @@
  * limitations under the License.
  */
 
-// P2-3 — DI-backed getDb() wrapper.
+// AI-internal database accessor.
 //
-// This accessor now stays private to `@kestrel/ai`: applications import
-// `getDb` from `@kestrel/db`, which owns the RLS-aware scope resolution.
-// The wrapper remains for tests that override the AI container's DB factory
-// (`container.register(DB, ...)`) without touching the shared package.
+// `@kestrel/db` owns the single client, tenant/admin RLS scope resolution, and
+// the worker admin fallback. Keeping this module as a thin delegation preserves
+// the `@ai/runtime/db` import path without a second DI layer. It is not
+// re-exported from the package barrel; applications import `@kestrel/db`.
 
-import {
-  getAdminDb as getRawAdminDb,
-  getDb as getRawDb,
-  hasAdminDbScope,
-  hasTenantDbScope,
-  type DbClient,
-} from '@kestrel/db';
-import { container } from '@kestrel/shared';
-
-import { DB } from './tokens';
-
-/**
- * Register the real DB factory exactly once. Called by
- * `ensureAiBootstrapped()` and lazily by `getDb()` so importing this module
- * has no side effects. Tests may override with container.register(DB, ...).
- */
-export function ensureDbRegistered(): void {
-  if (container.has(DB)) return;
-  container.register(DB, () => getRawDb());
-}
-
-/**
- * Returns the singleton Drizzle database client via the DI container.
- */
-export function getDb(): DbClient {
-  ensureDbRegistered();
-  // The container caches the process-wide fallback client. Never use that
-  // cached instance inside a scoped database context: tenant requests must
-  // run on the transaction carrying `app.current_tenant`, and explicit
-  // `withAdminDb` scopes must run on the BYPASSRLS admin connection. Both
-  // are resolved by the raw `getDb()` through AsyncLocalStorage.
-  if (hasTenantDbScope() || hasAdminDbScope()) return getRawDb();
-  // Worker/cron AI code performs cross-tenant work and must use the explicit
-  // BYPASSRLS admin connection when shared mode is enabled.
-  if (process.env.KESTREL_RUNTIME === 'worker' && process.env.ADMIN_DATABASE_URL) {
-    return getRawAdminDb();
-  }
-  return container.resolve(DB);
-}
+export { getDb } from '@kestrel/db';
