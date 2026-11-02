@@ -23,19 +23,11 @@
 // via the `briefings_emitted` primary key.
 
 import { withCronAuth } from '@/lib/http/cron';
-import { createScopedLoggerWithContext } from '@/lib/logger';
-import { runWeeklyReviewFanout } from '@/lib/services/cron-jobs';
+import { runWeeklyReviewCronService } from '@/lib/services/cron-jobs';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request): Promise<Response> {
-  const log = createScopedLoggerWithContext({ component: 'cron', job: 'weekly-review' });
-  return withCronAuth(req, async () => {
-    const result = await runWeeklyReviewFanout({ log });
-    return {
-      processed: result.processed,
-      ...(result.reasons.length > 0 ? { note: result.reasons.join(', ') } : {}),
-    };
-  });
+  return withCronAuth(req, async () => runWeeklyReviewCronService());
 }

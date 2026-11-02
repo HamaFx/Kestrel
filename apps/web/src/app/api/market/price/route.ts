@@ -23,6 +23,7 @@ import { z } from 'zod';
 
 import { errorResponse, withAuth } from '@/lib/http/api';
 import { checkMarketRateLimit, getPriceService } from '@/lib/services/market';
+import { rateLimitedResponse } from '@/lib/services/rate-limit';
 
 const QuerySchema = z.object({
   symbol: z
@@ -46,15 +47,7 @@ export const GET = withAuth<void>(async (req, { user }) => {
   try {
     const rl = await checkMarketRateLimit(user.userId);
     if (!rl.allowed) {
-      return Response.json(
-        {
-          error: {
-            code: 'RATE_LIMITED',
-            message: `Too many requests (${rl.count}/${rl.limit} per minute).`,
-          },
-        },
-        { status: 429, headers: { 'Retry-After': '60' } },
-      );
+      return rateLimitedResponse(rl);
     }
     const url = new URL(req.url);
     const repeated = url.searchParams.getAll('symbol');

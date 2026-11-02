@@ -27,7 +27,7 @@
 import { z } from 'zod';
 
 import { parseJsonBody, withAuth } from '@/lib/http/api';
-import { deletePushSubscriptionByEndpoint } from '@/lib/services/notifications';
+import { unsubscribePushService } from '@/lib/services/notifications';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -39,6 +39,6 @@ const BodySchema = z.object({
 export const POST = withAuth<void>(async (req, { user }) => {
   const parsed = await parseJsonBody(req, BodySchema);
 
-  await deletePushSubscriptionByEndpoint(user.userId, parsed.endpoint);
+  await unsubscribePushService(user.userId, parsed.endpoint);
   return Response.json({ ok: true }, { status: 200 });
 });

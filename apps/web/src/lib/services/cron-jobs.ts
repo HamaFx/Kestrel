@@ -14,14 +14,65 @@
  * limitations under the License.
  */
 
-// Route-facing facade over the shared cron runners. The worker jobs import the
-// same functions from `@kestrel/ai`, so the scheduled and manual-fallback
-// paths cannot drift in logic, retention, or note formatting.
+// SPDX-License-Identifier: Apache-2.0
 
-export {
+// Route-facing cron runners.
+//
+// The worker jobs and the `/api/cron/*` fallbacks call the same shared runners
+// in `@kestrel/ai/cron`. This module owns the per-job logger and the response
+// shape, so the routes stay one-line controllers and the manual and scheduled
+// paths cannot drift in logging or note formatting.
+
+import 'server-only';
+
+import {
   runBriefingsFanout,
   runCotIngestion,
   runFredActualsRefresh,
   runSnapshotRefresh,
   runWeeklyReviewFanout,
 } from '@kestrel/ai/cron';
+
+import { getServerEnv } from '@/lib/env';
+import { createScopedLoggerWithContext } from '@/lib/logger';
+
+export interface CronJobResult {
+  processed: number;
+  note?: string;
+}
+
+function loggerFor(job: string) {
+  return createScopedLoggerWithContext({ component: 'cron', job });
+}
+
+export async function runBriefingsCronService(): Promise<CronJobResult> {
+  const result = await runBriefingsFanout({ log: loggerFor('briefings') });
+  return { processed: result.processed, note: result.note };
+}
+
+export async function runCotCronService(): Promise<CronJobResult> {
+  const result = await runCotIngestion({ log: loggerFor('cot') });
+  return { processed: result.processed, note: result.note };
+}
+
+export async function runSnapshotsCronService(): Promise<CronJobResult> {
+  const result = await runSnapshotRefresh({ log: loggerFor('snapshots') });
+  return { processed: result.processed, note: result.note };
+}
+
+export async function runWeeklyReviewCronService(): Promise<CronJobResult> {
+  const result = await runWeeklyReviewFanout({ log: loggerFor('weekly-review') });
+  return {
+    processed: result.processed,
+    ...(result.reasons.length > 0 ? { note: result.reasons.join(', ') } : {}),
+  };
+}
+
+export async function runFredActualsCronService(): Promise<CronJobResult> {
+  const env = getServerEnv();
+  const result = await runFredActualsRefresh({
+    fredApiKey: env.FRED_API_KEY ?? null,
+    log: loggerFor('fred-actuals'),
+  });
+  return { processed: result.processed, note: result.note };
+}

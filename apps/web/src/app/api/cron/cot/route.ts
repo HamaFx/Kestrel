@@ -22,16 +22,11 @@
 // shared `runCotIngestion` runner. Idempotent per (symbol, report_date).
 
 import { withCronAuth } from '@/lib/http/cron';
-import { createScopedLoggerWithContext } from '@/lib/logger';
-import { runCotIngestion } from '@/lib/services/cron-jobs';
+import { runCotCronService } from '@/lib/services/cron-jobs';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request): Promise<Response> {
-  const log = createScopedLoggerWithContext({ component: 'cron', job: 'cot' });
-  return withCronAuth(req, async () => {
-    const result = await runCotIngestion({ log });
-    return { processed: result.processed, note: result.note };
-  });
+  return withCronAuth(req, async () => runCotCronService());
 }

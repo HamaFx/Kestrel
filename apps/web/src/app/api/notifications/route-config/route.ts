@@ -20,18 +20,17 @@
 // GET  /api/notifications/route-config
 // PUT  /api/notifications/route-config
 
-import { RouteConfigSchema, type RouteConfig } from '@kestrel/shared';
+import { RouteConfigSchema } from '@kestrel/shared';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
-import { getRouteConfig, saveRouteConfig } from '@/lib/services/notifications';
+import { getRouteConfigService, updateRouteConfigService } from '@/lib/services/notifications';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export const GET = withAuth<void>(async (_req, { user }) => {
   try {
-    const config = await getRouteConfig(user.userId);
-    return Response.json({ config });
+    return Response.json(await getRouteConfigService(user.userId));
   } catch (err) {
     return errorResponse(err);
   }
@@ -41,14 +40,7 @@ export const PUT = withAuth<void>(async (req, { user }) => {
   try {
     const body = await parseJsonBody(req, RouteConfigSchema);
     const partial = RouteConfigSchema.partial().parse(body);
-
-    // Clean undefined values to prevent overwriting existing settings with undefined during spread merges
-    const cleaned = Object.fromEntries(
-      Object.entries(partial).filter(([_, v]) => v !== undefined),
-    ) as Partial<RouteConfig>;
-
-    const config = await saveRouteConfig(user.userId, cleaned);
-    return Response.json({ config });
+    return Response.json(await updateRouteConfigService(user.userId, partial));
   } catch (err) {
     return errorResponse(err);
   }

@@ -23,7 +23,7 @@ import { AppError, SymbolSchema } from '@kestrel/shared';
 
 import { errorResponse, withAuth } from '@/lib/http/api';
 import { getSentimentService } from '@/lib/services/market';
-import { withRateLimit } from '@/lib/services/rate-limit';
+import { rateLimitedResponse, withRateLimit } from '@/lib/services/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -35,15 +35,7 @@ export const GET = withAuth<void>(async (req, { user: _user }) => {
     // RL-5: per-user rate limit on sentiment reads.
     const rl = await withRateLimit(_user.userId, 'sentiment_read', SENTIMENT_RATE_LIMIT);
     if (!rl.allowed) {
-      return Response.json(
-        {
-          error: {
-            code: 'RATE_LIMITED',
-            message: `Too many requests (${rl.count}/${rl.limit} per minute).`,
-          },
-        },
-        { status: 429, headers: { 'Retry-After': '60' } },
-      );
+      return rateLimitedResponse(rl);
     }
     const url = new URL(req.url);
     const symbol = url.searchParams.get('symbol');

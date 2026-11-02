@@ -31,8 +31,8 @@ import { AppError, conflict } from '@kestrel/shared';
 import { z } from 'zod';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
-import { PushSubscriptionConflictError, savePushSubscription } from '@/lib/services/notifications';
-import { withRateLimit } from '@/lib/services/rate-limit';
+import { PushSubscriptionConflictError, subscribePushService } from '@/lib/services/notifications';
+import { rateLimitedResponse, withRateLimit } from '@/lib/services/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -49,7 +49,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
   // STAB-12: Rate limit — 10 subscribe attempts per user per minute.
   const rl = await withRateLimit(user.userId, 'push_subscribe', 10);
   if (!rl.allowed) {
-    return errorResponse(new AppError('RATE_LIMITED', 'Too many requests', 429), req);
+    return rateLimitedResponse(rl);
   }
 
   const missing: string[] = [];
@@ -66,9 +66,9 @@ export const POST = withAuth<void>(async (req, { user }) => {
     return errorResponse(new AppError('VALIDATION', 'Invalid request body', 400), req);
   }
   const userAgent = req.headers.get('user-agent') ?? null;
-  let row: Awaited<ReturnType<typeof savePushSubscription>>;
+  let subscription: { id: string };
   try {
-    row = await savePushSubscription({
+    subscription = await subscribePushService({
       userId: user.userId,
       endpoint: parsed.endpoint,
       p256dh: parsed.keys.p256dh,
@@ -85,5 +85,5 @@ export const POST = withAuth<void>(async (req, { user }) => {
     throw error;
   }
 
-  return Response.json({ id: row.id }, { status: 200 });
+  return Response.json({ id: subscription.id }, { status: 200 });
 });

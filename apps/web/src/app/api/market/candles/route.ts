@@ -22,6 +22,7 @@ import { z } from 'zod';
 
 import { errorResponse, parseSearchParams, withAuth } from '@/lib/http/api';
 import { checkMarketRateLimit, getCandlesService } from '@/lib/services/market';
+import { rateLimitedResponse } from '@/lib/services/rate-limit';
 
 const QuerySchema = z.object({
   symbol: z.string(),
@@ -36,15 +37,7 @@ export const GET = withAuth<void>(async (req, { user }) => {
   try {
     const rl = await checkMarketRateLimit(user.userId);
     if (!rl.allowed) {
-      return Response.json(
-        {
-          error: {
-            code: 'RATE_LIMITED',
-            message: `Too many requests (${rl.count}/${rl.limit} per minute).`,
-          },
-        },
-        { status: 429, headers: { 'Retry-After': '60' } },
-      );
+      return rateLimitedResponse(rl);
     }
     const { symbol, tf, count } = parseSearchParams(req, QuerySchema);
     const result = await getCandlesService(

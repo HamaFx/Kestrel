@@ -14,17 +14,75 @@
  * limitations under the License.
  */
 
-// Route-boundary adapter for the generic plugin user-agent catalog.
+// SPDX-License-Identifier: Apache-2.0
+
+// Custom-agent request resolution.
 //
-// API routes must not import @kestrel/* directly; this service is the single
-// place that knows about the AI package's custom-agent helpers.
+// Chat routes must not import `@kestrel/*` directly. This service owns the
+// `@handle` parsing, runtime/catalog lookup, and prompt extraction, so the
+// dispatcher only maps a typed resolution to HTTP.
 
 import 'server-only';
 
-export {
+import {
   getInstalledPluginRuntime,
   hasUserAgentCatalogs,
   parseCustomAgentMention,
   resolveUserCustomAgent,
   stripCustomAgentMention,
+  type CustomAgentDescriptor,
+  type InstalledPluginRuntime,
 } from '@kestrel/ai/plugins';
+
+export type CustomAgentResolution =
+  | { status: 'none' }
+  | { status: 'unavailable' }
+  | { status: 'not-found'; slug: string }
+  | {
+      status: 'resolved';
+      slug: string;
+      prompt: string;
+      descriptor: CustomAgentDescriptor;
+      runtime: InstalledPluginRuntime;
+    };
+
+export interface ResolveCustomAgentInput {
+  userId: string;
+  userText: string;
+  /** Explicit composer selection, when the user picked an agent by name. */
+  agentSlug?: string | null;
+}
+
+/**
+ * Resolve an `@handle` or explicit agent selection to a runnable descriptor.
+ * Returns `none` when the turn is not aimed at a custom agent, and
+ * `unavailable` when the user has no installed agent catalogs.
+ */
+export async function resolveCustomAgentRequest(
+  input: ResolveCustomAgentInput,
+): Promise<CustomAgentResolution> {
+  const mention = parseCustomAgentMention(input.userText);
+  const requestedSlug = mention?.slug ?? input.agentSlug ?? null;
+  if (!requestedSlug) return { status: 'none' };
+
+  const runtime = await getInstalledPluginRuntime(input.userId);
+  if (!hasUserAgentCatalogs(runtime) && !input.agentSlug) {
+    return { status: 'unavailable' };
+  }
+
+  const descriptor = await resolveUserCustomAgent(runtime, requestedSlug);
+  if (!descriptor) return { status: 'not-found', slug: requestedSlug };
+
+  const prompt =
+    mention?.slug === descriptor.agent.slug
+      ? mention.prompt
+      : stripCustomAgentMention(input.userText, descriptor.agent.slug);
+
+  return {
+    status: 'resolved',
+    slug: descriptor.agent.slug,
+    prompt,
+    descriptor,
+    runtime,
+  };
+}

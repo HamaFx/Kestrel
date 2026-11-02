@@ -16,20 +16,66 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Phase 3 Task 4 — notification preferences + web-push service boundary.
+// Notification preferences, delivery routing, and web-push subscriptions.
 //
-// Noise control, route config (where each alert class is delivered), and the
-// push subscription lifecycle. Route handlers and cron jobs import these
-// instead of `@kestrel/ai` directly.
+// Partial-update cleaning lives here so GET/PUT handlers and any future
+// workers share the same merge semantics.
 
 import 'server-only';
 
-export {
+import {
   deletePushSubscriptionByEndpoint,
   getNoiseConfig,
   getRouteConfig,
-  PushSubscriptionConflictError,
   saveNoiseConfig,
   savePushSubscription,
   saveRouteConfig,
 } from '@kestrel/ai';
+import type { NoiseConfig, RouteConfig } from '@kestrel/shared';
+
+export { PushSubscriptionConflictError } from '@kestrel/ai';
+
+function stripUndefined<T extends Record<string, unknown>>(value: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entry]) => entry !== undefined),
+  ) as Partial<T>;
+}
+
+export async function getRouteConfigService(userId: string): Promise<{ config: RouteConfig }> {
+  return { config: await getRouteConfig(userId) };
+}
+
+export async function updateRouteConfigService(
+  userId: string,
+  input: Partial<RouteConfig>,
+): Promise<{ config: RouteConfig }> {
+  return { config: await saveRouteConfig(userId, stripUndefined(input)) };
+}
+
+export async function getNoiseConfigService(userId: string): Promise<{ config: NoiseConfig }> {
+  return { config: await getNoiseConfig(userId) };
+}
+
+export async function updateNoiseConfigService(
+  userId: string,
+  input: Partial<NoiseConfig>,
+): Promise<{ config: NoiseConfig }> {
+  return { config: await saveNoiseConfig(userId, stripUndefined(input)) };
+}
+
+export interface PushSubscriptionInput {
+  userId: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  userAgent?: string | null;
+}
+
+export async function subscribePushService(input: PushSubscriptionInput) {
+  const row = await savePushSubscription(input);
+  return { id: row.id };
+}
+
+export async function unsubscribePushService(userId: string, endpoint: string): Promise<void> {
+  await deletePushSubscriptionByEndpoint(userId, endpoint);
+}

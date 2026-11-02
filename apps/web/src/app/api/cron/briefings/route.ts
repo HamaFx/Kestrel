@@ -23,16 +23,11 @@
 // tenant scope, batched idempotency prefetch).
 
 import { withCronAuth } from '@/lib/http/cron';
-import { createScopedLoggerWithContext } from '@/lib/logger';
-import { runBriefingsFanout } from '@/lib/services/cron-jobs';
+import { runBriefingsCronService } from '@/lib/services/cron-jobs';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request): Promise<Response> {
-  const log = createScopedLoggerWithContext({ component: 'cron', job: 'briefings' });
-  return withCronAuth(req, async () => {
-    const result = await runBriefingsFanout({ log });
-    return { processed: result.processed, note: result.note };
-  });
+  return withCronAuth(req, async () => runBriefingsCronService());
 }

@@ -33,8 +33,8 @@ const mocks = vi.hoisted(() => ({
   withUserTenant: vi.fn(),
   evaluateAlerts: vi.fn(),
   runRetentionCleanup: vi.fn(),
-  runBriefingsFanout: vi.fn(),
-  runWeeklyReviewFanout: vi.fn(),
+  runBriefingsCronService: vi.fn(),
+  runWeeklyReviewCronService: vi.fn(),
 }));
 
 vi.mock('@/lib/http/cron', () => ({
@@ -44,8 +44,8 @@ vi.mock('@/lib/services/alerts', () => ({
   evaluateAlertsAcrossTenants: mocks.evaluateAlerts,
 }));
 vi.mock('@/lib/services/cron-jobs', () => ({
-  runBriefingsFanout: mocks.runBriefingsFanout,
-  runWeeklyReviewFanout: mocks.runWeeklyReviewFanout,
+  runBriefingsCronService: mocks.runBriefingsCronService,
+  runWeeklyReviewCronService: mocks.runWeeklyReviewCronService,
 }));
 vi.mock('@/lib/services/admin', () => ({
   runRetentionCleanupAcrossTenants: mocks.runRetentionCleanup,
@@ -158,21 +158,15 @@ describe('cron routes delegate cross-tenant work to admin-scoped services (R1)',
   });
 
   it('briefings delegates the fan-out to the shared cron runner', async () => {
-    mocks.runBriefingsFanout.mockResolvedValue({
+    mocks.runBriefingsCronService.mockResolvedValue({
       processed: 2,
-      preCandidates: 1,
-      preEmitted: 1,
-      postCandidates: 1,
-      postEmitted: 1,
       note: 'pre=1/1, post=1/1',
     });
 
     const response = await briefingsGET(request('/api/cron/briefings'));
 
     expect(response.status).toBe(200);
-    expect(mocks.runBriefingsFanout).toHaveBeenCalledWith({
-      log: expect.objectContaining({ info: expect.any(Function) }),
-    });
+    expect(mocks.runBriefingsCronService).toHaveBeenCalledTimes(1);
     expect(await response.json()).toMatchObject({
       processed: 2,
       note: 'pre=1/1, post=1/1',
@@ -180,17 +174,15 @@ describe('cron routes delegate cross-tenant work to admin-scoped services (R1)',
   });
 
   it('weekly-review delegates the fan-out and maps per-user reasons to the note', async () => {
-    mocks.runWeeklyReviewFanout.mockResolvedValue({
+    mocks.runWeeklyReviewCronService.mockResolvedValue({
       processed: 1,
-      reasons: ['[user-1]: already-emitted'],
+      note: '[user-1]: already-emitted',
     });
 
     const response = await weeklyReviewGET(request('/api/cron/weekly-review'));
 
     expect(response.status).toBe(200);
-    expect(mocks.runWeeklyReviewFanout).toHaveBeenCalledWith({
-      log: expect.objectContaining({ info: expect.any(Function) }),
-    });
+    expect(mocks.runWeeklyReviewCronService).toHaveBeenCalledTimes(1);
     expect(await response.json()).toMatchObject({
       processed: 1,
       note: '[user-1]: already-emitted',

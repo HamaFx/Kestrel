@@ -23,22 +23,12 @@
 // the zero-key BiQuote calendar refresh first, then backfills legacy `fred:*`
 // rows when FRED_API_KEY is configured.
 
-import { getServerEnv } from '@/lib/env';
 import { withCronAuth } from '@/lib/http/cron';
-import { createScopedLoggerWithContext } from '@/lib/logger';
-import { runFredActualsRefresh } from '@/lib/services/cron-jobs';
+import { runFredActualsCronService } from '@/lib/services/cron-jobs';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request): Promise<Response> {
-  const log = createScopedLoggerWithContext({ component: 'cron', job: 'fred-actuals' });
-  return withCronAuth(req, async () => {
-    const env = getServerEnv();
-    const result = await runFredActualsRefresh({
-      fredApiKey: env.FRED_API_KEY ?? null,
-      log,
-    });
-    return { processed: result.processed, note: result.note };
-  });
+  return withCronAuth(req, async () => runFredActualsCronService());
 }

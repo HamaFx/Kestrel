@@ -22,6 +22,7 @@ import { z } from 'zod';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
 import { checkMarketRateLimit, getIndicatorsService } from '@/lib/services/market';
+import { rateLimitedResponse } from '@/lib/services/rate-limit';
 
 const BodySchema = z.object({
   symbol: z.string(),
@@ -40,15 +41,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
   try {
     const rl = await checkMarketRateLimit(user.userId);
     if (!rl.allowed) {
-      return Response.json(
-        {
-          error: {
-            code: 'RATE_LIMITED',
-            message: `Too many requests (${rl.count}/${rl.limit} per minute).`,
-          },
-        },
-        { status: 429, headers: { 'Retry-After': '60' } },
-      );
+      return rateLimitedResponse(rl);
     }
     const { symbol, tf, count, indicators } = await parseJsonBody(req, BodySchema);
     const result = await getIndicatorsService(

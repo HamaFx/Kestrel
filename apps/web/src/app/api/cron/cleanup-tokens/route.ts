@@ -23,7 +23,7 @@
 
 import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
-import { lazyPurgeExpiredTokens } from '@/lib/services/auth';
+import { purgeExpiredVerificationTokensService } from '@/lib/services/auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -32,7 +32,7 @@ export async function GET(req: Request): Promise<Response> {
   const log = createScopedLoggerWithContext({ component: 'cron', job: 'cleanup-tokens' });
   return withCronAuth(req, async () => {
     const now = new Date();
-    const result = await lazyPurgeExpiredTokens();
+    const result = await purgeExpiredVerificationTokensService();
 
     log.info('purged expired verification tokens', { count: result });
     return { processed: result, note: `purged ${result} expired tokens at ${now.toISOString()}` };

@@ -17,13 +17,8 @@
 import { AppError } from '@kestrel/shared';
 import { NextResponse } from 'next/server';
 
-import { hashToken } from '@/lib/auth/auth-tokens';
 import { errorResponse } from '@/lib/http/api';
-import {
-  deleteVerificationToken,
-  findVerificationToken,
-  verifyUserEmail,
-} from '@/lib/services/auth';
+import { verifyEmailTokenService } from '@/lib/services/auth';
 
 /**
  * GET /api/auth/verify-email?token=...
@@ -34,23 +29,12 @@ import {
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
-    const rawToken = url.searchParams.get('token');
-    if (!rawToken) {
-      return errorResponse(new AppError('VALIDATION', 'Missing token', 400), req);
+    const result = await verifyEmailTokenService(url.searchParams.get('token') ?? '');
+
+    if (!result.ok) {
+      const message = result.reason === 'missing' ? 'Missing token' : 'Invalid or expired token';
+      return errorResponse(new AppError('VALIDATION', message, 400), req);
     }
-
-    // P0-6: Hash the incoming raw token and filter by purpose
-    const hashedToken = hashToken(rawToken);
-
-    const vt = await findVerificationToken(hashedToken, 'email_verify');
-
-    if (!vt) {
-      return errorResponse(new AppError('VALIDATION', 'Invalid or expired token', 400), req);
-    }
-    await verifyUserEmail(vt.identifier);
-
-    // Single-use: delete after consumption (defense-in-depth: filter by purpose too)
-    await deleteVerificationToken(hashedToken, 'email_verify');
 
     return NextResponse.redirect(new URL('/login?verified=true', req.url));
   } catch (err) {

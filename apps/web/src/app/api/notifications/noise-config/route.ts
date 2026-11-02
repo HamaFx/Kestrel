@@ -20,18 +20,17 @@
 // GET  /api/notifications/noise-config
 // PUT  /api/notifications/noise-config
 
-import { NoiseConfigSchema, type NoiseConfig } from '@kestrel/shared';
+import { NoiseConfigSchema } from '@kestrel/shared';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
-import { getNoiseConfig, saveNoiseConfig } from '@/lib/services/notifications';
+import { getNoiseConfigService, updateNoiseConfigService } from '@/lib/services/notifications';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export const GET = withAuth<void>(async (_req, { user }) => {
   try {
-    const config = await getNoiseConfig(user.userId);
-    return Response.json({ config });
+    return Response.json(await getNoiseConfigService(user.userId));
   } catch (err) {
     return errorResponse(err);
   }
@@ -39,16 +38,8 @@ export const GET = withAuth<void>(async (_req, { user }) => {
 
 export const PUT = withAuth<void>(async (req, { user }) => {
   try {
-    // Validate partial config — allow partial updates
     const partial = await parseJsonBody(req, NoiseConfigSchema.partial());
-
-    // Clean undefined values to prevent overwriting existing settings with undefined during spread merges
-    const cleaned = Object.fromEntries(
-      Object.entries(partial).filter(([_, v]) => v !== undefined),
-    ) as Partial<NoiseConfig>;
-
-    const config = await saveNoiseConfig(user.userId, cleaned);
-    return Response.json({ config });
+    return Response.json(await updateNoiseConfigService(user.userId, partial));
   } catch (err) {
     return errorResponse(err);
   }

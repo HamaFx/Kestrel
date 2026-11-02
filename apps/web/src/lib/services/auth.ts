@@ -16,16 +16,47 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Phase 3 Task 4 — account verification + token maintenance service boundary.
+// Account verification and token-maintenance service.
 //
-// Email verification tokens and the expired-token purge used by the
-// cleanup-tokens cron.
+// The route handlers stay controllers: they validate transport-level input and
+// map the service result to HTTP. Token hashing, purpose filtering, single-use
+// consumption, and retention pruning live here.
 
 import 'server-only';
 
-export {
+import {
   deleteVerificationToken,
   findVerificationToken,
   lazyPurgeExpiredTokens,
   verifyUserEmail,
 } from '@kestrel/db';
+
+import { hashToken } from '@/lib/auth/auth-tokens';
+
+const EMAIL_VERIFY_PURPOSE = 'email_verify';
+
+export type VerifyEmailTokenResult = { ok: true } | { ok: false; reason: 'missing' | 'invalid' };
+
+/**
+ * Consume an email-verification token.
+ *
+ * P0-6: the token is hashed and filtered by `purpose=email_verify`, so a
+ * password-reset token can never verify an email. Consumption is single-use:
+ * the row is deleted after the user is marked verified.
+ */
+export async function verifyEmailTokenService(rawToken: string): Promise<VerifyEmailTokenResult> {
+  if (!rawToken) return { ok: false, reason: 'missing' };
+
+  const hashedToken = hashToken(rawToken);
+  const token = await findVerificationToken(hashedToken, EMAIL_VERIFY_PURPOSE);
+  if (!token) return { ok: false, reason: 'invalid' };
+
+  await verifyUserEmail(token.identifier);
+  await deleteVerificationToken(hashedToken, EMAIL_VERIFY_PURPOSE);
+  return { ok: true };
+}
+
+/** Delete every expired verification token and return the removed count. */
+export async function purgeExpiredVerificationTokensService(): Promise<number> {
+  return lazyPurgeExpiredTokens();
+}

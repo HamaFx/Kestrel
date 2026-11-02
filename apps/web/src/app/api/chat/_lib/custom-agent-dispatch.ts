@@ -26,13 +26,7 @@ import type { UIMessage } from 'ai';
 
 import { isInjectionAttempt } from '@/lib/services/chat-ai';
 import { runCustomAgentStreamService } from '@/lib/services/mastra/chat/mastra-custom-agent-stream';
-import {
-  getInstalledPluginRuntime,
-  hasUserAgentCatalogs,
-  parseCustomAgentMention,
-  resolveUserCustomAgent,
-  stripCustomAgentMention,
-} from '@/lib/services/plugin-custom-agents';
+import { resolveCustomAgentRequest } from '@/lib/services/plugin-custom-agents';
 
 import { ROUTE_TIMEOUT_MS } from './constants';
 import { errorJson } from './errors';
@@ -48,22 +42,21 @@ export async function dispatchCustomAgent(args: {
   prefs: PresentationPrefs;
   requestSignal: AbortSignal | null;
 }): Promise<Response | null> {
-  const agentMention = parseCustomAgentMention(args.userText);
-  const requestedAgentSlug = agentMention?.slug ?? args.agentSlug ?? null;
-  if (!requestedAgentSlug) return null;
+  const resolved = await resolveCustomAgentRequest({
+    userId: args.userId,
+    userText: args.userText,
+    ...(args.agentSlug !== undefined ? { agentSlug: args.agentSlug } : {}),
+  });
 
-  const runtime = await getInstalledPluginRuntime(args.userId);
-  const catalogsAvailable = hasUserAgentCatalogs(runtime);
-  if (!catalogsAvailable && !args.agentSlug) return null;
-
-  const descriptor = await resolveUserCustomAgent(runtime, requestedAgentSlug);
-  if (!descriptor) {
+  if (resolved.status === 'none' || resolved.status === 'unavailable') return null;
+  if (resolved.status === 'not-found') {
     return errorJson(
       'AGENT_NOT_FOUND',
-      `No custom agent @${requestedAgentSlug} was found. Open the Agent Studio to create it.`,
+      `No custom agent @${resolved.slug} was found. Open the Agent Studio to create it.`,
       404,
     );
   }
+
   if (isInjectionAttempt(args.userText)) {
     return errorJson(
       'READ_ONLY_REQUEST_REQUIRED',
@@ -72,14 +65,10 @@ export async function dispatchCustomAgent(args: {
     );
   }
 
-  const prompt =
-    agentMention?.slug === descriptor.agent.slug
-      ? agentMention.prompt
-      : stripCustomAgentMention(args.userText, descriptor.agent.slug);
-  if (!prompt.trim()) {
+  if (!resolved.prompt.trim()) {
     return errorJson(
       'VALIDATION',
-      `Add a question after @${descriptor.agent.slug}, e.g. "@${descriptor.agent.slug} review XAUUSD 15m".`,
+      `Add a question after @${resolved.slug}, e.g. "@${resolved.slug} review XAUUSD 15m".`,
       400,
     );
   }
@@ -90,9 +79,9 @@ export async function dispatchCustomAgent(args: {
     userId: args.userId,
     threadId: args.threadId,
     userMessage: args.userMessage,
-    prompt,
-    descriptor,
-    runtime,
+    prompt: resolved.prompt,
+    descriptor: resolved.descriptor,
+    runtime: resolved.runtime,
     ...(args.prefs.customInstructions ? { customInstructions: args.prefs.customInstructions } : {}),
     ...(args.prefs.responseStyle !== 'default' ? { responseStyle: args.prefs.responseStyle } : {}),
     citeSources: args.prefs.citeSources,

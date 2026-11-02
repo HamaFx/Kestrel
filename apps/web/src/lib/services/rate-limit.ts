@@ -16,12 +16,37 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Phase 3 Task 4 — rate-limit service boundary.
+// Rate-limit service boundary.
 //
-// `withRateLimit` is used by twelve route handlers across every domain, so it
-// gets its own single-purpose module instead of riding along in a domain
-// service.
+// `withRateLimit` is used by route handlers across every domain and by the
+// domain services that own a bounded operation (market reads, alert previews,
+// bulk key tests). Keeping the contract and the 429 envelope in one place
+// prevents each route from re-declaring the response shape.
 
 import 'server-only';
 
 export { withRateLimit } from '@kestrel/db';
+
+const RATE_LIMIT_RETRY_AFTER_SECONDS = 60;
+
+export interface RateLimitDecision {
+  allowed: boolean;
+  count: number;
+  limit: number;
+}
+
+/** Build the canonical per-user rate-limit response. */
+export function rateLimitedResponse(result: Pick<RateLimitDecision, 'count' | 'limit'>): Response {
+  return Response.json(
+    {
+      error: {
+        code: 'RATE_LIMITED',
+        message: `Too many requests (${result.count}/${result.limit} per minute).`,
+      },
+    },
+    {
+      status: 429,
+      headers: { 'Retry-After': String(RATE_LIMIT_RETRY_AFTER_SECONDS) },
+    },
+  );
+}

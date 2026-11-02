@@ -20,6 +20,7 @@
 
 import { errorResponse, withAuth } from '@/lib/http/api';
 import { checkCalendarRateLimit, listEventsService } from '@/lib/services/calendar';
+import { rateLimitedResponse } from '@/lib/services/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -28,15 +29,7 @@ export const GET = withAuth<void>(async (req, { user }) => {
   try {
     const rl = await checkCalendarRateLimit(user.userId);
     if (!rl.allowed) {
-      return Response.json(
-        {
-          error: {
-            code: 'RATE_LIMITED',
-            message: `Too many requests (${rl.count}/${rl.limit} per minute).`,
-          },
-        },
-        { status: 429, headers: { 'Retry-After': '60' } },
-      );
+      return rateLimitedResponse(rl);
     }
     const events = await listEventsService();
     return Response.json(events);
