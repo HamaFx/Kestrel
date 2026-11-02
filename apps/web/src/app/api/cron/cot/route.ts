@@ -18,73 +18,20 @@
 
 // GET /api/cron/cot — weekly CFTC Commitment-of-Traders ingestion.
 //
-// Phase 8 PR-12: this route is now a **manual-fallback path**. The
-// scheduled invocation runs on the GCE worker via `kestrel-job-cot.timer`.
-//
-// Runs Friday 22:00 UTC (just after CFTC's weekly publication window).
-// Idempotent: each `(symbol, report_date)` row is keyed by a deterministic
-// `cftc:<symbol>:<YYYY-MM-DD>` PK and upserted with ON CONFLICT DO UPDATE.
-
-import { CFTC_SUPPORTED_SYMBOLS, type Symbol } from '@kestrel/shared';
+// Manual-fallback path for the scheduled worker `cot` job; both call the same
+// shared `runCotIngestion` runner. Idempotent per (symbol, report_date).
 
 import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
-import { fetchLatestRows, parseCftcInt, toCftcName, upsertCoTReport } from '@/lib/services/market';
+import { runCotIngestion } from '@/lib/services/cron-jobs';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-/** Number of weekly rows to refresh on each run. */
-const WEEKS = 4;
-
 export async function GET(req: Request): Promise<Response> {
   const log = createScopedLoggerWithContext({ component: 'cron', job: 'cot' });
   return withCronAuth(req, async () => {
-    let processed = 0;
-    let upserted = 0;
-    const errors: Array<{ symbol: string; message: string }> = [];
-
-    for (const symbol of CFTC_SUPPORTED_SYMBOLS) {
-      try {
-        const rows = await fetchLatestRows({
-          commodityName: toCftcName(symbol as Symbol),
-          weeks: WEEKS,
-        });
-        for (const row of rows) {
-          const date = parseReportDate(row.report_date_as_yyyy_mm_dd);
-          if (!date) continue;
-          await upsertCoTReport({
-            symbol,
-            reportDate: date,
-            dealerLong: parseCftcInt(row.dealer_positions_long_all),
-            dealerShort: parseCftcInt(row.dealer_positions_short_all),
-            assetLong: parseCftcInt(row.asset_mgr_positions_long_all),
-            assetShort: parseCftcInt(row.asset_mgr_positions_short_all),
-            leveragedLong: parseCftcInt(row.lev_money_positions_long_all),
-            leveragedShort: parseCftcInt(row.lev_money_positions_short_all),
-            otherLong: parseCftcInt(row.other_rept_positions_long_all),
-            otherShort: parseCftcInt(row.other_rept_positions_short_all),
-            raw: row,
-          });
-          upserted += 1;
-        }
-        processed += 1;
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        errors.push({ symbol, message });
-        log.errorContext(err, 'fetchCot', { symbol, message });
-      }
-    }
-
-    return {
-      processed,
-      note: `upserted=${upserted} errors=${errors.length}`,
-    };
+    const result = await runCotIngestion({ log });
+    return { processed: result.processed, note: result.note };
   });
-}
-
-function parseReportDate(s: string): Date | null {
-  if (!s || s.length < 10) return null;
-  const d = new Date(`${s.slice(0, 10)}T00:00:00Z`);
-  return Number.isNaN(d.getTime()) ? null : d;
 }

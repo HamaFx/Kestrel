@@ -56,8 +56,7 @@ import { resolveToolTimeoutMs, ToolTimeoutError } from './tool-timeout';
  * Wrap a tool with execute-side telemetry + signal propagation. The
  * underlying tool definition is otherwise unchanged.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function withTelemetry<T extends Tool<any, any>>(name: string, t: T): T {
+export function withTelemetry<T extends Tool>(name: string, t: T): T {
   const inner = (t as { execute?: unknown }).execute;
   if (typeof inner !== 'function') {
     return t;
@@ -66,8 +65,7 @@ export function withTelemetry<T extends Tool<any, any>>(name: string, t: T): T {
   // Type-erased wrapping: the AI SDK's `Tool` generics are wide enough
   // that pinning them per-call breaks call sites. We instead trust the
   // inner signature and forward args through.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const wrappedExecute = async (input: any, opts: any) => {
+  const wrappedExecute = async (input: unknown, opts: unknown) => {
     const ctx = maybeGetToolContext();
     const startedAt = Date.now();
     // F5 — Record diagnostic step for this tool call.
@@ -85,13 +83,15 @@ export function withTelemetry<T extends Tool<any, any>>(name: string, t: T): T {
       if (parentSignal.aborted) onParentAbort();
       else parentSignal.addEventListener('abort', onParentAbort, { once: true });
     }
-    const opts2 = { ...(opts ?? {}), abortSignal: toolController.signal };
+    const opts2 = {
+      ...((opts as Record<string, unknown> | undefined) ?? {}),
+      abortSignal: toolController.signal,
+    };
     const timeoutMs = resolveToolTimeoutMs(name);
     let timeout: ReturnType<typeof setTimeout> | undefined;
     let parentAbortListener: (() => void) | undefined;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const executePromise = (inner as (i: any, o: any) => Promise<any>)(input, opts2);
+      const executePromise = (inner as (i: unknown, o: unknown) => Promise<unknown>)(input, opts2);
       // The tool receives the signal above, but not every implementation
       // observes it. Race the wrapper against parent cancellation as well so
       // a disconnected request cannot remain pending until the tool timeout.
@@ -190,8 +190,7 @@ export function withTelemetry<T extends Tool<any, any>>(name: string, t: T): T {
  * F7-obs — estimate character count of a tool's result for telemetry.
  * Handles strings, objects (JSON length), and buffers.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function estimateResultChars(result: any): number | null {
+function estimateResultChars(result: unknown): number | null {
   if (result === null || result === undefined) return 0;
   if (typeof result === 'string') return result.length;
   if (typeof result === 'object') {

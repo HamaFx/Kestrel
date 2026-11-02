@@ -91,10 +91,8 @@ function fullPlan(overrides: Partial<ExecutionPlan> = {}): ExecutionPlan {
     streaming: false,
     mutationRequested: false,
     tenantId: 'user-1',
-    xauusdChatKind: null,
     reportFollowup: false,
     symbolCandidate: true,
-    xauusdCandidate: false,
     ...overrides,
   };
 }

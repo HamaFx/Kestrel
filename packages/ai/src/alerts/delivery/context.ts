@@ -20,14 +20,7 @@
 // The catalog logger and timeout constants are created exactly once here so
 // every channel adapter shares one instance.
 
-import type { AlertRule } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
-
-import { alertRuleRegistry } from '../rule-registry';
-
-export function describeRule(rule: AlertRule): string {
-  return alertRuleRegistry.get(rule.type).describe(rule);
-}
 
 export const alog = createCategorizedLogger('ai', { component: 'alerts-delivery' });
 /**

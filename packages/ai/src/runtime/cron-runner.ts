@@ -14,9 +14,16 @@
  * limitations under the License.
  */
 
-// Public Mastra service surface. Consumers import one of these modules
-// instead of the former flat `mastra-*.ts` wrapper files.
-export * from './chat-orchestrator';
-export * from './stream-adapter';
-export * from './mutation-handler';
-export * from './mastra-report-context';
+// Shared cron-runner contract. The worker jobs and the `/api/cron/*` fallback
+// routes both execute these runners, so neither side can drift from the other.
+
+export interface CronRunLogger {
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+}
+
+export interface CronRunOptions {
+  /** Aborted on worker SIGTERM; honoured between symbols / between FRED rows. */
+  signal?: AbortSignal;
+  log?: CronRunLogger;
+}

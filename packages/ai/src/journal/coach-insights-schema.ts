@@ -123,7 +123,8 @@ export function parseCoachPayload(rawText: string, object: unknown): CoachInsigh
       .replace(/^```\s*/i, '')
       .replace(/\s*```$/i, '')
       .trim();
-    return coerceCoachInsights(JSON.parse(cleaned));
+    const parsed: unknown = JSON.parse(cleaned);
+    return coerceCoachInsights(parsed);
   } catch {
     return null;
   }

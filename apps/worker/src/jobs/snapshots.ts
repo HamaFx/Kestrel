@@ -14,93 +14,15 @@
  * limitations under the License.
  */
 
-// Phase 8 PR-11 — `snapshots` heavy job, migrated from
-// /api/cron/snapshots on Vercel (route stays as manual fallback).
-//
-// Computes a fresh "daily" snapshot per supported symbol (HLOC + pivots
-// + ATR + key levels) from a 240-bar 1H window, and upserts the row
-// into `snapshots`. Reruns are idempotent on (symbol, kind, asOf).
-//
-// Tail step: prune candles_1m to the trailing 14 days. The aggregator
-// writes one row per minute per symbol; left unbounded the table grows
-// ~4 MB/month — we don't need it to. (Spec §4.3 retention.)
+// Daily snapshot refresh. The runner is shared with the `/api/cron/snapshots`
+// fallback route via `@kestrel/ai`: it computes one HLOC/pivot/ATR/key-level
+// row per symbol and tail-prunes `candles_1m` to the retention window.
 
-import { computeDailySnapshot, previousUtcMidnight, upsertSnapshot } from '@kestrel/ai';
-import { getCandlesUnchecked } from '@kestrel/data';
-import { getDb } from '@kestrel/db';
-import { candles1m } from '@kestrel/db/schema';
-import { ALL_SYMBOLS } from '@kestrel/shared';
-import { lt, sql } from 'drizzle-orm';
+import { runSnapshotRefresh } from '@kestrel/ai/cron';
 
 import type { JobContext, JobResult } from './types.js';
 
-const SOURCE_TF = '1h' as const;
-const SOURCE_COUNT = 240; // ~10 days of 1H bars; covers ATR14 + PDH/PDL.
-
-/** Hold candles_1m to 14 trailing days. Spec §4.3. */
-const CANDLES_RETENTION_DAYS = 14;
-
 export async function runSnapshots(ctx: JobContext): Promise<JobResult> {
-  const log = ctx.log;
-  const asOf = previousUtcMidnight();
-  let processed = 0;
-  const errors: Array<{ symbol: string; message: string }> = [];
-
-  for (const symbol of ALL_SYMBOLS) {
-    if (ctx.signal?.aborted) {
-      log.warn('snapshots aborted mid-loop', {
-        processed,
-        remaining: ALL_SYMBOLS.length - processed,
-      });
-      break;
-    }
-    try {
-      const candles = await getCandlesUnchecked(symbol, SOURCE_TF, {
-        count: SOURCE_COUNT,
-        signal: ctx.signal,
-      });
-      const data = computeDailySnapshot({ candles, asOf });
-      await upsertSnapshot({ symbol, kind: 'daily', asOf, data });
-      processed += 1;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      errors.push({ symbol, message });
-      log.error('snapshot failed', { symbol, err: message });
-    }
-  }
-
-  // Tail step — prune candles_1m beyond the retention window.
-  // Uses a count-before-delete pattern to avoid .returning() which
-  // forces Postgres to ship all deleted rows back to Node.js.
-  let pruned = 0;
-  try {
-    const cutoff = new Date(Date.now() - CANDLES_RETENTION_DAYS * 24 * 60 * 60 * 1000);
-    // Count first, then delete without .returning()
-    const [row] = await getDb()
-      .select({ count: sql<number>`count(*)::int` })
-      .from(candles1m)
-      .where(lt(candles1m.t, cutoff));
-    pruned = row?.count ?? 0;
-    await getDb().delete(candles1m).where(lt(candles1m.t, cutoff));
-    log.info('candles_1m prune complete', { cutoff: cutoff.toISOString(), pruned });
-  } catch (err) {
-    log.error('candles_1m prune failed', { err: String(err) });
-  }
-
-  // Round-trip: a `count(*)` would be nicer but the .returning above is
-  // already authoritative — log a sanity row count from a fast query.
-  let total = 0;
-  try {
-    const [row] = await getDb()
-      .select({ n: sql<number>`count(*)::int` })
-      .from(candles1m);
-    total = row?.n ?? 0;
-  } catch {
-    /* best-effort */
-  }
-
-  return {
-    processed,
-    note: `symbols=${processed}/${ALL_SYMBOLS.length} errors=${errors.length} pruned=${pruned} candles_1m_total=${total}`,
-  };
+  const result = await runSnapshotRefresh({ signal: ctx.signal, log: ctx.log });
+  return { processed: result.processed, note: result.note };
 }

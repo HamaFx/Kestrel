@@ -36,8 +36,9 @@ import { logErrorContext } from '@kestrel/shared/logger';
 import { deletePushSubscription, listPushSubscriptions } from '../../push/persistence';
 import { sendWebPush } from '../../push/send';
 import type { AlertChannelDeliveryResult } from '../channel-registry';
+import { describeRule } from '../rule-registry';
 import { budgetSignal, DELIVERY_ATTEMPT_TIMEOUT_MS } from './budget';
-import { alog, describeRule } from './context';
+import { alog } from './context';
 import { renderEmailBody } from './render';
 import type { DeliverArgs } from './types';
 

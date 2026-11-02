@@ -22,9 +22,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { computeReplayWindow, getTradeSetupReplayService } from '@/lib/services/journal';
 
-vi.mock('@kestrel/data', () => ({
-  getCandlesUnchecked: vi.fn(),
-}));
+vi.mock('@kestrel/data', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@kestrel/data')>();
+  return { ...actual, getCandlesUnchecked: vi.fn() };
+});
 
 vi.mock('@kestrel/ai', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@kestrel/ai')>();

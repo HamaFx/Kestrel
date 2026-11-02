@@ -14,14 +14,8 @@
  * limitations under the License.
  */
 
-// Required Postgres extensions. Drizzle does not auto-emit these — we run them
-// once via a hand-written migration in ./drizzle/0000_extensions.sql (created
-// the first time you run `pnpm --filter @kestrel/db migrate:gen`).
-//
-// Required:
-//   - pgvector  (news embeddings)
-//   - pgcrypto  (gen_random_uuid on Supabase)
-//
-// Phase 7 §35 — The REQUIRED_EXTENSIONS constant was never imported anywhere.
-// Converted to a documentation-only comment. The actual extension installation
-// is handled by scripts/install-extensions.mjs and the 0000 migration.
+// Route-facing facade over the shared cron runners. The worker jobs import the
+// same functions from `@kestrel/ai`, so the scheduled and manual-fallback
+// paths cannot drift in logic, retention, or note formatting.
+
+export { runCotIngestion, runFredActualsRefresh, runSnapshotRefresh } from '@kestrel/ai/cron';

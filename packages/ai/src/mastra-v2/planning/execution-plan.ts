@@ -84,15 +84,8 @@ export const ExecutionPlanSchema = z.strictObject({
   streaming: z.boolean(),
   mutationRequested: z.boolean(),
   tenantId: z.string().min(1).nullable(),
-  /**
-   * Phase 4 Task 4 — retained for durable-queue compatibility only: plans
-   * serialized before the XAUUSD PoC route retirement may still carry these
-   * fields, and nothing writes a non-default value anymore.
-   */
-  xauusdChatKind: z.enum(['research', 'conversation']).nullable().default(null),
   reportFollowup: z.boolean(),
   symbolCandidate: z.boolean(),
-  xauusdCandidate: z.boolean().default(false),
 });
 
 export type ExecutionPlan = z.infer<typeof ExecutionPlanSchema>;
@@ -229,12 +222,27 @@ export async function createExecutionPlan(input: CreateExecutionPlanInput): Prom
   });
 }
 
+/**
+ * Legacy plan fields written before the Phase 4 XAUUSD PoC route retirement.
+ * In-flight durable-queue rows may still carry them; strip them on read so the
+ * current strict schema stays authoritative without failing those rows.
+ */
+const LEGACY_PLAN_FIELDS = ['xauusdChatKind', 'xauusdCandidate'] as const;
+
+function withoutLegacyPlanFields(value: unknown): unknown {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+  const record = { ...(value as Record<string, unknown>) };
+  for (const field of LEGACY_PLAN_FIELDS) delete record[field];
+  return record;
+}
+
 export function serializeExecutionPlan(plan: ExecutionPlan): string {
-  return JSON.stringify(ExecutionPlanSchema.parse(plan));
+  return JSON.stringify(ExecutionPlanSchema.parse(withoutLegacyPlanFields(plan)));
 }
 
 export function parseExecutionPlan(value: unknown): ExecutionPlan {
-  return ExecutionPlanSchema.parse(typeof value === 'string' ? JSON.parse(value) : value);
+  const raw: unknown = typeof value === 'string' ? JSON.parse(value) : value;
+  return ExecutionPlanSchema.parse(withoutLegacyPlanFields(raw));
 }
 
 export function resolvedModelSnapshotForPlan(

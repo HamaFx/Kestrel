@@ -48,6 +48,8 @@ jobs:
       - run: pnpm turbo run typecheck
       # Audit v2 §4.2 — knip is blocking: the workspace is at zero unused
       # exports/deps; new dead code must fail CI instead of accumulating.
+      # The guard first rejects entry-glob gaming in knip.json, then Knip runs.
+      - run: pnpm check:knip-config
       - name: Knip
         run: pnpm knip --no-progress
       # Audit dependencies for critical security vulnerabilities.

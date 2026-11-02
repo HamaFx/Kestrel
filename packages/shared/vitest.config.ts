@@ -31,6 +31,8 @@ export default defineConfig({
     fsModuleCachePath: 'node_modules/.vitest-cache',
     pool: 'forks',
     maxWorkers,
+    // Pure schemas/utilities: no module-level mutable state between files.
+    isolate: false,
     deps: {
       optimizer: {
         ssr: { enabled: true },

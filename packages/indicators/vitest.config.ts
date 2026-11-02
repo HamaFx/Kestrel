@@ -31,6 +31,8 @@ export default defineConfig({
     fsModuleCachePath: 'node_modules/.vitest-cache',
     pool: 'forks',
     maxWorkers,
+    // Pure, stateless math: files cannot pollute each other's module state.
+    isolate: false,
     deps: {
       optimizer: {
         ssr: { enabled: true },

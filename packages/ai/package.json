@@ -98,6 +98,11 @@
       "types": "./dist/models/embeddings.d.ts",
       "import": "./dist/models/embeddings.js"
     },
+    "./cron": {
+      "source": "./src/cron/index.ts",
+      "types": "./dist/cron/index.d.ts",
+      "import": "./dist/cron/index.js"
+    },
     "./rag": {
       "source": "./src/models/rag/index.ts",
       "types": "./dist/models/rag/index.d.ts",

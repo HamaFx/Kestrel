@@ -124,4 +124,21 @@ describe('Phase 2 execution plan', () => {
     expect(parseExecutionPlan(serializeExecutionPlan(plan))).toEqual(plan);
     expect(() => parseExecutionPlan({ ...plan, route: 'unknown' })).toThrow();
   });
+
+  it('strips retired XAUUSD fields from durable plans serialized before Phase 4', async () => {
+    const plan = await createExecutionPlan({
+      userMessage: message('Explain how RSI works'),
+      mode: 'single',
+      settings,
+      env,
+    });
+    const legacy = { ...plan, xauusdChatKind: 'conversation', xauusdCandidate: true };
+
+    const parsed = parseExecutionPlan(JSON.stringify(legacy));
+
+    expect(parsed).toEqual(plan);
+    expect('xauusdChatKind' in parsed).toBe(false);
+    expect('xauusdCandidate' in parsed).toBe(false);
+    expect(JSON.parse(serializeExecutionPlan(legacy))).not.toHaveProperty('xauusdCandidate');
+  });
 });

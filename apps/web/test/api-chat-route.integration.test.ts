@@ -228,10 +228,8 @@ vi.mock('@/lib/services/chat-ai', () => ({
       streaming: !plannedSymbol && mode !== 'full',
       mutationRequested: false,
       tenantId: tenantId ?? null,
-      xauusdChatKind: plannedSymbol === 'XAUUSD' ? 'research' : null,
       reportFollowup: false,
       symbolCandidate: Boolean(plannedSymbol),
-      xauusdCandidate: plannedSymbol === 'XAUUSD',
     };
   }),
   withDiagnostics: async (_userId: string, _threadId: string, fn: () => Promise<Response>) => fn(),

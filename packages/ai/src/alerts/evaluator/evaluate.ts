@@ -42,7 +42,6 @@
 // and any claim still held when the run ends is released — a timeout is never
 // a silent skip.
 
-import type { AlertRule } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 import { getDb } from '../../runtime/db';
@@ -61,7 +60,6 @@ import {
   releaseAlertDeliveryClaim,
   setRulePreviousValue,
 } from '../persistence';
-import { alertRuleRegistry } from '../rule-registry';
 import { specFromRule } from '../spec';
 import { DeliveryClaimLedger, type PendingDeliveryClaim } from './claims';
 import type { EvaluatorEnv } from './env';
@@ -76,7 +74,7 @@ const elog = createCategorizedLogger('ai', { component: 'alerts-evaluator' });
  * job timeout); the web cron route caps the function at 60s, so the default
  * stops claiming new work before either limit can kill the run.
  */
-export const DEFAULT_EVALUATION_BUDGET_MS = 60_000;
+const DEFAULT_EVALUATION_BUDGET_MS = 60_000;
 
 export interface EvaluationResult {
   total: number;
@@ -310,6 +308,3 @@ export async function evaluateAlerts(opts: EvaluationOptions = {}): Promise<Eval
 
 // Re-exports so callers can run the orchestrator AND build human-readable
 // labels for the same rule shape.
-export function describeRule(rule: AlertRule): string {
-  return alertRuleRegistry.get(rule.type).describe(rule);
-}

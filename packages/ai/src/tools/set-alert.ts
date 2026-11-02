@@ -30,7 +30,7 @@ import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 
 import { createAlert } from '../alerts/persistence';
-import { alertRuleRegistry } from '../alerts/rule-registry';
+import { describeRule } from '../alerts/rule-registry';
 import { checkLevelsAgainstMarket } from '../mastra-v2/mutation/level-sanity';
 import { getToolContext, maybeGetToolContext } from '../runtime/tool-context';
 import { assertMutationIntent } from './mutation-guard';
@@ -45,13 +45,6 @@ declare module '@kestrel/shared' {
   interface ToolIOMap {
     set_alert: { input: z.infer<typeof InputSchema> };
   }
-}
-
-function describeRule(rule: z.infer<typeof AlertRuleSchema>): string {
-  // P1-3 — delegate to plugin registry instead of switch(rule.type).
-  // The Zod-inferred type is compatible with AlertRule for the describe() contract.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return alertRuleRegistry.get(rule.type).describe(rule as any);
 }
 
 export const setAlertTool: Tool<z.infer<typeof InputSchema>, SetAlertOutput> = tool({

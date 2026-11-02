@@ -14,87 +14,46 @@
  * limitations under the License.
  */
 
+// The `snapshots` job delegates to the shared `runSnapshotRefresh` runner
+// (also used by the `/api/cron/snapshots` fallback), so the scheduled and
+// manual paths share symbol coverage and the candles_1m prune.
+
 // eslint-disable-next-line no-restricted-imports -- Tests mock the public AI barrel to preserve job wiring coverage.
-import * as ai from '@kestrel/ai';
-import * as data from '@kestrel/data';
+import * as cron from '@kestrel/ai/cron';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runSnapshots } from '../src/jobs/snapshots';
 import { createLogger } from '../src/log';
 import { TenantRouter } from '../src/runtime/tenant-router';
 
-vi.mock('@kestrel/ai', () => ({
-  computeDailySnapshot: vi.fn(),
-  previousUtcMidnight: () => new Date('2026-05-26T00:00:00Z'),
-  upsertSnapshot: vi.fn(),
-}));
-
-vi.mock('@kestrel/data', () => ({
-  getCandlesUnchecked: vi.fn(),
-}));
-
-// We don't need a real DB. Patch getDb() to return a fake client whose
-// .delete().where().returning() chain captures the cutoff and returns []
-// (so the prune step is observable but doesn't actually delete anything).
-vi.mock('@kestrel/db', () => ({
-  getDb: () => ({
-    delete: vi.fn(() => ({
-      where: vi.fn(() => ({
-        returning: vi.fn(async () => []),
-      })),
-    })),
-    select: vi.fn(() => ({
-      from: vi.fn(async () => [{ n: 0 }]),
-    })),
-  }),
-  schema: {},
-}));
-
-vi.mock('@kestrel/db/schema', () => ({
-  candles1m: { t: 't', symbol: 'symbol' },
+vi.mock('@kestrel/ai/cron', () => ({
+  runSnapshotRefresh: vi.fn(),
 }));
 
 const log = createLogger({ service: 'test', forceJson: true });
 const testRouter = new TenantRouter();
 
 beforeEach(() => {
-  vi.mocked(ai.computeDailySnapshot).mockReset();
-  vi.mocked(ai.upsertSnapshot).mockReset();
-  vi.mocked(data.getCandlesUnchecked).mockReset();
+  vi.mocked(cron.runSnapshotRefresh).mockReset();
 });
 
 describe('runSnapshots', () => {
-  it('processes every supported catalog symbol (18 symbols) and tail-prunes candles_1m', async () => {
-    vi.mocked(data.getCandlesUnchecked).mockResolvedValue([] as never);
-    vi.mocked(ai.computeDailySnapshot).mockReturnValue({} as never);
-    vi.mocked(ai.upsertSnapshot).mockResolvedValue(undefined as never);
-
-    const r = await runSnapshots({
-      log,
-      signal: new AbortController().signal,
-      tenantRouter: testRouter,
+  it('delegates to the shared runner with the job signal and logger', async () => {
+    const signal = new AbortController().signal;
+    vi.mocked(cron.runSnapshotRefresh).mockResolvedValue({
+      processed: 18,
+      errors: [],
+      pruned: 7,
+      candles1mTotal: 120,
+      note: 'symbols=18/18 errors=0 pruned=7 candles_1m_total=120',
     });
-    expect(r.processed).toBe(18);
-    expect(r.note).toMatch(/symbols=18\/18/);
-    expect(r.note).toMatch(/pruned=0/);
-    expect(data.getCandlesUnchecked).toHaveBeenCalledTimes(18);
-    expect(ai.upsertSnapshot).toHaveBeenCalledTimes(18);
-  });
 
-  it('counts errors but keeps going across all 18 symbols', async () => {
-    vi.mocked(data.getCandlesUnchecked)
-      .mockRejectedValueOnce(new Error('upstream down'))
-      .mockResolvedValue([] as never);
-    vi.mocked(ai.computeDailySnapshot).mockReturnValue({} as never);
-    vi.mocked(ai.upsertSnapshot).mockResolvedValue(undefined as never);
+    const result = await runSnapshots({ log, signal, tenantRouter: testRouter });
 
-    const r = await runSnapshots({
-      log,
-      signal: new AbortController().signal,
-      tenantRouter: testRouter,
+    expect(cron.runSnapshotRefresh).toHaveBeenCalledWith({ signal, log });
+    expect(result).toEqual({
+      processed: 18,
+      note: 'symbols=18/18 errors=0 pruned=7 candles_1m_total=120',
     });
-    expect(r.processed).toBe(17);
-    expect(r.note).toMatch(/symbols=17\/18/);
-    expect(r.note).toMatch(/errors=1/);
   });
 });

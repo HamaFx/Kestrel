@@ -46,7 +46,7 @@ export interface CandleResultDTO {
   producedAt: number;
 }
 
-export interface TickWithMetaDTO extends Tick {
+interface TickWithMetaDTO extends Tick {
   stale: boolean;
   producedAt: number;
   ageMs: number | null;
@@ -229,23 +229,16 @@ export async function getIndicatorsService(
   };
 }
 
-// ── Phase 3 Task 4 — domain re-exports for routes ───────────────────────────
+// ── Domain re-exports for routes ────────────────────────────────────────────
 //
-// Market data, daily snapshots, CFTC positions, and sentiment used by cron
-// and market routes.
+// Market data and sentiment used by market routes. Daily snapshots and CFTC
+// ingestion run through the shared `@kestrel/ai` cron runners instead of
+// route-local implementations.
 
+export { getSentimentService } from '@kestrel/ai';
 export {
-  computeDailySnapshot,
-  getSentimentService,
-  previousUtcMidnight,
-  upsertCoTReport,
-  upsertSnapshot,
-} from '@kestrel/ai';
-export {
-  getCandlesUnchecked,
   getCandlesWithMeta,
   getPricesWithMeta,
   marketDataProviders,
   ProviderError,
 } from '@kestrel/data';
-export { fetchLatestRows, parseCftcInt, toCftcName } from '@kestrel/data/providers/cftc';

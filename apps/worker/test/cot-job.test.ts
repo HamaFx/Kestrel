@@ -14,82 +14,58 @@
  * limitations under the License.
  */
 
+// The `cot` job delegates to the shared `runCotIngestion` runner (also used by
+// the `/api/cron/cot` fallback), so this suite pins the job wiring only.
+
 // eslint-disable-next-line no-restricted-imports -- Tests mock the public AI barrel to preserve job wiring coverage.
-import * as ai from '@kestrel/ai';
-import { cftc } from '@kestrel/data';
+import * as cron from '@kestrel/ai/cron';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runCoT } from '../src/jobs/cot';
 import { createLogger } from '../src/log';
 import { TenantRouter } from '../src/runtime/tenant-router';
 
-vi.mock('@kestrel/ai', () => ({
-  upsertCoTReport: vi.fn(),
-}));
-
-// Phase 3 hardening §19 — `apps/worker/src/jobs/cot.ts` now imports
-// the CFTC helpers via `import { cftc } from '@kestrel/data'`. Match
-// the new namespace shape so vitest's module resolver finds the mock.
-vi.mock('@kestrel/data', () => ({
-  cftc: {
-    fetchLatestRows: vi.fn(),
-    parseCftcInt: (s: string | undefined) =>
-      s == null || s === '' ? null : Number.parseInt(s, 10),
-    toCftcName: (s: string) => `cftc:${s}`,
-  },
+vi.mock('@kestrel/ai/cron', () => ({
+  runCotIngestion: vi.fn(),
 }));
 
 const log = createLogger({ service: 'test', forceJson: true });
 const testRouter = new TenantRouter();
 
 beforeEach(() => {
-  vi.mocked(ai.upsertCoTReport).mockReset();
-  vi.mocked(cftc.fetchLatestRows).mockReset();
+  vi.mocked(cron.runCotIngestion).mockReset();
 });
 
-const SAMPLE_ROW = {
-  report_date_as_yyyy_mm_dd: '2026-05-23',
-  dealer_positions_long_all: '100',
-  dealer_positions_short_all: '50',
-  asset_mgr_positions_long_all: '80',
-  asset_mgr_positions_short_all: '40',
-  lev_money_positions_long_all: '70',
-  lev_money_positions_short_all: '30',
-  other_rept_positions_long_all: '20',
-  other_rept_positions_short_all: '10',
-} as never;
-
 describe('runCoT', () => {
-  it('iterates supported symbols, upserts each row, and reports counts', async () => {
-    vi.mocked(cftc.fetchLatestRows).mockResolvedValue([SAMPLE_ROW, SAMPLE_ROW]);
-    vi.mocked(ai.upsertCoTReport).mockResolvedValue(undefined as never);
+  it('delegates to the shared runner with the job signal and logger', async () => {
+    const signal = new AbortController().signal;
+    vi.mocked(cron.runCotIngestion).mockResolvedValue({
+      processed: 3,
+      upserted: 6,
+      errors: [],
+      note: 'upserted=6 errors=0',
+    });
 
-    const r = await runCoT({ log, signal: new AbortController().signal, tenantRouter: testRouter });
-    // 3 supported symbols × 2 rows = 6 upserts; processed = symbols handled
-    expect(r.processed).toBe(3);
-    expect(r.note).toMatch(/upserted=6/);
-    expect(ai.upsertCoTReport).toHaveBeenCalledTimes(6);
+    const result = await runCoT({ log, signal, tenantRouter: testRouter });
+
+    expect(cron.runCotIngestion).toHaveBeenCalledWith({ signal, log });
+    expect(result).toEqual({ processed: 3, note: 'upserted=6 errors=0' });
   });
 
-  it('continues past per-symbol failures', async () => {
-    vi.mocked(cftc.fetchLatestRows)
-      .mockRejectedValueOnce(new Error('cftc down'))
-      .mockResolvedValueOnce([SAMPLE_ROW])
-      .mockResolvedValueOnce([SAMPLE_ROW]);
-    vi.mocked(ai.upsertCoTReport).mockResolvedValue(undefined as never);
+  it('surfaces the runner counts unchanged in the healthcheck note', async () => {
+    vi.mocked(cron.runCotIngestion).mockResolvedValue({
+      processed: 2,
+      upserted: 4,
+      errors: [{ symbol: 'XAUUSD', message: 'cftc down' }],
+      note: 'upserted=4 errors=1',
+    });
 
-    const r = await runCoT({ log, signal: new AbortController().signal, tenantRouter: testRouter });
-    expect(r.processed).toBe(2);
-    expect(r.note).toMatch(/errors=1/);
-  });
+    const result = await runCoT({
+      log,
+      signal: new AbortController().signal,
+      tenantRouter: testRouter,
+    });
 
-  it('skips rows whose report_date_as_yyyy_mm_dd is malformed', async () => {
-    const bad = { ...(SAMPLE_ROW as Record<string, unknown>), report_date_as_yyyy_mm_dd: '' };
-    vi.mocked(cftc.fetchLatestRows).mockResolvedValue([bad as never, SAMPLE_ROW] as never);
-    vi.mocked(ai.upsertCoTReport).mockResolvedValue(undefined as never);
-
-    await runCoT({ log, signal: new AbortController().signal, tenantRouter: testRouter });
-    // 3 symbols × 1 valid row each
-    expect(ai.upsertCoTReport).toHaveBeenCalledTimes(3);
+    expect(result.note).toMatch(/errors=1/);
   });
 });

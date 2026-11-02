@@ -31,13 +31,13 @@ import { CrossingSpec, LevelSpec, type AlertSpec } from './spec';
 // --- Plugin definition --------------------------------------------------
 
 /** Factory that creates an AlertSpec from a rule for evaluation. */
-export type SpecFactory = (rule: AlertRule) => AlertSpec;
+type SpecFactory = (rule: AlertRule) => AlertSpec;
 
 /** Formatter that produces a human-readable label for a rule. */
-export type RuleDescriber = (rule: AlertRule) => string;
+type RuleDescriber = (rule: AlertRule) => string;
 
 /** Metadata about a registered alert rule type. */
-export interface AlertRuleTypePlugin {
+interface AlertRuleTypePlugin {
   /** The rule type discriminator (e.g. 'priceCross', 'candleClose', 'indicatorCross'). */
   type: AlertRule['type'];
   /** Factory: rule → evaluable AlertSpec. */
@@ -56,7 +56,7 @@ export interface AlertRuleTypePlugin {
  * OCP benefit: adding a rule type means registering it here —
  * no switch statements to update in spec.ts, evaluator.ts, or set-alert.ts.
  */
-export class AlertRuleRegistry {
+class AlertRuleRegistry {
   private plugins = new Map<AlertRule['type'], AlertRuleTypePlugin>();
 
   register(plugin: AlertRuleTypePlugin): void {
@@ -85,6 +85,11 @@ export class AlertRuleRegistry {
 
 /** Global singleton. */
 export const alertRuleRegistry = new AlertRuleRegistry();
+
+/** Human-readable label for a rule, delegated to its registered type plugin. */
+export function describeRule(rule: AlertRule): string {
+  return alertRuleRegistry.get(rule.type).describe(rule);
+}
 
 // --- Registration (self-contained) --------------------------------------
 //

@@ -14,28 +14,20 @@
  * limitations under the License.
  */
 
+// The `fred-actuals` job delegates to the shared `runFredActualsRefresh`
+// runner (also used by the `/api/cron/fred-actuals` fallback), so this suite
+// pins the job wiring, including the FRED key pass-through.
+
 // eslint-disable-next-line no-restricted-imports -- Tests mock the public AI barrel to preserve job wiring coverage.
-import * as ai from '@kestrel/ai';
-import { fred } from '@kestrel/data';
+import * as cron from '@kestrel/ai/cron';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runFredActuals } from '../src/jobs/fred-actuals';
 import { createLogger } from '../src/log';
 import { TenantRouter } from '../src/runtime/tenant-router';
 
-vi.mock('@kestrel/ai', () => ({
-  listFredEventsMissingActual: vi.fn(),
-  parseFredEventId: vi.fn(),
-  patchEventActual: vi.fn(),
-  upsertEvents: vi.fn().mockResolvedValue({ inserted: 0 }),
-}));
-
-vi.mock('@kestrel/data', () => ({
-  fetchUpcomingEvents: vi.fn().mockResolvedValue([]),
-  fred: {
-    fetchObservations: vi.fn(),
-    fredMeta: vi.fn(),
-  },
+vi.mock('@kestrel/ai/cron', () => ({
+  runFredActualsRefresh: vi.fn(),
 }));
 
 const log = createLogger({ service: 'test', forceJson: true });
@@ -43,12 +35,7 @@ const testRouter = new TenantRouter();
 const ORIGINAL_FRED_KEY = process.env['FRED_API_KEY'];
 
 beforeEach(() => {
-  process.env['FRED_API_KEY'] = 'test-key';
-  vi.mocked(ai.listFredEventsMissingActual).mockReset();
-  vi.mocked(ai.parseFredEventId).mockReset();
-  vi.mocked(ai.patchEventActual).mockReset();
-  vi.mocked(fred.fetchObservations).mockReset();
-  vi.mocked(fred.fredMeta).mockReset();
+  vi.mocked(cron.runFredActualsRefresh).mockReset();
 });
 
 afterEach(() => {
@@ -57,74 +44,50 @@ afterEach(() => {
 });
 
 describe('runFredActuals', () => {
-  it('short-circuits when FRED_API_KEY is missing', async () => {
+  it('passes the configured FRED key, signal, and logger to the shared runner', async () => {
+    process.env['FRED_API_KEY'] = 'test-key';
+    const signal = new AbortController().signal;
+    vi.mocked(cron.runFredActualsRefresh).mockResolvedValue({
+      processed: 2,
+      biquoteUpserted: 0,
+      candidates: 2,
+      filled: 2,
+      skipped: 0,
+      errors: [],
+      note: 'filled=2, skipped=0, errors=0',
+    });
+
+    const result = await runFredActuals({ log, signal, tenantRouter: testRouter });
+
+    expect(cron.runFredActualsRefresh).toHaveBeenCalledWith({
+      fredApiKey: 'test-key',
+      signal,
+      log,
+    });
+    expect(result).toEqual({ processed: 2, note: 'filled=2, skipped=0, errors=0' });
+  });
+
+  it('passes null when FRED_API_KEY is missing so the runner only does the BiQuote step', async () => {
     delete process.env['FRED_API_KEY'];
-    vi.mocked(ai.listFredEventsMissingActual).mockResolvedValue([
-      { id: 'fred:50:2026-05-01' } as never,
-    ]);
+    vi.mocked(cron.runFredActualsRefresh).mockResolvedValue({
+      processed: 0,
+      biquoteUpserted: 0,
+      candidates: 0,
+      filled: 0,
+      skipped: 0,
+      errors: [],
+      note: 'FRED_API_KEY missing',
+    });
 
-    const r = await runFredActuals({
+    const result = await runFredActuals({
       log,
       signal: new AbortController().signal,
       tenantRouter: testRouter,
     });
-    expect(r.processed).toBe(0);
-    expect(r.note).toBe('FRED_API_KEY missing');
-    expect(ai.listFredEventsMissingActual).not.toHaveBeenCalled();
-  });
 
-  it('patches each candidate with the closest observation', async () => {
-    vi.mocked(ai.listFredEventsMissingActual).mockResolvedValue([
-      { id: 'fred:50:2026-05-01' } as never,
-      { id: 'fred:51:2026-05-15' } as never,
-    ]);
-    vi.mocked(ai.parseFredEventId).mockImplementation((id: string) =>
-      id === 'fred:50:2026-05-01'
-        ? { releaseId: 50, releaseDate: '2026-05-01' }
-        : { releaseId: 51, releaseDate: '2026-05-15' },
+    expect(cron.runFredActualsRefresh).toHaveBeenCalledWith(
+      expect.objectContaining({ fredApiKey: null }),
     );
-    vi.mocked(fred.fredMeta).mockReturnValue({
-      seriesId: 'PAYEMS',
-      title: 'NFP',
-      importance: 'high',
-    } as never);
-    vi.mocked(fred.fetchObservations).mockResolvedValue([
-      { date: '2026-05-02', value: 200_000 } as never,
-      { date: '2026-05-04', value: 150_000 } as never,
-    ]);
-    vi.mocked(ai.patchEventActual).mockResolvedValue(undefined as never);
-
-    const r = await runFredActuals({
-      log,
-      signal: new AbortController().signal,
-      tenantRouter: testRouter,
-    });
-    expect(r.processed).toBe(2);
-    expect(r.note).toMatch(/filled=2/);
-    expect(ai.patchEventActual).toHaveBeenCalledWith(
-      'fred:50:2026-05-01',
-      200_000,
-      expect.any(Date),
-    );
-  });
-
-  it('skips rows with un-parseable ids and missing meta', async () => {
-    vi.mocked(ai.listFredEventsMissingActual).mockResolvedValue([
-      { id: 'fred:50:2026-05-01' } as never,
-      { id: 'malformed' } as never,
-    ]);
-    vi.mocked(ai.parseFredEventId).mockImplementation((id: string) =>
-      id === 'malformed' ? null : { releaseId: 50, releaseDate: '2026-05-01' },
-    );
-    // First call returns a meta with seriesId, but we want to test the
-    // missing-meta branch — skip seriesId.
-    vi.mocked(fred.fredMeta).mockReturnValue(null);
-
-    const r = await runFredActuals({
-      log,
-      signal: new AbortController().signal,
-      tenantRouter: testRouter,
-    });
-    expect(r.note).toMatch(/skipped=2/);
+    expect(result.note).toBe('FRED_API_KEY missing');
   });
 });

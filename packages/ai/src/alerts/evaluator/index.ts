@@ -28,15 +28,9 @@
 // exports are re-exported for backward compatibility.
 
 export { decideMatch, decideCross } from '../spec';
-export type { RuleReading, CrossContext } from '../spec';
+export type { RuleReading } from '../spec';
+export { describeRule } from '../rule-registry';
 export { parseIndicatorSpec } from './indicator-spec';
 export { lastClosedBar } from './bars';
 export type { EvaluatorEnv } from './env';
-export { interleaveByUser, type EvaluationStopReason } from './fan-out';
-export type { EvaluationOptions } from './evaluate';
-export {
-  DEFAULT_EVALUATION_BUDGET_MS,
-  type EvaluationResult,
-  evaluateAlerts,
-  describeRule,
-} from './evaluate';
+export { evaluateAlerts, type EvaluationResult } from './evaluate';

@@ -26,8 +26,8 @@
 
 import type { Alert } from '@kestrel/shared';
 
+import { describeRule } from '../rule-registry';
 import type { RuleReading } from '../spec';
-import { describeRule } from './context';
 
 export function renderEmailBody(alert: Alert, reading: RuleReading): string {
   const lines = [
