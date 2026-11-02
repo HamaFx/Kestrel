@@ -25,22 +25,15 @@
 // route handler or server init). It is idempotent — repeated imports
 // won't duplicate registrations.
 
-import { container } from '@kestrel/shared';
-
-import { VercelLlmClient } from '../routing/llm-client';
 import { ensureDbRegistered } from './db';
-import { LLM_CLIENT } from './tokens';
 
 /**
- * Register the LLM client in the DI container.
+ * Register the DB client in the DI container.
  *
  * Note: The DB client is registered by `./db.ts` on first import —
- * no need to register it here. This avoids a circular dependency
- * through the AI barrel.
+ * no need to register anything else here. This avoids a circular
+ * dependency through the AI barrel.
  */
 export function ensureAiBootstrapped(): void {
   ensureDbRegistered();
-  // LLM client — Vercel AI SDK wrapper. Stateless, but the container
-  // caches it so every consumer gets the same instance.
-  container.register(LLM_CLIENT, () => new VercelLlmClient());
 }

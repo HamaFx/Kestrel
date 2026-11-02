@@ -24,7 +24,4 @@
 import type { DbClient } from '@kestrel/db';
 import { token, type Token } from '@kestrel/shared';
 
-import type { LlmClient } from '../routing/llm-client';
-
 export const DB: Token<DbClient> = token<DbClient>('db');
-export const LLM_CLIENT: Token<LlmClient> = token<LlmClient>('llmClient');
