@@ -40,6 +40,17 @@ import type { CreateJournalInput, UpdateJournalInput } from './types';
 
 const jlog = createCategorizedLogger('ai', { component: 'journal' });
 
+/**
+ * Canonical R-multiple thresholds. A trade within ±0.05R is a breakeven:
+ * that is one fifth of the risk unit, the point where spread and
+ * commission still dominate the result. Every writer that derives an
+ * outcome from a computed R-multiple must use this function so the journal
+ * importer, the update path, and stats agree.
+ */
+export function classifyTradeOutcome(rMultiple: number): 'win' | 'loss' | 'breakeven' {
+  return rMultiple > 0.05 ? 'win' : rMultiple < -0.05 ? 'loss' : 'breakeven';
+}
+
 export async function listEntries(
   userId: string,
   opts: { limit?: number; symbol?: Symbol } = {},
@@ -177,7 +188,7 @@ export async function updateEntry(
       });
       patch.rMultiple = r;
       if (input.outcome === undefined) {
-        patch.outcome = r > 0.05 ? 'win' : r < -0.05 ? 'loss' : 'breakeven';
+        patch.outcome = classifyTradeOutcome(r);
       }
     }
 

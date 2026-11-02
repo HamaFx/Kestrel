@@ -14,36 +14,9 @@
  * limitations under the License.
  */
 
-import { ALL_SYMBOLS } from '@kestrel/shared';
-import { z } from 'zod';
-
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
-import { getDb, requireTenantIdForUser, schema } from '@/lib/services/db';
+import { importJournalEntriesService, JournalImportPayloadSchema } from '@/lib/services/journal';
 import { withRateLimit } from '@/lib/services/rate-limit';
-
-const ImportRowSchema = z.object({
-  symbol: z
-    .string()
-    .transform((value) => value.trim().toUpperCase())
-    .refine((value) => ALL_SYMBOLS.includes(value), {
-      error: 'Unsupported symbol',
-    }),
-  side: z.enum(['long', 'short']),
-  // M-11: Add sensible bounds for forex price/date values to
-  // prevent data corruption from malformed imports.
-  entry: z.number().min(0.1).max(5000),
-  stop: z.number().min(0.1).max(5000).nullable().optional(),
-  target: z.number().min(0.1).max(5000).nullable().optional(),
-  exit: z.number().min(0.1).max(5000).nullable().optional(),
-  size: z.number().min(0.01).max(1000).nullable().optional(),
-  openedAt: z.int().min(946684800000).max(4102444800000), // 2000-2100
-  closedAt: z.int().min(946684800000).max(4102444800000).nullable().optional(),
-  notes: z.string().max(5000).nullable().optional(),
-});
-
-const ImportPayloadSchema = z.object({
-  trades: z.array(ImportRowSchema).min(1).max(200),
-});
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -65,60 +38,9 @@ export const POST = withAuth<void>(async (req, { user }) => {
         { status: 429, headers: { 'Retry-After': '60' } },
       );
     }
-    const { trades } = await parseJsonBody(req, ImportPayloadSchema);
-    const db = getDb();
-    const tenantId = await requireTenantIdForUser(user.userId, db);
-
-    const rows = trades.map((trade) => {
-      const exit = trade.exit ?? null;
-      const closedAt =
-        trade.closedAt !== null && trade.closedAt !== undefined ? new Date(trade.closedAt) : null;
-
-      let outcome: 'win' | 'loss' | 'breakeven' | 'open' = 'open';
-      let rMultiple: number | null = null;
-
-      // journal_outcome_closed_consistency (migration 0028) requires outcome to be
-      // 'open' if closedAt is NULL. Only calculate win/loss/breakeven when closedAt is present.
-      if (closedAt !== null && exit !== null && trade.stop !== null && trade.stop !== undefined) {
-        const diff = trade.side === 'long' ? exit - trade.entry : trade.entry - exit;
-        const risk = trade.side === 'long' ? trade.entry - trade.stop : trade.stop - trade.entry;
-        if (risk > 0) {
-          rMultiple = diff / risk;
-        }
-        outcome =
-          rMultiple !== null
-            ? rMultiple > 0.1
-              ? 'win'
-              : rMultiple < -0.1
-                ? 'loss'
-                : 'breakeven'
-            : 'open';
-      }
-
-      return {
-        userId: user.userId,
-        tenantId,
-        symbol: trade.symbol,
-        side: trade.side,
-        entry: trade.entry,
-        stop: trade.stop ?? null,
-        target: trade.target ?? null,
-        exit,
-        size: trade.size ?? null,
-        openedAt: new Date(trade.openedAt),
-        closedAt,
-        outcome,
-        rMultiple,
-        notes: trade.notes ?? null,
-      };
-    });
-
-    const created = await db
-      .insert(schema.journalEntries)
-      .values(rows)
-      .returning({ id: schema.journalEntries.id });
-
-    return Response.json({ count: created.length });
+    const { trades } = await parseJsonBody(req, JournalImportPayloadSchema);
+    const { count } = await importJournalEntriesService(user.userId, trades);
+    return Response.json({ count });
   } catch (err) {
     return errorResponse(err);
   }

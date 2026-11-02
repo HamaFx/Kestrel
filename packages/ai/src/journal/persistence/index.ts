@@ -34,7 +34,14 @@
 //   - stats/query.ts      — tenant-scoped stats query
 
 export type { CreateJournalInput, UpdateJournalInput } from './types';
-export { listEntries, getEntry, createEntry, updateEntry, deleteEntry } from './crud';
+export {
+  listEntries,
+  getEntry,
+  createEntry,
+  updateEntry,
+  deleteEntry,
+  classifyTradeOutcome,
+} from './crud';
 export { computeRMultiple } from './stats/r-multiple';
 export { summarize, type JournalStatsSummary } from './stats/summarize';
 export { computeStats } from './stats/query';

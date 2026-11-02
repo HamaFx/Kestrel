@@ -45,6 +45,7 @@ export {
   updateJournalEntryService,
 } from './entries';
 export { getCoachInsightsService } from './coach';
+export { importJournalEntriesService, JournalImportPayloadSchema } from './import';
 export {
   computeReplayWindow,
   getTradeSetupReplayService,

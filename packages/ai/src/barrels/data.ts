@@ -91,6 +91,7 @@ export {
   createEntry,
   updateEntry,
   deleteEntry,
+  classifyTradeOutcome,
   computeRMultiple,
   computeStats,
   summarize,

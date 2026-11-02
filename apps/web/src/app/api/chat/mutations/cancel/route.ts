@@ -25,10 +25,11 @@ import {
   getKestrelMastra,
   getMutationExecution,
   MutationExecutionConflictError,
-  MutationKindSchema,
   parseMutationRunContext,
   verifyMutationConfirmationToken,
 } from '@/lib/services/chat-ai';
+
+import { findMutationRun } from '../confirm/_lib/find-mutation-run';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -132,13 +133,3 @@ export const POST = withAuth(async (req: Request, { user }) => {
     throw error;
   }
 });
-
-async function findMutationRun(runId: string): Promise<unknown | null> {
-  const storage = await getKestrelMastra().instance.getStorage()?.getStore('workflows');
-  if (!storage) return null;
-  for (const mutation of MutationKindSchema.options) {
-    const run = await storage.getWorkflowRunById({ runId, workflowName: `mutation-${mutation}` });
-    if (run) return run;
-  }
-  return null;
-}

@@ -24,6 +24,7 @@ export * from './runtime/capabilities';
 export * from './domain/symbols';
 export * from './symbol-catalog';
 export * from './domain/timeframes';
+export * from './domain/trade-levels';
 
 // F6 — Market Phase Detection
 export * from './domain/market-phase';
