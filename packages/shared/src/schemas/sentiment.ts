@@ -24,7 +24,7 @@
 
 import { z } from 'zod';
 
-import { SymbolSchema } from '../symbols';
+import { SymbolSchema } from '../domain/symbols';
 
 // ---------------------------------------------------------------------------
 // Sentiment enums

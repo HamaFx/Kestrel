@@ -7,7 +7,7 @@ const failures = [];
 const read = (file) => readFileSync(resolve(root, file), 'utf8');
 
 const example = read('.env.example');
-const shared = read('packages/shared/src/env.ts');
+const shared = read('packages/shared/src/env/index.ts');
 const worker = read('apps/worker/src/env.ts');
 const template = JSON.parse(read('scripts/setup/secret-template.json'));
 const compose = read('docker-compose.yml');
@@ -52,13 +52,17 @@ for (const key of [
 }
 
 const overlayComposeKeys = new Set(
-  [...observabilityCompose.matchAll(/\$\{([A-Z][A-Z0-9_]*)(?::[-?][^}]*)?\}/g)].map((match) => match[1]),
+  [...observabilityCompose.matchAll(/\$\{([A-Z][A-Z0-9_]*)(?::[-?][^}]*)?\}/g)].map(
+    (match) => match[1],
+  ),
 );
 
 for (const key of overlayComposeKeys) {
   // Host ports and remote tracing credentials are operator-supplied.
   if (!overlayTemplate[key] && !exampleKeys.has(key)) {
-    failures.push(`Observability overlay variable ${key} is not provided by .env.example or the overlay template`);
+    failures.push(
+      `Observability overlay variable ${key} is not provided by .env.example or the overlay template`,
+    );
   }
 }
 

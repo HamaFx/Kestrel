@@ -45,7 +45,7 @@ export async function registerBundledPlugins(log: Logger): Promise<void> {
 export async function startBacktestQueues(log: Logger): Promise<void> {
   try {
     const { startBacktestQueueWorker, startBacktestSweepQueueWorker } =
-      await import('../backtest-queue.js');
+      await import('../scheduler/backtest-queue.js');
     await startBacktestQueueWorker(log);
     await startBacktestSweepQueueWorker(log);
     log.info('backtest and sweep queue workers registered');

@@ -16,8 +16,8 @@
 
 import { z } from 'zod';
 
-import { SymbolSchema } from '../symbols';
-import { TimeframeSchema } from '../timeframes';
+import { SymbolSchema } from '../domain/symbols';
+import { TimeframeSchema } from '../domain/timeframes';
 
 /** Identifiers for built-in indicators (packages/indicators). Keep stable. */
 export const IndicatorKindSchema = z.enum([

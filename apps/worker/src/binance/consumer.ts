@@ -18,9 +18,9 @@
 
 import WebSocket from 'ws';
 
-import { BaseWsConsumer } from '../base-ws-consumer.js';
 import type { Logger } from '../log.js';
 import type { NormalizedTick } from '../signalr/consumer.js';
+import { BaseWsConsumer } from '../streams/base-ws-consumer.js';
 
 const DEFAULT_BINANCE_WS_BASE = 'wss://stream.binance.com:9443';
 const PING_INTERVAL_MS = 3 * 60 * 1_000;

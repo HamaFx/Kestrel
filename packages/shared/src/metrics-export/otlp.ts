@@ -16,7 +16,7 @@
 
 // OTLP/HTTP JSON transport: snapshot → `ExportMetricsServiceRequest` → POST.
 
-import { HISTOGRAM_BUCKET_BOUNDS_MS, type MetricsSnapshot } from '../metrics';
+import { HISTOGRAM_BUCKET_BOUNDS_MS, type MetricsSnapshot } from '../observability/metrics';
 import { buildMetricsUrl, type GrafanaOtlpConfig } from './config';
 import { parseSnapshotKey } from './keys';
 

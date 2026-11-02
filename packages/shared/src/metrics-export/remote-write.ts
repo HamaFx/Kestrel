@@ -24,7 +24,7 @@
 
 import { compress as snappyCompress } from 'snappyjs';
 
-import { HISTOGRAM_BUCKET_BOUNDS_MS, type MetricsSnapshot } from '../metrics';
+import { HISTOGRAM_BUCKET_BOUNDS_MS, type MetricsSnapshot } from '../observability/metrics';
 import type { GrafanaRemoteWriteConfig } from './config';
 import { parseSnapshotKey } from './keys';
 

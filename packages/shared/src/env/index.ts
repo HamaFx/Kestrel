@@ -28,10 +28,10 @@
 
 import { z } from 'zod';
 
-import { AiEnv } from './env/schema/ai';
-import { AuthEnv } from './env/schema/auth';
-import { CacheEnv, NotifyEnv, ProvidersEnv, PublicEnv } from './env/schema/infra';
-import { RuntimeEnv } from './env/schema/runtime';
+import { AiEnv } from './schema/ai';
+import { AuthEnv } from './schema/auth';
+import { CacheEnv, NotifyEnv, ProvidersEnv, PublicEnv } from './schema/infra';
+import { RuntimeEnv } from './schema/runtime';
 
 // We accept either DATABASE_URL or POSTGRES_URL for app traffic — the Supabase
 // Vercel integration writes POSTGRES_URL (transaction pooler, prepare-statement-safe
@@ -145,5 +145,5 @@ export {
   resolveDatabaseUrl,
   resolveDirectDatabaseUrl,
   resolveMigrationDatabaseUrl,
-} from './env/database-url';
-export { pickAiEnv, type AiEnvKeys } from './env/ai-env';
+} from './database-url';
+export { pickAiEnv, type AiEnvKeys } from './ai-env';

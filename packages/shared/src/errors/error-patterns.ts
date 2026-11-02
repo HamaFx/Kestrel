@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { AppError, type ErrorCode } from './errors';
+import { AppError, type ErrorCode } from './index';
 
 export interface ErrorPattern {
   /** Pattern to match against error message/code */

@@ -22,7 +22,7 @@
 
 import { z } from 'zod';
 
-import { SymbolSchema } from '../../symbols';
+import { SymbolSchema } from '../../domain/symbols';
 
 /**
  * How old the value is and whether it was served from a fallback path.

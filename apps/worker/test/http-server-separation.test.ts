@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createHealthServer, createProxyServer } from '../src/http-server';
+import { createHealthServer, createProxyServer } from '../src/runtime/http-server';
 
 const deps = {
   log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), with: vi.fn() },

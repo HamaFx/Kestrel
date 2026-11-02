@@ -25,7 +25,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runResonanceSync } from '../src/jobs/resonance-sync';
 import { createLogger } from '../src/log';
-import { TenantRouter } from '../src/tenant-router';
+import { TenantRouter } from '../src/runtime/tenant-router';
 
 const mocks = vi.hoisted(() => ({
   insertedRows: [] as Array<Record<string, unknown>>,

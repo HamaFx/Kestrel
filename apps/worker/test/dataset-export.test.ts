@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runDatasetExport } from '../src/jobs/dataset-export';
 import { createLogger } from '../src/log';
-import { TenantRouter } from '../src/tenant-router';
+import { TenantRouter } from '../src/runtime/tenant-router';
 
 // Hoisted mock controllers — vi.mock factories are hoisted above all other
 // statements, so shared mock fns must live here to avoid TDZ failures.

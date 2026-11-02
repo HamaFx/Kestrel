@@ -22,7 +22,7 @@ import {
   getSignalTtlMinutes,
   isComexOpen,
   isForexWeekend,
-} from '../src/market-phase';
+} from '../src/domain/market-phase';
 
 // Helper: create a Date at a specific UTC day/hour/minute.
 function utcDate(day: number, hour: number, minute: number = 0): Date {

@@ -25,7 +25,7 @@ import {
   runOpinionCalibration,
 } from '../src/jobs/opinion-calibration';
 import { createLogger } from '../src/log';
-import { TenantRouter } from '../src/tenant-router';
+import { TenantRouter } from '../src/runtime/tenant-router';
 
 const state = vi.hoisted(() => ({
   opinions: [] as Array<Record<string, unknown>>,

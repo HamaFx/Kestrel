@@ -25,10 +25,10 @@ import { isForexWeekend } from '@kestrel/shared';
 
 import { BinanceStreamConsumer } from '../binance/index.js';
 import type { WorkerEnv } from '../env.js';
-import { ping } from '../healthchecks.js';
 import type { Logger } from '../log.js';
 import { flushLiveTicks } from '../persistence/live-ticks.js';
-import { notifyReady, notifyStatus, notifyStopping, notifyWatchdog } from '../sd-notify.js';
+import { ping } from '../runtime/healthchecks.js';
+import { notifyReady, notifyStatus, notifyStopping, notifyWatchdog } from '../runtime/sd-notify.js';
 import {
   createDefaultBuildConnection,
   SignalRConsumer,
@@ -36,8 +36,8 @@ import {
   type NormalizedTick,
 } from '../signalr/consumer.js';
 import { TickBuffer } from '../signalr/tick-buffer.js';
-import { SymbolManager } from '../symbol-manager.js';
-import { createTickBus, type TickBus } from '../tick-bus.js';
+import { SymbolManager } from '../streams/symbol-manager.js';
+import { createTickBus, type TickBus } from '../streams/tick-bus.js';
 import { createCandleFlushRig, type CandlePipelineStats } from './candle-flush';
 import { createTickFlusher } from './tick-flush';
 

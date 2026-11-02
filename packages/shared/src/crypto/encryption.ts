@@ -39,9 +39,9 @@ import 'server-only';
 
 import { createCipheriv, createDecipheriv, pbkdf2Sync, randomBytes } from 'node:crypto';
 
+import { internalError } from '../errors';
+import { logErrorContext } from '../logger';
 import { PROVIDER_IDS, type ByokPayload, type ProviderId } from './byok';
-import { internalError } from './errors';
-import { logErrorContext } from './logger';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12; // 96 bits, standard for GCM

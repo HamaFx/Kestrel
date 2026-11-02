@@ -20,7 +20,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { withUserTenant, withUserTenantRO } from '../src/with-user-tenant';
+import { withUserTenant, withUserTenantRO } from '../src/tenant/with-user-tenant';
 
 const mocks = vi.hoisted(() => ({
   requireTenantIdForUser: vi.fn(),

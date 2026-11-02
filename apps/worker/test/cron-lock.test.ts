@@ -19,7 +19,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Import AFTER mock so the module sees the mocked getDb.
-import { acquireCronLock } from '../src/cron-lock';
+import { acquireCronLock } from '../src/scheduler/cron-lock';
 
 // Mock @kestrel/db to avoid a real DB connection in unit tests.
 const mockExecute = vi.fn();

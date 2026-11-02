@@ -26,7 +26,7 @@
 
 import { z } from 'zod';
 
-import { SymbolSchema } from '../../symbols';
+import { SymbolSchema } from '../../domain/symbols';
 
 export const GetCoTInputSchema = z.object({
   symbol: SymbolSchema.optional(),

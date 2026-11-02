@@ -19,7 +19,7 @@
 
 import type { WorkerEnv } from '../env.js';
 import type { Logger } from '../log.js';
-import type { TenantRouter } from '../tenant-router.js';
+import type { TenantRouter } from '../runtime/tenant-router.js';
 
 // -----------------------------------------------------------------------
 // PF-09 — ISP-compliant job context split.

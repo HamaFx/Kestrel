@@ -23,7 +23,7 @@ import {
   OBSERVABILITY_TERMINAL_STATUSES,
   parseObservabilityEvent,
   parseObservabilitySpan,
-} from '../src/observability';
+} from '../src/observability/observability';
 
 describe('observability contracts', () => {
   it('contains the lifecycle events required by the AI and worker flows', () => {

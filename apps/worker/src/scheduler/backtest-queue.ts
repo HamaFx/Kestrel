@@ -30,7 +30,7 @@ import {
   SweepQueueJobSchema,
 } from '@kestrel/plugin-backtesting/server';
 
-import type { Logger } from './log.js';
+import type { Logger } from '../log.js';
 
 export async function startBacktestQueueWorker(log: Logger): Promise<string> {
   const queueLog = log.with({ module: 'backtest-queue' });

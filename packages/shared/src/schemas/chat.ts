@@ -16,7 +16,7 @@
 
 import { z } from 'zod';
 
-import { SymbolSchema } from '../symbols';
+import { SymbolSchema } from '../domain/symbols';
 
 export const ChatRoleSchema = z.enum(['user', 'assistant', 'system', 'tool']);
 export type ChatRole = z.infer<typeof ChatRoleSchema>;

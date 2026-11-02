@@ -16,7 +16,7 @@
 
 import { z } from 'zod';
 
-import { CurrencyTagSchema, SymbolSchema } from '../symbols';
+import { CurrencyTagSchema, SymbolSchema } from '../domain/symbols';
 
 /** Articles can be tagged with either an instrument symbol or a raw currency. */
 export const SymbolOrCurrencyTagSchema = z.union([CurrencyTagSchema, SymbolSchema]);

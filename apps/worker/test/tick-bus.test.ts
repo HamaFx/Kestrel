@@ -21,7 +21,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createLogger } from '../src/log';
-import { TickBus } from '../src/tick-bus';
+import { TickBus } from '../src/streams/tick-bus';
 
 const log = createLogger({ service: 'test:tick-bus', forceJson: true });
 

@@ -25,7 +25,7 @@ import { Writable } from 'node:stream';
 import pino from 'pino';
 
 // Import here to avoid circular dependency issues at module top level.
-import { logStreamHub } from '../log-stream';
+import { logStreamHub } from '../observability/log-stream';
 
 // Define a default base config for our structured logger
 const isDevelopment = process.env.NODE_ENV === 'development';

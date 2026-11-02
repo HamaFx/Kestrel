@@ -23,7 +23,7 @@ import {
   METRIC_NAMES,
   metrics,
   MetricsRegistry,
-} from '../src/metrics';
+} from '../src/observability/metrics';
 
 describe('metrics registry', () => {
   it('exposes the AI + worker SLI metric names', () => {

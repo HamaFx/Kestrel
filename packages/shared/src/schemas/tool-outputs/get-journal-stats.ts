@@ -22,7 +22,7 @@
 
 import { z } from 'zod';
 
-import { SymbolSchema } from '../../symbols';
+import { SymbolSchema } from '../../domain/symbols';
 import { JournalStatsSchema, TradeSideSchema } from '../journal';
 
 export const GetJournalStatsInputSchema = z.object({

@@ -31,7 +31,7 @@ export {
   runIdStorage,
   traceIdStorage,
   type LogCategory,
-} from './logger/context';
-export { createPinoLogger, createScopedLogger, logger } from './logger/pino';
-export { logErrorContext } from './logger/errors';
-export { createCategorizedLogger, type CategorizedLogger } from './logger/categorized';
+} from './context';
+export { createPinoLogger, createScopedLogger, logger } from './pino';
+export { logErrorContext } from './errors';
+export { createCategorizedLogger, type CategorizedLogger } from './categorized';

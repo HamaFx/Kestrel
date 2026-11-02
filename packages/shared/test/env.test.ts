@@ -25,7 +25,7 @@ import {
   resolveMigrationDatabaseUrl,
   ServerEnvSchema,
 } from '../src/env';
-import { AUTO_GENERATED_SECRETS, generateSecret, SECRET_MIN_BYTES } from '../src/env-secrets';
+import { AUTO_GENERATED_SECRETS, generateSecret, SECRET_MIN_BYTES } from '../src/env/secrets';
 
 const MINIMAL_ENV = {
   // At least one AI transport AND one DB URL must be configured.

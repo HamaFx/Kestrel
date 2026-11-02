@@ -36,8 +36,8 @@
 
 import { z } from 'zod';
 
-import { SymbolSchema } from '../../symbols';
-import { TimeframeSchema } from '../../timeframes';
+import { SymbolSchema } from '../../domain/symbols';
+import { TimeframeSchema } from '../../domain/timeframes';
 
 export const VerifyCallDirectionSchema = z.enum(['long', 'short']);
 export type VerifyCallDirection = z.infer<typeof VerifyCallDirectionSchema>;

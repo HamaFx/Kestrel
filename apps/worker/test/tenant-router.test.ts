@@ -21,7 +21,7 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { filterMyTenants, TenantRouter } from '../src/tenant-router';
+import { filterMyTenants, TenantRouter } from '../src/runtime/tenant-router';
 
 describe('TenantRouter bucket contract', () => {
   // md5(tenantId) read as a big-endian uint32, modulo the partition count.

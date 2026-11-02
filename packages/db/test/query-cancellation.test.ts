@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { abortError, withCancellablePostgresQuery } from '../src/query-cancellation';
+import { abortError, withCancellablePostgresQuery } from '../src/ops/query-cancellation';
 
 const end = vi.fn().mockResolvedValue(undefined);
 const client = Object.assign(vi.fn(), { end });

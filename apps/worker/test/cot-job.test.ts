@@ -21,7 +21,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runCoT } from '../src/jobs/cot';
 import { createLogger } from '../src/log';
-import { TenantRouter } from '../src/tenant-router';
+import { TenantRouter } from '../src/runtime/tenant-router';
 
 vi.mock('@kestrel/ai', () => ({
   upsertCoTReport: vi.fn(),

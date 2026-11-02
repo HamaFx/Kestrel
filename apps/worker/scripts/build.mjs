@@ -57,7 +57,7 @@ external.push('node:*');
 
 // Stub out `server-only` — it's a build-time guard that throws at module
 // load time, which breaks the worker (Node.js backend with no bundler
-// stripping). The modules that import it (@kestrel/shared/src/encryption)
+// stripping). The modules that import it (@kestrel/shared/src/crypto/encryption.ts)
 // are never called by the worker, but the import side-effect is evaluated
 // eagerly during ESM module graph loading.
 const serverOnlyPlugin = {

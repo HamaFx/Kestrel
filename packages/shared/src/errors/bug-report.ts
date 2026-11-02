@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { AppError } from './errors';
+import { AppError } from './index';
 
 const PRIVATE_CONTENT_KEY_PATTERN =
   /^(?:prompt|content|text|input|output|args|parts|messages|response|query|snippet|body)$/i;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isSafeOutboundUrl } from '../src/safe-url';
+import { isSafeOutboundUrl } from '../src/runtime/safe-url';
 
 describe('safe outbound URLs', () => {
   it('allows public HTTPS hosts', () => {

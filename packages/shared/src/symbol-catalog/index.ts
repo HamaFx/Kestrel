@@ -42,8 +42,8 @@ export {
   assetClassForSymbol,
   PROMPT_SYMBOL_PATTERNS,
   extractSymbolsFromText,
-} from './symbol-catalog/catalog';
-export type { SymbolAssetClass } from './symbol-catalog/catalog';
+} from './catalog';
+export type { SymbolAssetClass } from './catalog';
 export type {
   SymbolCapabilities,
   SymbolCategory,
@@ -53,4 +53,4 @@ export type {
   SymbolQuantityUnit,
   SymbolQuoteCurrency,
   SymbolSettlementCurrency,
-} from './symbol-catalog/types';
+} from './types';

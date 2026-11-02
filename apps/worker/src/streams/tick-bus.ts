@@ -34,8 +34,8 @@ import {
 } from '@kestrel/plugin-sdk';
 import { decryptPluginSettings } from '@kestrel/plugin-sdk/settings';
 
-import type { Logger } from './log.js';
-import { filterMyTenants } from './tenant-router.js';
+import type { Logger } from '../log.js';
+import { filterMyTenants } from '../runtime/tenant-router.js';
 
 const INSTALLED_USERS_TTL_MS = 30_000;
 const MAX_IN_FLIGHT_PER_SUBSCRIBER = 100;

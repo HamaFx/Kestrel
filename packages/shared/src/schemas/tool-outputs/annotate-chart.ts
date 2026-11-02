@@ -24,8 +24,8 @@
 
 import { z } from 'zod';
 
-import { SymbolSchema } from '../../symbols';
-import { TimeframeSchema } from '../../timeframes';
+import { SymbolSchema } from '../../domain/symbols';
+import { TimeframeSchema } from '../../domain/timeframes';
 
 /** Categories the model can request from `annotate_chart`. */
 export const AnnotateChartKindSchema = z.union([

@@ -51,8 +51,8 @@
 
 import { sql } from 'drizzle-orm';
 
-import { getTenantDbScope, withTenantDb, type DbClient } from './client';
-import { withUserTenant } from './with-user-tenant';
+import { getTenantDbScope, withTenantDb, type DbClient } from '../client';
+import { withUserTenant } from '../tenant/with-user-tenant';
 
 export interface RateLimitResult {
   /** True iff the request is within the limit. */

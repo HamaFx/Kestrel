@@ -25,9 +25,9 @@
       "import": "./dist/client.js"
     },
     "./queue": {
-      "source": "./src/queue.ts",
-      "types": "./dist/queue.d.ts",
-      "import": "./dist/queue.js"
+      "source": "./src/queue/index.ts",
+      "types": "./dist/queue/index.d.ts",
+      "import": "./dist/queue/index.js"
     }
   },
   "scripts": {

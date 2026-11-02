@@ -31,9 +31,9 @@ import {
 import { decryptPluginSettings } from '@kestrel/plugin-sdk/settings';
 import cron from 'node-cron';
 
+import type { Logger } from '../log.js';
+import { filterMyTenants, tenantRouter, type TenantRouter } from '../runtime/tenant-router.js';
 import { acquireCronLock } from './cron-lock.js';
-import type { Logger } from './log.js';
-import { filterMyTenants, tenantRouter, type TenantRouter } from './tenant-router.js';
 
 const JOB_TIMEOUT_MS = Number(process.env.JOB_TIMEOUT_MS) || 120_000;
 

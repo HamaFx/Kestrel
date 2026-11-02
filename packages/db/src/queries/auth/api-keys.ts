@@ -18,7 +18,7 @@ import { and, eq } from 'drizzle-orm';
 
 import { schema } from '../../client';
 import { requireTenantIdForUser } from '../../tenant';
-import { withUserTenant } from '../../with-user-tenant';
+import { withUserTenant } from '../../tenant/with-user-tenant';
 
 /**
  * Update user's API keys (encrypted BYOK payload) and updatedAt map.

@@ -28,7 +28,7 @@
  * want structured logging inject a logger through `bestEffort` options.
  */
 
-import type { AppError } from './errors';
+import type { AppError } from './index';
 
 export type Result<T, E = AppError> =
   { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: E };

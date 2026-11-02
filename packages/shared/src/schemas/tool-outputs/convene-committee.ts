@@ -16,7 +16,7 @@
 
 import { z } from 'zod';
 
-import { SymbolSchema } from '../../symbols';
+import { SymbolSchema } from '../../domain/symbols';
 import { CommitteeVerdictSchema } from '../ui-parts';
 
 export const ConveneCommitteeInputSchema = z.object({

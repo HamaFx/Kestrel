@@ -24,7 +24,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runEmbeddingBackfill } from '../src/jobs/embedding-backfill';
 import { createLogger } from '../src/log';
-import { TenantRouter } from '../src/tenant-router';
+import { TenantRouter } from '../src/runtime/tenant-router';
 
 vi.mock('@kestrel/ai', () => ({
   backfillEmbeddings: vi.fn(),

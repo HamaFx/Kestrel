@@ -16,7 +16,7 @@
 
 import { schema } from '../../client';
 import { requireTenantIdForUser } from '../../tenant';
-import { withUserTenant } from '../../with-user-tenant';
+import { withUserTenant } from '../../tenant/with-user-tenant';
 
 /**
  * Create an audit log entry (best-effort, fail open).

@@ -19,7 +19,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ping, withHeartbeat } from '../src/healthchecks';
+import { ping, withHeartbeat } from '../src/runtime/healthchecks';
 
 const ORIGINAL_FETCH = globalThis.fetch;
 

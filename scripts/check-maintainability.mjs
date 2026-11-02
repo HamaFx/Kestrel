@@ -50,8 +50,8 @@ const SKIP_FILE_SUFFIXES = ['.d.ts', '.test.ts', '.test.tsx', '.spec.ts', '.spec
 
 /** Pure declarative catalogs may reach 500 LOC (RULE-F04). */
 const STATIC_CATALOGS = new Set([
-  'packages/shared/src/symbol-catalog.ts',
-  'packages/shared/src/symbols.ts',
+  'packages/shared/src/symbol-catalog/index.ts',
+  'packages/shared/src/domain/symbols.ts',
   'packages/ai/src/models/catalogue.ts',
   'packages/ai/src/models/byok-providers.ts',
   'packages/db/src/schema/enums.ts',

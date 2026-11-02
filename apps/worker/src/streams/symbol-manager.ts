@@ -25,7 +25,7 @@ import {
   type SymbolCategory,
 } from '@kestrel/shared';
 
-import type { Logger } from './log.js';
+import type { Logger } from '../log.js';
 
 interface ActiveSymbol {
   symbol: string;

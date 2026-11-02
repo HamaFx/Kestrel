@@ -29,7 +29,7 @@
 
 import WebSocket from 'ws';
 
-import type { Logger } from './log.js';
+import type { Logger } from '../log.js';
 
 /** Default reconnect delays: 1s, 2s, 5s, 10s, 30s, then capped. */
 const DEFAULT_RECONNECT_DELAYS_MS = [1_000, 2_000, 5_000, 10_000, 30_000];

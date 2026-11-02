@@ -25,7 +25,7 @@ import { eq, sql } from 'drizzle-orm';
 
 import { getDb, getTenantDbScope, schema } from '../../client';
 import { requireTenantIdForUser } from '../../tenant';
-import { withUserTenant } from '../../with-user-tenant';
+import { withUserTenant } from '../../tenant/with-user-tenant';
 
 function assertTenantScope(fn: string): void {
   if (!getTenantDbScope()) {

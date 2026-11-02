@@ -18,15 +18,15 @@
 // the package — never reach into deep paths from consumers.
 
 // Runtime capability diagnostics
-export * from './capabilities';
+export * from './runtime/capabilities';
 
 // Domain primitives
-export * from './symbols';
+export * from './domain/symbols';
 export * from './symbol-catalog';
-export * from './timeframes';
+export * from './domain/timeframes';
 
 // F6 — Market Phase Detection
-export * from './market-phase';
+export * from './domain/market-phase';
 
 // Schemas (zod + inferred types)
 export * from './schemas/candle';
@@ -105,17 +105,17 @@ export type { ToolOutputMap, ToolIOMap, ToolOutput, ToolInput } from './ai/tool-
 
 // Errors & Logging
 export * from './errors';
-export * from './resilience';
-export * from './observability';
-export * from './safe-url';
+export * from './errors/resilience';
+export * from './observability/observability';
+export * from './runtime/safe-url';
 // Phase D — typed counters/histograms for AI + worker SLIs
-export * from './metrics';
+export * from './observability/metrics';
 // Logger is server-only (uses node:async_hooks / node:stream). Import from
 // '@kestrel/shared/logger' directly in server/worker code; do NOT re-export
 // here to keep the client bundle free of Node built-ins.
-export { logStreamHub } from './log-stream';
-export * from './error-patterns';
-export * from './bug-report';
+export { logStreamHub } from './observability/log-stream';
+export * from './errors/error-patterns';
+export * from './errors/bug-report';
 // BYOK encryption is server-only (uses node:crypto) — import directly
 // from '@kestrel/shared/encryption' instead. Re-exporting it here would
 // pull node:crypto into any client component that imports the barrel.
@@ -132,7 +132,7 @@ export {
 } from './env';
 export type { ServerEnv, AiEnvKeys } from './env';
 // Audit upgrade-plan feature flags — single parsing point for runtime reads.
-export { readFeatureFlag, type FeatureFlagName } from './feature-flags';
+export { readFeatureFlag, type FeatureFlagName } from './runtime/feature-flags';
 // BYOK type re-exports (intentionally NOT pulling node:crypto into
 // the client bundle).
 export {
@@ -147,15 +147,15 @@ export {
   type CatalogModel,
   type CatalogResponse,
   KNOWN_BYOK_PROVIDERS,
-} from './byok';
-// Secret helpers (env-secrets.ts) intentionally NOT re-exported from the
+} from './crypto/byok';
+// Secret helpers (env/secrets.ts) intentionally NOT re-exported from the
 // barrel — importing them pulls node:crypto + `server-only` into the
 // client bundle. Consumers must import directly:
 //   import { generateSecret } from '@kestrel/shared/env-secrets';
 //
 // P2-3 — Lightweight DI container.
 // Replaces module-level singletons with a central registry.
-export { container, Container, token, type Token } from './container';
+export { container, Container, token, type Token } from './runtime/container';
 
 // Phase 3 §3.9 — vault secrets loader also NOT re-exported from the barrel
 // (it pulls google-auth-library dynamically). Consumers must import directly:

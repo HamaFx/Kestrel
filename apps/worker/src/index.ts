@@ -47,7 +47,7 @@ import { startQueueHealthProbe } from './bootstrap/queue-health.js';
 import { installSignalHandlers, registerPostStartupShutdown } from './bootstrap/shutdown';
 import { isWorkerTickStreamEnabled, loadEnv } from './env.js';
 import { createLogger } from './log.js';
-import { startScheduler } from './scheduler.js';
+import { startScheduler } from './scheduler/index.js';
 
 export { onShutdown } from './bootstrap/shutdown';
 export { runWorker } from './bootstrap/feed-worker';

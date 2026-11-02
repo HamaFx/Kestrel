@@ -25,7 +25,7 @@ import { and, eq } from 'drizzle-orm';
 
 import { schema } from '../client';
 import { requireTenantIdForUser } from '../tenant';
-import { withUserTenant, withUserTenantRO } from '../with-user-tenant';
+import { withUserTenant, withUserTenantRO } from '../tenant/with-user-tenant';
 
 /** A user session row (selective fields for display). */
 export interface SessionRow {

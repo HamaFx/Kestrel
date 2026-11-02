@@ -22,7 +22,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { type ByokPayload } from '../src/byok';
+import { type ByokPayload } from '../src/crypto/byok';
 import { AiEnv } from '../src/env/schema/ai';
 
 describe('AiEnv & ByokPayload Jev keys', () => {

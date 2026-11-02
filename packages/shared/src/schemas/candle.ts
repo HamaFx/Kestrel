@@ -16,8 +16,8 @@
 
 import { z } from 'zod';
 
-import { SymbolSchema } from '../symbols';
-import { TimeframeSchema } from '../timeframes';
+import { SymbolSchema } from '../domain/symbols';
+import { TimeframeSchema } from '../domain/timeframes';
 
 /**
  * Normalised OHLC candle. All providers map to this DTO at the adapter

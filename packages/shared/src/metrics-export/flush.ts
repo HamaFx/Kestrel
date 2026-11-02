@@ -16,7 +16,7 @@
 
 // Fail-closed flush of the process-wide registry over every configured transport.
 
-import { metrics } from '../metrics';
+import { metrics } from '../observability/metrics';
 import { grafanaOtlpConfigFromEnv, grafanaRemoteWriteConfigFromEnv } from './config';
 import { exportMetricsToOtlp } from './otlp';
 import { exportMetricsToRemoteWrite } from './remote-write';

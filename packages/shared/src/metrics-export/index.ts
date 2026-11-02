@@ -45,11 +45,8 @@ export {
   grafanaRemoteWriteConfigFromEnv,
   type GrafanaOtlpConfig,
   type GrafanaRemoteWriteConfig,
-} from './metrics-export/config';
-export { parseSnapshotKey } from './metrics-export/keys';
-export { exportMetricsToOtlp, snapshotToOtlpJson } from './metrics-export/otlp';
-export {
-  exportMetricsToRemoteWrite,
-  snapshotToPromRemoteWrite,
-} from './metrics-export/remote-write';
-export { flushMetrics } from './metrics-export/flush';
+} from './config';
+export { parseSnapshotKey } from './keys';
+export { exportMetricsToOtlp, snapshotToOtlpJson } from './otlp';
+export { exportMetricsToRemoteWrite, snapshotToPromRemoteWrite } from './remote-write';
+export { flushMetrics } from './flush';

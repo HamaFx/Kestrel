@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-// Scheduler barrel. Every name previously exported from `src/scheduler.ts`
-// is re-exported here so `./scheduler.js`, `../scheduler.js` and
-// `./scheduler/index.js` imports keep resolving unchanged.
+// Scheduler barrel: daily-job lock, job runtime, and the scheduler entry
+// point. The legacy `src/scheduler.ts` re-export shim was deleted in the
+// Phase 2 restructure; callers import `./scheduler/index.js` directly.
 
 export { SKIP_DAILY_LOCK } from './skip-daily-lock.js';
 export { startScheduler } from './start-scheduler.js';

@@ -8,7 +8,7 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { readFeatureFlag } from '../src/feature-flags';
+import { readFeatureFlag } from '../src/runtime/feature-flags';
 
 const originalNodeEnv = process.env.NODE_ENV;
 

@@ -20,12 +20,12 @@
 
 import { getDb } from '@kestrel/ai';
 
-import { acquireCronLock } from '../cron-lock.js';
 import type { WorkerEnv } from '../env.js';
-import { withHeartbeat } from '../healthchecks.js';
 import { JOBS } from '../jobs/index.js';
 import type { Logger } from '../log.js';
-import { tenantRouter } from '../tenant-router.js';
+import { withHeartbeat } from '../runtime/healthchecks.js';
+import { tenantRouter } from '../runtime/tenant-router.js';
+import { acquireCronLock } from './cron-lock.js';
 import { SKIP_DAILY_LOCK } from './skip-daily-lock.js';
 
 // Maximum wall-clock time any scheduled job may run.

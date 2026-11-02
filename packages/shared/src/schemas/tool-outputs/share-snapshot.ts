@@ -26,8 +26,8 @@
 
 import { z } from 'zod';
 
-import { SymbolSchema } from '../../symbols';
-import { TimeframeSchema } from '../../timeframes';
+import { SymbolSchema } from '../../domain/symbols';
+import { TimeframeSchema } from '../../domain/timeframes';
 import { AnnotateChartOutputSchema } from './annotate-chart';
 
 const DEFAULT_TTL_MINUTES = 7 * 24 * 60; // 7 days

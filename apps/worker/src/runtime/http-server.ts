@@ -3,9 +3,9 @@ import { timingSafeEqual } from 'node:crypto';
 
 import { assertSafeOutboundUrl, getCapabilityReport } from '@kestrel/shared';
 
-import type { CandlePipelineStats } from './bootstrap/candle-flush.js';
-import type { QueueHealthSnapshot } from './bootstrap/queue-health.js';
-import type { Logger } from './log.js';
+import type { CandlePipelineStats } from '../bootstrap/candle-flush.js';
+import type { QueueHealthSnapshot } from '../bootstrap/queue-health.js';
+import type { Logger } from '../log.js';
 
 export interface HealthServerDeps {
   log: Logger;

@@ -28,4 +28,4 @@
 "type: config":
   - any:
     - "packages/config/**/*"
-    - "packages/shared/src/env.ts"
+    - "packages/shared/src/env/**"

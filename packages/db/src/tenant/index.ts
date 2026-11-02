@@ -7,7 +7,7 @@
 
 import { and, eq, isNull } from 'drizzle-orm';
 
-import { getDb, getTenantDbScope, schema, type DbClient } from './client';
+import { getDb, getTenantDbScope, schema, type DbClient } from '../client';
 
 /**
  * Resolve the active organization for a user.

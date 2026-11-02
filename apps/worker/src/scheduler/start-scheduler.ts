@@ -30,9 +30,9 @@ import cron from 'node-cron';
 import type { WorkerEnv } from '../env.js';
 import { JOBS } from '../jobs/index.js';
 import type { Logger } from '../log.js';
-import { startPluginJobs } from '../plugin-jobs.js';
 import { cleanupStaleCronRuns } from './cleanup-cron-runs.js';
 import { abortActiveJobs, reportStuckJobs, runJobSafely } from './job-runtime.js';
+import { startPluginJobs } from './plugin-jobs.js';
 
 export function startScheduler(log: Logger, env?: WorkerEnv): () => void {
   // Keep references to all scheduled tasks so we can stop

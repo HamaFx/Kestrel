@@ -289,7 +289,7 @@ describe.skipIf(!enabled || !adminUrl)('application role enforces RLS on the rea
       vi.resetModules();
       const queries = await import('../src/queries/user-settings');
       const threads = await import('../src/queries/threads');
-      const { withUserTenant } = await import('../src/with-user-tenant');
+      const { withUserTenant } = await import('../src/tenant/with-user-tenant');
       const { closeDb } = await import('../src/client');
 
       try {

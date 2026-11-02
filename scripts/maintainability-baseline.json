@@ -1,9 +1,5 @@
 {
   "ts": {},
   "tsx": {},
-  "looseRoots": {
-    "apps/worker/src": 14,
-    "packages/db/src": 13,
-    "packages/shared/src": 24
-  }
+  "looseRoots": {}
 }

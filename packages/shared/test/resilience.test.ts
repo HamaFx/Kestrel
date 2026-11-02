@@ -16,7 +16,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { bestEffort, err, isErr, isOk, ok, safeParseJson } from '../src/resilience';
+import { bestEffort, err, isErr, isOk, ok, safeParseJson } from '../src/errors/resilience';
 
 describe('resilience primitives', () => {
   it('returns typed fallback on malformed JSON without throwing', () => {

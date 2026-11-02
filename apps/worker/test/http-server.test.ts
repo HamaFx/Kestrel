@@ -7,7 +7,7 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createHealthServer, createProxyServer } from '../src/http-server';
+import { createHealthServer, createProxyServer } from '../src/runtime/http-server';
 
 function createServer(lastTickAt: number, connected: boolean) {
   return createHealthServer({

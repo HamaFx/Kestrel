@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getCapabilityReport } from '../src/capabilities';
+import { getCapabilityReport } from '../src/runtime/capabilities';
 
 describe('capability report', () => {
   it('reports optional integrations without exposing credential values', () => {

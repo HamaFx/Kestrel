@@ -18,9 +18,9 @@ import type * as aiModule from '@kestrel/ai';
 import type * as dbModule from '@kestrel/db';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import * as cronLockModule from '../src/cron-lock';
 import { JOBS } from '../src/jobs/index';
 import { runJob } from '../src/runner/cli';
+import * as cronLockModule from '../src/scheduler/cron-lock';
 
 // Mock DB and external services
 vi.mock('@kestrel/shared/vault', () => ({
@@ -51,7 +51,7 @@ vi.mock('@kestrel/db', async (importOriginal) => {
   };
 });
 
-vi.mock('../src/healthchecks', () => ({
+vi.mock('../src/runtime/healthchecks', () => ({
   ping: vi.fn().mockResolvedValue(undefined),
   withHeartbeat: vi.fn(async (_uuid, fn) => fn()),
 }));

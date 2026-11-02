@@ -27,7 +27,7 @@ import {
   SymbolManager,
   type PerConsumerChangeEvent,
   type SymbolChangeEvent,
-} from '../src/symbol-manager';
+} from '../src/streams/symbol-manager';
 
 const mockListDistinctSymbols = vi.fn();
 

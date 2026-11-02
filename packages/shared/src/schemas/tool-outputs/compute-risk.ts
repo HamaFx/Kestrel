@@ -26,7 +26,7 @@
 
 import { z } from 'zod';
 
-import { getSymbolDefinition, SymbolSchema } from '../../symbols';
+import { getSymbolDefinition, SymbolSchema } from '../../domain/symbols';
 
 export const TradeDirectionSchema = z.enum(['long', 'short']);
 export type TradeDirection = z.infer<typeof TradeDirectionSchema>;

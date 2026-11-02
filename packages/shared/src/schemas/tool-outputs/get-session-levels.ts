@@ -29,7 +29,7 @@
 
 import { z } from 'zod';
 
-import { SymbolSchema } from '../../symbols';
+import { SymbolSchema } from '../../domain/symbols';
 
 export const SessionTagSchema = z.enum(['asia', 'london', 'ny']);
 export type SessionTag = z.infer<typeof SessionTagSchema>;

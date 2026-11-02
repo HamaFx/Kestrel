@@ -18,13 +18,6 @@ import { uncompress as snappyUncompress } from 'snappyjs';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  HISTOGRAM_BUCKET_BOUNDS_MS,
-  HISTOGRAM_BUCKET_BOUNDS_USD,
-  metrics,
-  MetricsRegistry,
-  type MetricsSnapshot,
-} from '../src/metrics';
-import {
   buildMetricsUrl,
   exportMetricsToOtlp,
   exportMetricsToRemoteWrite,
@@ -35,6 +28,13 @@ import {
   snapshotToOtlpJson,
   snapshotToPromRemoteWrite,
 } from '../src/metrics-export';
+import {
+  HISTOGRAM_BUCKET_BOUNDS_MS,
+  HISTOGRAM_BUCKET_BOUNDS_USD,
+  metrics,
+  MetricsRegistry,
+  type MetricsSnapshot,
+} from '../src/observability/metrics';
 
 function snapshot(): MetricsSnapshot {
   return {

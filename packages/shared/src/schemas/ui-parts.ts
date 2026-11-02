@@ -32,7 +32,7 @@
 import { z } from 'zod';
 
 import { TOOL_NAMES } from '../ai/tool-names';
-import { SymbolSchema } from '../symbols';
+import { SymbolSchema } from '../domain/symbols';
 
 // ---------------------------------------------------------------------------
 // data-plan — collapsible "Thinking" UI part

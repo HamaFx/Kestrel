@@ -24,7 +24,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runAlerts } from '../src/jobs/alerts';
 import { createLogger } from '../src/log';
-import { TenantRouter } from '../src/tenant-router';
+import { TenantRouter } from '../src/runtime/tenant-router';
 
 vi.mock('@kestrel/ai', () => ({
   evaluateAlerts: vi.fn(),

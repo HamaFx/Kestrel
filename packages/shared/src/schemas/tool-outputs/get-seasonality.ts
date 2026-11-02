@@ -25,7 +25,7 @@
 
 import { z } from 'zod';
 
-import { SymbolSchema } from '../../symbols';
+import { SymbolSchema } from '../../domain/symbols';
 
 export const SeasonalityGranularitySchema = z.enum(['month', 'weekday', 'hour']);
 export type SeasonalityGranularity = z.infer<typeof SeasonalityGranularitySchema>;

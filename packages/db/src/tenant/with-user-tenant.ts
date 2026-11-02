@@ -34,8 +34,8 @@
 // `requireTenantIdForUser` from `tenant.ts`, which already imports `client.ts`
 // — importing it from scope.ts would close an import cycle.
 
-import { withTenantDb, withTenantDbRO, type DbClient } from './client';
-import { requireTenantIdForUser } from './tenant';
+import { withTenantDb, withTenantDbRO, type DbClient } from '../client';
+import { requireTenantIdForUser } from './index';
 
 /**
  * Run `work` with the given user's tenant scope active.

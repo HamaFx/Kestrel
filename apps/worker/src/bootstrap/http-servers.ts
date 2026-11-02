@@ -20,8 +20,8 @@
 import type http from 'node:http';
 
 import type { WorkerEnv } from '../env.js';
-import { createHealthServer, createProxyServer } from '../http-server.js';
 import type { Logger } from '../log.js';
+import { createHealthServer, createProxyServer } from '../runtime/http-server.js';
 import { getJobHealthSummary } from '../scheduler/job-runtime.js';
 import type { WorkerRuntime } from './feed-worker';
 import { getQueueHealthSnapshot } from './queue-health.js';

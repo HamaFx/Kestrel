@@ -20,7 +20,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runWeeklyReview } from '../src/jobs/weekly-review';
 import { createLogger } from '../src/log';
-import { TenantRouter } from '../src/tenant-router';
+import { TenantRouter } from '../src/runtime/tenant-router';
 
 vi.mock('@kestrel/ai', () => ({
   emitWeeklyReview: vi.fn(),

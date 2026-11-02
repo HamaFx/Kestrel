@@ -21,7 +21,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runFredActuals } from '../src/jobs/fred-actuals';
 import { createLogger } from '../src/log';
-import { TenantRouter } from '../src/tenant-router';
+import { TenantRouter } from '../src/runtime/tenant-router';
 
 vi.mock('@kestrel/ai', () => ({
   listFredEventsMissingActual: vi.fn(),

@@ -26,8 +26,8 @@
 
 import { z } from 'zod';
 
-import { SymbolSchema } from '../../symbols';
-import { TimeframeSchema } from '../../timeframes';
+import { SymbolSchema } from '../../domain/symbols';
+import { TimeframeSchema } from '../../domain/timeframes';
 
 export const GetCorrelationInputSchema = z.object({
   tf: TimeframeSchema.default('1h'),

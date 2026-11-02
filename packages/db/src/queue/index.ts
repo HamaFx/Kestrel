@@ -33,13 +33,13 @@
 import { sql } from 'drizzle-orm';
 import { fromDrizzle, PgBoss, type Job, type JobWithMetadata } from 'pg-boss';
 
-import { getDb, getTenantDbScope } from './client';
-import { SUPABASE_ROOT_CA_2021 } from './connection/supabase-ca';
-import { DEAD_LETTER_QUEUE_OPTIONS, DEAD_LETTER_QUEUES, MANAGED_QUEUES } from './queue/definitions';
-import { runJobWithHeartbeat } from './queue/heartbeat';
+import { getDb, getTenantDbScope } from '../client';
+import { SUPABASE_ROOT_CA_2021 } from '../connection/supabase-ca';
+import { DEAD_LETTER_QUEUE_OPTIONS, DEAD_LETTER_QUEUES, MANAGED_QUEUES } from './definitions';
+import { runJobWithHeartbeat } from './heartbeat';
 
-export * from './queue/definitions';
-export * from './queue/heartbeat';
+export * from './definitions';
+export * from './heartbeat';
 
 let bossInstance: PgBoss | null = null;
 let starting: Promise<PgBoss> | null = null;

@@ -27,13 +27,13 @@
 
 import { closeDb } from '@kestrel/db';
 
-import { acquireCronLock, type CronLock } from '../cron-lock.js';
 import { loadEnv } from '../env.js';
-import { withHeartbeat } from '../healthchecks.js';
 import { JOBS, type JobName } from '../jobs/index.js';
 import { createLogger } from '../log.js';
-import { SKIP_DAILY_LOCK } from '../scheduler.js';
-import { tenantRouter } from '../tenant-router.js';
+import { withHeartbeat } from '../runtime/healthchecks.js';
+import { tenantRouter } from '../runtime/tenant-router.js';
+import { acquireCronLock, type CronLock } from '../scheduler/cron-lock.js';
+import { SKIP_DAILY_LOCK } from '../scheduler/index.js';
 
 function isKnownJob(name: string): name is JobName {
   return name in JOBS;

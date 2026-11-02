@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-// Legacy-path re-export. TS, esbuild and Node ESM resolve the `./scheduler.js`
-// specifiers used by `src/index.ts` and `runner/cli.ts` only to a real file,
-// never to `./scheduler/index.ts`. The implementation now lives in
-// `./scheduler/`; this module keeps the historical import path working.
+// Retention barrel: config + bounded delete helpers (`config.ts`, `batch.ts`),
+// the cleanup job (`cleanup.ts`), and the vacuum pass (`vacuum.ts`).
 
-export * from './scheduler/index.js';
+export { getRetentionConfigFromEnv, resolveRetention } from './config';
+export type { RetentionConfig, RetentionResult } from './config';
+export { runRetentionCleanup } from './cleanup';
+export { runVacuumAnalyze } from './vacuum';

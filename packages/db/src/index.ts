@@ -42,8 +42,8 @@ export {
   schema,
   type DbClient,
 } from './client';
-export { withUserTenant, withUserTenantRO } from './with-user-tenant';
-export { withRateLimit, type RateLimitResult } from './rate-limit';
+export { withUserTenant, withUserTenantRO } from './tenant/with-user-tenant';
+export { withRateLimit, type RateLimitResult } from './ops/rate-limit';
 export {
   runRetentionCleanup,
   runVacuumAnalyze,
@@ -51,8 +51,8 @@ export {
   type RetentionConfig,
   type RetentionResult,
 } from './retention';
-export { getActiveUserIds } from './active-users';
-export { checkAndIncrementDailyQuota, type DailyQuotaResult } from './provider-quota';
+export { getActiveUserIds } from './ops/active-users';
+export { checkAndIncrementDailyQuota, type DailyQuotaResult } from './ops/provider-quota';
 // PF-01 — Query/repository layer barrel. Import via `queries` namespace
 // or individual named exports for tree-shaking.
 export {
@@ -335,4 +335,4 @@ export {
   withCancellablePostgresQuery,
   abortError,
   type CancellableQueryOptions,
-} from './query-cancellation';
+} from './ops/query-cancellation';

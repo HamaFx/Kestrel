@@ -17,8 +17,8 @@
 // Structured error logging enriched with error-pattern metadata.
 
 // Import here to avoid circular dependency issues at module top level.
-import { redactDiagnosticPayload } from '../bug-report';
-import { findErrorPattern } from '../error-patterns';
+import { redactDiagnosticPayload } from '../errors/bug-report';
+import { findErrorPattern } from '../errors/error-patterns';
 import { getCurrentCorrelation, type LogCategory } from './context';
 import { logger } from './pino';
 

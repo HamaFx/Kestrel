@@ -29,7 +29,7 @@ import {
   normalizeSymbol,
   SYMBOL_MAP,
   tryGetSymbolDefinition,
-} from './symbol-catalog';
+} from '../symbol-catalog';
 
 export {
   BUILTIN_SYMBOLS,
@@ -42,7 +42,7 @@ export {
   CFTC_SUPPORTED_SYMBOLS,
   symbolsByCategory,
   symbolCategory,
-} from './symbol-catalog';
+} from '../symbol-catalog';
 export type {
   SymbolCategory,
   SymbolDefinition,
@@ -52,7 +52,7 @@ export type {
   SymbolQuantityUnit,
   SymbolQuoteCurrency,
   SymbolSettlementCurrency,
-} from './symbol-catalog';
+} from '../symbol-catalog';
 
 /** Legacy export — the original 3 symbols, still supported. */
 export const SYMBOLS = ['XAUUSD', 'EURUSD', 'GBPUSD'] as const;

@@ -65,7 +65,7 @@
       "entry": [
         "src/index.ts",
         "src/client.ts",
-        "src/queue.ts",
+        "src/queue/index.ts",
         "src/schema/index.ts",
         "src/queries/index.ts",
         "scripts/**/*.{ts,mjs}",
@@ -92,15 +92,15 @@
         "src/index.ts",
         "src/schemas/*.ts",
         "src/ai/*.ts",
-        "src/byok.ts",
-        "src/env.ts",
-        "src/env-secrets.ts",
-        "src/vault.ts",
-        "src/errors.ts",
-        "src/encryption.ts",
-        "src/logger.ts",
-        "src/metrics-export.ts",
-        "src/log-stream.ts"
+        "src/crypto/byok.ts",
+        "src/crypto/encryption.ts",
+        "src/crypto/vault.ts",
+        "src/env/index.ts",
+        "src/env/secrets.ts",
+        "src/errors/index.ts",
+        "src/logger/index.ts",
+        "src/metrics-export/index.ts",
+        "src/observability/log-stream.ts"
       ],
       "project": ["src/**/*.ts"]
     },

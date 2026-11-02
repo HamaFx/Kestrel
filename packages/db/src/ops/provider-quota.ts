@@ -28,7 +28,7 @@
 
 import { sql } from 'drizzle-orm';
 
-import { getDb } from './client';
+import { getDb } from '../client';
 
 export interface DailyQuotaResult {
   /** Whether the request is within the daily limit. */

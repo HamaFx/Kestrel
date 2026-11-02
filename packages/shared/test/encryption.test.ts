@@ -27,7 +27,7 @@ import {
   encryptSecret,
   encryptWithPassword,
   PROVIDER_IDS,
-} from '../src/encryption';
+} from '../src/crypto/encryption';
 
 vi.mock('server-only', () => ({}));
 

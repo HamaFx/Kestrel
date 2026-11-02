@@ -40,6 +40,7 @@ import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { closeDb, type withTenantDbFresh } from '../src/client';
+import type { withRateLimit } from '../src/ops/rate-limit';
 import type { deleteUserAccount } from '../src/queries/auth/account-deletion';
 import type { createAuditLog } from '../src/queries/auth/audit';
 import type {
@@ -53,7 +54,6 @@ import type {
   listUserSessions,
   revokeUserSession,
 } from '../src/queries/user-sessions';
-import type { withRateLimit } from '../src/rate-limit';
 
 const enabled = process.env.RUN_POSTGRES_RLS_TESTS === '1';
 const adminUrl = process.env.TEST_POSTGRES_ADMIN_URL;
@@ -223,7 +223,7 @@ describe.skipIf(!enabled || !adminUrl)(
       // app-role DATABASE_URL set above.
       vi.resetModules();
       modules = {
-        withRateLimit: (await import('../src/rate-limit')).withRateLimit,
+        withRateLimit: (await import('../src/ops/rate-limit')).withRateLimit,
         createAuditLog: (await import('../src/queries/auth/audit')).createAuditLog,
         createUserSession: (await import('../src/queries/auth/sessions')).createUserSession,
         findSession: (await import('../src/queries/auth/sessions')).findSession,

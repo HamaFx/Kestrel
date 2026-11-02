@@ -21,8 +21,8 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { loadInstalledUsers } from '../src/plugin-jobs';
-import { TenantRouter } from '../src/tenant-router';
+import { TenantRouter } from '../src/runtime/tenant-router';
+import { loadInstalledUsers } from '../src/scheduler/plugin-jobs';
 
 const log = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), with: vi.fn() } as never;
 

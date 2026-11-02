@@ -41,7 +41,7 @@
 //     Credentials (ADC) available (automatic on GCE / Cloud Run).
 //   - `none` / unset: no-op (use .env files as before).
 
-import { createCategorizedLogger } from './logger';
+import { createCategorizedLogger } from '../logger';
 
 const vlog = createCategorizedLogger('system', { component: 'vault' });
 

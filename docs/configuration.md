@@ -2,7 +2,7 @@
 
 This document describes the supported private self-hosting configuration contract for Kestrel. The canonical validation sources are:
 
-- `packages/shared/src/env.ts` — web/server environment
+- `packages/shared/src/env/index.ts` — web/server environment
 - `apps/worker/src/env.ts` — worker environment
 - `scripts/setup/secret-template.json` — generated Docker defaults
 - `docker-compose.yml` — Docker service wiring

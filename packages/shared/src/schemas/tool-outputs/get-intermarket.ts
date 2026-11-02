@@ -26,7 +26,7 @@
 
 import { z } from 'zod';
 
-import { TimeframeSchema } from '../../timeframes';
+import { TimeframeSchema } from '../../domain/timeframes';
 
 export const RiskRegimeSchema = z.enum(['risk-on', 'risk-off', 'neutral']);
 export type RiskRegime = z.infer<typeof RiskRegimeSchema>;

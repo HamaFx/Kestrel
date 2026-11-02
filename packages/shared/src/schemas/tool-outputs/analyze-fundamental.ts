@@ -23,7 +23,7 @@
 
 import { z } from 'zod';
 
-import { SymbolSchema } from '../../symbols';
+import { SymbolSchema } from '../../domain/symbols';
 import { EconomicEventSchema } from '../calendar';
 import { ToolNewsItemSchema } from './get-news';
 
