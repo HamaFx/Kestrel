@@ -14,6 +14,18 @@
 
 **Spec:** `docs/roadmaps/00-kestrel-maintainability-audit-and-master-roadmap.md` (§3.3, §4)
 
+**Status: COMPLETE (2026-11-02).** Commits: `8df591d1` (Task 1: merged split embedding/fallback modules, moved opinion persistence into `committee/`), `024b8a67` (Task 2: completed the native Mastra tool migration, retired `adaptLegacyReadOnlyTool`), `8baf213f` (Task 3: unified the Mastra SSE streaming lifecycle), `6cef361e` (Task 4: retired the XAUUSD PoC route split, deleted the `xauusd-*` agent/report stack), `b8c31dd1` (prettier).
+
+Verification on the completed tree: full `pnpm test` (15/15 packages — 203 AI test files / 1779 tests, 167 web files / 1514 tests, 41 worker files / 240 tests, plus shared, db, data, indicators, plugin-sdk, and all plugin suites), `pnpm typecheck` (27 tasks), `pnpm lint` (15/15 workspaces, 0 errors / 0 warnings), `pnpm format:check`, `pnpm check:maintainability` (PASS, 0 baselined legacy files), `pnpm check:route-security` (103 routes), `pnpm check:env-contract`, `pnpm check:knip-config` all green. `pnpm knip` improved from 8 unused files / 338 unused exports / 184 exported types to 8 / 310 / 181 (net ~28 fewer dead exports); it still exits `1` on pre-existing dead-code clusters outside Phase 4's scope (unused web component exports such as `ModelPicker`/`TAB_IDS`, plugin backtesting/paper-trading schema types, `__mocks__` shims for `server-only`, and the unused `apps/web/src/lib/services/mastra/index.ts` barrel).
+
+Deviations and findings worth carrying forward:
+
+- **Task 2 — native suite is 27 tools, not 24.** `nativeCanonicalTools()` now carries all 21 canonical + 3 sensitive allowlisted tools plus the three read-only tools outside the allowlists (`analyze_chart_image`, `annotate_chart`, `get_system_diagnostics`). The legacy `packages/ai/src/tools/*` modules remain the deterministic execute cores; `executeLegacyReadOnlyTool` (typed, context-aware) is the only bridge from a native registration to a legacy core. `by-domain.ts` and `ToolRegistry.resolveForPlan` were deleted (unused once `setup.ts` resolved purely from the native map), and the legacy category registries now build their lists inside the register functions so the native suite's eager imports cannot capture an uninitialised binding inside the `instance ↔ tools` cycle.
+- **Task 3 — one extra module for the LOC gate.** `run-mastra-sse-turn.ts` (353 LOC first draft) exceeded the 350 gate, so the shared completion-time tool-part emitter lives in `stream/mastra-sse-tool-parts.ts`. `MastraSseStream` is the only exported type consumers need; the XAUUSD conversation service used the shared runner for one commit before Task 4 retired it.
+- **Task 4 — full XAUUSD PoC retirement (user-approved scope).** The plan's Step 3 (delete the 13 `agents/xauusd/tools/*` wrappers + `catalog-xauusd.ts`) cascaded into the whole PoC stack, so the approved end state deletes `agents/xauusd/**` (34 files), `workflows/xauusd-report/**`, the old `packets/research-*.ts` chain, `packets/research-packet-tool.ts`, the admin/report grounding scorer, web `mastra-chat.ts` / `mastra-chat-stream.ts` / `xauusd-handler.ts` / `xauusd/mastra-xauusd.ts` / `meta.ts` / `stream/mastra-chat-response.ts`, the Studio `xauusdConversation`/`xauusdResearch` registrations, 17 PoC-only AI test files, and 3 web test files (net `-12,897 / +2,615` lines across 208 files).
+- **Task 4 — survivors moved into shared homes.** `tools/tool-lifecycle.ts` + `tools/tool-stream-parts.ts` (the shared read-only wrapper and stream-part parsing), `shared/text-runner.ts` (used by coach insights, journal review, semantic routing, title, mutation extraction, chart-image analysis), `shared/background-text.ts` (worker briefings), `shared/report-types.ts` (historical report cards / follow-up detection), and `shared/report-grounding.ts` slimmed to the shared narrative-number tokenizer used by the committee fusion verifier and canonical evidence checks. `MASTRA_XAUUSD_AGENT_ID` remains the historical default telemetry agent label so existing metrics labels do not churn.
+- **Task 4 — routing and manifest consequences.** `MastraExecutionRoute` is the unified 5-route table; `capabilityFor`/`routeFor`/`purposeFor` no longer branch on symbol, and the `xauusd` model purpose is gone. `xauusdChatKind`/`xauusdCandidate` were removed from the decision, the Jev turn router, and `routeUnified`; `ExecutionPlanSchema` keeps both fields as defaulted values so in-flight durable-queue rows serialized before the retirement still parse. The capability manifest is 4 capabilities (`canonical-chat`, `symbol-research`, `sensitive-user-read`, `mutation-workflows`); `symbol-research` now declares the native tool names (`get_seasonality`, `get_cot`, `get_intermarket_resonance`, `web_search`, `search_knowledge`) plus the direct `collect-symbol-research-packet` adapter id, and `assertCapabilityManifestIntegrity()` asserts against `nativeCanonicalTools()` instead of the deleted XAUUSD registrations. XAUUSD research now runs the same committee `symbol-research` pipeline as the other 17 symbols, so the verified XAUUSD dossier-report product path is retired; historical report parts still render and `extractLatestMastraReport` still detects prior reports for follow-up routing (conversational follow-ups go to `canonical-chat`, named-symbol prompts to `symbol-research`).
+
 ## Global Constraints
 
 - Preserve all tool names in `TOOL_NAMES` (`@kestrel/shared`) and UI part shapes (`tool-<name>`, `data-multi-agent-meta`, `data-agent-progress`, `data-fallback`) so the frontend chat renderer (`apps/web/src/components/chat/parts/*`) requires zero breaking protocol changes.
@@ -45,19 +57,19 @@
 - Consumes: `packages/ai/src/models/*`, `packages/ai/src/committee/*`.
 - Produces: Consolidated `embeddings.ts` (~210 LOC) and `model-fallback.ts` (~270 LOC) with zero circular imports; removal of `packages/ai/src/multi-agent/` orphan directory.
 
-- [ ] **Step 1: Merge `packages/ai/src/models/embedding.ts` into `packages/ai/src/models/embeddings.ts`**
+- [x] **Step 1: Merge `packages/ai/src/models/embedding.ts` into `packages/ai/src/models/embeddings.ts`**
 
 Move `EmbeddingModelResolutionDetails`, `EmbeddingModelResolution`, `resolveEmbeddingModelDetails`, and `resolveEmbeddingModel` into `packages/ai/src/models/embeddings.ts`, update `packages/ai/src/models/model.ts` to re-export from `./embeddings`, and delete `packages/ai/src/models/embedding.ts`.
 
-- [ ] **Step 2: Merge `packages/ai/src/models/fallback.ts` into `packages/ai/src/models/model-fallback.ts`**
+- [x] **Step 2: Merge `packages/ai/src/models/fallback.ts` into `packages/ai/src/models/model-fallback.ts`**
 
 Move `classifyStreamError`, `shouldFallback`, `makeFallbackPart`, `FallbackReason`, `FallbackDecision`, and `FallbackPartPayload` into `packages/ai/src/models/model-fallback.ts`, update imports in `packages/ai`, and delete `packages/ai/src/models/fallback.ts`.
 
-- [ ] **Step 3: Move `packages/ai/src/multi-agent/persistence.ts` to `packages/ai/src/committee/opinion-persistence.ts`**
+- [x] **Step 3: Move `packages/ai/src/multi-agent/persistence.ts` to `packages/ai/src/committee/opinion-persistence.ts`**
 
 Move `saveAgentOpinions`, `saveAgentOpinionsBestEffort`, `listAgentOpinions`, `listMessageOpinions`, and `SaveOpinionsArgs` to `packages/ai/src/committee/opinion-persistence.ts`, update `packages/ai/src/barrels/agents.ts` and test imports, and remove the empty `packages/ai/src/multi-agent/` directory.
 
-- [ ] **Step 4: Run `pnpm --filter @kestrel/ai test`, `pnpm typecheck`, and `pnpm check:maintainability`**
+- [x] **Step 4: Run `pnpm --filter @kestrel/ai test`, `pnpm typecheck`, and `pnpm check:maintainability`**
 
 Run:
 
@@ -69,7 +81,7 @@ pnpm check:maintainability
 
 Expected: PASS (both merged files stay well under the 350 LOC gate).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A packages/ai
@@ -92,7 +104,7 @@ git commit -m "refactor(ai): merge split embedding/fallback modules and move opi
 - Consumes: `createTool` from `@mastra/core/tools`, `createReadOnlyToolExecute` from `legacy-tool-adapter`.
 - Produces: Every read-only Kestrel tool registered natively via `createTool` and `createReadOnlyToolExecute`; `adaptLegacyReadOnlyTool` deleted.
 
-- [ ] **Step 1: Write a contract test in `packages/ai/test/native-mastra-tools.test.ts` asserting every tool in `CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES` and `SENSITIVE_USER_READ_TOOL_NAMES` resolves from `nativeCanonicalTools()`**
+- [x] **Step 1: Write a contract test in `packages/ai/test/native-mastra-tools.test.ts` asserting every tool in `CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES` and `SENSITIVE_USER_READ_TOOL_NAMES` resolves from `nativeCanonicalTools()`**
 
 ```ts
 it('registers every canonical and sensitive read-only tool natively without legacy adaptation', () => {
@@ -106,16 +118,16 @@ it('registers every canonical and sensitive read-only tool natively without lega
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails on the unmigrated tools**
+- [x] **Step 2: Run test to verify it fails on the unmigrated tools**
 
 Run: `pnpm --filter @kestrel/ai test test/native-mastra-tools.test.ts`  
 Expected: FAIL (only 7 of 25 read-only tools are in `nativeCanonicalTools()`).
 
-- [ ] **Step 3: Wrap the remaining 18 read-only tools in `createReadOnlyToolExecute` + `createTool` and register them in `nativeCanonicalTools()`**
+- [x] **Step 3: Wrap the remaining 18 read-only tools in `createReadOnlyToolExecute` + `createTool` and register them in `nativeCanonicalTools()`**
 
 For each remaining read-only tool in `packages/ai/src/tools/*`, wrap its `execute` function with `createReadOnlyToolExecute('kestrel-<name>', '<name>', ...)` using `@mastra/core/tools` `createTool`, add it to `nativeCanonicalTools()`, and remove `adaptLegacyReadOnlyTool` and `adaptLegacyReadOnlyTools` from `packages/ai/src/mastra-v2/agents/canonical/setup.ts` and `legacy-tool-adapter/index.ts`.
 
-- [ ] **Step 4: Run `pnpm --filter @kestrel/ai test` and `pnpm typecheck`**
+- [x] **Step 4: Run `pnpm --filter @kestrel/ai test` and `pnpm typecheck`**
 
 Run:
 
@@ -126,7 +138,7 @@ pnpm typecheck
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A packages/ai
@@ -149,19 +161,19 @@ git commit -m "refactor(ai): complete native Mastra tool migration and retire ad
 - Consumes: `reserveTurnBudget`, `createGenerationLedger`, `createMastraStreamFinalizer`, `mastraStreamResponse`, `appendUserMessage`, `appendAssistantMessage`, `maybeGenerateThreadTitle`.
 - Produces: Single `runMastraSseTurn` lifecycle helper eliminating ~250 lines of duplicated generator and budget-finalizer boilerplate across the 3 streaming chat services.
 
-- [ ] **Step 1: Write unit test `apps/web/test/run-mastra-sse-turn.test.ts` covering live tool event interleaving, title cost accounting, assistant message persistence, and abort/failure finalization**
+- [x] **Step 1: Write unit test `apps/web/test/run-mastra-sse-turn.test.ts` covering live tool event interleaving, title cost accounting, assistant message persistence, and abort/failure finalization**
 
 Test the shared generator loop (`liveToolEvents` drained before/during/after `stream.text` chunks, `completion` awaited, unemitted `toolParts` pushed to `postTextEvents`, `maybeGenerateThreadTitle` awaited before `ledger.total()`, and `finalizer.complete(observedCost)` called).
 
-- [ ] **Step 2: Implement `runMastraSseTurn` in `apps/web/src/lib/services/mastra/stream/run-mastra-sse-turn.ts`**
+- [x] **Step 2: Implement `runMastraSseTurn` in `apps/web/src/lib/services/mastra/stream/run-mastra-sse-turn.ts`**
 
 Extract the shared budget reservation, user message append, `liveToolEvents` + `stream.text` async generator, title generation, and finalizer error handling into `runMastraSseTurn`.
 
-- [ ] **Step 3: Refactor `mastra-canonical-chat-stream/service.ts`, `mastra-custom-agent-stream/service.ts`, and `mastra-chat-stream.ts` to delegate to `runMastraSseTurn`**
+- [x] **Step 3: Refactor `mastra-canonical-chat-stream/service.ts`, `mastra-custom-agent-stream/service.ts`, and `mastra-chat-stream.ts` to delegate to `runMastraSseTurn`**
 
 Each service now supplies only its agent-specific stream factory (`runMastraCanonicalChatStream`, `runCustomAgentStream`, `runXauusdMastraConversationStream`) and metadata builder.
 
-- [ ] **Step 4: Run `@kestrel/web` tests, typecheck, and maintainability gate**
+- [x] **Step 4: Run `@kestrel/web` tests, typecheck, and maintainability gate**
 
 Run:
 
@@ -173,7 +185,7 @@ pnpm check:maintainability
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A apps/web/src/lib/services/mastra apps/web/test/run-mastra-sse-turn.test.ts
@@ -199,21 +211,21 @@ git commit -m "refactor(web): unify Mastra SSE chat streaming lifecycle across c
 - Consumes: `symbol-research` (`createCommitteeWorkflow`) and `canonical-chat` (`runMastraCanonicalChatStream`).
 - Produces: Unified 5-route Mastra execution table (`mutation`, `full-analysis-queue`, `multi-symbol-research`, `symbol-research`, `canonical-chat`) where `XAUUSD` uses the exact same committee/research packet and canonical-chat pipelines as the other 17 symbols.
 
-- [ ] **Step 1: Update routing tests in `packages/ai/test/` to assert `XAUUSD` single-mode research routes to `symbol-research` and conversational follow-ups route to `canonical-chat`**
+- [x] **Step 1: Update routing tests in `packages/ai/test/` to assert `XAUUSD` single-mode research routes to `symbol-research` and conversational follow-ups route to `canonical-chat`**
 
 Update the routing expectation tests so `XAUUSD` is treated as a first-class member of `ALL_SYMBOLS` rather than branching into a separate PoC agent.
 
-- [ ] **Step 2: Simplify `execution-routes.ts` and `execution-decision.ts` to route `XAUUSD` through `symbol-research` and `canonical-chat`**
+- [x] **Step 2: Simplify `execution-routes.ts` and `execution-decision.ts` to route `XAUUSD` through `symbol-research` and `canonical-chat`**
 
 In `packages/ai/src/mastra-v2/planning/execution-routes.ts`:
 
 - Remove the `if (symbol === 'XAUUSD' && mode === 'single')` branch so any single-symbol research prompt (including `XAUUSD`) resolves to `symbol-research`, and conversational follow-ups resolve to `canonical-chat`.
 
-- [ ] **Step 3: Delete the 13 duplicate `packages/ai/src/mastra-v2/agents/xauusd/tools/*` wrappers and `catalog-xauusd.ts`**
+- [x] **Step 3: Delete the 13 duplicate `packages/ai/src/mastra-v2/agents/xauusd/tools/*` wrappers and `catalog-xauusd.ts`**
 
 Remove the hyphenated `get-xauusd-*` duplicate tool files (`price-tool.ts`, `candles-tool.ts`, `indicators-tool.ts`, `market-structure-tool.ts`, `session-levels-tool.ts`, `technical-tool.ts`, `correlation-tool.ts`, `intermarket-tool.ts`, `volatility-tool.ts`, `news-tool.ts`, `calendar-tool.ts`, `social-sentiment-tool.ts`, `fundamental-context-tool.ts`) and `catalog-xauusd.ts`, keeping only the shared `legacy-tool-adapter` (moved to `packages/ai/src/mastra-v2/tools/tool-lifecycle.ts`).
 
-- [ ] **Step 4: Run full monorepo verification (`typecheck`, `lint`, `test`, `check:maintainability`, `knip`)**
+- [x] **Step 4: Run full monorepo verification (`typecheck`, `lint`, `test`, `check:maintainability`, `knip`)**
 
 Run:
 
@@ -227,7 +239,7 @@ pnpm knip
 
 Expected: All checks exit `0`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A packages/ai apps/web
