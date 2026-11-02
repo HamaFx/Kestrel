@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// R13 (audit 2026-10-31): model-supplied journal levels are bounded against
-// the live market before the draft can be confirmed or the tool can write.
-// These tests drive the two consumers (mutation extractor + log_journal tool)
-// through: far-out rejection, a legitimate wide stop, and the fail-closed
-// market-data-unavailable path that keeps the draft.
+// R13 (audit 2026-10-31): model-supplied journal and alert levels are bounded
+// against the live market before a drafted mutation can be confirmed. These
+// tests drive the live extractor through far-out rejection, a legitimate wide
+// stop, and the fail-closed market-data-unavailable path that keeps the draft.
 
 import type * as KestrelData from '@kestrel/data';
 import type { LanguageModel } from 'ai';
@@ -29,12 +27,9 @@ import {
   extractMutationInput,
   MutationExtractionError,
 } from '../src/mastra-v2/mutation/mutation-extract';
-import { createToolContext, withToolContext } from '../src/runtime/tool-context';
-import { logJournalTool } from '../src/tools/log-journal';
 
 const mockGetPrice = vi.hoisted(() => vi.fn());
 const mockRunStructured = vi.hoisted(() => vi.fn());
-const mocks = vi.hoisted(() => ({ createEntryMock: vi.fn() }));
 
 vi.mock('@kestrel/data', async (importOriginal) => {
   const actual = await importOriginal<typeof KestrelData>();
@@ -46,10 +41,6 @@ vi.mock('@kestrel/data', async (importOriginal) => {
 
 vi.mock('../src/mastra-v2/shared/text-runner', () => ({
   runMastraStructured: (...args: unknown[]) => mockRunStructured(...args),
-}));
-
-vi.mock('../src/journal/persistence', () => ({
-  createEntry: mocks.createEntryMock,
 }));
 
 function quote(mid: number) {
@@ -167,72 +158,5 @@ describe('extractMutationInput level bounds', () => {
     expect(error).toBeInstanceOf(MutationExtractionError);
     expect((error as MutationExtractionError).reason).toBe('level_out_of_band');
     expect((error as MutationExtractionError).message).toContain('level 999999.00');
-  });
-});
-
-describe('log_journal tool level bounds', () => {
-  const context = () =>
-    createToolContext({
-      threadId: 'thread-1',
-      userId: 'user-1',
-      latestUserMessageText: 'Journal: I shorted XAUUSD at 2392, stop 2398, target 2378.',
-      budget: { spent: 0, max: 5 },
-    });
-
-  beforeEach(() => {
-    mockGetPrice.mockReset();
-    mocks.createEntryMock.mockReset();
-    mocks.createEntryMock.mockResolvedValue({ id: 'entry_123' });
-  });
-
-  it('refuses to write a level far outside the band and never calls createEntry', async () => {
-    mockGetPrice.mockResolvedValue(quote(4000));
-
-    const error = await withToolContext(context(), () =>
-      Promise.resolve(
-        logJournalTool.execute!(
-          { symbol: 'XAUUSD', side: 'short', entry: 999_999, stop: 4000 },
-          {} as any,
-        ),
-      ),
-    ).catch((e: unknown) => e);
-
-    expect(error).toMatchObject({ code: 'VALIDATION' });
-    expect((error as Error).message).toContain('Journal entry not saved');
-    expect((error as Error).message).toContain('entry 999999.00');
-    expect(mocks.createEntryMock).not.toHaveBeenCalled();
-  });
-
-  it('writes a legitimate wide stop once the levels are verified', async () => {
-    mockGetPrice.mockResolvedValue(quote(4000));
-
-    const result = await withToolContext(context(), () =>
-      Promise.resolve(
-        logJournalTool.execute!(
-          { symbol: 'XAUUSD', side: 'short', entry: 4000, stop: 4360, target: 3700 },
-          {} as any,
-        ),
-      ),
-    );
-
-    expect(result).toMatchObject({ entryId: 'entry_123' });
-    expect(mocks.createEntryMock).toHaveBeenCalledOnce();
-  });
-
-  it('fails closed on the write when market data is unavailable', async () => {
-    mockGetPrice.mockRejectedValue(new Error('provider down'));
-
-    const error = await withToolContext(context(), () =>
-      Promise.resolve(
-        logJournalTool.execute!(
-          { symbol: 'XAUUSD', side: 'short', entry: 2392, stop: 2398 },
-          {} as any,
-        ),
-      ),
-    ).catch((e: unknown) => e);
-
-    expect((error as Error).message).toContain('market data is unavailable');
-    expect((error as Error).message).toContain('draft was kept');
-    expect(mocks.createEntryMock).not.toHaveBeenCalled();
   });
 });

@@ -58,7 +58,12 @@ export {
   type ExecutionPlan,
   type MutationExecutor,
 } from '@kestrel/ai/mastra-v2';
-export { extractUserMessageText, isBudgetEnforced, withDiagnostics } from '@kestrel/ai';
+export {
+  extractUserMessageText,
+  isBudgetEnforced,
+  syncIntermarketResonance,
+  withDiagnostics,
+} from '@kestrel/ai';
 export { BudgetExceededError } from '@kestrel/ai/cost';
 export {
   executeMutationOnce,

@@ -14,6 +14,7 @@
 // query uses the supplied transaction and the business write, audit row, and
 // mutation execution ledger are committed atomically by executeMutationOnce.
 
+import type { DbClient } from '@kestrel/db';
 import { eq } from 'drizzle-orm';
 import type { z } from 'zod';
 
@@ -21,10 +22,27 @@ import {
   assertRegisteredSystemAction,
   assertSystemActionAuthorized,
   executeMutationOnce,
+  syncIntermarketResonance,
   type MutationExecutor,
   type MutationKindSchema,
 } from '@/lib/services/chat-ai';
 import { getDb, requireTenantIdForUser, schema } from '@/lib/services/db';
+
+/**
+ * Execute one registered system action. `resonance_sync` runs the shared
+ * intermarket sync (the same service the worker cron uses) and reports what
+ * actually happened instead of returning a stub id.
+ */
+async function executeSystemAction(
+  action: 'resonance_sync',
+  db?: DbClient,
+): Promise<{ id: string; summary: string }> {
+  const result = await syncIntermarketResonance(db ? { db } : {});
+  return {
+    id: `system:${action}`,
+    summary: `Intermarket resonance sync: ${result.note}`,
+  };
+}
 
 /** Build the non-transactional fallback executor used only by local Studio/tests. */
 export function executorFor(
@@ -96,7 +114,7 @@ export function executorFor(
       case 'run_system_action':
         if (input.kind !== 'run_system_action') throw new Error('mutation kind mismatch');
         assertRegisteredSystemAction(input.action);
-        return { id: `system:${input.action}` };
+        return executeSystemAction(input.action);
     }
   };
 }
@@ -209,7 +227,7 @@ export function atomicExecutorFor(kind: z.infer<typeof MutationKindSchema>, user
           case 'run_system_action':
             if (input.kind !== 'run_system_action') throw new Error('mutation kind mismatch');
             assertRegisteredSystemAction(input.action);
-            return { id: `system:${input.action}`, summary };
+            return executeSystemAction(input.action, tx);
         }
       },
     }).then(({ result }) => result);

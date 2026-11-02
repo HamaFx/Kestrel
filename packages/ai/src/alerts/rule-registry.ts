@@ -16,13 +16,11 @@
 
 // P1-3 — Plugin-based alert rule type registry.
 //
-// Replaces the three switch(rule.type) statements in spec.ts,
-// evaluator.ts, and set-alert.ts with a single registry.
-// Adding a new alert rule type now means registering it here —
-// no existing code changes (OCP).
+// Replaces the switch(rule.type) statements in spec.ts and evaluator.ts
+// with a single registry. Adding a new alert rule type now means registering
+// it here — no existing code changes (OCP).
 //
-// Pattern mirrors ToolRegistry (packages/ai/src/tools/registry.ts)
-// and IndicatorRegistry (packages/indicators/src/registry.ts).
+// Pattern mirrors IndicatorRegistry (packages/indicators/src/registry.ts).
 
 import type { AlertRule } from '@kestrel/shared';
 
@@ -54,7 +52,7 @@ interface AlertRuleTypePlugin {
  * Plugin-based alert rule type registry.
  *
  * OCP benefit: adding a rule type means registering it here —
- * no switch statements to update in spec.ts, evaluator.ts, or set-alert.ts.
+ * no switch statements to update in spec.ts or evaluator.ts.
  */
 class AlertRuleRegistry {
   private plugins = new Map<AlertRule['type'], AlertRuleTypePlugin>();

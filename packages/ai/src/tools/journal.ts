@@ -26,10 +26,7 @@
 
 import { getCalendarTool } from './get-calendar';
 import { getJournalStatsTool } from './get-journal-stats';
-import { logJournalTool } from './log-journal';
 import { toolRegistry } from './registry';
-import { setAlertTool } from './set-alert';
-import { shareSnapshotTool } from './share-snapshot';
 
 /**
  * Audit plan §4.3 — explicit registration instead of import side effects.
@@ -43,11 +40,8 @@ import { shareSnapshotTool } from './share-snapshot';
  */
 export function registerJournalTools(registry: typeof toolRegistry = toolRegistry): void {
   const journalTools = [
-    ['log_journal', logJournalTool],
     ['get_journal_stats', getJournalStatsTool],
     ['get_calendar', getCalendarTool],
-    ['set_alert', setAlertTool],
-    ['share_snapshot', shareSnapshotTool],
   ] as const;
   for (const [name, tool] of journalTools) {
     registry.register(name, tool);

@@ -23,7 +23,6 @@ import { getSocialSentimentTool } from './get-social-sentiment';
 import { getSystemDiagnosticsTool } from './get-system-diagnostics';
 import { toolRegistry } from './registry';
 import { replaySetupTool } from './replay-setup';
-import { runSystemActionTool } from './run-system-action';
 import { verifyCallTool } from './verify-call';
 
 /**
@@ -39,7 +38,6 @@ import { verifyCallTool } from './verify-call';
 export function registerSystemTools(registry: typeof toolRegistry = toolRegistry): void {
   const systemTools = [
     ['get_system_diagnostics', getSystemDiagnosticsTool],
-    ['run_system_action', runSystemActionTool],
     ['get_social_sentiment', getSocialSentimentTool],
     ['verify_call', verifyCallTool],
     ['replay_setup', replaySetupTool],

@@ -135,6 +135,8 @@ export const WorkflowInputSchema = MutationInputSchema as unknown as z.ZodType<M
 export interface MutationExecutorResult {
   id: string;
   url?: string;
+  /** Human-readable result line appended to the assistant message. */
+  summary?: string;
 }
 
 /** Executes the audited write. Injected by the composition edge (web route). */
