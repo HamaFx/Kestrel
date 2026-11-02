@@ -41,6 +41,7 @@ export {
   isHighConfidenceMutationIntent,
   isInjectionAttempt,
   isMastraMutationEnabled,
+  isMastraXauusdFollowupCandidate,
   MAX_COMPARISON_SYMBOLS,
   mastraComparisonScope,
   MutationExtractionError,
@@ -57,6 +58,7 @@ export {
   TripWire,
   type ExecutionPlan,
   type MutationExecutor,
+  type MutationExecutorResult,
 } from '@kestrel/ai/mastra-v2';
 export {
   extractUserMessageText,

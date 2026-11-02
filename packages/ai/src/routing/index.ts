@@ -36,6 +36,7 @@
 // so /settings/usage can break down spend per domain.
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
+import { getMessageText } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import type { LanguageModel, UIMessage } from 'ai';
 
@@ -129,7 +130,7 @@ export async function routeTurn(args: {
 export async function routeTurn(args: RouteTurnOptions): Promise<RoutingDecision>;
 export async function routeTurn(args: RouteTurnOptions): Promise<RoutingDecision> {
   const { userMessage, modelOverride } = args;
-  const rawText = extractText(userMessage);
+  const rawText = getMessageText(userMessage);
   const text = rawText.toLowerCase();
   const hasImage = hasImagePart(userMessage);
 
@@ -264,23 +265,6 @@ function scoreAgainst(text: string, patterns: Array<{ re: RegExp; weight: number
 // ---------------------------------------------------------------------------
 // UIMessage helpers (defensive — UIMessage is a wide union)
 // ---------------------------------------------------------------------------
-
-function extractText(m: UIMessage): string {
-  const parts = m.parts ?? [];
-  let out = '';
-  for (const p of parts) {
-    if (
-      p !== null &&
-      typeof p === 'object' &&
-      'type' in (p as Record<string, unknown>) &&
-      (p as { type: unknown }).type === 'text' &&
-      typeof (p as { text?: unknown }).text === 'string'
-    ) {
-      out += `${(p as { text: string }).text}\n`;
-    }
-  }
-  return out.trim();
-}
 
 function hasImagePart(m: UIMessage): boolean {
   const parts = m.parts ?? [];

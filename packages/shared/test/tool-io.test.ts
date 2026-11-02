@@ -90,6 +90,18 @@ describe('getMessageText', () => {
     expect(getMessageText(msg)).toBe('Hello from text');
   });
 
+  it('extracts text from a legacy content-part array', () => {
+    const msg = {
+      parts: [],
+      content: [
+        { type: 'text', text: 'Hello' },
+        { type: 'tool-call', toolName: 'get_price' },
+        { type: 'text', text: 'World' },
+      ],
+    };
+    expect(getMessageText(msg)).toBe('Hello World');
+  });
+
   it('prioritizes parts over content', () => {
     const msg = {
       parts: [{ type: 'text', text: 'From parts' }],

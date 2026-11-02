@@ -173,6 +173,15 @@ vi.mock('@/lib/services/chat-ai', () => ({
   isInjectionAttempt: (prompt: string) =>
     /ignore previous instructions|system:|developer:/i.test(prompt),
   isHighConfidenceMutationIntent: (prompt: string) => /\bbuy\b|\bsell\b/i.test(prompt),
+  // The route uses this gate to decide whether to load prior history for a
+  // report follow-up. Mirror the old inline followup/forbidden pair.
+  isMastraXauusdFollowupCandidate: (prompt: string) =>
+    /\b(?:why|explain|how|what\s+changed|based\s+on|according\s+to|invalidation|trigger|scenario|risk|report|analysis|you\s+said)\b/i.test(
+      prompt,
+    ) &&
+    !/\b(?:buy|sell|enter|exit|execute|place|open|close|trade|position|portfolio|journal|alert|notify|schedule|automate)\b/i.test(
+      prompt,
+    ),
   enqueueFullAnalysis: mockEnqueueFullAnalysis,
   isMastraMutationEnabled: () => false,
   classifyMutationRequest: () => null,

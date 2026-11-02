@@ -32,6 +32,7 @@ import {
   isHighConfidenceMutationIntent,
   isInjectionAttempt,
   isMastraMutationEnabled,
+  isMastraXauusdFollowupCandidate,
   resolveMode,
   routeUnified,
 } from '@/lib/services/chat-ai';
@@ -119,15 +120,9 @@ export const POST = withAuth<void>(async (req, { user }) => {
   });
   if (agentResponse) return agentResponse;
 
-  const provisionalReport =
-    /\b(?:why|explain|how|what\s+changed|based\s+on|according\s+to|invalidation|trigger|scenario|risk|report|analysis|you\s+said)\b/i.test(
-      userText,
-    ) &&
-    !/\b(?:buy|sell|enter|exit|execute|place|open|close|trade|position|portfolio|journal|alert|notify|schedule|automate)\b/i.test(
-      userText,
-    )
-      ? await listMessages(user.userId, body.threadId, 100)
-      : [];
+  const provisionalReport = isMastraXauusdFollowupCandidate(userText)
+    ? await listMessages(user.userId, body.threadId, 100)
+    : [];
   const priorReportAvailable = extractLatestMastraReport(provisionalReport) !== null;
   // Phase 2 (P0-3/P0-4): installed plugins make some prompts executable that
   // the read-only gate would otherwise reject, and plugin-targeted prompts

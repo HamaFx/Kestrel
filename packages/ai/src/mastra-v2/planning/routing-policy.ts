@@ -4,7 +4,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  */
 
-import { extractSymbolsFromText } from '@kestrel/shared';
+import { extractSymbolsFromText, getMessageText } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
 
 import {
@@ -52,12 +52,7 @@ export function resolveMode(mode: AnalysisMode, userMessage: string): ResolvedMo
 }
 
 export function messageText(message: UIMessage): string {
-  return (message.parts ?? [])
-    .map((part) =>
-      part && typeof part === 'object' && 'text' in part ? String(part.text ?? '') : '',
-    )
-    .join(' ')
-    .trim();
+  return getMessageText(message);
 }
 
 /**

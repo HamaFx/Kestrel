@@ -17,16 +17,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { DbMessage } from '@kestrel/ai';
-import { XauusdResearchReportSchema, type XauusdResearchReport } from '@kestrel/ai/mastra-v2';
-
-const FOLLOWUP_TERMS =
-  /\b(?:why|explain|how|what\s+changed|based\s+on|according\s+to|invalidation|trigger|scenario|risk|report|analysis|you\s+said)\b/i;
-const FORBIDDEN_FOLLOWUP_TERMS =
-  /\b(?:buy|sell|enter|exit|execute|place|open|close|trade|position|portfolio|journal|alert|notify|schedule|automate)\b/i;
+import {
+  isMastraXauusdFollowupCandidate,
+  XauusdResearchReportSchema,
+  type XauusdResearchReport,
+} from '@kestrel/ai/mastra-v2';
 
 /** Avoid an extra history query for ordinary conversation. */
 export function mayReferToMastraReport(prompt: string): boolean {
-  return FOLLOWUP_TERMS.test(prompt) && !FORBIDDEN_FOLLOWUP_TERMS.test(prompt);
+  return isMastraXauusdFollowupCandidate(prompt);
 }
 
 /**

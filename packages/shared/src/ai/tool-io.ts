@@ -81,7 +81,8 @@ export function isTextPart(part: unknown): part is UiTextPart {
     typeof part === 'object' &&
     part !== null &&
     'type' in part &&
-    (part as { type: unknown }).type === 'text'
+    (part as { type: unknown }).type === 'text' &&
+    typeof (part as { text?: unknown }).text === 'string'
   );
 }
 
@@ -95,13 +96,25 @@ export function getTextFromParts(parts: unknown): string {
     .trim();
 }
 
-/** Best-effort text extraction from a UIMessage — uses parts first, falls
- *  back to legacy content/text properties for backward compatibility. */
+/**
+ * Best-effort text extraction from a UIMessage.
+ *
+ * This is the single canonical extractor: it accepts both the AI SDK v5
+ * `parts` shape and the legacy `content` string / content-part array shapes
+ * that older persisted messages still carry.
+ */
 export function getMessageText(m: { parts?: unknown; content?: unknown; text?: unknown }): string {
   const fromParts = getTextFromParts(m.parts ?? []);
   if (fromParts) return fromParts;
   // Legacy fallback — some older message shapes carry content/text directly.
   if (typeof m.content === 'string') return m.content.trim();
+  if (Array.isArray(m.content)) {
+    return m.content
+      .filter(isTextPart)
+      .map((p) => p.text)
+      .join(' ')
+      .trim();
+  }
   if (typeof m.text === 'string') return m.text.trim();
   return '';
 }
