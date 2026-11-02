@@ -20,26 +20,25 @@
 // of importing `schema` directly. This decouples high-level modules
 // from Drizzle ORM internals and makes the data-access surface explicit.
 //
+// Ownership rule (Phase 3): domains owned by `@kestrel/ai` persistence
+// (alerts CRUD, journal, threads/messages, news, push, CoT, telemetry) do
+// NOT have a second implementation here. This barrel keeps only queries
+// with no AI-layer owner plus narrow helpers (e.g. `batchDeleteThreads`,
+// `countActiveAlerts`) that the AI layer does not provide.
+//
 // Namespace conventions:
-//   queries.threads.getById(id, userId)  — single thread
-//   queries.threads.list(userId)         — list threads
-//   queries.alerts.create(input)         — create alert
+//   queries.threads.batchDeleteThreads(userId, ids) — bulk thread delete
+//   queries.alerts.countActiveAlerts(tenantId)      — active alert count
 
 export * as users from './user-settings';
 export * as threads from './threads';
 export * as alerts from './alerts';
-export * as journal from './journal';
-export * as push from './push';
-export * as cot from './cot';
-export * as telemetry from './telemetry';
-export * as news from './news-articles';
 export * as userSymbols from './user-symbols';
 export * as toolTelemetry from './tool-telemetry';
 export * as diagnosticTraces from './diagnostic-traces';
 export * as cronRuns from './cron-runs';
 export * as verificationTokens from './verification-tokens';
 export * as adminUsers from './users';
-export * as chatTelemetry from './chat-telemetry';
 export * as watchlist from './watchlist';
 export * as onboarding from './onboarding';
 export * as providerTests from './provider-tests';

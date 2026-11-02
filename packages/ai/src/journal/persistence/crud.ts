@@ -30,7 +30,7 @@ import {
   type Symbol,
 } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 
 import { rememberJournalEntry } from '../../memory/memory-index';
 import { getDb } from '../../runtime/db';
@@ -49,6 +49,9 @@ export async function listEntries(
   const filters = [
     eq(schema.journalEntries.userId, userId),
     eq(schema.journalEntries.tenantId, tenantId),
+    // Rows soft-deleted through the legacy `@kestrel/db` query layer must
+    // never resurface in the canonical read paths.
+    isNull(schema.journalEntries.deletedAt),
   ];
   if (opts.symbol) filters.push(eq(schema.journalEntries.symbol, opts.symbol));
 
@@ -73,6 +76,7 @@ export async function getEntry(userId: string, id: string): Promise<JournalEntry
         eq(schema.journalEntries.id, id),
         eq(schema.journalEntries.userId, userId),
         eq(schema.journalEntries.tenantId, tenantId),
+        isNull(schema.journalEntries.deletedAt),
       ),
     )
     .limit(1);
@@ -83,6 +87,7 @@ export async function getEntry(userId: string, id: string): Promise<JournalEntry
 export async function createEntry(input: CreateJournalInput): Promise<JournalEntry> {
   const symbol = SymbolSchema.parse(input.symbol);
   const side = TradeSideSchema.parse(input.side);
+  const outcome = input.outcome ? TradeOutcomeSchema.parse(input.outcome) : 'open';
 
   const db = getDb();
   const tenantId = await requireTenantIdForUser(input.userId, db);
@@ -98,7 +103,10 @@ export async function createEntry(input: CreateJournalInput): Promise<JournalEnt
       stop: input.stop ?? null,
       target: input.target ?? null,
       size: input.size ?? null,
-      outcome: 'open',
+      closedAt: input.closedAt != null ? new Date(input.closedAt) : null,
+      exit: input.exit ?? null,
+      outcome,
+      rMultiple: input.rMultiple ?? null,
       notes: input.notes ?? null,
       tags: input.tags ?? [],
       screenshotUrl: input.screenshotUrl ?? null,

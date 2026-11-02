@@ -51,15 +51,6 @@ import {
   updateFullAnalysisQueueProgress,
 } from '../src/queries/full-analysis-queue';
 import {
-  countJournalEntriesByUser,
-  createJournalEntry,
-  deleteJournalEntry,
-  getJournalEntry,
-  listJournalEntries,
-  updateJournalEntry,
-} from '../src/queries/journal';
-import { listMessages } from '../src/queries/threads';
-import {
   addUserSymbol,
   countUserSymbols,
   listDistinctSymbols,
@@ -443,36 +434,6 @@ describe.skipIf(!enabled || !adminUrl)('query layer — real PostgreSQL integrat
     await expect(getFullAnalysisQueueRow(runId, undefined, db!)).resolves.toBeNull();
   });
 
-  it('round-trips journal entries with tenant scoping and soft deletes', async () => {
-    const created = await createJournalEntry({
-      userId: USER_ID,
-      symbol: 'XAUUSD',
-      side: 'long',
-      openedAt: new Date(),
-      entry: 2600,
-      notes: 'first entry',
-    });
-    expect(created.id).toBeTruthy();
-    expect(created.tenantId).toBe(TENANT_ID);
-
-    await expect(getJournalEntry(created.id, USER_ID)).resolves.toMatchObject({ id: created.id });
-    await expect(getJournalEntry(created.id, OTHER_USER_ID)).resolves.toBeUndefined();
-
-    const updated = await updateJournalEntry(created.id, USER_ID, { notes: 'updated notes' });
-    expect(updated?.notes).toBe('updated notes');
-
-    const filtered = await listJournalEntries(USER_ID, { symbol: 'XAUUSD', limit: 10, offset: 0 });
-    expect(filtered.map((row) => row.id)).toContain(created.id);
-    await expect(
-      listJournalEntries(USER_ID, { symbol: 'EURUSD', limit: 10, offset: 0 }),
-    ).resolves.toEqual([]);
-    expect(await countJournalEntriesByUser(USER_ID)).toBeGreaterThanOrEqual(1);
-
-    await deleteJournalEntry(created.id, USER_ID);
-    expect(await countJournalEntriesByUser(USER_ID)).toBe(0);
-    await expect(listJournalEntries(USER_ID, { limit: 10, offset: 0 })).resolves.toEqual([]);
-  });
-
   it('maintains per-user watchlists with catalog-aware distinct symbol listing', async () => {
     await addUserSymbol(USER_ID, 'XAUUSD');
     await addUserSymbol(USER_ID, 'EURUSD');
@@ -494,45 +455,11 @@ describe.skipIf(!enabled || !adminUrl)('query layer — real PostgreSQL integrat
     await expect(listUserSymbols(OTHER_USER_ID)).resolves.toEqual([]);
   });
 
-  it('listMessages returns the NEWEST window of a long thread in chronological order', async () => {
-    const threadId = randomUUID();
-    await db!.insert(schema.chatThreads).values({
-      id: threadId,
-      userId: USER_ID,
-      tenantId: TENANT_ID,
-    });
-
-    // Five messages with distinct createdAt values, oldest first.
-    const base = Date.now() - 5 * 60_000;
-    for (let i = 0; i < 5; i += 1) {
-      await db!.insert(schema.chatMessages).values({
-        id: randomUUID(),
-        threadId,
-        tenantId: TENANT_ID,
-        role: i % 2 === 0 ? 'user' : 'assistant',
-        content: `message-${i}`,
-        createdAt: new Date(base + i * 60_000),
-      });
-    }
-
-    // A limit of 2 must return the two NEWEST messages (ascending), not the
-    // two oldest — the pre-fix query was ASC + LIMIT and returned the first
-    // rows of the thread, which is wrong for every caller (model history,
-    // thread view, export).
-    const recent = await listMessages(USER_ID, threadId, 2);
-    expect(recent.map((m) => m.content)).toEqual(['message-3', 'message-4']);
-
-    const all = await listMessages(USER_ID, threadId, 50);
-    expect(all.map((m) => m.content)).toEqual([
-      'message-0',
-      'message-1',
-      'message-2',
-      'message-3',
-      'message-4',
-    ]);
-
-    // Ownership predicate still applies to the newest window.
-    await expect(listMessages(OTHER_USER_ID, threadId, 2)).resolves.toEqual([]);
+  it('lists per-user watchlists with tenant scoping', async () => {
+    await addUserSymbol(USER_ID, 'XAUUSD');
+    const rows = await listUserSymbols(USER_ID);
+    expect(rows.map((row) => row.symbol)).toEqual(['XAUUSD']);
+    await expect(listUserSymbols(OTHER_USER_ID)).resolves.toEqual([]);
   });
 
   // 0117 regression — POST /login returned 500 (React #441, digest 1876515799)

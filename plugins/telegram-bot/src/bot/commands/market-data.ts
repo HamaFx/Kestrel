@@ -16,7 +16,7 @@
 
 // Market-data commands: /price, /news and /calendar.
 
-import { queries } from '@kestrel/db';
+import { listRecentArticles, listUpcomingEvents } from '@kestrel/ai';
 import { isKnownSymbol } from '@kestrel/shared';
 
 import type { BotReply } from '../types';
@@ -58,7 +58,7 @@ export async function priceReply(symbolRaw: string | undefined): Promise<BotRepl
 export async function newsReply(symbolRaw: string | undefined): Promise<BotReply> {
   try {
     const symbol = symbolRaw?.trim().toUpperCase();
-    const articles = await queries.news.listRecentArticles(5, 0, {
+    const articles = await listRecentArticles(5, 0, {
       ...(symbol ? { symbol } : {}),
     });
     if (articles.length === 0) return { text: '📭 No recent news available.' };
@@ -84,11 +84,11 @@ export async function calendarReply(countRaw: string | undefined): Promise<BotRe
   try {
     const limit = countRaw ? Math.min(Math.max(Number.parseInt(countRaw, 10) || 5, 1), 15) : 5;
     const now = Date.now();
-    const events = await queries.news.listUpcomingEvents(
-      now,
-      now + 90 * 24 * 60 * 60 * 1000,
+    const events = await listUpcomingEvents({
+      fromMs: now,
+      toMs: now + 90 * 24 * 60 * 60 * 1000,
       limit,
-    );
+    });
     if (events.length === 0) return { text: '📅 No upcoming economic events found.' };
 
     const lines = ['📅 Upcoming economic events', ''];

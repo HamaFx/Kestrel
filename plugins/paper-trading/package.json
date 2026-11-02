@@ -34,6 +34,7 @@
     "clean": "rm -rf node_modules .turbo dist"
   },
   "dependencies": {
+    "@kestrel/ai": "workspace:*",
     "@kestrel/data": "workspace:*",
     "@kestrel/db": "workspace:*",
     "@kestrel/plugin-backtesting": "workspace:*",

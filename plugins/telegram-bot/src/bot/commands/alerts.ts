@@ -16,8 +16,8 @@
 
 // Alert commands: /alert.
 
-import { createAlert } from '@kestrel/db';
-import { isKnownSymbol } from '@kestrel/shared';
+import { createAlert } from '@kestrel/ai';
+import { AlertRuleSchema, isKnownSymbol } from '@kestrel/shared';
 
 import type { BotReply, TelegramBotContext } from '../types';
 
@@ -48,9 +48,17 @@ export async function alertReply(args: string[], ctx: TelegramBotContext): Promi
   }
 
   try {
+    // Validate at the command boundary with the same schema the repository
+    // re-checks, so a bad rule surfaces here as a friendly bot reply.
+    const rule = AlertRuleSchema.parse({
+      type: 'priceCross',
+      symbol,
+      level,
+      direction,
+    });
     await createAlert({
       userId: ctx.userId,
-      rule: { type: 'priceCross', symbol, level, direction },
+      rule,
       // `telegram-bot` is this plugin's own channel, so the alert is
       // delivered by the user's bot rather than the shared server bot.
       channels: ['telegram-bot'],

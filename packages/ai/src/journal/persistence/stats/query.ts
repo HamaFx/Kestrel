@@ -17,7 +17,7 @@
 // Tenant-scoped stats query over the journal entries.
 
 import { requireTenantIdForUser, schema } from '@kestrel/db';
-import { and, asc, eq, gte, lte } from 'drizzle-orm';
+import { and, asc, eq, gte, isNull, lte } from 'drizzle-orm';
 
 import { getDb } from '@ai/runtime/db';
 
@@ -33,6 +33,8 @@ export async function computeStats(
   const filters = [
     eq(schema.journalEntries.userId, userId),
     eq(schema.journalEntries.tenantId, tenantId),
+    // Soft-deleted rows must not contribute to the coach's stats.
+    isNull(schema.journalEntries.deletedAt),
   ];
   if (opts.sinceMs !== undefined)
     filters.push(gte(schema.journalEntries.openedAt, new Date(opts.sinceMs)));

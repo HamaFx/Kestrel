@@ -17,7 +17,7 @@
 // Briefing commands: /briefing, the scheduled briefing body and the menu
 // toggle setters.
 
-import { queries } from '@kestrel/db';
+import { listRecentArticles, listUpcomingEvents } from '@kestrel/ai';
 
 import type { BotReply, TelegramBotContext } from '../types';
 import { DEFAULT_WEB_URL, formatDayTime, formatMoney, listOpenPaperPositions } from './shared';
@@ -37,7 +37,7 @@ export async function buildBriefing(ctx: TelegramBotContext): Promise<string> {
   }
 
   try {
-    const articles = await queries.news.listRecentArticles(3, 0, {});
+    const articles = await listRecentArticles(3, 0, {});
     if (articles.length > 0) {
       sections.push('', '📰 Headlines');
       for (const article of articles) sections.push(`• ${article.title} (${article.source})`);
@@ -48,7 +48,11 @@ export async function buildBriefing(ctx: TelegramBotContext): Promise<string> {
 
   try {
     const now = Date.now();
-    const events = await queries.news.listUpcomingEvents(now, now + 2 * 86_400_000, 3);
+    const events = await listUpcomingEvents({
+      fromMs: now,
+      toMs: now + 2 * 86_400_000,
+      limit: 3,
+    });
     if (events.length > 0) {
       sections.push('', '📅 Next 48h');
       for (const event of events) {

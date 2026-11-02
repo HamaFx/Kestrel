@@ -27,8 +27,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@kestrel/db', () => ({
   hasAdminDbScope: () => false,
-  getThread: mocks.getThread,
   getUserWithSettings: mocks.getUserWithSettings,
+}));
+vi.mock('@kestrel/ai/persistence', () => ({
+  getThread: mocks.getThread,
 }));
 vi.mock('@kestrel/ai/mastra-v2', () => ({
   runXauusdMastra: mocks.runXauusdMastra,

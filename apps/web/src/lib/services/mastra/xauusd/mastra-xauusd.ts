@@ -28,7 +28,8 @@ import {
   type XauusdResearchReport,
   type XauusdTurnMode,
 } from '@kestrel/ai/mastra-v2';
-import { getThread, getUserWithSettings } from '@kestrel/db';
+import { getThread } from '@kestrel/ai/persistence';
+import { getUserWithSettings } from '@kestrel/db';
 import { notFound } from '@kestrel/shared';
 
 import { getServerEnv } from '@/lib/env';

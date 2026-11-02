@@ -64,79 +64,9 @@ export {
   listAllUserSettings,
   type UserWithSettings,
 } from './queries/user-settings';
-export {
-  getThread,
-  listThreads,
-  createThread,
-  updateThreadTitle,
-  updateThreadPinnedSymbol,
-  deleteThread,
-  batchDeleteThreads,
-  listMessages,
-  appendUserMessage,
-  appendAssistantMessage,
-  countThreadMessages,
-  type ThreadRow,
-  type MessageRow,
-  type CreateThreadInput,
-  type CreateMessageInput,
-} from './queries/threads';
-export {
-  listAlerts,
-  getAlert,
-  createAlert,
-  updateAlert,
-  deleteAlert,
-  listActiveAlerts,
-  markAlertFired,
-  countActiveAlerts,
-  type AlertRow,
-  type CreateAlertInput,
-  type UpdateAlertInput,
-} from './queries/alerts';
+export { batchDeleteThreads } from './queries/threads';
+export { countActiveAlerts } from './queries/alerts';
 // Additional query helpers
-export {
-  listJournalEntries,
-  getJournalEntry,
-  createJournalEntry,
-  updateJournalEntry,
-  deleteJournalEntry,
-  countJournalEntriesByUser,
-  type JournalRow,
-  type CreateJournalInput,
-} from './queries/journal';
-export {
-  listPushSubscriptions,
-  getPushSubscriptionByEndpoint,
-  createPushSubscription,
-  deletePushSubscription,
-  deletePushSubscriptionByEndpoint,
-  type PushSubscriptionRow,
-  type CreatePushSubscriptionInput,
-} from './queries/push';
-export {
-  listCotReports,
-  getCotReport,
-  upsertCotReport,
-  countCotReports,
-  type CotReportRow,
-  type CreateCotReportInput,
-} from './queries/cot';
-export {
-  listTelemetry,
-  recordTelemetry,
-  getDailySpend,
-  type TelemetryRow,
-} from './queries/telemetry';
-export {
-  listRecentArticles,
-  listUpcomingEvents,
-  listHighImpactEventsInWindow,
-  listHighMediumEventsInWindow,
-  listFredEventsMissingActual,
-  type NewsArticleRow,
-  type EconomicEventRow,
-} from './queries/news-articles';
 export {
   listUserSymbols,
   listDistinctSymbols,
@@ -144,7 +74,7 @@ export {
   removeUserSymbol,
   type UserSymbolRow,
 } from './queries/user-symbols';
-export { getToolStats, type ToolStats } from './queries/tool-telemetry';
+export { getToolStats, listToolTelemetry, type ToolStats } from './queries/tool-telemetry';
 export {
   listDiagnosticTraces,
   getDiagnosticTrace,
@@ -235,7 +165,6 @@ export type {
   EvalDatasetInsert,
   EvalDatasetStatus,
 } from './schema/ai/eval-datasets';
-export { listToolTelemetry } from './queries/chat-telemetry';
 export {
   getWatchlistWithCatalog,
   isSymbolInCatalog,

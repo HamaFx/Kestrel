@@ -21,12 +21,33 @@
 // (BYPASSRLS) connection and fails loudly when `ADMIN_DATABASE_URL` is unset
 // rather than silently reporting an empty catalogue.
 
-import { gte, sql } from 'drizzle-orm';
+import { desc, eq, gte, sql } from 'drizzle-orm';
 
-import { getAdminDb, schema, type DbClient } from '../client';
+import { getAdminDb, getDb, schema, type DbClient } from '../client';
 
 export type ToolTelemetryRow = typeof schema.chatToolTelemetry.$inferSelect;
 export type ToolTelemetryInsert = typeof schema.chatToolTelemetry.$inferInsert;
+
+/**
+ * List chat tool telemetry entries, newest first, with an optional threadId
+ * filter. Returns the raw schema-inferred rows from `chat_tool_telemetry`.
+ */
+export async function listToolTelemetry(params?: { threadId?: string; limit?: number }) {
+  const db = getDb();
+  const { threadId, limit = 50 } = params ?? {};
+
+  const query = db
+    .select()
+    .from(schema.chatToolTelemetry)
+    .orderBy(desc(schema.chatToolTelemetry.createdAt))
+    .limit(limit);
+
+  if (threadId) {
+    return query.where(eq(schema.chatToolTelemetry.threadId, threadId));
+  }
+
+  return query;
+}
 
 export interface ToolStats {
   tool: string | null;

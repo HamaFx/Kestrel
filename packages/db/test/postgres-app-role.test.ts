@@ -275,6 +275,10 @@ describe.skipIf(!enabled || !adminUrl)('application role enforces RLS on the rea
         `INSERT INTO user_settings (user_id, tenant_id, default_symbol)
          VALUES ('${USER_A}', '${TENANT_A}', 'XAUUSD') ON CONFLICT (user_id) DO NOTHING`,
       );
+      await isolatedClient!.unsafe(
+        `INSERT INTO user_symbols (user_id, tenant_id, symbol, display_order)
+         VALUES ('${USER_A}', '${TENANT_A}', 'XAUUSD', 0) ON CONFLICT DO NOTHING`,
+      );
     });
 
     afterAll(async () => {
@@ -288,7 +292,7 @@ describe.skipIf(!enabled || !adminUrl)('application role enforces RLS on the rea
       // app-role DATABASE_URL set above.
       vi.resetModules();
       const queries = await import('../src/queries/user-settings');
-      const threads = await import('../src/queries/threads');
+      const userSymbols = await import('../src/queries/user-symbols');
       const { withUserTenant } = await import('../src/tenant/with-user-tenant');
       const { closeDb } = await import('../src/client');
 
@@ -302,8 +306,10 @@ describe.skipIf(!enabled || !adminUrl)('application role enforces RLS on the rea
         expect(scopedSettings).not.toBeNull();
         expect(scopedSettings?.defaultSymbol).toBe('XAUUSD');
 
-        const scopedThreads = await withUserTenant(USER_A, () => threads.listThreads(USER_A, 5));
-        expect(scopedThreads.length).toBeGreaterThan(0);
+        const scopedSymbols = await withUserTenant(USER_A, () =>
+          userSymbols.listUserSymbols(USER_A),
+        );
+        expect(scopedSymbols.length).toBeGreaterThan(0);
 
         // The scope must not outlive the wrapper.
         expect(await queries.getOwnUserSettings(USER_A)).toBeNull();

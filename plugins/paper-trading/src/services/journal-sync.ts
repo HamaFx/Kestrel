@@ -16,7 +16,8 @@
 
 // Trade-journal synchronization after a position closes.
 
-import { createJournalEntry } from '@kestrel/db';
+import { createEntry } from '@kestrel/ai';
+import { SymbolSchema } from '@kestrel/shared';
 
 import { updatePosition } from '../db/queries';
 import type { PaperAccountRow, PaperPositionRow } from '../db/tables';
@@ -38,12 +39,14 @@ export async function syncJournal(args: {
   try {
     const rMultiple =
       args.position.initialRiskAmount > 0 ? args.pnl / args.position.initialRiskAmount : 0;
-    const entry = await createJournalEntry({
+    // The canonical `@kestrel/ai` journal layer validates the symbol, indexes
+    // the entry into RAG memory, and returns the shared DTO.
+    const entry = await createEntry({
       userId: args.position.userId,
-      symbol: args.position.symbol,
+      symbol: SymbolSchema.parse(args.position.symbol),
       side: args.position.side === 'short' ? 'short' : 'long',
-      openedAt: args.position.entryTime,
-      closedAt: args.closedAt,
+      openedAt: args.position.entryTime.getTime(),
+      closedAt: args.closedAt.getTime(),
       entry: args.position.entryPrice,
       stop: args.position.stopLoss,
       target: args.position.takeProfit,

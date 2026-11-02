@@ -30,6 +30,14 @@ export interface CreateJournalInput {
   tags?: string[];
   screenshotUrl?: string | null;
   userId: string;
+  /**
+   * Optional close fields for entries that are created already closed
+   * (paper-trading journal sync). Defaults keep a brand-new entry `open`.
+   */
+  closedAt?: number | null;
+  exit?: number | null;
+  outcome?: TradeOutcome;
+  rMultiple?: number | null;
 }
 
 export interface UpdateJournalInput {

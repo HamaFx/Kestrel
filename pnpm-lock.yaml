@@ -1011,6 +1011,9 @@ importers:
 
   plugins/paper-trading:
     dependencies:
+      '@kestrel/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@kestrel/data':
         specifier: workspace:*
         version: link:../../packages/data

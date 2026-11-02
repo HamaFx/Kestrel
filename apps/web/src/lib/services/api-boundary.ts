@@ -180,7 +180,6 @@ export {
   findVerificationToken,
   deleteVerificationToken,
   verifyUserEmail,
-  createJournalEntry,
   listTraceExplorerEvents,
   listToolTelemetry,
   listAdminAuditLogs,
