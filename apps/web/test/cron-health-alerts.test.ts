@@ -24,7 +24,7 @@ const mockComputeHealth = vi.hoisted(() => vi.fn());
 const mockDeliverHealthAlert = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/http/cron', () => ({ withCronAuth: mockWithCronAuth }));
-vi.mock('@/lib/services/api-boundary', () => ({ getAdminDb: mockAdminDb }));
+vi.mock('@/lib/services/db', () => ({ getAdminDb: mockAdminDb }));
 vi.mock('@/lib/services/admin-health', () => ({ computeHealthSloService: mockComputeHealth }));
 vi.mock('@/lib/services/health-alert-delivery', () => ({
   deliverHealthAlert: mockDeliverHealthAlert,

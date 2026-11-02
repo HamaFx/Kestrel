@@ -25,16 +25,11 @@
 // Idempotent: each `(symbol, report_date)` row is keyed by a deterministic
 // `cftc:<symbol>:<YYYY-MM-DD>` PK and upserted with ON CONFLICT DO UPDATE.
 
+import { CFTC_SUPPORTED_SYMBOLS, type Symbol } from '@kestrel/shared';
+
 import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
-import {
-  CFTC_SUPPORTED_SYMBOLS,
-  fetchLatestRows,
-  parseCftcInt,
-  toCftcName,
-  upsertCoTReport,
-  type Symbol,
-} from '@/lib/services/api-boundary';
+import { fetchLatestRows, parseCftcInt, toCftcName, upsertCoTReport } from '@/lib/services/market';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

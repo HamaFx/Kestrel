@@ -25,21 +25,23 @@ const mockAuthFn = vi.hoisted(() => vi.fn());
 const mockWithRateLimit = vi.hoisted(() => vi.fn());
 const mockListFullAnalysisQueueRows = vi.hoisted(() => vi.fn());
 
-vi.mock('@kestrel/db', () => ({
-  hasAdminDbScope: () => false,
-  getDb: vi.fn(() => ({ execute: mockDbExecute })),
-  listFullAnalysisQueueRows: mockListFullAnalysisQueueRows,
-  withRateLimit: mockWithRateLimit,
-  updatePaymentStatus: vi.fn(),
-  updateSubscriptionFromPayment: vi.fn(),
-  schema: {},
-  hasTenantDbScope: vi.fn(() => true),
-  getAdminDb: vi.fn(() => ({ execute: mockDbExecute })),
-  requireTenantIdForUser: vi.fn(async () => 'tenant-test'),
-  withTenantDbFresh: vi.fn(async (_tenantId: string, work: (db: unknown) => Promise<unknown>) =>
-    work({ execute: mockDbExecute }),
-  ),
-}));
+vi.mock('@kestrel/db', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@kestrel/db')>();
+  return {
+    ...actual,
+    hasAdminDbScope: () => false,
+    getDb: vi.fn(() => ({ execute: mockDbExecute })),
+    listFullAnalysisQueueRows: mockListFullAnalysisQueueRows,
+    withRateLimit: mockWithRateLimit,
+    schema: {},
+    hasTenantDbScope: vi.fn(() => true),
+    getAdminDb: vi.fn(() => ({ execute: mockDbExecute })),
+    requireTenantIdForUser: vi.fn(async () => 'tenant-test'),
+    withTenantDbFresh: vi.fn(async (_tenantId: string, work: (db: unknown) => Promise<unknown>) =>
+      work({ execute: mockDbExecute }),
+    ),
+  };
+});
 
 // Mock @/auth so the SEC-1 slow path (auth() fallback) returns a session.
 // The health route uses withAuth → getUserFromRequest which, without a valid

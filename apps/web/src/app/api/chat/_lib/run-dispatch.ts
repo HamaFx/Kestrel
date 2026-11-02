@@ -25,12 +25,12 @@ import type { UIMessage } from 'ai';
 
 import type { getServerEnv } from '@/lib/env';
 import type { createRequestLogger } from '@/lib/logger';
+import type { listMessages } from '@/lib/services/chat';
 import {
   mastraComparisonScope,
   MAX_COMPARISON_SYMBOLS,
   type ExecutionPlan,
-  type listMessages,
-} from '@/lib/services/api-boundary';
+} from '@/lib/services/chat-ai';
 import {
   runConversationalTurn,
   runResearchWorkflow,

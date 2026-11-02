@@ -26,7 +26,8 @@
 
 import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
-import { fetchUpcomingEvents, ProviderError, upsertEvents } from '@/lib/services/api-boundary';
+import { fetchUpcomingEvents, upsertEvents } from '@/lib/services/calendar';
+import { ProviderError } from '@/lib/services/market';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

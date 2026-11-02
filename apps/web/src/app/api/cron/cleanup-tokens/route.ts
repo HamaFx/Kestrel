@@ -23,7 +23,7 @@
 
 import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
-import { lazyPurgeExpiredTokens } from '@/lib/services/api-boundary';
+import { lazyPurgeExpiredTokens } from '@/lib/services/auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

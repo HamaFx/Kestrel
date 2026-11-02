@@ -32,15 +32,16 @@
 // (so the OHLC math has real bars) but coarse enough that 240 bars fit
 // comfortably in the data layer's free-tier quotas.
 
+import { ALL_SYMBOLS } from '@kestrel/shared';
+
 import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import {
-  ALL_SYMBOLS,
   computeDailySnapshot,
   getCandlesUnchecked,
   previousUtcMidnight,
   upsertSnapshot,
-} from '@/lib/services/api-boundary';
+} from '@/lib/services/market';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

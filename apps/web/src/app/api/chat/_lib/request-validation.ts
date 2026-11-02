@@ -19,11 +19,11 @@
 // Request validation for /api/chat: body schema, last-message gate, server
 // env, and the presentation-preference header.
 
+import { UserMessagePartsSchema } from '@kestrel/shared';
 import { z } from 'zod';
 
 import { getServerEnv } from '@/lib/env';
 import { errorResponse, parseJsonBody } from '@/lib/http/api';
-import { UserMessagePartsSchema } from '@/lib/services/api-boundary';
 
 import { errorJson } from './errors';
 import { readPresentationPrefs, type PresentationPrefs } from './presentation-prefs';

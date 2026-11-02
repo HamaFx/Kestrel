@@ -16,21 +16,15 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
+import type { ProviderId } from '@kestrel/shared';
+import { decryptByok, PROVIDER_IDS } from '@kestrel/shared/encryption';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
-import {
-  decryptByok,
-  getDb,
-  PROVIDER_IDS,
-  requireTenantIdForUser,
-  schema,
-  testProviderKey,
-  validateProviderConfig,
-  withRateLimit,
-  type ProviderId,
-} from '@/lib/services/api-boundary';
+import { getDb, requireTenantIdForUser, schema } from '@/lib/services/db';
+import { testProviderKey, validateProviderConfig } from '@/lib/services/providers';
+import { withRateLimit } from '@/lib/services/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

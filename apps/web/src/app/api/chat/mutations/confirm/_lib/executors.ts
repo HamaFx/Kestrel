@@ -21,12 +21,10 @@ import {
   assertRegisteredSystemAction,
   assertSystemActionAuthorized,
   executeMutationOnce,
-  getDb,
-  requireTenantIdForUser,
-  schema,
   type MutationExecutor,
   type MutationKindSchema,
-} from '@/lib/services/api-boundary';
+} from '@/lib/services/chat-ai';
+import { getDb, requireTenantIdForUser, schema } from '@/lib/services/db';
 
 /** Build the non-transactional fallback executor used only by local Studio/tests. */
 export function executorFor(

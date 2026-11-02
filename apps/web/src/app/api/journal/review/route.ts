@@ -23,7 +23,8 @@ import { z } from 'zod';
 
 import { getServerEnv } from '@/lib/env';
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
-import { getEntry, getUserWithSettings, reviewTrade } from '@/lib/services/api-boundary';
+import { getEntry, reviewTrade } from '@/lib/services/journal';
+import { getUserWithSettings } from '@/lib/services/settings';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

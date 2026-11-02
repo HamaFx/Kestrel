@@ -31,7 +31,8 @@
 import { z } from 'zod';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
-import { batchDeleteThreads, withRateLimit } from '@/lib/services/api-boundary';
+import { batchDeleteThreads } from '@/lib/services/chat';
+import { withRateLimit } from '@/lib/services/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

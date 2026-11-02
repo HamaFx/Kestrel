@@ -19,7 +19,8 @@
 import { z } from 'zod';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
-import { marketDataProviders, withRateLimit } from '@/lib/services/api-boundary';
+import { marketDataProviders } from '@/lib/services/market';
+import { withRateLimit } from '@/lib/services/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

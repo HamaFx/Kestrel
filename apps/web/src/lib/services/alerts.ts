@@ -297,3 +297,17 @@ export async function previewDigestService(userId: string): Promise<PreviewDiges
     dailyEstimate: breakdown.allowed * 3,
   };
 }
+
+// ── Phase 3 Task 4 — domain re-exports for cron routes ──────────────────────
+//
+// Briefing evaluation/emission used by /api/cron/alerts, /api/cron/briefings,
+// and /api/cron/weekly-review.
+
+export {
+  emitPostEvent,
+  emitPreEvent,
+  emitWeeklyReview,
+  evaluateAlerts,
+  findHighImpactEventsInWindow,
+  listEmittedEventIds,
+} from '@kestrel/ai';

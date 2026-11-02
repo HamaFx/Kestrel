@@ -34,7 +34,7 @@ const mocks = vi.hoisted(() => ({
   limit: vi.fn(),
 }));
 
-vi.mock('@/lib/services/api-boundary', async () => {
+vi.mock('@/lib/services/db', async () => {
   const { schema } = await import('@kestrel/db');
   return { schema, withAdminDb: mocks.withAdminDb };
 });

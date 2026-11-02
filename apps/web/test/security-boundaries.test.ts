@@ -44,7 +44,7 @@ describe('production security boundaries', () => {
     const getUserById = vi.fn();
     const createUserWithSettings = vi.fn();
     vi.doMock('@/auth', () => ({ signIn }));
-    vi.doMock('@/lib/services/api-boundary', () => ({ getUserById, createUserWithSettings }));
+    vi.doMock('@/lib/services/admin', () => ({ getUserById, createUserWithSettings }));
     vi.doMock('@/lib/logger', () => ({
       createScopedLoggerWithContext: () => ({
         warn: vi.fn(),
@@ -79,7 +79,7 @@ describe('production security boundaries', () => {
         Response.json({ error: { code, message } }, { status }),
     }));
     vi.doMock('@/lib/services/admin', () => ({ recordAdminAudit: vi.fn() }));
-    vi.doMock('@/lib/services/api-boundary', () => ({ getUserById: vi.fn() }));
+    vi.doMock('@/lib/services/admin', () => ({ getUserById: vi.fn() }));
 
     const { POST } = await import('@/app/api/admin/impersonate/route');
     const response = await POST(

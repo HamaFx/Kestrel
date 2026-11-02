@@ -77,3 +77,17 @@ export async function listEventsService(): Promise<CalendarEventDTO[]> {
   const events = await listUpcomingEvents();
   return events.map(toCalendarEventDTO);
 }
+
+// ── Phase 3 Task 4 — domain re-exports for routes ───────────────────────────
+//
+// Economic calendar ingestion and the FRED actuals backfill used by cron
+// routes.
+
+export {
+  listFredEventsMissingActual,
+  parseFredEventId,
+  patchEventActual,
+  upsertEvents,
+} from '@kestrel/ai';
+export { fetchUpcomingEvents } from '@kestrel/data';
+export { fetchObservations, fredMeta } from '@kestrel/data/providers/fred';

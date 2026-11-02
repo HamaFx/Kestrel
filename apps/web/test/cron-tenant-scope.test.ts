@@ -46,14 +46,18 @@ vi.mock('@/lib/http/cron', () => ({
   withCronAuth: mocks.withCronAuth,
   getActiveUserIdsForCron: mocks.getActiveUserIdsForCron,
 }));
-vi.mock('@/lib/services/api-boundary', () => ({
+vi.mock('@/lib/services/alerts', () => ({
   evaluateAlerts: mocks.evaluateAlerts,
-  runRetentionCleanup: mocks.runRetentionCleanup,
+  emitPostEvent: mocks.emitPostEvent,
+  emitPreEvent: mocks.emitPreEvent,
+  emitWeeklyReview: mocks.emitWeeklyReview,
   findHighImpactEventsInWindow: mocks.findHighImpactEventsInWindow,
   listEmittedEventIds: mocks.listEmittedEventIds,
-  emitPreEvent: mocks.emitPreEvent,
-  emitPostEvent: mocks.emitPostEvent,
-  emitWeeklyReview: mocks.emitWeeklyReview,
+}));
+vi.mock('@/lib/services/admin', () => ({
+  runRetentionCleanup: mocks.runRetentionCleanup,
+}));
+vi.mock('@/lib/services/db', () => ({
   withAdminDb: mocks.withAdminDb,
   withUserTenant: mocks.withUserTenant,
 }));

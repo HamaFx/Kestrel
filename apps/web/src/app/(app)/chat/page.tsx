@@ -31,7 +31,7 @@ import { withUserTenant } from '@kestrel/db';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
-import { createThread, listThreads } from '@/lib/services/api-boundary';
+import { createThread, listThreads } from '@/lib/services/chat';
 
 export const dynamic = 'force-dynamic';
 

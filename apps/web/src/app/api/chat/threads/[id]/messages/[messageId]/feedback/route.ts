@@ -23,7 +23,7 @@ import {
   deleteMessageFeedback,
   getMessageFeedback,
   upsertMessageFeedback,
-} from '@/lib/services/api-boundary';
+} from '@/lib/services/chat';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

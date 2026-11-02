@@ -24,24 +24,25 @@ import type { UIMessage } from 'ai';
 
 import { withAuth } from '@/lib/http/api';
 import { createRequestLogger } from '@/lib/logger';
+import { getThread, listMessages } from '@/lib/services/chat';
 import {
   createExecutionPlan,
-  detectInstalledPluginIntent,
   extractMastraSymbols,
   extractUserMessageText,
-  getInstalledPluginIdsForUser,
-  getThread,
-  getUserWithSettings,
   isHighConfidenceMutationIntent,
   isInjectionAttempt,
   isMastraMutationEnabled,
-  listMessages,
   resolveMode,
   routeUnified,
-  withRateLimit,
-} from '@/lib/services/api-boundary';
+} from '@/lib/services/chat-ai';
 import { startMutationDraft } from '@/lib/services/mastra/mutation-handler';
 import { extractLatestMastraReport } from '@/lib/services/mastra/xauusd-handler';
+import {
+  detectInstalledPluginIntent,
+  getInstalledPluginIdsForUser,
+} from '@/lib/services/plugin-manage';
+import { withRateLimit } from '@/lib/services/rate-limit';
+import { getUserWithSettings } from '@/lib/services/settings';
 
 import { CHAT_RATE_LIMIT } from './_lib/constants';
 import { dispatchCustomAgent } from './_lib/custom-agent-dispatch';

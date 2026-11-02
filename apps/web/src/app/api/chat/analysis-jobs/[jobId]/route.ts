@@ -21,7 +21,7 @@
 // Polling endpoint for background multi-agent analysis jobs.
 
 import { withAuth } from '@/lib/http/api';
-import { cancelFullAnalysisRun, getFullAnalysisRun } from '@/lib/services/api-boundary';
+import { cancelFullAnalysisRun, getFullAnalysisRun } from '@/lib/services/chat-ai';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

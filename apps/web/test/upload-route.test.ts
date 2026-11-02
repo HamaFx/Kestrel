@@ -64,23 +64,9 @@ vi.mock('@/lib/http/api', () => ({
     ),
 }));
 
-vi.mock('@/lib/services/api-boundary', () => {
-  class AppError extends Error {
-    constructor(
-      public code: string,
-      message: string,
-      public status: number,
-    ) {
-      super(message);
-    }
-  }
-  return {
-    AppError,
-    validationError: (message: string) => new AppError('VALIDATION', message, 400),
-    providerUnavailable: (message: string) => new AppError('PROVIDER_UNAVAILABLE', message, 503),
-    withRateLimit: mocks.withRateLimit,
-  };
-});
+vi.mock('@/lib/services/rate-limit', () => ({
+  withRateLimit: mocks.withRateLimit,
+}));
 
 vi.mock('sharp', () => {
   const chain = {

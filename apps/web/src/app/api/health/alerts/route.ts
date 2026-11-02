@@ -30,7 +30,7 @@
 
 import { withCronAuth } from '@/lib/http/cron';
 import { computeHealthSloService } from '@/lib/services/admin-health';
-import { getAdminDb } from '@/lib/services/api-boundary';
+import { getAdminDb } from '@/lib/services/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

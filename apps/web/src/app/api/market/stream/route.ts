@@ -14,15 +14,13 @@
  * limitations under the License.
  */
 
+import { SymbolSchema } from '@kestrel/shared';
+import { decryptByok } from '@kestrel/shared/encryption';
 import { z } from 'zod';
 
 import { auth } from '@/auth';
-import {
-  decryptByok,
-  getPricesWithMeta,
-  getUserApiKeys,
-  SymbolSchema,
-} from '@/lib/services/api-boundary';
+import { getPricesWithMeta } from '@/lib/services/market';
+import { getUserApiKeys } from '@/lib/services/providers';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

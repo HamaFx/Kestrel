@@ -18,9 +18,9 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { parseJsonBody, withAuth } from '@/lib/http/api';
+import { createAuditLog } from '@/lib/services/admin';
 import {
   cancelMutationWorkflow,
-  createAuditLog,
   createMutationWorkflow,
   getKestrelMastra,
   getMutationExecution,
@@ -28,7 +28,7 @@ import {
   MutationKindSchema,
   parseMutationRunContext,
   verifyMutationConfirmationToken,
-} from '@/lib/services/api-boundary';
+} from '@/lib/services/chat-ai';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

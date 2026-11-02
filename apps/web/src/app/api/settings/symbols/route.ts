@@ -16,6 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
+import { SymbolSchema } from '@kestrel/shared';
 import { z } from 'zod';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
@@ -24,8 +25,7 @@ import {
   getWatchlistWithCatalog,
   isSymbolInCatalog,
   reorderWatchlist,
-  SymbolSchema,
-} from '@/lib/services/api-boundary';
+} from '@/lib/services/settings';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

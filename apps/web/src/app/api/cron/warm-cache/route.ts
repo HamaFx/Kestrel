@@ -24,9 +24,11 @@
 //
 // Schedule: every 2 minutes via the GCE-VM crontab. Idempotent + fast.
 
+import { SYMBOLS } from '@kestrel/shared';
+
 import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
-import { getCandlesWithMeta, getPricesWithMeta, SYMBOLS } from '@/lib/services/api-boundary';
+import { getCandlesWithMeta, getPricesWithMeta } from '@/lib/services/market';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

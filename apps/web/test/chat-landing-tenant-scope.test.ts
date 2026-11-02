@@ -16,7 +16,7 @@
  */
 
 // Audit 2026-10-31 (R1): the chat landing route calls the thread persistence
-// helpers through `@/lib/services/api-boundary`, so the text-level RSC guard
+// helpers through `@/lib/services/chat`, so the text-level RSC guard
 // cannot see the `chat_threads` reads. These tests pin the runtime contract
 // instead: every createThread/listThreads call happens inside
 // `withUserTenant`, and the redirect target is unchanged.
@@ -37,7 +37,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/auth', () => ({ auth: mocks.auth }));
 vi.mock('next/navigation', () => ({ redirect: mocks.redirect }));
 vi.mock('@kestrel/db', () => ({ withUserTenant: mocks.withUserTenant }));
-vi.mock('@/lib/services/api-boundary', () => ({
+vi.mock('@/lib/services/chat', () => ({
   createThread: mocks.createThread,
   listThreads: mocks.listThreads,
 }));

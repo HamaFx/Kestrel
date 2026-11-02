@@ -40,9 +40,13 @@ vi.mock('@kestrel/db', () => ({
   schema: { users: {}, userSettings: {} },
 }));
 
-vi.mock('@kestrel/shared/encryption', () => ({
-  decryptByok: mockDecryptByok,
-}));
+vi.mock('@kestrel/shared/encryption', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@kestrel/shared/encryption')>();
+  return {
+    ...actual,
+    decryptByok: mockDecryptByok,
+  };
+});
 
 describe('GET /api/admin/onboarding/inspect', () => {
   beforeEach(() => {

@@ -37,8 +37,10 @@ vi.mock('@/lib/http/api', () => ({
   errorResponse: () => Response.json({ ok: false, error: 'invalid body' }, { status: 400 }),
 }));
 
-vi.mock('@/lib/services/api-boundary', () => ({
+vi.mock('@/lib/services/market', () => ({
   marketDataProviders: { get: mockGet },
+}));
+vi.mock('@/lib/services/rate-limit', () => ({
   withRateLimit: mockWithRateLimit,
 }));
 

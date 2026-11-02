@@ -20,13 +20,10 @@
 // GET  /api/notifications/noise-config
 // PUT  /api/notifications/noise-config
 
+import { NoiseConfigSchema, type NoiseConfig } from '@kestrel/shared';
+
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
-import {
-  getNoiseConfig,
-  NoiseConfigSchema,
-  saveNoiseConfig,
-  type NoiseConfig,
-} from '@/lib/services/api-boundary';
+import { getNoiseConfig, saveNoiseConfig } from '@/lib/services/notifications';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

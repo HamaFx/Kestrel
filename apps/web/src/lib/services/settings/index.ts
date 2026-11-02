@@ -117,6 +117,9 @@ export type BulkTestEvent = BulkTestProgressEvent | BulkTestResultEvent | BulkTe
 
 // ── Service functions ────────────────────────────────────────────────────────
 
+// Phase 3 Task 4 — route-facing re-exports (settings, onboarding, watchlist).
+export * from './domain';
+
 export { validateAndSaveChatModel } from './chat-model';
 
 export async function getAnalysisModeService(userId: string): Promise<AnalysisModeDTO> {

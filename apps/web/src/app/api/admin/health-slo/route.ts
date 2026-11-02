@@ -26,7 +26,7 @@ import { z } from 'zod';
 import { withAdminAuth } from '@/lib/auth/admin-auth';
 import { parseSearchParams } from '@/lib/http/api';
 import { computeHealthSloService } from '@/lib/services/admin-health';
-import { getAdminDb } from '@/lib/services/api-boundary';
+import { getAdminDb } from '@/lib/services/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

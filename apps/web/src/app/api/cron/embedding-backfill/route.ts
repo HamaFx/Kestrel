@@ -33,7 +33,7 @@
 // The worker job ramps to 1024 rows per run — see apps/worker/src/jobs/embedding-backfill.ts.
 
 import { withCronAuth } from '@/lib/http/cron';
-import { backfillEmbeddings, countPendingEmbeddings } from '@/lib/services/api-boundary';
+import { backfillEmbeddings, countPendingEmbeddings } from '@/lib/services/news';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

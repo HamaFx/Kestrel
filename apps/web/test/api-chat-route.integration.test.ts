@@ -64,7 +64,11 @@ const {
 
 vi.mock('@kestrel/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@kestrel/db')>();
-  return { ...actual, getUserWithSettings: mockGetUserWithSettings };
+  return {
+    ...actual,
+    getInstalledPluginIdsForUser: mockGetInstalledPluginIdsForUser,
+    getUserWithSettings: mockGetUserWithSettings,
+  };
 });
 
 vi.mock('@/lib/http/api', () => ({
@@ -120,13 +124,11 @@ vi.mock('@kestrel/ai/mastra-v2', () => ({
   decideMastraExecution: mockDecideMastraExecution,
 }));
 
-vi.mock('@/lib/services/api-boundary', () => ({
-  AnalysisQueuedEventSchema: { parse: (value: unknown) => value },
+vi.mock('@/lib/services/chat-ai', () => ({
   BudgetExceededError: class BudgetExceededError extends Error {
     spent = 5;
     max = 5;
   },
-  resolveProviderMode: () => 'managed',
   CanonicalEvidenceBlockedError: class CanonicalEvidenceBlockedError extends Error {},
   GuardrailUnavailableError: mockGuardrailUnavailableError,
   TripWire: mockTripWire,
@@ -135,14 +137,6 @@ vi.mock('@/lib/services/api-boundary', () => ({
       .filter((part) => part.type === 'text')
       .map((part) => part.text ?? '')
       .join('\n'),
-  extractMastraSymbol: (text: string) =>
-    /xauusd|gold/i.test(text)
-      ? 'XAUUSD'
-      : /eurusd/i.test(text)
-        ? 'EURUSD'
-        : /gbpusd/i.test(text)
-          ? 'GBPUSD'
-          : null,
   extractMastraSymbols: (text: string) => {
     const symbols: string[] = [];
     if (/xauusd|gold/i.test(text)) symbols.push('XAUUSD');
@@ -162,10 +156,7 @@ vi.mock('@/lib/services/api-boundary', () => ({
     return { symbols: mentioned.slice(0, 3), overflow: mentioned.length > 3 };
   },
   MAX_COMPARISON_SYMBOLS: 3,
-  getThread: mockGetThread,
-  listMessages: vi.fn().mockResolvedValue([]),
   resolveMode: (mode: string) => (mode === 'auto' ? 'single' : mode),
-  getUserWithSettings: mockGetUserWithSettings,
   // §1.1: the unified router classifies in one pass; mirror the plan the
   // createExecutionPlan mock below already builds.
   routeUnified: vi.fn(
@@ -196,24 +187,7 @@ vi.mock('@/lib/services/api-boundary', () => ({
   isInjectionAttempt: (prompt: string) =>
     /ignore previous instructions|system:|developer:/i.test(prompt),
   isHighConfidenceMutationIntent: (prompt: string) => /\bbuy\b|\bsell\b/i.test(prompt),
-  // Phase 2 (P0-3/P0-4): installed plugins exempt plugin-targeted prompts from
-  // the read-only gate. Mirrors the real classifier's paper-trading branch,
-  // including its live-broker exclusion. (The classifier itself is tested in
-  // packages/ai/test/plugins-intent.test.ts.)
-  getInstalledPluginIdsForUser: mockGetInstalledPluginIdsForUser,
-  detectInstalledPluginIntent: (prompt: string, installedPluginIds: readonly string[]) => {
-    if (!installedPluginIds.includes('paper-trading')) return null;
-    if (/\b(?:real\s+money|live\s+account|live\s+broker|mt4|mt5)\b/i.test(prompt)) return null;
-    const paper =
-      /\b(?:paper\s+\w+|agent\s+sandbox|sandbox\s+account|deploy\s+(?:\w+\s+){0,4}?to\s+paper)\b/i.test(
-        prompt,
-      );
-    return paper || /\bbuy\b|\bsell\b/i.test(prompt)
-      ? { pluginId: 'paper-trading' as const, reason: 'paper-explicit' }
-      : null;
-  },
   enqueueFullAnalysis: mockEnqueueFullAnalysis,
-  traceIdStorage: { getStore: () => 'trace-route-1' },
   isMastraMutationEnabled: () => false,
   classifyMutationRequest: () => null,
   resolveMastraModeModel: () => ({
@@ -282,10 +256,57 @@ vi.mock('@/lib/services/api-boundary', () => ({
     };
   }),
   withDiagnostics: async (_userId: string, _threadId: string, fn: () => Promise<Response>) => fn(),
-  withRateLimit: mockWithRateLimit,
-  UserMessagePartsSchema: z.array(z.unknown()).transform((parts) => parts),
-  PresentationPreferencesSchema: z.object({ customInstructions: z.string().optional() }),
 }));
+
+vi.mock('@/lib/services/providers', () => ({
+  resolveProviderMode: () => 'managed',
+}));
+
+vi.mock('@/lib/services/chat', () => ({
+  getThread: mockGetThread,
+  listMessages: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock('@/lib/services/rate-limit', () => ({
+  withRateLimit: mockWithRateLimit,
+}));
+
+vi.mock('@kestrel/ai/plugins', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@kestrel/ai/plugins')>();
+  return {
+    ...actual,
+    // Phase 2 (P0-3/P0-4): installed plugins exempt plugin-targeted prompts from
+    // the read-only gate. Mirrors the real classifier's paper-trading branch,
+    // including its live-broker exclusion. (The classifier itself is tested in
+    // packages/ai/test/plugins-intent.test.ts.)
+    detectInstalledPluginIntent: (prompt: string, installedPluginIds: readonly string[]) => {
+      if (!installedPluginIds.includes('paper-trading')) return null;
+      if (/\b(?:real\s+money|live\s+account|live\s+broker|mt4|mt5)\b/i.test(prompt)) return null;
+      const paper =
+        /\b(?:paper\s+\w+|agent\s+sandbox|sandbox\s+account|deploy\s+(?:\w+\s+){0,4}?to\s+paper)\b/i.test(
+          prompt,
+        );
+      return paper || /\bbuy\b|\bsell\b/i.test(prompt)
+        ? { pluginId: 'paper-trading' as const, reason: 'paper-explicit' }
+        : null;
+    },
+  };
+});
+
+vi.mock('@kestrel/shared/logger', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@kestrel/shared/logger')>();
+  return { ...actual, traceIdStorage: { getStore: () => 'trace-route-1' } };
+});
+
+vi.mock('@kestrel/shared', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@kestrel/shared')>();
+  return {
+    ...actual,
+    AnalysisQueuedEventSchema: { parse: (value: unknown) => value },
+    UserMessagePartsSchema: z.array(z.unknown()).transform((parts) => parts),
+    PresentationPreferencesSchema: z.object({ customInstructions: z.string().optional() }),
+  };
+});
 
 function request(body: Record<string, unknown>): Request {
   return new Request('http://localhost/api/chat', {

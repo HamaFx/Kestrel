@@ -20,13 +20,10 @@
 // GET  /api/notifications/route-config
 // PUT  /api/notifications/route-config
 
+import { RouteConfigSchema, type RouteConfig } from '@kestrel/shared';
+
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
-import {
-  getRouteConfig,
-  RouteConfigSchema,
-  saveRouteConfig,
-  type RouteConfig,
-} from '@/lib/services/api-boundary';
+import { getRouteConfig, saveRouteConfig } from '@/lib/services/notifications';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

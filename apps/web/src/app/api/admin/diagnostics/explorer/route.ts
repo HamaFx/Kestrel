@@ -20,8 +20,8 @@ import { z } from 'zod';
 
 import { withAdminAuth } from '@/lib/auth/admin-auth';
 import { parseSearchParams } from '@/lib/http/api';
+import { listTraceExplorerEvents } from '@/lib/services/admin';
 import type { TraceExplorerResponse } from '@/lib/services/admin-dtos';
-import { listTraceExplorerEvents } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

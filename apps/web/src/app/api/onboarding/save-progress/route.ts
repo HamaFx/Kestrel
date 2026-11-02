@@ -17,7 +17,7 @@
 import { z } from 'zod';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
-import { updateUserSettingsField } from '@/lib/services/api-boundary';
+import { updateUserSettingsField } from '@/lib/services/settings';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

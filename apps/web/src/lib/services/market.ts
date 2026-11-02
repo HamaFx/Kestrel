@@ -228,3 +228,24 @@ export async function getIndicatorsService(
     results: value.results,
   };
 }
+
+// ── Phase 3 Task 4 — domain re-exports for routes ───────────────────────────
+//
+// Market data, daily snapshots, CFTC positions, and sentiment used by cron
+// and market routes.
+
+export {
+  computeDailySnapshot,
+  getSentimentService,
+  previousUtcMidnight,
+  upsertCoTReport,
+  upsertSnapshot,
+} from '@kestrel/ai';
+export {
+  getCandlesUnchecked,
+  getCandlesWithMeta,
+  getPricesWithMeta,
+  marketDataProviders,
+  ProviderError,
+} from '@kestrel/data';
+export { fetchLatestRows, parseCftcInt, toCftcName } from '@kestrel/data/providers/cftc';

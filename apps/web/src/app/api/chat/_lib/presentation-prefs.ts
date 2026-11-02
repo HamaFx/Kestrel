@@ -19,7 +19,7 @@
 // Presentation preferences enter the AI request boundary only after
 // sanitisation: never raw user text.
 
-import { PresentationPreferencesSchema } from '@/lib/services/api-boundary';
+import { PresentationPreferencesSchema } from '@kestrel/shared';
 
 export interface PresentationPrefs {
   customInstructions?: string;

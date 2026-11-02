@@ -21,7 +21,7 @@ import { NextResponse } from 'next/server';
 
 import { signIn } from '@/auth';
 import { createScopedLoggerWithContext } from '@/lib/logger';
-import { createUserWithSettings, getUserById } from '@/lib/services/api-boundary';
+import { createUserWithSettings, getUserById } from '@/lib/services/admin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

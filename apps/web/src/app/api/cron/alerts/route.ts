@@ -44,7 +44,8 @@
 
 import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
-import { evaluateAlerts, withAdminDb } from '@/lib/services/api-boundary';
+import { evaluateAlerts } from '@/lib/services/alerts';
+import { withAdminDb } from '@/lib/services/db';
 import { ownsTenantInPartition, resolveWorkerPartition } from '@/lib/services/worker-partition';
 
 export const runtime = 'nodejs';

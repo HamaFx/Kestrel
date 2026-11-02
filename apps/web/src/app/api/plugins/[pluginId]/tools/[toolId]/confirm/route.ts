@@ -23,11 +23,12 @@
 // `withAuth`; the tool is only executable when the calling user has the owning
 // plugin installed and enabled.
 
+import { rateLimited } from '@kestrel/shared';
 import { z } from 'zod';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
-import { rateLimited, withRateLimit } from '@/lib/services/api-boundary';
 import { confirmPluginToolExecution } from '@/lib/services/plugin-tool-confirm';
+import { withRateLimit } from '@/lib/services/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

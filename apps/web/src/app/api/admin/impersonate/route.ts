@@ -21,8 +21,7 @@ import { z } from 'zod';
 import { generateImpersonationChallenge, signIn } from '@/auth';
 import { withAdminAuth } from '@/lib/auth/admin-auth';
 import { jsonApiError, parseJsonBody } from '@/lib/http/api';
-import { recordAdminAudit } from '@/lib/services/admin';
-import { getUserById } from '@/lib/services/api-boundary';
+import { getUserById, recordAdminAudit } from '@/lib/services/admin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

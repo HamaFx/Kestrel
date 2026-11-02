@@ -26,7 +26,7 @@
 // long enough to warrant one.
 
 import { errorResponse, withAuth } from '@/lib/http/api';
-import { listMessages } from '@/lib/services/api-boundary';
+import { listMessages } from '@/lib/services/chat';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

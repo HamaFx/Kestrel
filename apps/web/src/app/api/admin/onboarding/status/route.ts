@@ -16,15 +16,12 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
+import { DEFAULT_WATCHLIST_SYMBOLS } from '@kestrel/shared';
 import { z } from 'zod';
 
 import { withAdminAuth } from '@/lib/auth/admin-auth';
 import { parseSearchParams } from '@/lib/http/api';
-import {
-  DEFAULT_WATCHLIST_SYMBOLS,
-  getUserWithSettings,
-  listUserSymbols,
-} from '@/lib/services/api-boundary';
+import { getUserWithSettings, listUserSymbols } from '@/lib/services/settings';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

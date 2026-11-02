@@ -35,7 +35,8 @@ import {
   type ExportThread,
 } from '@/lib/formatters/thread-export';
 import { errorResponse, withAuth } from '@/lib/http/api';
-import { getThread, listMessages, withRateLimit } from '@/lib/services/api-boundary';
+import { getThread, listMessages } from '@/lib/services/chat';
+import { withRateLimit } from '@/lib/services/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

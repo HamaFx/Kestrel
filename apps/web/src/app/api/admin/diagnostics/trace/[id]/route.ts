@@ -18,13 +18,16 @@
 
 import { withAdminAuth } from '@/lib/auth/admin-auth';
 import { jsonApiError } from '@/lib/http/api';
-import { recordAdminAudit } from '@/lib/services/admin';
+import {
+  getDiagnosticTraceForAdmin,
+  recordAdminAudit,
+  type DiagnosticTraceRow,
+} from '@/lib/services/admin';
 import type {
   DiagnosticTraceDetail,
   DiagnosticTraceError,
   DiagnosticTraceStep,
 } from '@/lib/services/admin-dtos';
-import { getDiagnosticTraceForAdmin, type DiagnosticTraceRow } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

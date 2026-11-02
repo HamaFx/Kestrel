@@ -32,12 +32,8 @@ import { STRATEGIST_DESKS, type StrategistDeskId } from '@/lib/kestrel-strategis
 // Postgres, then hands off to the client `<ChatScreen>` for the streaming
 // `useChat` experience.
 
-import {
-  getThread,
-  getUserWithSettings,
-  listMessages,
-  listThreads,
-} from '@/lib/services/api-boundary';
+import { getThread, listMessages, listThreads } from '@/lib/services/chat';
+import { getUserWithSettings } from '@/lib/services/settings';
 
 export const dynamic = 'force-dynamic';
 

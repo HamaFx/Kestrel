@@ -18,10 +18,10 @@
 
 // PF-22 — /api/market/price — latest prices (thin controller).
 
+import { SYMBOLS } from '@kestrel/shared';
 import { z } from 'zod';
 
 import { errorResponse, withAuth } from '@/lib/http/api';
-import { SYMBOLS } from '@/lib/services/api-boundary';
 import { checkMarketRateLimit, getPriceService } from '@/lib/services/market';
 
 const QuerySchema = z.object({

@@ -51,3 +51,6 @@ export {
   type ReplayCandleDTO,
   type TradeSetupReplayDTO,
 } from './replay';
+
+// Phase 3 Task 4 — journal domain re-exports for route handlers.
+export { getEntry, reviewTrade } from '@kestrel/ai';

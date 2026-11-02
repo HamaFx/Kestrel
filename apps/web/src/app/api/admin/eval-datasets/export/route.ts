@@ -30,18 +30,18 @@ import { join } from 'node:path';
 
 import { withAdminAuth } from '@/lib/auth/admin-auth';
 import { errorResponse } from '@/lib/http/api';
-import { recordAdminAudit } from '@/lib/services/admin';
 import {
   assembleTrainingDataset,
   buildJevRlcdTrainingRecords,
   isRlcdStateSafe,
   listReviewedTrainingPairs,
   publishTrainingDatasetToLangfuse,
+  recordAdminAudit,
   registerEvalDataset,
   resolveEvaluationAnnotations,
   type FeedbackAnnotationInput,
   type PromptResult,
-} from '@/lib/services/api-boundary';
+} from '@/lib/services/admin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

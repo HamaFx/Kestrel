@@ -34,19 +34,19 @@
 // OBS-04 addition: includes the count of jobs currently in `cron_runs` for
 // the last 24 hours so the system-status card can detect stuck jobs.
 
+import { REQUIRED_HEALTH_ENV_VARS } from '@kestrel/shared/env-secrets';
 import { sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 import { withAuth } from '@/lib/http/api';
 import {
-  getDb,
-  getFullAnalysisQueueHealth,
   getTelemetryStartupCheck,
   isMastraTelemetryDegraded,
-  REQUIRED_HEALTH_ENV_VARS,
   validateTelemetryStartup,
-  withRateLimit,
-} from '@/lib/services/api-boundary';
+} from '@/lib/services/admin';
+import { getFullAnalysisQueueHealth } from '@/lib/services/chat-ai';
+import { getDb } from '@/lib/services/db';
+import { withRateLimit } from '@/lib/services/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

@@ -38,3 +38,7 @@ export {
   uninstallPluginForUser,
   updatePluginSettingsForUser,
 } from './lifecycle';
+
+// Phase 3 Task 4 — installed-plugin lookups used by the chat route gating.
+export { getInstalledPluginIdsForUser } from '@kestrel/db';
+export { detectInstalledPluginIntent, type PluginIntentMatch } from '@kestrel/ai/plugins';

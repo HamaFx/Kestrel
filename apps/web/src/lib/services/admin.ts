@@ -27,10 +27,13 @@ import {
   countAdmins,
   countUsers,
   getDb,
+  getDiagnosticTraceForAdmin as getDiagnosticTraceForAdminDb,
+  listDiagnosticTracesForAdmin as listDiagnosticTracesForAdminDb,
   listUsersWithSettings,
   recordAdminAudit as recordAdminAuditDb,
   schema,
   updateUserRole,
+  type DiagnosticTraceRow,
 } from '@kestrel/db';
 import { eq } from 'drizzle-orm';
 
@@ -139,4 +142,63 @@ export async function updateUserRoleService({
   });
 
   return { ok: true as const, previousRole };
+}
+
+// ── Phase 3 Task 4 — admin-domain re-exports for routes ─────────────────────
+//
+// Audit history, cron history, diagnostics, feedback review, regression
+// cases, eval datasets, user lookup, and platform settings. All callers are
+// admin-gated routes.
+
+export type { DiagnosticTraceRow };
+
+export {
+  approveEvalDataset,
+  createAuditLog,
+  createUserWithSettings,
+  deleteOldCronRuns,
+  getActiveUserIds,
+  getEvalDataset,
+  getPlatformAdminSettings,
+  getPlatformAdminUserId,
+  getUserById,
+  getUserRole,
+  lazyPurgeExpiredTokens,
+  listAdminAuditLogs,
+  listAiRegressionCases,
+  listCronRuns,
+  listEvalDatasets,
+  listFeedbackForReview,
+  listReviewedTrainingPairs,
+  listTraceExplorerEvents,
+  listToolTelemetry,
+  registerEvalDataset,
+  reviewMessageFeedback,
+  runRetentionCleanup,
+  updateAiRegressionCaseStatus,
+} from '@kestrel/db';
+export {
+  assembleTrainingDataset,
+  buildJevRlcdTrainingRecords,
+  getTelemetryStartupCheck,
+  isMastraTelemetryDegraded,
+  isRlcdStateSafe,
+  publishTrainingDatasetToLangfuse,
+  resolveEvaluationAnnotations,
+  validateTelemetryStartup,
+  type FeedbackAnnotationInput,
+  type PromptResult,
+} from '@kestrel/ai';
+export type { RunTelemetryRow } from '@kestrel/ai/mastra-v2';
+
+/** Admin-only trace detail read after `withAdminAuth` has authorized the caller. */
+export async function getDiagnosticTraceForAdmin(id: string) {
+  return getDiagnosticTraceForAdminDb(id);
+}
+
+/** Admin-only cross-user trace list after `withAdminAuth` has authorized the caller. */
+export async function listDiagnosticTracesForAdmin(
+  opts: { threadId?: string; limit?: number } = {},
+) {
+  return listDiagnosticTracesForAdminDb(opts);
 }

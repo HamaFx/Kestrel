@@ -27,7 +27,7 @@
 import { z } from 'zod';
 
 import { parseJsonBody, withAuth } from '@/lib/http/api';
-import { deletePushSubscriptionByEndpoint } from '@/lib/services/api-boundary';
+import { deletePushSubscriptionByEndpoint } from '@/lib/services/notifications';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

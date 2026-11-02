@@ -20,7 +20,7 @@ import { z } from 'zod';
 
 import { withAdminAuth } from '@/lib/auth/admin-auth';
 import { parseSearchParams } from '@/lib/http/api';
-import { listAiRegressionCases } from '@/lib/services/api-boundary';
+import { listAiRegressionCases } from '@/lib/services/admin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

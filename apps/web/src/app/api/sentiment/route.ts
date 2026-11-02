@@ -19,13 +19,11 @@
 // /api/sentiment — get aggregated social sentiment for a symbol.
 // GET /api/sentiment?symbol=XAUUSD
 
+import { AppError, SymbolSchema } from '@kestrel/shared';
+
 import { errorResponse, withAuth } from '@/lib/http/api';
-import {
-  AppError,
-  getSentimentService,
-  SymbolSchema,
-  withRateLimit,
-} from '@/lib/services/api-boundary';
+import { getSentimentService } from '@/lib/services/market';
+import { withRateLimit } from '@/lib/services/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

@@ -37,7 +37,7 @@ import {
   listFredEventsMissingActual,
   parseFredEventId,
   patchEventActual,
-} from '@/lib/services/api-boundary';
+} from '@/lib/services/calendar';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

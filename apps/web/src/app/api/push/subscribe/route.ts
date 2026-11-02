@@ -27,16 +27,12 @@
 //   401 { error: 'unauthorized' }    when the session cookie is missing/invalid
 //   503 { missing: string[] }        when VAPID keys are not configured
 
+import { AppError, conflict } from '@kestrel/shared';
 import { z } from 'zod';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
-import {
-  AppError,
-  conflict,
-  PushSubscriptionConflictError,
-  savePushSubscription,
-  withRateLimit,
-} from '@/lib/services/api-boundary';
+import { PushSubscriptionConflictError, savePushSubscription } from '@/lib/services/notifications';
+import { withRateLimit } from '@/lib/services/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

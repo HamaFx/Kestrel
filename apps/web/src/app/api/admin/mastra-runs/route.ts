@@ -21,13 +21,9 @@ import { z } from 'zod';
 
 import { withAdminAuth } from '@/lib/auth/admin-auth';
 import { parseSearchParams } from '@/lib/http/api';
-import {
-  getDb,
-  getKestrelMastra,
-  schema,
-  toMastraRunView,
-  type RunTelemetryRow,
-} from '@/lib/services/api-boundary';
+import type { RunTelemetryRow } from '@/lib/services/admin';
+import { getKestrelMastra, toMastraRunView } from '@/lib/services/chat-ai';
+import { getDb, schema } from '@/lib/services/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

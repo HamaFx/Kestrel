@@ -27,7 +27,7 @@
 import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import { computeHealthSloService } from '@/lib/services/admin-health';
-import { getAdminDb } from '@/lib/services/api-boundary';
+import { getAdminDb } from '@/lib/services/db';
 import { deliverHealthAlert } from '@/lib/services/health-alert-delivery';
 
 export const runtime = 'nodejs';

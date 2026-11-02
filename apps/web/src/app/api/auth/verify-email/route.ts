@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
+import { AppError } from '@kestrel/shared';
 import { NextResponse } from 'next/server';
 
 import { hashToken } from '@/lib/auth/auth-tokens';
 import { errorResponse } from '@/lib/http/api';
 import {
-  AppError,
   deleteVerificationToken,
   findVerificationToken,
   verifyUserEmail,
-} from '@/lib/services/api-boundary';
+} from '@/lib/services/auth';
 
 /**
  * GET /api/auth/verify-email?token=...

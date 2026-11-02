@@ -29,13 +29,17 @@ vi.mock('@/lib/auth/admin-auth', () => ({
     handler(req),
 }));
 
-vi.mock('@/lib/services/api-boundary', () => ({
-  logStreamHub: {
-    isEnabled: mockIsEnabled,
-    subscribe: mockSubscribe,
-    unsubscribe: mockUnsubscribe,
-  },
-}));
+vi.mock('@kestrel/shared', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@kestrel/shared')>();
+  return {
+    ...actual,
+    logStreamHub: {
+      isEnabled: mockIsEnabled,
+      subscribe: mockSubscribe,
+      unsubscribe: mockUnsubscribe,
+    },
+  };
+});
 
 describe('GET /api/admin/logs/stream', () => {
   beforeEach(() => {

@@ -20,8 +20,7 @@ import { z } from 'zod';
 
 import { withAdminAuth } from '@/lib/auth/admin-auth';
 import { errorResponse, jsonApiError, parseJsonBody } from '@/lib/http/api';
-import { recordAdminAudit } from '@/lib/services/admin';
-import { reviewMessageFeedback } from '@/lib/services/api-boundary';
+import { recordAdminAudit, reviewMessageFeedback } from '@/lib/services/admin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

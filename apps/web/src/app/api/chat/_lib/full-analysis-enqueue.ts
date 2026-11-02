@@ -25,18 +25,18 @@
 // cannot be resolved at enqueue time, fail closed with a clear message.
 
 import type { UserSettingsRow } from '@kestrel/db';
+import { AnalysisQueuedEventSchema } from '@kestrel/shared';
+import { traceIdStorage } from '@kestrel/shared/logger';
 
 import type { getServerEnv } from '@/lib/env';
 import type { createRequestLogger } from '@/lib/logger';
 import {
-  AnalysisQueuedEventSchema,
   enqueueFullAnalysis,
   resolveMastraModeModel,
-  resolveProviderMode,
-  traceIdStorage,
   withDiagnostics,
   type ExecutionPlan,
-} from '@/lib/services/api-boundary';
+} from '@/lib/services/chat-ai';
+import { resolveProviderMode } from '@/lib/services/providers';
 
 import { errorJson } from './errors';
 import type { ChatUserParts } from './request-validation';

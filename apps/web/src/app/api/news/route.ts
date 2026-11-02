@@ -17,7 +17,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { errorResponse, withAuth } from '@/lib/http/api';
-import { listRecentArticles, withRateLimit } from '@/lib/services/api-boundary';
+import { listRecentArticles } from '@/lib/services/news';
+import { withRateLimit } from '@/lib/services/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

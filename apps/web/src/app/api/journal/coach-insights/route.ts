@@ -21,8 +21,8 @@
 
 import { getServerEnv } from '@/lib/env';
 import { errorResponse, withAuth } from '@/lib/http/api';
-import { getUserWithSettings } from '@/lib/services/api-boundary';
 import { getCoachInsightsService } from '@/lib/services/journal';
+import { getUserWithSettings } from '@/lib/services/settings';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

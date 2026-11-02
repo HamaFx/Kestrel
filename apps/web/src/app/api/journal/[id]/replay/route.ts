@@ -19,8 +19,9 @@
 // /api/journal/[id]/replay — fetch historical candles, technical indicators, MFE/MAE for setup replay.
 // GET ?timeframe=15m
 
+import { isTimeframe, type Timeframe } from '@kestrel/shared';
+
 import { errorResponse, withAuth } from '@/lib/http/api';
-import { isTimeframe, type Timeframe } from '@/lib/services/api-boundary';
 import { getTradeSetupReplayService } from '@/lib/services/journal';
 
 export const runtime = 'nodejs';

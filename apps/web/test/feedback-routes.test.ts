@@ -71,16 +71,15 @@ vi.mock('@/lib/auth/admin-auth', () => ({
       }),
 }));
 
-vi.mock('@/lib/services/api-boundary', () => ({
+vi.mock('@/lib/services/chat', () => ({
   upsertMessageFeedback: mockUpsertMessageFeedback,
   getMessageFeedback: mockGetMessageFeedback,
   deleteMessageFeedback: mockDeleteMessageFeedback,
-  listFeedbackForReview: mockListFeedbackForReview,
-  reviewMessageFeedback: mockReviewMessageFeedback,
 }));
-
 vi.mock('@/lib/services/admin', () => ({
   recordAdminAudit: mockRecordAdminAudit,
+  listFeedbackForReview: mockListFeedbackForReview,
+  reviewMessageFeedback: mockReviewMessageFeedback,
 }));
 
 const row = {

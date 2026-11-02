@@ -35,16 +35,13 @@
 //
 // Auth: NextAuth session gate. Per-user data only.
 
+import type { ProviderId } from '@kestrel/shared';
+import { PROVIDER_IDS } from '@kestrel/shared/encryption';
 import { z } from 'zod';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
-import {
-  BYOK_PROVIDERS,
-  getUserWithSettings,
-  PROVIDER_IDS,
-  updateUserSettingsField,
-  type ProviderId,
-} from '@/lib/services/api-boundary';
+import { BYOK_PROVIDERS } from '@/lib/services/providers';
+import { getUserWithSettings, updateUserSettingsField } from '@/lib/services/settings';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

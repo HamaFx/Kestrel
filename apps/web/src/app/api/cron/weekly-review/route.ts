@@ -27,7 +27,8 @@
 
 import { getActiveUserIdsForCron, withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
-import { emitWeeklyReview, withUserTenant } from '@/lib/services/api-boundary';
+import { emitWeeklyReview } from '@/lib/services/alerts';
+import { withUserTenant } from '@/lib/services/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

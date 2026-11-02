@@ -17,7 +17,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { errorResponse, withAuth } from '@/lib/http/api';
-import { getThread, listAgentOpinions } from '@/lib/services/api-boundary';
+import { getThread, listAgentOpinions } from '@/lib/services/chat';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

@@ -16,8 +16,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
+import { logStreamHub } from '@kestrel/shared';
+
 import { withAdminAuth } from '@/lib/auth/admin-auth';
-import { logStreamHub } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

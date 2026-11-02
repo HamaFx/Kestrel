@@ -82,6 +82,12 @@ export default [
   // PF-22 — API route files must import from @/lib/services/*, not from
   // domain packages directly. This enforces the Controller+Service pattern
   // so business logic stays in services, not spread across route handlers.
+  //
+  // Phase 3 Task 4 — `@kestrel/shared` (pure types, Zod schemas, AppError
+  // helpers) may be imported directly by routes. The former blanket
+  // `@kestrel/*` pattern forced every schema through the opaque
+  // `api-boundary.ts` barrel; only ai/data/db/indicators/plugins stay
+  // restricted to the service layer.
   {
     files: ['src/app/api/**/route.ts'],
     rules: {
@@ -104,17 +110,25 @@ export default [
               message:
                 'API routes must import from @/lib/services/* instead of @kestrel/db directly. Import database functions through the service layer.',
             },
-            {
-              name: '@kestrel/shared',
-              message:
-                'API routes must import from @/lib/services/* instead of @kestrel/shared directly. Import shared utilities through the service layer.',
-            },
           ],
           patterns: [
             {
-              group: ['@kestrel/*'],
+              group: [
+                '@kestrel/ai/*',
+                '@kestrel/data/*',
+                '@kestrel/db/*',
+                '@kestrel/indicators',
+                '@kestrel/indicators/*',
+                '@kestrel/plugin-sdk',
+                '@kestrel/plugin-sdk/*',
+                '@kestrel/plugin-*',
+                '@kestrel/config',
+                '@kestrel/config/*',
+                '@kestrel/test-utils',
+                '@kestrel/test-utils/*',
+              ],
               message:
-                'API routes must import from @/lib/services/* instead of @kestrel/* directly.',
+                'API routes must import from @/lib/services/* instead of @kestrel/* directly. @kestrel/shared is the only exception.',
             },
           ],
         },

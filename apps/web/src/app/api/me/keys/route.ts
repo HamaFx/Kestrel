@@ -29,8 +29,10 @@
 // The endpoint never returns key values — only the presence/absence
 // per provider.
 
+import { configuredProviders, decryptByok } from '@kestrel/shared/encryption';
+
 import { errorResponse, withAuth } from '@/lib/http/api';
-import { configuredProviders, decryptByok, getUserWithSettings } from '@/lib/services/api-boundary';
+import { getUserWithSettings } from '@/lib/services/settings';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

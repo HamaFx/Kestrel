@@ -26,7 +26,7 @@ import {
   isBudgetEnforced,
   MutationExtractionError,
   TripWire,
-} from '@/lib/services/api-boundary';
+} from '@/lib/services/chat-ai';
 
 type RequestLogger = ReturnType<typeof createRequestLogger>;
 

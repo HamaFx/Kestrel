@@ -32,7 +32,8 @@
 
 import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
-import { runRetentionCleanup, withAdminDb } from '@/lib/services/api-boundary';
+import { runRetentionCleanup } from '@/lib/services/admin';
+import { withAdminDb } from '@/lib/services/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

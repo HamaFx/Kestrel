@@ -126,3 +126,24 @@ export async function updateThreadAnalysisModeService(
 ): Promise<boolean> {
   return updateThreadAnalysisMode(userId, id, analysisMode);
 }
+
+// ── Phase 3 Task 4 — domain re-exports for routes ───────────────────────────
+//
+// Route handlers and `_lib` helpers import thread/message persistence and
+// message feedback from here instead of the removed `api-boundary` barrel.
+
+export {
+  createThread,
+  deleteThread,
+  forkThread,
+  getThread,
+  listMessages,
+  listThreads,
+} from '@kestrel/ai/persistence';
+export { appendAssistantMessage, appendUserMessage, listAgentOpinions } from '@kestrel/ai';
+export {
+  batchDeleteThreads,
+  deleteMessageFeedback,
+  getMessageFeedback,
+  upsertMessageFeedback,
+} from '@kestrel/db';

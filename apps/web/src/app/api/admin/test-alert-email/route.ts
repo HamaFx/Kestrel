@@ -40,12 +40,12 @@
 //                                      (variable NAMES only, never values)
 //   502 { error: string }              on Resend non-2xx (response text truncated)
 
+import { AppError } from '@kestrel/shared';
 import { z } from 'zod';
 
 import { withAdminAuth } from '@/lib/auth/admin-auth';
 import { checkAdminRateLimit } from '@/lib/auth/admin-rate-limit';
 import { errorResponse, parseJsonBody } from '@/lib/http/api';
-import { AppError } from '@/lib/services/api-boundary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

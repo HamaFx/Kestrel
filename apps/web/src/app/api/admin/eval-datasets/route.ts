@@ -20,7 +20,7 @@ import { z } from 'zod';
 
 import { withAdminAuth } from '@/lib/auth/admin-auth';
 import { errorResponse, parseJsonBody, parseSearchParams } from '@/lib/http/api';
-import { listEvalDatasets, registerEvalDataset } from '@/lib/services/api-boundary';
+import { listEvalDatasets, registerEvalDataset } from '@/lib/services/admin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

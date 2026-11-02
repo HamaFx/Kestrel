@@ -35,8 +35,8 @@ vi.mock('@/lib/services/journal', () => ({
   getCoachInsightsService: mocks.getCoachInsightsService,
 }));
 
-vi.mock('@/lib/services/api-boundary', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/services/api-boundary')>();
+vi.mock('@/lib/services/settings', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/services/settings')>();
   return {
     ...actual,
     getUserWithSettings: mocks.getUserWithSettings,

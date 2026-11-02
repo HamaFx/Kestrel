@@ -18,7 +18,7 @@
 
 // Persisted workflow-run lookup for the mutation confirmation boundary.
 
-import { getKestrelMastra, MutationKindSchema } from '@/lib/services/api-boundary';
+import { getKestrelMastra, MutationKindSchema } from '@/lib/services/chat-ai';
 
 export async function findMutationRun(runId: string): Promise<unknown | null> {
   const storage = await getKestrelMastra().instance.getStorage()?.getStore('workflows');

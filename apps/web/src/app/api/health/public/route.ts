@@ -35,7 +35,7 @@
 import { sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
-import { getDb } from '@/lib/services/api-boundary';
+import { getDb } from '@/lib/services/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

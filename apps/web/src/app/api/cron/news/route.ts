@@ -35,7 +35,7 @@
 
 import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext, type CategorizedLogger } from '@/lib/logger';
-import { fetchNews, latestArticleTimestampMs, upsertArticles } from '@/lib/services/api-boundary';
+import { fetchNews, latestArticleTimestampMs, upsertArticles } from '@/lib/services/news';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

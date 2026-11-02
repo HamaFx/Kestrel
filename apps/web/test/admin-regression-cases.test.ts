@@ -56,12 +56,11 @@ vi.mock('@/lib/http/api', () => ({
   ),
 }));
 
-vi.mock('@/lib/services/api-boundary', () => ({
+vi.mock('@/lib/services/admin', () => ({
   listAiRegressionCases: mocks.listAiRegressionCases,
   updateAiRegressionCaseStatus: mocks.updateAiRegressionCaseStatus,
+  recordAdminAudit: mocks.recordAdminAudit,
 }));
-
-vi.mock('@/lib/services/admin', () => ({ recordAdminAudit: mocks.recordAdminAudit }));
 
 const row = {
   id: 'case-1',

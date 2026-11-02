@@ -33,7 +33,7 @@ vi.mock('@/lib/http/api', () => ({
       }),
 }));
 
-vi.mock('@/lib/services/api-boundary', () => ({
+vi.mock('@/lib/services/chat-ai', () => ({
   getFullAnalysisRun: mockGetFullAnalysisRun,
   cancelFullAnalysisRun: mockCancelFullAnalysisRun,
 }));

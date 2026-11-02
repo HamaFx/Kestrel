@@ -38,8 +38,8 @@ import {
   emitPreEvent,
   findHighImpactEventsInWindow,
   listEmittedEventIds,
-  withUserTenant,
-} from '@/lib/services/api-boundary';
+} from '@/lib/services/alerts';
+import { withUserTenant } from '@/lib/services/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
