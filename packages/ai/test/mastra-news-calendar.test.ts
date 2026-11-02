@@ -141,7 +141,7 @@ describe('Mastra XAUUSD news and calendar adapters', () => {
 
     expect(mocks.calendarExecute).toHaveBeenCalledWith(
       { currencies: ['USD'], minImportance: 'medium' },
-      {},
+      expect.objectContaining({}),
     );
     expect(output).toMatchObject({
       symbol: 'XAUUSD',
@@ -173,7 +173,7 @@ describe('Mastra XAUUSD news and calendar adapters', () => {
     ).rejects.toBe(error);
     expect(mocks.calendarExecute).toHaveBeenCalledWith(
       { currencies: ['USD'], minImportance: 'medium' },
-      { abortSignal: signal },
+      expect.objectContaining({ abortSignal: signal }),
     );
   });
 });

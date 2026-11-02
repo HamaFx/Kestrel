@@ -107,16 +107,21 @@ describe('native canonical tools (B-01)', () => {
     expect(resolveNativeCanonicalTool('get_news')).toBe(canonicalNewsTool);
     expect(resolveNativeCanonicalTool('get_cot')).toBe(canonicalCoTTool);
     expect(resolveNativeCanonicalTool('get_market_structure')).toBe(canonicalMarketStructureTool);
-    expect(resolveNativeCanonicalTool('get_calendar')).toBeNull();
-    expect(Object.keys(nativeCanonicalTools()).sort()).toEqual([
-      'get_candles',
-      'get_cot',
-      'get_indicators',
-      'get_market_structure',
-      'get_news',
-      'get_price',
-      'search_knowledge',
-    ]);
+    expect(resolveNativeCanonicalTool('get_calendar')).not.toBeNull();
+    expect(Object.keys(nativeCanonicalTools()).sort()).toEqual(
+      [
+        ...CANONICAL_READ_ONLY_TOOL_NAMES,
+        // Phase 4 Task 2: the sensitive user reads and the read-only tools
+        // outside the canonical-chat allowlist are part of the native suite
+        // even though canonical chat never sees them.
+        'get_journal_stats',
+        'compute_position_health',
+        'replay_setup',
+        'analyze_chart_image',
+        'annotate_chart',
+        'get_system_diagnostics',
+      ].sort(),
+    );
   });
 
   it('keeps Mastra tool ids and legacy tool names aligned', () => {

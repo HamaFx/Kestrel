@@ -14,46 +14,36 @@
  * limitations under the License.
  */
 
-// Legacy read-only tool adapter barrel (DEC-05 split of
-// legacy-tool-adapter.ts): the Mastra adapters plus the stream-part parsing
-// the canonical chat runner and specialist runner share.
+// Read-only tool lifecycle barrel (DEC-05 split of legacy-tool-adapter.ts):
+// the Mastra lifecycle wrapper plus the stream-part parsing the canonical chat
+// runner and specialist runner share.
 //
 //   - stream-parts.ts — UI tool-name mapping + `tool-<name>` part extraction
 //
-// The adapter bodies stay in this module (the former module's surface) on
+// The wrapper body stays in this module (the former module's surface) on
 // purpose: `createReadOnlyToolExecute` is called at module scope by
-// `mastra-v2/tools/canonical/*` and `mastra-v2/agents/xauusd/tools/*`, which
-// sit inside the `shared/tool-telemetry` import cycle. Keeping the function
+// `mastra-v2/tools/canonical/*` and `mastra-v2/tools/read-only/*`, which sit
+// inside the `shared/tool-telemetry` import cycle. Keeping the function
 // declarations in the entry module preserves the original hoisting semantics;
 // re-exporting them through a second hop would surface an undefined binding to
 // those modules during cyclic evaluation.
+//
+// Phase 4 Task 2: the runtime `adaptLegacyReadOnlyTool(s)` duck-typing adapter
+// is gone. Every read-only tool is registered explicitly as a native Mastra
+// `createTool`; `executeLegacyReadOnlyTool` is the only bridge that calls an
+// existing legacy execute core.
 
 import type { CandlesResult } from '@kestrel/data';
-import { createTool, type ToolObserve } from '@mastra/core/tools';
-import type { Tool } from 'ai';
+import type { ToolObserve } from '@mastra/core/tools';
+import type { Tool, ToolExecutionOptions } from 'ai';
 
-import { MastraMutationNameSchema } from '@ai/mastra-v2/mutation/mutation-policy';
 import { qualityFromWarnings } from '@ai/mastra-v2/packets/evidence';
 import { executeMastraTool } from '@ai/mastra-v2/shared/tool-telemetry';
 
 import {
-  normalizeUiToolName,
   type MastraToolInvocationPart,
   type MastraToolStreamEvent,
 } from './stream-parts';
-
-interface LegacyToolWithExecute {
-  description?: string;
-  inputSchema?: unknown;
-  execute?: (
-    input: unknown,
-    options?: {
-      toolCallId?: string;
-      messages?: unknown[];
-      abortSignal?: AbortSignal;
-    },
-  ) => Promise<unknown> | unknown;
-}
 
 /** Context Mastra hands to a read-only tool execute function. */
 export interface MastraReadOnlyToolContext {
@@ -66,9 +56,8 @@ export interface MastraReadOnlyToolContext {
 
 /**
  * B-01 (audit 2026-10-18): the single lifecycle wrapper for every read-only
- * canonical tool — legacy adapter and Mastra-native registrations alike.
- * Emits live tool UI events, captures tool parts for the streamed response,
- * and records metrics/DB telemetry without logging inputs or outputs.
+ * Mastra tool. Emits live tool UI events, captures tool parts for the streamed
+ * response, and records metrics/DB telemetry without logging inputs or outputs.
  */
 export function createReadOnlyToolExecute<TInput, TOutput>(
   fullToolId: string,
@@ -182,76 +171,76 @@ export function candleEvidenceMetadata(
 }
 
 /**
- * Invoke an existing Kestrel read-only tool without duplicating its
- * deterministic implementation. This bridge remains available for the next
- * adapter migrations; the first market adapters now share pure calculations
- * directly so they can preserve candle metadata without a second fetch.
+ * Minimal executable shape for the bridge. The AI SDK `Tool` is a union of
+ * function/provider/dynamic tools, so the bridge narrows to the executable
+ * surface it actually expects (the legacy tools are all `tool()` values).
  */
-export async function executeLegacyReadOnlyTool<TOutput>(
-  legacyTool: Tool,
-  input: unknown,
-  signal?: AbortSignal,
-): Promise<TOutput> {
-  const executable = legacyTool as unknown as LegacyToolWithExecute;
-  if (typeof executable.execute !== 'function') {
-    throw new Error('Mastra adapter received a legacy tool without an execute function');
-  }
-
-  return executable.execute(input, signal ? { abortSignal: signal } : {}) as Promise<TOutput>;
+interface ExecutableLegacyReadOnlyTool<TInput, TOutput> {
+  execute: (
+    input: TInput,
+    options: {
+      toolCallId: string;
+      messages: ToolExecutionOptions<unknown>['messages'];
+      abortSignal?: AbortSignal;
+      context?: unknown;
+    },
+  ) => PromiseLike<TOutput> | TOutput | AsyncIterable<TOutput>;
 }
 
-/**
- * Adapt a legacy AI SDK read-only tool to a genuine Mastra tool. This is the
- * compatibility seam for the canonical chat runner: Kestrel keeps ownership
- * of the existing tool implementations, while Mastra owns the agent/tool
- * loop. The adapter forwards the authenticated AsyncLocalStorage context and
- * cancellation signal; it never exposes mutation tools.
- *
- * B-01 (audit 2026-10-18): `get_price`, `get_candles`, `get_indicators`, and
- * `search_knowledge` no longer flow through this adapter in the canonical
- * chat — they are registered from `mastra-v2/tools/canonical/*` as native
- * tools that share the same `createReadOnlyToolExecute` lifecycle wrapper.
- */
-export function adaptLegacyReadOnlyTool(name: string, legacyTool: Tool) {
-  if (MastraMutationNameSchema.safeParse(name).success) {
-    throw new Error(
-      `Cannot adapt ${name}: mutation tools are forbidden in Mastra read-only agents`,
-    );
-  }
-  const source = legacyTool as unknown as LegacyToolWithExecute;
-  if (typeof source.execute !== 'function') {
-    throw new Error(`Cannot adapt ${name}: legacy tool has no execute function`);
-  }
-  const uiToolName = normalizeUiToolName(name);
-
-  return createTool({
-    id: `kestrel-${name}`,
-    description: source.description ?? `Read-only Kestrel tool: ${name}`,
-    ...(source.inputSchema ? { inputSchema: source.inputSchema as never } : {}),
-    execute: createReadOnlyToolExecute(`kestrel-${name}`, uiToolName, async (input, context) =>
-      source.execute!(input, {
-        ...(context.toolCallId ? { toolCallId: context.toolCallId } : {}),
-        ...(context.messages ? { messages: context.messages } : {}),
-        ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
-      }),
-    ),
-  } as never);
-}
-
-/**
- * Adapt a complete specialist tool map while preserving the original tool
- * names used by the specialist prompts. This is intentionally a separate
- * helper from the canonical registry filter: callers must decide the allowed
- * tool set before invoking it, and a missing executor fails closed.
- */
-export function adaptLegacyReadOnlyTools(tools: Record<string, Tool>) {
-  return Object.fromEntries(
-    Object.entries(tools).map(([name, tool]) => [name, adaptLegacyReadOnlyTool(name, tool)]),
+function isAsyncIterable<TOutput>(value: unknown): value is AsyncIterable<TOutput> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { [Symbol.asyncIterator]?: unknown })[Symbol.asyncIterator] === 'function'
   );
 }
 
+/**
+ * Invoke an existing Kestrel read-only tool without duplicating its
+ * deterministic implementation. This is the single bridge from a native
+ * Mastra registration to the AI SDK tool implementation.
+ *
+ * The legacy executes read only `context.abortSignal` (verified across
+ * `packages/ai/src/tools/*`); `toolCallId` and `messages` are forwarded when
+ * present so a future implementation can still see them.
+ */
+export async function executeLegacyReadOnlyTool<TInput, TOutput>(
+  legacyTool: Tool<TInput, TOutput>,
+  input: TInput,
+  context?: Pick<MastraReadOnlyToolContext, 'toolCallId' | 'messages' | 'abortSignal'>,
+): Promise<TOutput> {
+  const executable = legacyTool as unknown as ExecutableLegacyReadOnlyTool<TInput, TOutput>;
+  if (typeof executable.execute !== 'function') {
+    throw new Error('Read-only tool bridge received a legacy tool without an execute function');
+  }
+  const result = executable.execute(input, {
+    toolCallId: context?.toolCallId ?? 'kestrel-native-bridge',
+    messages: (context?.messages ?? []) as ToolExecutionOptions<unknown>['messages'],
+    ...(context?.abortSignal ? { abortSignal: context.abortSignal } : {}),
+    context: undefined,
+  });
+  if (isAsyncIterable(result)) {
+    throw new Error('Read-only tool bridge does not support streaming legacy tool output');
+  }
+  return await result;
+}
+
+/**
+ * Description for a native registration, falling back to a deterministic
+ * label when a legacy tool has no static description string (the AI SDK also
+ * allows function descriptions, which Mastra's string field cannot render).
+ */
+export function readOnlyToolDescription(
+  legacyTool: { description?: unknown },
+  name: string,
+): string {
+  const { description } = legacyTool;
+  return typeof description === 'string' && description.length > 0
+    ? description
+    : `Read-only Kestrel tool: ${name}`;
+}
+
 export {
-  normalizeUiToolName,
   extractToolPartsFromMessages,
   type MastraToolInvocationPart,
   type MastraToolStreamEvent,

@@ -92,14 +92,15 @@ const XAUUSD_TO_UI_TOOL_NAME: Record<string, string> = {
   'search-untrusted-knowledge': 'search_knowledge',
 };
 
-export function normalizeUiToolName(rawName: string): string {
+function normalizeUiToolName(rawName: string): string {
   const stripped = rawName.startsWith('kestrel-') ? rawName.slice('kestrel-'.length) : rawName;
   return XAUUSD_TO_UI_TOOL_NAME[stripped] ?? stripped;
 }
 
 /**
  * Extract structured AI SDK v5 `tool-<name>` UI parts from Mastra response
- * messages, merging with any parts already captured live via `adaptLegacyReadOnlyTool`.
+ * messages, merging with any parts already captured live by the read-only
+ * tool lifecycle wrapper.
  */
 export function extractToolPartsFromMessages(
   messages: readonly unknown[] | undefined,

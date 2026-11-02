@@ -24,8 +24,13 @@
  * indirection). P2-01 removal: the one-release AI SDK shims were deleted on
  * 2026-11-01, so these `createTool` registrations are the only
  * implementations of the seven names.
+ *
+ * Phase 4 Task 2: the remaining read-only tools live in `../read-only` and are
+ * merged into `nativeCanonicalTools()` below, so this module is the single
+ * native tool map for read-only agents.
  */
 
+import { nativeReadOnlyTools } from '../read-only';
 import { canonicalCandlesTool } from './candles';
 import { canonicalCoTTool } from './cot';
 import { canonicalIndicatorsTool } from './indicators';
@@ -53,6 +58,10 @@ export { canonicalPriceTool } from './price';
  * initialization`, which production only reports as a masked React error #441
  * with a digest. Every consumer either resolves by name or enumerates the map
  * at call time, so deferring construction is invisible to them.
+ *
+ * Phase 4 Task 2: the map now also carries the remaining read-only tools
+ * (`../read-only`), so every manifest name resolves without a legacy
+ * adaptation step.
  */
 let nativeCanonicalToolsCache: Readonly<Record<string, unknown>> | null = null;
 
@@ -66,6 +75,8 @@ export function nativeCanonicalTools(): Readonly<Record<string, unknown>> {
     get_news: canonicalNewsTool,
     get_cot: canonicalCoTTool,
     get_market_structure: canonicalMarketStructureTool,
+    // Phase 4 Task 2: every other read-only tool registers natively too.
+    ...nativeReadOnlyTools(),
   };
   return nativeCanonicalToolsCache;
 }

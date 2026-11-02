@@ -19,8 +19,6 @@
 import type { PluginInlineSkill } from '@kestrel/plugin-sdk';
 import { createSkill, type SkillInput } from '@mastra/core/skills';
 
-import { adaptLegacyReadOnlyTool } from '../mastra-v2/agents/xauusd/legacy-tool-adapter';
-import { resolveNativeCanonicalTool } from '../mastra-v2/tools/canonical';
 import {
   buildCatalogContext,
   customAgentCoreTools,
@@ -92,22 +90,18 @@ export async function resolveMcpTools(args: {
 }
 
 export async function coreToolsFor(selected: readonly string[]): Promise<Record<string, unknown>> {
-  // Lazy: loading the registry pulls every tool module, and `@ai/plugins` is
-  // itself imported by agent code during module initialization.
-  const { registerAllTools, toolRegistry } = await import('@ai/tools');
-  registerAllTools(toolRegistry);
+  // Lazy: the native tool map pulls every read-only tool module, and
+  // `@ai/plugins` is itself imported by agent code during module
+  // initialization. Phase 4 Task 2: every allowlisted core tool is a native
+  // Mastra registration, so there is no legacy adaptation fallback.
+  const { resolveNativeCanonicalTool } = await import('../mastra-v2/tools/canonical');
   const allowed = customAgentCoreTools();
   const result: Record<string, unknown> = {};
   for (const name of selected) {
     if (!allowed.has(name)) continue;
     if (result[name] !== undefined) continue;
-    const native = resolveNativeCanonicalTool(name) ?? null;
-    if (native) {
-      result[name] = native;
-      continue;
-    }
-    const legacy = toolRegistry.getPlugin(name)?.tool;
-    if (legacy) result[name] = adaptLegacyReadOnlyTool(name, legacy);
+    const native = resolveNativeCanonicalTool(name);
+    if (native) result[name] = native;
   }
   return result;
 }

@@ -88,11 +88,7 @@ export const mastraSeasonalityTool = createTool({
   outputSchema: SeasonalityOutputSchema,
   execute: async (input, context) =>
     executeMastraTool('get-symbol-seasonality', context, async () => {
-      const data = await executeLegacyReadOnlyTool<z.infer<typeof GetSeasonalityOutputSchema>>(
-        getSeasonalityTool,
-        input,
-        context.abortSignal,
-      );
+      const data = await executeLegacyReadOnlyTool(getSeasonalityTool, input, context);
       const fetchedAt = new Date().toISOString();
       return SeasonalityOutputSchema.parse({
         evidenceId: createEvidenceId('seasonality', data.symbol),
@@ -156,9 +152,7 @@ export const mastraResonanceTool = createTool({
   outputSchema: ResonanceOutputSchema,
   execute: async (input, context) =>
     executeMastraTool('get-symbol-intermarket-resonance', context, async () => {
-      const data = await executeLegacyReadOnlyTool<
-        z.infer<typeof GetIntermarketResonanceOutputSchema>
-      >(getIntermarketResonanceTool, input, context.abortSignal);
+      const data = await executeLegacyReadOnlyTool(getIntermarketResonanceTool, input, context);
       const fetchedAt = new Date().toISOString();
       const latest = data.observations.at(-1)?.date ?? fetchedAt;
       return ResonanceOutputSchema.parse({
@@ -199,11 +193,7 @@ export const mastraWebSearchTool = createTool({
   outputSchema: WebOutputSchema,
   execute: async (input, context) =>
     executeMastraTool('search-untrusted-web', context, async () => {
-      const data = await executeLegacyReadOnlyTool<z.infer<typeof WebSearchOutputSchema>>(
-        webSearchTool,
-        input,
-        context.abortSignal,
-      );
+      const data = await executeLegacyReadOnlyTool(webSearchTool, input, context);
       const fetchedAt = new Date().toISOString();
       const latest = data.sources
         .map((source) => (source.publishedAt ? Date.parse(source.publishedAt) : NaN))

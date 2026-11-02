@@ -32,20 +32,24 @@ import { getSeasonalityTool } from './get-seasonality';
 import { getSessionLevelsTool } from './get-session-levels';
 import { toolRegistry } from './registry';
 
-const marketTools = [
-  ['get_correlation', getCorrelationTool],
-  ['get_intermarket', getIntermarketTool],
-  ['get_intermarket_resonance', getIntermarketResonanceTool],
-  ['get_session_levels', getSessionLevelsTool],
-  ['get_seasonality', getSeasonalityTool],
-] as const;
-
 /**
  * Audit plan §4.3 — explicit registration instead of import side effects.
  * `registerAllTools` calls this exactly once at boot; importing the module
  * no longer mutates the singleton registry.
+ *
+ * The list is built inside the function: the native Mastra registrations
+ * import these tool modules eagerly, so a module-scope list can be evaluated
+ * while a sibling tool module is still initialising inside the
+ * `instance ↔ tools` import cycle (Phase 4 Task 2).
  */
 export function registerMarketTools(registry: typeof toolRegistry = toolRegistry): void {
+  const marketTools = [
+    ['get_correlation', getCorrelationTool],
+    ['get_intermarket', getIntermarketTool],
+    ['get_intermarket_resonance', getIntermarketResonanceTool],
+    ['get_session_levels', getSessionLevelsTool],
+    ['get_seasonality', getSeasonalityTool],
+  ] as const;
   for (const [name, tool] of marketTools) {
     registry.register(name, tool);
   }

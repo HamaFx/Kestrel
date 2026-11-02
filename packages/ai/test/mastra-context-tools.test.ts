@@ -93,7 +93,10 @@ describe('Mastra migrated context tools', () => {
     ) => Promise<unknown>;
     const output = await execute({ tf: '1h', windowBars: 100 }, context);
 
-    expect(mocks.correlationExecute).toHaveBeenCalledWith({ tf: '1h', windowBars: 100 }, {});
+    expect(mocks.correlationExecute).toHaveBeenCalledWith(
+      { tf: '1h', windowBars: 100 },
+      expect.objectContaining({}),
+    );
     expect(output).toMatchObject({
       symbol: 'XAUUSD',
       freshness: 'unknown',
@@ -127,7 +130,7 @@ describe('Mastra migrated context tools', () => {
 
     expect(mocks.intermarketExecute).toHaveBeenCalledWith(
       { tf: '4h', windowBars: 50 },
-      { abortSignal: signal },
+      expect.objectContaining({ abortSignal: signal }),
     );
     expect(output).toMatchObject({
       quality: 'degraded',
@@ -145,7 +148,7 @@ describe('Mastra migrated context tools', () => {
 
     expect(mocks.volatilityExecute).toHaveBeenCalledWith(
       { symbol: 'XAUUSD', tf: '1h', horizonHours: 24 },
-      {},
+      expect.objectContaining({}),
     );
     expect(output).toMatchObject({
       symbol: 'XAUUSD',
@@ -180,7 +183,7 @@ describe('Mastra migrated context tools', () => {
     ).rejects.toBe(error);
     expect(mocks.volatilityExecute).toHaveBeenCalledWith(
       { symbol: 'XAUUSD', tf: '1h', horizonHours: 24 },
-      { abortSignal: signal },
+      expect.objectContaining({ abortSignal: signal }),
     );
   });
 });

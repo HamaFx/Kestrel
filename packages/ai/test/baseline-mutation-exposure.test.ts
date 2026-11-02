@@ -23,12 +23,13 @@ import { describe, expect, it } from 'vitest';
 
 import { FUSION_AGENT_ID, SPECIALIST_DEFINITIONS } from '../src/committee/specialists';
 import { MODE_POLICY, SPECIALISTS_BY_MODE } from '../src/committee/types';
-import { adaptLegacyReadOnlyTools } from '../src/mastra-v2/agents/xauusd/legacy-tool-adapter';
 import {
   MASTRA_CAPABILITIES,
   SENSITIVE_USER_READ_TOOL_NAMES,
   type MastraCapabilityId,
 } from '../src/mastra-v2/capabilities';
+import { MastraMutationNameSchema } from '../src/mastra-v2/mutation/mutation-policy';
+import { nativeCanonicalTools } from '../src/mastra-v2/tools/canonical';
 
 const MUTATION_CAPABILITY_ID = 'mutation-workflows' as const;
 const MUTATION_TOOL_NAMES: readonly string[] = MASTRA_CAPABILITIES[MUTATION_CAPABILITY_ID]!.tools;
@@ -111,13 +112,19 @@ describe('Phase 0 no-mutation-tool exposure', () => {
     expect(MODE_POLICY.full.continueOnPartialFailure).toBe(false);
   });
 
-  it('rejects mutation tools even when a read-only adapter receives one', () => {
+  it('registers no mutation tool in the native read-only suite', () => {
+    const native = nativeCanonicalTools();
     for (const mutationTool of MUTATION_TOOL_NAMES) {
-      expect(() =>
-        adaptLegacyReadOnlyTools({
-          [mutationTool]: { description: 'write tool' } as never,
-        }),
-      ).toThrow('mutation tools are forbidden');
+      expect(
+        native[mutationTool],
+        `${mutationTool} must never be a native read-only tool`,
+      ).toBeUndefined();
+    }
+    for (const name of Object.keys(native)) {
+      expect(
+        MastraMutationNameSchema.safeParse(name).success,
+        `${name} is a mutation tool and must not be registered natively`,
+      ).toBe(false);
     }
   });
 });

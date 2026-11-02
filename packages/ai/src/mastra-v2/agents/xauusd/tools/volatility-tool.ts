@@ -49,10 +49,10 @@ export const xauusdVolatilityTool = createTool({
   outputSchema: OutputSchema,
   execute: async ({ symbol, tf, horizonHours }, context) =>
     executeMastraTool('forecast-xauusd-volatility', context, async () => {
-      const data = await executeLegacyReadOnlyTool<z.infer<typeof ForecastVolatilityOutputSchema>>(
+      const data = await executeLegacyReadOnlyTool(
         forecastVolatilityTool,
         { symbol, tf, horizonHours },
-        context.abortSignal,
+        context,
       );
       const warnings = [
         'The composite legacy tool does not expose provider freshness metadata for candles, price, or event data',

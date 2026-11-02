@@ -46,11 +46,7 @@ export const xauusdIntermarketTool = createTool({
   outputSchema: OutputSchema,
   execute: async ({ tf, windowBars }, context) =>
     executeMastraTool('get-xauusd-intermarket', context, async () => {
-      const data = await executeLegacyReadOnlyTool<z.infer<typeof GetIntermarketOutputSchema>>(
-        getIntermarketTool,
-        { tf, windowBars },
-        context.abortSignal,
-      );
+      const data = await executeLegacyReadOnlyTool(getIntermarketTool, { tf, windowBars }, context);
       const warnings = [
         ...(data.partial ? ['One or more intermarket series were unavailable'] : []),
         'The composite legacy tool does not expose per-symbol provider freshness metadata',

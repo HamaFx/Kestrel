@@ -14,58 +14,45 @@
  * limitations under the License.
  */
 
-import { tool } from 'ai';
+// Phase 4 Task 2 — specialist desks resolve their dedicated read-only toolset
+// from the single native Mastra suite. The legacy adaptation path is gone, so
+// a name without a native registration must be dropped, never wrapped at
+// runtime.
+
 import { describe, expect, it } from 'vitest';
-import { z } from 'zod';
 
-import { adaptLegacyReadOnlyTools } from '../src/mastra-v2/agents/xauusd/legacy-tool-adapter';
+import { SPECIALIST_DEFINITIONS, resolveSpecialistDeskTools } from '../src/committee/specialists';
+import { resolveNativeCanonicalTool } from '../src/mastra-v2/tools/canonical';
 
-describe('Mastra specialist tool adaptation', () => {
-  it('preserves specialist names while converting legacy tools to executable Mastra tools', () => {
-    const legacyTools = {
-      get_price: tool({
-        description: 'Read the current price',
-        inputSchema: z.object({ symbol: z.string() }),
-        execute: async ({ symbol }) => ({ symbol, value: 123 }),
-      }),
-      get_candles: tool({
-        description: 'Read candles',
-        inputSchema: z.object({ symbol: z.string() }),
-        execute: async ({ symbol }) => ({ symbol, candles: [] }),
-      }),
-    };
-
-    const mastraTools = adaptLegacyReadOnlyTools(legacyTools);
-
-    expect(Object.keys(mastraTools)).toEqual(['get_price', 'get_candles']);
-    expect(mastraTools.get_price).toMatchObject({
-      id: 'kestrel-get_price',
-      description: 'Read the current price',
-    });
-    expect(typeof mastraTools.get_price!.execute).toBe('function');
-    expect(typeof mastraTools.get_candles!.execute).toBe('function');
+describe('Mastra specialist desk tools', () => {
+  it('resolves every specialist desk name from the native Mastra suite', () => {
+    for (const definition of Object.values(SPECIALIST_DEFINITIONS)) {
+      const tools = resolveSpecialistDeskTools(definition.name);
+      for (const name of definition.toolNames) {
+        const native = resolveNativeCanonicalTool(name);
+        expect(native, `Missing native Mastra tool for ${name}`).not.toBeNull();
+        expect(tools[name], `${definition.name} did not resolve ${name}`).toBe(native);
+      }
+    }
   });
 
-  it('fails closed when a specialist tool has no executor', () => {
-    expect(() =>
-      adaptLegacyReadOnlyTools({
-        malformed: { description: 'not executable' } as never,
-      }),
-    ).toThrow('Cannot adapt malformed');
+  it('keeps the desk composition order and drops disabled tools', () => {
+    const definition = SPECIALIST_DEFINITIONS.technical;
+    const [disabled] = definition.toolNames;
+    const tools = resolveSpecialistDeskTools('technical', [disabled!]);
+    expect(tools[disabled!]).toBeUndefined();
+    expect(Object.keys(tools)).toEqual(definition.toolNames.filter((t) => t !== disabled));
   });
 
-  it('rejects every mutation tool even if a caller accidentally includes one', () => {
-    for (const mutationTool of [
-      'set_alert',
-      'log_journal',
-      'share_snapshot',
-      'run_system_action',
-    ]) {
-      expect(() =>
-        adaptLegacyReadOnlyTools({
-          [mutationTool]: { description: 'write tool' } as never,
-        }),
-      ).toThrow('mutation tools are forbidden');
+  it('never resolves a name without a native registration', () => {
+    for (const definition of Object.values(SPECIALIST_DEFINITIONS)) {
+      const tools = resolveSpecialistDeskTools(definition.name);
+      for (const name of Object.keys(tools)) {
+        expect(
+          resolveNativeCanonicalTool(name),
+          `${name} resolved without a native registration`,
+        ).not.toBeNull();
+      }
     }
   });
 });

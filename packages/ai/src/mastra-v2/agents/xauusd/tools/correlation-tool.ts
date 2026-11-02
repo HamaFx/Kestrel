@@ -46,11 +46,7 @@ export const xauusdCorrelationTool = createTool({
   outputSchema: OutputSchema,
   execute: async ({ tf, windowBars }, context) =>
     executeMastraTool('get-xauusd-correlation', context, async () => {
-      const data = await executeLegacyReadOnlyTool<z.infer<typeof GetCorrelationOutputSchema>>(
-        getCorrelationTool,
-        { tf, windowBars },
-        context.abortSignal,
-      );
+      const data = await executeLegacyReadOnlyTool(getCorrelationTool, { tf, windowBars }, context);
       const warnings = [
         'The composite legacy tool does not expose per-symbol provider freshness metadata',
         'The DXY value is a two-leg proxy, not the full DXY index',

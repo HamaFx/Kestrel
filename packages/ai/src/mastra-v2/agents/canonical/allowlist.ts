@@ -16,8 +16,6 @@
 
 // Fail-closed canonical read-only tool allowlist.
 
-import { registerAllTools, toolRegistry } from '@ai/tools';
-
 import { manifestToolNames } from '../../capabilities';
 import { resolveNativeCanonicalTool } from '../../tools/canonical';
 
@@ -28,15 +26,13 @@ export const CANONICAL_READ_ONLY_TOOL_NAMES: readonly string[] = Object.freeze([
 export const READ_ONLY_TOOL_NAMES = new Set<string>(CANONICAL_READ_ONLY_TOOL_NAMES);
 
 /**
- * Fail at module init when the manifest names a tool that neither the legacy
- * registry nor a native canonical registration can resolve. P2-01: with the
- * legacy shims disabled (`PHASE_TOOLS_SHIMS=0`) the natively-migrated names
- * are absent from the registry, but the allowlist is still satisfied.
+ * Fail at module init when the manifest names a tool the native Mastra suite
+ * cannot resolve. Phase 4 Task 2: every read-only tool is a native
+ * registration, so the native map is the only source the allowlist needs.
  */
 export function assertCanonicalToolAllowlist(): void {
-  registerAllTools(toolRegistry);
   const missing = CANONICAL_READ_ONLY_TOOL_NAMES.filter(
-    (name) => !toolRegistry.has(name) && !resolveNativeCanonicalTool(name),
+    (name) => resolveNativeCanonicalTool(name) === null,
   );
   if (missing.length > 0) {
     throw new Error(

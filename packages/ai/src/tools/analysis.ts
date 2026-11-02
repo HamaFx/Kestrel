@@ -27,22 +27,26 @@ import { computeRiskTool } from './compute-risk';
 import { forecastVolatilityTool } from './forecast-volatility';
 import { toolRegistry } from './registry';
 
-const analysisTools = [
-  ['analyze_technical', analyzeTechnicalTool],
-  ['analyze_fundamental', analyzeFundamentalTool],
-  ['analyze_chart_image', analyzeChartImageTool],
-  ['annotate_chart', annotateChartTool],
-  ['forecast_volatility', forecastVolatilityTool],
-  ['compute_risk', computeRiskTool],
-  ['compute_position_health', computePositionHealthTool],
-] as const;
-
 /**
  * Audit plan §4.3 — explicit registration instead of import side effects.
  * `registerAllTools` calls this exactly once at boot; importing the module
  * no longer mutates the singleton registry.
+ *
+ * The list is built inside the function: the native Mastra registrations
+ * import these tool modules eagerly, so a module-scope list can be evaluated
+ * while a sibling tool module is still initialising inside the
+ * `instance ↔ tools` import cycle (Phase 4 Task 2).
  */
 export function registerAnalysisTools(registry: typeof toolRegistry = toolRegistry): void {
+  const analysisTools = [
+    ['analyze_technical', analyzeTechnicalTool],
+    ['analyze_fundamental', analyzeFundamentalTool],
+    ['analyze_chart_image', analyzeChartImageTool],
+    ['annotate_chart', annotateChartTool],
+    ['forecast_volatility', forecastVolatilityTool],
+    ['compute_risk', computeRiskTool],
+    ['compute_position_health', computePositionHealthTool],
+  ] as const;
   for (const [name, tool] of analysisTools) {
     registry.register(name, tool);
   }

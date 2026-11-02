@@ -31,9 +31,7 @@ import type { InputProcessorOrWorkflow } from '@mastra/core/processors';
 import type { RequestContext } from '@mastra/core/request-context';
 import type { LanguageModel } from 'ai';
 
-import { adaptLegacyReadOnlyTool } from '../mastra-v2/agents/xauusd/legacy-tool-adapter';
 import { resolveNativeCanonicalTool } from '../mastra-v2/tools/canonical';
-import { registerAllTools, toolRegistry } from '../tools';
 import {
   SPECIALIST_DESK_TOOL_NAMES,
   SPECIALIST_GOALS,
@@ -97,31 +95,23 @@ export const SPECIALIST_DEFINITIONS: Record<MastraSpecialistName, SpecialistDefi
 export { SPECIALIST_DESK_TOOL_NAMES };
 
 /**
- * Resolve and adapt the dedicated read-only Mastra toolset for a specialist
- * desk (Audit v3 Phase 4, Owner Decision Q8).
+ * Resolve the dedicated read-only Mastra toolset for a specialist desk
+ * (Audit v3 Phase 4, Owner Decision Q8).
  *
- * P2-01 (audit 2026-10-18) — each name prefers its native Mastra
- * registration; unmigrated names keep the legacy registry + adapter path.
- * The legacy shims are gone, so this native-first lookup is the only path
- * for the migrated names and matches how canonical-chat resolves tools.
+ * Phase 4 Task 2 — every desk tool is a native Mastra registration in
+ * `nativeCanonicalTools()`; a name with no native registration is dropped so a
+ * desk can never fall back to an unadapted legacy tool.
  */
 export function resolveSpecialistDeskTools(
   name: MastraSpecialistName,
   disabledTools?: readonly string[] | null,
 ): Record<string, unknown> {
-  registerAllTools(toolRegistry);
   const disabled = new Set(disabledTools ?? []);
   const toolNames = SPECIALIST_DESK_TOOL_NAMES[name].filter((t) => !disabled.has(t));
-  const legacyTools = toolRegistry.resolve([...toolNames]);
   const resolved: Record<string, unknown> = {};
   for (const toolName of toolNames) {
     const native = resolveNativeCanonicalTool(toolName);
-    if (native) {
-      resolved[toolName] = native;
-      continue;
-    }
-    const legacyTool = legacyTools[toolName];
-    if (legacyTool) resolved[toolName] = adaptLegacyReadOnlyTool(toolName, legacyTool);
+    if (native) resolved[toolName] = native;
   }
   return resolved;
 }

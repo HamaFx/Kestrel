@@ -29,9 +29,11 @@ import { z } from 'zod';
 import { getToolContext } from '../runtime/tool-context';
 import { getSentimentService } from '../sentiment';
 
-const InputSchema = z.object({
+export const GetSocialSentimentInputSchema = z.object({
   symbol: SymbolSchema.describe('The supported gold, forex, or crypto symbol to get sentiment for'),
 });
+
+const InputSchema = GetSocialSentimentInputSchema;
 
 const _OutputSchema = z.object({
   symbol: z.string(),

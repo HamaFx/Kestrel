@@ -41,9 +41,6 @@ import type { RequestContext } from '@mastra/core/request-context';
 import type { MastraAgentNetworkStream } from '@mastra/core/stream';
 import type { LanguageModel } from 'ai';
 
-import { registerAllTools, toolRegistry } from '@ai/tools';
-
-import { adaptLegacyReadOnlyTool } from '../../agents/xauusd/legacy-tool-adapter';
 import { resolveNativeCanonicalTool } from '../../tools/canonical';
 
 const nlog = createCategorizedLogger('ai', { component: 'mastra:canonical-network' });
@@ -111,30 +108,17 @@ export interface CanonicalNetworkExperiment {
 }
 
 /**
- * Resolve one reader desk's tool names native-first, the same order
- * canonical-chat `setup.ts` and the committee desks use: prefer the native
- * canonical registration, fall back to the registry for names that are not
- * migrated.
- *
- * P2-01 removal follow-up: the seven native-only names (`get_price`,
- * `get_candles`, `get_indicators`, `get_market_structure`, `get_news`,
- * `get_cot`, `search_knowledge`) no longer exist in the registry, so a
- * registry-only resolve silently dropped them from every reader desk.
+ * Resolve one reader desk's tool names from the native Mastra suite. Phase 4
+ * Task 2: the legacy registry + adapter fallback is gone, so a name with no
+ * native registration is dropped instead of adapted at runtime.
  */
 export function resolveCanonicalNetworkReaderTools(
   toolNames: readonly string[],
 ): Record<string, unknown> {
-  registerAllTools(toolRegistry);
-  const legacyTools = toolRegistry.resolve([...toolNames]);
   const resolved: Record<string, unknown> = {};
   for (const toolName of toolNames) {
     const native = resolveNativeCanonicalTool(toolName);
-    if (native) {
-      resolved[toolName] = native;
-      continue;
-    }
-    const legacyTool = legacyTools[toolName];
-    if (legacyTool) resolved[toolName] = adaptLegacyReadOnlyTool(toolName, legacyTool);
+    if (native) resolved[toolName] = native;
   }
   return resolved;
 }
@@ -146,8 +130,6 @@ export function resolveCanonicalNetworkReaderTools(
 export function createCanonicalNetworkExperiment(
   args: CreateCanonicalNetworkExperimentArgs,
 ): CanonicalNetworkExperiment {
-  registerAllTools(toolRegistry);
-
   const readers = Object.fromEntries(
     (
       Object.entries(CANONICAL_NETWORK_READERS) as Array<

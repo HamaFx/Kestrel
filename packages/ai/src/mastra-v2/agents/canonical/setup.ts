@@ -37,17 +37,13 @@ import { resolveSemanticRoutingConfig, routeTurn, type RoutingDecision } from '@
 import type { SemanticRoutingAccounting } from '@ai/routing/semantic';
 import { DB } from '@ai/runtime/tokens';
 import { type ToolContext } from '@ai/runtime/tool-context';
-import { domainToolFilter } from '@ai/tools/by-domain';
 
 import { manifestToolsForDomain, type MastraRoutingDomain } from '../../capabilities';
 import { buildConversationScorers, buildScorersForExecutionPlan } from '../../evals/scorers';
 import { buildGuardrailInputProcessors } from '../../guardrails';
 import { assertExecutionPlanRoute } from '../../planning/execution-plan';
-import { nativeCanonicalTools, resolveNativeCanonicalTool } from '../../tools/canonical';
-import {
-  adaptLegacyReadOnlyTool,
-  type MastraToolInvocationPart,
-} from '../xauusd/legacy-tool-adapter';
+import { nativeCanonicalTools } from '../../tools/canonical';
+import type { MastraToolInvocationPart } from '../xauusd/legacy-tool-adapter';
 import { READ_ONLY_TOOL_NAMES } from './allowlist';
 import { mlog } from './log';
 import { resolveCanonicalModel } from './model';
@@ -124,41 +120,22 @@ export async function setupCanonicalChat(
   metrics.observe('mastra_setup_latency_ms', Date.now() - modelStartedAt, {
     tags: { phase: 'model' },
   });
-  const effectivePlan =
-    args.plan && ['free', 'pro', 'enterprise'].includes(args.plan) ? args.plan : 'free';
-  const legacyTools = domainToolFilter(routing.domain, effectivePlan);
   const disabledTools = new Set(args.settings?.disabledTools ?? []);
-  // B-01 (audit 2026-10-18, I-03): migrated names register the native
-  // `createTool` counterpart; the remaining names still flow through the
-  // legacy adapter. Both share one lifecycle wrapper, so the tool surface
-  // (names, events, parts, telemetry) is identical.
-  //
-  // P2-01: candidate names come from the domain's legacy entries plus the
-  // native canonical registrations the manifest allows, so the seven
-  // migrated tools keep working when their legacy shims are disabled
-  // (`PHASE_TOOLS_SHIMS=0`) and would already be missing from the registry.
+  // Phase 4 Task 2: every read-only tool is a native Mastra registration, so
+  // the agent's tool belt is the intersection of the native map, the routing
+  // domain's manifest names, the canonical read-only allowlist, and the user's
+  // disabled list. No legacy adaptation step remains.
   const domainAllowed =
     routing.domain === 'generic'
       ? null
       : new Set<string>(manifestToolsForDomain(routing.domain as MastraRoutingDomain));
-  const candidateNames = [
-    ...new Set([
-      ...Object.keys(legacyTools),
-      ...Object.keys(nativeCanonicalTools()).filter(
-        (name) => domainAllowed === null || domainAllowed.has(name),
-      ),
-    ]),
-  ];
   const registeredTools = Object.fromEntries(
-    candidateNames
-      .filter((name) => READ_ONLY_TOOL_NAMES.has(name) && !disabledTools.has(name))
-      .map((name): [string, unknown] | null => {
-        const native = resolveNativeCanonicalTool(name);
-        if (native) return [name, native];
-        const legacyTool = legacyTools[name];
-        return legacyTool ? [name, adaptLegacyReadOnlyTool(name, legacyTool)] : null;
-      })
-      .filter((entry): entry is [string, unknown] => entry !== null),
+    Object.entries(nativeCanonicalTools()).filter(
+      ([name]) =>
+        (domainAllowed === null || domainAllowed.has(name)) &&
+        READ_ONLY_TOOL_NAMES.has(name) &&
+        !disabledTools.has(name),
+    ),
   );
   // Phase 1 (Jev System One) — per-turn fine-grained tool pruning
   // ("When2Call"). The request starts here and is awaited after the memory

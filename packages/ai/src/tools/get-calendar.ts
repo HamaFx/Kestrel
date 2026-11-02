@@ -32,7 +32,7 @@ import { maybeGetToolContext } from '../runtime/tool-context';
 const ImportanceSchema = z.enum(['low', 'medium', 'high']);
 const CurrencySchema = z.enum(['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'NZD', 'CHF']);
 
-const InputSchema = z.object({
+export const GetCalendarInputSchema = z.object({
   /** ms epoch UTC lower bound, default = now. */
   from: z.int().optional(),
   /** ms epoch UTC upper bound, default = +7 days. */
@@ -42,6 +42,8 @@ const InputSchema = z.object({
   /** Minimum importance. Defaults to "medium" — high-only is too sparse. */
   minImportance: ImportanceSchema.default('medium'),
 });
+
+const InputSchema = GetCalendarInputSchema;
 
 declare module '@kestrel/shared' {
   interface ToolIOMap {

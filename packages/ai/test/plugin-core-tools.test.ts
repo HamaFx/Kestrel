@@ -29,6 +29,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { sanitizeTools } from '../../../plugins/custom-agents/src/services/agents/sanitizers';
 // eslint-disable-next-line no-restricted-imports -- cross-package test, mirrors ai-data.integration.test.ts
 import { DEFAULT_SETTINGS } from '../../../plugins/custom-agents/src/settings';
+import {
+  CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES,
+  SENSITIVE_USER_READ_TOOL_NAMES,
+} from '../src/mastra-v2/capabilities';
 import { nativeCanonicalTools } from '../src/mastra-v2/tools/canonical';
 import { buildPluginCoreToolCatalog, syncPluginCoreTools } from '../src/plugins/core-tools';
 
@@ -37,14 +41,18 @@ describe('plugin core-tool catalog (P2-01)', () => {
     pluginHost.clear();
   });
 
-  it('lists every native canonical tool with its canonical description', async () => {
+  it('lists every allowlisted core tool with its native description', async () => {
     const catalog = await buildPluginCoreToolCatalog();
     const byName = new Map(catalog.map((tool) => [tool.name, tool]));
+    const native = nativeCanonicalTools();
 
-    for (const [name, native] of Object.entries(nativeCanonicalTools())) {
+    for (const name of [
+      ...CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES,
+      ...SENSITIVE_USER_READ_TOOL_NAMES,
+    ]) {
       const entry = byName.get(name);
       expect(entry, `missing core tool: ${name}`).toBeDefined();
-      expect(entry?.description).toBe((native as { description?: string }).description);
+      expect(entry?.description).toBe((native[name] as { description?: string })?.description);
       expect((entry?.description ?? '').length).toBeGreaterThan(0);
     }
   });

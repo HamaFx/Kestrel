@@ -114,31 +114,6 @@ export class ToolRegistry {
   }
 
   /**
-   * PF-16 — Resolve tools gated by plan tier.
-   * free-tier users see free tools only; pro-tier users see everything.
-   * Falls back to resolve(names) when plan is undefined.
-   */
-  resolveForPlan(names: string[] | undefined, plan?: string): Record<string, Tool> {
-    // Missing or unknown authorization state fails closed. Callers that need
-    // the unrestricted registry must use resolve() explicitly at a trusted
-    // composition boundary.
-    if (!plan || !['free', 'pro', 'enterprise'].includes(plan)) return {};
-
-    const source = names ? this.resolve(names) : this.resolve();
-    if (plan !== 'free') return source;
-
-    // Free tier: filter to tools with no plan restriction or with 'free' in allowedPlans.
-    const filtered: Record<string, Tool> = {};
-    for (const [name, tool] of Object.entries(source)) {
-      const plugin = this.tools.get(name);
-      if (!plugin?.allowedPlans || plugin.allowedPlans.includes('free')) {
-        filtered[name] = tool;
-      }
-    }
-    return filtered;
-  }
-
-  /**
    * Get metadata for a specific tool. Returns undefined if not registered.
    */
   getPlugin(name: string): ToolPlugin | undefined {

@@ -26,21 +26,25 @@ import { replaySetupTool } from './replay-setup';
 import { runSystemActionTool } from './run-system-action';
 import { verifyCallTool } from './verify-call';
 
-const systemTools = [
-  ['get_system_diagnostics', getSystemDiagnosticsTool],
-  ['run_system_action', runSystemActionTool],
-  ['get_social_sentiment', getSocialSentimentTool],
-  ['verify_call', verifyCallTool],
-  ['replay_setup', replaySetupTool],
-  ['convene_committee', conveneCommitteeTool],
-] as const;
-
 /**
  * Audit plan §4.3 — explicit registration instead of import side effects.
  * `registerAllTools` calls this exactly once at boot; importing the module
  * no longer mutates the singleton registry.
+ *
+ * The list is built inside the function: the native Mastra registrations
+ * import these tool modules eagerly, so a module-scope list can be evaluated
+ * while a sibling tool module is still initialising inside the
+ * `instance ↔ tools` import cycle (Phase 4 Task 2).
  */
 export function registerSystemTools(registry: typeof toolRegistry = toolRegistry): void {
+  const systemTools = [
+    ['get_system_diagnostics', getSystemDiagnosticsTool],
+    ['run_system_action', runSystemActionTool],
+    ['get_social_sentiment', getSocialSentimentTool],
+    ['verify_call', verifyCallTool],
+    ['replay_setup', replaySetupTool],
+    ['convene_committee', conveneCommitteeTool],
+  ] as const;
   for (const [name, tool] of systemTools) {
     registry.register(name, tool);
   }

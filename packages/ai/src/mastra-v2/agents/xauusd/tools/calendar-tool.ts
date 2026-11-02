@@ -59,7 +59,7 @@ export const xauusdCalendarTool = createTool({
   execute: async ({ from, to, currencies, minImportance }, context) =>
     executeMastraTool('get-xauusd-calendar', context, async () => {
       const fetchedAt = new Date().toISOString();
-      const data = await executeLegacyReadOnlyTool<z.infer<typeof GetCalendarOutputSchema>>(
+      const data = await executeLegacyReadOnlyTool(
         getCalendarTool,
         {
           ...(from === undefined ? {} : { from }),
@@ -67,7 +67,7 @@ export const xauusdCalendarTool = createTool({
           currencies,
           minImportance,
         },
-        context.abortSignal,
+        context,
       );
       const sanitizedItems = data.items.map((item) => {
         const title = quarantineExternalText(item.title, 240);

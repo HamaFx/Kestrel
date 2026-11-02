@@ -31,20 +31,24 @@ import { toolRegistry } from './registry';
 import { setAlertTool } from './set-alert';
 import { shareSnapshotTool } from './share-snapshot';
 
-const journalTools = [
-  ['log_journal', logJournalTool],
-  ['get_journal_stats', getJournalStatsTool],
-  ['get_calendar', getCalendarTool],
-  ['set_alert', setAlertTool],
-  ['share_snapshot', shareSnapshotTool],
-] as const;
-
 /**
  * Audit plan §4.3 — explicit registration instead of import side effects.
  * `registerAllTools` calls this exactly once at boot; importing the module
  * no longer mutates the singleton registry.
+ *
+ * The list is built inside the function: the native Mastra registrations
+ * import these tool modules eagerly, so a module-scope list can be evaluated
+ * while a sibling tool module is still initialising inside the
+ * `instance ↔ tools` import cycle (Phase 4 Task 2).
  */
 export function registerJournalTools(registry: typeof toolRegistry = toolRegistry): void {
+  const journalTools = [
+    ['log_journal', logJournalTool],
+    ['get_journal_stats', getJournalStatsTool],
+    ['get_calendar', getCalendarTool],
+    ['set_alert', setAlertTool],
+    ['share_snapshot', shareSnapshotTool],
+  ] as const;
   for (const [name, tool] of journalTools) {
     registry.register(name, tool);
   }
