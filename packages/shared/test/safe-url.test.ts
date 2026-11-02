@@ -27,6 +27,13 @@ describe('safe outbound URLs', () => {
     }
   });
 
+  it('blocks cloud metadata hostnames and unspecified addresses', () => {
+    expect(isSafeOutboundUrl('https://metadata.google.internal/computeMetadata/v1/')).toBe(false);
+    expect(isSafeOutboundUrl('https://instance-data.ec2.internal/latest/meta-data/')).toBe(false);
+    expect(isSafeOutboundUrl('https://0.0.0.0/')).toBe(false);
+    expect(isSafeOutboundUrl('https://[::]/')).toBe(false);
+  });
+
   it('supports an explicit host allowlist', () => {
     expect(isSafeOutboundUrl('https://api.example.com', { hosts: ['api.example.com'] })).toBe(true);
     expect(isSafeOutboundUrl('https://other.example.com', { hosts: ['api.example.com'] })).toBe(

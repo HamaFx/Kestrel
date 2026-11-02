@@ -107,7 +107,6 @@ export type { ToolOutputMap, ToolIOMap, ToolOutput, ToolInput } from './ai/tool-
 export * from './errors';
 export * from './resilience';
 export * from './observability';
-export * from './url-safety';
 export * from './safe-url';
 // Phase D — typed counters/histograms for AI + worker SLIs
 export * from './metrics';

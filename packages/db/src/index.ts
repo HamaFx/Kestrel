@@ -42,7 +42,6 @@ export {
   schema,
   type DbClient,
 } from './client';
-export { withUserScope } from './with-user-scope';
 export { withUserTenant, withUserTenantRO } from './with-user-tenant';
 export { withRateLimit, type RateLimitResult } from './rate-limit';
 export {

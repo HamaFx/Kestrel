@@ -4,6 +4,7 @@
  */
 
 const PRIVATE_IPV4 = [
+  ['0.0.0.0', 8],
   ['10.0.0.0', 8],
   ['100.64.0.0', 10],
   ['127.0.0.0', 8],
@@ -39,12 +40,29 @@ function isIpv6(value: string): boolean {
   return value.includes(':') && /^[0-9a-f:]+$/i.test(value);
 }
 
+// Hostnames that are not IP literals but must never be fetched from a
+// user- or model-influenced URL (cloud metadata endpoints and local aliases
+// ported from the retired `url-safety.ts`).
+const BLOCKED_HOSTNAMES = new Set([
+  'localhost.localdomain',
+  'metadata.google.internal',
+  'instance-data.ec2.internal',
+]);
+
 function isPrivateHostname(hostname: string): boolean {
   const host = hostname.toLowerCase().replace(/^\[|\]$/g, '');
-  if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local')) return true;
+  if (
+    host === 'localhost' ||
+    host.endsWith('.localhost') ||
+    host.endsWith('.local') ||
+    BLOCKED_HOSTNAMES.has(host)
+  ) {
+    return true;
+  }
   if (isIpv4(host)) return isPrivateIpv4(host);
   if (isIpv6(host)) {
     return (
+      host === '::' ||
       host === '::1' ||
       host.startsWith('fc') ||
       host.startsWith('fd') ||
