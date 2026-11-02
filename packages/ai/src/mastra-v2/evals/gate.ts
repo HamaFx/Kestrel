@@ -141,7 +141,6 @@ export function recordsToGateObserved(
   };
 
   const pass = (record: ScoreRecord): boolean => {
-    if (record.scorerId === 'kestrel-grounding') return record.score === 1;
     if (record.scorerId === 'kestrel-citation') {
       return record.score >= effectiveThresholds.minCitationScore;
     }
@@ -161,7 +160,6 @@ export function recordsToGateObserved(
   const cases = [...groups.values()].map((group) => {
     const allPassed = group.every(pass);
     const citationRecord = group.find((r) => r.scorerId === 'kestrel-citation');
-    const groundingFailure = group.find((r) => r.scorerId === 'kestrel-grounding' && r.score < 1);
     const rubricRecord = group.find((r) => r.scorerId === 'kestrel-jev-rubric');
     const rubricFailures = rubricRecord
       ? checkJevRubricRecord(rubricRecord, effectiveThresholds.minOverallPassRate).failures
@@ -178,17 +176,7 @@ export function recordsToGateObserved(
         totalCostUsd: group[0]!.metadata?.costUsd ?? 0,
       },
       citationScore: citationRecord?.score ?? null,
-      assertions: [
-        ...(groundingFailure
-          ? [
-              {
-                kind: 'unsupported_numeric_claim' as const,
-                detail: groundingFailure.reason ?? 'report failed grounding',
-              },
-            ]
-          : []),
-        ...rubricFailures.map((detail) => ({ kind: 'rubric_failure' as const, detail })),
-      ],
+      assertions: [...rubricFailures.map((detail) => ({ kind: 'rubric_failure' as const, detail }))],
       agentProgress: [],
       terminalStatus: null,
     };

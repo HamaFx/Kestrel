@@ -42,16 +42,6 @@ describe('mastra-v2 capability registry', () => {
   });
 
   it('maps research capabilities to workflows and conversation/mutation capabilities to agents/workflows', () => {
-    expect(MASTRA_COMPONENT_REGISTRY['xauusd-research']).toEqual({
-      kind: 'workflow',
-      key: 'xauusdResearch',
-      stableSince: '2026-10-18',
-    });
-    expect(MASTRA_COMPONENT_REGISTRY['xauusd-conversation']).toEqual({
-      kind: 'agent',
-      key: 'xauusdConversation',
-      stableSince: '2026-10-18',
-    });
     expect(MASTRA_COMPONENT_REGISTRY['symbol-research']).toEqual({
       kind: 'workflow',
       key: 'symbolResearch',
@@ -67,7 +57,7 @@ describe('mastra-v2 capability registry', () => {
   it('fails closed with a typed error when an agent capability is not yet registered', () => {
     const storage = memoryStore();
     const { instance } = createKestrelMastra({ storage, storageKind: 'libsql', env: {} });
-    expect(() => resolveMastraAgent(instance, 'xauusd-conversation')).toThrow(
+    expect(() => resolveMastraAgent(instance, 'canonical-chat')).toThrow(
       MastraComponentNotRegisteredError,
     );
   });
@@ -86,7 +76,7 @@ describe('mastra-v2 capability registry', () => {
     expect(() => resolveMastraAgent(instance, 'symbol-research')).toThrow(
       MastraComponentKindMismatchError,
     );
-    expect(() => resolveMastraWorkflow(instance, 'xauusd-conversation')).toThrow(
+    expect(() => resolveMastraWorkflow(instance, 'canonical-chat')).toThrow(
       MastraComponentKindMismatchError,
     );
   });

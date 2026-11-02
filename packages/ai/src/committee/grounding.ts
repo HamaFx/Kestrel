@@ -8,7 +8,7 @@
  */
 
 import { partitionNumbersByFreshness } from '../mastra-v2/agents/canonical/freshness';
-import { extractNarrativeNumbers } from '../mastra-v2/agents/xauusd/report/report-grounding';
+import { extractNarrativeNumbers } from '../mastra-v2/shared/report-grounding';
 import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
 import type { MastraModeOpinion } from './types';
 

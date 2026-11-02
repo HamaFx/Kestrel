@@ -55,7 +55,6 @@ describe('decideMastraExecution — installed plugin intents (P0-4)', () => {
     expect(decision.route).toBe('canonical-chat');
     expect(decision.modelPurpose).toBe('canonical-chat');
     expect(decision.capability).toBeNull();
-    expect(decision.xauusdChatKind).toBeNull();
   });
 
   it('routes a paper order on XAUUSD to canonical chat when paper-trading is installed', async () => {
@@ -83,7 +82,7 @@ describe('decideMastraExecution — installed plugin intents (P0-4)', () => {
     expect(decision.route).toBe('canonical-chat');
   });
 
-  it('keeps research prompts on the XAUUSD route even with every plugin installed', async () => {
+  it('keeps research prompts on the shared symbol-research route even with every plugin installed', async () => {
     const decision = await decideMastraExecution({
       userMessage: message('What is the current XAUUSD bias and key levels?'),
       mode: 'single',
@@ -92,8 +91,8 @@ describe('decideMastraExecution — installed plugin intents (P0-4)', () => {
       installedPluginIds: ['backtesting', 'paper-trading', 'telegram-bot', 'custom-agents'],
     });
 
-    expect(decision.route).toBe('xauusd-research');
-    expect(decision.capability).toMatchObject({ capability: { id: 'xauusd-research' } });
+    expect(decision.route).toBe('symbol-research');
+    expect(decision.capability).toMatchObject({ capability: { id: 'symbol-research' } });
   });
 
   it('does not override route selection when no plugins are installed (regression)', async () => {
@@ -104,8 +103,8 @@ describe('decideMastraExecution — installed plugin intents (P0-4)', () => {
       env: researchEnv,
     });
 
-    // No installed-plugin match: the pre-existing XAUUSD path stays in charge.
-    expect(decision.route).toBe('xauusd-conversation');
+    // No installed-plugin match: the deterministic symbol path stays in charge.
+    expect(decision.route).toBe('symbol-research');
   });
 
   it('routes backtest and paper-trading commands to canonical-chat even in full mode or with two symbols', async () => {

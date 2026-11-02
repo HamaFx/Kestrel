@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-// Static capability registry. XAUUSD-specific reservations live in
-// `catalog-xauusd.ts`; runtime lookups live in `resolver.ts`.
+// Static capability registry. Runtime lookups live in `resolver.ts`.
+//
+// Phase 4 Task 4 — XAUUSD runs the same capabilities as every other symbol;
+// the `catalog-xauusd.ts` reservations are retired.
 
 import { ALL_SYMBOLS } from '@kestrel/shared';
 
-import { XAUUSD_CAPABILITIES } from './catalog-xauusd';
 import {
   CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES,
   SENSITIVE_USER_READ_TOOL_NAMES,
@@ -131,11 +132,13 @@ export const MASTRA_CAPABILITIES = {
     readOnly: true,
     tools: [
       'collect-symbol-research-packet',
-      'get-symbol-seasonality',
-      'get-symbol-cot',
-      'get-symbol-intermarket-resonance',
-      'search-untrusted-web',
-      'search-untrusted-knowledge',
+      // Phase 4 Task 4 — the symbol-scoped read tools are the native canonical
+      // registrations now that the XAUUSD PoC tool aliases are retired.
+      'get_seasonality',
+      'get_cot',
+      'get_intermarket_resonance',
+      'web_search',
+      'search_knowledge',
     ],
     toolMetadata: [
       {
@@ -146,35 +149,35 @@ export const MASTRA_CAPABILITIES = {
         trust: 'trusted',
       },
       {
-        name: 'get-symbol-seasonality',
+        name: 'get_seasonality',
         category: 'public-market-data',
         access: 'read-only',
         sensitivity: 'public',
         trust: 'trusted',
       },
       {
-        name: 'get-symbol-cot',
+        name: 'get_cot',
         category: 'public-market-data',
         access: 'read-only',
         sensitivity: 'public',
         trust: 'trusted',
       },
       {
-        name: 'get-symbol-intermarket-resonance',
+        name: 'get_intermarket_resonance',
         category: 'public-market-data',
         access: 'read-only',
         sensitivity: 'public',
         trust: 'trusted',
       },
       {
-        name: 'search-untrusted-web',
+        name: 'web_search',
         category: 'untrusted-external-data',
         access: 'read-only',
         sensitivity: 'public',
         trust: 'untrusted',
       },
       {
-        name: 'search-untrusted-knowledge',
+        name: 'search_knowledge',
         category: 'untrusted-external-data',
         access: 'read-only',
         sensitivity: 'public',
@@ -247,7 +250,6 @@ export const MASTRA_CAPABILITIES = {
     externalData: false,
     contentTrust: 'trusted',
   },
-  ...XAUUSD_CAPABILITIES,
 } as const satisfies Record<string, MastraCapability>;
 
 export type MastraCapabilityId = keyof typeof MASTRA_CAPABILITIES;

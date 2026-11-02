@@ -29,7 +29,7 @@ import {
   estimateKnownCostUsd,
   releaseBudgetReservation,
 } from '../budget/cost';
-import { runMastraText } from '../mastra-v2/agents/xauusd/text-runner';
+import { runMastraText } from '../mastra-v2/shared/text-runner';
 import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
 import {
   beginMastraRun,

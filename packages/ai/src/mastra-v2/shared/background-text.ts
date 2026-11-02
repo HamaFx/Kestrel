@@ -26,14 +26,14 @@ import { resolveMastraExecutionModel, type ChatModelResolution } from '@ai/model
 import { createGenerationLedger, type GenerationLedger } from '@ai/persistence/generation-ledger';
 import { telemetryConfig } from '@ai/runtime/telemetry';
 
-import { manifestForCapability } from '../../capabilities';
-import { buildGuardrailInputProcessors } from '../../guardrails';
+import { manifestForCapability } from '../capabilities';
+import { buildGuardrailInputProcessors } from '../guardrails';
 import {
   beginMastraRun,
   finishMastraRun,
   getMastraGenerationStats,
   mastraOutcomeForError,
-} from '../../shared/telemetry';
+} from './telemetry';
 
 export interface RunMastraBackgroundTextArgs {
   userId: string;

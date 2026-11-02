@@ -16,7 +16,7 @@
 
 // Tool-call/evidence extraction from Mastra message parts.
 
-import type { MastraToolInvocationPart } from '../xauusd/legacy-tool-adapter';
+import type { MastraToolInvocationPart } from '../../tools/tool-lifecycle';
 
 export function extractToolNames(messages: readonly unknown[] | undefined): string[] {
   if (!messages) return [];

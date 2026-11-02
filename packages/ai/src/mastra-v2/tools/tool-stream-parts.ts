@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Stream-part parsing for the canonical chat runner (DEC-05 split of
+// Stream-part parsing for the canonical chat runner (Phase 4 move of
 // legacy-tool-adapter.ts): the Mastra tool stream events, the UI tool-name
 // mapping, and the AI SDK `tool-<name>` part extraction.
 

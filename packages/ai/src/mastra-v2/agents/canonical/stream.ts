@@ -32,7 +32,7 @@ import {
   type MastraRunObservation,
 } from '../../shared/telemetry';
 import { runTracingOptions } from '../../telemetry';
-import { extractToolPartsFromMessages } from '../xauusd/legacy-tool-adapter';
+import { extractToolPartsFromMessages } from '../../tools/tool-lifecycle';
 import { openCanonicalAttempt } from './attempt';
 import { attemptCanonicalSelfCorrection } from './correction';
 import { assertCanonicalEvidence, checkCanonicalEvidence } from './evidence';

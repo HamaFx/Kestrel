@@ -101,7 +101,7 @@ const { structuredObject } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('../src/mastra-v2/agents/xauusd/text-runner', () => ({
+vi.mock('../src/mastra-v2/shared/text-runner', () => ({
   runMastraStructured: vi.fn().mockResolvedValue({
     text: JSON.stringify(structuredObject),
     object: structuredObject,

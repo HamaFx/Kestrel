@@ -27,7 +27,7 @@ import type { ResolveModelEnv } from './env-factory';
 
 export type { ChatModelResolution } from './chat';
 
-export type MastraModelPurpose = 'canonical-chat' | 'mode' | 'xauusd' | 'worker';
+export type MastraModelPurpose = 'canonical-chat' | 'mode' | 'worker';
 
 export const MastraModelSnapshotSchema = z.strictObject({
   providerId: z.string().min(1),
@@ -70,7 +70,6 @@ function configuredOverride(value: string | null | undefined): string | null {
 function pinnedModelFor(purpose: MastraModelPurpose): string | null {
   if (purpose === 'mode')
     return process.env.MASTRA_MODE_MODEL ?? process.env.MASTRA_XAUUSD_MODEL ?? null;
-  if (purpose === 'xauusd') return process.env.MASTRA_XAUUSD_MODEL ?? null;
   if (purpose === 'worker')
     return process.env.MASTRA_WORKER_MODEL ?? process.env.MASTRA_MODE_MODEL ?? null;
   return null;
@@ -81,9 +80,7 @@ function pinnedModelFor(purpose: MastraModelPurpose): string | null {
  *
  * `snapshot` is authoritative for durable worker jobs. Otherwise the caller's
  * explicit override wins, then the purpose-specific operator pin, then the
- * user's normal chat selection/default. XAUUSD reports intentionally ignore a
- * normal chat selection unless explicitly overridden or pinned because that
- * pipeline has a bounded technical-model contract.
+ * user's normal chat selection/default.
  */
 export function resolveMastraModel(args: ResolveMastraModelInput): ChatModelResolution {
   if (args.snapshot) {
@@ -121,17 +118,6 @@ export function resolveMastraModel(args: ResolveMastraModelInput): ChatModelReso
     );
   }
 
-  if (args.purpose === 'xauusd') {
-    return resolveChatModel(
-      {
-        aiApiKeys: args.settings.aiApiKeys,
-        chatModel: null,
-        aiFallbackChain: args.settings.aiFallbackChain,
-      },
-      args.env,
-      args.domain,
-    );
-  }
   return resolveChatModel(args.settings, args.env, args.domain);
 }
 

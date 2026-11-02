@@ -16,7 +16,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { runMastraBackgroundText } from '../src/mastra-v2/agents/xauusd/background-text';
+import { runMastraBackgroundText } from '../src/mastra-v2/shared/background-text';
 
 const mocks = vi.hoisted(() => ({
   reserveTurnBudget: vi.fn(),

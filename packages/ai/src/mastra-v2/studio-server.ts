@@ -130,9 +130,7 @@ main().catch((err: unknown) => {
 async function registerCanonicalComponents(instance: Mastra): Promise<void> {
   try {
     const { resolveChatModel } = await import('../models/model');
-    const { createXauusdMastraAgent } = await import('./agents/xauusd/agent');
     const { createCommitteeWorkflow } = await import('../committee/workflow');
-    const { createXauusdReportWorkflow } = await import('./workflows/xauusd-report');
     const { createMutationWorkflow } = await import('./workflows/mutation');
     // P-01 (audit 2026-10-18): typed env instead of `process.env as never`.
     const { parseServerEnv, pickAiEnv } = await import('@kestrel/shared');
@@ -143,12 +141,11 @@ async function registerCanonicalComponents(instance: Mastra): Promise<void> {
       'technical',
     );
 
-    // Canonical XAUUSD conversation agent.
-    const agent = createXauusdMastraAgent({ model: resolution.model });
-    instance.addAgent(agent, 'xauusdConversation');
-
     // Canonical workflows (non-BYOK, for Studio visibility only). Studio has
     // no thread memory, so the committee deps omit memory/call options (P-01).
+    //
+    // Phase 4 Task 4 — the XAUUSD PoC agent/report workflow are retired;
+    // XAUUSD research runs the same committee workflow as every other symbol.
     const mastra = instance;
     const symbolResearch = createCommitteeWorkflow(
       {
@@ -159,13 +156,7 @@ async function registerCanonicalComponents(instance: Mastra): Promise<void> {
       },
       'full',
     );
-    const xauusdReport = createXauusdReportWorkflow({
-      agent,
-      providerId: resolution.providerId,
-      mastra,
-    });
     instance.addWorkflow(symbolResearch, 'symbolResearch');
-    instance.addWorkflow(xauusdReport, 'xauusdResearch');
     for (const kind of [
       'set_alert',
       'log_journal',

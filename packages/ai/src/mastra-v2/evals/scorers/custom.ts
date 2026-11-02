@@ -20,24 +20,23 @@
 
 import type { MastraScorer, MastraScorers } from '@mastra/core/evals';
 
-import { createCitationScorer, createGroundingScorer } from '../custom';
+import { createCitationScorer } from '../custom';
 import type { BuiltScorers } from './types';
 
 /**
- * Build the deterministic custom scorers (grounding + citation). These
- * have no LLM judge, so no sampling ratio — they run on every turn.
- * Returns an empty entries map when the scorers cannot be constructed.
+ * Build the deterministic custom scorers (citation only after Phase 4 Task 4
+ * retired the XAUUSD report grounding scorer). These have no LLM judge, so no
+ * sampling ratio — they run on every turn. Returns an empty entries map when
+ * the scorers cannot be constructed.
  */
 export function buildCustomScorers(): BuiltScorers {
   try {
-    const grounding = createGroundingScorer();
     const citation = createCitationScorer();
     return {
-      scorers: [grounding, citation] as unknown as Array<
+      scorers: [citation] as unknown as Array<
         MastraScorer<string, unknown, unknown, Record<string, unknown>>
       >,
       entries: {
-        'kestrel-grounding': { scorer: grounding },
         'kestrel-citation': { scorer: citation },
       } as unknown as MastraScorers,
       judgeModel: null,

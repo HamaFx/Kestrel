@@ -27,9 +27,9 @@ import {
   buildGuardrailInputProcessors,
   createIndirectContentGuardrailProcessor,
   type GuardrailMode,
-} from '../../guardrails';
-import { getMastraGenerationStats } from '../../shared/telemetry';
-import { runTracingOptions } from '../../telemetry';
+} from '../guardrails';
+import { getMastraGenerationStats } from './telemetry';
+import { runTracingOptions } from '../telemetry';
 
 /** Shared Unicode normalizer applied to every text-runner agent. */
 const NORMALIZER = new UnicodeNormalizer({

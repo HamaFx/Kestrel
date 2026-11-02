@@ -19,7 +19,7 @@ import { describe, expect, it } from 'vitest';
 import {
   extractLatestMastraReport,
   mayReferToMastraReport,
-} from '@/lib/services/mastra/xauusd-handler';
+} from '@/lib/services/mastra/mastra-report-context';
 
 const report = {
   symbol: 'XAUUSD',

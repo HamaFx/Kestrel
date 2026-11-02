@@ -17,8 +17,6 @@ import { decideMastraExecution, type MastraExecutionDecisionInput } from './exec
 
 export const ExecutionRouteSchema = z.enum([
   'canonical-chat',
-  'xauusd-conversation',
-  'xauusd-research',
   'symbol-research',
   'multi-symbol-research',
   'full-analysis',
@@ -86,10 +84,15 @@ export const ExecutionPlanSchema = z.strictObject({
   streaming: z.boolean(),
   mutationRequested: z.boolean(),
   tenantId: z.string().min(1).nullable(),
-  xauusdChatKind: z.enum(['research', 'conversation']).nullable(),
+  /**
+   * Phase 4 Task 4 — retained for durable-queue compatibility only: plans
+   * serialized before the XAUUSD PoC route retirement may still carry these
+   * fields, and nothing writes a non-default value anymore.
+   */
+  xauusdChatKind: z.enum(['research', 'conversation']).nullable().default(null),
   reportFollowup: z.boolean(),
   symbolCandidate: z.boolean(),
-  xauusdCandidate: z.boolean(),
+  xauusdCandidate: z.boolean().default(false),
 });
 
 export type ExecutionPlan = z.infer<typeof ExecutionPlanSchema>;
@@ -139,10 +142,6 @@ function planCapabilityId(route: ExecutionPlan['route']): MastraCapabilityId {
     case 'symbol-research':
     case 'multi-symbol-research':
       return 'symbol-research';
-    case 'xauusd-conversation':
-      return 'xauusd-conversation';
-    case 'xauusd-research':
-      return 'xauusd-research';
   }
 }
 
@@ -222,13 +221,11 @@ export async function createExecutionPlan(input: CreateExecutionPlanInput): Prom
     guardrail: guardrailPolicyForCapability(policy),
     maxSteps: policy.maxSteps,
     maxDurationMs: policy.maxDurationMs,
-    streaming: route === 'canonical-chat' || route === 'xauusd-conversation',
+    streaming: route === 'canonical-chat',
     mutationRequested,
     tenantId: input.tenantId ?? null,
-    xauusdChatKind: decision.xauusdChatKind,
     reportFollowup: decision.reportFollowup,
     symbolCandidate: decision.symbolCandidate,
-    xauusdCandidate: decision.xauusdCandidate,
   });
 }
 

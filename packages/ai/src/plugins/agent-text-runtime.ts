@@ -21,7 +21,7 @@ import type { UserSettingsRow } from '@kestrel/db/schema';
 import { estimateCostUsd } from '@ai/budget/cost';
 import { withToolContext } from '@ai/runtime/tool-context';
 
-import { extractToolPartsFromMessages } from '../mastra-v2/agents/xauusd/legacy-tool-adapter';
+import { extractToolPartsFromMessages } from '../mastra-v2/tools/tool-lifecycle';
 import {
   beginMastraRun,
   finishMastraRun,

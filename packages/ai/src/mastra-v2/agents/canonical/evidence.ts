@@ -12,7 +12,7 @@ import {
   extractNarrativeNumbers,
   extractNarrativeNumberTokens,
   type NarrativeNumberToken,
-} from '../xauusd/report/report-grounding';
+} from '../../shared/report-grounding';
 import { partitionNumbersByFreshness, type StaleNumber } from './freshness';
 
 export interface CanonicalToolEvidence {

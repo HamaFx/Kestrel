@@ -33,10 +33,8 @@ import {
   extractMastraSymbol,
   isInjectionAttempt,
   isMastraSymbolCandidate,
-  isMastraXauusdCandidate,
   isMastraXauusdFollowupCandidate,
   mastraComparisonScope,
-  mastraXauusdChatKind,
   messageText,
 } from './routing-policy';
 
@@ -44,8 +42,6 @@ export type MastraExecutionRoute =
   | 'mutation'
   | 'full-analysis-queue'
   | 'multi-symbol-research'
-  | 'xauusd-conversation'
-  | 'xauusd-research'
   | 'symbol-research'
   | 'canonical-chat';
 
@@ -58,8 +54,6 @@ export type MastraExecutionRoute =
 export interface MastraJevRoutingHints {
   /** Confident domain classification (vision stays deterministic). */
   domain?: RoutingDomain | null;
-  /** Confident XAUUSD report path hint. */
-  xauusdChatKind?: 'research' | 'conversation' | null;
   /** True when a prior report exists AND Jev cleared the follow-up threshold. */
   reportFollowup?: boolean;
 }
@@ -99,10 +93,8 @@ export interface MastraExecutionDecision {
    * cross-symbol comparison; empty otherwise.
    */
   symbols: string[];
-  xauusdChatKind: 'research' | 'conversation' | null;
   reportFollowup: boolean;
   symbolCandidate: boolean;
-  xauusdCandidate: boolean;
 }
 
 /**
@@ -154,12 +146,7 @@ export async function decideMastraExecution(
   // it must not collapse to canonical chat through the single-symbol extractor.
   const comparison = mastraComparisonScope(promptText);
   const comparisonActive = comparison.symbols.length >= 2;
-  const xauusdCandidate = isMastraXauusdCandidate(promptText);
   const symbolCandidate = isMastraSymbolCandidate(promptText);
-  const detectedXauusdChatKind =
-    !comparisonActive && symbol === 'XAUUSD' && (xauusdCandidate || reportFollowup)
-      ? (input.jevHints?.xauusdChatKind ?? mastraXauusdChatKind(promptText, priorReportAvailable))
-      : null;
   // Mutation classification belongs to the planner boundary. Callers may
   // provide an explicit server-side decision, but never rely on route code to
   // classify it after planning.
@@ -177,23 +164,7 @@ export async function decideMastraExecution(
     input.capabilityId ??
     (pluginRouteOverride
       ? null
-      : capabilityFor(
-          input.mode,
-          symbol,
-          mutationRequested,
-          reportFollowup,
-          detectedXauusdChatKind,
-          comparisonActive,
-        ));
-  const plannedXauusdChatKind = pluginRouteOverride
-    ? null
-    : capabilityId === 'xauusd-research'
-      ? reportFollowup
-        ? 'conversation'
-        : 'research'
-      : capabilityId === 'xauusd-conversation'
-        ? 'conversation'
-        : detectedXauusdChatKind;
+      : capabilityFor(mutationRequested, symbolCandidate, comparisonActive));
   const capability = capabilityId
     ? evaluateMastraCapability({
         capabilityId,
@@ -205,13 +176,9 @@ export async function decideMastraExecution(
     : null;
   const route = routeFor(
     input.mode,
-    symbol,
     mutationRequested,
     capabilityId,
-    reportFollowup,
-    xauusdCandidate,
     symbolCandidate,
-    plannedXauusdChatKind,
     comparisonActive,
     pluginRouteOverride,
   );
@@ -249,10 +216,8 @@ export async function decideMastraExecution(
     modelPurpose: purpose,
     symbol,
     symbols: comparison.symbols,
-    xauusdChatKind: plannedXauusdChatKind,
     reportFollowup,
     symbolCandidate,
-    xauusdCandidate,
   };
 }
 
@@ -262,10 +227,6 @@ export function capabilityForRoute(route: MastraExecutionRoute): MastraCapabilit
       return 'mutation-workflows';
     case 'multi-symbol-research':
       return 'symbol-research';
-    case 'xauusd-conversation':
-      return 'xauusd-conversation';
-    case 'xauusd-research':
-      return 'xauusd-research';
     case 'symbol-research':
       return 'symbol-research';
     default:

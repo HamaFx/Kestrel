@@ -6,7 +6,7 @@
 // build their `tool({ description, inputSchema })` objects at *module scope*
 // and used to read these constants from the canonical tool modules. Those
 // modules sit inside a multi-hop import cycle
-// (canonical/*  →  agents/xauusd/legacy-tool-adapter  →  shared/tool-telemetry
+// (canonical/*  →  tools/tool-lifecycle  →  shared/tool-telemetry
 //   →  persistence  →  shared/run-telemetry  →  instance  →  tools/index),
 // so whichever module is evaluated first can read a binding that is still
 // mid-evaluation — `ReferenceError: Cannot access 'CANONICAL_COT_DESCRIPTION'

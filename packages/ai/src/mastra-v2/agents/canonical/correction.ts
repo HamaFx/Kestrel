@@ -26,7 +26,7 @@ import { getMastraGenerationStats, type MastraGenerationStats } from '../../shar
 import {
   extractToolPartsFromMessages,
   type MastraToolInvocationPart,
-} from '../xauusd/legacy-tool-adapter';
+} from '../../tools/tool-lifecycle';
 import { checkCanonicalEvidence, type CanonicalToolEvidence } from './evidence';
 import { extractToolEvidence, extractToolNames } from './tool-evidence';
 

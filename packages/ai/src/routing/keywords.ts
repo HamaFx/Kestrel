@@ -115,7 +115,7 @@ export const OTHER_SYMBOL_TERMS =
   /\b(?:btc|bitcoin|eth|ethereum|eurusd|eur\/usd|gbpusd|gbp\/usd|usdjpy|usd\/jpy|silver|oil|nasdaq|spx|s&p\s*500)\b/i;
 
 /** Deep-research phrasing that upgrades an XAUUSD chat to a verified report. */
-export const DEEP_RESEARCH_TERMS =
+const DEEP_RESEARCH_TERMS =
   /\b(?:analy[sz]e|analysis|outlook|forecast|predict|technical|fundamental|macro|structure|indicator|level|setup|bullish|bearish|bias|scenario|support|resistance|volatility)\b/i;
 
 /**

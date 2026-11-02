@@ -34,7 +34,7 @@ import type { MastraGenerationStats } from '../../shared/telemetry';
 import type {
   MastraToolInvocationPart,
   MastraToolStreamEvent,
-} from '../xauusd/legacy-tool-adapter';
+} from '../../tools/tool-lifecycle';
 import type { checkCanonicalEvidence } from './evidence';
 
 export interface RunMastraCanonicalChatArgs {

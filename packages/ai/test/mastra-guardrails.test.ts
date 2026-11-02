@@ -140,12 +140,7 @@ describe('mastra guardrails', () => {
 
 describe('guardrail policy from the manifest (§1.2)', () => {
   it('derives strict+block for every capability with untrusted content', () => {
-    for (const id of [
-      'canonical-chat',
-      'xauusd-research',
-      'xauusd-conversation',
-      'symbol-research',
-    ] as const) {
+    for (const id of ['canonical-chat', 'symbol-research'] as const) {
       const capability = MASTRA_CAPABILITIES[id];
       expect(capability.contentTrust).toBe('untrusted');
       expect(guardrailPolicyForCapability(capability)).toEqual({
@@ -207,7 +202,7 @@ describe('guardrail policy from the manifest (§1.2)', () => {
       settings: { aiApiKeys: null, chatModel: 'google:gemini-2.5-flash' } as never,
       env: { GOOGLE_GENERATIVE_AI_API_KEY: 'test-key' } as never,
     });
-    expect(plan.route).toBe('xauusd-research');
+    expect(plan.route).toBe('symbol-research');
     expect(plan.guardrail).toEqual({ mode: 'strict', strategy: 'block' });
   });
 });

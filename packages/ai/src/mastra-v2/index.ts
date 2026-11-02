@@ -171,10 +171,8 @@ export {
 } from './evals/scorers';
 export {
   createCitationScorer,
-  createGroundingScorer,
   CUSTOM_SCORER_IDS,
   type CitationScorerRunInput,
-  type GroundingScorerRunInput,
 } from './evals/custom';
 export {
   createMastraEvalGate,
@@ -220,12 +218,6 @@ export {
   type ModeRequestContext,
 } from '../committee/types';
 export {
-  createXauusdReportWorkflow,
-  XauusdReportWorkflowInputSchema,
-  XauusdReportWorkflowOutputSchema,
-  type XauusdReportWorkflowDeps,
-} from './workflows/xauusd-report';
-export {
   cancelMutationWorkflow,
   createMutationWorkflow,
   runMutationWorkflow,
@@ -257,11 +249,10 @@ export * from './planning/execution-decision';
 export * from './planning/mode-runner';
 export * from './capabilities/index';
 export * from './packets/symbol-research';
-export * from './packets/research-packet';
-export * from './packets/research-packet-tool';
 export * from './packets/evidence';
 export * from './shared/persistence-boundary';
 export * from './shared/confidence';
+export * from './shared/background-text';
 export * from './shared/title';
 export * from './shared/title-service';
 export * from './shared/types';
@@ -269,17 +260,13 @@ export * from './mutation/mutation-policy';
 export * from './mutation/mutation-extract';
 export * from './mutation/mutation-detect';
 export * from './agents/canonical/evidence';
-export * from './agents/xauusd/agent';
-export * from './agents/xauusd/tools';
-export * from './agents/xauusd/background-text';
 export * from '../committee/verifier';
 export * from '../committee/calibration-weights';
 export * from './workflows/full-analysis';
 export * from './workflows/full-analysis-retry';
 export * from './planning/routing-policy';
 export * from './planning/router';
-export * from './agents/xauusd/run';
-export * from './agents/xauusd/report/report-types';
+export * from './shared/report-types';
 export * from './agents/canonical/index';
 export { isHighConfidenceMutationIntent, isReadOnlyContext } from '../routing/keywords';
 export type { SemanticRoutingAccounting } from '../routing/semantic';

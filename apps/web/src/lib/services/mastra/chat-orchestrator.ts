@@ -16,12 +16,9 @@
 
 // Chat orchestration facade: execution routing, streamed/buffered chat,
 // canonical + custom-agent turns, lifecycle coordination, and thread titles.
-export * from './meta';
 export * from './chat/mastra-execution';
 export * from './chat/mastra-chat-service-lifecycle';
 export * from './chat/mastra-thread-title';
 export * from './chat/mastra-canonical-chat-stream';
 export * from './chat/mastra-custom-agent-stream';
-export * from './chat/mastra-chat';
-export * from './chat/mastra-chat-stream';
 export * from './chat/mastra-mode';

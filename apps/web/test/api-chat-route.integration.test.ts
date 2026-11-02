@@ -24,11 +24,8 @@ const {
   mockGetUserWithSettings,
   mockGetThread,
   mockWithRateLimit,
-  mockRunMastraXauusdChat,
   mockRunMastraCanonicalChatStreamService,
-  mockRunMastraXauusdConversationStreamChat,
   mockRunMastraModeChatStream,
-  mockMastraChatResponse,
   mockResolveMastraModeModel,
   mockDecideMastraExecution,
   mockGuardrailUnavailableError,
@@ -39,13 +36,8 @@ const {
   mockGetUserWithSettings: vi.fn(),
   mockGetThread: vi.fn(),
   mockWithRateLimit: vi.fn(),
-  mockRunMastraXauusdChat: vi.fn(),
   mockRunMastraCanonicalChatStreamService: vi.fn(() => new Response('canonical', { status: 200 })),
-  mockRunMastraXauusdConversationStreamChat: vi.fn(
-    () => new Response('xauusd-stream', { status: 200 }),
-  ),
   mockRunMastraModeChatStream: vi.fn(() => new Response('mode', { status: 200 })),
-  mockMastraChatResponse: vi.fn(() => new Response('xauusd', { status: 200 })),
   mockDecideMastraExecution: vi.fn(),
   mockGetInstalledPluginIdsForUser: vi.fn(async () => [] as string[]),
   mockResolveMastraModeModel: vi.fn(() => ({
@@ -96,22 +88,13 @@ vi.mock('@/lib/logger', () => ({
   createCategorizedLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-vi.mock('@/lib/services/mastra/chat/mastra-chat', () => ({
-  runMastraXauusdChat: mockRunMastraXauusdChat,
-}));
 vi.mock('@/lib/services/mastra/chat/mastra-canonical-chat-stream', () => ({
   runMastraCanonicalChatStreamService: mockRunMastraCanonicalChatStreamService,
-}));
-vi.mock('@/lib/services/mastra/chat/mastra-chat-stream', () => ({
-  runMastraXauusdConversationStreamChat: mockRunMastraXauusdConversationStreamChat,
 }));
 vi.mock('@/lib/services/mastra/chat/mastra-mode', () => ({
   runMastraModeChatStream: mockRunMastraModeChatStream,
 }));
-vi.mock('@/lib/services/mastra/stream/mastra-chat-response', () => ({
-  mastraChatResponse: mockMastraChatResponse,
-}));
-vi.mock('@/lib/services/mastra/xauusd/mastra-report-context', () => ({
+vi.mock('@/lib/services/mastra/mastra-report-context', () => ({
   extractLatestMastraReport: vi.fn(() => null),
   mayReferToMastraReport: vi.fn(() => false),
 }));
@@ -170,11 +153,10 @@ vi.mock('@/lib/services/chat-ai', () => ({
         domain: 'technical',
         planRequired: false,
         symbol,
-        xauusdChatKind: symbol === 'XAUUSD' ? 'research' : null,
         injection: { blocked: /ignore previous instructions|system:|developer:/i.test(text) },
         mutationKind: null,
         highConfidenceMutationIntent: /\bbuy\b|\bsell\b/i.test(text),
-        capabilityId: symbol ? (symbol === 'XAUUSD' ? 'xauusd-research' : 'symbol-research') : null,
+        capabilityId: symbol ? 'symbol-research' : null,
         route: input.mode === 'full' ? 'full-analysis-queue' : 'canonical-chat',
         modelPurpose: 'canonical-chat',
         rationale: 'test',
@@ -222,13 +204,10 @@ vi.mock('@/lib/services/chat-ai', () => ({
         ? 'multi-symbol-research'
         : mode === 'full'
           ? 'full-analysis'
-          : plannedSymbol === 'XAUUSD'
-            ? 'xauusd-research'
-            : plannedSymbol
-              ? 'symbol-research'
-              : 'canonical-chat',
-      capabilityId:
-        plannedSymbol === 'XAUUSD' ? 'xauusd-research' : plannedSymbol ? 'symbol-research' : null,
+          : plannedSymbol
+            ? 'symbol-research'
+            : 'canonical-chat',
+      capabilityId: plannedSymbol ? 'symbol-research' : null,
       capabilityVersion: 'test',
       symbol: comparisonActive ? null : plannedSymbol,
       symbols: comparisonActive ? mentioned.slice(0, 3) : [],
@@ -350,11 +329,9 @@ describe('POST /api/chat Mastra boundary', () => {
         route:
           mode === 'full'
             ? 'full-analysis'
-            : symbol === 'XAUUSD'
-              ? 'xauusd-research'
-              : mode === 'quick' || mode === 'standard'
-                ? 'symbol-research'
-                : 'canonical-chat',
+            : symbol !== null
+              ? 'symbol-research'
+              : 'canonical-chat',
         routing: { domain: 'generic', planRequired: false, rationale: 'test' },
         capability: null,
         model: null,
@@ -370,25 +347,17 @@ describe('POST /api/chat Mastra boundary', () => {
     mockGetUserWithSettings.mockResolvedValue({
       settings: { maxDailyUsd: 5, aiApiKeys: null, chatModel: null },
     });
-    mockRunMastraXauusdChat.mockResolvedValue({
-      result: { text: 'xauusd result' },
-      runId: 'run-1',
-      modelId: 'google:gemini-3.6-flash',
-      providerId: 'google',
-      report: null,
-      packet: { status: 'ready', dataQuality: 'complete', packetId: 'packet-1' },
-      observedCost: 0.001,
-    });
   });
 
-  it('routes XAUUSD research directly to the specialized Mastra report path', async () => {
+  it('routes XAUUSD research through the shared symbol-research workflow', async () => {
     const response = await POST(request(body()), { params: Promise.resolve(undefined) });
 
     expect(response.status).toBe(200);
-    expect(mockRunMastraXauusdChat).toHaveBeenCalledWith(
+    expect(mockRunMastraModeChatStream).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: 'user-1',
         threadId: '11111111-1111-4111-8111-111111111111',
+        symbol: 'XAUUSD',
         modelOverride: null,
       }),
     );
@@ -415,7 +384,7 @@ describe('POST /api/chat Mastra boundary', () => {
     expect(mockRunMastraCanonicalChatStreamService).toHaveBeenCalledWith(
       expect.objectContaining({ userId: 'user-1', threadId: expect.any(String) }),
     );
-    expect(mockRunMastraXauusdChat).not.toHaveBeenCalled();
+    expect(mockRunMastraModeChatStream).not.toHaveBeenCalled();
   });
 
   it('routes single-mode symbol analysis to the shared committee workflow (Q2/§2.3)', async () => {
@@ -509,7 +478,7 @@ describe('POST /api/chat Mastra boundary', () => {
         traceId: 'trace-route-1',
       }),
     );
-    expect(mockRunMastraXauusdChat).not.toHaveBeenCalled();
+    expect(mockRunMastraModeChatStream).not.toHaveBeenCalled();
   });
 
   it('passes an explicit model override to the Mastra canonical agent', async () => {
@@ -556,7 +525,7 @@ describe('POST /api/chat Mastra boundary', () => {
     expect(await response.json()).toMatchObject({
       error: { code: 'READ_ONLY_REQUEST_REQUIRED' },
     });
-    expect(mockRunMastraXauusdChat).not.toHaveBeenCalled();
+    expect(mockRunMastraModeChatStream).not.toHaveBeenCalled();
     expect(mockRunMastraCanonicalChatStreamService).not.toHaveBeenCalled();
   });
 
@@ -588,7 +557,7 @@ describe('POST /api/chat Mastra boundary', () => {
     // (Route selection itself is covered by the AI-package decision tests.)
     expect(response.status).toBe(200);
     expect(
-      mockRunMastraXauusdChat.mock.calls.length +
+      mockRunMastraModeChatStream.mock.calls.length +
         mockRunMastraCanonicalChatStreamService.mock.calls.length,
     ).toBeGreaterThan(0);
   });
@@ -619,7 +588,7 @@ describe('POST /api/chat Mastra boundary', () => {
   });
 
   it('returns an explicit Mastra failure rather than invoking a legacy fallback', async () => {
-    mockRunMastraXauusdChat.mockRejectedValue(new Error('provider unavailable'));
+    mockRunMastraModeChatStream.mockRejectedValue(new Error('provider unavailable'));
 
     const response = await POST(request(body()), { params: Promise.resolve(undefined) });
 
@@ -628,7 +597,7 @@ describe('POST /api/chat Mastra boundary', () => {
   });
 
   it('maps strict guardrail unavailability to a retryable 503 (§1.9)', async () => {
-    mockRunMastraXauusdChat.mockRejectedValue(
+    mockRunMastraModeChatStream.mockRejectedValue(
       new mockGuardrailUnavailableError(
         'Prompt-injection detector model is unavailable and guardrail mode is strict.',
       ),
@@ -641,7 +610,7 @@ describe('POST /api/chat Mastra boundary', () => {
   });
 
   it('maps the Mastra injection tripwire to a clean 422 (§1.9)', async () => {
-    mockRunMastraXauusdChat.mockRejectedValue(
+    mockRunMastraModeChatStream.mockRejectedValue(
       new mockTripWire('Tripwire triggered by prompt-injection-detector'),
     );
 
@@ -678,7 +647,7 @@ describe('POST /api/chat Mastra boundary', () => {
     expect(await response.json()).toMatchObject({
       error: { code: 'ONBOARDING_REQUIRED' },
     });
-    expect(mockRunMastraXauusdChat).not.toHaveBeenCalled();
+    expect(mockRunMastraModeChatStream).not.toHaveBeenCalled();
     expect(mockRunMastraCanonicalChatStreamService).not.toHaveBeenCalled();
     expect(mockEnqueueFullAnalysis).not.toHaveBeenCalled();
   });
@@ -693,9 +662,8 @@ describe('POST /api/chat Mastra boundary', () => {
 
     expect(response.status).toBe(404);
     expect(await response.json()).toMatchObject({ error: { code: 'NOT_FOUND' } });
-    expect(mockRunMastraXauusdChat).not.toHaveBeenCalled();
+    expect(mockRunMastraModeChatStream).not.toHaveBeenCalled();
     expect(mockRunMastraCanonicalChatStreamService).not.toHaveBeenCalled();
-    expect(mockRunMastraXauusdConversationStreamChat).not.toHaveBeenCalled();
     expect(mockEnqueueFullAnalysis).not.toHaveBeenCalled();
   });
 

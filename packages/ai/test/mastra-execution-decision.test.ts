@@ -48,12 +48,11 @@ describe('Mastra execution decision facade', () => {
       } as never,
     });
 
-    expect(decision.route).toBe('xauusd-research');
+    expect(decision.route).toBe('symbol-research');
     expect(decision.capability).toMatchObject({
       allowed: true,
-      capability: { id: 'xauusd-research' },
+      capability: { id: 'symbol-research' },
     });
-    expect(decision.xauusdChatKind).toBe('research');
   });
 
   it('selects the durable route for Full mode', async () => {
@@ -91,7 +90,7 @@ describe('Mastra execution decision facade', () => {
   });
 
   it('maps route capabilities through one registry', () => {
-    expect(capabilityDefinitionForRoute('xauusd-conversation')?.readOnly).toBe(true);
+    expect(capabilityDefinitionForRoute('symbol-research')?.readOnly).toBe(true);
     expect(capabilityDefinitionForRoute('mutation')?.requiresConfirmation).toBe(true);
   });
 });

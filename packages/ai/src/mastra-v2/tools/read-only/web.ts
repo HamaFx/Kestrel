@@ -32,7 +32,7 @@ import {
   createReadOnlyToolExecute,
   executeLegacyReadOnlyTool,
   readOnlyToolDescription,
-} from '@ai/mastra-v2/agents/xauusd/legacy-tool-adapter';
+} from '@ai/mastra-v2/tools/tool-lifecycle';
 
 /** Native web-domain read-only tools by registry name. */
 export function buildWebReadOnlyTools(): Readonly<Record<string, unknown>> {

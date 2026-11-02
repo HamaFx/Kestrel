@@ -44,7 +44,7 @@ describe('Jev unified turn routing & dead autoDetectMode removal', () => {
     expect('autoDetectMode' in routingPolicy).toBe(false);
   });
 
-  it('evaluates domain, mutationKind, xauusdChatKind, reportFollowup, and injectionRisk in one parallel Jev request', async () => {
+  it('evaluates domain, mutationKind, reportFollowup, and injectionRisk in one parallel Jev request', async () => {
     _resetJevRoutingCache();
     const fetchMock = vi.fn().mockResolvedValue(
       jevResponse({
@@ -64,11 +64,6 @@ describe('Jev unified turn routing & dead autoDetectMode removal', () => {
             run_system_action: 0.005,
           },
         },
-        xauusd_kind: {
-          type: 'choice',
-          choice: 'research',
-          probabilities: { research: 0.89, conversation: 0.11 },
-        },
         is_report_followup: { type: 'noul', noul: 0.08 },
         injection_attempt: { type: 'noul', noul: 0.01 },
       }),
@@ -84,10 +79,9 @@ describe('Jev unified turn routing & dead autoDetectMode removal', () => {
     expect(decision).not.toBeNull();
     expect(decision!.domain).toBe('fundamental');
     expect(decision!.mutationKind).toBeNull();
-    expect(decision!.xauusdChatKind).toBe('research');
     expect(decision!.isReportFollowup).toBe(false);
     expect(decision!.injectionBlocked).toBe(false);
-    // One HTTP request answers all five questions.
+    // One HTTP request answers all four questions.
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const body = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body)) as {
       questions: Record<string, unknown>;
@@ -97,7 +91,6 @@ describe('Jev unified turn routing & dead autoDetectMode removal', () => {
       'injection_attempt',
       'is_report_followup',
       'mutation_kind',
-      'xauusd_kind',
     ]);
   });
 

@@ -43,7 +43,7 @@ import { buildConversationScorers, buildScorersForExecutionPlan } from '../../ev
 import { buildGuardrailInputProcessors } from '../../guardrails';
 import { assertExecutionPlanRoute } from '../../planning/execution-plan';
 import { nativeCanonicalTools } from '../../tools/canonical';
-import type { MastraToolInvocationPart } from '../xauusd/legacy-tool-adapter';
+import type { MastraToolInvocationPart } from '../../tools/tool-lifecycle';
 import { READ_ONLY_TOOL_NAMES } from './allowlist';
 import { mlog } from './log';
 import { resolveCanonicalModel } from './model';

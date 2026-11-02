@@ -67,17 +67,16 @@ describe('unified router (§1.1)', () => {
     expect(decision.symbol).toBe('XAUUSD');
   });
 
-  it('routes XAUUSD deep-research phrasing to the verified XAUUSD path', async () => {
+  it('routes XAUUSD deep-research phrasing like any other symbol', async () => {
     const decision = await route('analyze XAUUSD');
-    expect(decision.route).toBe('xauusd-research');
+    expect(decision.route).toBe('symbol-research');
     expect(decision.symbol).toBe('XAUUSD');
-    expect(decision.xauusdChatKind).toBe('research');
-    expect(decision.capabilityId).toBe('xauusd-research');
+    expect(decision.capabilityId).toBe('symbol-research');
   });
 
-  it('routes gold outlooks to XAUUSD research', async () => {
+  it('routes gold outlooks to the shared symbol-research path', async () => {
     const decision = await route('gold outlook');
-    expect(decision.route).toBe('xauusd-research');
+    expect(decision.route).toBe('symbol-research');
     expect(decision.symbol).toBe('XAUUSD');
   });
 
@@ -138,10 +137,9 @@ describe('unified router (§1.1)', () => {
       jevDecision: {
         domain: null,
         mutationKind: 'log_journal',
-        xauusdChatKind: null,
         isReportFollowup: false,
         injectionBlocked: true,
-        confidence: { domain: 0, mutation: 0.9, xauusd: 0, reportFollowup: 0, injection: 0.9 },
+        confidence: { domain: 0, mutation: 0.9, reportFollowup: 0, injection: 0.9 },
         providerId: 'test-jev',
         latencyMs: 1,
       },

@@ -40,7 +40,7 @@ import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
-import { createReadOnlyToolExecute } from '../mastra-v2/agents/xauusd/legacy-tool-adapter';
+import { createReadOnlyToolExecute } from '../mastra-v2/tools/tool-lifecycle';
 import {
   pluginExecutionContextFor,
   runWithPluginTenantScope,

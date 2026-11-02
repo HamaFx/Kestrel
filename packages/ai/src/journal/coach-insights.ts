@@ -24,7 +24,7 @@ import {
   estimateKnownCostUsd,
   releaseBudgetReservation,
 } from '../budget/cost';
-import * as textRunner from '../mastra-v2/agents/xauusd/text-runner';
+import * as textRunner from '../mastra-v2/shared/text-runner';
 import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
 import {
   beginMastraRun,

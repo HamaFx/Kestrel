@@ -19,13 +19,12 @@
 /**
  * Phase 1 (Jev System One) — unified turn routing in ONE decision-model call.
  *
- * One `POST /v1/systemone` request asks five parallel questions —
- * `domain`, `mutation_kind`, `xauusd_kind`, `is_report_followup`, and
- * `injection_attempt` — so the chat boundary gets regime-domain,
- * XAUUSD-chat-kind, report-follow-up, mutation intent, and injection risk in a
- * single ~50–150 ms non-autoregressive pass. Deterministic lexical gates in
- * `routeUnified` are still OR-ed on top; this router can only ever ADD a
- * block, never weaken one.
+ * One `POST /v1/systemone` request asks four parallel questions —
+ * `domain`, `mutation_kind`, `is_report_followup`, and `injection_attempt` —
+ * so the chat boundary gets regime-domain, report-follow-up, mutation intent,
+ * and injection risk in a single ~50–150 ms non-autoregressive pass.
+ * Deterministic lexical gates in `routeUnified` are still OR-ed on top; this
+ * router can only ever ADD a block, never weaken one.
  *
  * Security invariant: the state carries only `sanitizeExternalText(userText)`
  * and the prior-report boolean. Untrusted external prose never enters a
@@ -51,15 +50,13 @@ export type JevTurnDomain = Extract<
 >;
 
 /** Accepted domain classification threshold. */
-export const JEV_DOMAIN_CONFIDENCE_THRESHOLD = 0.65;
-/** Accepted XAUUSD chat-kind threshold. */
-export const JEV_XAUUSD_KIND_CONFIDENCE_THRESHOLD = 0.65;
+const JEV_DOMAIN_CONFIDENCE_THRESHOLD = 0.65;
 /** Mutation kinds require the raw modal probability to clear this bar. */
 export const JEV_MUTATION_PROBABILITY_THRESHOLD = 0.85;
 /** Report follow-up requires this noul probability. */
-export const JEV_REPORT_FOLLOWUP_PROBABILITY_THRESHOLD = 0.75;
+const JEV_REPORT_FOLLOWUP_PROBABILITY_THRESHOLD = 0.75;
 /** Injection verdict trips at this noul probability. */
-export const JEV_INJECTION_PROBABILITY_THRESHOLD = 0.85;
+const JEV_INJECTION_PROBABILITY_THRESHOLD = 0.85;
 
 const JEV_ROUTING_CACHE_TTL_MS = 60_000;
 const JEV_ROUTING_CACHE_MAX_ENTRIES = 200;
@@ -71,8 +68,6 @@ export interface JevTurnRoutingDecision {
   domain: JevTurnDomain | null;
   /** Confident mutation intent, or null for `none` / below 0.85 probability. */
   mutationKind: MutationKind | null;
-  /** XAUUSD report path hint, or null when below threshold. */
-  xauusdChatKind: 'research' | 'conversation' | null;
   /** True only when a prior report exists AND Jev cleared the threshold. */
   isReportFollowup: boolean;
   /** High-confidence injection/jailbreak verdict. */
@@ -81,7 +76,6 @@ export interface JevTurnRoutingDecision {
   confidence: {
     domain: number;
     mutation: number;
-    xauusd: number;
     reportFollowup: number;
     injection: number;
   };
@@ -187,15 +181,6 @@ export async function evaluateJevTurnRouting(
             'Run, trigger, or execute a system action, maintenance, backup, or diagnostic',
         },
       },
-      xauusd_kind: {
-        type: 'choice',
-        instructions:
-          'If the question is about gold (XAUUSD), is it a research request needing fresh analysis, or conversational follow-up on an existing report?',
-        criteria: {
-          research: 'Asks for a new outlook, forecast, deep analysis, or multi-factor view',
-          conversation: 'Conversational follow-up, clarification, recapping, or small-talk depth',
-        },
-      },
       is_report_followup: {
         type: 'noul',
         instructions:
@@ -235,17 +220,9 @@ export async function evaluateJevTurnRouting(
       ? (mutationAnswer.choice as MutationKind)
       : null;
 
-  const xauusdAnswer = result.answers.xauusd_kind;
-  const xauusdChatKind: 'research' | 'conversation' | null =
-    xauusdAnswer.confidence >= JEV_XAUUSD_KIND_CONFIDENCE_THRESHOLD &&
-    (xauusdAnswer.choice === 'research' || xauusdAnswer.choice === 'conversation')
-      ? xauusdAnswer.choice
-      : null;
-
   const decision: JevTurnRoutingDecision = {
     domain,
     mutationKind,
-    xauusdChatKind,
     isReportFollowup:
       priorReportAvailable &&
       result.answers.is_report_followup.probability >= JEV_REPORT_FOLLOWUP_PROBABILITY_THRESHOLD,
@@ -254,7 +231,6 @@ export async function evaluateJevTurnRouting(
     confidence: {
       domain: domainAnswer.confidence,
       mutation: mutationAnswer.confidence,
-      xauusd: xauusdAnswer.confidence,
       reportFollowup: result.answers.is_report_followup.probability,
       injection: result.answers.injection_attempt.probability,
     },

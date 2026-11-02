@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-// Public Mastra service surface. Consumers import one of these four modules
+// Public Mastra service surface. Consumers import one of these modules
 // instead of the former flat `mastra-*.ts` wrapper files.
 export * from './chat-orchestrator';
 export * from './stream-adapter';
 export * from './mutation-handler';
-export * from './xauusd-handler';
+export * from './mastra-report-context';

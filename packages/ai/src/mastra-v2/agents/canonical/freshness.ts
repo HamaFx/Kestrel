@@ -32,7 +32,7 @@
  * never import either of them back.
  */
 
-import { extractNarrativeNumbers } from '../xauusd/report/report-grounding';
+import { extractNarrativeNumbers } from '../../shared/report-grounding';
 
 /** Label used when an envelope names neither a symbol nor a tool. */
 const DEFAULT_LABEL = 'market data';

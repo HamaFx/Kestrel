@@ -9,13 +9,11 @@ import type { UIMessage } from 'ai';
 
 import {
   BROAD_MUTATION_TERMS,
-  DEEP_RESEARCH_TERMS,
   FOLLOWUP_TERMS,
   FORBIDDEN_FOLLOWUP_TERMS,
   INJECTION_TERMS,
   isHighConfidenceMutationIntent,
   OTHER_SYMBOL_TERMS,
-  XAUUSD_TERMS,
 } from '../../routing/keywords';
 import { MAX_COMPARISON_SYMBOLS } from '../shared/constants';
 
@@ -115,15 +113,6 @@ export function isMutationIntent(prompt: string): boolean {
   return BROAD_MUTATION_TERMS.test(prompt);
 }
 
-export function isMastraXauusdCandidate(prompt: string): boolean {
-  return (
-    XAUUSD_TERMS.test(prompt) &&
-    !OTHER_SYMBOL_TERMS.test(prompt) &&
-    !isInjectionAttempt(prompt) &&
-    !isHighConfidenceMutationIntent(prompt)
-  );
-}
-
 export function isMastraSymbolCandidate(prompt: string): boolean {
   return (
     extractMastraSymbol(prompt) !== null &&
@@ -140,12 +129,4 @@ export function isMastraXauusdFollowupCandidate(prompt: string): boolean {
     !isInjectionAttempt(prompt) &&
     !isHighConfidenceMutationIntent(prompt)
   );
-}
-
-export function mastraXauusdChatKind(
-  prompt: string,
-  hasCurrentReport = false,
-): 'research' | 'conversation' {
-  if (hasCurrentReport && isMastraXauusdFollowupCandidate(prompt)) return 'conversation';
-  return DEEP_RESEARCH_TERMS.test(prompt) ? 'research' : 'conversation';
 }

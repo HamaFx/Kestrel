@@ -68,9 +68,8 @@ const ROUTE_MATRIX: MatrixCell[] = [
     prompt: 'Analyze XAUUSD',
     credentials: true,
     expected: {
-      route: 'xauusd-research',
-      capabilityId: 'xauusd-research',
-      // Verified reports stay buffered until the report verifier completes.
+      route: 'symbol-research',
+      capabilityId: 'symbol-research',
       streaming: false,
       readOnly: true,
       memoryMode: 'native',
@@ -80,16 +79,13 @@ const ROUTE_MATRIX: MatrixCell[] = [
     },
   },
   {
-    // Q2 two-mode collapse: `auto` used to route here before resolution; the
-    // planner boundary now resolves legacy values upstream (resolveMode).
     name: 'single XAUUSD research (legacy auto shim target)',
     mode: 'single',
     prompt: 'Analyze XAUUSD',
     credentials: true,
     expected: {
-      route: 'xauusd-research',
-      capabilityId: 'xauusd-research',
-      // Verified reports stay buffered until the report verifier completes.
+      route: 'symbol-research',
+      capabilityId: 'symbol-research',
       streaming: false,
       readOnly: true,
       memoryMode: 'native',
@@ -99,14 +95,16 @@ const ROUTE_MATRIX: MatrixCell[] = [
     },
   },
   {
-    name: 'single XAUUSD conversation',
+    // Phase 4 Task 4: a named XAUUSD prompt runs the same one-desk committee
+    // read as every other symbol; the PoC conversation route is retired.
+    name: 'single XAUUSD price question (committee read)',
     mode: 'single',
     prompt: 'What is the current gold price?',
     credentials: true,
     expected: {
-      route: 'xauusd-conversation',
-      capabilityId: 'xauusd-conversation',
-      streaming: true,
+      route: 'symbol-research',
+      capabilityId: 'symbol-research',
+      streaming: false,
       readOnly: true,
       memoryMode: 'native',
       memoryRequired: true,
@@ -198,14 +196,14 @@ const ROUTE_MATRIX: MatrixCell[] = [
     },
   },
   {
-    name: 'explicit XAUUSD research capability (verified report)',
+    name: 'explicit symbol-research capability (XAUUSD)',
     mode: 'single',
     prompt: 'Analyze XAUUSD',
-    capabilityId: 'xauusd-research',
+    capabilityId: 'symbol-research',
     credentials: true,
     expected: {
-      route: 'xauusd-research',
-      capabilityId: 'xauusd-research',
+      route: 'symbol-research',
+      capabilityId: 'symbol-research',
       streaming: false,
       readOnly: true,
       memoryMode: 'native',

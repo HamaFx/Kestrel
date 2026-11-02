@@ -35,7 +35,7 @@ import {
   extractToolPartsFromMessages,
   type MastraToolInvocationPart,
   type MastraToolStreamEvent,
-} from '../mastra-v2/agents/xauusd/legacy-tool-adapter';
+} from '../mastra-v2/tools/tool-lifecycle';
 import { KESTREL_MEMORY_LAST_MESSAGES } from '../mastra-v2/memory';
 import {
   beginMastraRun,

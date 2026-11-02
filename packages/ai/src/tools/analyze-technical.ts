@@ -92,14 +92,14 @@ export const analyzeTechnicalTool: Tool<z.infer<typeof InputSchema>, AnalyzeTech
 // Per-timeframe orchestrator
 // ---------------------------------------------------------------------------
 
-export interface TechnicalReadingComputationArgs {
+interface TechnicalReadingComputationArgs {
   symbol: Symbol;
   tf: Timeframe;
   candles: Candle[];
 }
 
 /** Pure per-timeframe projection shared by the legacy tool and Mastra. */
-export function computeTechnicalReading({
+function computeTechnicalReading({
   symbol,
   tf,
   candles,
@@ -270,7 +270,7 @@ function lastFromObject(ind: IndicatorResult, key: string): number | null {
 // Templated summary
 // ---------------------------------------------------------------------------
 
-export function deterministicSummary(args: {
+function deterministicSummary(args: {
   symbol: Symbol;
   perTimeframe: PerTimeframeReading[];
   partial: boolean;

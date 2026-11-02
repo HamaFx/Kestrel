@@ -19,7 +19,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { computeCitationScore } from '../src/eval/citation-oracle';
 import type { PromptResult } from '../src/eval/runner';
 import { buildTrainingRecords } from '../src/eval/training-export';
-import { createCitationScorer, createGroundingScorer } from '../src/mastra-v2/evals/custom';
+import { createCitationScorer } from '../src/mastra-v2/evals/custom';
 import {
   createMastraEvalGate,
   createScoreThresholdGate,
@@ -117,7 +117,6 @@ describe('mastra evals — scorers', () => {
       type: 'ratio',
       rate: 0.05,
     });
-    expect(conversation.entries['kestrel-grounding']?.sampling).toBeUndefined();
     expect(conversation.entries['kestrel-citation']?.sampling).toBeUndefined();
 
     const research = buildResearchScorers(settings as never, env as never);
@@ -154,20 +153,6 @@ describe('mastra evals — scorers', () => {
 });
 
 describe('mastra evals — custom scorers', () => {
-  it('grounding scorer returns 0 for a report that fails verification', async () => {
-    const scorer = createGroundingScorer();
-    const result = await scorer.run({
-      runId: 'run-ground',
-      input: {
-        report: { invalid: true },
-        packet: { packetId: 'p1' } as never,
-      },
-      output: null,
-      requestContext: {},
-    });
-    expect(result.score).toBe(0);
-  });
-
   it('citation scorer computes the oracle ratio 0..1', async () => {
     const scorer = createCitationScorer();
     // Price claim with no supporting tool → unsupported.
@@ -234,14 +219,6 @@ describe('mastra evals — gate', () => {
     );
     expect(result.passed).toBe(false);
     expect(result.failures.length).toBeGreaterThan(0);
-  });
-
-  it('grounding scorer requires a strict 1.0', () => {
-    const result = recordsToGateObserved([
-      record({ scorerId: 'kestrel-grounding', score: 0.5 }),
-      record({ scorerId: 'faithfulness', score: 1 }),
-    ]);
-    expect(result.passed).toBe(false);
   });
 
   it('Mastra gate scorer fails on empty records and passes on good ones', async () => {

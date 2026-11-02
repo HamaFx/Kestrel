@@ -62,7 +62,7 @@ const SESSIONS: readonly SessionWindow[] = [
   { session: 'ny', startHour: 12, endHour: 21 },
 ];
 
-export interface SessionLevelsComputationArgs {
+interface SessionLevelsComputationArgs {
   symbol: GetSessionLevelsOutput['symbol'];
   includePrior: boolean;
   candles: Candle[];
@@ -76,7 +76,7 @@ export interface SessionLevelsComputationArgs {
 }
 
 /** Pure session projection shared by the legacy AI SDK tool and Mastra adapter. */
-export function computeSessionLevels({
+function computeSessionLevels({
   symbol,
   includePrior,
   candles,

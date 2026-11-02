@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Read-only tool lifecycle barrel (DEC-05 split of legacy-tool-adapter.ts):
+// Read-only tool lifecycle barrel (DEC-05 split, moved to tools/ in Phase 4):
 // the Mastra lifecycle wrapper plus the stream-part parsing the canonical chat
 // runner and specialist runner share.
 //
@@ -33,17 +33,15 @@
 // `createTool`; `executeLegacyReadOnlyTool` is the only bridge that calls an
 // existing legacy execute core.
 
-import type { CandlesResult } from '@kestrel/data';
 import type { ToolObserve } from '@mastra/core/tools';
 import type { Tool, ToolExecutionOptions } from 'ai';
 
-import { qualityFromWarnings } from '@ai/mastra-v2/packets/evidence';
 import { executeMastraTool } from '@ai/mastra-v2/shared/tool-telemetry';
 
 import {
   type MastraToolInvocationPart,
   type MastraToolStreamEvent,
-} from './stream-parts';
+} from './tool-stream-parts';
 
 /** Context Mastra hands to a read-only tool execute function. */
 export interface MastraReadOnlyToolContext {
@@ -133,43 +131,6 @@ export function createReadOnlyToolExecute<TInput, TOutput>(
   };
 }
 
-export interface CandleEvidenceMetadata {
-  source: string;
-  fetchedAt: string;
-  dataAsOf: string;
-  freshness: 'fresh' | 'stale' | 'unknown';
-  quality: 'complete' | 'partial' | 'degraded';
-  warnings: string[];
-}
-
-/**
- * Convert the data-layer candle metadata into the evidence fields shared by
- * the migrated Mastra adapters. The adapter never infers freshness from the
- * wall clock; it trusts the cache's explicit stale flag.
- */
-export function candleEvidenceMetadata(
-  result: CandlesResult,
-  requestedCount: number,
-): CandleEvidenceMetadata {
-  const latestCandle = result.candles.at(-1);
-  const warnings = [
-    ...(result.stale ? ['Candles were served from stale-while-error cache'] : []),
-    ...(result.candles.length < requestedCount
-      ? [`Only ${result.candles.length} candles were available; ${requestedCount} were requested`]
-      : []),
-    ...(!latestCandle ? ['No candles were returned'] : []),
-  ];
-
-  return {
-    source: latestCandle?.source ?? 'unknown',
-    fetchedAt: new Date(result.producedAt).toISOString(),
-    dataAsOf: new Date(latestCandle?.t ?? result.producedAt).toISOString(),
-    freshness: latestCandle ? (result.stale ? 'stale' : 'fresh') : 'unknown',
-    quality: qualityFromWarnings(warnings),
-    warnings,
-  };
-}
-
 /**
  * Minimal executable shape for the bridge. The AI SDK `Tool` is a union of
  * function/provider/dynamic tools, so the bridge narrows to the executable
@@ -244,4 +205,4 @@ export {
   extractToolPartsFromMessages,
   type MastraToolInvocationPart,
   type MastraToolStreamEvent,
-} from './stream-parts';
+} from './tool-stream-parts';

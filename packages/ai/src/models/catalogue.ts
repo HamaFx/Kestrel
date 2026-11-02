@@ -85,11 +85,9 @@ export const buildToolCatalogue = cache(
         const capabilities = (
           Object.keys({
             'canonical-chat': true,
-            'xauusd-conversation': true,
             'symbol-research': true,
             'sensitive-user-read': true,
             'mutation-workflows': true,
-            'xauusd-research': true,
           }) as MastraCapabilityId[]
         ).filter((capabilityId) =>
           capabilityUiMetadata(capabilityId).tools.some((tool) => tool.name === name),

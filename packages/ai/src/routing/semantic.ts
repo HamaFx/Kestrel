@@ -37,7 +37,7 @@ import { z } from 'zod';
 
 import { resolveJevEndpoint } from '../jev/resolve-endpoint';
 import { evaluateJevTurnRouting } from '../jev/turn-router';
-import { runMastraStructured } from '../mastra-v2/agents/xauusd/text-runner';
+import { runMastraStructured } from '../mastra-v2/shared/text-runner';
 import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
 import { resolveModel, type ResolveModelEnv } from '../models/model';
 

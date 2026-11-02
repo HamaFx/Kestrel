@@ -24,7 +24,6 @@ import {
   extractMastraSymbol,
   extractMastraSymbols,
   isInjectionAttempt,
-  isMastraXauusdCandidate,
   mastraComparisonScope,
   MAX_COMPARISON_SYMBOLS,
   resolveMode,
@@ -158,7 +157,6 @@ describe('routing keyword boundaries (A-03 / B-12)', () => {
     expect(XAUUSD_TERMS.test('xau/usd levels')).toBe(true);
     // B-12: bare "bullion" is a gold synonym and must match on boundaries.
     expect(XAUUSD_TERMS.test('bullion demand')).toBe(true);
-    expect(isMastraXauusdCandidate('bullion outlook')).toBe(true);
   });
 
   it('keeps disambiguating symbol terms word-bounded', () => {
@@ -167,7 +165,7 @@ describe('routing keyword boundaries (A-03 / B-12)', () => {
     // "ethereal" must not match the 'eth' alias.
     expect(OTHER_SYMBOL_TERMS.test('ethereal concepts')).toBe(false);
     // A hardened term still disambiguates a gold prompt away from XAUUSD.
-    expect(isMastraXauusdCandidate('gold vs bitcoin')).toBe(false);
+    expect(extractMastraSymbol('gold vs bitcoin')).toBeNull();
   });
 
   it('exposes every vocabulary through one canonical registry (C-04)', () => {

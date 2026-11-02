@@ -35,7 +35,7 @@ import {
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
 
-import { runMastraStructured } from '../agents/xauusd/text-runner';
+import { runMastraStructured } from '../shared/text-runner';
 import { MutationInputSchema, type MutationInput, type MutationKind } from '../workflows/mutation';
 import { checkLevelsAgainstMarket, type ModelLevel } from './level-sanity';
 

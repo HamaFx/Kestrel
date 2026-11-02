@@ -17,15 +17,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Mastra mode dispatch for /api/chat: bounded comparison, durable Full
-// analysis, specialized XAUUSD packet/report runs, shared-packet symbol
-// research, and ordinary symbol-free canonical conversation.
+// analysis, shared-packet symbol research, and canonical conversation.
+//
+// Phase 4 Task 4 — XAUUSD runs the same dispatcher paths as every other
+// symbol; the legacy packet/report route split is retired.
 
 import type { UserSettingsRow } from '@kestrel/db';
 import type { UIMessage } from 'ai';
 
 import type { getServerEnv } from '@/lib/env';
 import type { createRequestLogger } from '@/lib/logger';
-import type { listMessages } from '@/lib/services/chat';
 import {
   mastraComparisonScope,
   MAX_COMPARISON_SYMBOLS,
@@ -35,7 +36,6 @@ import {
   runConversationalTurn,
   runResearchWorkflow,
 } from '@/lib/services/mastra/chat-orchestrator';
-import { extractLatestMastraReport } from '@/lib/services/mastra/xauusd-handler';
 
 import { ROUTE_TIMEOUT_MS } from './constants';
 import { errorJson } from './errors';
@@ -52,7 +52,6 @@ export async function dispatchMastraRun(args: {
   userText: string;
   userParts: ChatUserParts;
   lastMessageId: string;
-  provisionalReport: Awaited<ReturnType<typeof listMessages>>;
   executionPlan: ExecutionPlan | null;
   userSettings: UserSettingsRow | null;
   serverEnv: ReturnType<typeof getServerEnv>;
@@ -100,38 +99,6 @@ export async function dispatchMastraRun(args: {
   const timeout = AbortSignal.timeout(ROUTE_TIMEOUT_MS);
   const signal = args.requestSignal ? AbortSignal.any([args.requestSignal, timeout]) : timeout;
   const symbol = executionPlan?.symbol ?? null;
-  const priorReport = executionPlan?.reportFollowup
-    ? extractLatestMastraReport(args.provisionalReport)
-    : null;
-
-  // Deep XAUUSD analysis and verified-report follow-ups retain their
-  // specialized packet/report verifier. This path is always preferred over
-  // generic chat when the request is clearly about XAUUSD.
-  //
-  // Verified reports (kind === 'research') stay buffered until verification
-  // completes. Ordinary XAUUSD conversation (kind === 'conversation') streams
-  // provider tokens immediately.
-  if (
-    executionPlan?.route === 'xauusd-conversation' ||
-    executionPlan?.route === 'xauusd-research'
-  ) {
-    const sharedInput = {
-      plan: executionPlan,
-      userId,
-      threadId,
-      userMessage,
-      prompt: userText,
-      modelOverride: args.modelOverride ?? null,
-      signal,
-      backfillExcludeMessageIdempotencyKey: `ui:${userMessage.id}`,
-      ...(priorReport ? { priorReport } : {}),
-    };
-    // Awaited so provider/runner failures are caught by the Mastra failure
-    // boundary below rather than escaping the request as unhandled.
-    return executionPlan.route === 'xauusd-conversation'
-      ? await runConversationalTurn(sharedInput)
-      : await runResearchWorkflow({ ...sharedInput, symbol: symbol ?? 'XAUUSD' });
-  }
 
   // A-01: bounded cross-symbol comparisons run the comparison graph —
   // evidence for every named symbol, then a cross-symbol fusion. This
@@ -155,9 +122,10 @@ export async function dispatchMastraRun(args: {
     });
   }
 
-  // Quick and Standard modes use the bounded shared-packet Mastra mode
-  // workflow when the user has explicitly named a supported symbol.
-  // Symbol-free prompts in these modes fall through to canonical chat.
+  // Single-symbol research (XAUUSD included) uses the bounded shared-packet
+  // Mastra mode workflow when the user has explicitly named a supported
+  // symbol. Symbol-free prompts and implicit report follow-ups fall through to
+  // canonical chat.
   if (executionPlan?.route === 'symbol-research' && symbol !== null) {
     return await runResearchWorkflow({
       plan: executionPlan,
@@ -172,8 +140,8 @@ export async function dispatchMastraRun(args: {
     });
   }
 
-  // Ordinary symbol-free conversation is handled by the streaming canonical
-  // Mastra agent, which owns the reviewed read-only Kestrel tool allowlist.
+  // Ordinary conversation is handled by the streaming canonical Mastra agent,
+  // which owns the reviewed read-only Kestrel tool allowlist.
   return await runConversationalTurn({
     plan: executionPlan!,
     userId,

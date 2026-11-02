@@ -30,7 +30,7 @@ import type { z } from 'zod';
 
 import { countCoTRows, listCoTSamples } from '@ai/cot/persistence';
 
-import { createReadOnlyToolExecute } from '../../agents/xauusd/legacy-tool-adapter';
+import { createReadOnlyToolExecute } from '../tool-lifecycle';
 import { CANONICAL_COT_DESCRIPTION } from './descriptions';
 import { CanonicalCoTInputSchema } from './input-schemas';
 
@@ -42,7 +42,7 @@ export { CANONICAL_COT_DESCRIPTION, CanonicalCoTInputSchema };
 export type CanonicalCoTInput = z.infer<typeof CanonicalCoTInputSchema>;
 
 /** Shared execute core: CoT rows plus the deterministic summary. */
-export async function executeCanonicalCoT(input: CanonicalCoTInput): Promise<GetCoTOutput> {
+async function executeCanonicalCoT(input: CanonicalCoTInput): Promise<GetCoTOutput> {
   const { symbol, weeks } = input;
   const populated = await countCoTRows();
   const requestedSymbol: Symbol = symbol ?? 'XAUUSD';

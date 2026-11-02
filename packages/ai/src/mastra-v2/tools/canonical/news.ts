@@ -33,15 +33,10 @@ import { type z } from 'zod';
 import { getDb } from '@ai/runtime/db';
 import { maybeGetToolContext } from '@ai/runtime/tool-context';
 
-import { createReadOnlyToolExecute } from '../../agents/xauusd/legacy-tool-adapter';
+import { createReadOnlyToolExecute } from '../tool-lifecycle';
 import { quarantineExternalText } from '../../packets/external-content';
 import { CANONICAL_NEWS_DESCRIPTION } from './descriptions';
 import { CanonicalNewsInputSchema } from './input-schemas';
-
-// Leaf re-exports: the values live in modules with no app-graph imports, so a
-// module-scope read (legacy shims, other consumers) can never land on a binding
-// that is still initialising inside the instance ↔ tools import cycle.
-export { CANONICAL_NEWS_DESCRIPTION, CanonicalNewsInputSchema };
 
 export type CanonicalNewsInput = z.infer<typeof CanonicalNewsInputSchema>;
 

@@ -30,7 +30,7 @@ import type { LanguageModel } from 'ai';
 import { estimateCostUsd } from '../../budget/cost';
 import { resolveChatModel, resolveModel, type ResolveModelEnv } from '../../models/model';
 import type { GenerationLedger } from '../../persistence/generation-ledger';
-import { runMastraText } from '../agents/xauusd/text-runner';
+import { runMastraText } from './text-runner';
 
 export interface GenerateThreadTitleArgs {
   userId: string;

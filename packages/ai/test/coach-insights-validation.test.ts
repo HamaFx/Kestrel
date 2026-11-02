@@ -34,7 +34,7 @@ const { runStructuredMock, syncMock } = vi.hoisted(() => ({
   syncMock: vi.fn(),
 }));
 
-vi.mock('../src/mastra-v2/agents/xauusd/text-runner', () => ({
+vi.mock('../src/mastra-v2/shared/text-runner', () => ({
   runMastraStructured: (...args: unknown[]) => runStructuredMock(...args),
   runMastraText: vi.fn(),
 }));

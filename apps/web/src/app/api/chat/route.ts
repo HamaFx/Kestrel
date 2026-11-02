@@ -36,7 +36,7 @@ import {
   routeUnified,
 } from '@/lib/services/chat-ai';
 import { startMutationDraft } from '@/lib/services/mastra/mutation-handler';
-import { extractLatestMastraReport } from '@/lib/services/mastra/xauusd-handler';
+import { extractLatestMastraReport } from '@/lib/services/mastra/mastra-report-context';
 import {
   detectInstalledPluginIntent,
   getInstalledPluginIdsForUser,
@@ -236,7 +236,6 @@ export const POST = withAuth<void>(async (req, { user }) => {
       userText,
       userParts,
       lastMessageId: last.id,
-      provisionalReport,
       executionPlan,
       userSettings,
       serverEnv,

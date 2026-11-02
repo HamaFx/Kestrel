@@ -24,10 +24,6 @@ import {
   getMastraCapability,
   manifestToolsForDomain,
   MASTRA_CAPABILITIES,
-  xauusdCandlesTool,
-  xauusdIndicatorsTool,
-  xauusdPriceTool,
-  xauusdResearchPacketTool,
   type MastraCapability,
 } from '../src/mastra-v2';
 
@@ -50,10 +46,10 @@ describe('Mastra capability policy', () => {
       route: 'canonical-chat',
       component: 'mastra-canonical-chat',
     });
-    expect(capabilityTelemetryLabels('xauusd-conversation')).toEqual({
-      capabilityId: 'xauusd-conversation',
-      capabilityVersion: 'poc-5',
-      capabilityRoute: 'xauusd-conversation',
+    expect(capabilityTelemetryLabels('symbol-research')).toEqual({
+      capabilityId: 'symbol-research',
+      capabilityVersion: 'mode-2',
+      capabilityRoute: 'symbol-research',
       capabilityScope: 'read-only',
     });
   });
@@ -75,41 +71,44 @@ describe('Mastra capability policy', () => {
     expect(MASTRA_CAPABILITIES['canonical-chat'].tools).not.toContain('log_journal');
   });
 
-  it('declares the current XAUUSD research capability explicitly', () => {
-    expect(MASTRA_CAPABILITIES['xauusd-research']).toMatchObject({
-      id: 'xauusd-research',
-      allowedSymbols: ['XAUUSD'],
-      // Q2: `auto` no longer reaches capability evaluation (resolved upstream).
-      allowedModes: ['single'],
+  it('declares the shared symbol-research capability for every symbol', () => {
+    expect(MASTRA_CAPABILITIES['symbol-research']).toMatchObject({
+      id: 'symbol-research',
+      allowedSymbols: expect.arrayContaining(['XAUUSD', 'EURUSD']),
+      allowedModes: ['single', 'full'],
       readOnly: true,
       evidencePolicy: 'required',
       supportsAbort: true,
     });
   });
 
-  // Audit plan §1.11 / P1-21 — the manifest ids must be the real registered
-  // `createTool` ids, not phantom underscore names, so the manifest is
+  // Audit plan §1.11 / P1-21 — the manifest ids must resolve to real
+  // registrations, not phantom underscore names, so the manifest is
   // enforceable against actual tool registrations.
-  it('lists the real registered tool ids for the XAUUSD research manifest', () => {
-    expect(MASTRA_CAPABILITIES['xauusd-research'].tools).toEqual([
-      xauusdResearchPacketTool.id,
-      xauusdPriceTool.id,
-      xauusdCandlesTool.id,
-      xauusdIndicatorsTool.id,
+  it('lists the resolved native tool ids for the symbol-research manifest', () => {
+    expect(MASTRA_CAPABILITIES['symbol-research'].tools).toEqual([
+      'collect-symbol-research-packet',
+      'get_seasonality',
+      'get_cot',
+      'get_intermarket_resonance',
+      'web_search',
+      'search_knowledge',
     ]);
   });
 
   it('fails loudly when a manifest declares a phantom tool id', () => {
     const doctored = {
       ...MASTRA_CAPABILITIES,
-      'xauusd-research': {
-        ...MASTRA_CAPABILITIES['xauusd-research'],
+      'symbol-research': {
+        ...MASTRA_CAPABILITIES['symbol-research'],
         // The pre-fix phantom id must no longer pass the integrity check.
         tools: [
-          'get_xauusd_research_packet',
-          'get-xauusd-price',
-          'get-xauusd-candles',
-          'get-xauusd-indicators',
+          'collect-symbol-research-packet',
+          'get_xauusd_seasonality',
+          'get_cot',
+          'get_intermarket_resonance',
+          'web_search',
+          'search_knowledge',
         ],
       },
     } as unknown as Record<string, MastraCapability>;
@@ -124,30 +123,6 @@ describe('Mastra capability policy', () => {
     for (const mutationTool of mutationTools) {
       expect(MASTRA_CAPABILITIES['canonical-chat'].tools).not.toContain(mutationTool);
     }
-  });
-
-  it('declares the conversational narrow-tool allowlist and step budget', () => {
-    expect(MASTRA_CAPABILITIES['xauusd-conversation']).toMatchObject({
-      tools: [
-        'get-xauusd-market-structure',
-        'get-xauusd-session-levels',
-        'analyze-xauusd-technical',
-        'get-xauusd-correlation',
-        'get-xauusd-intermarket',
-        'forecast-xauusd-volatility',
-        'get-xauusd-news',
-        'get-xauusd-calendar',
-        'get-xauusd-social-sentiment',
-        'get-xauusd-fundamental-context',
-        'get-xauusd-seasonality',
-        'get-xauusd-cot',
-        'get-xauusd-intermarket-resonance',
-        'search-untrusted-web',
-        'search-untrusted-knowledge',
-      ],
-      maxSteps: 3,
-      readOnly: true,
-    });
   });
 
   it('keeps mutation workflows disabled and approval-gated', () => {
@@ -168,14 +143,14 @@ describe('Mastra capability policy', () => {
   });
 
   it('resolves known capabilities and rejects unknown IDs', () => {
-    expect(getMastraCapability('xauusd-research')?.id).toBe('xauusd-research');
+    expect(getMastraCapability('symbol-research')?.id).toBe('symbol-research');
     expect(getMastraCapability('not-a-capability')).toBeNull();
   });
 
-  it('allows the current read-only XAUUSD Single capability', () => {
+  it('allows the shared symbol-research capability for XAUUSD single mode', () => {
     expect(
       evaluateMastraCapability({
-        capabilityId: 'xauusd-research',
+        capabilityId: 'symbol-research',
         symbol: 'XAUUSD',
         mode: 'single',
       }),
@@ -183,8 +158,7 @@ describe('Mastra capability policy', () => {
   });
 
   it.each([
-    ['unsupported symbol', { symbol: 'EURUSD', mode: 'single' as const }, 'unsupported-symbol'],
-    ['unsupported mode', { symbol: 'XAUUSD', mode: 'full' as const }, 'unsupported-mode'],
+    ['unsupported symbol', { symbol: 'FAKESYMBOL', mode: 'single' as const }, 'unsupported-symbol'],
     [
       'explicit model override',
       { symbol: 'XAUUSD', mode: 'single' as const, hasModelOverride: true },
@@ -198,7 +172,7 @@ describe('Mastra capability policy', () => {
   ])('rejects %s before model execution', (_label, request, reason) => {
     expect(
       evaluateMastraCapability({
-        capabilityId: 'xauusd-research',
+        capabilityId: 'symbol-research',
         ...request,
       }),
     ).toMatchObject({ allowed: false, reason });

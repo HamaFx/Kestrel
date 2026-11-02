@@ -51,13 +51,6 @@ export default defineConfig({
         branches: 55,
         functions: 69,
         lines: 66,
-        // Core orchestration must never silently regress.
-        'src/mastra-v2/agents/xauusd/agent.ts': {
-          statements: 26,
-          branches: 30,
-          functions: 49,
-          lines: 26,
-        },
       },
     },
     server: {

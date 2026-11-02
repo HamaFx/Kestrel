@@ -57,7 +57,7 @@ import {
 } from '@ai/models/rag';
 import { maybeGetToolContext } from '@ai/runtime/tool-context';
 
-import { createReadOnlyToolExecute } from '../../agents/xauusd/legacy-tool-adapter';
+import { createReadOnlyToolExecute } from '../tool-lifecycle';
 import { CANONICAL_KNOWLEDGE_DESCRIPTION } from './descriptions';
 import { CanonicalKnowledgeInputSchema } from './input-schemas';
 
@@ -70,7 +70,7 @@ export type CanonicalKnowledgeInput = z.infer<typeof CanonicalKnowledgeInputSche
 
 const FALLBACK_MODEL = 'openai/text-embedding-3-small';
 
-export interface ExecuteCanonicalKnowledgeOptions {
+interface ExecuteCanonicalKnowledgeOptions {
   /**
    * Audit R15 — screening posture for retrieved news and recalled memory.
    * Defaults to `strict`: this tool is exposed on untrusted capabilities
@@ -84,7 +84,7 @@ export interface ExecuteCanonicalKnowledgeOptions {
 }
 
 /** Shared execute core: news + memory hybrid retrieval with RRF fusion. */
-export async function executeCanonicalKnowledge(
+async function executeCanonicalKnowledge(
   input: CanonicalKnowledgeInput,
   options: ExecuteCanonicalKnowledgeOptions = {},
 ): Promise<SearchKnowledgeOutput> {

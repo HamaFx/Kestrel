@@ -16,18 +16,21 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
+// Planned-execution facade: conversational turns (canonical chat) and buffered
+// research workflows (single-symbol committee + bounded comparisons).
+//
+// Phase 4 Task 4 — the XAUUSD PoC runners (`mastra-chat`, `mastra-chat-stream`)
+// are retired; XAUUSD takes the same two paths as every other symbol.
+
 import 'server-only';
 
-import type { ExecutionPlan, XauusdResearchReport } from '@kestrel/ai/mastra-v2';
+import type { ExecutionPlan } from '@kestrel/ai/mastra-v2';
 import type { UIMessage } from 'ai';
 
-import { mastraChatResponse } from '../stream/mastra-chat-response';
 import { runMastraCanonicalChatStreamService } from './mastra-canonical-chat-stream';
-import { runMastraXauusdChat } from './mastra-chat';
-import { runMastraXauusdConversationStreamChat } from './mastra-chat-stream';
 import { runMastraModeChatStream } from './mastra-mode';
 
-export interface PlannedExecutionInput {
+interface PlannedExecutionInput {
   plan: ExecutionPlan;
   userId: string;
   threadId: string;
@@ -35,7 +38,6 @@ export interface PlannedExecutionInput {
   prompt: string;
   modelOverride?: string | null;
   signal?: AbortSignal;
-  priorReport?: XauusdResearchReport | null;
   backfillExcludeMessageIdempotencyKey?: string;
 }
 
@@ -74,23 +76,6 @@ export function runConversationalTurn(input: ConversationalTurnInput): Promise<R
         ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
         ...withSignal(input.signal),
       });
-    case 'xauusd-conversation':
-      if (input.plan.xauusdChatKind !== 'conversation' || input.plan.reportFollowup) {
-        throw new Error('Conversational runner received an incompatible XAUUSD execution plan.');
-      }
-      return runMastraXauusdConversationStreamChat({
-        executionPlan: input.plan,
-        userId: input.userId,
-        threadId: input.threadId,
-        userMessage: input.userMessage,
-        prompt: input.prompt,
-        turnMode: 'conversation',
-        ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
-        ...withSignal(input.signal),
-        ...(input.backfillExcludeMessageIdempotencyKey
-          ? { backfillExcludeMessageIdempotencyKey: input.backfillExcludeMessageIdempotencyKey }
-          : {}),
-      });
     default:
       throw new Error(`Conversational runner cannot execute ${input.plan.route}.`);
   }
@@ -98,40 +83,6 @@ export function runConversationalTurn(input: ConversationalTurnInput): Promise<R
 
 /** Execute a planned buffered research workflow and format its response. */
 export async function runResearchWorkflow(input: ResearchWorkflowInput): Promise<Response> {
-  if (input.plan.route === 'xauusd-research') {
-    const run = await runMastraXauusdChat({
-      executionPlan: input.plan,
-      userId: input.userId,
-      threadId: input.threadId,
-      userMessage: input.userMessage,
-      prompt: input.prompt,
-      kind: 'research',
-      turnMode: input.plan.reportFollowup ? 'followup' : 'research',
-      ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
-      ...withSignal(input.signal),
-      ...(input.priorReport ? { priorReport: input.priorReport } : {}),
-      ...(input.backfillExcludeMessageIdempotencyKey
-        ? { backfillExcludeMessageIdempotencyKey: input.backfillExcludeMessageIdempotencyKey }
-        : {}),
-    });
-    return mastraChatResponse({
-      messageId: crypto.randomUUID(),
-      text: run.result.text,
-      runId: run.runId,
-      modelId: run.modelId,
-      providerId: run.providerId,
-      report: run.report,
-      researchStatus: run.packet.status,
-      dataQuality: run.packet.dataQuality,
-      packetId: run.packet.packetId,
-      observedCost: run.observedCost,
-      answerOutcome: run.answerOutcome,
-      modelSnapshot: run.modelSnapshot,
-      memoryMode: run.memoryMode,
-      memoryBackfill: run.memoryBackfill,
-    });
-  }
-
   if (input.plan.route !== 'symbol-research' && input.plan.route !== 'multi-symbol-research') {
     throw new Error(`Research runner cannot execute ${input.plan.route}.`);
   }

@@ -17,4 +17,3 @@
 // Stream adapter facade: response framing, terminal metadata, and finalizers.
 export * from './stream/mastra-stream-response';
 export * from './stream/mastra-stream-finalizer';
-export * from './stream/mastra-chat-response';

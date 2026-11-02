@@ -32,7 +32,7 @@ import {
 import {
   extractToolPartsFromMessages,
   type MastraToolInvocationPart,
-} from '../../mastra-v2/agents/xauusd/legacy-tool-adapter';
+} from '../../mastra-v2/tools/tool-lifecycle';
 import { getMastraGenerationStats } from '../../mastra-v2/shared/telemetry';
 import {
   buildPluginMastraTools,

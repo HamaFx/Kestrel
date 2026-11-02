@@ -31,7 +31,7 @@ import { type ToolContext } from '@ai/runtime/tool-context';
 import type {
   MastraToolInvocationPart,
   MastraToolStreamEvent,
-} from '../mastra-v2/agents/xauusd/legacy-tool-adapter';
+} from '../mastra-v2/tools/tool-lifecycle';
 import { prepareKestrelMemory } from '../mastra-v2/context';
 import { buildGuardrailInputProcessors } from '../mastra-v2/guardrails';
 import { createKestrelMemory, kestrelMemoryOptions } from '../mastra-v2/memory';

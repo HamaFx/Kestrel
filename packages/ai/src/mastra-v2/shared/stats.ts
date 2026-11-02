@@ -21,14 +21,6 @@ export interface MastraUsageLike {
   completionTokens?: number | undefined;
 }
 
-export interface MastraGenerationResultLike {
-  text: string;
-  totalUsage?: MastraUsageLike;
-  usage?: MastraUsageLike;
-  toolCalls?: readonly unknown[];
-  steps?: readonly unknown[];
-}
-
 export interface MastraGenerationStats {
   inputTokens: number;
   outputTokens: number;

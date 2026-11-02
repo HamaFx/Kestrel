@@ -65,8 +65,6 @@ export interface MastraComponentRegistration {
  */
 export const MASTRA_COMPONENT_REGISTRY: Record<MastraCapabilityId, MastraComponentRegistration> = {
   'canonical-chat': { kind: 'agent', key: 'canonicalChat', stableSince: '2026-10-18' },
-  'xauusd-research': { kind: 'workflow', key: 'xauusdResearch', stableSince: '2026-10-18' },
-  'xauusd-conversation': { kind: 'agent', key: 'xauusdConversation', stableSince: '2026-10-18' },
   'symbol-research': { kind: 'workflow', key: 'symbolResearch', stableSince: '2026-10-18' },
   'mutation-workflows': { kind: 'workflow', key: 'mutationWorkflows', stableSince: '2026-10-18' },
   'sensitive-user-read': { kind: 'agent', key: 'sensitiveUserRead', stableSince: '2026-10-18' },

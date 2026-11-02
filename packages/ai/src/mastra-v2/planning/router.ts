@@ -54,8 +54,6 @@ export interface UnifiedRoutingDecision {
   planRequired: boolean;
   /** One canonical symbol, or null for symbol-free prompts. */
   symbol: string | null;
-  /** XAUUSD report path classification, when applicable. */
-  xauusdChatKind: 'research' | 'conversation' | null;
   /** Lexical injection gate (always blocks; zero-cost first line). */
   injection: { blocked: boolean; reason?: string };
   /** Model-based mutation classification, when mutations are enabled. */
@@ -151,7 +149,6 @@ export async function routeUnified(input: UnifiedRouterInput): Promise<UnifiedRo
     jevHints: jevDecision
       ? {
           domain: jevDecision.domain,
-          xauusdChatKind: jevDecision.xauusdChatKind,
           reportFollowup: jevDecision.isReportFollowup,
         }
       : null,
@@ -176,7 +173,6 @@ export async function routeUnified(input: UnifiedRouterInput): Promise<UnifiedRo
     domain: routing.domain,
     planRequired: routing.planRequired,
     symbol: decision.symbol,
-    xauusdChatKind: decision.xauusdChatKind,
     injection: injectionBlocked
       ? {
           blocked: true,

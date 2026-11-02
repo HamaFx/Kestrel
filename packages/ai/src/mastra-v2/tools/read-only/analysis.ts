@@ -50,7 +50,7 @@ import {
   createReadOnlyToolExecute,
   executeLegacyReadOnlyTool,
   readOnlyToolDescription,
-} from '@ai/mastra-v2/agents/xauusd/legacy-tool-adapter';
+} from '@ai/mastra-v2/tools/tool-lifecycle';
 
 /** Native analysis-domain read-only tools by registry name. */
 export function buildAnalysisReadOnlyTools(): Readonly<Record<string, unknown>> {

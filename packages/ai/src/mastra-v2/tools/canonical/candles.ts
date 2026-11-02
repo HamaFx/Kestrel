@@ -36,7 +36,7 @@ import { type z } from 'zod';
 
 import { maybeGetToolContext } from '@ai/runtime/tool-context';
 
-import { createReadOnlyToolExecute } from '../../agents/xauusd/legacy-tool-adapter';
+import { createReadOnlyToolExecute } from '../tool-lifecycle';
 import { CANONICAL_CANDLES_DESCRIPTION } from './descriptions';
 import { CanonicalCandlesInputSchema } from './input-schemas';
 
