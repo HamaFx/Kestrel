@@ -11,31 +11,80 @@
       "project": ["scripts/**/*.{mjs,ts}", "tools/lighthouse/**/*.mjs"]
     },
     "apps/web": {
-      "entry": ["src/**/*.{ts,tsx}", "test/**/*.{ts,tsx}", "test/vitest.setup.ts", "src/**/*.css"],
+      "entry": [
+        "src/app/**/{page,layout,loading,error,global-error,not-found,manifest,route,opengraph-image}.{ts,tsx}",
+        "src/app/**/actions.ts",
+        "src/instrumentation.ts",
+        "src/proxy.ts",
+        "scripts/**/*.mjs",
+        "test/**/*.{test,spec}.{ts,tsx}",
+        "test/vitest.setup.ts",
+        "tests/**/*.spec.ts"
+      ],
       "project": ["src/**/*.{ts,tsx}", "test/**/*.{ts,tsx}", "src/**/*.css"]
     },
     "apps/worker": {
-      "entry": ["src/**/*.ts", "test/**/*.ts"],
+      "entry": ["src/index.ts", "src/runner/cli.ts", "test/**/*.test.ts"],
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
     "packages/ai": {
-      "entry": ["src/**/*.ts", "test/**/*.ts"],
+      "entry": [
+        "src/index.ts",
+        "src/budget/cost.ts",
+        "src/budget/usage.ts",
+        "src/diagnostics/index.ts",
+        "src/eval/*.ts",
+        "src/mastra-v2/index.ts",
+        "src/mastra-v2/studio-server.ts",
+        "src/memory/memory-index/index.ts",
+        "src/models/{model,byok-providers,circuit-breaker,embeddings,catalogue}.ts",
+        "src/models/rag/index.ts",
+        "src/notifications/index.ts",
+        "src/persistence/index.ts",
+        "src/plugins/index.ts",
+        "src/routing/index.ts",
+        "src/runtime/instrumentation.ts",
+        "src/share/persistence.ts",
+        "src/tools/{index,market,analysis,journal,system,web,by-domain,registry}.ts",
+        "test/**/*.test.ts"
+      ],
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
     "packages/data": {
-      "entry": ["src/**/*.ts"],
-      "project": ["src/**/*.ts"]
+      "entry": [
+        "src/index.ts",
+        "src/adapters/*.ts",
+        "src/cache/index.ts",
+        "src/cache/throttle.ts",
+        "src/providers/*/index.ts",
+        "test/**/*.test.ts"
+      ],
+      "project": ["src/**/*.ts", "test/**/*.ts"]
     },
     "packages/db": {
-      "entry": ["src/**/*.ts", "scripts/**/*.ts"],
-      "project": ["src/**/*.ts", "scripts/**/*.ts"]
+      "entry": [
+        "src/index.ts",
+        "src/client.ts",
+        "src/queue.ts",
+        "src/schema/index.ts",
+        "src/queries/index.ts",
+        "scripts/**/*.{ts,mjs}",
+        "test/**/*.test.ts"
+      ],
+      "project": ["src/**/*.ts", "scripts/**/*.{ts,mjs}", "test/**/*.ts"]
     },
     "packages/indicators": {
-      "entry": ["src/**/*.ts", "test/**/*.ts"],
+      "entry": ["src/index.ts", "test/**/*.test.ts"],
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
     "packages/plugin-sdk": {
-      "entry": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts"],
+      "entry": [
+        "src/index.ts",
+        "src/settings.ts",
+        "src/skill-dir.ts",
+        "src/ui/index.tsx",
+        "test/**/*.test.ts"
+      ],
       "project": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts"]
     },
     "packages/shared": {
@@ -61,26 +110,32 @@
       "ignoreUnresolved": ["next"]
     },
     "packages/test-utils": {
-      "entry": ["src/**/*.ts"],
-      "project": ["src/**/*.ts"]
+      "entry": ["src/index.ts", "src/factories/*.ts", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts", "test/**/*.ts"]
     },
     "plugins": {
       "project": ["*.ts"]
     },
     "plugins/backtesting": {
-      "entry": ["src/**/*.{ts,tsx}", "test/**/*.ts"],
+      "entry": [
+        "src/index.ts",
+        "src/engine/public.ts",
+        "src/server.ts",
+        "src/ui/index.tsx",
+        "test/**/*.test.ts"
+      ],
       "project": ["src/**/*.{ts,tsx}", "test/**/*.ts"]
     },
     "plugins/custom-agents": {
-      "entry": ["src/**/*.{ts,tsx}", "test/**/*.ts"],
+      "entry": ["src/index.ts", "src/ui/index.tsx", "test/**/*.test.ts"],
       "project": ["src/**/*.{ts,tsx}", "test/**/*.ts"]
     },
     "plugins/paper-trading": {
-      "entry": ["src/**/*.{ts,tsx}", "test/**/*.ts"],
+      "entry": ["src/index.ts", "src/db/tables.ts", "src/ui/index.tsx", "test/**/*.test.ts"],
       "project": ["src/**/*.{ts,tsx}", "test/**/*.ts"]
     },
     "plugins/telegram-bot": {
-      "entry": ["src/**/*.{ts,tsx}", "test/**/*.ts"],
+      "entry": ["src/index.ts", "src/ui/index.tsx", "test/**/*.test.ts"],
       "project": ["src/**/*.{ts,tsx}", "test/**/*.ts"]
     },
     "loadtest": {
