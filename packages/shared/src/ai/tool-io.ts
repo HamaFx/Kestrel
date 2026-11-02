@@ -62,7 +62,6 @@ import type { RunSystemActionOutputSchema } from '../schemas/tool-outputs/run-sy
 import type { SearchKnowledgeOutputSchema } from '../schemas/tool-outputs/search-knowledge';
 import type { SetAlertOutputSchema } from '../schemas/tool-outputs/set-alert';
 import type { ShareSnapshotOutputSchema } from '../schemas/tool-outputs/share-snapshot';
-import type { SummarizeThreadOutputSchema } from '../schemas/tool-outputs/summarize-thread';
 import type { VerifyCallOutputSchema } from '../schemas/tool-outputs/verify-call';
 import type { WebSearchOutputSchema } from '../schemas/tool-outputs/web-search';
 import type { ToolName } from './tool-names';
@@ -152,7 +151,6 @@ export interface ToolOutputMap {
   get_seasonality: z.infer<typeof GetSeasonalityOutputSchema>;
   compute_position_health: z.infer<typeof ComputePositionHealthOutputSchema>;
   replay_setup: z.infer<typeof ReplaySetupOutputSchema>;
-  summarize_thread: z.infer<typeof SummarizeThreadOutputSchema>;
   // Phase 7c tools
   verify_call: z.infer<typeof VerifyCallOutputSchema>;
   convene_committee: z.infer<typeof ConveneCommitteeOutputSchema>;

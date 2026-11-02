@@ -219,7 +219,7 @@
   {
     "id": "reg-34-memory-policy",
     "prompt": "Remember that I prefer conservative XAUUSD setups, but explain what will be stored before saving it.",
-    "expectedTools": ["summarize_thread"],
+    "forbiddenTools": ["summarize_thread"],
     "quality": { "requiredOutputSubstrings": ["store"] }
   },
   {

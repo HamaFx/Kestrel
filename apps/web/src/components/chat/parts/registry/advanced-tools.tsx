@@ -18,7 +18,6 @@ import {
   GetSystemDiagnosticsOutputSchema,
   ReplaySetupOutputSchema,
   RunSystemActionOutputSchema,
-  SummarizeThreadOutputSchema,
   VerifyCallOutputSchema,
   WebSearchOutputSchema,
 } from '@kestrel/shared';
@@ -27,7 +26,6 @@ import type { ComponentType } from 'react';
 
 import { GetSessionLevelsPart } from '../get-session-levels';
 import { RunSystemActionPart } from '../run-system-action';
-import { SummarizeThreadPart } from '../summarize-thread';
 import { VerifyCallPart } from '../verify-call';
 import { PartSkeletonFallback } from './part-skeleton';
 import type { PartRegistryMap, PartSchemaMap, ToolPartProps } from './types';
@@ -92,7 +90,6 @@ export type AdvancedTool =
   | 'get_seasonality'
   | 'compute_position_health'
   | 'replay_setup'
-  | 'summarize_thread'
   | 'verify_call'
   | 'convene_committee'
   | 'get_intermarket_resonance'
@@ -110,7 +107,6 @@ export const advancedParts = {
     get_seasonality: GetSeasonalityPart,
     compute_position_health: ComputePositionHealthPart,
     replay_setup: ReplaySetupPart,
-    summarize_thread: SummarizeThreadPart,
     verify_call: VerifyCallPart,
     convene_committee: ConveneCommitteePart,
     get_intermarket_resonance: GetIntermarketResonancePart,
@@ -127,7 +123,6 @@ export const advancedParts = {
     get_seasonality: GetSeasonalityOutputSchema,
     compute_position_health: ComputePositionHealthOutputSchema,
     replay_setup: ReplaySetupOutputSchema,
-    summarize_thread: SummarizeThreadOutputSchema,
     verify_call: VerifyCallOutputSchema,
     convene_committee: ConveneCommitteeOutputSchema,
     get_intermarket_resonance: GetIntermarketResonanceOutputSchema,

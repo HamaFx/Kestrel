@@ -86,7 +86,6 @@ export type { SemanticRoutingAccounting } from '../routing/semantic';
 export {
   rememberJournalEntry,
   rememberBriefing,
-  rememberThreadSynopsis,
   // Phase 3 (Jev roadmap) — JEPA-style market-regime memories.
   composeRegimeStateText,
   rememberMarketRegime,

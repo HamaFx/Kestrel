@@ -37,7 +37,6 @@ import {
 import { apiMutate } from '@/lib/http/api-client';
 
 import type { ComposerImage } from '../composer';
-import { useChatUrlSync } from './use-chat-url-sync';
 
 export function useChatSession({
   threadId,
@@ -138,8 +137,6 @@ export function useChatSession({
     status,
     messageCount: messages.length,
   });
-
-  const { summary, setSummary } = useChatUrlSync({ threadId, messageCount: messages.length });
 
   const isStreaming = useMemo(() => status === 'submitted' || status === 'streaming', [status]);
 
@@ -266,8 +263,6 @@ export function useChatSession({
     error,
     isStreaming,
     title,
-    summary,
-    setSummary,
     dismissedError,
     setDismissedError,
     agentProgress,

@@ -6,7 +6,6 @@ import type { AgentProgress } from '@/lib/chat-transport';
 
 import type { AnalysisMode } from './chat-top-bar';
 import type { ComposerImage } from './composer';
-import type { ThreadSummaryState } from './hooks/use-chat-url-sync';
 
 export interface ChatThreadViewProps {
   threadId: string;
@@ -20,8 +19,6 @@ export interface ChatThreadViewProps {
   error: Error | undefined;
   dismissedError: boolean;
   setDismissedError: (value: boolean) => void;
-  summary: ThreadSummaryState | null;
-  setSummary: (value: ThreadSummaryState | null) => void;
   agentProgress: AgentProgress | null;
   showAgentOpinions: boolean;
   lastAssistantId: string | undefined;

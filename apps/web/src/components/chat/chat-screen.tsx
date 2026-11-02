@@ -147,8 +147,6 @@ export function ChatScreen({
           error={session.error}
           dismissedError={session.dismissedError}
           setDismissedError={session.setDismissedError}
-          summary={session.summary}
-          setSummary={session.setSummary}
           agentProgress={session.agentProgress}
           showAgentOpinions={toolbar.showAgentOpinions}
           lastAssistantId={session.lastAssistantId}

@@ -15,15 +15,13 @@
  */
 
 // Phase 7b — unified memory index over journal entries, briefings, and
-// thread synopses produced by `summarize_thread`. `news_embeddings`
-// remains the dedicated index for news (its tighter schema buys cheaper
-// reads on the noisier corpus); `memory_embeddings` covers everything
-// else.
+// market-regime states. `news_embeddings` remains the dedicated index for
+// news (its tighter schema buys cheaper reads on the noisier corpus);
+// `memory_embeddings` covers everything else.
 //
 // Public surface:
 //   - rememberJournalEntry({ entryId })          — call after createEntry/updateEntry
 //   - rememberBriefing({ messageId, body })       — call from briefings/generate/
-//   - rememberThreadSynopsis({ threadId, userId, synopsis }) — called by summarize_thread
 //   - searchMemory({ embedding, kinds, ... })     — used by search_knowledge
 //
 // Each `remember*` is best-effort and idempotent — on duplicate sourceId
@@ -35,7 +33,6 @@
 //   - upsert.ts                  — embed + upsert core
 //   - remember-journal.ts        — journal writer (+ text composition)
 //   - remember-briefing.ts       — briefing writer
-//   - remember-thread-synopsis.ts— thread-synopsis writer
 //   - remember-regime.ts         — JEPA-style market-regime writer (Phase 3)
 //   - search.ts                  — cosine-similarity search
 //   - count.ts                   — tenant-scoped corpus probe
@@ -47,10 +44,6 @@ export {
   type RememberJournalArgs,
 } from './remember-journal';
 export { rememberBriefing, type RememberBriefingArgs } from './remember-briefing';
-export {
-  rememberThreadSynopsis,
-  type RememberThreadSynopsisArgs,
-} from './remember-thread-synopsis';
 export {
   composeRegimeStateText,
   rememberMarketRegime,

@@ -53,7 +53,6 @@ export const TOOL_NAMES = [
   'get_seasonality',
   'compute_position_health',
   'replay_setup',
-  'summarize_thread',
   // Phase 7c tools
   'verify_call',
   'convene_committee',

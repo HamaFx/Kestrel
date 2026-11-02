@@ -26,7 +26,6 @@ import { useAutoScroll } from '@/hooks/use-auto-scroll';
 import { chatErrorText } from '@/lib/chat-transport';
 import { cn } from '@/lib/formatters/cn';
 
-import { ThreadSummaryHeader } from './_components/thread-summary-header';
 import { ChatComposerDock } from './chat-composer-dock';
 import { ChatEmptyState } from './chat-empty-state';
 import type { ChatThreadViewProps } from './chat-thread-view-types';
@@ -44,8 +43,6 @@ export function ChatThreadView({
   error,
   dismissedError,
   setDismissedError,
-  summary,
-  setSummary,
   agentProgress,
   showAgentOpinions,
   lastAssistantId,
@@ -94,16 +91,6 @@ export function ChatThreadView({
             splitMode ? 'w-full max-w-2xl xl:max-w-3xl' : 'max-w-3xl xl:max-w-4xl',
           )}
         >
-          {summary ? (
-            <div className="px-3 pt-2">
-              <ThreadSummaryHeader
-                synopsis={summary.synopsis}
-                insights={summary.insights}
-                onDismiss={() => setSummary(null)}
-              />
-            </div>
-          ) : null}
-
           {messages.length === 0 ? (
             <ChatEmptyState
               pinnedSymbol={pinnedSymbol}

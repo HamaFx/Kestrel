@@ -76,7 +76,6 @@ export * from './schemas/tool-outputs/forecast-volatility';
 export * from './schemas/tool-outputs/get-seasonality';
 export * from './schemas/tool-outputs/compute-position-health';
 export * from './schemas/tool-outputs/replay-setup';
-export * from './schemas/tool-outputs/summarize-thread';
 // Phase 7c tools
 export * from './schemas/tool-outputs/verify-call';
 export * from './schemas/tool-outputs/convene-committee';

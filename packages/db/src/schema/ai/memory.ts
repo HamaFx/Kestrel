@@ -24,7 +24,7 @@ import { organization, users } from '../core/auth';
  *
  *   `news_embeddings` already covers news; this table covers everything
  *   else the agent should be able to recall — journal entries, briefings,
- *   thread synopses produced by `summarize_thread`. The single
+ *   and historical thread synopses. The single
  *   `kind` column discriminates between sources so `search_knowledge`
  *   can filter by kind without joining N tables.
  *
