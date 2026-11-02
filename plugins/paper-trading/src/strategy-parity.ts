@@ -27,9 +27,9 @@ import type { StrategySignal } from '@kestrel/plugin-backtesting/engine';
 import type { PaperPositionRow, PaperStrategyRunRow } from './db/tables';
 
 /** Matches the backtester's `maxBarsInTrade` default (engine/run.ts). */
-export const DEFAULT_MAX_BARS_IN_TRADE = 100;
+const DEFAULT_MAX_BARS_IN_TRADE = 100;
 /** Matches the backtester's `validBars` default (simulator/loop.ts). */
-export const DEFAULT_VALID_BARS = 5;
+const DEFAULT_VALID_BARS = 5;
 const MAX_VALID_BARS = 500;
 const MAX_BARS_NOTE_RE = /\[maxBars:(\d+)\]/;
 

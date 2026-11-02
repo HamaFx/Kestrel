@@ -26,8 +26,6 @@ import { createInitialState, reducer, type DetailTab, type RunDetailState } from
 
 type RunDetail = z.infer<typeof RunDetailSchema>;
 
-export type RunDetailController = ReturnType<typeof useRunDetail>;
-
 export function useRunDetail(runId: string) {
   const [state, dispatch] = useReducer(reducer, undefined, createInitialState);
 

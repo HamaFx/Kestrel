@@ -23,7 +23,6 @@ import { MASTRA_CAPABILITIES, type MastraCapabilityId, type MastraRoutingDomain 
 import type {
   MastraCapability,
   MastraCapabilityDecision,
-  MastraCapabilityRejectionReason,
   MastraCapabilityRequest,
   MastraCapabilityUiMetadata,
   MastraGuardrailPolicy,
@@ -142,4 +141,4 @@ export function evaluateMastraCapability(
 export type MastraCapabilityToolName =
   ToolName | (typeof MASTRA_CAPABILITIES)[MastraCapabilityId]['tools'][number];
 
-export type { MastraCapabilityDecision, MastraCapabilityRejectionReason, MastraCapabilityRequest };
+export type { MastraCapabilityDecision, MastraCapabilityRequest };

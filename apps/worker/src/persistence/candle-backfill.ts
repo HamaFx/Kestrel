@@ -44,7 +44,7 @@ const MINUTE_MS = 60_000;
 /** Longest gap we will ask a provider to backfill in one call. */
 export const MAX_GAP_BACKFILL_MINUTES = 240;
 
-export type GapBackfillStatus =
+type GapBackfillStatus =
   | 'ok'
   /** Provider answered but covered only part of the gap (thin/no-trade minutes). */
   | 'partial'

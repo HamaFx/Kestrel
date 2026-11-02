@@ -151,28 +151,28 @@ export const BROAD_MUTATION_TERMS =
 // — High-confidence mutation gate (the chat-boundary 422 classifier) ————
 
 /** Core trade-execution verbs — short and imperative. */
-export const EXECUTION_VERBS = /\b(?:buy|sell|execute|place|order)\b/i;
+const EXECUTION_VERBS = /\b(?:buy|sell|execute|place|order)\b/i;
 
 /** Phrases where an execution verb is clearly a trade command. */
-export const EXECUTION_PHRASES =
+const EXECUTION_PHRASES =
   /\b(?:(?:buy|sell)\s+(?:\d+(?:\.\d+)?\s*(?:lot|unit|contract|oz|ounce)s?)|(?:(?:execute|place)\s+(?:the\s+)?(?:trade|order))|(?:(?:buy|sell)\s+(?:at|@)\s+(?:market|\d)))\b/i;
 
 /** Context-free dangerous terms that are almost never read-only. */
-export const ALWAYS_UNSAFE = /\b(?:automate|schedule)\b/i;
+const ALWAYS_UNSAFE = /\b(?:automate|schedule)\b/i;
 
 /**
  * High-confidence command phrases: alert/journal commands that the model
  * classifier (`mutation-detect.ts`) also flags as mutations.
  */
-export const MUTATION_COMMANDS =
+const MUTATION_COMMANDS =
   /\b(?:set|create|add|make)\b[\s\S]{0,30}?\balert\b|\balert\s+me\b|\bnotify\s+me\b|\bremind\s+me\b|\blog\s+(?:a\s+)?(?:trade|journal|entry)\b|\bjournal\s+(?:this|my|a)\s+trade\b|\bshare\s+(?:this|snapshot|summary)\b/i;
 
 /** Terms that are often read-only analysis despite containing trade words. */
-export const NEGATIVE_READONLY_PATTERNS =
+const NEGATIVE_READONLY_PATTERNS =
   /\b(?:what\s+(?:is|are|would|should)|tell\s+me|explain|analy[sz]e|analysis|outlook|forecast|predict|setup|setup idea|trade\s+setup|trade\s+idea|best\s+(?:trade|entry|setup)|suggest(?:ion)?|recommend(?:ation)?|thoughts?\s+on|opinion|what\s+do\s+you\s+think|how\s+(?:do|would|should|to|is|about)|show\s+me|can\s+you|please\s+(?:analy|tell|show|explain)|close\s+price|today.?\s*(?:close|price)|position\s+siz(?:e|ing)|portfolio\s+(?:review|allocation|check|look|summary|overview)|journal\s+(?:entry|note|log|my|this)|alert\s+me\s+(?:when|if|at)|entry\s+(?:point|level|zone|area|price)|enter\s+(?:a\s+)?(?:trade|position|at))\b/i;
 
 /** Question-starter patterns: interrogative grammar is read-only context. */
-export const QUESTION_STARTERS =
+const QUESTION_STARTERS =
   /^(?:what|how|when|where|why|who|should|could|would|can|do|does|did|is|are|will|has|have)\b|\?/i;
 
 /** Returns true when a prompt's trade terms are clearly in a read-only context. */

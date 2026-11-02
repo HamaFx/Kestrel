@@ -36,7 +36,7 @@ import type {
   ModeRequestContext,
 } from '../types';
 
-export interface CritiqueRunnerDeps {
+interface CritiqueRunnerDeps {
   model: LanguageModel;
   modelId: string;
   providerId: string;

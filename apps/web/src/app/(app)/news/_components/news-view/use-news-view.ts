@@ -172,5 +172,3 @@ export function useNewsView({ initialArticles }: { initialArticles: NewsArticle[
     hasNextPage,
   };
 }
-
-export type NewsViewController = ReturnType<typeof useNewsView>;

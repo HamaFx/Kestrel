@@ -252,7 +252,7 @@ export function resolveStrategistDesk(key: string): StrategistDeskConfig {
 }
 
 /** Same as {@link resolveStrategistDesk} but `null` for unknown keys. */
-export function findStrategistDesk(key: string): StrategistDeskConfig | null {
+function findStrategistDesk(key: string): StrategistDeskConfig | null {
   if (!key) return null;
   const normalized = normalizeDeskKey(key);
   for (const desk of Object.values(STRATEGIST_DESKS)) {

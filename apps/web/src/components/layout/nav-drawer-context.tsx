@@ -54,14 +54,6 @@ export function NavDrawerProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useNavDrawerState(): NavDrawerState {
-  return useContext(StateCtx);
-}
-
-export function useNavDrawerActions(): NavDrawerActions {
-  return useContext(ActionsCtx);
-}
-
 export function useNavDrawer(): NavDrawerState & NavDrawerActions {
   return { ...useContext(StateCtx), ...useContext(ActionsCtx) };
 }

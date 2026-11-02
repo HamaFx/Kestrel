@@ -33,13 +33,10 @@
 
 export { comparisonFusionInstructionsForRequest } from './comparison';
 export { critiqueInstructionsForRequest, debateRevisionInstructionsForRequest } from './critique';
-export { fusionInstructions, fusionInstructionsForRequest } from './fusion';
+export { fusionInstructionsForRequest } from './fusion';
 export {
-  COMMITTEE_HARD_RULES,
   SPECIALIST_DESK_TOOL_NAMES,
-  SPECIALIST_FOCUS,
   SPECIALIST_GOALS,
   SPECIALIST_SKILL_PLAYBOOKS,
-  specialistInstructions,
   specialistInstructionsForRequest,
 } from './specialist';

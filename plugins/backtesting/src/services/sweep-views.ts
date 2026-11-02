@@ -20,7 +20,7 @@ import { getBacktestSweep, listBacktestSweeps } from '../db/queries';
 import type { BacktestSweepRow } from '../db/tables';
 import { SweepDetailSchema, SweepSummarySchema } from '../schemas';
 
-export function rowSummary(row: BacktestSweepRow) {
+function rowSummary(row: BacktestSweepRow) {
   return SweepSummarySchema.parse({
     id: row.id,
     name: row.name,
@@ -39,7 +39,7 @@ export function rowSummary(row: BacktestSweepRow) {
   });
 }
 
-export function rowDetail(row: BacktestSweepRow) {
+function rowDetail(row: BacktestSweepRow) {
   return SweepDetailSchema.parse({
     ...rowSummary(row),
     strategyId: row.strategyId,

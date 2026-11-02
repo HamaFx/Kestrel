@@ -18,7 +18,7 @@
 
 import { createPluginFetcher, pluginErrorMessage } from '@kestrel/plugin-sdk/ui';
 
-export const PLUGIN_ID = 'backtesting';
+const PLUGIN_ID = 'backtesting';
 
 export const pluginFetch = createPluginFetcher(PLUGIN_ID);
 

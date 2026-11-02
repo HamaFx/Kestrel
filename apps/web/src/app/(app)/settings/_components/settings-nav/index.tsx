@@ -22,8 +22,6 @@ import { SettingsDesktopNav } from './desktop-nav';
 import { SettingsMobileNav } from './mobile-nav';
 import { BASE_NAV_GROUPS, isNavItemActive } from './nav-groups';
 
-export type { NavGroup, NavItem } from './nav-groups';
-
 export function SettingsNav() {
   const pathname = usePathname();
   const isSubPage = pathname !== '/settings';

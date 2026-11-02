@@ -22,7 +22,7 @@ import { isAndroid, isChromium, isDesktopSafari, isIOS } from '@/lib/pwa/platfor
 export type InstallPlatform =
   'ios' | 'macos-safari' | 'chromium-desktop' | 'chromium-android' | 'other';
 
-export interface InstallStep {
+interface InstallStep {
   /** Short imperative label, e.g. "Tap Share". */
   readonly label: string;
   /** Where the control lives, e.g. "in Safari's toolbar". */

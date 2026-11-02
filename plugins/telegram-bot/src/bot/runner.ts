@@ -91,7 +91,7 @@ function installContext(
   };
 }
 
-export async function dispatchTelegramCommand(
+async function dispatchTelegramCommand(
   command: string,
   args: string[],
   ctx: TelegramBotContext,

@@ -85,10 +85,6 @@ export const ResetAccountOutputSchema = z.object({
 
 // ── API payloads ─────────────────────────────────────────────────────────
 
-export const AccountParamsSchema = z.object({
-  accountId: z.string().min(1),
-});
-
 export function isAccountMode(value: string): value is 'confirm' | 'autonomous_sandbox' {
   return value === 'confirm' || value === 'autonomous_sandbox';
 }

@@ -74,7 +74,7 @@ export const ALERT_LEVEL_BAND_MULTIPLIER = 50;
  * positive for volatile instruments (50 daily moves on BTC would otherwise
  * reach below zero).
  */
-export const MAX_LEVEL_BAND_RATIO = 0.95;
+const MAX_LEVEL_BAND_RATIO = 0.95;
 
 /**
  * A quote older than this is not used to sanity-check a level. Matches the
@@ -144,8 +144,7 @@ export interface ModelLevel {
   value: number;
 }
 
-export type LevelCheckFailureReason =
-  'invalid_level' | 'level_out_of_band' | 'market_data_unavailable';
+type LevelCheckFailureReason = 'invalid_level' | 'level_out_of_band' | 'market_data_unavailable';
 
 export type LevelCheckResult =
   | { ok: true; symbol: Symbol; mid: number; band: number; quoteAgeSeconds: number }

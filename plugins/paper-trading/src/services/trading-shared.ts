@@ -87,7 +87,7 @@ export function allocateEntryFee(position: PaperPositionRow, closeQuantity: numb
   return position.entryFee * share;
 }
 
-export async function insertOpenFill(args: {
+async function insertOpenFill(args: {
   userId: string;
   accountId: string;
   positionId: string;

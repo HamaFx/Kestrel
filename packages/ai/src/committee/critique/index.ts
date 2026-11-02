@@ -26,15 +26,10 @@
 
 export {
   CritiqueStepOutputSchema,
-  CritiqueStepResultSchema,
   DebateStepOutputSchema,
-  DebateStepResultSchema,
-  type CritiqueStepOutput,
   type CritiqueStepResult,
-  type DebateStepOutput,
   type DebateStepResult,
 } from './schemas';
 export { runCritiqueGeneration } from './run-critique';
 export { runDebateRevision } from './run-debate';
 export { readCritiqueStepResult, readDebateStepResult } from './readers';
-export type { CritiqueRunnerDeps, RunCritiqueGenerationArgs, RunDebateRevisionArgs } from './types';

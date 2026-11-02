@@ -169,5 +169,3 @@ export function usePluginStore({ initialSnapshot }: { initialSnapshot: PluginSto
     uninstall,
   };
 }
-
-export type PluginStoreController = ReturnType<typeof usePluginStore>;

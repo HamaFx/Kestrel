@@ -26,7 +26,7 @@ import { msPerTimeframe, pipSize, TimeframeSchema, type Timeframe } from '@kestr
 
 import { toEntryDTO, type EntryDTO } from './schemas';
 
-export interface ReplayCandleDTO {
+interface ReplayCandleDTO {
   t: number;
   o: number;
   h: number;

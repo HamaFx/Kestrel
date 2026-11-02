@@ -37,8 +37,6 @@ import { CanonicalPriceInputSchema } from './input-schemas';
 // Leaf re-exports: the values live in modules with no app-graph imports, so a
 // module-scope read (legacy shims, other consumers) can never land on a binding
 // that is still initialising inside the instance ↔ tools import cycle.
-export { CANONICAL_PRICE_DESCRIPTION, CanonicalPriceInputSchema };
-
 export type CanonicalPriceInput = z.infer<typeof CanonicalPriceInputSchema>;
 
 /**
@@ -46,7 +44,7 @@ export type CanonicalPriceInput = z.infer<typeof CanonicalPriceInputSchema>;
  * happened. A live FX/gold quote is seconds old; a minute means the provider
  * stopped updating (e.g. market closed) and the model must say so.
  */
-export const PRICE_AGE_WARN_SECONDS = 60;
+const PRICE_AGE_WARN_SECONDS = 60;
 
 /**
  * Shared execute core: fetches the latest mid price for one or more symbols.
@@ -97,7 +95,7 @@ export async function executeCanonicalPrice(
  * it to disclose stale data; these strings remove any excuse not to, and they
  * are also the values the evidence gate sees in the tool output.
  */
-export function buildFreshnessWarnings(freshness: readonly QuoteFreshness[]): string[] {
+function buildFreshnessWarnings(freshness: readonly QuoteFreshness[]): string[] {
   const warnings: string[] = [];
   for (const f of freshness) {
     const age = f.ageSeconds === null ? null : Math.round(f.ageSeconds);

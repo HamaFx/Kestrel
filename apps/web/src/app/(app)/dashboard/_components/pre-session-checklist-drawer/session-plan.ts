@@ -12,7 +12,7 @@ export interface SessionPlan {
   completedAt: number;
 }
 
-export const STORAGE_KEY_PREFIX = 'kestrel:session-gameplan:';
+const STORAGE_KEY_PREFIX = 'kestrel:session-gameplan:';
 
 export function getTodayKey(): string {
   const d = new Date();

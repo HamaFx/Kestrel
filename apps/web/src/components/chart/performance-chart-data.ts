@@ -19,7 +19,7 @@
 import type { JournalEntry } from '@kestrel/shared';
 import type { UTCTimestamp } from 'lightweight-charts';
 
-export interface EquityPoint {
+interface EquityPoint {
   time: UTCTimestamp;
   value: number;
 }

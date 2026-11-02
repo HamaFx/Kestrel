@@ -12,7 +12,7 @@ import { apiFetch, apiMutate } from '@/lib/http/api-client';
 
 import { describeAlert } from './describe-alert';
 
-export const ALERTS_QUERY_KEY = ['alerts'] as const;
+const ALERTS_QUERY_KEY = ['alerts'] as const;
 
 export type AlertFilter = 'all' | 'active' | 'past';
 

@@ -21,10 +21,4 @@
 
 export { SignalRConsumer } from './connection.js';
 export { createDefaultBuildConnection } from './build-connection.js';
-export type {
-  BuildConnection,
-  BuildConnectionArgs,
-  ConsumerOptions,
-  MinimalHubConnection,
-  NormalizedTick,
-} from './types.js';
+export type { BuildConnection, MinimalHubConnection, NormalizedTick } from './types.js';

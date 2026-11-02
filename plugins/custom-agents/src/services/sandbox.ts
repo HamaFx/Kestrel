@@ -136,7 +136,6 @@ globalThis.console = {
 };
 var __INPUT = JSON.parse(__INPUT_JSON);
 ${source}
-;
 if (typeof run !== 'function') {
   throw new Error('Define function run(input) in your script.');
 }

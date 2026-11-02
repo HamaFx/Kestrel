@@ -53,15 +53,13 @@ import {
 import { getSweepDetail, listSweepViews } from './sweep-views';
 
 export { getSweepDetail, listSweepViews };
-export type { SweepMetricsSummary, SweepResult } from './sweep-execution';
-
 const MAX_RESULTS = 200;
 /** Flush progress (and check cancellation) every N combinations. */
 const PROGRESS_FLUSH_EVERY = 5;
 /** `trainRatio` rides inside baseParams because the sweep table has no column for it. */
 const TRAIN_RATIO_KEY = '__trainRatio';
 
-export class SweepCancelledError extends Error {
+class SweepCancelledError extends Error {
   constructor() {
     super('Sweep was cancelled.');
     this.name = 'SweepCancelledError';

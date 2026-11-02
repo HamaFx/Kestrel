@@ -56,13 +56,13 @@ import type { BuiltScorers } from './types';
 const slog = createCategorizedLogger('ai', { component: 'mastra:jev-scorers' });
 
 /** Scorer id attached to agents when Jev is configured. */
-export const JEV_RUBRIC_SCORER_ID = 'kestrel-jev-rubric';
+const JEV_RUBRIC_SCORER_ID = 'kestrel-jev-rubric';
 
 /** Per-call budget for the rubric batch. */
-export const JEV_RUBRIC_TIMEOUT_MS = 800;
+const JEV_RUBRIC_TIMEOUT_MS = 800;
 
 /** 100% turn coverage — the whole point of the Jev rubric. */
-export const JEV_RUBRIC_SAMPLING = { type: 'ratio', rate: 1 } as const;
+const JEV_RUBRIC_SAMPLING = { type: 'ratio', rate: 1 } as const;
 
 export interface JevRubricScores {
   /** Normalized faithfulness score (0..1). */
@@ -162,7 +162,7 @@ export async function evaluateJevRubricScores(
   };
 }
 
-export interface JevRubricScorerArgs {
+interface JevRubricScorerArgs {
   profile: 'conversation' | 'research';
   settings?: JevSettings | null | undefined;
   env?: JevEnv | null | undefined;
@@ -177,7 +177,7 @@ interface JevRubricAccumulated {
  * The `kestrel-jev-rubric` custom scorer: one Jev batch per turn, primary
  * score = faithfulness, remaining rubrics embedded in the reason.
  */
-export function createJevRubricScorer(
+function createJevRubricScorer(
   args: JevRubricScorerArgs,
 ): MastraScorer<string, unknown, unknown, JevRubricAccumulated> {
   return createScorer({

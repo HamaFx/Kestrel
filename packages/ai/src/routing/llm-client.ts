@@ -153,24 +153,3 @@ export class VercelLlmClient implements LlmClient {
 }
 
 // ── Factory ────────────────────────────────────────────────────────────────
-
-let _defaultClient: LlmClient | null = null;
-
-/**
- * Get the default LlmClient (a singleton VercelLlmClient).
- * Override via `setLlmClient` (e.g. in tests).
- */
-export function getLlmClient(): LlmClient {
-  if (!_defaultClient) {
-    _defaultClient = new VercelLlmClient();
-  }
-  return _defaultClient;
-}
-
-/**
- * Replace the default client. Useful for tests or switching to a
- * different SDK. Pass `null` to reset to the default.
- */
-export function setLlmClient(client: LlmClient | null): void {
-  _defaultClient = client;
-}

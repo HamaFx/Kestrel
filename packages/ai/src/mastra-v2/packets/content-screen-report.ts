@@ -84,7 +84,7 @@ export function asContentScreenReportSink(value: unknown): ContentScreenReportSi
 }
 
 /** RequestContext key under which the run's screening events are published. */
-export const CONTENT_SCREEN_REPORT_KEY = 'kestrelContentScreenReport';
+const CONTENT_SCREEN_REPORT_KEY = 'kestrelContentScreenReport';
 
 /** Append screening events to the run context so the report is never silent. */
 export function appendContentScreenEvents(

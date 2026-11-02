@@ -27,6 +27,4 @@ export {
   parseCustomAgentMention,
   resolveUserCustomAgent,
   stripCustomAgentMention,
-  type CustomAgentDescriptor,
-  type InstalledPluginRuntime,
 } from '@kestrel/ai/plugins';

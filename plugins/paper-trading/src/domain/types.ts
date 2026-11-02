@@ -20,12 +20,12 @@
 // and returns a decision. The services in `src/services/` persist those
 // decisions. This split lets the money math be unit-tested exhaustively.
 
-export const ACCOUNT_MODES = ['confirm', 'autonomous_sandbox'] as const;
-export type AccountMode = (typeof ACCOUNT_MODES)[number];
+const _ACCOUNT_MODES = ['confirm', 'autonomous_sandbox'] as const;
+export type AccountMode = (typeof _ACCOUNT_MODES)[number];
 
 export type PositionSide = 'long' | 'short';
 export type OrderSide = 'buy' | 'sell';
-export type OrderType = 'market' | 'limit' | 'stop';
+type OrderType = 'market' | 'limit' | 'stop';
 export type OrderStatus = 'pending' | 'filled' | 'cancelled' | 'rejected' | 'expired';
 export type PositionStatus = 'open' | 'closed';
 export type PositionCloseReason =

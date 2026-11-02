@@ -48,6 +48,6 @@ export {
   resolveMastraStorageKind,
 } from './connection';
 export { createMastraStorage } from './create';
-export { _resetMastraStorageCache, closeMastraStorage, getSharedMastraStorage } from './shared';
+export { _resetMastraStorageCache, closeMastraStorage } from './shared';
 export { initializeMastraStorage, pruneMastraStorage } from './lifecycle';
 export type { MastraStorageKind, MastraStorageResult } from './types';

@@ -46,10 +46,7 @@ import type { JobContext, JobResult } from './types.js';
 // Phase 3 (Jev roadmap) — the realized-outcome helpers live in
 // `opinion-calibration-regime.ts` (file-size gate); re-exported here so
 // existing import sites keep resolving.
-export {
-  computeRegimeOutcomeFromCandles,
-  type RegimeOutcome4h,
-} from './opinion-calibration-regime.js';
+export { computeRegimeOutcomeFromCandles } from './opinion-calibration-regime.js';
 
 /** Minimum age: the 4-hour evaluation horizon must have closed. */
 const MIN_AGE_MS = 4 * 60 * 60 * 1000;

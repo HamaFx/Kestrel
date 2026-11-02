@@ -50,7 +50,7 @@ export function resetMastraTelemetryHealth(): void {
  * backfill) — answer semantics are unchanged, but the degradation is
  * surfaced in telemetry and UI metadata so it is never silent.
  */
-export type MastraMemoryMode = 'native' | 'explicit-history' | 'degraded' | 'disabled';
+type MastraMemoryMode = 'native' | 'explicit-history' | 'degraded' | 'disabled';
 
 export interface MastraRunObservation {
   userId: string;

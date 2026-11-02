@@ -40,17 +40,7 @@
  */
 
 export { memoryCallOptions, type MemoryCallOptionsArgs } from './call-options';
-export {
-  seedWorkingMemoryFromSettings,
-  mergeTraderProfileIntoWorkingMemory,
-  syncTraderProfileToWorkingMemory,
-  TRADER_PROFILE_HEADING,
-  TRADER_PROFILE_MAX_CHARS,
-  type SyncTraderProfileArgs,
-  type TraderProfileSummary,
-  type WorkingMemorySeedArgs,
-  type WorkingMemorySeedResult,
-} from './working-memory-seed';
+export { seedWorkingMemoryFromSettings, type WorkingMemorySeedArgs } from './working-memory-seed';
 export { backfillThreadHistoryIfNeeded } from './backfill';
 export {
   prepareKestrelMemory,

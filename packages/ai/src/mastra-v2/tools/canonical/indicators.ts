@@ -39,8 +39,6 @@ import { CanonicalIndicatorsInputSchema } from './input-schemas';
 // Leaf re-exports: the values live in modules with no app-graph imports, so a
 // module-scope read (legacy shims, other consumers) can never land on a binding
 // that is still initialising inside the instance ↔ tools import cycle.
-export { CANONICAL_INDICATORS_DESCRIPTION, CanonicalIndicatorsInputSchema };
-
 export type CanonicalIndicatorsInput = z.infer<typeof CanonicalIndicatorsInputSchema>;
 
 const TAIL_POINTS = 15;

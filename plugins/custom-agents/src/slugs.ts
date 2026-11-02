@@ -16,13 +16,13 @@
 
 // `@handle` validation shared by tools, API routes, and the studio UI.
 
-export const AGENT_SLUG_RE = /^[a-z][a-z0-9-]{1,31}$/;
+const AGENT_SLUG_RE = /^[a-z][a-z0-9-]{1,31}$/;
 
 /**
  * Handles that would collide with the core agent surface or read like a
  * command. Kept in sync with the AI package's reserve list.
  */
-export const RESERVED_AGENT_SLUGS: ReadonlySet<string> = new Set([
+const RESERVED_AGENT_SLUGS: ReadonlySet<string> = new Set([
   'agent',
   'assistant',
   'committee',

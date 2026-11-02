@@ -71,19 +71,12 @@ import {
 import type { JevEnv, JevGenerationLedger, JevSettings } from './types';
 
 /** Maximum snippets scored in one model batch. */
-export const JEV_RAG_RERANK_MAX_ITEMS = 12;
+const JEV_RAG_RERANK_MAX_ITEMS = 12;
 
 /** Default `rel_${i}` score below which a snippet is not worth prompt tokens. */
-export const JEV_RAG_MIN_RELEVANCE_DEFAULT = 0.3;
+const JEV_RAG_MIN_RELEVANCE_DEFAULT = 0.3;
 
-export type { QuarantineDegradeReason, QuarantineRerankItem };
-
-export {
-  JEV_RAG_INJECTION_QUARANTINE_MIN,
-  JEV_RAG_QUERY_CHARS,
-  JEV_RAG_RERANK_TIMEOUT_MS,
-  JEV_RAG_SNIPPET_CHARS,
-} from './snippet-injection-batch';
+export type { QuarantineRerankItem };
 
 export interface QuarantineRerankArgs<T extends QuarantineRerankItem> {
   query: string;

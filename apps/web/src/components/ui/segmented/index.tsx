@@ -37,12 +37,7 @@ import { cn } from '@/lib/formatters/cn';
 import { SegmentedList } from './segmented-list';
 import type { SegmentedItemMode, SegmentedProps } from './segmented-types';
 
-export type {
-  SegmentedOption,
-  SegmentedProps,
-  SegmentedTone,
-  SegmentedVariant,
-} from './segmented-types';
+export type { SegmentedOption, SegmentedProps } from './segmented-types';
 export { AmbientTelemetry } from './ambient-telemetry';
 
 export function Segmented<T extends string>(props: SegmentedProps<T>) {

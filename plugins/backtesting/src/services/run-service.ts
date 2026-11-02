@@ -35,7 +35,7 @@ import {
 import type { BacktestRunRow } from '../db/tables';
 import { downsample, runBacktest as executeBacktest, type RunBacktestOutput } from '../engine/run';
 import type { RunBacktestInput, RunDetail, RunResult, RunSummary } from '../schemas';
-import { normaliseSettings, type BacktestSettings } from '../settings';
+import { normaliseSettings } from '../settings';
 import { loadBacktestCandleWindow, staleWindowWarning } from './market-data-gate';
 
 export const ENGINE_VERSION = 'kestrel-engine-1';
@@ -235,7 +235,7 @@ export async function runBacktestForUser(
   };
 }
 
-export interface RunViewLimits {
+interface RunViewLimits {
   trades?: number;
   equityPoints?: number;
   rejectedSignals?: number;
@@ -337,5 +337,3 @@ export async function getRunDetail(userId: string, runId: string): Promise<RunDe
 export async function deleteRun(userId: string, runId: string): Promise<boolean> {
   return deleteBacktestRun(userId, runId);
 }
-
-export type { BacktestSettings };

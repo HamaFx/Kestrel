@@ -33,7 +33,7 @@ import { plog } from './log';
  * five minutes still dwarfs the longest legitimate delivery and keeps the gap
  * to one that a single stuck process can cause.
  */
-export const ALERT_DELIVERY_CLAIM_LEASE_MS = 5 * 60_000;
+const ALERT_DELIVERY_CLAIM_LEASE_MS = 5 * 60_000;
 
 /**
  * Atomically claim an alert for external delivery.

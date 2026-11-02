@@ -70,7 +70,3 @@ export function toneClass(value: number): string {
   if (value < -0.005) return 'text-bear';
   return 'text-fg-muted';
 }
-
-export function modeLabel(mode: 'confirm' | 'autonomous_sandbox'): string {
-  return mode === 'confirm' ? 'Personal · confirm' : 'Sandbox · autonomous';
-}

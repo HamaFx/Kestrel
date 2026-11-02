@@ -20,7 +20,7 @@
 // and returns a decision. The services in `src/services/` persist those
 // decisions. This split lets the money math be unit-tested exhaustively.
 
-import { grossPnl, round } from './math';
+import { round } from './math';
 import { exitQuote } from './quotes';
 import { contractSizeFor } from './symbols';
 import type {
@@ -221,15 +221,4 @@ export function outcomeFor(pnl: number): 'win' | 'loss' | 'breakeven' {
   if (pnl > 0.005) return 'win';
   if (pnl < -0.005) return 'loss';
   return 'breakeven';
-}
-
-export function rMultipleFor(
-  position: Pick<PaperPositionState, 'side' | 'entryPrice' | 'initialRiskAmount'>,
-  exitPrice: number,
-  quantity: number,
-  contractSize: number,
-): number {
-  if (!(position.initialRiskAmount > 0)) return 0;
-  const pnl = grossPnl(position.side, position.entryPrice, exitPrice, quantity, contractSize);
-  return round(pnl / position.initialRiskAmount, 4);
 }

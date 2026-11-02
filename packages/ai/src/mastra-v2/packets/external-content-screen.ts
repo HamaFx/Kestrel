@@ -35,7 +35,7 @@ import {
 } from './external-text-sanitizer';
 
 /** Shortest string treated as prose worth screening (ids, labels, codes are skipped). */
-export const MIN_SCREENABLE_EXTERNAL_TEXT = 16;
+const MIN_SCREENABLE_EXTERNAL_TEXT = 16;
 
 export interface ScreenExternalTextOptions {
   /**

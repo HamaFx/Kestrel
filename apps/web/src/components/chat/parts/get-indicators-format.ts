@@ -58,7 +58,7 @@ export function readRecord(v: unknown): Record<string, unknown> | null {
   return v as Record<string, unknown>;
 }
 
-export function readNumberParam(v: unknown): number | null {
+function readNumberParam(v: unknown): number | null {
   return readNumber(v);
 }
 

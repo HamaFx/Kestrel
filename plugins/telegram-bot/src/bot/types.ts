@@ -36,35 +36,6 @@ export interface BotReply {
   keyboard?: InlineKeyboard;
 }
 
-export interface ParsedBotCommand {
-  command: string;
-  args: string[];
-}
-
-/** Parse `/price XAUUSD@KestrelBot` and callback data like `analyze:full:XAUUSD`. */
-export function parseBotCommand(text: string): ParsedBotCommand {
-  const trimmed = text.trim();
-
-  const callback = /^(analyze|committee):(quick|single|full|team):([A-Za-z0-9/_-]+)$/i.exec(
-    trimmed,
-  );
-  if (callback) {
-    return {
-      command: callback[1]!.toLowerCase(),
-      args: [callback[3]!.toUpperCase(), callback[2]!.toLowerCase()],
-    };
-  }
-
-  if (!trimmed.startsWith('/')) return { command: '', args: [] };
-
-  const [rawCommand, ...args] = trimmed.slice(1).split(/\s+/);
-  if (!rawCommand) return { command: '', args: [] };
-  return {
-    command: rawCommand.toLowerCase().replace(/@\w+$/, ''),
-    args: args.filter(Boolean),
-  };
-}
-
 export const COMMAND_DESCRIPTIONS: ReadonlyArray<{ command: string; description: string }> = [
   { command: 'price', description: 'Current price — /price XAUUSD' },
   { command: 'analyze', description: 'AI market check — /analyze XAUUSD quick|full' },

@@ -87,22 +87,3 @@ export async function buildBriefing(ctx: TelegramBotContext): Promise<string> {
 export async function briefingReply(ctx: TelegramBotContext): Promise<BotReply> {
   return { text: await buildBriefing(ctx) };
 }
-
-/** Toggle setters used by menu buttons (callback data `cmd:toggle-*`). */
-export async function toggleReply(
-  which: 'briefing' | 'alerts',
-  ctx: TelegramBotContext,
-): Promise<BotReply> {
-  if (which === 'briefing') {
-    const next = !ctx.settings.briefingEnabled;
-    await ctx.saveSettings({ briefingEnabled: next });
-    return {
-      text: next
-        ? `▶️ Daily briefing enabled for ${ctx.settings.briefingTime} ${ctx.settings.timezone}.`
-        : '⏸ Daily briefing paused.',
-    };
-  }
-  const next = !ctx.settings.alertsEnabled;
-  await ctx.saveSettings({ alertsEnabled: next });
-  return { text: next ? '🔔 Alert notifications resumed.' : '🔇 Alert notifications muted.' };
-}

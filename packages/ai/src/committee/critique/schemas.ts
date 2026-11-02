@@ -25,14 +25,14 @@ import { z } from 'zod';
 import { CommitteeCritiqueSchema, MastraModeOpinionSchema } from '../types';
 
 /** Typed output of the critique step (mirrors the specialist marker shape). */
-export const CritiqueStepResultSchema = z.object({
+const _CritiqueStepResultSchema = z.object({
   ok: z.boolean(),
   agentName: z.string().optional(),
   critique: CommitteeCritiqueSchema.optional(),
   error: z.string().optional(),
   latencyMs: z.number().optional(),
 });
-export type CritiqueStepResult = z.infer<typeof CritiqueStepResultSchema>;
+export type CritiqueStepResult = z.infer<typeof _CritiqueStepResultSchema>;
 
 export const CritiqueStepOutputSchema = z.object({
   critiques: z.array(CommitteeCritiqueSchema),
@@ -40,14 +40,14 @@ export const CritiqueStepOutputSchema = z.object({
 });
 export type CritiqueStepOutput = z.infer<typeof CritiqueStepOutputSchema>;
 
-export const DebateStepResultSchema = z.object({
+const _DebateStepResultSchema = z.object({
   ok: z.boolean(),
   agentName: z.string().optional(),
   opinion: MastraModeOpinionSchema.optional(),
   error: z.string().optional(),
   latencyMs: z.number().optional(),
 });
-export type DebateStepResult = z.infer<typeof DebateStepResultSchema>;
+export type DebateStepResult = z.infer<typeof _DebateStepResultSchema>;
 
 export const DebateStepOutputSchema = z.object({
   revisions: z.array(MastraModeOpinionSchema),

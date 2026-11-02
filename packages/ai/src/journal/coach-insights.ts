@@ -46,10 +46,8 @@ import { computeStats, listEntries, type JournalStatsSummary } from './persisten
 export {
   COACH_BULLET_MAX_CHARS,
   COACH_SUMMARY_MAX_CHARS,
-  CoachInsightsOutputSchema,
   CoachInsightsUnavailableError,
   coerceCoachInsights,
-  type CoachInsightsPayload,
 } from './coach-insights-schema';
 
 export interface CoachInsightsArgs {

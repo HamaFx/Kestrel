@@ -213,7 +213,7 @@ export const TABS = [
 
 export type TabId = (typeof TABS)[number]['id'];
 
-export const TAB_IDS: readonly string[] = TABS.map((t) => t.id);
+const TAB_IDS: readonly string[] = TABS.map((t) => t.id);
 export const DEFAULT_TAB: TabId = 'platform';
 export const TAB_PARAM = 'tab';
 

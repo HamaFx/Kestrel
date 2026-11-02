@@ -25,7 +25,7 @@ import type { Alert } from '@kestrel/shared';
 
 import type { EvaluatorEnv, RuleReading } from './evaluator';
 
-export interface AlertChannelDeliveryArgs {
+interface AlertChannelDeliveryArgs {
   alert: Alert;
   reading: RuleReading;
   env: EvaluatorEnv;
@@ -43,7 +43,7 @@ export interface AlertChannelDeliveryResult {
   message?: string | undefined;
 }
 
-export interface AlertChannelPlugin {
+interface AlertChannelPlugin {
   id: string;
   label: string;
   /**
@@ -53,7 +53,7 @@ export interface AlertChannelPlugin {
   deliver: (args: AlertChannelDeliveryArgs) => Promise<AlertChannelDeliveryResult>;
 }
 
-export class AlertChannelRegistry {
+class AlertChannelRegistry {
   private readonly channels = new Map<string, AlertChannelPlugin>();
 
   register(channel: AlertChannelPlugin): void {

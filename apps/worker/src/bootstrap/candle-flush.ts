@@ -89,7 +89,7 @@ export interface CandlePipelineStats {
   pending: number;
 }
 
-export interface CandleDrainReport {
+interface CandleDrainReport {
   closed: number;
   written: number;
   queued: number;

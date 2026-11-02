@@ -53,7 +53,7 @@ export type MastraAnswerOutcome = 'ready' | 'blocked' | 'degraded';
  * user cancellation carries an `AbortError` (or a plain reason), and shutdown
  * aborts are deliberately treated as cancellation too.
  */
-export function isDeadlineAbort(reason: unknown): boolean {
+function isDeadlineAbort(reason: unknown): boolean {
   if (reason === null || typeof reason !== 'object') return false;
   return (reason as { name?: unknown }).name === 'TimeoutError';
 }

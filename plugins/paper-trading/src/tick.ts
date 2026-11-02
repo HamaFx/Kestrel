@@ -144,12 +144,3 @@ export const paperTickSubscriber: PluginTickSubscriber = {
     }
   },
 };
-
-/** Test helper. */
-export function resetPaperTickCacheForTests(): void {
-  interest.clear();
-  loadInFlight.clear();
-  processing.clear();
-  lastProcessedAt.clear();
-  warnedAboutCap = false;
-}

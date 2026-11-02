@@ -14,7 +14,7 @@ import { cn } from '@/lib/formatters/cn';
 import type { ExtractedTradeLevels } from './extract-trade-levels';
 import { InstrumentWells, TugOfWarBar } from './syndicate-instrument-wells';
 
-export function SyndicateGuardrailBanner({
+function SyndicateGuardrailBanner({
   levels,
 }: {
   levels: Pick<ExtractedTradeLevels, 'isVetoed' | 'vetoReason' | 'dissent'>;

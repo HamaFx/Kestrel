@@ -61,7 +61,7 @@ export function toMarketTick(tick: Tick, meta?: PriceResult): MarketTick {
 }
 
 /** Quotes older than five minutes are never tradable, even without flags. */
-export const MAX_QUOTE_AGE_SECONDS = 300;
+const MAX_QUOTE_AGE_SECONDS = 300;
 
 /**
  * A market order or stop trigger may only execute against a live quote.

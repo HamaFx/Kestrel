@@ -37,9 +37,6 @@ import { DB } from '../../src/runtime/tokens';
 
 export type QueueTestDb = ReturnType<typeof drizzle<typeof schema>>;
 
-let activeContainer: string | null = null;
-let activeSql: ReturnType<typeof postgres> | null = null;
-
 async function startPostgres(): Promise<{
   container: string;
   url: string;
@@ -120,8 +117,6 @@ async function applyMigrations(raw: postgres.Sql): Promise<void> {
 export async function withQueueStorage<T>(fn: (db: QueueTestDb) => Promise<T>): Promise<T> {
   const { container, url, databaseName } = await startPostgres();
   const raw = postgres(url, { max: 1, prepare: false });
-  activeSql = raw;
-  activeContainer = container || null;
 
   const db = drizzle(raw, { schema });
   await db.execute(sql`CREATE EXTENSION IF NOT EXISTS vector`);
@@ -168,7 +163,6 @@ export async function withQueueStorage<T>(fn: (db: QueueTestDb) => Promise<T>): 
       throw new Error('Full-analysis test DB was not initialized');
     });
     await raw.end({ timeout: 5 });
-    activeSql = null;
     if (databaseName) {
       const adminUrl = process.env.TEST_POSTGRES_ADMIN_URL!;
       const admin = postgres(adminUrl, { max: 1, prepare: false });
@@ -182,10 +176,7 @@ export async function withQueueStorage<T>(fn: (db: QueueTestDb) => Promise<T>): 
     }
     if (container) {
       spawnSync('docker', ['rm', '--force', container], { stdio: 'ignore' });
-      activeContainer = null;
     }
     rmSync(dir, { recursive: true, force: true });
   }
 }
-
-export { activeSql, activeContainer };

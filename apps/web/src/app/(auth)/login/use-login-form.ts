@@ -43,5 +43,3 @@ export function useLoginForm() {
     setShowResend,
   };
 }
-
-export type LoginFormController = ReturnType<typeof useLoginForm>;

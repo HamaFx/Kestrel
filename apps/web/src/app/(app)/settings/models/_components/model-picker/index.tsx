@@ -55,15 +55,7 @@ export interface ModelPickerProps {
   helper?: string;
 }
 
-export type { ModelPickerKind } from './model-options';
-
-export function ModelPicker({
-  kind,
-  initialValue = null,
-  providers,
-  title,
-  helper,
-}: ModelPickerProps) {
+function ModelPicker({ kind, initialValue = null, providers, title, helper }: ModelPickerProps) {
   const { value, hydrated, save, pending, options, currentLabel, pick, clearOverride } =
     useModelPicker({ kind, initialValue, providers });
 

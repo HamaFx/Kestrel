@@ -4,7 +4,7 @@
 
 export const MAX_TABLE_ROWS = 5;
 export const MAX_TABLE_COLUMNS = 6;
-export const MAX_PREVIEW_CHARS = 120;
+const MAX_PREVIEW_CHARS = 120;
 
 export function humanizeToolName(name: string): string {
   return name

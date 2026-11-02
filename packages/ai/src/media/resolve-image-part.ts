@@ -51,8 +51,6 @@ import {
 } from './chat-image-object-path';
 import { fetchChatImageInline } from './chat-image-storage';
 
-export { CHAT_IMAGE_MAX_BYTES } from './chat-image-storage';
-
 /** Provider-visible note when an attached image cannot be delivered. */
 export const CHAT_IMAGE_UNAVAILABLE_TEXT = 'The attached image could not be loaded.';
 
@@ -77,7 +75,7 @@ export interface ResolveImagePartOptions {
 }
 
 /** A part the provider can consume: inline bytes, or the original reference. */
-export interface ResolvedProviderImagePart {
+interface ResolvedProviderImagePart {
   type: 'file';
   mediaType: string;
   /** `data:` URL for Kestrel-owned images; the original reference otherwise. */
@@ -86,7 +84,7 @@ export interface ResolvedProviderImagePart {
 }
 
 /** The honest placeholder when an image cannot be resolved. */
-export interface UnavailableProviderImagePart {
+interface UnavailableProviderImagePart {
   type: 'text';
   text: string;
 }

@@ -112,9 +112,7 @@ export interface CanonicalNetworkExperiment {
  * Task 2: the legacy registry + adapter fallback is gone, so a name with no
  * native registration is dropped instead of adapted at runtime.
  */
-export function resolveCanonicalNetworkReaderTools(
-  toolNames: readonly string[],
-): Record<string, unknown> {
+function resolveCanonicalNetworkReaderTools(toolNames: readonly string[]): Record<string, unknown> {
   const resolved: Record<string, unknown> = {};
   for (const toolName of toolNames) {
     const native = resolveNativeCanonicalTool(toolName);

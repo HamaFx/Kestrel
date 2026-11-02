@@ -31,7 +31,6 @@ export {
   assertSystemActionAuthorized,
   cancelFullAnalysisRun,
   cancelMutationWorkflow,
-  classifyMutationRequest,
   createExecutionPlan,
   createMutationWorkflow,
   enqueueFullAnalysis,
@@ -57,17 +56,9 @@ export {
   GuardrailUnavailableError,
   TripWire,
   type ExecutionPlan,
-  type FullAnalysisRunView,
   type MutationExecutor,
-  type RunTelemetryRow,
-  type UnifiedRoutingDecision,
 } from '@kestrel/ai/mastra-v2';
-export {
-  extractUserMessageText,
-  flushLangfuse,
-  isBudgetEnforced,
-  withDiagnostics,
-} from '@kestrel/ai';
+export { extractUserMessageText, isBudgetEnforced, withDiagnostics } from '@kestrel/ai';
 export { BudgetExceededError } from '@kestrel/ai/cost';
 export {
   executeMutationOnce,

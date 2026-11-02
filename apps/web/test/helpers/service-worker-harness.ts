@@ -54,7 +54,7 @@ export interface HarnessOptions {
   }>;
 }
 
-export interface SwTestEvent {
+interface SwTestEvent {
   waitUntil(promise: Promise<unknown>): void;
   respondWith?(response: Promise<Response>): void;
   [key: string]: unknown;

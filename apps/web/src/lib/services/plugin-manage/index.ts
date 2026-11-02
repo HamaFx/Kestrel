@@ -26,12 +26,7 @@ import 'server-only';
 import './runtime';
 
 export { enforcePluginManageRateLimit } from './rate-limit';
-export {
-  buildPluginShellContext,
-  buildPluginStoreEntry,
-  buildPluginStoreSnapshot,
-  type PluginShellContext,
-} from './store-metadata';
+export { buildPluginShellContext, buildPluginStoreSnapshot } from './store-metadata';
 export {
   installPluginForUser,
   setPluginEnabledForUser,
@@ -41,4 +36,4 @@ export {
 
 // Phase 3 Task 4 — installed-plugin lookups used by the chat route gating.
 export { getInstalledPluginIdsForUser } from '@kestrel/db';
-export { detectInstalledPluginIntent, type PluginIntentMatch } from '@kestrel/ai/plugins';
+export { detectInstalledPluginIntent } from '@kestrel/ai/plugins';

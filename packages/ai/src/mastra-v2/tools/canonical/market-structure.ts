@@ -48,8 +48,6 @@ import { CanonicalMarketStructureInputSchema } from './input-schemas';
 // Leaf re-exports: the values live in modules with no app-graph imports, so a
 // module-scope read (legacy shims, other consumers) can never land on a binding
 // that is still initialising inside the instance ↔ tools import cycle.
-export { CANONICAL_MARKET_STRUCTURE_DESCRIPTION, CanonicalMarketStructureInputSchema };
-
 export type CanonicalMarketStructureInput = z.infer<typeof CanonicalMarketStructureInputSchema>;
 
 const TAIL = 15;

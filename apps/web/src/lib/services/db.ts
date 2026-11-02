@@ -29,10 +29,8 @@ import 'server-only';
 export {
   getAdminDb,
   getDb,
-  getTenantDbScope,
   requireTenantIdForUser,
   schema,
   withAdminDb,
-  withTenantDbFresh,
   withUserTenant,
 } from '@kestrel/db';

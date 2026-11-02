@@ -248,8 +248,6 @@ function createFinnhubProvider(): MarketDataProvider {
 }
 
 export const finnhubProvider = createFinnhubProvider();
-export { liveTicksProvider, biquoteProvider, binanceProvider };
-
 /** Wraps the Binance REST provider for crypto. */
 const binanceProvider: MarketDataProvider = {
   name: 'binance',
@@ -314,7 +312,7 @@ let _bootstrapped = false;
  * Register all market data providers in the global registry.
  * Idempotent — safe to call multiple times.
  */
-export function bootstrapMarketDataProviders(): void {
+function bootstrapMarketDataProviders(): void {
   if (_bootstrapped) return;
   for (const p of buildProviderList()) {
     marketDataProviders.register(p);

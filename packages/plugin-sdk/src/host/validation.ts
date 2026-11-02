@@ -21,12 +21,12 @@ import { TOOL_NAMES } from '@kestrel/shared';
 
 import type { PluginAgentTarget, PluginId, PluginToolRegistration } from '../types';
 
-export const PLUGIN_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
-export const TOOL_NAME_RE = /^[a-z][a-z0-9_]{0,63}$/;
+const PLUGIN_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+const TOOL_NAME_RE = /^[a-z][a-z0-9_]{0,63}$/;
 export const JOB_ID_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 export const INDICATOR_KIND_RE = /^[a-z][a-z0-9_]{0,47}$/;
 
-export const AGENT_TARGETS: ReadonlySet<PluginAgentTarget> = new Set([
+const AGENT_TARGETS: ReadonlySet<PluginAgentTarget> = new Set([
   'canonical-chat',
   'technical',
   'fundamental',

@@ -39,7 +39,7 @@ export const RESPONSE_KEYS: Record<
  *     requires supports.embedding
  *   - chat allows any non-embedding tier
  */
-export function isModelAllowedForKind(
+function isModelAllowedForKind(
   tier: string | undefined,
   supports: { vision?: boolean; embedding?: boolean } | undefined,
   kind: ModelPickerKind,

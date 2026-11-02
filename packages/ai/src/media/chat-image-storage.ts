@@ -31,7 +31,7 @@
 import { CHAT_IMAGE_BUCKET_NAME } from './chat-image-object-path';
 
 /** Mirrors the upload route's 5 MB cap (`storage.ts` MAX_UPLOAD_BYTES). */
-export const CHAT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+const CHAT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 
 /** Only raster types the uploader can produce, matching the proxy route. */
 const RASTER_MEDIA_TYPE_PATTERN = /^image\/(jpeg|png|webp|gif)$/;

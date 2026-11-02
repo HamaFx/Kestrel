@@ -77,7 +77,7 @@ const INVERTED_PASS_CEILING = 0.2;
  * `faithfulness` is the record score; the other four live in the reason and
  * were previously ignored by the gate.
  */
-export const JEV_RUBRIC_THRESHOLDS = {
+const JEV_RUBRIC_THRESHOLDS = {
   answerRelevancy: 0.5,
   noHallucination: 0.8,
   unbiasedScenarios: 0.8,

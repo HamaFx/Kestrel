@@ -51,7 +51,7 @@ export const GAP_DRAIN_WAIT_MS = 750;
 /** Gap source. Defaults to the REST OHLC adapters via `@kestrel/data`. */
 export type FetchGapBars = (gap: CandleGap, signal?: AbortSignal) => Promise<GapBackfillResult>;
 
-export interface CandleGapStats {
+interface CandleGapStats {
   /** Bars fetched from the REST adapters to fill a gap. */
   backfilled: number;
   /** Gaps where the provider could not cover the missing minutes. */

@@ -75,7 +75,6 @@ export const FallbackChainPutSchema = z.object({
 });
 
 export type AnalysisModePatchInput = z.infer<typeof AnalysisModePatchSchema>;
-export type FallbackChainPutInput = z.infer<typeof FallbackChainPutSchema>;
 
 // ── DTOs ─────────────────────────────────────────────────────────────────────
 
@@ -84,36 +83,6 @@ export interface AnalysisModeDTO {
   showAgentOpinions: boolean;
   agentModelOverrides: Record<string, string>;
 }
-
-export interface BulkTestProgressEvent {
-  type: 'progress';
-  current: number;
-  total: number;
-  provider: string;
-}
-
-export interface BulkTestResultEvent {
-  type: 'done';
-  results: Array<{
-    provider: string;
-    status: 'ok' | 'failed' | 'missing';
-    error?: string;
-  }>;
-  summary: {
-    ok: number;
-    failed: number;
-    missing: number;
-    total: number;
-    testedAt: string;
-  };
-}
-
-export interface BulkTestErrorEvent {
-  type: 'error';
-  message: string;
-}
-
-export type BulkTestEvent = BulkTestProgressEvent | BulkTestResultEvent | BulkTestErrorEvent;
 
 // ── Service functions ────────────────────────────────────────────────────────
 

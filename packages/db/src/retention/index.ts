@@ -17,7 +17,7 @@
 // Retention barrel: config + bounded delete helpers (`config.ts`, `batch.ts`),
 // the cleanup job (`cleanup.ts`), and the vacuum pass (`vacuum.ts`).
 
-export { getRetentionConfigFromEnv, resolveRetention } from './config';
+export { getRetentionConfigFromEnv } from './config';
 export type { RetentionConfig, RetentionResult } from './config';
 export { runRetentionCleanup } from './cleanup';
 export { runVacuumAnalyze } from './vacuum';

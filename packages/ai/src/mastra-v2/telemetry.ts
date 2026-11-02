@@ -55,7 +55,6 @@ import { capabilityTelemetryLabels } from './capabilities';
 // existing import sites are unchanged.
 import { isLangfuseConfigured } from './langfuse-link';
 
-export { capabilityTelemetryLabels } from './capabilities';
 export { isLangfuseConfigured, langfuseBaseUrl, langfuseTraceUrl } from './langfuse-link';
 
 const tlog = createCategorizedLogger('ai', { component: 'mastra:telemetry' });

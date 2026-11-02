@@ -71,18 +71,8 @@ export function TimeProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useNow() {
-  const ctx = useContext(TimeContext);
-  if (!ctx) throw new Error('useNow must be used within TimeProvider');
-  return ctx.now;
-}
-
 export function useTime() {
   const ctx = useContext(TimeContext);
   if (!ctx) throw new Error('useTime must be used within TimeProvider');
   return ctx;
-}
-
-export function useReducedMotion() {
-  return useContext(ReducedMotionContext);
 }

@@ -48,7 +48,6 @@ export { getCoachInsightsService } from './coach';
 export {
   computeReplayWindow,
   getTradeSetupReplayService,
-  type ReplayCandleDTO,
   type TradeSetupReplayDTO,
 } from './replay';
 

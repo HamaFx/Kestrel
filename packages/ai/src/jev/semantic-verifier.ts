@@ -44,14 +44,10 @@ import { evaluateJev } from './client';
 import type { JevEnv, JevGenerationLedger, JevNoulAnswer, JevSettings } from './types';
 
 /** Per-call budget for the semantic verification batch. */
-export const JEV_SEMANTIC_VERIFIER_TIMEOUT_MS = 800;
+const JEV_SEMANTIC_VERIFIER_TIMEOUT_MS = 800;
 
 /** Chars of the candidate text carried into the Jev state. */
 const VERIFIER_TEXT_CHARS = 4_000;
-
-/** Words that count as a disclosure of degraded/missing packet context. */
-export const DISCLOSURE_TERMS =
-  /\b(?:stale|missing|unavailable|incomplete|degraded|partial|outdated|delayed|limited|provisional)\b/i;
 
 const DISCLOSURE_WORDS =
   'stale|missing|unavailable|incomplete|degraded|partial|outdated|delayed|limited|provisional';
@@ -60,7 +56,7 @@ const DISCLOSURE_WORDS =
  * Negated disclosure chains: `not stale`, `never degraded`, `no missing data`,
  * `without delayed data`, including chained forms like `not stale or degraded`.
  */
-export const NEGATED_DISCLOSURE_PATTERN = new RegExp(
+const NEGATED_DISCLOSURE_PATTERN = new RegExp(
   `\\b(?:not|never|no|without)\\s+(?:${DISCLOSURE_WORDS})(?:\\s+(?:or|and|nor)\\s+(?:${DISCLOSURE_WORDS}))*`,
   'i',
 );

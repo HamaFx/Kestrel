@@ -20,7 +20,7 @@ import { Link } from 'next-view-transitions';
 
 import { cn } from '@/lib/formatters/cn';
 
-export type KestrelBrandVariant = 'mark' | 'lockup';
+type KestrelBrandVariant = 'mark' | 'lockup';
 
 interface KestrelBrandProps {
   /** The square mark is for compact chrome; the lockup is for identity moments. */

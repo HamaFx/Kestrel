@@ -16,22 +16,8 @@
 
 // Pure paper-broker domain — symbol and side helpers.
 
-import { pipSize, tryGetSymbolDefinition } from '@kestrel/shared';
-
-import type { OrderSide, PositionSide } from './types';
+import { tryGetSymbolDefinition } from '@kestrel/shared';
 
 export function contractSizeFor(symbol: string): number {
   return tryGetSymbolDefinition(symbol)?.capabilities.contractSize ?? 1;
-}
-
-export function pipSizeFor(symbol: string): number {
-  return pipSize(symbol);
-}
-
-export function sideToPosition(side: OrderSide): PositionSide {
-  return side === 'buy' ? 'long' : 'short';
-}
-
-export function positionToExitSide(side: PositionSide): OrderSide {
-  return side === 'long' ? 'sell' : 'buy';
 }

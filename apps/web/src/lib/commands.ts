@@ -185,6 +185,3 @@ export const COMMANDS: readonly CommandItem[] = [
 /**
  * Find a command by id. Returns null when not found.
  */
-export function findCommand(id: string): CommandItem | null {
-  return COMMANDS.find((c) => c.id === id) ?? null;
-}

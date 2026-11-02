@@ -39,10 +39,10 @@
 export const CHAT_IMAGE_BUCKET_NAME = 'chat-images';
 
 /** Same-origin base for proxy-served uploads. */
-export const CHAT_IMAGE_PROXY_PREFIX = '/api/uploads';
+const CHAT_IMAGE_PROXY_PREFIX = '/api/uploads';
 
 /** `YYYY-MM-DD`, the day partition segment. */
-export const CHAT_IMAGE_DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const CHAT_IMAGE_DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 const USER_ID_PATTERN = /^[a-zA-Z0-9_-]{1,128}$/;
 const OBJECT_NAME_PATTERN = /^[a-zA-Z0-9_.-]{1,140}$/;

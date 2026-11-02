@@ -23,7 +23,6 @@
 
 export {
   addUserSymbol,
-  getNextDisplayOrder,
   getUserWithSettings,
   getWatchlistWithCatalog,
   isSymbolInCatalog,

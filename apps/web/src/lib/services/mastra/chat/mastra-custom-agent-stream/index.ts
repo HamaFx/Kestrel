@@ -20,4 +20,4 @@ import 'server-only';
 
 // Custom-agent (`@handle`) streaming runner.
 
-export { runCustomAgentStreamService, type RunCustomAgentStreamInput } from './service';
+export { runCustomAgentStreamService } from './service';

@@ -62,9 +62,9 @@ const EMITTER_AGE_LIMIT_SECONDS: Readonly<Record<string, number>> = {
 const NOT_LIVE_WARNING_PATTERN = /\b(?:stale|not live)\b/i;
 
 /** Why an envelope entry counts as stale. */
-export type FreshnessStaleReason = 'flagged' | 'aged' | null;
+type FreshnessStaleReason = 'flagged' | 'aged' | null;
 
-export interface FreshnessEntry {
+interface FreshnessEntry {
   /** Datum label: `XAUUSD`, `XAUUSD 1h`, or the tool name when unnamed. */
   label: string;
   /** Envelope symbol when the emitter reports per-symbol freshness. */
@@ -114,7 +114,7 @@ export interface FreshnessPartitionOptions {
  * of objects with a boolean `stale`; a packet's `freshness: 'fresh'` string is
  * not one and is ignored.
  */
-export function readFreshnessEnvelope(value: unknown, toolName?: string): FreshnessEntry[] | null {
+function readFreshnessEnvelope(value: unknown, toolName?: string): FreshnessEntry[] | null {
   const node = findEnvelopeNode(value, MAX_WALK_DEPTH);
   if (node === null) return null;
 

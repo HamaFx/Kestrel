@@ -48,10 +48,10 @@ import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research'
 import type { MastraSpecialistName } from './types';
 
 /** Per-call budget. Calibration is an auxiliary call — must never stall a run. */
-export const JEV_PACKET_SCORER_TIMEOUT_MS = 800;
+const JEV_PACKET_SCORER_TIMEOUT_MS = 800;
 
 /** Weight of the calibrated Jev confidence in the specialist blend. */
-export const JEV_CONFIDENCE_BLEND_WEIGHT = 0.7;
+const JEV_CONFIDENCE_BLEND_WEIGHT = 0.7;
 
 /** Max candles per timeframe carried into the Jev state. */
 const STATE_CANDLES_PER_TIMEFRAME = 5;

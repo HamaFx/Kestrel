@@ -34,7 +34,7 @@ function openPushDb(): Promise<IDBDatabase> {
   });
 }
 
-export async function readPendingPushSubscription(): Promise<PushSubscriptionJson | null> {
+async function readPendingPushSubscription(): Promise<PushSubscriptionJson | null> {
   if (typeof indexedDB === 'undefined') return null;
   try {
     const db = await openPushDb();
@@ -51,7 +51,7 @@ export async function readPendingPushSubscription(): Promise<PushSubscriptionJso
   }
 }
 
-export async function clearPendingPushSubscription(): Promise<void> {
+async function clearPendingPushSubscription(): Promise<void> {
   if (typeof indexedDB === 'undefined') return;
   try {
     const db = await openPushDb();

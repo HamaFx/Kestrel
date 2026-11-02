@@ -21,7 +21,4 @@ import 'server-only';
 // Canonical Mastra chat stream service (source of truth for the streaming
 // chat lifecycle).
 
-export {
-  runMastraCanonicalChatStreamService,
-  type RunMastraCanonicalChatStreamInput,
-} from './service';
+export { runMastraCanonicalChatStreamService } from './service';

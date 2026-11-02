@@ -32,7 +32,7 @@ import type {
   ToolAggregate,
 } from './probe-types';
 
-export const SPEND_WATCH_QUERY_LIMIT = 100;
+const SPEND_WATCH_QUERY_LIMIT = 100;
 
 function extractRows(result: unknown): Record<string, unknown>[] {
   if (Array.isArray(result)) return result as Record<string, unknown>[];

@@ -104,7 +104,7 @@ export const SPECIALIST_SKILL_PLAYBOOKS: Record<MastraSpecialistName, string> = 
 };
 
 /** Legacy focus summary retained for backwards compatibility with existing imports. */
-export const SPECIALIST_FOCUS: Record<MastraSpecialistName, string> = {
+const SPECIALIST_FOCUS: Record<MastraSpecialistName, string> = {
   technical:
     'Focus only on trend, structure, indicators, levels, timeframe agreement, and volatility.',
   fundamental:
@@ -115,7 +115,7 @@ export const SPECIALIST_FOCUS: Record<MastraSpecialistName, string> = {
 };
 
 /** Shared hard-rule fragment appended to every specialist prompt. */
-export const COMMITTEE_HARD_RULES = `Hard rules:
+const COMMITTEE_HARD_RULES = `Hard rules:
 - Use only the trusted server-created packet provided in your request context and outputs from your assigned read-only tools.
 - Do not invent prices, levels, events, indicators, or current facts.
 - If the packet is blocked or degraded, say so and reduce confidence.
@@ -169,7 +169,7 @@ function deskUsesGenericMacro(name: MastraSpecialistName): boolean {
 }
 
 /** Static specialist instructions (no packet body — §2.2 zero-copy). */
-export function specialistInstructions(name: MastraSpecialistName): string {
+function specialistInstructions(name: MastraSpecialistName): string {
   return `You are Kestrel's ${name} specialist.
 
 Your Goal:

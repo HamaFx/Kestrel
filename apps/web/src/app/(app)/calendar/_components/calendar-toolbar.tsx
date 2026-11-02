@@ -22,8 +22,8 @@ import type { Importance } from '@kestrel/shared';
 import { cn } from '@/lib/formatters/cn';
 import { handleRadioKeyDown } from '@/lib/formatters/datetime';
 
-export type ImportanceFilter = Importance | 'all';
-export type CurrencyFilter = 'USD' | 'EUR' | 'GBP' | 'all';
+type ImportanceFilter = Importance | 'all';
+type CurrencyFilter = 'USD' | 'EUR' | 'GBP' | 'all';
 
 interface CalendarToolbarProps {
   importance: ImportanceFilter;

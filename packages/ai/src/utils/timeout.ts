@@ -52,16 +52,3 @@ export function combineRunSignal(signals: DeadlineSignals): AbortSignal | undefi
 export function isDeadlineAbort(signals: DeadlineSignals): boolean {
   return signals.deadlineSignal?.aborted === true && signals.userSignal?.aborted !== true;
 }
-
-/**
- * Race a promise against a deadline. The wrapped operation receives the
- * combined signal so providers abort cooperatively; a deadline loss rejects
- * with a DOMException AbortError, matching user-cancel semantics.
- */
-export async function withTimeout<T>(
-  operation: (signal: AbortSignal | undefined) => Promise<T>,
-  signals: DeadlineSignals,
-): Promise<T> {
-  const signal = combineRunSignal(signals);
-  return operation(signal);
-}

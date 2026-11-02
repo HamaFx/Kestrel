@@ -28,7 +28,7 @@ import { errorResponse, parseJsonBody } from '@/lib/http/api';
 import { errorJson } from './errors';
 import { readPresentationPrefs, type PresentationPrefs } from './presentation-prefs';
 
-export const BodySchema = z.object({
+const BodySchema = z.object({
   threadId: z.uuid(),
   modelOverride: z.string().min(1).max(120).nullable().optional(),
   // Q2 decision: exactly two analysis modes; anything else fails validation.
@@ -53,11 +53,11 @@ export const BodySchema = z.object({
     .max(100, 'Too many messages'),
 });
 
-export type ChatRequestBody = z.infer<typeof BodySchema>;
-export type ChatUserMessage = ChatRequestBody['messages'][number];
+type ChatRequestBody = z.infer<typeof BodySchema>;
+type ChatUserMessage = ChatRequestBody['messages'][number];
 export type ChatUserParts = z.infer<typeof UserMessagePartsSchema>;
 
-export interface ParsedChatRequest extends PresentationPrefs {
+interface ParsedChatRequest extends PresentationPrefs {
   body: ChatRequestBody;
   serverEnv: ReturnType<typeof getServerEnv>;
   userParts: ChatUserParts;

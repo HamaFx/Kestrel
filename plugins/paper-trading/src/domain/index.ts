@@ -20,41 +20,19 @@
 // and returns a decision. The services in `src/services/` persist those
 // decisions. This split lets the money math be unit-tested exhaustively.
 
-export { ACCOUNT_MODES } from './types';
 export type {
-  AccountLike,
   AccountMode,
   AccountSnapshot,
   MarketTick,
-  OrderMatch,
   OrderSide,
   OrderStatus,
-  OrderType,
-  PaperOrderState,
   PaperPositionState,
   PositionCloseReason,
-  PositionEvaluation,
-  PositionForAccount,
   PositionSide,
   PositionStatus,
   Quotes,
-  SizingArgs,
-  SizingResult,
 } from './types';
-export { contractSizeFor, pipSizeFor, positionToExitSide, sideToPosition } from './symbols';
-export {
-  accountSnapshot,
-  entryFeeFor,
-  grossPnl,
-  positionMargin,
-  round,
-  sizePosition,
-} from './math';
+export { contractSizeFor } from './symbols';
+export { accountSnapshot, entryFeeFor, grossPnl, round, sizePosition } from './math';
 export { exitQuote, marketFillPrice, quotesFromTick } from './quotes';
-export {
-  evaluatePosition,
-  matchOrder,
-  outcomeFor,
-  rMultipleFor,
-  validateBracket,
-} from './evaluation';
+export { evaluatePosition, matchOrder, outcomeFor, validateBracket } from './evaluation';

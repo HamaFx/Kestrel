@@ -72,9 +72,9 @@ export interface AppliedMigration {
   createdAt: number;
 }
 
-export type MigrationEntryState = 'applied' | 'applied-modified' | 'pending' | 'would-be-skipped';
+type MigrationEntryState = 'applied' | 'applied-modified' | 'pending' | 'would-be-skipped';
 
-export interface MigrationEntryStatus {
+interface MigrationEntryStatus {
   tag: string;
   when: number;
   state: MigrationEntryState;

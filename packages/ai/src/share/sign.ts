@@ -24,7 +24,7 @@
 // invalidates active share links — same blast radius as the session
 // cookie, which the user already accepts.
 
-import { createHmac, randomUUID } from 'node:crypto';
+import { createHmac } from 'node:crypto';
 
 export interface ShareTokenPayload {
   /** uuid of the shared_snapshots row. */
@@ -94,12 +94,4 @@ export function verifyShareToken(token: string, secret: string): ShareTokenPaylo
   const p = parsed as ShareTokenPayload;
   if (p.exp < Date.now()) return null;
   return p;
-}
-
-/**
- * Convenience for creating fresh payloads in tests + the share tool.
- * Uses a v4 uuid for the snapshot id.
- */
-export function newShareId(): string {
-  return randomUUID();
 }

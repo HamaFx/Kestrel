@@ -23,12 +23,6 @@
 // the final user-facing answer: it owns writes to the conversation thread and
 // is the only layer that may emit a user-visible assistant message.
 
-export { FusionAnswerSchema, renderFusionAnswer, type FusionAnswer } from './fusion-answer';
+export { FusionAnswerSchema, renderFusionAnswer } from './fusion-answer';
 export { synthesizeCommitteeAnswer } from './synthesis';
 export { synthesizeComparisonAnswer } from './comparison';
-export type {
-  CommitteeComparisonSynthesisArgs,
-  CommitteeSynthesisArgs,
-  CommitteeSynthesisDeps,
-  CommitteeSynthesisResult,
-} from './types';

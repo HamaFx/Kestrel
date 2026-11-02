@@ -21,7 +21,7 @@ import { z } from 'zod';
 
 import { MAX_SOURCE_CHARS, StrategyParamsSchema } from './run';
 
-export const SweepObjectiveSchema = z.enum([
+const SweepObjectiveSchema = z.enum([
   'profitFactor',
   'netPnl',
   'returnPct',
@@ -32,7 +32,7 @@ export const SweepObjectiveSchema = z.enum([
 
 export type SweepObjective = z.infer<typeof SweepObjectiveSchema>;
 
-export const ParameterSpaceEntrySchema = z.object({
+const ParameterSpaceEntrySchema = z.object({
   name: z
     .string()
     .min(1)
@@ -43,8 +43,6 @@ export const ParameterSpaceEntrySchema = z.object({
     .min(1)
     .max(10),
 });
-
-export type ParameterSpaceEntry = z.infer<typeof ParameterSpaceEntrySchema>;
 
 export const SweepInputSchema = z
   .object({
@@ -76,7 +74,7 @@ export const SweepInputSchema = z
 
 export type SweepInput = z.infer<typeof SweepInputSchema>;
 
-export const SweepMetricsSchema = z.object({
+const SweepMetricsSchema = z.object({
   trades: z.number().int(),
   winRate: z.number(),
   netPnl: z.number(),
@@ -113,8 +111,6 @@ export const SweepSummarySchema = z.object({
   updatedAt: z.string(),
 });
 
-export type SweepSummary = z.infer<typeof SweepSummarySchema>;
-
 export const SweepDetailSchema = SweepSummarySchema.extend({
   strategyId: z.string().nullable(),
   source: z.string(),
@@ -127,8 +123,6 @@ export const SweepDetailSchema = SweepSummarySchema.extend({
   persistRuns: z.boolean(),
   results: z.array(SweepResultSchema),
 });
-
-export type SweepDetail = z.infer<typeof SweepDetailSchema>;
 
 export const ListSweepsOutputSchema = z.object({
   sweeps: z.array(SweepSummarySchema),
@@ -155,5 +149,3 @@ export const SweepQueueJobSchema = z.object({
   sweepId: z.string().uuid(),
   settings: z.record(z.string(), z.unknown()),
 });
-
-export type SweepQueueJob = z.infer<typeof SweepQueueJobSchema>;

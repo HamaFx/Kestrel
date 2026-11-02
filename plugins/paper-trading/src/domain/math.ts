@@ -54,7 +54,7 @@ export function grossPnl(
 }
 
 /** Notional exposure and margin required at a given price. */
-export function positionMargin(
+function positionMargin(
   position: Pick<PaperPositionState, 'quantity' | 'entryPrice'>,
   contractSize: number,
   leverage: number,

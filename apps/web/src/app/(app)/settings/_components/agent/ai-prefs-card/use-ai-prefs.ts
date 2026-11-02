@@ -16,7 +16,7 @@ export interface AIPrefs {
   customInstructions: string;
 }
 
-export const AI_PREFS_STORAGE_KEY = 'kestrel:ai-prefs:v1';
+const AI_PREFS_STORAGE_KEY = 'kestrel:ai-prefs:v1';
 
 const DEFAULTS: AIPrefs = {
   customInstructions: '',

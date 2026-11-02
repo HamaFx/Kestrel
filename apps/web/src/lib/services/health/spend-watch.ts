@@ -23,7 +23,7 @@ import type { DailySpendRow } from './probe-types';
 
 export type { DailySpendRow } from './probe-types';
 
-export const DEFAULT_ADMIN_SPEND_ALERT_USD = 25;
+const DEFAULT_ADMIN_SPEND_ALERT_USD = 25;
 
 export function resolveAdminSpendAlertThresholdUsd(): number {
   const raw = process.env.ADMIN_SPEND_ALERT_USD;

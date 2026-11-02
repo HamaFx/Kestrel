@@ -43,7 +43,7 @@ interface AlertOwnerRow {
   userId: string;
 }
 
-export function processEvaluatorEnv(): EvaluatorEnv {
+function processEvaluatorEnv(): EvaluatorEnv {
   return {
     RESEND_API_KEY: process.env.RESEND_API_KEY ?? undefined,
     ALERT_FROM_EMAIL: process.env.ALERT_FROM_EMAIL ?? undefined,

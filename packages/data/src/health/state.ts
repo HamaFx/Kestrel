@@ -32,7 +32,7 @@ export const WINDOW_MS = 5 * 60 * 1000;
 /** Minimum interval between DB cross-instance reads for the same provider. */
 export const DB_CACHE_MS = 10_000;
 
-export interface Sample {
+interface Sample {
   /** ms epoch UTC. */
   t: number;
   ok: boolean;
@@ -51,7 +51,7 @@ export interface DbCacheEntry {
   lastFailureAt: number;
 }
 
-export const state = new Map<string, State>();
+const state = new Map<string, State>();
 export const dbCache = new Map<string, DbCacheEntry>();
 
 export function s(provider: string): State {

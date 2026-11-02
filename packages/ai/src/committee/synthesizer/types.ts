@@ -37,7 +37,7 @@ import type {
   ModeRequestContext,
 } from '../types';
 
-export interface CommitteeSynthesisDeps {
+interface CommitteeSynthesisDeps {
   model: LanguageModel;
   modelId: string;
   providerId: string;

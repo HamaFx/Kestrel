@@ -25,8 +25,8 @@ import { z } from 'zod';
 
 export const MAX_SOURCE_CHARS = 100_000;
 
-export const TradeSideSchema = z.enum(['long', 'short']);
-export const ExitReasonSchema = z.enum([
+const TradeSideSchema = z.enum(['long', 'short']);
+const ExitReasonSchema = z.enum([
   'stop_loss',
   'take_profit',
   'trailing_stop',
@@ -58,7 +58,7 @@ export const BacktestTradeSchema = z.object({
   tags: z.array(z.string()).optional(),
 });
 
-export const EquityPointSchema = z.object({
+const EquityPointSchema = z.object({
   t: z.number(),
   equity: z.number(),
   drawdown: z.number(),
@@ -105,7 +105,7 @@ export const BacktestMetricsSchema = z.object({
   finalEquity: z.number(),
 });
 
-export const RejectedSignalSchema = z.object({
+const RejectedSignalSchema = z.object({
   signalIndex: z.number().int(),
   signalTime: z.number(),
   reason: z.string(),
@@ -230,9 +230,7 @@ export const CompareRunsInputSchema = z.object({
   runIds: z.array(z.string().min(1)).min(2).max(4),
 });
 
-export type CompareRunsInput = z.infer<typeof CompareRunsInputSchema>;
-
-export const RunComparisonMetricsSchema = z.object({
+const RunComparisonMetricsSchema = z.object({
   trades: z.number().int(),
   winRate: z.number(),
   netPnl: z.number(),
@@ -243,14 +241,14 @@ export const RunComparisonMetricsSchema = z.object({
   expectancyR: z.number(),
 });
 
-export const RunComparisonDeltaSchema = z.object({
+const RunComparisonDeltaSchema = z.object({
   expectancyR: z.number(),
   profitFactor: z.number(),
   maxDrawdownPct: z.number(),
   netPnl: z.number(),
 });
 
-export const RunComparisonEntrySchema = z.object({
+const RunComparisonEntrySchema = z.object({
   runId: z.string(),
   name: z.string(),
   symbol: z.string(),
@@ -268,16 +266,9 @@ export const CompareRunsOutputSchema = z.object({
   totalReturned: z.number().int(),
 });
 
-export type CompareRunsOutput = z.infer<typeof CompareRunsOutputSchema>;
-
 // ── Async queue payloads ─────────────────────────────────────────────────
 
-export const AsyncRunOutputSchema = z.object({
-  jobId: z.string(),
-  message: z.string(),
-});
-
-export const RunJobStatusOutputSchema = z.object({
+const _RunJobStatusOutputSchema = z.object({
   jobId: z.string(),
   /** pg-boss job state. */
   state: z.enum(['created', 'retry', 'active', 'completed', 'cancelled', 'failed']),
@@ -286,8 +277,6 @@ export const RunJobStatusOutputSchema = z.object({
   message: z.string(),
 });
 
-export type RunJobStatus = z.infer<typeof RunJobStatusOutputSchema>;
+export type RunJobStatus = z.infer<typeof _RunJobStatusOutputSchema>;
 
 // ── API-only payloads ────────────────────────────────────────────────────
-
-export const DeleteRunInputSchema = z.object({ runId: z.string().min(1) });

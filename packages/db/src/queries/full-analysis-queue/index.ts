@@ -18,7 +18,6 @@ export {
 export type {
   ClaimFullAnalysisQueueOptions,
   EnqueueFullAnalysisQueueInput,
-  FullAnalysisLedgerSnapshotPayload,
   FullAnalysisLeaseInput,
   FullAnalysisQueueStats,
 } from './types';

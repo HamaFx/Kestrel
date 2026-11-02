@@ -13,7 +13,7 @@ export interface SegmentedOption<T extends string> {
   ariaLabel?: string;
 }
 
-export interface SegmentedBaseProps<T extends string> {
+interface SegmentedBaseProps<T extends string> {
   /** Optional group name for generating default aria-label */
   name?: string;
   /** Optional direct aria-label override */
@@ -33,12 +33,12 @@ export interface SegmentedBaseProps<T extends string> {
   className?: string;
 }
 
-export interface ButtonModeProps<T extends string> extends SegmentedBaseProps<T> {
+interface ButtonModeProps<T extends string> extends SegmentedBaseProps<T> {
   as?: 'button';
   onChange: (next: T) => void;
 }
 
-export interface LinkModeProps<T extends string> extends SegmentedBaseProps<T> {
+interface LinkModeProps<T extends string> extends SegmentedBaseProps<T> {
   as: 'link';
   hrefFor: (value: T) => string;
 }

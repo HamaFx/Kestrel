@@ -49,10 +49,10 @@ import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
 import type { MastraModeOpinion, MastraSpecialistName } from './types';
 
 /** Per-call budget for the gate evaluation. */
-export const JEV_CONSENSUS_GATE_TIMEOUT_MS = 800;
+const JEV_CONSENSUS_GATE_TIMEOUT_MS = 800;
 
 /** All four required desks must have completed Wave 1 to ever skip. */
-export const REQUIRED_DELIBERATION_DESKS: readonly MastraSpecialistName[] = [
+const REQUIRED_DELIBERATION_DESKS: readonly MastraSpecialistName[] = [
   'technical',
   'fundamental',
   'risk',
@@ -60,16 +60,16 @@ export const REQUIRED_DELIBERATION_DESKS: readonly MastraSpecialistName[] = [
 ];
 
 /** Skip threshold: Jev material-contradiction probability must be below this. */
-export const JEV_CONTRADICTION_SKIP_MAX = 0.3;
+const JEV_CONTRADICTION_SKIP_MAX = 0.3;
 
 /** Skip threshold: consensus strength score must be at least this. */
-export const JEV_CONSENSUS_STRENGTH_MIN = 0.75;
+const JEV_CONSENSUS_STRENGTH_MIN = 0.75;
 
 /** Skip threshold: a requested debate round (>= this) always runs Debate. */
-export const JEV_DEBATE_REQUEST_RUN_MIN = 0.5;
+const JEV_DEBATE_REQUEST_RUN_MIN = 0.5;
 
 /** Deterministic pre-check: confidence spread that always triggers critique. */
-export const JEV_CONFIDENCE_SPREAD_RUN_MIN = 0.35;
+const JEV_CONFIDENCE_SPREAD_RUN_MIN = 0.35;
 
 /** Chars of each desk reasoning quoted into the Jev state. */
 const OPINION_SUMMARY_CHARS = 300;

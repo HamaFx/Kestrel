@@ -73,7 +73,7 @@ function customAgentLabel(message: UIMessage): string | null {
  *   `anthropic/claude-sonnet-4`       → "Claude Sonnet 4"
  *   `openai/gpt-4o`                   → "Gpt 4o"
  */
-export function formatModelLabel(model: string): string {
+function formatModelLabel(model: string): string {
   // Drop the provider prefix if present.
   const tail = model.includes('/') ? model.slice(model.lastIndexOf('/') + 1) : model;
   // Split on dashes/underscores into words, title-case, rejoin.

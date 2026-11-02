@@ -26,6 +26,5 @@ export {
   readCollectPacketResult,
   readSpecialistStepResult,
   readSpecialistStepResultById,
-  type SpecialistStepResult,
 } from './step-result';
-export type { RunSpecialistGenerationArgs, SpecialistRunnerDeps } from './types';
+export type { SpecialistRunnerDeps } from './types';

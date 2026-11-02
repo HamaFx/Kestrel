@@ -28,7 +28,7 @@ import { errorMessage, pluginFetch } from '../api';
 export type Account = z.infer<typeof AccountSchema>;
 export type Side = 'buy' | 'sell';
 export type OrderType = 'market' | 'limit' | 'stop';
-export type TimeInForce = 'gtc' | 'day';
+type TimeInForce = 'gtc' | 'day';
 
 export interface OrderFormValues {
   accountRef: string;

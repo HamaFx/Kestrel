@@ -51,17 +51,17 @@ export const JEV_TOOL_PRUNE_MIN_CANDIDATES = 6;
 export const JEV_TOOL_PROBABILITY_THRESHOLD = 0.25;
 
 /** Per-turn pruning budget — must never add serial wall-clock latency. */
-export const JEV_TOOL_PRUNE_TIMEOUT_MS = 500;
+const JEV_TOOL_PRUNE_TIMEOUT_MS = 500;
 
 /** Tools always retained when present in the candidate set. */
-export const MANDATORY_JEV_TOOL_NAMES: readonly string[] = ['get_price', 'search_knowledge'];
+const MANDATORY_JEV_TOOL_NAMES: readonly string[] = ['get_price', 'search_knowledge'];
 
 /**
  * Short per-tool relevance criteria for the pruning questions. Unknown tool
  * names fall back to a generic phrasing, so plugins/extensions never crash
  * pruning.
  */
-export const TOOL_SHORT_CRITERIA: Readonly<Record<string, string>> = {
+const TOOL_SHORT_CRITERIA: Readonly<Record<string, string>> = {
   get_price: 'the current live price of a symbol',
   get_candles: 'OHLC candle history for a timeframe',
   get_indicators: 'indicator values such as RSI, MACD, EMA, ATR, or Bollinger bands',

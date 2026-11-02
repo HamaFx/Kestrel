@@ -49,7 +49,7 @@ const ClassificationSchema = z.object({
   rationale: z.string().max(200),
 });
 
-export type SemanticRoutingDomain = z.infer<typeof ClassificationSchema>['domain'];
+type SemanticRoutingDomain = z.infer<typeof ClassificationSchema>['domain'];
 
 export interface SemanticClassification {
   domain: SemanticRoutingDomain;

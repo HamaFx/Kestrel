@@ -53,16 +53,16 @@ import type {
 } from './types';
 
 /** `inj_${i}` probability at or above which a snippet is quarantined. */
-export const JEV_RAG_INJECTION_QUARANTINE_MIN = 0.75;
+const JEV_RAG_INJECTION_QUARANTINE_MIN = 0.75;
 
 /** Query chars carried into the Jev state. */
-export const JEV_RAG_QUERY_CHARS = 400;
+const JEV_RAG_QUERY_CHARS = 400;
 
 /** Per-snippet text chars carried into the Jev state. */
-export const JEV_RAG_SNIPPET_CHARS = 600;
+const JEV_RAG_SNIPPET_CHARS = 600;
 
 /** Per-call budget for the quarantine/rerank batch. */
-export const JEV_RAG_RERANK_TIMEOUT_MS = 800;
+const JEV_RAG_RERANK_TIMEOUT_MS = 800;
 
 export interface SnippetInjectionBatchArgs<T extends QuarantineRerankItem> {
   query: string;

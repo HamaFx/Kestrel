@@ -37,12 +37,12 @@ export const SPLASH_DEVICES: readonly SplashDevice[] = (devicesFile as { devices
   .devices;
 
 /** Physical pixel size, portrait orientation. */
-export function splashPixelSize(device: SplashDevice): { width: number; height: number } {
+function splashPixelSize(device: SplashDevice): { width: number; height: number } {
   return { width: device.widthPt * device.scale, height: device.heightPt * device.scale };
 }
 
 /** Public file name for a device/orientation pair (portrait geometry in the name). */
-export function splashFileName(
+function splashFileName(
   device: SplashDevice,
   orientation: 'portrait' | 'landscape' = 'portrait',
 ): string {
@@ -52,10 +52,7 @@ export function splashFileName(
     : `apple-splash-${height}x${width}.png`;
 }
 
-export function splashMediaQuery(
-  device: SplashDevice,
-  orientation: 'portrait' | 'landscape',
-): string {
+function splashMediaQuery(device: SplashDevice, orientation: 'portrait' | 'landscape'): string {
   const width = orientation === 'portrait' ? device.widthPt : device.heightPt;
   const height = orientation === 'portrait' ? device.heightPt : device.widthPt;
   return [

@@ -16,7 +16,7 @@ import {
   type StrategistDeskConfig,
 } from '@/lib/kestrel-strategist-desks';
 
-export interface AgentOpinion {
+interface AgentOpinion {
   agentName: string;
   bias: 'bullish' | 'bearish' | 'neutral';
   confidence: number;
@@ -139,12 +139,6 @@ export const FALLBACK_META: AgentMeta = {
   epithet: FALLBACK_STRATEGIST_DESK.epithet,
   artworkPath: FALLBACK_STRATEGIST_DESK.artworkPath,
   accentColor: FALLBACK_STRATEGIST_DESK.accentColor,
-};
-
-export const BIAS_TOKEN: Record<AgentOpinion['bias'], string> = {
-  bullish: 'text-bull',
-  bearish: 'text-bear',
-  neutral: 'text-fg-muted',
 };
 
 export function formatPlainModeLabel(mode: string, comparisonSymbols?: string[]): string {

@@ -37,7 +37,7 @@ export class ToolTimeoutError extends Error {
 export const DEFAULT_TOOL_TIMEOUT_MS = 25_000;
 
 /** Per-tool timeout overrides for especially slow or fast tools (ms). */
-export const TOOL_TIMEOUT_OVERRIDES: Record<string, number> = {
+const TOOL_TIMEOUT_OVERRIDES: Record<string, number> = {
   // Vision model analysis can take longer.
   analyze_chart_image: 45_000,
   // Historical backtests can be slow.

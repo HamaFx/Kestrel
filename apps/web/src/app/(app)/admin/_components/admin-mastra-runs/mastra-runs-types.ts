@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Wire shapes returned by /api/admin/mastra-runs.
-export interface MastraRunScore {
+interface MastraRunScore {
   scorerId: string;
   score: number;
   source: 'LIVE' | 'TEST';
   reason?: string;
 }
 
-export interface MastraRunWorkflow {
+interface MastraRunWorkflow {
   workflowId: string | null;
   status: string | null;
   failedSteps: string[];

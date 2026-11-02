@@ -175,11 +175,4 @@ export const JOBS: Record<JobName, JobRegistration> = {
   },
 };
 
-export type {
-  JobRegistration,
-  JobName,
-  JobContext,
-  JobCoreContext,
-  JobCancellableContext,
-  JobResult,
-} from './types.js';
+export type { JobRegistration, JobName } from './types.js';

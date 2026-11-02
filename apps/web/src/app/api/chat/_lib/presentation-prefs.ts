@@ -28,7 +28,7 @@ export interface PresentationPrefs {
 }
 
 /** Only allow presentation preferences into the AI request boundary. */
-export function sanitizeCustomInstructions(value: string): string | undefined {
+function sanitizeCustomInstructions(value: string): string | undefined {
   const controlCharacters = new RegExp(
     `[${String.fromCharCode(0)}-${String.fromCharCode(31)}${String.fromCharCode(127)}]`,
     'g',

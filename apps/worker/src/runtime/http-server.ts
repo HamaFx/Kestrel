@@ -43,11 +43,6 @@ export interface HealthServerDeps {
   getQueueHealth?: () => QueueHealthSnapshot | null;
 }
 
-export interface WorkerHttpServers {
-  health: http.Server;
-  proxy: http.Server;
-}
-
 function sendJson(res: http.ServerResponse, status: number, body: Record<string, unknown>): void {
   res.writeHead(status, {
     'Content-Type': 'application/json',
@@ -250,8 +245,4 @@ export function createHealthServer(deps: HealthServerDeps): http.Server {
 
 export function createProxyServer(deps: HealthServerDeps): http.Server {
   return http.createServer(createProxyHandler(deps));
-}
-
-export function createWorkerHttpServers(deps: HealthServerDeps): WorkerHttpServers {
-  return { health: createHealthServer(deps), proxy: createProxyServer(deps) };
 }

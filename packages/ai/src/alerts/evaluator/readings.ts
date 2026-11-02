@@ -55,7 +55,7 @@ const rlog = createCategorizedLogger('ai', { component: 'alerts-readings' });
  * exceeds this is not evaluated. Five minutes matches the paper broker's
  * tradability gate so "live quote" means one thing across the product.
  */
-export const ALERT_MAX_PRICE_AGE_SECONDS = 300;
+const ALERT_MAX_PRICE_AGE_SECONDS = 300;
 
 /**
  * A candleClose/indicatorCross reading whose newest fully closed bar is older
@@ -64,9 +64,9 @@ export const ALERT_MAX_PRICE_AGE_SECONDS = 300;
  * prints; the multiple absorbs provider latency and short market pauses while
  * still refusing Friday's bar on Sunday.
  */
-export const ALERT_MAX_CLOSED_BAR_AGE_BARS = 5;
+const ALERT_MAX_CLOSED_BAR_AGE_BARS = 5;
 
-export function alertCandleAgeLimitSeconds(tf: Timeframe): number {
+function alertCandleAgeLimitSeconds(tf: Timeframe): number {
   return Math.max((msPerTimeframe(tf) * ALERT_MAX_CLOSED_BAR_AGE_BARS) / 1000, 15 * 60);
 }
 

@@ -51,7 +51,7 @@
  *     rendered document. We do NOT use a heavy library.
  */
 
-export interface ExportMessagePart {
+interface ExportMessagePart {
   type: string;
   /** text parts carry a `text` field; tool parts may carry `input` / `output`. */
   [key: string]: unknown;

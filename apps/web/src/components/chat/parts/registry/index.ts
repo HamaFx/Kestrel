@@ -4,12 +4,4 @@
 // the per-phase maps and shared contracts are re-exported here so every part
 // file keeps importing types from `./registry`.
 export { ChatToolPart } from './dispatch';
-export { partRegistry } from './part-registry';
-export type { BespokeParseResult } from './part-registry';
-export type {
-  ChatToolPartProps,
-  PartRegistryMap,
-  PartSchemaMap,
-  ToolPartProps,
-  ToolPartState,
-} from './types';
+export type { ToolPartProps, ToolPartState } from './types';

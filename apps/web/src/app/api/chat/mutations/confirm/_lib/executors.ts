@@ -101,7 +101,7 @@ export function executorFor(
   };
 }
 
-export function mutationSummary(input: Parameters<MutationExecutor>[0]): string {
+function mutationSummary(input: Parameters<MutationExecutor>[0]): string {
   switch (input.kind) {
     case 'set_alert':
       return `Set alert on ${input.rule.symbol} (${input.rule.type})${input.note ? ` — ${input.note}` : ''}`;

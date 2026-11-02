@@ -2,7 +2,7 @@
 
 // Admin platform-config DTOs and form shape shared by the section cards.
 
-export interface ProviderModelItem {
+interface ProviderModelItem {
   modelId: string;
   label?: string;
   tier?: string;
@@ -10,7 +10,7 @@ export interface ProviderModelItem {
   outputPerMTokUsd?: number | null;
 }
 
-export interface PlatformProviderDTO {
+interface PlatformProviderDTO {
   id: string;
   displayName: string;
   hasKey: boolean;
@@ -28,7 +28,7 @@ export interface PlatformProviderDTO {
   models: ProviderModelItem[];
 }
 
-export interface ToolCatalogueEntry {
+interface ToolCatalogueEntry {
   name: string;
   description: string;
   invocations24h: number;

@@ -38,11 +38,11 @@ import type { Logger } from '../log.js';
 import { CANDLE_FLUSH_QUEUE } from '../persistence/candle-outbox.js';
 
 /** Sample interval for the health probe. */
-export const QUEUE_HEALTH_INTERVAL_MS = 30_000;
+const QUEUE_HEALTH_INTERVAL_MS = 30_000;
 /** Newest dead-letter rows kept in the snapshot, per DLQ. */
 const DEAD_LETTER_SAMPLE = 5;
 
-export interface QueueActivity {
+interface QueueActivity {
   name: string;
   /** Jobs currently held by a worker. */
   active: number;
@@ -54,7 +54,7 @@ export interface QueueActivity {
   deadLettered: number;
 }
 
-export interface DeadLetterJobSummary {
+interface DeadLetterJobSummary {
   /** The dead-letter queue the row lives in. */
   queue: string;
   id: string;
@@ -229,9 +229,4 @@ export function startQueueHealthProbe(log: Logger): () => void {
 export function isSnapshotIdle(snapshot: QueueHealthSnapshot | null): boolean {
   if (!snapshot || snapshot.error) return true;
   return snapshot.queues.every((queue) => queue.active === 0);
-}
-
-/** True when the latest sample shows no active queue job. */
-export function isQueueIdle(): boolean {
-  return isSnapshotIdle(snapshot);
 }

@@ -115,42 +115,6 @@ export class CrossingSpec implements AlertSpec {
 
 // ── Composite specs ────────────────────────────────────────────────────────
 
-/** All child specs must be satisfied (logical AND). */
-export class AndSpec implements AlertSpec {
-  name: string;
-  private readonly specs: AlertSpec[];
-
-  constructor(specs: AlertSpec[]) {
-    this.specs = specs;
-    this.name = `and(${this.specs.map((s) => s.name).join(',')})`;
-  }
-
-  isSatisfiedBy(reading: RuleReading, cross?: CrossContext): boolean {
-    for (const spec of this.specs) {
-      if (!spec.isSatisfiedBy(reading, cross)) return false;
-    }
-    return true;
-  }
-}
-
-/** Any child spec must be satisfied (logical OR). */
-export class OrSpec implements AlertSpec {
-  name: string;
-  private readonly specs: AlertSpec[];
-
-  constructor(specs: AlertSpec[]) {
-    this.specs = specs;
-    this.name = `or(${this.specs.map((s) => s.name).join(',')})`;
-  }
-
-  isSatisfiedBy(reading: RuleReading, cross?: CrossContext): boolean {
-    for (const spec of this.specs) {
-      if (spec.isSatisfiedBy(reading, cross)) return true;
-    }
-    return false;
-  }
-}
-
 // ── Factory ────────────────────────────────────────────────────────────────
 
 /**

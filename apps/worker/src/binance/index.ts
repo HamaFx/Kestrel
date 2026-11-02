@@ -14,4 +14,4 @@
  * limitations under the License.
  */
 
-export { BinanceStreamConsumer, type BinanceStreamConsumerOptions } from './consumer.js';
+export { BinanceStreamConsumer } from './consumer.js';

@@ -29,7 +29,7 @@ export function reject(state: SimulatorState, signal: GeneratedSignal, reason: s
   });
 }
 
-export function markToMarket(state: SimulatorState, price: number): number {
+function markToMarket(state: SimulatorState, price: number): number {
   if (!state.position) return state.cash;
   const gross = signedPnl(
     state.position.side,

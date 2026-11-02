@@ -14,8 +14,6 @@ import {
   IconWallet,
 } from '@tabler/icons-react';
 
-import type { SliSnapshot } from '@/lib/services/admin-dtos';
-
 /** Per-SLI icon; unknown keys fall back to `IconActivity`. */
 export const SLI_ICONS: Record<string, typeof IconActivity> = {
   worker_ticks: IconActivity,
@@ -35,5 +33,3 @@ export const HEALTH_WINDOWS = [
   { hours: 168, label: '7d' },
   { hours: 720, label: '30d' },
 ] as const;
-
-export type { SliSnapshot };

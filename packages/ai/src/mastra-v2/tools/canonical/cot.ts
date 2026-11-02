@@ -37,8 +37,6 @@ import { CanonicalCoTInputSchema } from './input-schemas';
 // Leaf re-exports: the values live in modules with no app-graph imports, so a
 // module-scope read (legacy shims, other consumers) can never land on a binding
 // that is still initialising inside the instance ↔ tools import cycle.
-export { CANONICAL_COT_DESCRIPTION, CanonicalCoTInputSchema };
-
 export type CanonicalCoTInput = z.infer<typeof CanonicalCoTInputSchema>;
 
 /** Shared execute core: CoT rows plus the deterministic summary. */

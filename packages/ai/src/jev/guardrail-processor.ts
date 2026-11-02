@@ -55,9 +55,9 @@ import type { JevEnv, JevSettings, ResolvedJevEndpoint } from './types';
 const glog = createCategorizedLogger('ai', { component: 'jev:guardrail' });
 
 /** Detection categories asked in one parallel batch. */
-export const JEV_GUARDRAIL_CATEGORIES = ['injection', 'jailbreak', 'system_override'] as const;
+const JEV_GUARDRAIL_CATEGORIES = ['injection', 'jailbreak', 'system_override'] as const;
 
-export type JevGuardrailCategory = (typeof JEV_GUARDRAIL_CATEGORIES)[number];
+type JevGuardrailCategory = (typeof JEV_GUARDRAIL_CATEGORIES)[number];
 
 export interface JevGuardrailCheck {
   flagged: boolean;

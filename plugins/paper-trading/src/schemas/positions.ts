@@ -22,9 +22,9 @@ import { z } from 'zod';
 import { AccountModeSchema, AccountRefSchema, AccountSchema } from './accounts';
 import { FillSchema } from './fills';
 
-export const PositionSideSchema = z.enum(['long', 'short']);
-export const PositionStatusSchema = z.enum(['open', 'closed']);
-export const CloseReasonSchema = z.enum([
+const PositionSideSchema = z.enum(['long', 'short']);
+const PositionStatusSchema = z.enum(['open', 'closed']);
+const CloseReasonSchema = z.enum([
   'manual',
   'stop_loss',
   'take_profit',
@@ -39,7 +39,7 @@ export const CloseReasonSchema = z.enum([
  * caller must not report a close. Optional so previously persisted tool
  * parts still parse.
  */
-export const CloseOutcomeSchema = z.enum(['closed', 'partial', 'not_closed']);
+const CloseOutcomeSchema = z.enum(['closed', 'partial', 'not_closed']);
 
 export const PositionSchema = z.object({
   id: z.string(),

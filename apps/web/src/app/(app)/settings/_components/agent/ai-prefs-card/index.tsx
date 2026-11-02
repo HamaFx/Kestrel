@@ -23,9 +23,6 @@ import { updateAiPrefsAction } from '@/app/(app)/settings/actions';
 import { INSTRUCTION_PRESETS } from './instruction-presets';
 import { useAiPrefs } from './use-ai-prefs';
 
-export type { AIPrefs } from './use-ai-prefs';
-export { AI_PREFS_STORAGE_KEY } from './use-ai-prefs';
-export type { InstructionPreset } from './instruction-presets';
 export { appendPreset, getPreset, INSTRUCTION_PRESETS } from './instruction-presets';
 
 /**

@@ -27,18 +27,7 @@
 //   - rule-state.ts      — crossing-detection state write-back
 
 export type { CreateAlertInput, UpdateAlertInput } from './types';
-export {
-  alertRotationKey,
-  createAlert,
-  deleteAlert,
-  EVALUATION_BATCH_LIMIT,
-  EVALUATION_ROTATION_WINDOW_MS,
-  evaluationRotationSeed,
-  getAlert,
-  listAlerts,
-  listEvaluable,
-  updateAlert,
-} from './crud';
+export { createAlert, deleteAlert, getAlert, listAlerts, listEvaluable, updateAlert } from './crud';
 export { isInSnooze } from './snooze';
 export {
   claimAlertDelivery,

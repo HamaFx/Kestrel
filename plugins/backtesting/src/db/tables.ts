@@ -173,8 +173,6 @@ export const backtestSweeps = pgTable(
 ).enableRLS();
 
 export type BacktestRunRow = typeof backtestRuns.$inferSelect;
-export type BacktestRunInsert = typeof backtestRuns.$inferInsert;
 export type BacktestStrategyRow = typeof backtestStrategies.$inferSelect;
-export type BacktestStrategyInsert = typeof backtestStrategies.$inferInsert;
 export type BacktestSweepRow = typeof backtestSweeps.$inferSelect;
 export type BacktestSweepInsert = typeof backtestSweeps.$inferInsert;

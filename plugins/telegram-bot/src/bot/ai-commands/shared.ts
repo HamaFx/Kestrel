@@ -21,7 +21,7 @@ import { createHash } from 'node:crypto';
 
 import type { TelegramBotContext } from '../types';
 
-export const AI_TIMEOUT_MS = 90_000;
+const AI_TIMEOUT_MS = 90_000;
 
 interface RateEntry {
   count: number;

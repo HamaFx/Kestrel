@@ -2,7 +2,7 @@ import { createExecutionLifecycle, type BudgetHandle } from '@kestrel/ai';
 
 import { terminalActionForFullAnalysis } from './full-analysis-lifecycle.js';
 
-export interface FullAnalysisQueueTransitions {
+interface FullAnalysisQueueTransitions {
   complete(result: Record<string, unknown>): Promise<void>;
   fail(error: unknown): Promise<void>;
   requeue(message: string): Promise<void>;

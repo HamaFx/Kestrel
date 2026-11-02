@@ -20,29 +20,19 @@ import 'server-only';
 
 import { ChatStreamEventSchema, type ChatStreamEvent } from '@kestrel/shared';
 
-export interface MastraStreamResponseMeta {
+interface MastraStreamResponseMeta {
   readonly id: string;
   readonly data: Record<string, unknown>;
 }
 
-export const MASTRA_STREAM_TERMINAL_STATUSES = [
+const _MASTRA_STREAM_TERMINAL_STATUSES = [
   'persisted',
   'persistence-failed',
   'interrupted',
   'failed',
 ] as const;
 
-export type MastraStreamTerminalStatus = (typeof MASTRA_STREAM_TERMINAL_STATUSES)[number];
-
-export interface MastraStreamTerminalMetadata {
-  executionOutcome: 'completed' | 'failed' | 'cancelled';
-  answerOutcome: 'ready' | 'blocked' | 'degraded' | 'partial';
-  terminalReason?: string;
-}
-
-export function isMastraStreamTerminalStatus(value: string): value is MastraStreamTerminalStatus {
-  return (MASTRA_STREAM_TERMINAL_STATUSES as readonly string[]).includes(value);
-}
+export type MastraStreamTerminalStatus = (typeof _MASTRA_STREAM_TERMINAL_STATUSES)[number];
 
 export interface MastraStreamResponseOptions {
   readonly meta?: MastraStreamResponseMeta;

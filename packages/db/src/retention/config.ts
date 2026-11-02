@@ -168,5 +168,3 @@ export function getRetentionConfigFromEnv(): Required<RetentionConfig> {
     ),
   };
 }
-
-export { DEFAULT_RETENTION };

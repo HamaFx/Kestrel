@@ -35,11 +35,7 @@ export const json = pluginJson;
 export const byMethod = pluginByMethod;
 export const parseBody = parsePluginBody;
 
-export function errorResponse(
-  err: unknown,
-  ctx: PluginApiRouteContext,
-  defaultStatus = 500,
-): Response {
+function errorResponse(err: unknown, ctx: PluginApiRouteContext, defaultStatus = 500): Response {
   if (err instanceof PluginRouteApiError) {
     return json({ error: { code: err.code, message: err.message } }, err.status);
   }

@@ -62,7 +62,7 @@ import { getAvailableProviders } from './role';
 const CTX_OVERFLOW_RX =
   /context\s*(length|window|limit|size)|maximum\s*context|reduce\s*the\s*length|too\s*many\s*tokens|max[_-]?tokens|input\s*is\s*too\s*(long|large)|exceeds\s*(the\s*)?(context|limit|maximum)|token\s*(count\s*)?exceeds|too\s*(long|large|many)|exceed\w*\s*(the\s*)?(context|limit|max)/;
 
-export type FallbackReason =
+type FallbackReason =
   | 'auth' // 401 / 403
   | 'rate-limit' // 429
   | 'upstream' // 5xx

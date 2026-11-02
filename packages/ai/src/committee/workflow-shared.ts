@@ -47,7 +47,6 @@ import type { ToolContext } from '../runtime/tool-context';
 import { combineRunSignal, deadlineSignalFor, type DeadlineSignals } from '../utils/timeout';
 import type { SpecialistRunnerDeps } from './specialist-runner';
 import {
-  CollectPacketOutputSchema,
   CommitteeCritiqueSchema,
   MastraAnalysisModeSchema,
   MastraModeOpinionSchema,
@@ -254,4 +253,3 @@ export function specialistRunnerDepsFor(
 
 // Re-export the collect-stage output schema so both graphs import step IO
 // from one module (kept out of the type-only import above for runtime use).
-export { CollectPacketOutputSchema };

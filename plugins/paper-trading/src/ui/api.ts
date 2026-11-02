@@ -18,7 +18,7 @@
 
 import { createPluginFetcher, pluginErrorMessage } from '@kestrel/plugin-sdk/ui';
 
-export const PLUGIN_ID = 'paper-trading';
+const PLUGIN_ID = 'paper-trading';
 
 export const pluginFetch = createPluginFetcher(PLUGIN_ID);
 

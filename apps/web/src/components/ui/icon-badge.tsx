@@ -33,7 +33,7 @@ import type { HTMLAttributes, ReactNode } from 'react';
 import { cn } from '@/lib/formatters/cn';
 
 export type IconBadgeTone = 'brand' | 'neutral' | 'bull' | 'bear' | 'danger' | 'warn' | 'info';
-export type IconBadgeSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+type IconBadgeSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 export interface IconBadgeProps extends HTMLAttributes<HTMLSpanElement> {
   tone?: IconBadgeTone;

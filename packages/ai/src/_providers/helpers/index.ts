@@ -25,7 +25,6 @@
 //   - fetch.ts           — bounded HCNSEC fetch wrapper
 //   - capabilities.ts    — capability sets, factory, spec validator
 
-export type { HcnsecToolCall } from './types';
 export { normalizeHcnsecToolArguments } from './tool-arguments';
 export { normalizeHcnsecDsmlToolCalls } from './dsml';
 export { normalizeHcnsecJsonPayload } from './json-payload';

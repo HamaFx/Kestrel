@@ -41,7 +41,7 @@ export const CANDLE_FLUSH_QUEUE = 'candle-flush';
  * being deleted after the retention window. The bar payload is what a replay
  * needs, so it must outlive a queue retry cycle.
  */
-export const CANDLE_FLUSH_DLQ = 'candle-flush-dlq';
+const CANDLE_FLUSH_DLQ = 'candle-flush-dlq';
 
 /** Queue policy: a few retries with backoff, then the failed job is retained. */
 const CANDLE_FLUSH_QUEUE_OPTIONS = {
@@ -61,8 +61,6 @@ export const CandleFlushJobSchema = z.object({
   /** ISO-8601 UTC time the hand-off happened (diagnostics only). */
   enqueuedAt: z.string().optional(),
 });
-
-export type CandleFlushJobData = z.infer<typeof CandleFlushJobSchema>;
 
 /**
  * Create the queue if this worker is the first to need it. `send()` refuses

@@ -32,7 +32,7 @@ export { PACKET_CACHE_TTL_MS };
 export const MAX_ENTRIES = 10_000;
 
 /** 15s bucket keys keep lookups stable within the 30s TTL window. */
-export const CACHE_BUCKET_MS = 15_000;
+const CACHE_BUCKET_MS = 15_000;
 
 /**
  * B-02 (audit 2026-10-18) — probe depth 2: current bucket + previous bucket.

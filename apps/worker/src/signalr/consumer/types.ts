@@ -51,7 +51,7 @@ export interface MinimalHubConnection {
   onclose(handler: (err?: unknown) => void): void;
 }
 
-export interface BuildConnectionArgs {
+interface BuildConnectionArgs {
   hubUrl: string;
   reconnectDelaysMs?: number[];
 }

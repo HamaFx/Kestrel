@@ -61,7 +61,7 @@ export interface StuckJobSummary {
 }
 
 /** A scheduled job that is in flight but still inside its budget. */
-export interface RunningJobSummary {
+interface RunningJobSummary {
   name: string;
   runningForMs: number;
 }
@@ -112,13 +112,6 @@ export function summarizeStuckJobs(
 ): StuckJobSummary {
   const { stuck, oldestStuckMs } = summarizeJobHealth(entries, now, timeoutFor);
   return { stuck, oldestStuckMs };
-}
-
-/** Current wedged jobs, for the health endpoint and self-healing. */
-export function getStuckJobSummary(now: number = Date.now()): StuckJobSummary {
-  return summarizeStuckJobs(_jobStartedAt.entries(), now, (name) =>
-    effectiveJobTimeoutMs(name as keyof typeof JOBS),
-  );
 }
 
 /** Current in-flight jobs, classified busy versus wedged (R16). */

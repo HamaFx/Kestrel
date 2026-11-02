@@ -188,7 +188,7 @@ export const forecastVolatilityTool: Tool<
  * minutes matches the paper-broker's tradability window so "usable live
  * quote" means the same thing across the product.
  */
-export const FORECAST_MAX_PRICE_AGE_SECONDS = 300;
+const FORECAST_MAX_PRICE_AGE_SECONDS = 300;
 
 interface EventLookupArgs {
   currencies: EventCurrency[];

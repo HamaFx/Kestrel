@@ -43,8 +43,6 @@ import { CanonicalCandlesInputSchema } from './input-schemas';
 // Leaf re-exports: the values live in modules with no app-graph imports, so a
 // module-scope read (legacy shims, other consumers) can never land on a binding
 // that is still initialising inside the instance ↔ tools import cycle.
-export { CANONICAL_CANDLES_DESCRIPTION, CanonicalCandlesInputSchema };
-
 export type CanonicalCandlesInput = z.infer<typeof CanonicalCandlesInputSchema>;
 
 const TAIL_BARS = 30;

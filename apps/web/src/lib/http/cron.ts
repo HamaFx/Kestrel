@@ -39,7 +39,7 @@ function constantTimeEqual(a: string, b: string): boolean {
 }
 
 /** How a browser session is allowed to invoke a cron route. */
-export type CronSessionPolicy = 'admin' | 'any';
+type CronSessionPolicy = 'admin' | 'any';
 
 /** Identity that satisfied `withCronAuth`, handed to the handler. */
 export interface CronAuthContext {
@@ -185,31 +185,4 @@ function routeTag(req: Request): string {
 export async function getActiveUserIdsForCron(): Promise<string[]> {
   const { getActiveUserIds, withAdminDb } = await import('@kestrel/db');
   return withAdminDb(() => getActiveUserIds());
-}
-
-export async function runCronJob(
-  name: string,
-  fn: () => Promise<void>,
-  options: { timeout?: number } = {},
-): Promise<Response> {
-  const startTime = Date.now();
-  try {
-    const timeout = options.timeout ?? 30_000;
-    await Promise.race([
-      fn(),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`Cron job ${name} timed out`)), timeout),
-      ),
-    ]);
-    return Response.json({ ok: true, duration: Date.now() - startTime });
-  } catch (error) {
-    createScopedLoggerWithContext({ component: 'cron', job: name }).error(
-      { err: String(error) },
-      `cron job ${name} failed`,
-    );
-    return Response.json(
-      { error: { code: 'INTERNAL', message: 'Internal error' } },
-      { status: 500 },
-    );
-  }
 }

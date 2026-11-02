@@ -31,7 +31,7 @@ const PluginIdSchema = z
 
 const SettingsSchema = z.record(z.string(), z.unknown());
 
-export const PluginInstallRequestSchema = z.object({
+const PluginInstallRequestSchema = z.object({
   action: z.literal('install'),
   pluginId: PluginIdSchema,
   /** Partial settings from a setup wizard. Masked secrets are ignored. */
@@ -40,21 +40,21 @@ export const PluginInstallRequestSchema = z.object({
   completeOnboarding: z.boolean().optional(),
 });
 
-export const PluginUninstallRequestSchema = z.object({
+const PluginUninstallRequestSchema = z.object({
   action: z.literal('uninstall'),
   pluginId: PluginIdSchema,
   /** Delete every `plugin_storage` document for this user + plugin. */
   wipeData: z.boolean().optional(),
 });
 
-export const PluginUpdateSettingsRequestSchema = z.object({
+const PluginUpdateSettingsRequestSchema = z.object({
   action: z.literal('update-settings'),
   pluginId: PluginIdSchema,
   settings: SettingsSchema,
   completeOnboarding: z.boolean().optional(),
 });
 
-export const PluginSetEnabledRequestSchema = z.object({
+const PluginSetEnabledRequestSchema = z.object({
   action: z.literal('set-enabled'),
   pluginId: PluginIdSchema,
   enabled: z.boolean(),
@@ -71,7 +71,6 @@ export type PluginInstallRequest = z.infer<typeof PluginInstallRequestSchema>;
 export type PluginUninstallRequest = z.infer<typeof PluginUninstallRequestSchema>;
 export type PluginUpdateSettingsRequest = z.infer<typeof PluginUpdateSettingsRequestSchema>;
 export type PluginSetEnabledRequest = z.infer<typeof PluginSetEnabledRequestSchema>;
-export type PluginManageRequest = z.infer<typeof PluginManageRequestSchema>;
 
 export interface PluginManageResponse {
   plugin: PluginStoreEntry | null;

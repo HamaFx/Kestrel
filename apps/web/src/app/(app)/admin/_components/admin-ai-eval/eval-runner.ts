@@ -20,7 +20,7 @@ export interface RunOneResult {
   error?: string;
 }
 
-export const REQUEST_TIMEOUT_MS = 120_000;
+const REQUEST_TIMEOUT_MS = 120_000;
 /**
  * Gap between prompts. Kept generous because each Mastra report makes
  * several LLM calls (report + repair), and free-tier
@@ -134,9 +134,7 @@ export async function runOnePrompt(threadId: string, prompt: string): Promise<Ru
   }
 }
 
-export function parseSseEvent(
-  raw: string,
-): { type?: string; delta?: string; errorText?: string } | null {
+function parseSseEvent(raw: string): { type?: string; delta?: string; errorText?: string } | null {
   try {
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     if (typeof parsed !== 'object' || parsed === null) return null;
@@ -151,7 +149,7 @@ export function parseSseEvent(
 }
 
 /** Minimal SSE reader for the chat stream: collects text, surfaces errors. */
-export async function readSseText(res: Response): Promise<{ text: string; error?: string }> {
+async function readSseText(res: Response): Promise<{ text: string; error?: string }> {
   if (!res.body) return { text: '', error: 'Empty response body' };
   const reader = res.body.getReader();
   const decoder = new TextDecoder();

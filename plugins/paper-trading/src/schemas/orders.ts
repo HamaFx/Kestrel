@@ -22,9 +22,9 @@ import { z } from 'zod';
 import { AccountRefSchema, AccountSchema } from './accounts';
 import { PositionSchema } from './positions';
 
-export const OrderSideSchema = z.enum(['buy', 'sell']);
-export const OrderTypeSchema = z.enum(['market', 'limit', 'stop']);
-export const OrderStatusSchema = z.enum(['pending', 'filled', 'cancelled', 'rejected', 'expired']);
+const OrderSideSchema = z.enum(['buy', 'sell']);
+const OrderTypeSchema = z.enum(['market', 'limit', 'stop']);
+const OrderStatusSchema = z.enum(['pending', 'filled', 'cancelled', 'rejected', 'expired']);
 
 export const OrderSchema = z.object({
   id: z.string(),

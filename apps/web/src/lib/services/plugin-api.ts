@@ -73,7 +73,7 @@ function jsonError(code: string, message: string, status: number): Response {
  * Static routes are checked before parameterised ones. `:name` segments
  * capture a single decoded path component; a trailing `*` captures the rest.
  */
-export function matchPluginApiRoute<T>(
+function matchPluginApiRoute<T>(
   routes: Readonly<Record<string, T>> | undefined,
   segments: readonly string[],
 ): RouteMatch<T> | null {

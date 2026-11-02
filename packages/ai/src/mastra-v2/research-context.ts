@@ -44,7 +44,7 @@ import {
 } from './guardrails';
 import { createKestrelMemory } from './memory';
 
-export interface ResearchRunContextSettings {
+interface ResearchRunContextSettings {
   aiApiKeys: UserSettingsRow['aiApiKeys'];
   chatModel: UserSettingsRow['chatModel'] | null;
   embeddingModel?: UserSettingsRow['embeddingModel'] | null;

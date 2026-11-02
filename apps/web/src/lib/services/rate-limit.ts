@@ -24,4 +24,4 @@
 
 import 'server-only';
 
-export { withRateLimit, type RateLimitResult } from '@kestrel/db';
+export { withRateLimit } from '@kestrel/db';

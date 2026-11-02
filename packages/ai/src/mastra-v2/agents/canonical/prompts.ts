@@ -35,12 +35,12 @@ import type { RunMastraCanonicalChatArgs } from './types';
  *   3. compacts older middle messages (text/tool parts over 1,500 chars → first
  *      600 chars + a marker) before the `HISTORY_TAIL_BUDGET_CHARS` loop.
  */
-export const HISTORY_TAIL_BUDGET_CHARS = 56_000;
-export const HISTORY_ANCHOR_RESERVE_CHARS = 4_000;
-export const HISTORY_RECENT_MESSAGES_KEPT = 6;
-export const HISTORY_COMPACT_PART_THRESHOLD_CHARS = 1_500;
-export const HISTORY_COMPACT_PART_KEEP_CHARS = 600;
-export const HISTORY_COMPACTED_MARKER = '...[compacted tool/context output]';
+const HISTORY_TAIL_BUDGET_CHARS = 56_000;
+const HISTORY_ANCHOR_RESERVE_CHARS = 4_000;
+const HISTORY_RECENT_MESSAGES_KEPT = 6;
+const HISTORY_COMPACT_PART_THRESHOLD_CHARS = 1_500;
+const HISTORY_COMPACT_PART_KEEP_CHARS = 600;
+const HISTORY_COMPACTED_MARKER = '...[compacted tool/context output]';
 
 type MessagePart = UIMessage['parts'][number];
 
@@ -77,7 +77,7 @@ function compactParts(message: UIMessage, thresholdChars: number, keepChars: num
  * Compact one message's oversized text/tool parts down to a single-line
  * summary. Exported for the window loop and for tests.
  */
-export function compactMessagePartsForBudget(message: UIMessage): UIMessage {
+function compactMessagePartsForBudget(message: UIMessage): UIMessage {
   return compactParts(
     message,
     HISTORY_COMPACT_PART_THRESHOLD_CHARS,

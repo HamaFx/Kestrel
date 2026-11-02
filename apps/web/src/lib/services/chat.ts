@@ -134,13 +134,12 @@ export async function updateThreadAnalysisModeService(
 
 export {
   createThread,
-  deleteThread,
   forkThread,
   getThread,
   listMessages,
   listThreads,
 } from '@kestrel/ai/persistence';
-export { appendAssistantMessage, appendUserMessage, listAgentOpinions } from '@kestrel/ai';
+export { appendAssistantMessage, listAgentOpinions } from '@kestrel/ai';
 export {
   batchDeleteThreads,
   deleteMessageFeedback,

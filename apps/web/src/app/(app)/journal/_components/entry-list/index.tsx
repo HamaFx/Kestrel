@@ -35,8 +35,6 @@ interface EntryListProps {
   onDeleted: () => void;
 }
 
-export type ConfirmFn = ReturnType<typeof useConfirm>[1];
-
 export function EntryList({ entries, onClosed, onDeleted }: EntryListProps) {
   const [confirmEl, confirm] = useConfirm();
   const filters = useEntryFilters(entries);

@@ -71,7 +71,7 @@ export interface HealthSloResponse {
 }
 
 /** One user whose daily (UTC) ledger spend reached the alert threshold. */
-export interface SpendWatchEntry {
+interface SpendWatchEntry {
   userId: string;
   /** Today's (UTC) reserved+reconciled ledger spend in USD. */
   spendUsd: number;
@@ -167,7 +167,7 @@ export interface DiagnosticTraceDetail extends DiagnosticTraceSummary {
   metadata?: Record<string, unknown> | null;
 }
 
-export type TraceExplorerSource =
+type TraceExplorerSource =
   'trace' | 'turn' | 'tool' | 'agent' | 'analysis-job' | 'budget' | 'outbox';
 
 export interface TraceExplorerEvent {

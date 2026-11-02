@@ -35,4 +35,3 @@ export function hashToken(raw: string): string {
 }
 
 /** Token purpose discriminator — prevents cross-flow replay (P0-6). */
-export type TokenPurpose = 'email_verify' | 'password_reset';

@@ -27,7 +27,7 @@ export const AgentSlugSchema = z
     'Handle must be 2–32 lowercase letters, numbers or hyphens, and start with a letter.',
   );
 
-export const CustomSkillSchema = z.object({
+const CustomSkillSchema = z.object({
   name: z
     .string()
     .min(1)
@@ -43,14 +43,14 @@ export const CustomSkillSchema = z.object({
 
 export type CustomSkill = z.infer<typeof CustomSkillSchema>;
 
-export const SkillRefSchema = z.object({
+const SkillRefSchema = z.object({
   pluginId: z.string().min(1).max(64),
   skill: z.string().min(1).max(64),
 });
 
 export type SkillRef = z.infer<typeof SkillRefSchema>;
 
-export const McpServerInputSchema = z.object({
+const McpServerInputSchema = z.object({
   id: z
     .string()
     .min(1)
@@ -66,13 +66,13 @@ export const McpServerInputSchema = z.object({
 
 export type McpServerInput = z.infer<typeof McpServerInputSchema>;
 
-export const McpServerViewSchema = z.object({
+const McpServerViewSchema = z.object({
   id: z.string(),
   url: z.string(),
   hasAuthorization: z.boolean(),
 });
 
-export const AgentViewSchema = z.object({
+const AgentViewSchema = z.object({
   id: z.string(),
   slug: z.string(),
   name: z.string(),
@@ -113,7 +113,7 @@ export const GetAgentOutputSchema = z.object({
   agent: AgentViewSchema,
 });
 
-export const AgentRunSchema = z.object({
+const AgentRunSchema = z.object({
   id: z.string(),
   runId: z.string(),
   threadId: z.string().nullable(),
@@ -206,13 +206,6 @@ export const ValidateSkillInputSchema = z.object({
   name: z.string().max(64).optional(),
 });
 
-export const ValidateSkillOutputSchema = z.object({
-  valid: z.boolean(),
-  errors: z.array(z.string()),
-  warnings: z.array(z.string()),
-  skill: CustomSkillSchema.nullable(),
-});
-
 export const ExtractPdfOutputSchema = z.object({
   text: z.string(),
   pages: z.number().int().nonnegative(),
@@ -231,14 +224,6 @@ export const RunScriptOutputSchema = z.object({
 
 export const ImportAgentMarkdownInputSchema = z.object({
   content: z.string().min(1).max(48_000),
-});
-
-export const ImportAgentMarkdownOutputSchema = z.object({
-  name: z.string(),
-  slug: z.string(),
-  description: z.string(),
-  instructions: z.string(),
-  model: z.string().nullable(),
 });
 
 export const CatalogOutputSchema = z.object({
@@ -291,7 +276,3 @@ export const CatalogOutputSchema = z.object({
 });
 
 export type CatalogOutput = z.infer<typeof CatalogOutputSchema>;
-
-export const InstallTemplateInputSchema = z.object({
-  templateId: z.string().min(1).max(64),
-});

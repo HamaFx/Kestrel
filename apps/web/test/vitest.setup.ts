@@ -17,6 +17,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import '@testing-library/jest-dom/vitest';
+// Keep the `server-only` vitest alias stub inside the test module graph.
+import './empty';
 
 import { webcrypto } from 'node:crypto';
 

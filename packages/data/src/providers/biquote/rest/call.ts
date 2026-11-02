@@ -37,7 +37,7 @@ const DEFAULT_TIMEOUT_MS = 8_000;
  * `cooloffMs` (90 s default), then auto-recovers.
  */
 export const BIQUOTE_THROTTLE_LIMIT = 1500;
-export const THROTTLE: ThrottleConfig = { limit: BIQUOTE_THROTTLE_LIMIT, windowMs: 60_000 };
+const THROTTLE: ThrottleConfig = { limit: BIQUOTE_THROTTLE_LIMIT, windowMs: 60_000 };
 
 const ErrorEnvelopeSchema = z.object({
   message: z.string().optional(),

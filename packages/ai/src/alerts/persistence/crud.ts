@@ -68,7 +68,7 @@ export async function listAlerts(
  * the rotation below makes sure the cap does not permanently favour the front
  * of the list.
  */
-export const EVALUATION_BATCH_LIMIT = 200;
+const EVALUATION_BATCH_LIMIT = 200;
 
 /**
  * How long one rotation seed stays valid. Every tick inside the window sees the
@@ -78,7 +78,7 @@ export const EVALUATION_BATCH_LIMIT = 200;
  * decays geometrically — no alert is permanently starved the way
  * `ORDER BY created_at ASC LIMIT n` starves the newest rows.
  */
-export const EVALUATION_ROTATION_WINDOW_MS = 60_000;
+const EVALUATION_ROTATION_WINDOW_MS = 60_000;
 
 /** Rotation seed for a point in time (deterministic, so tests can pin it). */
 export function evaluationRotationSeed(now: number = Date.now()): number {

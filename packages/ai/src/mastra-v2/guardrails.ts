@@ -67,7 +67,6 @@ import { resolveChatModel } from '../models/model';
 import {
   createIndirectContentGuardrailProcessor,
   INDIRECT_CONTENT_PROCESSOR_ID,
-  type IndirectContentGuardrailOptions,
   type IndirectContentGuardrailProcessor,
 } from './indirect-content-guardrail';
 import {
@@ -263,11 +262,7 @@ export {
   screenPromptToolResults,
   withholdPromptToolResults,
 };
-export type {
-  IndirectContentGuardrailOptions,
-  IndirectContentGuardrailProcessor,
-  PromptToolScreenResult,
-};
+export type { IndirectContentGuardrailProcessor, PromptToolScreenResult };
 
 /**
  * Built guardrail bundle for one agent: the ordered input processors, any

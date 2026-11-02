@@ -41,7 +41,7 @@ export const byMethod = pluginByMethod;
 export const parseBody = parsePluginBody;
 export const query = pluginQuery;
 
-export function errorResponse(err: unknown, ctx: PluginApiRouteContext): Response {
+function errorResponse(err: unknown, ctx: PluginApiRouteContext): Response {
   if (err instanceof PluginRouteApiError) {
     return json({ error: { code: err.code, message: err.message } }, err.status);
   }

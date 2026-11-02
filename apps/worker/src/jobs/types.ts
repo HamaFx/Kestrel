@@ -31,7 +31,7 @@ import type { TenantRouter } from '../runtime/tenant-router.js';
 // AbortController or the runner CLI's SIGTERM handler).
 // -----------------------------------------------------------------------
 
-export interface JobCoreContext {
+interface JobCoreContext {
   /** Logger pre-tagged with `service: 'worker:job:<name>'`. */
   log: Logger;
   /**
@@ -42,7 +42,7 @@ export interface JobCoreContext {
   tenantRouter: TenantRouter;
 }
 
-export interface JobCancellableContext extends JobCoreContext {
+interface JobCancellableContext extends JobCoreContext {
   /** Aborted when systemd sends SIGTERM during a run. Jobs SHOULD honour it. */
   signal: AbortSignal;
 }
@@ -62,7 +62,7 @@ export interface JobResult {
 }
 
 /** A registered job's run function. Accepts the cancellable variant. */
-export type JobFn = (ctx: JobCancellableContext) => Promise<JobResult>;
+type JobFn = (ctx: JobCancellableContext) => Promise<JobResult>;
 
 /**
  * The full set of jobs that can be invoked from the runner CLI.

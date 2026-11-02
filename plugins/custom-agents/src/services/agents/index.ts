@@ -19,7 +19,7 @@
 // import path working.
 
 export { AgentConfigError } from './errors';
-export { agentView, getAgentView, listAgentRunViews, listAgentViews } from './views';
+export { getAgentView, listAgentRunViews, listAgentViews } from './views';
 export {
   createAgentForUser,
   deleteAgentForUser,
@@ -27,7 +27,5 @@ export {
   recordAgentRun,
   seedStarterAgents,
   updateAgentForUser,
-  type CreateAgentArgs,
-  type UpdateAgentArgs,
 } from './crud';
 export { resolveRuntimeMcpTools, runtimeDefinition } from './runtime';

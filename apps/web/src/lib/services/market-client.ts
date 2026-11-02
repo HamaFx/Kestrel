@@ -31,10 +31,7 @@ import type {
   Timeframe,
 } from '@kestrel/shared';
 
-import { ApiError, apiFetch } from '../http/api-client';
-
-/** @deprecated Use the `ApiError` class from `./api-client` directly. */
-export class MarketApiError extends ApiError {}
+import { apiFetch } from '../http/api-client';
 
 export interface FetchOptions {
   signal?: AbortSignal;
@@ -80,27 +77,6 @@ export interface IndicatorRequest {
 }
 
 /** POST /api/market/indicators */
-export async function fetchIndicators(
-  symbol: Symbol,
-  tf: Timeframe,
-  indicators: readonly IndicatorRequest[],
-  count = 300,
-  opts: FetchOptions = {},
-): Promise<IndicatorResult[]> {
-  const body = await apiFetch<{ results: IndicatorResult[] }>('/api/market/indicators', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      symbol,
-      tf,
-      count,
-      indicators: indicators.map((i) => ({ kind: i.kind, params: i.params ?? {} })),
-    }),
-    ...(opts.signal ? { signal: opts.signal } : {}),
-    retries: 2,
-  });
-  return body.results;
-}
 
 export interface ChartDataResponse {
   symbol: Symbol;

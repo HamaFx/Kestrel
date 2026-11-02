@@ -6,7 +6,7 @@ import {
   type MastraSpecialistName,
 } from '../../committee/types';
 
-export interface CommitteeAgentOpinionSummary {
+interface CommitteeAgentOpinionSummary {
   agentName: string;
   bias: 'bullish' | 'bearish' | 'neutral';
   confidence: number;

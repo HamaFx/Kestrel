@@ -19,16 +19,12 @@
 /**
  * Fusion (synthesizer) prompts: the request-context instructions function that
  * reads the typed opinions and peer reviews instead of build-time JSON joins
- * (audit plan §2.2), plus the deprecated build-time prompt retained for one
- * release.
+ * (audit plan §2.2).
  */
 
 import type { RequestContext } from '@mastra/core/request-context';
 
-import {
-  serializeSymbolResearchPacket,
-  type SymbolResearchPacket,
-} from '../../mastra-v2/packets/symbol-research';
+import type { SymbolResearchPacket } from '../../mastra-v2/packets/symbol-research';
 import { deskReliabilityBlock, type DeskReliabilityWeights } from '../calibration-weights';
 import type { CommitteeCritique, MastraModeOpinion, ModeRequestContext } from '../types';
 import { optionalContextBlock, serializedPacket } from './packet-context';
@@ -79,21 +75,4 @@ Use only the trusted packet and specialist opinions below. Write in clear, simpl
 
 ${packet ? `PACKET:\n${serializedPacket(packet)}\n\n${optionalContextBlock(packet)}\n\n` : ''}SPECIALIST OPINIONS:
 ${opinionBlock}${critiqueBlock ? `\n\nSPECIALIST PEER REVIEWS:\n${critiqueBlock}` : ''}${reliabilityBlock}`;
-}
-
-/** @deprecated Build-time fusion prompt retained for one release (§2.2). */
-export function fusionInstructions(
-  packet: SymbolResearchPacket,
-  opinions: MastraModeOpinion[],
-): string {
-  const opinionBlock = opinions.map((opinion) => JSON.stringify(opinion)).join('\n');
-  return `You are Kestrel's Mastra decision synthesizer for ${packet.symbol}.
-
-Use only the trusted packet and specialist opinions below. State agreement and disagreement, disclose missing or degraded data, and use scenario language. Do not promise outcomes or invent numbers. Do not place trades. Return a concise user-facing markdown answer with a bottom line, evidence-aware reasoning, risks, and invalidation conditions.
-
-PACKET:
-${serializeSymbolResearchPacket(packet)}
-
-SPECIALIST OPINIONS:
-${opinionBlock}`;
 }

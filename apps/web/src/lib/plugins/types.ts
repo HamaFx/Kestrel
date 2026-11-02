@@ -43,7 +43,7 @@ export interface PluginCapabilitySummary {
   slashCommands: number;
 }
 
-export interface PluginToolSummary {
+interface PluginToolSummary {
   name: string;
   description: string;
   access: PluginToolAccess;

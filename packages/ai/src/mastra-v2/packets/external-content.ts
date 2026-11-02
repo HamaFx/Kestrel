@@ -30,30 +30,23 @@ import {
 
 export {
   containsExternalInstructions,
-  EXTERNAL_CONTENT_TRUST_WARNING,
   EXTERNAL_QUARANTINE_NOTICE,
   MAX_EXTERNAL_CONTENT_LENGTH,
   quarantineExternalText,
   sanitizeExternalText,
   sanitizeExternalUrl,
   wrapExternalContent,
-  type QuarantinedTextResult,
 } from './external-text-sanitizer';
 
 export {
   declaresUntrustedContent,
-  MIN_SCREENABLE_EXTERNAL_TEXT,
   screenExternalText,
   screenTextValues,
-  type ScreenExternalTextOptions,
-  type ScreenTextValuesResult,
-  type ScreenedExternalText,
 } from './external-content-screen';
 
 export {
   appendContentScreenEvents,
   asContentScreenReportSink,
-  CONTENT_SCREEN_REPORT_KEY,
   readContentScreenEvents,
   type ContentScreenEvent,
   type ContentScreenMode,

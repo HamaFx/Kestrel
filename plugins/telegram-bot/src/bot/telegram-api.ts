@@ -30,9 +30,9 @@ import { Api, type InlineKeyboard } from 'grammy';
 const SAFE_CHUNK_LENGTH = 4000;
 
 /** Wall clock for one logical send (all chunks of one message). */
-export const TELEGRAM_SEND_TIMEOUT_MS = 15_000;
+const TELEGRAM_SEND_TIMEOUT_MS = 15_000;
 /** `sendChatAction` is decorative; never let it hold a reply back. */
-export const TELEGRAM_TYPING_TIMEOUT_MS = 5_000;
+const TELEGRAM_TYPING_TIMEOUT_MS = 5_000;
 
 /**
  * grammY types its signal parameter as `abort-controller`'s `AbortSignal`
@@ -54,7 +54,7 @@ export function telegramApi(botToken: string, timeoutMs: number = TELEGRAM_SEND_
 }
 
 /** Bound a send: the caller's signal plus a hard timeout. */
-export function telegramSendSignal(
+function telegramSendSignal(
   signal?: AbortSignal | undefined,
   timeoutMs: number = TELEGRAM_SEND_TIMEOUT_MS,
 ): AbortSignal {
@@ -62,7 +62,7 @@ export function telegramSendSignal(
   return signal ? AbortSignal.any([signal, timeout]) : timeout;
 }
 
-export function chunkTelegramText(text: string): string[] {
+function chunkTelegramText(text: string): string[] {
   if (text.length <= SAFE_CHUNK_LENGTH) return [text];
   const chunks: string[] = [];
   let remaining = text;

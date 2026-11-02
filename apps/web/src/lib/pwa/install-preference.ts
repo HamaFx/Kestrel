@@ -149,7 +149,7 @@ export function readEngagement(): EngagementState {
 }
 
 /** Register this app load (called once per session from the install hook). */
-export function registerEngagement(now = Date.now()): EngagementState {
+function registerEngagement(now = Date.now()): EngagementState {
   const current = readJson<EngagementState>(ENGAGEMENT_KEY);
   const next: EngagementState = current
     ? { sessions: current.sessions + 1, firstSeenAt: current.firstSeenAt }

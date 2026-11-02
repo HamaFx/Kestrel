@@ -58,9 +58,8 @@ export {
   cancelOrderForUser,
   closePositionForUser,
   modifyPositionForUser,
-  type CloseOutcome,
 } from './position-lifecycle';
-export { processQuotesForUser, type ProcessQuotesResult } from './fill-engine';
+export { processQuotesForUser } from './fill-engine';
 
 export async function placeOrderForUser(args: {
   userId: string;

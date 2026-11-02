@@ -25,8 +25,8 @@ import { IconSearch, IconX } from '@tabler/icons-react';
 import { cn } from '@/lib/formatters/cn';
 import { handleRadioKeyDown } from '@/lib/formatters/datetime';
 
-export type SentimentFilter = NewsSentiment | 'all';
-export type SymbolFilter = SymbolOrCurrencyTag | 'all';
+type SentimentFilter = NewsSentiment | 'all';
+type SymbolFilter = SymbolOrCurrencyTag | 'all';
 
 interface NewsToolbarProps {
   query: string;

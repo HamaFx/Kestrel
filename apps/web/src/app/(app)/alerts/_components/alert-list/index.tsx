@@ -28,8 +28,6 @@ import { AlertRow } from './alert-row';
 import { NewAlertDrawer } from './new-alert-drawer';
 import { useAlerts } from './use-alerts';
 
-export { ALERTS_QUERY_KEY } from './use-alerts';
-
 export function AlertList() {
   const [open, setOpen] = useState(false);
   const [confirmEl, confirm] = useConfirm();

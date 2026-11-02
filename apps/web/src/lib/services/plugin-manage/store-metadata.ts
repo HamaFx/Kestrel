@@ -117,7 +117,7 @@ export function decryptedRowSettings(
  * API routes already have one from `withAuth`; server components do not, so
  * this wrapper resolves the tenant and sets the RLS GUC either way.
  */
-export async function withUserTenant<T>(userId: string, work: () => Promise<T>): Promise<T> {
+async function withUserTenant<T>(userId: string, work: () => Promise<T>): Promise<T> {
   const tenantId = await requireTenantIdForUser(userId);
   return withTenantDb(tenantId, work, { userId });
 }

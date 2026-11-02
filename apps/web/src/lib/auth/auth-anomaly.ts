@@ -150,23 +150,3 @@ function checkThresholds(): void {
     );
   }
 }
-
-/**
- * Get current auth event counts (for health endpoint / diagnostics).
- */
-export function getAuthEventCounts(): Record<AuthEventType, number> & { windowMs: number } {
-  pruneOldEvents();
-  const now = Date.now();
-  const recent = events.filter((e) => now - e.ts < WINDOW_MS);
-  const counts: Record<AuthEventType, number> = {
-    login_success: 0,
-    login_failure: 0,
-    account_locked: 0,
-    '2fa_failure': 0,
-    unauthorized_401: 0,
-  };
-  for (const e of recent) {
-    counts[e.type] += 1;
-  }
-  return { ...counts, windowMs: WINDOW_MS };
-}

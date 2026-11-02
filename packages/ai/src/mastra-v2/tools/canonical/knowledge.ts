@@ -64,8 +64,6 @@ import { CanonicalKnowledgeInputSchema } from './input-schemas';
 // Leaf re-exports: the values live in modules with no app-graph imports, so a
 // module-scope read (legacy shims, other consumers) can never land on a binding
 // that is still initialising inside the instance ↔ tools import cycle.
-export { CANONICAL_KNOWLEDGE_DESCRIPTION, CanonicalKnowledgeInputSchema };
-
 export type CanonicalKnowledgeInput = z.infer<typeof CanonicalKnowledgeInputSchema>;
 
 const FALLBACK_MODEL = 'openai/text-embedding-3-small';

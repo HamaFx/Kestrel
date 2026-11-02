@@ -18,7 +18,7 @@
 
 import { createPluginFetcher, pluginErrorMessage } from '@kestrel/plugin-sdk/ui';
 
-export const PLUGIN_ID = 'custom-agents';
+const PLUGIN_ID = 'custom-agents';
 
 export const pluginFetch = createPluginFetcher(PLUGIN_ID);
 

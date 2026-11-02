@@ -31,14 +31,14 @@ import { mlog } from './log';
  * risk profile. `syncTraderProfileToWorkingMemory()` owns this section; the
  * seed below never writes or clears it.
  */
-export const TRADER_PROFILE_HEADING = '# Trader Edge & Risk Profile';
+const TRADER_PROFILE_HEADING = '# Trader Edge & Risk Profile';
 
 /**
  * Hard cap for the merged trader-profile section. Working memory is injected
  * into every turn, so the block must stay compact; the coach summary itself is
  * already bounded upstream.
  */
-export const TRADER_PROFILE_MAX_CHARS = 1_200;
+const TRADER_PROFILE_MAX_CHARS = 1_200;
 
 /** Per-bullet cap before the section-level cap is applied. */
 const TRADER_PROFILE_BULLET_CHARS = 200;

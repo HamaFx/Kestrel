@@ -44,10 +44,7 @@ import { evaluateJev } from './client';
 import type { JevEnv, JevGenerationLedger, JevSettings } from './types';
 
 /** Domains the turn router can return (vision is resolved deterministically). */
-export type JevTurnDomain = Extract<
-  RoutingDomain,
-  'fundamental' | 'technical' | 'summary' | 'generic'
->;
+type JevTurnDomain = Extract<RoutingDomain, 'fundamental' | 'technical' | 'summary' | 'generic'>;
 
 /** Accepted domain classification threshold. */
 const JEV_DOMAIN_CONFIDENCE_THRESHOLD = 0.65;

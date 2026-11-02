@@ -40,8 +40,3 @@ export function getRequestId(source: Request | Headers): string | null {
   const id = headers.get(HEADER_NAME);
   return id && VALID.test(id) ? id : null;
 }
-
-export function setRequestId(target: Response | Headers, id: string): void {
-  const headers = target instanceof Response ? target.headers : target;
-  headers.set(HEADER_NAME, id);
-}

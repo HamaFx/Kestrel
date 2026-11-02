@@ -42,7 +42,7 @@
 // live price polling). `apiFetch` is the general-purpose wrapper for
 // everything else.
 
-import { fetchCsrf, withCsrf } from '../auth/csrf';
+import { withCsrf } from '../auth/csrf';
 import { REQUEST_ID_HEADER } from './request-id';
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -332,5 +332,4 @@ export async function apiMutate<T = unknown>(
   return apiFetch<T>(input, { ...init, skipCsrf: false });
 }
 
-export { fetchCsrf, withCsrf };
 export { parseErrorBody };

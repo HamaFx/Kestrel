@@ -47,7 +47,7 @@ export const DeployStrategyRunInputSchema = z
 
 export type DeployStrategyRunInput = z.infer<typeof DeployStrategyRunInputSchema>;
 
-export const StrategyRunStatusSchema = z.enum(['active', 'paused', 'stopped', 'error']);
+const StrategyRunStatusSchema = z.enum(['active', 'paused', 'stopped', 'error']);
 
 export const StrategyRunSchema = z.object({
   id: z.string(),
@@ -84,8 +84,6 @@ export const ControlStrategyRunInputSchema = z.object({
   strategyRunId: z.string().min(1),
   action: z.enum(['pause', 'resume', 'stop', 'delete']),
 });
-
-export type ControlStrategyRunInput = z.infer<typeof ControlStrategyRunInputSchema>;
 
 export const ControlStrategyRunOutputSchema = z.object({
   ok: z.boolean(),
