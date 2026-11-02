@@ -17,7 +17,6 @@
  */
 
 // SPDX-License-Identifier: Apache-2.0
-
 import { IconArrowRight } from '@tabler/icons-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -28,37 +27,43 @@ export function StrategistDeskCard({ desk }: { desk: StrategistDeskConfig }) {
   const consultHref = `/chat?desk=${desk.id}&prompt=${encodeURIComponent(desk.defaultPrompt)}`;
 
   return (
-    <div className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-white/[0.08] bg-bg-elev-1/90 p-4 transition-all duration-200 hover:border-brand/40 hover:bg-bg-elev-2 backdrop-blur-md shadow-sm">
+    <div className="group bg-bg-elev-1/90 hover:border-brand/40 hover:bg-bg-elev-2 relative flex flex-col justify-between overflow-hidden rounded-xl border border-white/[0.08] p-4 shadow-sm backdrop-blur-md transition-all duration-200">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-4 -right-4 z-0 size-28 opacity-10 transition-opacity duration-300 mix-blend-luminosity group-hover:opacity-20"
+        className="pointer-events-none absolute -top-4 -right-4 z-0 size-28 opacity-10 mix-blend-luminosity transition-opacity duration-300 group-hover:opacity-20"
       >
-        <Image src={desk.artworkPath} alt="" fill unoptimized className="object-contain object-top-right" />
+        <Image
+          src={desk.artworkPath}
+          alt=""
+          fill
+          unoptimized
+          className="object-contain object-top-right"
+        />
       </div>
 
       <div className="relative z-10 flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <span className="font-mono text-[10px] font-semibold tracking-wider text-brand uppercase">
+          <span className="text-brand font-mono text-[10px] font-semibold tracking-wider uppercase">
             {desk.code}
           </span>
           <span className="size-1.5 rounded-full" style={{ backgroundColor: desk.accentColor }} />
         </div>
 
         <div>
-          <h3 className="font-display text-base font-normal text-fg">{desk.title}</h3>
-          <p className="font-serif text-xs italic text-fg-subtle">&ldquo;{desk.epithet}&rdquo;</p>
+          <h3 className="font-display text-fg text-base font-normal">{desk.title}</h3>
+          <p className="text-fg-subtle font-serif text-xs italic">&ldquo;{desk.epithet}&rdquo;</p>
         </div>
 
-        <p className="line-clamp-2 text-xs leading-relaxed text-fg-muted">{desk.description}</p>
+        <p className="text-fg-muted line-clamp-2 text-xs leading-relaxed">{desk.description}</p>
       </div>
 
-      <div className="relative z-10 mt-3 border-t border-border/40 pt-3">
+      <div className="border-border/40 relative z-10 mt-3 border-t pt-3">
         <Link
           href={consultHref}
-          className="inline-flex w-full items-center justify-between rounded-lg border border-white/[0.08] bg-bg-elev-2 px-3 py-2 font-mono text-xs font-medium text-fg transition-all hover:border-brand/40 hover:text-brand active:translate-y-[0.5px]"
+          className="bg-bg-elev-2 text-fg hover:border-brand/40 hover:text-brand inline-flex w-full items-center justify-between rounded-lg border border-white/[0.08] px-3 py-2 font-mono text-xs font-medium transition-all active:translate-y-[0.5px]"
         >
           <span>Consult Desk</span>
-          <IconArrowRight className="size-3 text-brand transition-transform group-hover:translate-x-0.5" />
+          <IconArrowRight className="text-brand size-3 transition-transform group-hover:translate-x-0.5" />
         </Link>
       </div>
     </div>

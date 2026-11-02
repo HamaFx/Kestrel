@@ -73,7 +73,7 @@ function warnEmpty(message: string): never {
 
 async function main(): Promise<void> {
   if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
-    console.log(
+    console.info(
       '[eval-gate] SKIP: no DATABASE_URL/POSTGRES_URL configured — nightly gate requires the eval score store.',
     );
     process.exit(0);
@@ -133,7 +133,7 @@ async function main(): Promise<void> {
       },
     };
     writeFileSync(baselinePath, serializeEvalBaseline(artifact));
-    console.log(
+    console.info(
       `[eval-gate] BASELINE updated: ${baselinePath} (passRate=${result.observed.overallPassRate.toFixed(4)}, citation=${result.observed.averageCitationScore?.toFixed(4) ?? 'n/a'}, runs=${runIds.length}).`,
     );
     process.exit(0);
@@ -160,17 +160,17 @@ async function main(): Promise<void> {
         `[eval-gate] baseline ${baseline.generatedAt} (${baseline.runCount} runs): ${comparison.failures.length} relative-drop regression(s).`,
       );
     } else {
-      console.log(
+      console.info(
         `[eval-gate] within 5% of baseline ${baseline.generatedAt} (passRate ${baseline.observed.overallPassRate.toFixed(4)} → ${result.observed.overallPassRate.toFixed(4)}).`,
       );
     }
   } else {
-    console.log(
+    console.info(
       `[eval-gate] NOTE: no baseline artifact at ${baselinePath} — record one on main with \`pnpm eval:gate -- --update-baseline\`.`,
     );
   }
 
-  console.log(
+  console.info(
     `[eval-gate] ${failures.length === 0 ? 'PASS' : 'FAIL'} — ${records.length} score records over ${runIds.length} runs.`,
   );
   if (failures.length > 0) {

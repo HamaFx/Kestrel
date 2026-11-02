@@ -113,9 +113,7 @@ export function SortableSymbolRow({
             {price !== undefined ? price.toFixed(decimals) : '\u2014'}
           </span>
           {price !== undefined && (
-            <span className="text-info font-mono text-[10px] tracking-wider uppercase">
-              Live
-            </span>
+            <span className="text-info font-mono text-[10px] tracking-wider uppercase">Live</span>
           )}
         </div>
 

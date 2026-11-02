@@ -26,8 +26,8 @@ import type { InputProcessorOrWorkflow } from '@mastra/core/processors';
 import type { RequestContext } from '@mastra/core/request-context';
 import type { LanguageModel } from 'ai';
 
-import type { SymbolResearchPacket } from '../../mastra-v2/packets/symbol-research';
 import type { JevEnv, JevSettings } from '../../jev/types';
+import type { SymbolResearchPacket } from '../../mastra-v2/packets/symbol-research';
 import type { GenerationLedger } from '../../persistence/generation-ledger';
 import type { ToolContext } from '../../runtime/tool-context';
 import type { MastraSpecialistName, ModeRequestContext } from '../types';

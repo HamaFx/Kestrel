@@ -35,18 +35,21 @@ import { computeBrierScore, evaluateOpinionOutcome } from '@kestrel/ai/mastra-v2
 import { getDb, schema, type DbClient } from '@kestrel/db';
 import { and, asc, desc, eq, gte, inArray, isNotNull, lt, lte, sql } from 'drizzle-orm';
 
-import type { JobContext, JobResult } from './types.js';
 import {
   closeAtOrBefore,
+  computeRegimeOutcomeFromCandles,
   patchRegimeMemoryOutcome,
   type CandlePoint,
-  computeRegimeOutcomeFromCandles,
 } from './opinion-calibration-regime.js';
+import type { JobContext, JobResult } from './types.js';
 
 // Phase 3 (Jev roadmap) — the realized-outcome helpers live in
 // `opinion-calibration-regime.ts` (file-size gate); re-exported here so
 // existing import sites keep resolving.
-export { computeRegimeOutcomeFromCandles, type RegimeOutcome4h } from './opinion-calibration-regime.js';
+export {
+  computeRegimeOutcomeFromCandles,
+  type RegimeOutcome4h,
+} from './opinion-calibration-regime.js';
 
 /** Minimum age: the 4-hour evaluation horizon must have closed. */
 const MIN_AGE_MS = 4 * 60 * 60 * 1000;

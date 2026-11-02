@@ -63,7 +63,9 @@ describe('AiReviewPanel trade picker', () => {
     render(<AiReviewPanel entries={closedTrades} />);
 
     const select = screen.getByLabelText('Closed trade to review');
-    const optionIds = Array.from(select.querySelectorAll('option')).map((o) => o.getAttribute('value'));
+    const optionIds = Array.from(select.querySelectorAll('option')).map((o) =>
+      o.getAttribute('value'),
+    );
 
     expect(optionIds).toEqual(['newest', 'older']);
   });
@@ -83,15 +85,21 @@ describe('AiReviewPanel trade picker', () => {
     );
 
     const select = screen.getByLabelText('Closed trade to review');
-    const optionIds = Array.from(select.querySelectorAll('option')).map((o) => o.getAttribute('value'));
+    const optionIds = Array.from(select.querySelectorAll('option')).map((o) =>
+      o.getAttribute('value'),
+    );
 
     expect(optionIds).toEqual(['newest', 'older']);
   });
 
   it('prompts the user to close a trade when nothing is closed yet', () => {
-    render(<AiReviewPanel entries={[makeEntry({ id: 'open-1', outcome: 'open', closedAt: null })]} />);
+    render(
+      <AiReviewPanel entries={[makeEntry({ id: 'open-1', outcome: 'open', closedAt: null })]} />,
+    );
 
-    expect(screen.getByText(/Close a trade to unlock an AI-powered post-trade review/)).toBeTruthy();
+    expect(
+      screen.getByText(/Close a trade to unlock an AI-powered post-trade review/),
+    ).toBeTruthy();
     expect(screen.queryByLabelText('Closed trade to review')).toBeNull();
   });
 });

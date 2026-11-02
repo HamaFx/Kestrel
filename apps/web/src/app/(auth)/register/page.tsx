@@ -102,9 +102,7 @@ export default function RegisterPage() {
             required
             disabled={pending || success}
             error={confirmTouched && !passwordsMatch}
-            errorId={
-              confirmTouched && !passwordsMatch ? 'confirm-password-error' : undefined
-            }
+            errorId={confirmTouched && !passwordsMatch ? 'confirm-password-error' : undefined}
           />
           {confirmTouched && !passwordsMatch && (
             <p id="confirm-password-error" role="alert" className="text-danger mt-1 text-xs">

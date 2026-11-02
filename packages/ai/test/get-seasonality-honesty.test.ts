@@ -21,7 +21,7 @@
 // Note the one deliberate exception: `count` and `sampleSize` are real counts,
 // so 0 remains honest there. This suite checks the *measurements* are absent.
 
-import { getCandles } from '@kestrel/data';
+import type * as DataModule from '@kestrel/data';
 import type { Candle } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -30,7 +30,7 @@ import { getSeasonalityTool } from '../src/tools/get-seasonality';
 const mocks = vi.hoisted(() => ({ getCandles: vi.fn() }));
 
 vi.mock('@kestrel/data', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/data')>();
+  const actual = await importOriginal<typeof DataModule>();
   return { ...actual, getCandles: mocks.getCandles };
 });
 

@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-import { cleanTitleForPersistence, deterministicFallbackTitle } from '../src/mastra-v2';
 import { describe, expect, it } from 'vitest';
+
+import { cleanTitleForPersistence, deterministicFallbackTitle } from '../src/mastra-v2';
 
 describe('deterministicFallbackTitle', () => {
   it('returns the trimmed first-user text when under the limit', () => {

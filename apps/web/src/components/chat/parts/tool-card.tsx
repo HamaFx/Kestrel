@@ -68,23 +68,23 @@ export function ToolCard({ name, state, input, output, errorText }: ToolCardProp
       layout
       initial={false}
       className={cn(
-        'surface-card overflow-hidden rounded-xl border border-border/40 bg-bg-elev-1 p-0 shadow-sm transition-colors hover:border-brand/40',
+        'surface-card border-border/40 bg-bg-elev-1 hover:border-brand/40 overflow-hidden rounded-xl border p-0 shadow-sm transition-colors',
         failed && 'border-danger/40',
       )}
     >
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="flex min-h-10 w-full items-center justify-between gap-2 border-b border-border/40 px-3.5 py-2 text-left text-xs sm:text-sm"
+        className="border-border/40 flex min-h-10 w-full items-center justify-between gap-2 border-b px-3.5 py-2 text-left text-xs sm:text-sm"
         aria-expanded={expanded}
         aria-controls={contentId}
       >
-        <span className="flex items-center gap-1.5 font-medium text-fg/80">
-          <span className="font-mono text-xs font-semibold text-brand uppercase">{label}</span>
+        <span className="text-fg/80 flex items-center gap-1.5 font-medium">
+          <span className="text-brand font-mono text-xs font-semibold uppercase">{label}</span>
           <span
             className={cn(
-              'truncate font-mono tabular-nums text-fg-subtle',
-              running && 'animate-pulse text-brand',
+              'text-fg-subtle truncate font-mono tabular-nums',
+              running && 'text-brand animate-pulse',
             )}
           >
             · {summary}
@@ -92,7 +92,7 @@ export function ToolCard({ name, state, input, output, errorText }: ToolCardProp
         </span>
         <span className="text-fg-subtle">
           {expanded ? (
-            <IconChevronDown className="size-4 text-brand" />
+            <IconChevronDown className="text-brand size-4" />
           ) : (
             <IconChevronRight className="size-4" />
           )}
@@ -106,7 +106,7 @@ export function ToolCard({ name, state, input, output, errorText }: ToolCardProp
           animate={{ opacity: 1, height: 'auto' }}
           transition={{ duration: 0.2 }}
           id={contentId}
-          className="mt-0 space-y-2 overflow-hidden border-t border-border/20 px-3 py-3 font-mono text-sm tabular-nums"
+          className="border-border/20 mt-0 space-y-2 overflow-hidden border-t px-3 py-3 font-mono text-sm tabular-nums"
         >
           <Section label="input" data={input} />
           {failed ? (
@@ -123,8 +123,10 @@ export function ToolCard({ name, state, input, output, errorText }: ToolCardProp
 function Section({ label, data }: { label: string; data: unknown }) {
   return (
     <div>
-      <div className="mb-0.5 font-mono text-[10px] tracking-wider text-brand uppercase">{label}</div>
-      <pre className="max-h-40 overflow-auto rounded-md border border-border/40 bg-bg-elev-2 p-2.5 font-mono text-xs leading-tight text-fg/80">
+      <div className="text-brand mb-0.5 font-mono text-[10px] tracking-wider uppercase">
+        {label}
+      </div>
+      <pre className="border-border/40 bg-bg-elev-2 text-fg/80 max-h-40 overflow-auto rounded-md border p-2.5 font-mono text-xs leading-tight">
         {safeStringify(data)}
       </pre>
     </div>

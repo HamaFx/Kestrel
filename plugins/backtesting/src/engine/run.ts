@@ -130,9 +130,7 @@ export function downsample<T>(points: readonly T[], max: number): T[] {
   const troughIndex = maxFieldIndex(points, 'drawdownPct');
   if (troughIndex >= 0) keep.add(troughIndex);
 
-  return [...keep]
-    .sort((a, b) => a - b)
-    .map((index) => points[index]!);
+  return [...keep].sort((a, b) => a - b).map((index) => points[index]!);
 }
 
 export async function runBacktest(args: RunBacktestArgs): Promise<RunBacktestOutput> {

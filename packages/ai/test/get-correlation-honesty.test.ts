@@ -20,7 +20,7 @@
 // claims like "the correlation is 0". This suite proves an absent input yields
 // no number at all, while the normal path still returns real ones.
 
-import { getCandles } from '@kestrel/data';
+import type * as DataModule from '@kestrel/data';
 import type { Candle } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -30,7 +30,7 @@ import { getCorrelationTool } from '../src/tools/get-correlation';
 const mocks = vi.hoisted(() => ({ getCandles: vi.fn() }));
 
 vi.mock('@kestrel/data', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/data')>();
+  const actual = await importOriginal<typeof DataModule>();
   return { ...actual, getCandles: mocks.getCandles };
 });
 

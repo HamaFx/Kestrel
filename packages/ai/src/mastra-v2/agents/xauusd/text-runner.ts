@@ -21,7 +21,8 @@ import { RequestContext } from '@mastra/core/request-context';
 import type { LanguageModel, ModelMessage } from 'ai';
 import type { z } from 'zod';
 
-import { jsonPromptInjectionForModel } from '../../../committee/structured-output';
+import { jsonPromptInjectionForModel } from '@ai/committee/structured-output';
+
 import {
   buildGuardrailInputProcessors,
   createIndirectContentGuardrailProcessor,

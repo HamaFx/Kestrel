@@ -26,10 +26,12 @@
 
 import { createHash } from 'node:crypto';
 
+import type * as DataModule from '@kestrel/data';
 import { getPrice, type PriceResult } from '@kestrel/data';
 import type { Alert, Tick } from '@kestrel/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type * as DeliveryBudgetModule from '../src/alerts/delivery/budget';
 import { evaluateAlerts } from '../src/alerts/evaluator';
 import { alertRotationKey, evaluationRotationSeed } from '../src/alerts/persistence/crud';
 
@@ -46,7 +48,7 @@ const deliveryMocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@kestrel/data', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/data')>();
+  const actual = await importOriginal<typeof DataModule>();
   return { ...actual, getPrice: vi.fn(), getCandles: vi.fn() };
 });
 
@@ -80,7 +82,7 @@ vi.mock('../src/alerts/persistence', () => persistenceMocks);
 vi.mock('../src/alerts/delivery', async () => {
   // Only `deliverAlert` is replaced: the budget helpers under test live in the
   // same barrel and must stay real.
-  const budget = await vi.importActual<typeof import('../src/alerts/delivery/budget')>(
+  const budget = await vi.importActual<typeof DeliveryBudgetModule>(
     '../src/alerts/delivery/budget',
   );
   return { ...budget, deliverAlert: deliveryMocks.deliverAlert };

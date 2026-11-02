@@ -19,15 +19,17 @@
 // We mock `getPrice` / `getCandles` with controllable delays and assert
 // that wall-time scales as max(rule_latency) rather than sum(rule_latency).
 
+import type * as DataModule from '@kestrel/data';
 import { getCandles, getPrice, type PriceResult } from '@kestrel/data';
 import type { Tick } from '@kestrel/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type * as DeliveryBudgetModule from '../src/alerts/delivery/budget';
 import { evaluateAlerts } from '../src/alerts/evaluator';
 import { listEvaluable } from '../src/alerts/persistence';
 
 vi.mock('@kestrel/data', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/data')>();
+  const actual = await importOriginal<typeof DataModule>();
   return {
     ...actual,
     getPrice: vi.fn(),
@@ -81,7 +83,7 @@ vi.mock('../src/alerts/persistence', () => ({
 vi.mock('../src/alerts/delivery', async () => {
   // R10 — `evaluateAlerts` also uses the delivery budget helpers; only
   // `deliverAlert` is replaced here.
-  const budget = await vi.importActual<typeof import('../src/alerts/delivery/budget')>(
+  const budget = await vi.importActual<typeof DeliveryBudgetModule>(
     '../src/alerts/delivery/budget',
   );
   return {

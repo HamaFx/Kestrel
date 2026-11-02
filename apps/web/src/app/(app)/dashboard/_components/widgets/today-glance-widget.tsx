@@ -144,7 +144,9 @@ function CellOpenRisk({ entries }: { entries: JournalEntry[] }) {
   // every open trade was exactly 1R. Surface the position count + symbols
   // instead, and flag positions that have no invalidation stop at all.
   const withoutStop = open.filter((e) => e.stop === null).length;
-  const symbols = Array.from(new Set(open.map((e) => e.symbol))).slice(0, 3).join(', ');
+  const symbols = Array.from(new Set(open.map((e) => e.symbol)))
+    .slice(0, 3)
+    .join(', ');
 
   return (
     <div className="surface-chip flex flex-col justify-between gap-2.5 rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)] transition-all hover:border-white/20">

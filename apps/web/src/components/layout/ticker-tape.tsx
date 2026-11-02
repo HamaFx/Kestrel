@@ -124,8 +124,8 @@ export function TickerTape() {
           className={cn(
             'rounded-xs px-1.5 py-0.5 text-xs font-semibold tabular-nums transition-colors',
             item.isBull
-              ? 'text-bull bg-bull/15 ring-1 ring-bull/30 shadow-[0_0_8px_rgba(63,158,61,0.15)]'
-              : 'text-bear bg-bear/15 ring-1 ring-bear/30 shadow-[0_0_8px_rgba(224,44,16,0.15)]',
+              ? 'text-bull bg-bull/15 ring-bull/30 shadow-[0_0_8px_rgba(63,158,61,0.15)] ring-1'
+              : 'text-bear bg-bear/15 ring-bear/30 shadow-[0_0_8px_rgba(224,44,16,0.15)] ring-1',
           )}
         >
           {item.isBull ? '▲' : '▼'} {item.changeStr}

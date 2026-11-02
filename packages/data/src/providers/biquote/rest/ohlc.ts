@@ -24,7 +24,8 @@ import {
 } from '@kestrel/shared';
 import { z } from 'zod';
 
-import { ProviderError } from '../../../errors';
+import { ProviderError } from '@data/errors';
+
 import { assertSupportedSymbol } from '../filter';
 import { toBiquoteSymbol, toBiquoteTimeframe } from '../map';
 import { call, PROVIDER, type CallOptions } from './call';

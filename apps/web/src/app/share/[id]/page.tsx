@@ -30,8 +30,8 @@
 import { getActiveSnapshot, verifyShareToken } from '@kestrel/ai';
 import type { ChartPriceLine } from '@kestrel/shared';
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
 import { Link } from 'next-view-transitions';
+import { notFound } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 

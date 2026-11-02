@@ -35,8 +35,8 @@ import { createCategorizedLogger } from '@kestrel/shared/logger';
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
 
-import { evaluateJevTurnRouting } from '../jev/turn-router';
 import { resolveJevEndpoint } from '../jev/resolve-endpoint';
+import { evaluateJevTurnRouting } from '../jev/turn-router';
 import { runMastraStructured } from '../mastra-v2/agents/xauusd/text-runner';
 import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
 import { resolveModel, type ResolveModelEnv } from '../models/model';

@@ -199,9 +199,7 @@ describe('PerformanceChart — bare mode', () => {
   });
 
   it('drops the Net R-Score header for a plotted bare curve', () => {
-    const { container } = render(
-      <PerformanceChart entries={closedEntries} height={200} bare />,
-    );
+    const { container } = render(<PerformanceChart entries={closedEntries} height={200} bare />);
 
     expect(screen.queryByText('Net R-Score')).toBeNull();
     expect(screen.queryByText('Performance Curve')).toBeNull();

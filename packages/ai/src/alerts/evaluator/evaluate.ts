@@ -129,7 +129,7 @@ export async function evaluateAlerts(opts: EvaluationOptions = {}): Promise<Eval
   let matched = 0;
   let fired = 0;
   let skipped = 0;
-  let claimsReleased = 0;
+  let claimsReleased: number;
   let stopReason: EvaluationStopReason = 'complete';
   const errors: EvaluationResult['errors'] = [];
   const deliveries: DeliveryResult[] = [];

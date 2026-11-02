@@ -137,6 +137,8 @@ export function CompactTelemetryRow({
   const Icon = getToolIcon(name);
   const verb = TOOL_VERBS[name] ?? name.replace(/^tool-/, '').replace(/_/g, ' ');
   const target = formatTarget(name, input);
+  const statusClass = isError ? 'text-danger' : isRunning ? 'text-brand' : 'text-bull';
+  const statusLabel = isError ? 'FAILED' : isRunning ? 'RUNNING' : 'VERIFIED';
 
   return (
     <div className="w-full py-0.5 select-text">
@@ -223,19 +225,17 @@ export function CompactTelemetryRow({
             transition={{ duration: 0.18, ease: [0.32, 0.72, 0, 1] }}
             className="overflow-hidden"
           >
-            <div className="mt-1 ml-6 rounded-lg border border-border/40 bg-bg-elev-2 p-3 text-xs shadow-sm">
-              <div className="mb-1.5 flex items-center justify-between border-b border-border/30 pb-1.5 font-mono text-[10px]">
-                <span className="text-brand uppercase font-semibold">TRACE DETAIL // {verb}</span>
-                <span className={isError ? 'text-danger font-medium' : isRunning ? 'text-brand font-medium' : 'text-bull font-medium'}>
-                  {isError ? 'FAILED' : isRunning ? 'RUNNING' : 'VERIFIED'}
-                </span>
+            <div className="border-border/40 bg-bg-elev-2 mt-1 ml-6 rounded-lg border p-3 text-xs shadow-sm">
+              <div className="border-border/30 mb-1.5 flex items-center justify-between border-b pb-1.5 font-mono text-[10px]">
+                <span className="text-brand font-semibold uppercase">TRACE DETAIL // {verb}</span>
+                <span className={cn('font-medium', statusClass)}>{statusLabel}</span>
               </div>
               {children ? (
                 children
               ) : isError ? (
-                <p className="font-mono text-danger">{errorMessage ?? 'Tool execution failed'}</p>
+                <p className="text-danger font-mono">{errorMessage ?? 'Tool execution failed'}</p>
               ) : (
-                <pre className="overflow-x-auto font-mono text-[11px] text-fg/80 whitespace-pre-wrap">
+                <pre className="text-fg/80 overflow-x-auto font-mono text-[11px] whitespace-pre-wrap">
                   {typeof output === 'string'
                     ? output
                     : JSON.stringify(output ?? input ?? {}, null, 2)}

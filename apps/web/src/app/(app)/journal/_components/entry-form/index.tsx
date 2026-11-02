@@ -111,7 +111,7 @@ export function EntryForm({ onCreated }: EntryFormProps) {
         label={form.busy ? 'Saving…' : 'Hold to Log Trade (1.2s)'}
         executingLabel="Recording Trade…"
         completedLabel="Trade Logged"
-        className="mt-2 w-full min-h-[48px]"
+        className="mt-2 min-h-[48px] w-full"
       />
     </form>
   );

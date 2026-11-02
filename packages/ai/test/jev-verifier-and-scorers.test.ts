@@ -26,11 +26,11 @@ import {
   verifySemanticDisclosureWithJev,
 } from '../src/jev/semantic-verifier';
 import type { JevEnv } from '../src/jev/types';
+import { checkJevRubricRecord, recordsToGateObserved } from '../src/mastra-v2/evals/gate';
 import {
   buildJevRubricScorers,
   evaluateJevRubricScores,
 } from '../src/mastra-v2/evals/scorers/jev-scorers';
-import { checkJevRubricRecord, recordsToGateObserved } from '../src/mastra-v2/evals/gate';
 import type { SymbolResearchPacket } from '../src/mastra-v2/packets/symbol-research';
 
 const degradedPacket = {
@@ -46,7 +46,9 @@ const degradedPacket = {
 describe('Jev semantic disclosure verifier & 100% live eval rubric scorers', () => {
   it('detects negated disclosure phrases like "not stale" or "never degraded"', () => {
     expect(hasNegatedDisclosure('The price data is not stale and completely fresh.')).toBe(true);
-    expect(hasNegatedDisclosure('Note: 15m candle data is stale and served from cache.')).toBe(false);
+    expect(hasNegatedDisclosure('Note: 15m candle data is stale and served from cache.')).toBe(
+      false,
+    );
     expect(hasNegatedDisclosure('The packet data is not stale or degraded.')).toBe(true);
   });
 

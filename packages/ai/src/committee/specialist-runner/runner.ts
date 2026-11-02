@@ -25,11 +25,15 @@
 // validates its structured opinion via `verifyMastraOpinion`.
 
 import { estimateCostUsd } from '../../budget/cost';
-import { packetNeedsDisclosure, verifySemanticDisclosureWithJev } from '../../jev/semantic-verifier';
+import {
+  packetNeedsDisclosure,
+  verifySemanticDisclosureWithJev,
+} from '../../jev/semantic-verifier';
 import {
   extractToolPartsFromMessages,
   type MastraToolInvocationPart,
-} from '../../mastra-v2/agents/xauusd/legacy-tool-adapter';import { getMastraGenerationStats } from '../../mastra-v2/shared/telemetry';
+} from '../../mastra-v2/agents/xauusd/legacy-tool-adapter';
+import { getMastraGenerationStats } from '../../mastra-v2/shared/telemetry';
 import {
   buildPluginMastraTools,
   getInstalledPluginRuntime,
@@ -97,8 +101,7 @@ export async function runSpecialistGeneration(
     // copied onto the agent's context so the desk prompt and the confidence
     // blend both read it.
     const calibrationsBySymbol = requestContext.get('jevCalibrationsBySymbol') as
-      | Record<string, JevPacketCalibration>
-      | undefined;
+      Record<string, JevPacketCalibration> | undefined;
     const jevCalibration =
       (args.symbol ? calibrationsBySymbol?.[args.symbol] : undefined) ??
       (requestContext.get('jevCalibration') as JevPacketCalibration | undefined);

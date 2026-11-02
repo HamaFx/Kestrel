@@ -22,6 +22,7 @@
 // while the normal path still returns real numbers.
 
 import { getCandlesUnchecked } from '@kestrel/data';
+import type * as IndicatorsModule from '@kestrel/indicators';
 import { ReplaySetupOutputSchema, type Candle } from '@kestrel/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -37,7 +38,7 @@ vi.mock('@kestrel/data', () => ({
 // Force ATR(14) to 0 to reach the unscored-trade path deterministically;
 // every other test in this file runs the real indicator math.
 vi.mock('@kestrel/indicators', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/indicators')>();
+  const actual = await importOriginal<typeof IndicatorsModule>();
   return {
     ...actual,
     atr: (candles: Candle[], period = 14) =>

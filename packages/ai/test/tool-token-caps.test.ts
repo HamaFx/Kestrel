@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import type * as DataModule from '@kestrel/data';
 import type { Candle } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -25,7 +26,7 @@ const mockGetCandles = vi.fn();
 const mockGetCandlesUnchecked = vi.fn();
 
 vi.mock('@kestrel/data', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/data')>();
+  const actual = await importOriginal<typeof DataModule>();
   return {
     ...actual,
     getCandles: (...args: unknown[]) => mockGetCandles(...args),

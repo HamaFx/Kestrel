@@ -52,7 +52,7 @@ export function SortableWidget({
         widget.span === 3 && 'col-span-1 md:col-span-2 lg:col-span-3',
         widget.span === 2 && 'col-span-1 md:col-span-2 lg:col-span-2',
         widget.span === 1 && 'col-span-1',
-        editMode && 'ring-1 ring-brand/40 rounded-2xl',
+        editMode && 'ring-brand/40 rounded-2xl ring-1',
       )}
     >
       {editMode ? (
@@ -60,13 +60,13 @@ export function SortableWidget({
           <button
             type="button"
             aria-label={`Drag ${label} widget`}
-            className="inline-flex size-10 min-h-10 min-w-10 cursor-grab touch-none items-center justify-center rounded-md text-fg-subtle transition-colors hover:text-fg active:cursor-grabbing"
+            className="text-fg-subtle hover:text-fg inline-flex size-10 min-h-10 min-w-10 cursor-grab touch-none items-center justify-center rounded-md transition-colors active:cursor-grabbing"
             {...attributes}
             {...listeners}
           >
             <IconGripVertical className="size-4" />
           </button>
-          <span className="font-mono text-[11px] font-semibold tracking-wider text-brand uppercase">
+          <span className="text-brand font-mono text-[11px] font-semibold tracking-wider uppercase">
             {label}
           </span>
           <div className="flex items-center gap-1.5">
@@ -74,7 +74,7 @@ export function SortableWidget({
               type="button"
               aria-label={`Toggle span for ${label}`}
               onClick={onToggleSpan}
-              className="inline-flex min-h-10 items-center justify-center rounded-md border border-white/[0.08] bg-bg-elev-2 px-3 py-2 font-mono text-xs text-fg transition-colors hover:border-brand/40 hover:text-brand active:translate-y-[0.5px]"
+              className="bg-bg-elev-2 text-fg hover:border-brand/40 hover:text-brand inline-flex min-h-10 items-center justify-center rounded-md border border-white/[0.08] px-3 py-2 font-mono text-xs transition-colors active:translate-y-[0.5px]"
               title={`Current span: ${widget.span === 1 ? 'Compact' : widget.span === 2 ? 'Wide' : 'Full Width'} (click to cycle)`}
             >
               {widget.span === 1 ? 'Compact' : widget.span === 2 ? 'Wide' : 'Full Width'}

@@ -307,10 +307,7 @@ describe('committee workflow debate round (§3.3, flag-gated)', () => {
     fusionCallOptions: {} as never,
   };
 
-  async function runWorkflow(
-    runId: string,
-    extraDeps: Record<string, unknown> = {},
-  ) {
+  async function runWorkflow(runId: string, extraDeps: Record<string, unknown> = {}) {
     const workflow = createCommitteeWorkflow({ ...baseDeps, ...extraDeps } as never, 'full');
     const run = await workflow.createRun({ runId });
     return (await run.start({

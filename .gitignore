@@ -93,8 +93,10 @@ artifacts/
 !artifacts/licenses/dependency-licenses.json
 .tools/
 
-# AI agent instructions (private)
-AGENTS.md
-AGENTS.*
-CLAUDE.md
+# AI agent local state (keep AGENTS.md and CLAUDE.md tracked!)
+AGENTS.override.md
+CLAUDE.local.md
 .agents/
+.entire/
+.opencode/
+.vercel

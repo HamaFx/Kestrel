@@ -68,9 +68,7 @@ export function closePosition(
   // slippage. Every other exit crosses the book.
   const slip = reason === 'take_profit' ? 0 : state.slippage;
   const exitPrice =
-    current.side === 'long'
-      ? rawExit - state.halfSpread - slip
-      : rawExit + state.halfSpread + slip;
+    current.side === 'long' ? rawExit - state.halfSpread - slip : rawExit + state.halfSpread + slip;
   const exitFee = state.options.commissionPerUnit * current.quantity;
   const gross = signedPnl(
     current.side,

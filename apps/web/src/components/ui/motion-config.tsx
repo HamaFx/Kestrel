@@ -47,10 +47,7 @@ export const MOTION_PRESETS = {
 export function MotionRoot({ children }: MotionRootProps) {
   return (
     <LazyMotion features={domAnimation} strict>
-      <MotionConfig
-        transition={MOTION_PRESETS.panel}
-        reducedMotion="user"
-      >
+      <MotionConfig transition={MOTION_PRESETS.panel} reducedMotion="user">
         {children}
       </MotionConfig>
     </LazyMotion>

@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
+import { describe, expect, it } from 'vitest';
+
 import {
   assertRegisteredSystemAction,
   buildMutationInput,
   classifyMutationRequest,
   MutationExtractionError,
 } from '../src/mastra-v2';
-import { describe, expect, it } from 'vitest';
 
 describe('classifyMutationRequest', () => {
   it('detects alert intents', () => {

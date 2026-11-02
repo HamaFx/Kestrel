@@ -18,6 +18,7 @@
 // and the dead letters that replaced silent failed-job deletion. No database:
 // the pg-boss client is a fake.
 
+import type * as DbQueueModule from '@kestrel/db/queue';
 import {
   BACKTEST_RUN_DLQ,
   BACKTEST_RUN_QUEUE,
@@ -74,7 +75,7 @@ function fakeBoss(
 }
 
 vi.mock('@kestrel/db/queue', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/db/queue')>();
+  const actual = await importOriginal<typeof DbQueueModule>();
   return {
     ...actual,
     getQueue: vi.fn(async () =>

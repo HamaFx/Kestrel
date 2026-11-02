@@ -131,7 +131,11 @@ export {
 } from '../mastra-v2/planning/execution-decision';
 
 // Canonical Mastra routing and historical opinion persistence.
-export { resolveMode, type AnalysisMode, type ResolvedMode } from '../mastra-v2/planning/routing-policy';
+export {
+  resolveMode,
+  type AnalysisMode,
+  type ResolvedMode,
+} from '../mastra-v2/planning/routing-policy';
 export {
   saveAgentOpinions,
   saveAgentOpinionsBestEffort,

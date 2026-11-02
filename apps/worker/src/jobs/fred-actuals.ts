@@ -22,12 +22,16 @@
 //   2. When `FRED_API_KEY` is configured, also backfills any legacy `fred:*`
 //      rows whose `actual` is still null.
 
-import * as ai from '@kestrel/ai';
+import {
+  listFredEventsMissingActual,
+  parseFredEventId,
+  patchEventActual,
+  upsertEvents,
+} from '@kestrel/ai';
 import * as data from '@kestrel/data';
 
 import type { JobContext, JobResult } from './types.js';
 
-const { listFredEventsMissingActual, parseFredEventId, patchEventActual } = ai;
 const { fetchObservations, fredMeta } = data.fred;
 
 /** Look-back window for the observation query (FRED is sometimes late). */
@@ -40,14 +44,14 @@ export async function runFredActuals(ctx: JobContext): Promise<JobResult> {
   let biquoteUpserted = 0;
 
   // Step 1: Zero-key BiQuote calendar refresh when wired in runtime
-  if (typeof data.fetchUpcomingEvents === 'function' && typeof ai.upsertEvents === 'function') {
+  if (typeof data.fetchUpcomingEvents === 'function' && typeof upsertEvents === 'function') {
     try {
       const events = await data.fetchUpcomingEvents({
         fromMs: now - LOOKBACK_DAYS * DAY_MS,
         toMs: now + 14 * DAY_MS,
         ...(ctx.signal ? { signal: ctx.signal } : {}),
       });
-      const { inserted } = await ai.upsertEvents(events);
+      const { inserted } = await upsertEvents(events);
       biquoteUpserted = inserted;
       log.info('biquote calendar actuals refreshed', {
         fetched: events.length,

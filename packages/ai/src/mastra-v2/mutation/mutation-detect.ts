@@ -27,8 +27,8 @@
  * was not really a mutation. Matches are case-insensitive word/phrase checks.
  */
 
-import { MutationKindSchema, type MutationKind } from '../workflows/mutation';
 import type { JevTurnRoutingDecision } from '../../jev/turn-router';
+import { MutationKindSchema, type MutationKind } from '../workflows/mutation';
 
 const PATTERNS: Record<MutationKind, RegExp> = {
   set_alert:

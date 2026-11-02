@@ -79,11 +79,7 @@ export function computeRegimeOutcomeFromCandles(
   const mfePct = Number((((maxClose - entry) / entry) * 100).toFixed(2));
   const maePct = Number((((minClose - entry) / entry) * 100).toFixed(2));
   const resolution4h: RegimeOutcome4h['resolution4h'] =
-    Math.abs(exit - entry) <= entry * RANGE_BAND
-      ? 'range'
-      : exit > entry
-        ? 'bullish'
-        : 'bearish';
+    Math.abs(exit - entry) <= entry * RANGE_BAND ? 'range' : exit > entry ? 'bullish' : 'bearish';
   return { resolution4h, mfePct, maePct };
 }
 

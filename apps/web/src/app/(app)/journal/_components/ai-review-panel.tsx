@@ -128,24 +128,24 @@ export function AiReviewPanel({ entries }: AiReviewPanelProps) {
             ))}
           </select>
           <Button
-          size="sm"
-          variant="secondary"
-          onClick={generateReview}
-          loading={loading}
-          disabled={loading}
-          className="shrink-0"
-        >
-          {review ? (
-            <>
-              <IconRefresh className="size-4" />
-              Regenerate
-            </>
-          ) : (
-            <>
-              <IconBolt className="size-4" />
-              Generate Review
-            </>
-          )}
+            size="sm"
+            variant="secondary"
+            onClick={generateReview}
+            loading={loading}
+            disabled={loading}
+            className="shrink-0"
+          >
+            {review ? (
+              <>
+                <IconRefresh className="size-4" />
+                Regenerate
+              </>
+            ) : (
+              <>
+                <IconBolt className="size-4" />
+                Generate Review
+              </>
+            )}
           </Button>
         </div>
       </div>

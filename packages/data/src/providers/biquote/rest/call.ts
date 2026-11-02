@@ -20,8 +20,8 @@
 
 import { z } from 'zod';
 
-import { noteBackoff, tryReserve, type ThrottleConfig } from '../../../cache/throttle';
-import { ProviderError } from '../../../errors';
+import { noteBackoff, tryReserve, type ThrottleConfig } from '@data/cache/throttle';
+import { ProviderError } from '@data/errors';
 
 export const PROVIDER = 'biquote';
 const DEFAULT_BASE_URL = 'https://biquote.io';

@@ -5,10 +5,10 @@
  * Two jobs:
  * 1. Extensionless relative imports (`./foo`, `../bar`) get the Node ESM
  *    `.js` (or `/index.js`) suffix the published package needs.
- * 2. P-02 (audit 2026-10-18) — the intra-package `@ai/*` alias (used in
- *    source for readability) is rewritten back to a relative specifier in
- *    both `.js` and `.d.ts` outputs, so published code/types never expose a
- *    consumer-unresolvable alias.
+ * 2. P-02 (audit 2026-10-18) — the intra-package `@ai/*` and `@data/*`
+ *    aliases (used in source for readability) are rewritten back to a
+ *    relative specifier in both `.js` and `.d.ts` outputs, so published
+ *    code/types never expose a consumer-unresolvable alias.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -37,9 +37,14 @@ function rewriteSpecifier(file, specifier) {
     .replace(/\/([^/]+)\/\1\.js$/, '/$1.js');
 }
 
-/** Map `@ai/<subpath>` onto the built file and return a relative specifier. */
-function rewriteAiSpecifier(file, specifier, { keepJsExtension }) {
-  const rel = specifier.slice('@ai/'.length);
+/** Intra-package aliases that source files may use for readability. */
+const INTRA_PACKAGE_ALIASES = ['@ai/', '@data/'];
+
+/** Map an intra-package alias specifier onto the built file and return a relative specifier. */
+function rewriteAliasSpecifier(file, specifier, { keepJsExtension }) {
+  const alias = INTRA_PACKAGE_ALIASES.find((candidate) => specifier.startsWith(candidate));
+  if (!alias) return specifier;
+  const rel = specifier.slice(alias.length);
   const base = path.join(distDir, rel);
   const candidates = [`${base}.js`, path.join(base, 'index.js')];
   const resolved = candidates.find((candidate) => fs.existsSync(candidate));
@@ -61,8 +66,8 @@ for (const file of files) {
   const isDeclaration = file.endsWith('.d.ts');
   const source = fs.readFileSync(file, 'utf8');
   const rewritten = source.replace(importPattern, (match, prefix, specifier, quote) => {
-    if (specifier.startsWith('@ai/')) {
-      return `${prefix}${rewriteAiSpecifier(file, specifier, { keepJsExtension: !isDeclaration })}${quote}`;
+    if (INTRA_PACKAGE_ALIASES.some((alias) => specifier.startsWith(alias))) {
+      return `${prefix}${rewriteAliasSpecifier(file, specifier, { keepJsExtension: !isDeclaration })}${quote}`;
     }
     if (isDeclaration) return match;
     const next = rewriteSpecifier(file, specifier);

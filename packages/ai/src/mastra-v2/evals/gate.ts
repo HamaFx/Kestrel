@@ -95,10 +95,7 @@ export interface JevRubricCheck {
  * A record with high faithfulness but a hallucinated (low
  * `noHallucination`) or toxic (low `nonToxic`) answer fails here.
  */
-export function checkJevRubricRecord(
-  record: ScoreRecord,
-  minFaithfulness: number,
-): JevRubricCheck {
+export function checkJevRubricRecord(record: ScoreRecord, minFaithfulness: number): JevRubricCheck {
   const failures: string[] = [];
   if (!(record.score >= minFaithfulness)) {
     failures.push(

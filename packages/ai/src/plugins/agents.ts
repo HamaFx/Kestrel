@@ -43,7 +43,4 @@ export {
   type CustomAgentTextArgs,
   type CustomAgentTextResult,
 } from './agent-text-runtime';
-export {
-  buildCustomAgentSubagents,
-  recordCustomAgentRun,
-} from './subagent-delegator';
+export { buildCustomAgentSubagents, recordCustomAgentRun } from './subagent-delegator';

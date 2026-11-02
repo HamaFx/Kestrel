@@ -19,7 +19,8 @@
 // measurement into an apparently grounded number. This suite proves the tool
 // returns nulls and an explicit unavailable note instead.
 
-import { getCandles, getPrice, type PriceResult } from '@kestrel/data';
+import type * as DataModule from '@kestrel/data';
+import type { PriceResult } from '@kestrel/data';
 import type { Candle, Tick } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -29,7 +30,7 @@ import { forecastVolatilityTool } from '../src/tools/forecast-volatility';
 const mocks = vi.hoisted(() => ({ getCandles: vi.fn(), getPrice: vi.fn() }));
 
 vi.mock('@kestrel/data', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/data')>();
+  const actual = await importOriginal<typeof DataModule>();
   return { ...actual, getCandles: mocks.getCandles, getPrice: mocks.getPrice };
 });
 

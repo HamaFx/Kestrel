@@ -60,7 +60,7 @@ export const getSystemDiagnosticsTool: Tool<
     let dbStatus: 'connected' | 'error' = 'connected';
     // R8 (audit 2026-10-31): these are null until the probe actually reads
     // them. A 0 would read as a measured "empty table" instead of "unknown".
-    let latencyMs: number | null = null;
+    let latencyMs: number | null;
 
     let journalEntriesCount: number | null = null;
     let snapshotsCount: number | null = null;

@@ -21,6 +21,7 @@
 // P2-01 removal: the AI SDK shim is gone; this suite now exercises the
 // canonical execute core that the native Mastra registration runs.
 
+import type * as DataModule from '@kestrel/data';
 import type { PriceResult } from '@kestrel/data';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -43,7 +44,7 @@ const exec = executeCanonicalPrice as unknown as (input: { symbols: string[] }) 
 const mockGetPrice = vi.fn();
 
 vi.mock('@kestrel/data', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/data')>();
+  const actual = await importOriginal<typeof DataModule>();
   return { ...actual, getPrice: (...args: unknown[]) => mockGetPrice(...args) };
 });
 

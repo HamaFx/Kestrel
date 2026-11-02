@@ -6,6 +6,7 @@ These are the active documentation files for the private self-hosted multi-user 
 | --------------------------------- | -------------------------------------------------------------------------- |
 | [Configuration](configuration.md) | Environment variables, defaults, secrets, and feature flags                |
 | [Design System](design-system.md) | Kestrel design system, typography, tactile tokens, and showcase components |
+| [Roadmaps](roadmaps/README.md)    | Deep maintainability audit and 4-phase AI-agent implementation plans       |
 
 Repository-level policy and status documents:
 

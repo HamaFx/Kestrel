@@ -21,6 +21,7 @@
 // P2-01 removal: the AI SDK shim is gone; this suite now exercises the
 // canonical execute core that the native Mastra registration runs.
 
+import type * as DataModule from '@kestrel/data';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { executeCanonicalCandles } from '../src/mastra-v2/tools/canonical/candles';
@@ -46,7 +47,7 @@ const exec = executeCanonicalCandles as unknown as (input: {
 const mockGetCandles = vi.fn();
 
 vi.mock('@kestrel/data', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/data')>();
+  const actual = await importOriginal<typeof DataModule>();
   return { ...actual, getCandles: (...args: unknown[]) => mockGetCandles(...args) };
 });
 
