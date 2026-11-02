@@ -20,12 +20,17 @@
 // Imported by each domain file to avoid circular dependencies and duplication.
 
 import { getUserPasswordHash } from '@kestrel/db';
+import { decryptSecret } from '@kestrel/shared/encryption';
 import bcrypt from 'bcryptjs';
+import { verifySync } from 'otplib';
 
 export const NAME_MIN = 1;
 export const NAME_MAX = 80;
 
 export type ActionResult<T = void> = { ok: true; data?: T } | { ok: false; error: string };
+
+/** The failure arm of {@link ActionResult}, for guards that only fail. */
+export type ActionFailure = { ok: false; error: string };
 
 export type SaveKeysResult =
   | { status: 'idle' }
@@ -42,4 +47,29 @@ export async function verifyAccountPassword(userId: string, password: string): P
   const hashedPassword = await getUserPasswordHash(userId);
   if (!hashedPassword) return false;
   return bcrypt.compare(password, hashedPassword);
+}
+
+/**
+ * Enforce the account's TOTP gate when 2FA is enabled.
+ *
+ * Returns `null` when the action may proceed (2FA disabled, or a valid code
+ * was supplied) and a failed `ActionResult` otherwise. Every sensitive
+ * settings action (data export, key transfer, password change, account
+ * deletion) uses this one check so the messages and validity window cannot
+ * drift between them.
+ */
+export function verifyUserTwoFactorIfEnabled(
+  user: { twoFactorEnabled?: boolean | null; twoFactorSecret?: string | null },
+  code: string | undefined,
+  missingMessage = '2FA code is required',
+): ActionFailure | null {
+  if (!user.twoFactorEnabled) return null;
+  if (!code || code.length !== 6) return { ok: false, error: missingMessage };
+  if (!user.twoFactorSecret) return { ok: false, error: 'Invalid 2FA code' };
+
+  const secret = decryptSecret(user.twoFactorSecret);
+  if (!secret || !verifySync({ secret, token: code }).valid) {
+    return { ok: false, error: 'Invalid 2FA code' };
+  }
+  return null;
 }

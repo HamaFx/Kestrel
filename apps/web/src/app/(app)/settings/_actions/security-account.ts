@@ -26,14 +26,12 @@
 // Unscoped under `kestrel_app` each DELETE would silently match zero rows, so
 // the purge runs inside `withUserTenant`. The `user` read before it has no RLS.
 import { deleteUserAccount, getDb, schema, withRateLimit, withUserTenant } from '@kestrel/db';
-import { decryptSecret } from '@kestrel/shared/encryption';
 import { eq } from 'drizzle-orm';
-import { verifySync } from 'otplib';
 
 import { auth, signOut } from '@/auth';
 import { logActionError } from '@/lib/http/action-errors';
 
-import { verifyAccountPassword, type ActionResult } from './shared';
+import { verifyAccountPassword, verifyUserTwoFactorIfEnabled, type ActionResult } from './shared';
 
 /**
  * P1-4: Soft-delete user account. Sets deletedAt, bumps tokenVersion to
@@ -64,15 +62,8 @@ export async function deleteAccountAction(
     .from(schema.users)
     .where(eq(schema.users.id, session.user.id));
 
-  if (user?.twoFactorEnabled) {
-    if (!totpCode) {
-      return { ok: false as const, error: '2FA code is required' };
-    }
-    const decryptedSecret = user.twoFactorSecret ? decryptSecret(user.twoFactorSecret) : null;
-    if (!decryptedSecret || !verifySync({ secret: decryptedSecret, token: totpCode }).valid) {
-      return { ok: false as const, error: 'Invalid 2FA code' };
-    }
-  }
+  const twoFactorError = verifyUserTwoFactorIfEnabled(user ?? {}, totpCode);
+  if (twoFactorError) return twoFactorError;
 
   const passwordValid = await verifyAccountPassword(session.user.id, password);
   if (!passwordValid) {

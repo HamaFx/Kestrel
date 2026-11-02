@@ -26,16 +26,14 @@
 // `audit_logs`, which is tenant-scoped — that insert runs inside
 // `withUserTenant`.
 import { createAuditLog, getDb, schema, withUserTenant } from '@kestrel/db';
-import { decryptSecret } from '@kestrel/shared/encryption';
 import bcrypt from 'bcryptjs';
 import { eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { verifySync } from 'otplib';
 
 import { auth } from '@/auth';
 import { passwordSchema } from '@/lib/http/validation';
 
-import { verifyAccountPassword, type ActionResult } from './shared';
+import { verifyAccountPassword, verifyUserTwoFactorIfEnabled, type ActionResult } from './shared';
 
 /**
  * LOW-04: Change account password.
@@ -60,13 +58,8 @@ export async function changePasswordAction(
     .from(schema.users)
     .where(eq(schema.users.id, session.user.id));
 
-  if (user?.twoFactorEnabled) {
-    if (!totpCode) return { ok: false, error: '2FA code is required' };
-    const secret = user.twoFactorSecret ? decryptSecret(user.twoFactorSecret) : null;
-    if (!secret || !verifySync({ secret, token: totpCode }).valid) {
-      return { ok: false, error: 'Invalid 2FA code' };
-    }
-  }
+  const twoFactorError = verifyUserTwoFactorIfEnabled(user ?? {}, totpCode);
+  if (twoFactorError) return twoFactorError;
 
   const parsedPassword = passwordSchema.safeParse(newPassword);
   if (!parsedPassword.success) {

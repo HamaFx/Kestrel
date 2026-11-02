@@ -23,15 +23,13 @@
 // data-export-payload.ts.
 import { getDb } from '@kestrel/ai';
 import { schema, withRateLimit } from '@kestrel/db';
-import { decryptSecret } from '@kestrel/shared/encryption';
 import { eq } from 'drizzle-orm';
-import { verifySync } from 'otplib';
 
 import { auth } from '@/auth';
 import { logActionError } from '@/lib/http/action-errors';
 
 import { buildUserDataExport } from './data-export-payload';
-import { verifyAccountPassword, type ActionResult } from './shared';
+import { verifyAccountPassword, verifyUserTwoFactorIfEnabled, type ActionResult } from './shared';
 
 export async function exportDataAction(
   password?: string,
@@ -57,15 +55,12 @@ export async function exportDataAction(
     .from(schema.users)
     .where(eq(schema.users.id, session.user.id));
 
-  if (user?.twoFactorEnabled) {
-    if (!totpCode) {
-      return { ok: false as const, error: '2FA code is required to export your data' };
-    }
-    const decryptedSecret = user.twoFactorSecret ? decryptSecret(user.twoFactorSecret) : null;
-    if (!decryptedSecret || !verifySync({ secret: decryptedSecret, token: totpCode }).valid) {
-      return { ok: false as const, error: 'Invalid 2FA code' };
-    }
-  }
+  const twoFactorError = verifyUserTwoFactorIfEnabled(
+    user ?? {},
+    totpCode,
+    '2FA code is required to export your data',
+  );
+  if (twoFactorError) return twoFactorError;
 
   const passwordValid = await verifyAccountPassword(session.user.id, password);
   if (!passwordValid) {
