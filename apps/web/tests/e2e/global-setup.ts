@@ -74,7 +74,6 @@ export default function globalSetup() {
     if (process.env.E2E_ALLOW_STALE_SCHEMA === '1') {
       // Explicit local escape hatch — the operator asserts the schema is
       // current and merely needs to bypass an unreachable migration channel.
-      // eslint-disable-next-line no-console
       console.warn(
         `[global-setup] migrations failed but E2E_ALLOW_STALE_SCHEMA=1 is set — proceeding against a possibly-stale schema.\n${detail}`,
       );
@@ -84,6 +83,7 @@ export default function globalSetup() {
     throw new Error(
       `[global-setup] drizzle-kit migrate failed; refusing to run E2E against a possibly-stale schema.\n` +
         `Run \`pnpm --filter @kestrel/db migrate:apply\` manually, or set E2E_ALLOW_STALE_SCHEMA=1 to override (local development only).\n${detail}`,
+      { cause: migrateErr },
     );
   }
 }

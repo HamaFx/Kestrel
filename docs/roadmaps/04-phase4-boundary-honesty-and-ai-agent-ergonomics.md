@@ -1,6 +1,8 @@
 # Phase 4: Boundary Honesty, Canonical Tool Wiring & AI Agent Ergonomics Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Status:** Complete. Implemented and verified on 2026-11-02.
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Eliminate pass-through "service theater" in `apps/web/src/lib/services/` and `apps/worker/src/`, stop re-exporting `getDb` from `@kestrel/ai`, promote ESLint `no-restricted-imports` to `'error'` across all `src/app/api/**/*.ts` files, fix `setupCanonicalChat` tool filtering so all built tools (`analyze_chart_image`, `annotate_chart`, `get_journal_stats`, `compute_position_health`, `replay_setup`) actually reach the agent when their capability is active, and upgrade `.claude/settings.json` + `AGENTS.md` for future AI coding sessions.
 
@@ -42,20 +44,20 @@
 - Modify: `apps/worker/src/jobs/outcomes.ts`
 - Modify: `apps/worker/src/jobs/weekly-review.ts`
 
-- [ ] **Step 1: Update all 18 files in `apps/web` and `apps/worker` to import `getDb` from `@kestrel/db` instead of `@kestrel/ai`**
+- [x] **Step 1: Update all 18 files in `apps/web` and `apps/worker` to import `getDb` from `@kestrel/db` instead of `@kestrel/ai`**
 
 In each listed file, move `getDb` from the `@kestrel/ai` import specifier to the `@kestrel/db` import specifier (removing the `@kestrel/ai` import altogether in files like `apps/web/src/lib/auth/*` where `getDb` was the only symbol imported from `@kestrel/ai`).
 
-- [ ] **Step 2: Remove `export { getDb } from '../runtime/db';` from `packages/ai/src/barrels/runtime.ts`**
+- [x] **Step 2: Remove `export { getDb } from '../runtime/db';` from `packages/ai/src/barrels/runtime.ts`**
 
 Keep `getDb` internal to `packages/ai/src/` (`packages/ai/src/runtime/db.ts`).
 
-- [ ] **Step 3: Run typecheck and tests across the monorepo**
+- [x] **Step 3: Run typecheck and tests across the monorepo**
 
 Run: `pnpm typecheck && pnpm test`
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/ai/src/barrels/runtime.ts apps/web apps/worker
@@ -96,31 +98,31 @@ git commit -m "refactor(db,ai): import getDb from @kestrel/db in web/worker and 
 - Modify: `apps/web/src/app/api/journal/import/route.ts`
 - Modify: `packages/config/eslint/index.js`
 
-- [ ] **Step 1: Move the remaining raw Drizzle queries out of `app/api/**` into `apps/web/src/lib/services/{admin,settings,journal}` and delete `apps/web/src/lib/services/db.ts`**
+- [x] **Step 1: Move the remaining raw Drizzle queries out of `app/api/**` into `apps/web/src/lib/services/{admin,settings,journal}` and delete `apps/web/src/lib/services/db.ts`**
 
 1. Move the `mastraWorkflowRuns` query in `apps/web/src/app/api/admin/mastra-runs/route.ts` and the platform-config helpers in `apps/web/src/app/api/admin/platform-config/_lib/*.ts` into `apps/web/src/lib/services/admin.ts`.
 2. Move the `usage-by-agent` aggregation query in `apps/web/src/app/api/settings/usage-by-agent/route.ts` into `apps/web/src/lib/services/settings/index.ts` (`getUsageByAgent(userId, period)`).
 3. Move the batch journal insert in `apps/web/src/app/api/journal/import/route.ts` into `apps/web/src/lib/services/journal/index.ts` (`importJournalEntriesForUser(userId, trades)`).
 4. Delete `apps/web/src/lib/services/db.ts`.
 
-- [ ] **Step 2: Delete the 5 pass-through shim files in `apps/worker/src/` and `apps/web/src/lib/services/mastra/` and update their callers**
+- [x] **Step 2: Delete the 5 pass-through shim files in `apps/worker/src/` and `apps/web/src/lib/services/mastra/` and update their callers**
 
 1. Delete `apps/worker/src/jobs/multi-agent-analysis.ts` and `apps/worker/src/signalr/consumer.ts` (Node/TS resolves `./multi-agent-analysis/index.js` and `./consumer/index.js` directly).
 2. Delete `apps/web/src/lib/services/mastra/{mutation-handler,stream-adapter,chat-orchestrator}.ts` and update imports to point to `./mutation/mastra-mutation-draft`, `./stream/mastra-stream-adapter`, and `./orchestrator/mastra-chat-orchestrator` (or `mastra/index.ts`).
 
-- [ ] **Step 3: Promote `no-restricted-imports` in `packages/config/eslint/index.js` to `'error'` and cover `src/app/api/**/*.ts`**
+- [x] **Step 3: Promote `no-restricted-imports` in `packages/config/eslint/index.js` to `'error'` and cover `src/app/api/**/*.ts`**
 
 In `packages/config/eslint/index.js`:
 
 - Change `'no-restricted-imports': ['warn', ...]` to `'no-restricted-imports': ['error', ...]`.
 - Change `files: ['src/app/api/**/route.ts']` to `files: ['src/app/api/**/*.ts']` (excluding `@kestrel/shared` type/schema imports if desired, or routing through `@/lib/services/*`).
 
-- [ ] **Step 4: Run `pnpm lint`, `pnpm typecheck`, and `pnpm test`**
+- [x] **Step 4: Run `pnpm lint`, `pnpm typecheck`, and `pnpm test`**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test`
 Expected: PASS with 0 errors and 0 warnings.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A packages/config/eslint apps/web apps/worker
@@ -144,7 +146,7 @@ git commit -m "refactor(web,worker,eslint): remove services/db loophole and pass
 - Modify: `packages/ai/src/mastra-v2/planning/execution-routes.ts`
 - Test: `packages/ai/test/mastra-v2-capabilities.test.ts`
 
-- [ ] **Step 1: Add the 5 read-only tools to `CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES` and map them in `MASTRA_CAPABILITIES`**
+- [x] **Step 1: Add the 5 read-only tools to `CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES` and map them in `MASTRA_CAPABILITIES`**
 
 1. In `packages/ai/src/mastra-v2/tools/names.ts`:
    - Add `'analyze_chart_image'`, `'annotate_chart'`, `'get_journal_stats'`, `'compute_position_health'`, and `'replay_setup'` to `CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES`.
@@ -153,7 +155,7 @@ git commit -m "refactor(web,worker,eslint): remove services/db loophole and pass
 3. In `packages/ai/src/mastra-v2/planning/execution-routes.ts`:
    - Route user-journal / alert-status / position-health read queries (or `domains` containing `'summary'` with journal/alert read intent) to include `'sensitive-user-read'` tools when `userId` is authenticated.
 
-- [ ] **Step 2: Add an invariant test in `packages/ai/test/mastra-v2-capabilities.test.ts` asserting every tool in `nativeCanonicalTools()` is reachable via `READ_ONLY_TOOL_NAMES` and `MASTRA_CAPABILITIES`**
+- [x] **Step 2: Add an invariant test in `packages/ai/test/mastra-v2-capabilities.test.ts` asserting every tool in `nativeCanonicalTools()` is reachable via `READ_ONLY_TOOL_NAMES` and `MASTRA_CAPABILITIES`**
 
 ```ts
 it('ensures every tool in nativeCanonicalTools() is in READ_ONLY_TOOL_NAMES and at least one capability', () => {
@@ -169,12 +171,12 @@ it('ensures every tool in nativeCanonicalTools() is in READ_ONLY_TOOL_NAMES and 
 });
 ```
 
-- [ ] **Step 3: Run `@kestrel/ai` tests and typecheck**
+- [x] **Step 3: Run `@kestrel/ai` tests and typecheck**
 
 Run: `pnpm --filter @kestrel/ai test && pnpm --filter @kestrel/ai typecheck`
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/ai/src/mastra-v2/ packages/ai/test/mastra-v2-capabilities.test.ts
@@ -198,11 +200,11 @@ git commit -m "fix(ai): wire all 32 canonical read-only tools into READ_ONLY_TOO
 - Modify: `apps/web/AGENTS.md`
 - Modify: `scripts/maintainability-baseline.json`
 
-- [ ] **Step 1: Add a fast deterministic `PostToolUse` format/lint check hook to `.claude/settings.json` alongside existing hooks**
+- [x] **Step 1: Add a fast deterministic `PostToolUse` format/lint check hook to `.claude/settings.json` alongside existing hooks**
 
 In `.claude/settings.json`, add a `PostToolUse` matcher for `Edit|Write` that runs `prettier --write` on the modified file so AI agent edits never fail `pnpm format:check` in CI.
 
-- [ ] **Step 2: Update `AGENTS.md`, `packages/ai/AGENTS.md`, and `apps/web/AGENTS.md` to reflect the cleaned architecture**
+- [x] **Step 2: Update `AGENTS.md`, `packages/ai/AGENTS.md`, and `apps/web/AGENTS.md` to reflect the cleaned architecture**
 
 1. In `packages/ai/AGENTS.md`:
    - Document that `nativeCanonicalTools()` (`src/mastra-v2/tools/canonical/index.ts`) is the **single** tool registry and `runMastraMutationTurn` is the **single** mutation path.
@@ -211,18 +213,30 @@ In `.claude/settings.json`, add a `PostToolUse` matcher for `Edit|Write` that ru
    - Document that all Server Components and Server Actions calling `@kestrel/db` or `@kestrel/ai` DB functions must wrap execution in `withUserTenantRead(userId, ...)` or `withUserTenant(userId, ...)`.
    - Document that `src/lib/services/*` must contain real domain orchestration, never 1-line re-exports of `@kestrel/db`.
 
-- [ ] **Step 3: Ratchet down `scripts/maintainability-baseline.json` to match the post-cleanup file counts**
+- [x] **Step 3: Ratchet down `scripts/maintainability-baseline.json` to match the post-cleanup file counts**
 
 Run `pnpm check:maintainability`, read the new lower `files` and `over300Lines` counts for `apps/web`, `apps/worker`, `packages/ai`, `packages/db`, and `packages/shared`, and lower `maxFiles` and `over300Lines` in `scripts/maintainability-baseline.json` to lock in the gains.
 
-- [ ] **Step 4: Run the full repository verification suite**
+- [x] **Step 4: Run the full repository verification suite**
 
 Run: `pnpm typecheck && pnpm lint && pnpm format:check && pnpm check:maintainability && pnpm check:knip && pnpm test`
 Expected: ALL GREEN.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add .claude/settings.json AGENTS.md packages/ai/AGENTS.md apps/web/AGENTS.md scripts/maintainability-baseline.json
 git commit -m "chore(agents): add deterministic PostToolUse formatting hook, update AGENTS.md, and ratchet maintainability baseline"
 ```
+
+---
+
+## Completion notes (2026-11-02)
+
+- `getDb` is imported from `@kestrel/db` across `apps/web` and `apps/worker`; `@kestrel/ai` no longer re-exports it.
+- `apps/web/src/lib/services/db.ts` and the five pass-through shims are deleted. Admin, health, settings, journal, platform-config, and mutation-executor queries now live in domain services.
+- Canonical tool wiring keeps the three user-scoped reads in `SENSITIVE_USER_READ_TOOL_NAMES` and grants them per turn through `sensitive-user-read`, instead of adding them to the public allowlist. The invariant test covers every native read-only tool.
+- ESLint `no-restricted-imports` is an error for every `src/app/api/**/*.ts` file.
+- Both `.claude/settings.json` and `.codex/hooks.json` run the shared `scripts/format-edited-files.mjs` PostToolUse formatter.
+- The generic `Container` was removed. Disposable-Postgres tests use `setDbForTest()` from `@kestrel/db`.
+- The maintainability baseline was already empty, so no ratchet entries needed lowering.

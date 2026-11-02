@@ -22,14 +22,7 @@
 // verification that the correct mode is sent in the request body.
 // ---------------------------------------------------------------------------
 
-import {
-  expect,
-  FULL_MODE_SSE,
-  QUICK_MODE_SSE,
-  SINGLE_MODE_SSE,
-  STANDARD_MODE_SSE,
-  test,
-} from './fixtures';
+import { expect, FULL_MODE_SSE, SINGLE_MODE_SSE, test } from './fixtures';
 import { selectAnalysisMode } from './test-utils';
 
 test.describe('Multi-Agent Chat', () => {

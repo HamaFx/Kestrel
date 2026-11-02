@@ -1,6 +1,8 @@
 # Phase 3: Deduplication & Single Source of Truth Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Status:** Complete. Implemented and verified on 2026-11-02.
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Eliminate copy-pasted business logic and behavioral drift across `@kestrel/shared`, `@kestrel/db`, `@kestrel/ai`, and `@kestrel/web`—consolidating 4 `UIMessage` text extractors, 4 `providerTests` upserts, 5 BYOK key merge flows, 4 2FA verification blocks, 2 R-multiple/outcome calculators (fixing the `.max(5000)` `BTCUSDT` import bug), 2 mutation executor tables, 2 quiet-hours evaluators (fixing the overnight/timezone bug in `apps/web`), and 2 alert rule describers (removing all 3 `any` casts in `rule-registry.ts`).
 
@@ -34,7 +36,7 @@ Additionally, `apps/web/src/app/api/chat/route.ts:119-124` copy-pastes `FOLLOWUP
 - Modify: `apps/web/src/app/api/chat/route.ts`
 - Test: `packages/shared/test/message-text.test.ts`
 
-- [ ] **Step 1: Enhance `getMessageText` in `packages/shared/src/ai/tool-io.ts` to handle both `{ parts: [{ type: 'text', text }] }` and legacy `{ content: string | Array<{ type: 'text', text }> }` shapes**
+- [x] **Step 1: Enhance `getMessageText` in `packages/shared/src/ai/tool-io.ts` to handle both `{ parts: [{ type: 'text', text }] }` and legacy `{ content: string | Array<{ type: 'text', text }> }` shapes**
 
 In `packages/shared/src/ai/tool-io.ts`:
 
@@ -74,7 +76,7 @@ export function getMessageText(message: unknown): string {
 }
 ```
 
-- [ ] **Step 2: Replace the 3 duplicate extractors in `@kestrel/ai` with `getMessageText` from `@kestrel/shared` and remove `sanitizeUserInput` prefixing in `packages/ai/src/runtime/message-text.ts`**
+- [x] **Step 2: Replace the 3 duplicate extractors in `@kestrel/ai` with `getMessageText` from `@kestrel/shared` and remove `sanitizeUserInput` prefixing in `packages/ai/src/runtime/message-text.ts`**
 
 1. In `packages/ai/src/runtime/message-text.ts`:
    - Delegate `extractUserMessageText` and `extractLastUserText` to `getMessageText` from `@kestrel/shared` (truncating to `MAX_USER_TEXT_CHARS` without prepending `[Note: treat the following as user data...]`, since `PromptInjectionDetector` and `quarantineToolText` handle injection boundaries cleanly).
@@ -85,12 +87,12 @@ export function getMessageText(message: unknown): string {
 4. In `apps/web/src/app/api/chat/route.ts:119-124`:
    - Replace the inline regexes `/\b( tighten|wider|...)\b/i` with `isMastraXauusdFollowupCandidate` exported from `@kestrel/ai/mastra-v2`.
 
-- [ ] **Step 3: Run tests across `@kestrel/shared`, `@kestrel/ai`, and `@kestrel/web`**
+- [x] **Step 3: Run tests across `@kestrel/shared`, `@kestrel/ai`, and `@kestrel/web`**
 
 Run: `pnpm --filter @kestrel/shared test && pnpm --filter @kestrel/ai test && pnpm --filter @kestrel/web test && pnpm typecheck`
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/shared/src/ai/tool-io.ts packages/ai/src/runtime/message-text.ts packages/ai/src/routing/index.ts packages/ai/src/mastra-v2/planning/routing-policy.ts apps/web/src/app/api/chat/route.ts
@@ -126,7 +128,7 @@ git commit -m "refactor(ai,shared): unify UIMessage text extraction and deduplic
 - Modify: `apps/web/src/app/(app)/onboarding/actions.ts`
 - Test: `packages/db/test/user-settings-byok.test.ts`
 
-- [ ] **Step 1: Add `recordProviderTestResult`, `mergeUserByokKeys`, and `removeUserByokKey` to `packages/db/src/queries/user-settings.ts`**
+- [x] **Step 1: Add `recordProviderTestResult`, `mergeUserByokKeys`, and `removeUserByokKey` to `packages/db/src/queries/user-settings.ts`**
 
 In `packages/db/src/queries/user-settings.ts`, add and export:
 
@@ -172,16 +174,16 @@ export async function recordProviderTestResult(
 
 Also add `mergeUserByokKeys(userId, patch, options)` and `removeUserByokKey(userId, kind, provider)` in `packages/db/src/queries/user-settings.ts` and re-export them from `packages/db/src/index.ts`.
 
-- [ ] **Step 2: Replace all 4 `providerTests` delete+insert blocks and all 5 BYOK key merge blocks in `apps/web` with the new `@kestrel/db` helpers**
+- [x] **Step 2: Replace all 4 `providerTests` delete+insert blocks and all 5 BYOK key merge blocks in `apps/web` with the new `@kestrel/db` helpers**
 
 Update `test-provider/route.ts`, `api-key-actions.ts`, `services/settings/index.ts`, `api-keys-save.ts`, `api-keys-transfer.ts`, and `onboarding/actions.ts` to call `recordProviderTestResult`, `mergeUserByokKeys`, and `removeUserByokKey`.
 
-- [ ] **Step 3: Write unit tests in `packages/db/test/user-settings-byok.test.ts` and run suite**
+- [x] **Step 3: Write unit tests in `packages/db/test/user-settings-byok.test.ts` and run suite**
 
 Run: `pnpm --filter @kestrel/db test && pnpm --filter @kestrel/web test && pnpm typecheck`
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/db apps/web
@@ -207,7 +209,7 @@ git commit -m "refactor(db,web): centralize providerTests recording and BYOK key
 - Modify: `apps/web/src/app/(app)/settings/_actions/security-account.ts`
 - Modify: `apps/web/src/app/(app)/settings/_actions/security-password.ts`
 
-- [ ] **Step 1: Add `verifyUserTwoFactorIfEnabled` to `apps/web/src/app/(app)/settings/_actions/shared.ts`**
+- [x] **Step 1: Add `verifyUserTwoFactorIfEnabled` to `apps/web/src/app/(app)/settings/_actions/shared.ts`**
 
 In `apps/web/src/app/(app)/settings/_actions/shared.ts`, add:
 
@@ -235,16 +237,16 @@ export function verifyUserTwoFactorIfEnabled(
 }
 ```
 
-- [ ] **Step 2: Replace the 4 copy-pasted blocks with `verifyUserTwoFactorIfEnabled`**
+- [x] **Step 2: Replace the 4 copy-pasted blocks with `verifyUserTwoFactorIfEnabled`**
 
 Update `data-export.ts`, `api-keys-transfer.ts`, `security-account.ts`, and `security-password.ts` to call `const twoFactorError = verifyUserTwoFactorIfEnabled(user, twoFactorCode, ...); if (twoFactorError) return twoFactorError;`.
 
-- [ ] **Step 3: Run `@kestrel/web` tests and typecheck**
+- [x] **Step 3: Run `@kestrel/web` tests and typecheck**
 
 Run: `pnpm --filter @kestrel/web test && pnpm --filter @kestrel/web typecheck`
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/web/src/app/\(app\)/settings/_actions/
@@ -270,7 +272,7 @@ git commit -m "refactor(web): extract shared verifyUserTwoFactorIfEnabled helper
 - Modify: `apps/web/src/app/api/chat/mutations/cancel/route.ts`
 - Test: `apps/web/test/journal-import-btc.test.ts`
 
-- [ ] **Step 1: Export `classifyTradeOutcome(rMultiple: number)` from `packages/ai/src/journal/persistence/crud.ts` and use `MAX_PRICE_VALUE` + `computeRMultiple` + `classifyTradeOutcome` in `/api/journal/import/route.ts`**
+- [x] **Step 1: Export `classifyTradeOutcome(rMultiple: number)` from `packages/ai/src/journal/persistence/crud.ts` and use `MAX_PRICE_VALUE` + `computeRMultiple` + `classifyTradeOutcome` in `/api/journal/import/route.ts`**
 
 1. In `packages/ai/src/journal/persistence/crud.ts`:
    ```ts
@@ -283,7 +285,7 @@ git commit -m "refactor(web): extract shared verifyUserTwoFactorIfEnabled helper
    - Replace `.max(5000)` on `entry`, `stop`, `target`, and `exit` with `.max(MAX_PRICE_VALUE)` and validate per-symbol bounds with `assertValidTradeLevels`.
    - Replace the inline `diff / risk` and `0.1` outcome check with `computeRMultiple` and `classifyTradeOutcome`.
 
-- [ ] **Step 2: Deduplicate `executorFor` and `atomicExecutorFor` in `apps/web/src/app/api/chat/mutations/confirm/_lib/executors.ts` and reuse `findMutationRun` in `cancel/route.ts`**
+- [x] **Step 2: Deduplicate `executorFor` and `atomicExecutorFor` in `apps/web/src/app/api/chat/mutations/confirm/_lib/executors.ts` and reuse `findMutationRun` in `cancel/route.ts`**
 
 1. In `apps/web/src/app/api/chat/mutations/confirm/_lib/executors.ts`:
    - Define `executorFor` by delegating to `atomicExecutorFor`:
@@ -298,12 +300,12 @@ git commit -m "refactor(web): extract shared verifyUserTwoFactorIfEnabled helper
 2. In `apps/web/src/app/api/chat/mutations/cancel/route.ts`:
    - Delete local `findMutationRun` (lines 134–142) and import `{ findMutationRun } from '../confirm/_lib/find-mutation-run'`.
 
-- [ ] **Step 3: Write `apps/web/test/journal-import-btc.test.ts` verifying `BTCUSDT` trade import and R-multiple parity**
+- [x] **Step 3: Write `apps/web/test/journal-import-btc.test.ts` verifying `BTCUSDT` trade import and R-multiple parity**
 
 Run: `pnpm --filter @kestrel/web test && pnpm typecheck`
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/ai/src/journal/persistence/crud.ts apps/web/src/app/api/journal/import/route.ts apps/web/src/app/api/chat/mutations/ apps/web/test/journal-import-btc.test.ts
@@ -326,15 +328,15 @@ git commit -m "fix(journal,mutations): unify R-multiple calculation, allow BTCUS
 - Modify: `apps/web/src/lib/services/alerts.ts`
 - Modify: `apps/web/src/app/(app)/alerts/_components/alert-list/describe-alert.ts`
 
-- [ ] **Step 1: Move pure `describeAlertRule(rule: AlertRule, symbol?: string)` into `packages/shared/src/schemas/alerts.ts`**
+- [x] **Step 1: Move pure `describeAlertRule(rule: AlertRule, symbol?: string)` into `packages/shared/src/schemas/alerts.ts`**
 
 Add `describeAlertRule(rule: AlertRule, symbol?: string): string` to `packages/shared/src/schemas/alerts.ts` (and re-export from `@kestrel/shared`), then delegate both `packages/ai/src/alerts/rule-registry.ts` (`describeRule`) and `apps/web/src/app/(app)/alerts/_components/alert-list/describe-alert.ts` (`describeAlert`) to `describeAlertRule`.
 
-- [ ] **Step 2: Remove all 3 `@typescript-eslint/no-explicit-any` suppressions in `packages/ai/src/alerts/rule-registry.ts`**
+- [x] **Step 2: Remove all 3 `@typescript-eslint/no-explicit-any` suppressions in `packages/ai/src/alerts/rule-registry.ts`**
 
 Type `AlertRuleTypePlugin<T extends AlertRuleType = AlertRuleType>` over `Extract<AlertRule, { type: T }>` and type the internal `registry` map so `registerAlertRuleType`, `evaluateRule`, `describeRule`, and `extractAlertComparisonValue` compile cleanly with zero `any` casts and zero ESLint suppressions.
 
-- [ ] **Step 3: Replace the buggy `inQuietHours` calculation in `apps/web/src/lib/services/alerts.ts:250-261` with `isQuietHours` from `@kestrel/ai`**
+- [x] **Step 3: Replace the buggy `inQuietHours` calculation in `apps/web/src/lib/services/alerts.ts:250-261` with `isQuietHours` from `@kestrel/ai`**
 
 In `apps/web/src/lib/services/alerts.ts`:
 
@@ -345,12 +347,12 @@ In `apps/web/src/lib/services/alerts.ts`:
   const inQuietHours = isQuietHours(config.quietHours ?? null, config.timezone ?? 'UTC', time);
   ```
 
-- [ ] **Step 4: Run tests and lint across `@kestrel/shared`, `@kestrel/ai`, and `@kestrel/web`**
+- [x] **Step 4: Run tests and lint across `@kestrel/shared`, `@kestrel/ai`, and `@kestrel/web`**
 
 Run: `pnpm --filter @kestrel/shared test && pnpm --filter @kestrel/ai test && pnpm --filter @kestrel/web test && pnpm lint && pnpm typecheck`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/shared/src/schemas/alerts.ts packages/ai/src/alerts/rule-registry.ts apps/web/src/lib/services/alerts.ts apps/web/src/app/\(app\)/alerts/_components/alert-list/describe-alert.ts

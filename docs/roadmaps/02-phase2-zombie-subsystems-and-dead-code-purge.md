@@ -1,6 +1,8 @@
 # Phase 2: Zombie Subsystems & Dead Code Purge Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Status:** Complete. Implemented and verified on 2026-11-02.
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Purge ~2,500+ lines of dead code, zombie subsystems, and phantom tools left behind by earlier AI migrations (`VercelLlmClient`, legacy mutation tools, `withTelemetry` + `toolTelemetryBuffer`, `ToolRegistry` and its circular dependency with `mastra-v2/instance.ts`, phantom `summarize_thread`, `MastraComponentRegistry`, `db/src/queries/index.ts`, and 19 unused `@kestrel/ai` subpath exports), then lock `knip.json` and `scripts/check-knip-config.mjs` so dead code can never hide again.
 
@@ -30,12 +32,12 @@
 - Modify: `packages/ai/src/barrels/runtime.ts`
 - Modify: `packages/ai/test/helpers/index.ts`
 
-- [ ] **Step 1: Verify zero production callers of `LLM_CLIENT` and `VercelLlmClient`**
+- [x] **Step 1: Verify zero production callers of `LLM_CLIENT` and `VercelLlmClient`**
 
 Run: `pnpm --filter @kestrel/ai exec rg "LLM_CLIENT|VercelLlmClient|LlmClient|ScriptedLlmClient" src test`
 Expected: Only matches in `routing/llm-client.ts`, `runtime/tokens.ts`, `runtime/services.ts`, `barrels/runtime.ts`, `test/helpers/scripted-llm.ts`, `test/helpers/scripted-llm.test.ts`, and `test/helpers/index.ts`.
 
-- [ ] **Step 2: Delete `llm-client.ts`, `scripted-llm.ts`, and `scripted-llm.test.ts` and clean up `tokens.ts`, `services.ts`, `barrels/runtime.ts`, and `test/helpers/index.ts`**
+- [x] **Step 2: Delete `llm-client.ts`, `scripted-llm.ts`, and `scripted-llm.test.ts` and clean up `tokens.ts`, `services.ts`, `barrels/runtime.ts`, and `test/helpers/index.ts`**
 
 1. Delete `packages/ai/src/routing/llm-client.ts`, `packages/ai/test/helpers/scripted-llm.ts`, and `packages/ai/test/helpers/scripted-llm.test.ts`.
 2. In `packages/ai/src/runtime/tokens.ts`:
@@ -47,12 +49,12 @@ Expected: Only matches in `routing/llm-client.ts`, `runtime/tokens.ts`, `runtime
 5. In `packages/ai/test/helpers/index.ts`:
    - Remove `export * from './scripted-llm';`.
 
-- [ ] **Step 3: Run `@kestrel/ai` typecheck and tests**
+- [x] **Step 3: Run `@kestrel/ai` typecheck and tests**
 
 Run: `pnpm --filter @kestrel/ai typecheck && pnpm --filter @kestrel/ai test`
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add -A packages/ai
@@ -85,18 +87,18 @@ git commit -m "refactor(ai): remove dead VercelLlmClient, LLM_CLIENT token, and 
 - Delete: `packages/ai/test/set-alert-level-bounds.test.ts`
 - Delete: `packages/ai/test/run-system-action.test.ts`
 
-- [ ] **Step 1: Create `packages/ai/src/services/resonance-sync.ts` with `syncIntermarketResonance()`**
+- [x] **Step 1: Create `packages/ai/src/services/resonance-sync.ts` with `syncIntermarketResonance()`**
 
 Extract the clean `syncIntermarketResonance(options?: { timeframe?: Timeframe; count?: number })` service into `packages/ai/src/services/resonance-sync.ts` (using `withAdminDb` / `getDb()` to compute the Pearson correlation matrix across `SYMBOLS` and upsert `intermarketResonance`), and export `syncIntermarketResonance` from `packages/ai/src/index.ts`.
 
-- [ ] **Step 2: Wire `syncIntermarketResonance()` into `apps/web/src/app/api/chat/mutations/confirm/_lib/executors.ts` and `apps/worker/src/jobs/resonance-sync.ts`**
+- [x] **Step 2: Wire `syncIntermarketResonance()` into `apps/web/src/app/api/chat/mutations/confirm/_lib/executors.ts` and `apps/worker/src/jobs/resonance-sync.ts`**
 
 1. In `apps/web/src/app/api/chat/mutations/confirm/_lib/executors.ts`:
    - In both `executorFor` (`run_system_action`) and `atomicExecutorFor` (`run_system_action`), call `await syncIntermarketResonance()` when `payload.action === 'resonance_sync'` and return the real pair count in `summary`.
 2. In `apps/worker/src/jobs/resonance-sync.ts`:
    - Delegate the correlation matrix calculation + upsert to `syncIntermarketResonance()` from `@kestrel/ai`.
 
-- [ ] **Step 3: Move level-bounds validation into `packages/ai/src/mastra-v2/mutation/mutation-extract.ts` and delete the 5 dead legacy mutation tool files**
+- [x] **Step 3: Move level-bounds validation into `packages/ai/src/mastra-v2/mutation/mutation-extract.ts` and delete the 5 dead legacy mutation tool files**
 
 1. Ensure `assertValidTradeLevels` and `assertValidAlertLevel` (from `packages/shared`) are enforced when extracting/validating mutation drafts in `packages/ai/src/mastra-v2/mutation/mutation-extract.ts` and tested in `packages/ai/test/mastra-v2-mutation-workflow.test.ts`.
 2. Delete:
@@ -111,12 +113,12 @@ Extract the clean `syncIntermarketResonance(options?: { timeframe?: Timeframe; c
    - `packages/ai/test/run-system-action.test.ts`
 3. Remove their exports from `packages/ai/src/tools/{journal,system,index}.ts` and `packages/ai/src/barrels/tools.ts`.
 
-- [ ] **Step 4: Run tests and typecheck across `@kestrel/ai`, `@kestrel/web`, and `@kestrel/worker`**
+- [x] **Step 4: Run tests and typecheck across `@kestrel/ai`, `@kestrel/web`, and `@kestrel/worker`**
 
 Run: `pnpm --filter @kestrel/ai test && pnpm --filter @kestrel/web test && pnpm --filter @kestrel/worker test && pnpm typecheck`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A packages/ai apps/web apps/worker
@@ -153,14 +155,14 @@ git commit -m "refactor(ai): delete dead legacy mutation tools and wire resonanc
 - Modify: `packages/ai/src/mastra-v2/instance.ts`
 - Modify: `packages/ai/src/barrels/tools.ts`
 
-- [ ] **Step 1: Update `packages/ai/src/catalogue.ts` and `packages/ai/src/plugins/core-tools.ts` to read tool descriptions from `nativeCanonicalTools()`**
+- [x] **Step 1: Update `packages/ai/src/catalogue.ts` and `packages/ai/src/plugins/core-tools.ts` to read tool descriptions from `nativeCanonicalTools()`**
 
 1. In `packages/ai/src/catalogue.ts`:
    - Replace `registerAllTools()` + `toolRegistry.list()` with `nativeCanonicalTools()` from `./mastra-v2/tools/canonical` (reading `.description` from each canonical Mastra tool definition).
 2. In `packages/ai/src/plugins/core-tools.ts`:
    - Replace `registerAllTools()` + `toolRegistry.list()` with `nativeCanonicalTools()` so plugin agents get the exact same canonical read-only tools and descriptions without `ToolRegistry`.
 
-- [ ] **Step 2: Remove `registerAllTools()` from `packages/ai/src/mastra-v2/instance.ts` and remove `toolTelemetryBuffer` from `ToolContext`**
+- [x] **Step 2: Remove `registerAllTools()` from `packages/ai/src/mastra-v2/instance.ts` and remove `toolTelemetryBuffer` from `ToolContext`**
 
 1. In `packages/ai/src/mastra-v2/instance.ts`:
    - Remove `import { registerAllTools } from '../tools';` and the `registerAllTools();` call at line 51.
@@ -171,18 +173,18 @@ git commit -m "refactor(ai): delete dead legacy mutation tools and wire resonanc
    - `packages/ai/src/mastra-v2/shared/run-context.ts:97`
    - `packages/ai/src/plugins/agent-builder.ts:273`
 
-- [ ] **Step 3: Delete `with-telemetry.ts`, `registry.ts`, and the domain registration files (`market.ts`, `analysis.ts`, `journal.ts`, `system.ts`, `web.ts`)**
+- [x] **Step 3: Delete `with-telemetry.ts`, `registry.ts`, and the domain registration files (`market.ts`, `analysis.ts`, `journal.ts`, `system.ts`, `web.ts`)**
 
 1. Delete `packages/ai/src/tools/with-telemetry.ts`, `packages/ai/src/tools/registry.ts`, `packages/ai/src/tools/market.ts`, `packages/ai/src/tools/analysis.ts`, `packages/ai/src/tools/journal.ts`, `packages/ai/src/tools/system.ts`, and `packages/ai/src/tools/web.ts`.
 2. Simplify `packages/ai/src/tools/index.ts` and `packages/ai/src/barrels/tools.ts` to only export the `execute*` functions and `getMarketSnapshot` used by `mastra-v2`, `committee`, `packet`, and `worker`.
 3. Update `packages/ai/test/tools.test.ts` and `packages/ai/test/catalogue.test.ts` to test `nativeCanonicalTools()` and `listAgentCatalogue()` directly instead of `toolRegistry`.
 
-- [ ] **Step 4: Run typecheck and tests across the monorepo**
+- [x] **Step 4: Run typecheck and tests across the monorepo**
 
 Run: `pnpm typecheck && pnpm --filter @kestrel/ai test`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A packages/ai
@@ -216,24 +218,24 @@ git commit -m "refactor(ai): remove dead ToolRegistry, withTelemetry, and toolTe
 - Modify: `apps/web/src/components/chat/use-chat-url-sync.ts`
 - Modify: `apps/web/src/components/chat/chat-view.tsx`
 
-- [ ] **Step 1: Remove `summarize_thread` from `@kestrel/shared` and `@kestrel/ai`**
+- [x] **Step 1: Remove `summarize_thread` from `@kestrel/shared` and `@kestrel/ai`**
 
 1. Delete `packages/shared/src/schemas/tool-outputs/summarize-thread.ts` and remove its re-export from `packages/shared/src/schemas/tool-outputs/index.ts`.
 2. Remove `'summarize_thread'` from `TOOL_NAMES` in `packages/shared/src/ai/tool-names.ts`.
 3. Delete `packages/ai/src/memory/memory-index/remember-thread-synopsis.ts` and remove its re-export from `packages/ai/src/memory/memory-index/index.ts` and `packages/ai/src/barrels/memory.ts`.
 
-- [ ] **Step 2: Remove dead `summarize_thread` UI part, 404 summary API route, and dead `threadSummary` fetch in `@kestrel/web`**
+- [x] **Step 2: Remove dead `summarize_thread` UI part, 404 summary API route, and dead `threadSummary` fetch in `@kestrel/web`**
 
 1. Delete `apps/web/src/components/chat/parts/summarize-thread.tsx` and remove the `case 'tool-summarize_thread':` branch from `apps/web/src/components/chat/parts/tool-part-router.tsx`.
 2. Delete `apps/web/src/app/api/chat/threads/[id]/summary/route.ts` and `apps/web/src/components/chat/thread-summary-header.tsx`.
 3. In `apps/web/src/components/chat/use-chat-url-sync.ts` and `apps/web/src/components/chat/chat-view.tsx`, remove the `threadSummary` state and the `fetch(\`/api/chat/threads/\${activeId}/summary\`)` call that fired a wasted 404 request on every thread switch.
 
-- [ ] **Step 3: Run typecheck and tests across `@kestrel/shared`, `@kestrel/ai`, and `@kestrel/web`**
+- [x] **Step 3: Run typecheck and tests across `@kestrel/shared`, `@kestrel/ai`, and `@kestrel/web`**
 
 Run: `pnpm typecheck && pnpm --filter @kestrel/shared test && pnpm --filter @kestrel/ai test && pnpm --filter @kestrel/web test`
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add -A packages/shared packages/ai apps/web
@@ -257,22 +259,22 @@ git commit -m "refactor(chat): remove phantom summarize_thread tool, dead UI par
 - Delete: `packages/db/src/queries/index.ts`
 - Modify: `packages/db/src/index.ts`
 
-- [ ] **Step 1: Delete `packages/ai/src/mastra-v2/registry.ts` and `packages/ai/test/mastra-v2-registry.test.ts`**
+- [x] **Step 1: Delete `packages/ai/src/mastra-v2/registry.ts` and `packages/ai/test/mastra-v2-registry.test.ts`**
 
 1. Delete `packages/ai/src/mastra-v2/registry.ts` and `packages/ai/test/mastra-v2-registry.test.ts`.
 2. In `packages/ai/src/mastra-v2/index.ts`, remove lines 27–34 (`export { assertMastraRegistryComplete, ... } from './registry';`).
 
-- [ ] **Step 2: Delete `packages/db/src/queries/index.ts` and remove `export * as queries` from `packages/db/src/index.ts`**
+- [x] **Step 2: Delete `packages/db/src/queries/index.ts` and remove `export * as queries` from `packages/db/src/index.ts`**
 
 1. Delete `packages/db/src/queries/index.ts`.
 2. In `packages/db/src/index.ts`, delete line 261 (`export * as queries from './queries';`).
 
-- [ ] **Step 3: Run typecheck and tests**
+- [x] **Step 3: Run typecheck and tests**
 
 Run: `pnpm typecheck && pnpm --filter @kestrel/ai test && pnpm --filter @kestrel/db test`
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add -A packages/ai packages/db
@@ -296,7 +298,7 @@ git commit -m "refactor(ai,db): remove dead MastraComponentRegistry and unused d
 - Modify: `knip.json`
 - Modify: `scripts/check-knip-config.mjs`
 
-- [ ] **Step 1: Prune `packages/ai/package.json` `exports` to the 6 subpaths actually consumed across the workspace**
+- [x] **Step 1: Prune `packages/ai/package.json` `exports` to the 6 subpaths actually consumed across the workspace**
 
 In `packages/ai/package.json`, replace `"exports"` with:
 
@@ -311,7 +313,7 @@ In `packages/ai/package.json`, replace `"exports"` with:
   },
 ```
 
-- [ ] **Step 2: Clean `knip.json` `entry` arrays so only true package entrypoints and CLI scripts are listed**
+- [x] **Step 2: Clean `knip.json` `entry` arrays so only true package entrypoints and CLI scripts are listed**
 
 In `knip.json`:
 
@@ -319,16 +321,16 @@ In `knip.json`:
 - Under `"packages/ai"`, remove `"src/tools/{index,market,analysis,journal,system,web,by-domain,registry}.ts"`, `"src/{model,diagnostics,notifications,catalogue,byok-providers,memory,share,embeddings,rag,usage,instrumentation}.ts"` from `entry` (keep only the 6 exported entrypoints + `"src/eval/{runner,training-export}.ts"` used by `package.json` scripts).
 - Under `"packages/data"`, remove `"src/{providers,cache,calendar,cot,fred,news,sentiment}/index.ts"` from `entry` (keep `"src/index.ts"` and `"src/stream/index.ts"`).
 
-- [ ] **Step 3: Harden `scripts/check-knip-config.mjs` to ban brace-expansion globs and non-exported internal `src/*` entrypoints in `packages/*`**
+- [x] **Step 3: Harden `scripts/check-knip-config.mjs` to ban brace-expansion globs and non-exported internal `src/*` entrypoints in `packages/*`**
 
 Update `scripts/check-knip-config.mjs` so that any `entry` inside `packages/*` must either exist in that package's `package.json` `exports` or `scripts`, or be `src/schema/relations.ts` (Drizzle schema loader).
 
-- [ ] **Step 4: Run `pnpm check:knip` and `pnpm typecheck`**
+- [x] **Step 4: Run `pnpm check:knip` and `pnpm typecheck`**
 
 Run: `pnpm check:knip && pnpm typecheck`
 Expected: PASS (and delete any remaining unused internal exports surfaced by `knip`).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/ai/package.json knip.json scripts/check-knip-config.mjs

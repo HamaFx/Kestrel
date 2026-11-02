@@ -1,12 +1,14 @@
 # Phase 1: Guardrails, Hooks & RLS Scope Completeness Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Status:** Complete. Implemented and verified on 2026-11-02.
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Eliminate silent security/guardrail bypasses (`.githooks/pre-commit` ignoring secrets in source files, `@kestrel/ai` bypassing tenant RLS via `container.resolve(DB)`, and 7 Next.js RSCs/Server Actions calling `@kestrel/ai` DB functions without `withUserTenant`), expand automated RLS scope enforcement tests, and clean up all lint warnings.
 
 **Architecture:**
 
-1. `.githooks/pre-commit` scans all staged text files for secret patterns (`sk-...`, `AIza...`, `BEGIN PRIVATE KEY`, etc.), excluding only `.env.example` template files and known test fixtures.
+1. `.githooks/pre-commit` scans all staged text files for secret patterns (`sk-...`, `AIza...`, PEM private-key headers, etc.), excluding only `.env.example` template files and known test fixtures.
 2. In `@kestrel/ai`, `getDb()` (`packages/ai/src/runtime/db.ts`) is the **single** database accessor because it enforces `hasTenantDbScope()` / `hasAdminDbScope()` when `KESTREL_ENABLE_RLS=1`. No module outside `packages/ai/src/runtime/db.ts` may call `container.resolve(DB)` directly.
 3. Every Next.js Server Component (`page.tsx`, `layout.tsx`, server child components) and Server Action (`actions.ts`, `_actions/*.ts`) that invokes tenant-scoped database queries—whether directly through `@kestrel/db` or indirectly through `@kestrel/ai` (`listAlerts`, `listEntries`, `computeStats`, `getLatestBriefing`, `computeUsage`, `deleteAllThreads`)—must execute inside `withUserTenantRead(userId, ...)` or `withUserTenant(userId, ...)`.
 
@@ -21,7 +23,7 @@
 - Modify: `.githooks/pre-commit:73-96`
 - Create: `scripts/test-pre-commit-secret-scan.mjs`
 
-- [ ] **Step 1: Write a verification test script for secret scanning (`scripts/test-pre-commit-secret-scan.mjs`)**
+- [x] **Step 1: Write a verification test script for secret scanning (`scripts/test-pre-commit-secret-scan.mjs`)**
 
 Create `scripts/test-pre-commit-secret-scan.mjs` to verify that `.githooks/pre-commit` catches secrets in `.ts`, `.json`, and `.env` files while allowing `.env.example`:
 
@@ -48,12 +50,12 @@ if (!hookSource.includes('if [[ "$file" != *".example"* ]]; then')) {
 console.log('PASS: .githooks/pre-commit scans all non-example staged files for secrets.');
 ```
 
-- [ ] **Step 2: Run the verification script to confirm it fails on the current hook**
+- [x] **Step 2: Run the verification script to confirm it fails on the current hook**
 
 Run: `node scripts/test-pre-commit-secret-scan.mjs`
 Expected: `FAIL: .githooks/pre-commit still restricts secret reporting to *.env* files only.` (exit code 1)
 
-- [ ] **Step 3: Fix `.githooks/pre-commit` lines 73–96**
+- [x] **Step 3: Fix `.githooks/pre-commit` lines 73–96**
 
 In `.githooks/pre-commit`, replace lines 73–96 so that every staged file matching the file list (`*.ts`, `*.tsx`, `*.js`, `*.mjs`, `*.json`, `*.yml`, `*.yaml`, `*.env*`, `*.md`, `*.sh`) except `*.example*` and `*.test.ts` is checked against `$SECRET_PATTERNS`:
 
@@ -83,12 +85,12 @@ if [ -n "$STAGED_FILES" ]; then
 fi
 ```
 
-- [ ] **Step 4: Run the verification script and delete the temporary test script**
+- [x] **Step 4: Run the verification script and delete the temporary test script**
 
 Run: `node scripts/test-pre-commit-secret-scan.mjs && rm scripts/test-pre-commit-secret-scan.mjs`
 Expected: `PASS: .githooks/pre-commit scans all non-example staged files for secrets.`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add .githooks/pre-commit
@@ -108,7 +110,7 @@ git commit -m "fix(hooks): scan all staged source files for secrets in pre-commi
 - Modify: `packages/ai/src/mastra-v2/agents/canonical/setup.ts`
 - Test: `packages/ai/test/rls-db-access-guard.test.ts`
 
-- [ ] **Step 1: Write a structural test (`packages/ai/test/rls-db-access-guard.test.ts`) forbidding `container.resolve(DB)` outside `runtime/db.ts`**
+- [x] **Step 1: Write a structural test (`packages/ai/test/rls-db-access-guard.test.ts`) forbidding `container.resolve(DB)` outside `runtime/db.ts`**
 
 Create `packages/ai/test/rls-db-access-guard.test.ts`:
 
@@ -148,12 +150,12 @@ describe('@kestrel/ai database access guard', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to confirm it catches the 3 offending files**
+- [x] **Step 2: Run the test to confirm it catches the 3 offending files**
 
 Run: `pnpm --filter @kestrel/ai exec vitest run test/rls-db-access-guard.test.ts`
 Expected: FAIL with `['committee/opinion-persistence.ts', 'mastra-v2/agents/canonical/setup.ts', 'plugins/agent-builder.ts']`.
 
-- [ ] **Step 3: Replace `container.resolve(DB)` with `getDb()` in all 3 files**
+- [x] **Step 3: Replace `container.resolve(DB)` with `getDb()` in all 3 files**
 
 1. In `packages/ai/src/committee/opinion-persistence.ts`:
    - Replace `import { container } from '@kestrel/shared';` and `import { DB } from '../runtime/tokens';` with `import { getDb } from '../runtime/db';`.
@@ -167,12 +169,12 @@ Expected: FAIL with `['committee/opinion-persistence.ts', 'mastra-v2/agents/cano
    - Add `import { getDb } from '../../../runtime/db';`.
    - At line 275, replace `db: container.resolve(DB),` with `db: getDb(),`.
 
-- [ ] **Step 4: Re-run the test and typecheck**
+- [x] **Step 4: Re-run the test and typecheck**
 
 Run: `pnpm --filter @kestrel/ai exec vitest run test/rls-db-access-guard.test.ts && pnpm --filter @kestrel/ai typecheck`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/ai/src/committee/opinion-persistence.ts packages/ai/src/plugins/agent-builder.ts packages/ai/src/mastra-v2/agents/canonical/setup.ts packages/ai/test/rls-db-access-guard.test.ts
@@ -207,19 +209,19 @@ Additionally, `apps/web/src/lib/services/plugin-manage/store-metadata.ts:120-123
 - Modify: `apps/web/src/lib/services/plugin-manage/store-metadata.ts`
 - Modify: `apps/web/test/rsc-tenant-scope.test.ts`
 
-- [ ] **Step 1: Expand `apps/web/test/rsc-tenant-scope.test.ts` to check RSCs and Server Actions that call `@kestrel/ai` or `@/lib/services/*` tenant DB helpers**
+- [x] **Step 1: Expand `apps/web/test/rsc-tenant-scope.test.ts` to check RSCs and Server Actions that call `@kestrel/ai` or `@/lib/services/*` tenant DB helpers**
 
 Update `apps/web/test/rsc-tenant-scope.test.ts` to also assert that:
 
 - `src/app/(app)/dashboard/page.tsx`, `src/app/(app)/journal/page.tsx`, and `src/app/(app)/settings/_components/usage-glance.tsx` use `withUserTenantRead` or `withUserTenant`.
 - `src/app/(app)/journal/actions.ts`, `src/app/(app)/alerts/actions.ts`, and `src/app/(app)/settings/_actions/data-clear.ts` wrap tenant mutations in `withUserTenant`.
 
-- [ ] **Step 2: Run `rsc-tenant-scope.test.ts` to verify it fails on the 6 unscoped files**
+- [x] **Step 2: Run `rsc-tenant-scope.test.ts` to verify it fails on the 6 unscoped files**
 
 Run: `pnpm --filter @kestrel/web exec vitest run test/rsc-tenant-scope.test.ts`
 Expected: FAIL listing `dashboard/page.tsx`, `journal/page.tsx`, `usage-glance.tsx`, `journal/actions.ts`, `alerts/actions.ts`, and `data-clear.ts`.
 
-- [ ] **Step 3: Scope the 3 RSC files with `withUserTenantRead`**
+- [x] **Step 3: Scope the 3 RSC files with `withUserTenantRead`**
 
 1. In `apps/web/src/app/(app)/dashboard/page.tsx`:
    - Import `{ withUserTenantRead } from '@kestrel/db';`.
@@ -231,7 +233,7 @@ Expected: FAIL listing `dashboard/page.tsx`, `journal/page.tsx`, `usage-glance.t
    - Import `{ withUserTenantRead } from '@kestrel/db';`.
    - Wrap `computeUsage(userId, '30d')` inside `await withUserTenantRead(userId, () => computeUsage(userId, '30d'))`.
 
-- [ ] **Step 4: Scope the 4 Server Action files with `withUserTenant` and remove duplicate `withUserTenant` in `store-metadata.ts`**
+- [x] **Step 4: Scope the 4 Server Action files with `withUserTenant` and remove duplicate `withUserTenant` in `store-metadata.ts`**
 
 1. In `apps/web/src/app/(app)/journal/actions.ts`:
    - Import `{ withUserTenant } from '@kestrel/db';`.
@@ -247,12 +249,12 @@ Expected: FAIL listing `dashboard/page.tsx`, `journal/page.tsx`, `usage-glance.t
 5. In `apps/web/src/lib/services/plugin-manage/store-metadata.ts`:
    - Import `withUserTenant` from `@kestrel/db` and delete the local `function withUserTenant` at lines 120–123.
 
-- [ ] **Step 5: Run `rsc-tenant-scope.test.ts` and typecheck**
+- [x] **Step 5: Run `rsc-tenant-scope.test.ts` and typecheck**
 
 Run: `pnpm --filter @kestrel/web exec vitest run test/rsc-tenant-scope.test.ts && pnpm --filter @kestrel/web typecheck`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/web/src/app/\(app\)/dashboard/page.tsx apps/web/src/app/\(app\)/journal/page.tsx apps/web/src/app/\(app\)/settings/_components/usage-glance.tsx apps/web/src/app/\(app\)/journal/actions.ts apps/web/src/app/\(app\)/alerts/actions.ts apps/web/src/app/\(app\)/settings/_actions/data-clear.ts apps/web/src/app/\(app\)/settings/_actions/security-two-factor.ts apps/web/src/lib/services/plugin-manage/store-metadata.ts apps/web/test/rsc-tenant-scope.test.ts
@@ -275,7 +277,7 @@ git commit -m "fix(web): wrap unscoped RSCs and server actions in withUserTenant
 - Modify: `packages/ai/src/tools/get-system-diagnostics.ts`
 - Modify: `apps/web/package.json`
 
-- [ ] **Step 1: Remove unused `// eslint-disable-next-line no-restricted-imports` comments in `apps/worker/test/*.test.ts`**
+- [x] **Step 1: Remove unused `// eslint-disable-next-line no-restricted-imports` comments in `apps/worker/test/*.test.ts`**
 
 Remove the stale `// eslint-disable-next-line no-restricted-imports` line in:
 
@@ -286,7 +288,7 @@ Remove the stale `// eslint-disable-next-line no-restricted-imports` line in:
 - `apps/worker/test/weekly-review.test.ts:15`
 - `apps/worker/test/embedding-backfill.test.ts:15`
 
-- [ ] **Step 2: Remove file-level `/* eslint-disable @typescript-eslint/no-unused-vars */` in `packages/ai/src/tools/get-intermarket-resonance.ts` and `packages/ai/src/tools/get-system-diagnostics.ts`**
+- [x] **Step 2: Remove file-level `/* eslint-disable @typescript-eslint/no-unused-vars */` in `packages/ai/src/tools/get-intermarket-resonance.ts` and `packages/ai/src/tools/get-system-diagnostics.ts`**
 
 1. In `packages/ai/src/tools/get-intermarket-resonance.ts`:
    - Delete line 17 (`/* eslint-disable @typescript-eslint/no-unused-vars */`).
@@ -296,7 +298,7 @@ Remove the stale `// eslint-disable-next-line no-restricted-imports` line in:
    - Remove the unused `SystemDiagnosticsInputSchema` import from `@kestrel/shared`.
    - In `executeGetSystemDiagnostics(_ctx: ToolContext, _input: SystemDiagnosticsInput = {})`, prefix `_input` or wire `forceProbe` / `verbose` cleanly so no unused-vars suppression is needed.
 
-- [ ] **Step 3: Update `apps/web/package.json` to lint `src` and `test`**
+- [x] **Step 3: Update `apps/web/package.json` to lint `src` and `test`**
 
 In `apps/web/package.json`, change:
 
@@ -306,12 +308,12 @@ In `apps/web/package.json`, change:
 
 Fix any unused-var warnings surfaced in `apps/web/test`.
 
-- [ ] **Step 4: Run full workspace `lint` and `typecheck`**
+- [x] **Step 4: Run full workspace `lint` and `typecheck`**
 
 Run: `pnpm lint && pnpm typecheck`
 Expected: PASS with **0 warnings** and **0 errors** across all 16 workspace packages.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/worker/test/ packages/ai/src/tools/get-intermarket-resonance.ts packages/ai/src/tools/get-system-diagnostics.ts apps/web/package.json

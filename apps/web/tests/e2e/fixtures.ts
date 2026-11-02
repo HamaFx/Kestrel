@@ -149,28 +149,6 @@ export const FULL_MODE_SSE = [
   '',
 ].join('\n');
 
-export const STANDARD_MODE_SSE = [
-  'data: {"type":"data-agent-progress","data":{"agents":[{"agentName":"technical","status":"done","opinion":{"agentName":"technical","bias":"bullish","confidence":0.8,"reasoning":"Uptrend"}},{"agentName":"fundamental","status":"done","opinion":{"agentName":"fundamental","bias":"bullish","confidence":0.7,"reasoning":"Macro supportive"}}],"mode":"standard"}}',
-  '',
-  `data: {"type":"text-start","id":"${TEST_MESSAGE_ID}"}`,
-  '',
-  `data: {"type":"text-delta","id":"${TEST_MESSAGE_ID}","delta":"**Bottom Line:** Standard technical and fundamental read — bullish."}`,
-  '',
-  `data: {"type":"text-end","id":"${TEST_MESSAGE_ID}"}`,
-  '',
-].join('\n');
-
-export const QUICK_MODE_SSE = [
-  'data: {"type":"data-agent-progress","data":{"agents":[{"agentName":"technical","status":"done","opinion":{"agentName":"technical","bias":"bullish","confidence":0.85,"reasoning":"Strong uptrend"}},{"agentName":"decision","status":"done"}],"mode":"quick"}}',
-  '',
-  `data: {"type":"text-start","id":"${TEST_MESSAGE_ID}"}`,
-  '',
-  `data: {"type":"text-delta","id":"${TEST_MESSAGE_ID}","delta":"**Bottom Line:** Quick technical read — bullish."}`,
-  '',
-  `data: {"type":"text-end","id":"${TEST_MESSAGE_ID}"}`,
-  '',
-].join('\n');
-
 export const SINGLE_MODE_SSE = [
   `data: {"type":"text-start","id":"${TEST_MESSAGE_ID}"}`,
   '',
@@ -186,20 +164,20 @@ export const SINGLE_MODE_SSE = [
 
 export const test = base.extend<Fixtures, { workerUser: WorkerUserFixture }>({
   workerUser: [
-    async ({}, use, workerInfo) => {
+    async (_fixtures, provideFixture, workerInfo) => {
       const email = workerUserEmail(workerInfo.parallelIndex, 'user');
       const user = await ensureTestUser(email, 'password123', 'user', { resetWatchlist: true });
       const cookie = await createSessionForUser(user);
-      await use({ id: user.id, email, password: 'password123', cookie });
+      await provideFixture({ id: user.id, email, password: 'password123', cookie });
     },
     { scope: 'worker' },
   ],
 
-  testUser: async ({ workerUser }, use) => {
-    await use({ email: workerUser.email, password: workerUser.password });
+  testUser: async ({ workerUser }, provideFixture) => {
+    await provideFixture({ email: workerUser.email, password: workerUser.password });
   },
 
-  authedPage: async ({ page, workerUser }, use) => {
+  authedPage: async ({ page, workerUser }, provideFixture) => {
     await page.context().addCookies([workerUser.cookie]);
     const thread = await createThread(workerUser.id, { pinnedSymbol: null });
 
@@ -216,12 +194,12 @@ export const test = base.extend<Fixtures, { workerUser: WorkerUserFixture }>({
     });
 
     await page.goto(`/chat/${thread.id}`);
-    await use(page);
+    await provideFixture(page);
     await deleteThread(workerUser.id, thread.id).catch(() => undefined);
   },
 
-  mockChatApi: async ({}, use) => {
-    await use(mockChatApi);
+  mockChatApi: async (_fixtures, provideFixture) => {
+    await provideFixture(mockChatApi);
   },
 });
 

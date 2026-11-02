@@ -40,7 +40,9 @@
     "build:packages": "turbo run build --filter=@kestrel/shared --filter=@kestrel/plugin-sdk --filter=@kestrel/plugins --filter=@kestrel/indicators --filter=@kestrel/db --filter=@kestrel/data --filter=@kestrel/ai --filter=@kestrel/test-utils --filter=@kestrel/loadtest",
     "create:plugin": "node scripts/create-plugin.mjs",
     "knip": "knip",
-    "eval:gate": "pnpm --filter @kestrel/ai run eval:gate"
+    "eval:gate": "pnpm --filter @kestrel/ai run eval:gate",
+    "prepare": "node scripts/install-git-hooks.mjs",
+    "format:edited": "node scripts/format-edited-files.mjs"
   },
   "dependencies": {
     "postgres": "^3.4.9"

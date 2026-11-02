@@ -24,9 +24,11 @@
 // matches" and "all rows" ends rather than specific titles.
 // ---------------------------------------------------------------------------
 
+import type { Page } from '@playwright/test';
+
 import { expect, test } from './fixtures';
 
-async function createThread(page: import('@playwright/test').Page) {
+async function createThread(page: Page) {
   // The request proxy enforces a CSRF double-submit cookie on state-changing
   // requests. `page.request` shares the browser cookie jar, so read the
   // minted cookie back and echo it as the required header.
@@ -46,7 +48,7 @@ async function createThread(page: import('@playwright/test').Page) {
  * auto-wired aria-labelledby; fall back to the visible title if a given
  * browser/vaul build doesn't expose it as an accessible name.
  */
-function conversationsDrawer(page: import('@playwright/test').Page) {
+function conversationsDrawer(page: Page) {
   return page
     .getByRole('dialog', { name: /conversations/i })
     .or(page.getByText('Conversations').first());
@@ -57,7 +59,7 @@ function conversationsDrawer(page: import('@playwright/test').Page) {
  * click can land before React hydrates and attaches the handler — retry
  * until the "Switch conversation" menu item actually appears.
  */
-async function openConversationSwitcher(page: import('@playwright/test').Page) {
+async function openConversationSwitcher(page: Page) {
   const menu = page.getByRole('button', { name: /conversation menu/i });
   const switchItem = page.getByText('Switch conversation');
   for (let attempt = 0; attempt < 3; attempt++) {
