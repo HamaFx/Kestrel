@@ -18,15 +18,8 @@
 
 import { EventEmitter } from 'node:events';
 
+import { CancelError, confirm, multiselect, select, text } from '@scripts/setup/lib/prompts.mjs';
 import { describe, expect, it } from 'vitest';
-
-import {
-  CancelError,
-  confirm,
-  multiselect,
-  select,
-  text,
-} from '../../../scripts/setup/lib/prompts.mjs';
 
 /**
  * Fake stdin: an EventEmitter that also exposes the TTY/raw-mode API.

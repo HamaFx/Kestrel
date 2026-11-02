@@ -16,6 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 import { ProviderError } from '@kestrel/data';
+import type * as DbModule from '@kestrel/db';
 import { AppError, validationError } from '@kestrel/shared';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
@@ -34,7 +35,7 @@ vi.mock('@/auth', () => ({ auth: vi.fn() }));
 // org and runs the handler inside withTenantDbFresh. Stub the tenant helpers
 // so these tests exercise the auth gate, not a real database.
 vi.mock('@kestrel/db', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/db')>();
+  const actual = await importOriginal<typeof DbModule>();
   return {
     ...actual,
     getAdminDb: vi.fn(() => ({})),

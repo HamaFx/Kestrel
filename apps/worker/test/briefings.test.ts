@@ -18,7 +18,6 @@
 // (also used by the `/api/cron/briefings` fallback); the worker supplies only
 // its tenant-partition filter and SIGTERM signal.
 
-// eslint-disable-next-line no-restricted-imports -- Tests mock the public AI cron entry to preserve job wiring coverage.
 import * as cron from '@kestrel/ai/cron';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

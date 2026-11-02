@@ -98,7 +98,20 @@ describe('buildShareIntent', () => {
       text: 'line one\r\n\r\n\r\nline two',
     });
 
-    expect(intent?.prompt).not.toMatch(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u202a-\u202e]/);
+    // Allowed: tab, newline and carriage return. Everything else in the C0
+    // range, plus the bidi override block, must be stripped.
+    const hasControlOrBidi = (value: string): boolean =>
+      [...value].some((char) => {
+        const code = char.codePointAt(0) ?? 0;
+        return (
+          (code >= 0 && code <= 8) ||
+          code === 11 ||
+          code === 12 ||
+          (code >= 14 && code <= 31) ||
+          (code >= 0x202a && code <= 0x202e)
+        );
+      });
+    expect(hasControlOrBidi(intent?.prompt ?? '')).toBe(false);
     expect(intent?.prompt).toContain('Title: Gold spikes [31m');
     // Runs of blank lines collapse to one line break.
     expect(intent?.prompt).toContain('Shared: line one\nline two');

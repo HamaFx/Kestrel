@@ -16,16 +16,16 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
+import { beginPage, endPage, renderComparison, setColorEnabled } from '@scripts/setup/lib/ui.mjs';
 import { describe, expect, it } from 'vitest';
 
-import {
-  beginPage,
-  endPage,
-  renderComparison,
-  setColorEnabled,
-} from '../../../scripts/setup/lib/ui.mjs';
-
 setColorEnabled(true);
+
+// ANSI SGR sequence built from a char code so the source file contains no
+// literal escape character (ESLint no-control-regex would reject a regex
+// literal here).
+const ANSI_SGR = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g');
+const stripAnsi = (value: string): string => value.replace(ANSI_SGR, '');
 
 /** Fake TTY stdout: exposes isTTY/columns/rows and captures writes. */
 function fakeTtyStdout() {
@@ -126,7 +126,7 @@ describe('renderComparison', () => {
       right: [],
       width: 40,
     });
-    const stripped = lines[2].replace(/\x1b\[[0-9;]*m/g, '');
+    const stripped = stripAnsi(lines[2]);
     expect(stripped.length).toBeLessThanOrEqual(40);
     expect(stripped).toContain('…');
   });
@@ -151,7 +151,7 @@ describe('renderComparison', () => {
       width: 60,
     });
     for (const line of lines) {
-      const stripped = line.replace(/\x1b\[[0-9;]*m/g, '');
+      const stripped = stripAnsi(line);
       expect(stripped.length, `row fits in 60 columns: "${stripped}"`).toBeLessThanOrEqual(60);
     }
   });

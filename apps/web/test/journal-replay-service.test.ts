@@ -16,20 +16,22 @@
 
 // @vitest-environment node
 
-import * as ai from '@kestrel/ai';
+import type * as AiModule from '@kestrel/ai';
 import * as data from '@kestrel/data';
 import { describe, expect, it, vi } from 'vitest';
 
 import { computeReplayWindow, getTradeSetupReplayService } from '@/lib/services/journal';
 
+const mockGetEntry = vi.hoisted(() => vi.fn());
+
 vi.mock('@kestrel/data', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/data')>();
+  const actual = await importOriginal<typeof data>();
   return { ...actual, getCandlesUnchecked: vi.fn() };
 });
 
 vi.mock('@kestrel/ai', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/ai')>();
-  return { ...actual, getEntry: vi.fn() };
+  const actual = await importOriginal<typeof AiModule>();
+  return { ...actual, getEntry: mockGetEntry };
 });
 
 describe('computeReplayWindow & getTradeSetupReplayService', () => {
@@ -61,7 +63,7 @@ describe('computeReplayWindow & getTradeSetupReplayService', () => {
   it('passes from and to to getCandlesUnchecked and falls back gracefully if historical range is empty', async () => {
     const openedAt = Date.parse('2026-06-10T10:00:00Z');
     const closedAt = Date.parse('2026-06-10T12:00:00Z');
-    vi.mocked(ai.getEntry).mockResolvedValueOnce({
+    vi.mocked(mockGetEntry).mockResolvedValueOnce({
       id: 'entry-1',
       userId: 'u1',
       symbol: 'XAUUSD',

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 import { DELETE, GET as GET_ONE, PATCH } from '@/app/api/alerts/[id]/route';
 import { GET, POST } from '@/app/api/alerts/route';

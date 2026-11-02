@@ -16,6 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
+import type * as SharedModule from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GET } from '@/app/api/admin/logs/stream/route';
@@ -30,7 +31,7 @@ vi.mock('@/lib/auth/admin-auth', () => ({
 }));
 
 vi.mock('@kestrel/shared', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/shared')>();
+  const actual = await importOriginal<typeof SharedModule>();
   return {
     ...actual,
     logStreamHub: {

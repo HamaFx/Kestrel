@@ -22,6 +22,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type * as ProvisionUserModule from '../src/lib/auth/provision-user';
+
 vi.mock('server-only', () => ({}));
 
 // ── Mock DB state ──────────────────────────────────────────────────────
@@ -57,7 +59,7 @@ function mockDb() {
         },
       };
     },
-    update: (table: unknown) => ({
+    update: (_table: unknown) => ({
       set: (data: Record<string, unknown>) => ({
         where: () => {
           // Extract the userId from the where clause for tracking
@@ -97,9 +99,9 @@ vi.mock('@kestrel/db', () => ({
 }));
 
 // Must be imported after mocks
-const { provisionUserOnSignIn } = await vi.importActual<
-  typeof import('../src/lib/auth/provision-user')
->('../src/lib/auth/provision-user');
+const { provisionUserOnSignIn } = await vi.importActual<typeof ProvisionUserModule>(
+  '../src/lib/auth/provision-user',
+);
 
 // ── Helpers ────────────────────────────────────────────────────────────
 

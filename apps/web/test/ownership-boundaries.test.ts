@@ -1,3 +1,4 @@
+import type * as DbModule from '@kestrel/db';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GET as getAlertRoute } from '@/app/api/alerts/[id]/route';
@@ -33,7 +34,7 @@ vi.mock('@/lib/services/alerts', () => ({
 // withAuth tenant-scopes every authenticated request; stub the tenant helpers
 // so these tests assert ownership scoping without a real database.
 vi.mock('@kestrel/db', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/db')>();
+  const actual = await importOriginal<typeof DbModule>();
   return {
     ...actual,
     getAdminDb: vi.fn(() => ({})),

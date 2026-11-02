@@ -17,7 +17,6 @@
 // The `cot` job delegates to the shared `runCotIngestion` runner (also used by
 // the `/api/cron/cot` fallback), so this suite pins the job wiring only.
 
-// eslint-disable-next-line no-restricted-imports -- Tests mock the public AI barrel to preserve job wiring coverage.
 import * as cron from '@kestrel/ai/cron';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

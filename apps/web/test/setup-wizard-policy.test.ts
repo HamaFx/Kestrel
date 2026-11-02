@@ -21,24 +21,23 @@ import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-
-import { parseFlags } from '../../../scripts/setup/index.mjs';
-import { upsertEnvFile } from '../../../scripts/setup/lib/env.mjs';
-import { MARKET_DATA_PROVIDERS, parseMarketFlag } from '../../../scripts/setup/lib/market-data.mjs';
+import { parseFlags } from '@scripts/setup/index.mjs';
+import { upsertEnvFile } from '@scripts/setup/lib/env.mjs';
+import { MARKET_DATA_PROVIDERS, parseMarketFlag } from '@scripts/setup/lib/market-data.mjs';
 import {
   loadObservabilitySecretTemplate,
   loadSecretTemplate,
   resolveTemplateValue,
-} from '../../../scripts/setup/lib/secrets.mjs';
-import * as configStep from '../../../scripts/setup/steps/config.mjs';
-import * as detectStep from '../../../scripts/setup/steps/detect-existing.mjs';
-import * as installStep from '../../../scripts/setup/steps/install.mjs';
-import * as launchStep from '../../../scripts/setup/steps/launch.mjs';
-import { parseApiKeys } from '../../../scripts/setup/steps/market-data.mjs';
-import * as marketStep from '../../../scripts/setup/steps/market-data.mjs';
-import * as modeStep from '../../../scripts/setup/steps/mode.mjs';
-import * as prereqsStep from '../../../scripts/setup/steps/prereqs.mjs';
+} from '@scripts/setup/lib/secrets.mjs';
+import * as configStep from '@scripts/setup/steps/config.mjs';
+import * as detectStep from '@scripts/setup/steps/detect-existing.mjs';
+import * as installStep from '@scripts/setup/steps/install.mjs';
+import * as launchStep from '@scripts/setup/steps/launch.mjs';
+import { parseApiKeys } from '@scripts/setup/steps/market-data.mjs';
+import * as marketStep from '@scripts/setup/steps/market-data.mjs';
+import * as modeStep from '@scripts/setup/steps/mode.mjs';
+import * as prereqsStep from '@scripts/setup/steps/prereqs.mjs';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 const root = resolve(process.cwd(), '../..');
 
@@ -143,7 +142,7 @@ describe('setup wizard structure', () => {
     const blocks = new Map();
     let current = null;
     for (const line of overlay.split('\n')) {
-      const match = line.match(/^  ([a-z0-9-]+):/);
+      const match = line.match(/^ {2}([a-z0-9-]+):/);
       if (match) current = match[1];
       if (current) blocks.set(current, [...(blocks.get(current) ?? []), line]);
     }
@@ -220,14 +219,14 @@ describe('setup wizard flags', () => {
   });
 
   it('returns a non-zero code when --mode has no value (B3)', async () => {
-    const { main } = await import('../../../scripts/setup/index.mjs');
+    const { main } = await import('@scripts/setup/index.mjs');
     const silent = { write: () => {}, line: () => {}, isTTY: false };
     const code = await main(['--mode'], { io: silent });
     expect(code).toBe(1);
   });
 
   it('rejects unknown modes at the main() level', async () => {
-    const { main } = await import('../../../scripts/setup/index.mjs');
+    const { main } = await import('@scripts/setup/index.mjs');
     // Inject a silent io so the error message does not pollute test output.
     const silent = { write: () => {}, line: () => {}, isTTY: false };
     const code = await main(['--mode=banana'], { io: silent });
@@ -235,7 +234,7 @@ describe('setup wizard flags', () => {
   });
 
   it('emits a machine-readable JSON result with --json', async () => {
-    const { main } = await import('../../../scripts/setup/index.mjs');
+    const { main } = await import('@scripts/setup/index.mjs');
     const silent = { write: () => {}, line: () => {}, isTTY: false };
     const jsonOut = { buffer: '', write: (s: string) => (jsonOut.buffer += s) };
     const code = await main(['--mode=external', '--dry-run', '--json'], {
@@ -253,7 +252,7 @@ describe('setup wizard flags', () => {
   }, 15000);
 
   it('emits a JSON error for invalid modes with --json', async () => {
-    const { main } = await import('../../../scripts/setup/index.mjs');
+    const { main } = await import('@scripts/setup/index.mjs');
     const silent = { write: () => {}, line: () => {}, isTTY: false };
     const jsonOut = { buffer: '', write: (s: string) => (jsonOut.buffer += s) };
     const code = await main(['--mode=banana', '--json'], { io: silent, jsonStream: jsonOut });

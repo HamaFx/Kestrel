@@ -14,13 +14,8 @@
  * limitations under the License.
  */
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { requireTenantIdForUser, schema } from '@kestrel/db';
-import {
-  GetSystemDiagnosticsInputSchema,
-  GetSystemDiagnosticsOutputSchema,
-  type GetSystemDiagnosticsOutput,
-} from '@kestrel/shared';
+import { GetSystemDiagnosticsInputSchema, type GetSystemDiagnosticsOutput } from '@kestrel/shared';
 import { tool, type Tool } from 'ai';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { z } from 'zod';
@@ -51,7 +46,7 @@ export const getSystemDiagnosticsTool: Tool<
   description:
     'Query the real-time operational health, connection latency, database record volumes, active synchronized files status, remaining daily budget, and verified environment variables in the Copilot system.',
   inputSchema: InputSchema,
-  execute: async ({ verbose, forceProbe }): Promise<GetSystemDiagnosticsOutput> => {
+  execute: async (): Promise<GetSystemDiagnosticsOutput> => {
     const db = maybeGetToolContext()?.db ?? getDb();
     const ctx = getToolContext();
     const tenantId = await requireTenantIdForUser(ctx.userId, db);

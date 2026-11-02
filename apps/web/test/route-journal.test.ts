@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
+import type * as DbModule from '@kestrel/db';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 import { DELETE, PATCH } from '@/app/api/journal/[id]/route';
 import { GET, POST } from '@/app/api/journal/route';
@@ -41,7 +42,7 @@ vi.mock('@kestrel/ai', () => ({
 // withAuth tenant-scopes every authenticated request; stub the tenant helpers
 // so the route tests exercise handler logic without a real database.
 vi.mock('@kestrel/db', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/db')>();
+  const actual = await importOriginal<typeof DbModule>();
   return {
     ...actual,
     getAdminDb: vi.fn(() => ({})),

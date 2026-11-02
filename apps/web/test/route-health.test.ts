@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import type * as DbModule from '@kestrel/db';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GET as GET_PUBLIC } from '@/app/api/health/public/route';
@@ -26,7 +27,7 @@ const mockWithRateLimit = vi.hoisted(() => vi.fn());
 const mockListFullAnalysisQueueRows = vi.hoisted(() => vi.fn());
 
 vi.mock('@kestrel/db', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/db')>();
+  const actual = await importOriginal<typeof DbModule>();
   return {
     ...actual,
     hasAdminDbScope: () => false,

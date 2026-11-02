@@ -359,7 +359,7 @@ describe('runMastraSseTurn', () => {
         role: 'assistant',
         parts: [{ type: 'text', text: 'never' }],
       }),
-      recoverCompletion: async ({ error, messageId, postTextEvents }) => {
+      recoverCompletion: async ({ messageId, postTextEvents }) => {
         postTextEvents.push({
           type: 'data-evidence-blocked',
           id: messageId,

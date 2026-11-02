@@ -23,7 +23,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AdminPage from '@/app/(app)/admin/page';
 
 const mockReplace = vi.fn();
-let mockSearchParams = new Map<string, string>();
+const mockSearchParams = new Map<string, string>();
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: mockReplace }),

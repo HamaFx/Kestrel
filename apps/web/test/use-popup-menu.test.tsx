@@ -16,7 +16,7 @@
  */
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import { usePopupMenu } from '@/hooks/use-popup-menu';
 
@@ -107,7 +107,7 @@ describe('usePopupMenu', () => {
   });
 
   it('closes the menu when clicking outside', () => {
-    const { container } = render(
+    render(
       <div>
         <TestMenu />
         <button type="button">Outside</button>

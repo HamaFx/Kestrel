@@ -59,7 +59,7 @@ if [[ "\${1:-}" == "inspect" ]]; then
   exit 0
 fi
 if [[ "\${1:-}" == "restart" ]]; then
-  printf '%s\\n' "\$*" >> "\${FAKE_RESTART_LOG}"
+  printf '%s\\n' "$*" >> "\${FAKE_RESTART_LOG}"
   exit 0
 fi
 exit 0

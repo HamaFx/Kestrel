@@ -34,11 +34,15 @@
 //   3. `updateApiKeysAction` preserves the stored BYOK keys it read inside its
 //      own scope while storing a newly submitted key.
 
+import type * as DbModule from '@kestrel/db';
 import { eq } from 'drizzle-orm';
 import { Client } from 'pg';
-import { afterAll, beforeAll, describe, expect, it, Mock, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi, type Mock } from 'vitest';
 
 import { auth } from '@/auth';
+
+import type * as MarketActionModule from '../src/app/(app)/settings/_actions/api-keys-market';
+import type * as ApiKeysSaveModule from '../src/app/(app)/settings/_actions/api-keys-save';
 
 const enabled = process.env.RUN_POSTGRES_RLS_TESTS === '1';
 const appUrl = process.env.TEST_POSTGRES_APP_URL ?? '';
@@ -54,7 +58,7 @@ vi.mock('@/auth', () => ({ auth: vi.fn() }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('@/lib/http/action-errors', () => ({ logActionError: vi.fn() }));
 vi.mock('@kestrel/db', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/db')>();
+  const actual = await importOriginal<typeof DbModule>();
   return {
     ...actual,
     // Rate limiting has its own suite; this test is about the action's scope.
@@ -69,9 +73,9 @@ describe.skipIf(!enabled || !appUrl || !adminUrl)(
   'settings actions run as the kestrel_app role',
   () => {
     let admin: Client;
-    let marketActionModule: typeof import('../src/app/(app)/settings/_actions/api-keys-market');
-    let apiKeysActionModule: typeof import('../src/app/(app)/settings/_actions/api-keys-save');
-    let dbModule: typeof import('@kestrel/db');
+    let marketActionModule: typeof MarketActionModule;
+    let apiKeysActionModule: typeof ApiKeysSaveModule;
+    let dbModule: typeof DbModule;
 
     beforeAll(async () => {
       // The pool reads DATABASE_URL on first use, so the environment must be

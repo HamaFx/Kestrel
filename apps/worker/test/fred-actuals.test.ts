@@ -18,7 +18,6 @@
 // runner (also used by the `/api/cron/fred-actuals` fallback), so this suite
 // pins the job wiring, including the FRED key pass-through.
 
-// eslint-disable-next-line no-restricted-imports -- Tests mock the public AI barrel to preserve job wiring coverage.
 import * as cron from '@kestrel/ai/cron';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

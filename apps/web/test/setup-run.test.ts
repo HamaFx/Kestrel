@@ -18,13 +18,8 @@
 
 import { createServer } from 'node:net';
 
+import { diagnoseComposeError, findFreePort, isPortInUse } from '@scripts/setup/lib/run.mjs';
 import { afterEach, describe, expect, it } from 'vitest';
-
-import {
-  diagnoseComposeError,
-  findFreePort,
-  isPortInUse,
-} from '../../../scripts/setup/lib/run.mjs';
 
 const servers: ReturnType<typeof createServer>[] = [];
 

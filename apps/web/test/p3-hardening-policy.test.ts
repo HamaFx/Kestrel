@@ -30,7 +30,6 @@ const rotation = readFileSync(
 );
 const dbPackage = readFileSync(resolve(root, 'packages/db/package.json'), 'utf8');
 const cronHelper = readFileSync(resolve(root, 'apps/web/src/lib/http/cron.ts'), 'utf8');
-const authSource = readFileSync(resolve(root, 'apps/web/src/auth.ts'), 'utf8');
 const authProvidersSource = readFileSync(
   resolve(root, 'apps/web/src/lib/auth/providers.ts'),
   'utf8',

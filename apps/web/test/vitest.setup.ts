@@ -26,7 +26,11 @@ import React from 'react';
 import { vi } from 'vitest';
 
 vi.mock('next-view-transitions', () => ({
-  Link: ({ children, href, ...props }: any) =>
+  Link: ({
+    children,
+    href,
+    ...props
+  }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href?: unknown }) =>
     React.createElement(
       'a',
       { href: typeof href === 'string' ? href : undefined, ...props },

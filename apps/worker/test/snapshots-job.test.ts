@@ -18,7 +18,6 @@
 // (also used by the `/api/cron/snapshots` fallback), so the scheduled and
 // manual paths share symbol coverage and the candles_1m prune.
 
-// eslint-disable-next-line no-restricted-imports -- Tests mock the public AI barrel to preserve job wiring coverage.
 import * as cron from '@kestrel/ai/cron';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

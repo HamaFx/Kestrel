@@ -1,8 +1,7 @@
+import { parseSseBody } from '@loadtest/lib/sse.js';
+import { generateJunitXml } from '@loadtest/lib/summary.js';
+import { compareSummaries } from '@loadtest/scripts/compare-baseline.mjs';
 import { describe, expect, it, vi } from 'vitest';
-
-import { parseSseBody } from '../../../loadtest/lib/sse.js';
-import { generateJunitXml } from '../../../loadtest/lib/summary.js';
-import { compareSummaries } from '../../../loadtest/scripts/compare-baseline.mjs';
 
 vi.mock('k6', () => ({
   check: vi.fn(),

@@ -16,11 +16,13 @@
 
 // @vitest-environment node
 
+import type * as DbModule from '@kestrel/db';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GET as replayGet } from '@/app/api/journal/[id]/replay/route';
 import { POST as coachPost } from '@/app/api/journal/coach-insights/route';
 import { auth } from '@/auth';
+import type * as SettingsServiceModule from '@/lib/services/settings';
 
 vi.mock('@/auth', () => ({ auth: vi.fn() }));
 
@@ -36,7 +38,7 @@ vi.mock('@/lib/services/journal', () => ({
 }));
 
 vi.mock('@/lib/services/settings', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/services/settings')>();
+  const actual = await importOriginal<typeof SettingsServiceModule>();
   return {
     ...actual,
     getUserWithSettings: mocks.getUserWithSettings,
@@ -44,7 +46,7 @@ vi.mock('@/lib/services/settings', async (importOriginal) => {
 });
 
 vi.mock('@kestrel/db', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/db')>();
+  const actual = await importOriginal<typeof DbModule>();
   return {
     ...actual,
     getUserWithSettings: mocks.getUserWithSettings,

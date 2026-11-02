@@ -1,6 +1,5 @@
+import { auditAllRoutes } from '@tools/lighthouse/run.mjs';
 import { describe, expect, it, vi } from 'vitest';
-
-import { auditAllRoutes } from '../../../tools/lighthouse/run.mjs';
 
 describe('Lighthouse runner single-Chrome optimization', () => {
   it('launches and kills headless Chrome exactly once across multiple routes', async () => {

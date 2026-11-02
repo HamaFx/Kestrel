@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+import type * as AiPluginsModule from '@kestrel/ai/plugins';
+import type * as DbModule from '@kestrel/db';
+import type * as SharedModule from '@kestrel/shared';
+import type * as SharedLoggerModule from '@kestrel/shared/logger';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -55,7 +59,7 @@ const {
 }));
 
 vi.mock('@kestrel/db', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/db')>();
+  const actual = await importOriginal<typeof DbModule>();
   return {
     ...actual,
     getInstalledPluginIdsForUser: mockGetInstalledPluginIdsForUser,
@@ -249,7 +253,7 @@ vi.mock('@/lib/services/rate-limit', () => ({
 }));
 
 vi.mock('@kestrel/ai/plugins', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/ai/plugins')>();
+  const actual = await importOriginal<typeof AiPluginsModule>();
   return {
     ...actual,
     // Phase 2 (P0-3/P0-4): installed plugins exempt plugin-targeted prompts from
@@ -271,12 +275,12 @@ vi.mock('@kestrel/ai/plugins', async (importOriginal) => {
 });
 
 vi.mock('@kestrel/shared/logger', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/shared/logger')>();
+  const actual = await importOriginal<typeof SharedLoggerModule>();
   return { ...actual, traceIdStorage: { getStore: () => 'trace-route-1' } };
 });
 
 vi.mock('@kestrel/shared', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/shared')>();
+  const actual = await importOriginal<typeof SharedModule>();
   return {
     ...actual,
     AnalysisQueuedEventSchema: { parse: (value: unknown) => value },

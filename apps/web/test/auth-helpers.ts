@@ -16,8 +16,6 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { vi } from 'vitest';
-
 /**
  * Mocks the `auth()` function from NextAuth to return a specific user session.
  * Ensure you call `vi.mock('@/auth')` at the top of your test file before using this.

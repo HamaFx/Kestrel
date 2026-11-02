@@ -20,9 +20,8 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync 
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { diffEnv, parseEnv, serializeEnv, upsertEnvFile } from '@scripts/setup/lib/env.mjs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-
-import { diffEnv, parseEnv, serializeEnv, upsertEnvFile } from '../../../scripts/setup/lib/env.mjs';
 
 let dir: string;
 

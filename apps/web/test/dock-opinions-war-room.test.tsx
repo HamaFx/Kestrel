@@ -32,9 +32,10 @@ import type { AgentProgress } from '@/lib/chat-transport';
 
 vi.mock('next/image', () => ({
   default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => {
-    const { unoptimized, ...rest } = props as React.ImgHTMLAttributes<HTMLImageElement> & {
-      unoptimized?: boolean;
-    };
+    const { unoptimized: _unoptimized, ...rest } =
+      props as React.ImgHTMLAttributes<HTMLImageElement> & {
+        unoptimized?: boolean;
+      };
     return <img {...rest} alt="" />;
   },
 }));

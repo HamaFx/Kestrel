@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { schema } from '@kestrel/db';
 import {
   GetIntermarketResonanceInputSchema,
-  GetIntermarketResonanceOutputSchema,
   type GetIntermarketResonanceOutput,
   type ResonanceObservation,
   type Symbol,

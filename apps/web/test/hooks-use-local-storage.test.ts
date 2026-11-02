@@ -104,7 +104,7 @@ describe('useLocalStorage', () => {
   });
 
   it('restores the initial value when another tab removes the key', () => {
-    window.localStorage.setItem('deleted-key', '\"stored\"');
+    window.localStorage.setItem('deleted-key', '"stored"');
     const { result } = renderHook(() => useLocalStorage('deleted-key', 'default'));
     expect(result.current[0]).toBe('stored');
 

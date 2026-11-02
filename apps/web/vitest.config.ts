@@ -42,6 +42,9 @@ export default defineConfig({
     conditions: ['source'],
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@scripts': path.resolve(__dirname, '../../scripts'),
+      '@tools': path.resolve(__dirname, '../../tools'),
+      '@loadtest': path.resolve(__dirname, '../../loadtest'),
       'server-only': path.resolve(__dirname, './test/empty.ts'),
     },
   },

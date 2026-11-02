@@ -19,7 +19,6 @@
 import {
   createAuditLog,
   deleteUserAccount,
-  getDb,
   getUserPasswordHash,
   updateUserDisplayName,
 } from '@kestrel/db';
@@ -28,16 +27,10 @@ import {
 // but since @kestrel/db is mocked and getRawDb = mockGetDb, the container will
 // resolve to mockGetDb correctly.
 import { container } from '@kestrel/shared';
-import {
-  decryptByok,
-  decryptWithPassword,
-  encryptByok,
-  encryptWithPassword,
-  PROVIDER_IDS,
-} from '@kestrel/shared/encryption';
+import { decryptWithPassword, encryptByok, encryptWithPassword } from '@kestrel/shared/encryption';
 import bcrypt from 'bcryptjs';
 import { revalidatePath } from 'next/cache';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 import { auth, signOut } from '@/auth';
 import { logActionError } from '@/lib/http/action-errors';

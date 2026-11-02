@@ -16,6 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
+import type * as SharedEncryptionModule from '@kestrel/shared/encryption';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GET } from '@/app/api/admin/onboarding/inspect/route';
@@ -41,7 +42,7 @@ vi.mock('@kestrel/db', () => ({
 }));
 
 vi.mock('@kestrel/shared/encryption', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@kestrel/shared/encryption')>();
+  const actual = await importOriginal<typeof SharedEncryptionModule>();
   return {
     ...actual,
     decryptByok: mockDecryptByok,

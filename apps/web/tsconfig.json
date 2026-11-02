@@ -8,7 +8,10 @@
       "@ai/*": ["../../packages/ai/src/*"],
       "@data/*": ["../../packages/data/src/*"],
       "@indicators/*": ["../../packages/indicators/src/*"],
-      "@db/*": ["../../packages/db/src/*"]
+      "@db/*": ["../../packages/db/src/*"],
+      "@scripts/*": ["../../scripts/*"],
+      "@tools/*": ["../../tools/*"],
+      "@loadtest/*": ["../../loadtest/*"]
     }
   },
   "include": ["next-env.d.ts", "src/**/*.ts", "src/**/*.tsx", ".next/types/**/*.ts"],

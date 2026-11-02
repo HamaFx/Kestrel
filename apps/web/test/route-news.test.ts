@@ -20,7 +20,7 @@
 // "Cannot read properties of undefined (reading 'userId')" → 500 (surfaced by
 // the k6 smoke suite). It now uses the standard withAuth wrapper.
 
-import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 import { GET } from '@/app/api/news/route';
 import { auth } from '@/auth';
