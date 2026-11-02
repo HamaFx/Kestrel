@@ -273,7 +273,6 @@ export async function setupCanonicalChat(
     },
     userSettings: args.settings,
     db: getDb(),
-    toolTelemetryBuffer: [],
     ...(args.ledger ? { ledger: args.ledger } : {}),
   };
 

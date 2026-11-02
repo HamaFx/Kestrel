@@ -42,7 +42,6 @@ import {
   CANONICAL_PRICE_DESCRIPTION,
 } from '../src/mastra-v2/tools/canonical/descriptions';
 import { CanonicalKnowledgeInputSchema } from '../src/mastra-v2/tools/canonical/input-schemas';
-import { registerAllTools, toolRegistry } from '../src/tools';
 
 const dataMocks = vi.hoisted(() => ({
   getPrice: vi.fn(),
@@ -235,20 +234,15 @@ describe('native canonical tools (B-01)', () => {
 
   it('freezes and asserts the canonical read-only allowlist against the native path (B-11)', () => {
     // The manifest allowlist is frozen at module init and every name must
-    // resolve from the legacy registry or a native canonical registration —
-    // a manifest typo fails here, not on the first user call that happens to
-    // select the missing tool. P2-01 removal: the seven migrated names are
-    // native-only, so the registry alone no longer covers the list.
+    // resolve from a native canonical registration — a manifest typo fails
+    // here, not on the first user call that happens to select the missing
+    // tool.
     expect(Object.isFrozen(CANONICAL_READ_ONLY_TOOL_NAMES)).toBe(true);
     expect([...CANONICAL_READ_ONLY_TOOL_NAMES]).toEqual([...manifestToolNames('canonical-chat')]);
     expect(() => assertCanonicalToolAllowlist()).not.toThrow();
 
-    registerAllTools(toolRegistry);
     for (const name of CANONICAL_READ_ONLY_TOOL_NAMES) {
-      expect(
-        toolRegistry.has(name) || resolveNativeCanonicalTool(name) !== null,
-        `unresolved canonical tool: ${name}`,
-      ).toBe(true);
+      expect(resolveNativeCanonicalTool(name), `unresolved canonical tool: ${name}`).not.toBeNull();
     }
   });
 });

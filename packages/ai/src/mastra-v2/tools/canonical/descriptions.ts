@@ -7,7 +7,7 @@
 // and used to read these constants from the canonical tool modules. Those
 // modules sit inside a multi-hop import cycle
 // (canonical/*  →  tools/tool-lifecycle  →  shared/tool-telemetry
-//   →  persistence  →  shared/run-telemetry  →  instance  →  tools/index),
+//   →  persistence  →  shared/run-telemetry  →  instance),
 // so whichever module is evaluated first can read a binding that is still
 // mid-evaluation — `ReferenceError: Cannot access 'CANONICAL_COT_DESCRIPTION'
 // before initialization`, which the server surfaces only as a masked

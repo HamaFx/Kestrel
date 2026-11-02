@@ -35,7 +35,6 @@ export interface MockToolContextDefaults {
   signal: AbortSignal | null;
   budget: { spent: number; max: number };
   userSettings: Record<string, unknown>;
-  toolTelemetryBuffer: unknown[];
 }
 
 export function createMockToolContext<T extends object = MockToolContextDefaults>(
@@ -49,7 +48,6 @@ export function createMockToolContext<T extends object = MockToolContextDefaults
     signal: null,
     budget: { spent: 0, max: 10 },
     userSettings: {},
-    toolTelemetryBuffer: [],
   };
   return { ...defaults, ...overrides } as T;
 }

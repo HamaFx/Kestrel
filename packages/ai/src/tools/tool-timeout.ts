@@ -16,12 +16,10 @@
 
 // F7 — the single per-tool deadline policy.
 //
-// The legacy AI SDK tool registry (`tools/with-telemetry.ts`) and the
-// Mastra-native read-only path (`mastra-v2/shared/tool-telemetry.ts`) must
-// enforce the SAME deadline table, otherwise a hung tool on one path can
-// consume the whole turn budget. This module is a dependency-free leaf so both
-// wrappers can import it without participating in the Mastra tool import
-// cycle.
+// The Mastra-native read-only path (`mastra-v2/shared/tool-telemetry.ts`)
+// enforces this deadline table; keeping the values in a dependency-free leaf
+// lets the wrapper import them without participating in the Mastra tool
+// import cycle.
 
 /** Custom error class for tool timeout detection. */
 export class ToolTimeoutError extends Error {

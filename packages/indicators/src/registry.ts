@@ -19,8 +19,8 @@
 // Each indicator registers itself with a name, params schema, and a
 // standardized compute function. Adding a new indicator requires only
 // implementing a new file, importing it here, and registering it — no
-// existing dispatch code changes. This mirrors the ToolRegistry pattern
-// from packages/ai/src/tools/registry.ts.
+// existing dispatch code changes. This mirrors the AlertRuleRegistry pattern
+// from packages/ai/src/alerts/rule-registry.ts.
 //
 // Used by the `/api/market/indicators` route handler and the
 // `get_indicators` AI tool so they share a single source of truth

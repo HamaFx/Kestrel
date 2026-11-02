@@ -270,7 +270,6 @@ export async function buildCustomAgent(args: BuildCustomAgentArgs): Promise<Buil
     },
     userSettings: args.settings,
     db: getDb(),
-    toolTelemetryBuffer: [],
   };
 
   return {

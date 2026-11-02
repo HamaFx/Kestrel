@@ -94,7 +94,6 @@ export function buildToolContext(
     },
     userSettings: args.settings as UserSettingsRow,
     db: toolDb,
-    toolTelemetryBuffer: [],
     ledger,
   });
 }

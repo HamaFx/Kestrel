@@ -69,18 +69,7 @@ export type ToolEnv = Pick<
  */
 export type ToolDb = DbClient;
 
-/** M4: Batched tool-telemetry record — accumulated during a turn and
- *  bulk-inserted at onFinish to reduce DB connection pressure. */
-export interface BatchedToolTelemetry {
-  threadId: string | null;
-  userId?: string | null;
-  tool: string;
-  ms: number;
-  ok: boolean;
-  errorCode?: string | null;
-  outputChars?: number | null;
-}
-
+/** Per-turn context shared by every tool invocation. */
 export interface ToolContext {
   threadId: string;
   /** Phase A — the authenticated user making this request. */
@@ -101,9 +90,6 @@ export interface ToolContext {
    * construct ToolContext without DB access.
    */
   db?: ToolDb | undefined;
-  /** M4: Buffer for batching tool telemetry inserts. Optional — callers
-   *  that don't pass it get direct inserts (backward-compatible). */
-  toolTelemetryBuffer?: BatchedToolTelemetry[] | undefined;
   /** Number of live web searches made during this turn. */
   webSearchCalls?: number | undefined;
   /** Generation ledger for tracking auxiliary spend. */
@@ -113,8 +99,6 @@ export interface ToolContext {
 const store = new AsyncLocalStorage<ToolContext>();
 
 export function withToolContext<T>(ctx: ToolContext, fn: () => Promise<T>): Promise<T> {
-  // M4: Ensure tool telemetry buffer is initialized.
-  if (!ctx.toolTelemetryBuffer) ctx.toolTelemetryBuffer = [];
   return store.run(ctx, fn);
 }
 
@@ -141,7 +125,6 @@ export interface CreateToolContextOptions {
   budget?: { spent: number; max: number } | undefined;
   userSettings?: UserSettingsRow | Partial<UserSettingsRow> | null | undefined;
   db?: ToolDb | undefined;
-  toolTelemetryBuffer?: BatchedToolTelemetry[] | undefined;
   webSearchCalls?: number | undefined;
   /** Turn-level generation ledger so tools can bill auxiliary spend (e.g. nested committee runs). */
   ledger?: GenerationLedger | undefined;
@@ -157,7 +140,6 @@ export function createToolContext(options: CreateToolContextOptions): ToolContex
     budget: options.budget ?? { spent: 0, max: 10 },
     userSettings: (options.userSettings ?? {}) as UserSettingsRow,
     db: options.db,
-    toolTelemetryBuffer: options.toolTelemetryBuffer ?? [],
     webSearchCalls: options.webSearchCalls ?? 0,
     ledger: options.ledger,
   };

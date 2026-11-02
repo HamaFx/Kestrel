@@ -16,19 +16,18 @@
 
 // Phase 7c — auto-generated tool catalogue.
 //
-// Reads `tools` from the registry and projects a small, JSON-friendly
+// Projects the native Mastra canonical tool map into a small, JSON-friendly
 // shape that the /settings/agent page can render. Per-tool latency is
-// summarised over the last 24h via `chat_tool_telemetry`. Failure rate is
-// the same window. Schema-driven: adding a tool to `tools/index.ts` makes
-// it appear here automatically; no hand-maintained list to drift.
+// summarised over the last 24h via `chat_tool_telemetry`. Failure rate is the
+// same window. Adding a native tool makes it appear here automatically; no
+// hand-maintained list to drift.
 
 import { getToolStats } from '@kestrel/db';
 import { TOOL_NAMES, type ToolName } from '@kestrel/shared';
 import { cache } from 'react';
 
 import { capabilityUiMetadata, type MastraCapabilityId } from '../mastra-v2/capabilities';
-import { resolveNativeCanonicalTool } from '../mastra-v2/tools/canonical';
-import { registerAllTools, toolRegistry } from '../tools';
+import { nativeCanonicalTools } from '../mastra-v2/tools/canonical';
 
 export interface CatalogueEntry {
   name: ToolName;
@@ -46,8 +45,8 @@ export interface CatalogueEntry {
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Read `tools` + recent telemetry, return one row per registered tool.
- * Tools with no recent invocations have all numeric fields at 0.
+ * Read the native tool map + recent telemetry, return one row per executable
+ * tool. Tools with no recent invocations have all numeric fields at 0.
  *
  * Wrapped with React's `cache()` so multiple server components in the
  * same render (e.g. AgentCard on /settings AND /settings/agent, or
@@ -59,24 +58,16 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
  */
 export const buildToolCatalogue = cache(
   async (disabledTools?: string[]): Promise<CatalogueEntry[]> => {
-    // §4.3: the registry fills at boot; make the admin surface robust even
-    // when this is the first module to touch the tools barrel.
-    registerAllTools();
     const since = Date.now() - ONE_DAY_MS;
     const result = await getToolStats(since);
+    const nativeTools = nativeCanonicalTools();
 
     const stats = new Map(result.map((r) => [r.tool, r]));
 
-    return TOOL_NAMES.filter((name) => !disabledTools?.includes(name)).map(
+    return TOOL_NAMES.filter((name) => name in nativeTools && !disabledTools?.includes(name)).map(
       (name): CatalogueEntry => {
-        const plugin = toolRegistry.getPlugin(name);
-        // P2-01 removal: the natively-migrated tools have no legacy registry
-        // plugin, so fall back to the canonical Mastra registration for the
-        // real description instead of the '(no description)' placeholder.
-        const native: { description?: string } | null = plugin
-          ? null
-          : (resolveNativeCanonicalTool(name) as { description?: string } | null);
-        const desc = plugin?.description ?? native?.description ?? '(no description)';
+        const native = nativeTools[name] as { description?: string } | undefined;
+        const desc = native?.description ?? '(no description)';
         const agg = stats.get(name);
         const invocations = agg?.invocations ?? 0;
         const failures = agg?.failures ?? 0;

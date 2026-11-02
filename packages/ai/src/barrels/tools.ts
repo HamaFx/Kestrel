@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-// Tool sub-barrel: the runtime tool registry and the public tool catalogue.
-// Re-exported by `src/index.ts`.
+// Tool sub-barrel: the admin tool catalogue projected from the native Mastra
+// canonical tool map. Re-exported by `src/index.ts`.
 
-export { registerAllTools, toolRegistry, type ToolRegistry } from '../tools';
 export { buildToolCatalogue, type CatalogueEntry } from '../models/catalogue';

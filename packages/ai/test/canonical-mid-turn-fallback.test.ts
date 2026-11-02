@@ -61,7 +61,6 @@ vi.mock('../src/mastra-v2/agents/canonical/setup', () => ({
       signal: null,
       budget: { spent: 0, max: 5 },
       userSettings: {},
-      toolTelemetryBuffer: [],
     },
     messages: [],
     scorers: { entries: {} },

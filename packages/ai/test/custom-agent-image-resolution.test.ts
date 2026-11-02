@@ -97,7 +97,6 @@ function builtAgentWith(stream: ReturnType<typeof vi.fn>, callMemory: unknown = 
       signal: null,
       budget: { spent: 0, max: 5 },
       userSettings: {},
-      toolTelemetryBuffer: [],
     },
     toolPartsBuffer: [],
   };

@@ -15,8 +15,9 @@
  */
 
 // Single source of truth for CORE AI tool identifiers. Each value here:
-//   1. has an implementation in `packages/ai/src/tools/<name>.ts`
-//   2. is exported from the registry in `packages/ai/src/tools/index.ts`
+//   1. is registered in `packages/ai/src/mastra-v2/tools/canonical/` (or the
+//      read-only group it merges) under the same name
+//   2. has a UI part in `apps/web/src/components/chat/parts/registry.tsx`
 //   3. is referenced by docs/03-ai-agent.md § "Tool Catalogue"
 // Adding a new core entry without all three is a steering violation.
 //

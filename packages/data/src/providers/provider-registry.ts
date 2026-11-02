@@ -21,7 +21,7 @@
 // (e.g. Polygon, Alpha Vantage) means registering a plugin — no adapter
 // code changes (OCP).
 //
-// Pattern mirrors ToolRegistry, IndicatorRegistry, and AlertRuleRegistry.
+// Pattern mirrors IndicatorRegistry and AlertRuleRegistry.
 
 import type { BiquoteMarketState, Candle, Symbol, Timeframe } from '@kestrel/shared';
 
