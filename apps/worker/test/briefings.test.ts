@@ -14,111 +14,64 @@
  * limitations under the License.
  */
 
-import {
-  emitPostEvent,
-  emitPreEvent,
-  findHighImpactEventsInWindow,
-  listEmittedEventIds,
-} from '@kestrel/ai';
+// The `briefings` job delegates to the shared `runBriefingsFanout` runner
+// (also used by the `/api/cron/briefings` fallback); the worker supplies only
+// its tenant-partition filter and SIGTERM signal.
+
+// eslint-disable-next-line no-restricted-imports -- Tests mock the public AI cron entry to preserve job wiring coverage.
+import * as cron from '@kestrel/ai/cron';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runBriefings } from '../src/jobs/briefings';
 import { createLogger } from '../src/log';
 import { TenantRouter } from '../src/runtime/tenant-router';
 
-vi.mock('@kestrel/ai', () => ({
-  emitPreEvent: vi.fn(),
-  emitPostEvent: vi.fn(),
-  findHighImpactEventsInWindow: vi.fn(),
-  listEmittedEventIds: vi.fn(),
-}));
-
-// One user — matches the per-user loop in the new multi-user source.
-// These tests count emits per (event × user), not per event alone.
-vi.mock('@kestrel/db', () => ({
-  getActiveUserIds: vi.fn(async () => ['u1']),
-  withAdminDb: vi.fn(async (fn: () => Promise<unknown>) => fn()),
-  withUserTenant: vi.fn(async (_userId: string, fn: () => Promise<unknown>) => fn()),
+vi.mock('@kestrel/ai/cron', () => ({
+  runBriefingsFanout: vi.fn(),
 }));
 
 const log = createLogger({ service: 'test', forceJson: true });
 const testRouter = new TenantRouter();
 
 beforeEach(() => {
-  vi.mocked(emitPreEvent).mockReset();
-  vi.mocked(emitPostEvent).mockReset();
-  vi.mocked(findHighImpactEventsInWindow).mockReset();
-  vi.mocked(listEmittedEventIds).mockReset();
-  vi.mocked(listEmittedEventIds).mockResolvedValue(new Set());
+  vi.mocked(cron.runBriefingsFanout).mockReset();
 });
 
 describe('runBriefings', () => {
-  it('emits pre + post for each candidate and reports counts', async () => {
-    vi.mocked(findHighImpactEventsInWindow)
-      .mockResolvedValueOnce([{ id: 'e1' }, { id: 'e2' }])
-      .mockResolvedValueOnce([{ id: 'e3' }]);
-    vi.mocked(emitPreEvent).mockResolvedValue({ emitted: true });
-    vi.mocked(emitPostEvent).mockResolvedValue({ emitted: true });
-
-    const r = await runBriefings({
-      log,
-      signal: new AbortController().signal,
-      tenantRouter: testRouter,
+  it('delegates to the shared runner with the signal, logger, and partition filter', async () => {
+    const signal = new AbortController().signal;
+    vi.mocked(cron.runBriefingsFanout).mockResolvedValue({
+      processed: 3,
+      preCandidates: 2,
+      preEmitted: 2,
+      postCandidates: 1,
+      postEmitted: 1,
+      note: 'pre=2/2, post=1/1',
     });
-    expect(r.processed).toBe(3);
-    expect(r.note).toMatch(/pre=2\/2/);
-    expect(r.note).toMatch(/post=1\/1/);
+
+    const result = await runBriefings({ log, signal, tenantRouter: testRouter });
+
+    expect(cron.runBriefingsFanout).toHaveBeenCalledWith({
+      signal,
+      log,
+      filterUserIds: expect.any(Function),
+    });
+    expect(result).toEqual({ processed: 3, note: 'pre=2/2, post=1/1' });
   });
 
-  it('continues past per-event failures', async () => {
-    vi.mocked(findHighImpactEventsInWindow)
-      .mockResolvedValueOnce([{ id: 'e1' }, { id: 'e2' }])
-      .mockResolvedValueOnce([]);
-    vi.mocked(emitPreEvent)
-      .mockRejectedValueOnce(new Error('boom'))
-      .mockResolvedValueOnce({ emitted: true });
-
-    const r = await runBriefings({
-      log,
-      signal: new AbortController().signal,
-      tenantRouter: testRouter,
-    });
-    // Both candidates were considered, even though one failed.
-    expect(r.processed).toBe(2);
-    expect(r.note).toMatch(/pre=1\/2/);
-  });
-
-  it('skips already-emitted pairs via the batch idempotency prefetch', async () => {
-    vi.mocked(findHighImpactEventsInWindow)
-      .mockResolvedValueOnce([{ id: 'e1' }, { id: 'e2' }])
-      .mockResolvedValueOnce([]);
-    // e1 was already emitted for the user earlier; the batch lookup returns
-    // it so the (event × user) emit is skipped without a per-pair query.
-    vi.mocked(listEmittedEventIds).mockResolvedValue(new Set(['e1']));
-    vi.mocked(emitPreEvent).mockResolvedValue({ emitted: true });
-
-    const r = await runBriefings({
-      log,
-      signal: new AbortController().signal,
-      tenantRouter: testRouter,
+  it('filters discovery to users owned by this worker partition', async () => {
+    vi.mocked(cron.runBriefingsFanout).mockResolvedValue({
+      processed: 0,
+      preCandidates: 0,
+      preEmitted: 0,
+      postCandidates: 0,
+      postEmitted: 0,
+      note: 'no owned active users',
     });
 
-    expect(emitPreEvent).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(emitPreEvent).mock.calls[0]?.[1]).toBe('e2');
-    expect(r.note).toMatch(/pre=1\/2/);
-  });
+    await runBriefings({ log, signal: new AbortController().signal, tenantRouter: testRouter });
 
-  it('honours abort signal between candidates', async () => {
-    const ac = new AbortController();
-    vi.mocked(findHighImpactEventsInWindow)
-      .mockResolvedValueOnce([{ id: 'e1' }, { id: 'e2' }])
-      .mockResolvedValueOnce([]);
-    vi.mocked(emitPreEvent).mockImplementationOnce(async () => {
-      ac.abort();
-      return { emitted: true };
-    });
-
-    await runBriefings({ log, signal: ac.signal, tenantRouter: testRouter });
-    expect(emitPreEvent).toHaveBeenCalledTimes(1);
+    const options = vi.mocked(cron.runBriefingsFanout).mock.calls[0]?.[0];
+    expect(options?.filterUserIds?.(['u1', 'u2'])).toEqual(['u1', 'u2']);
   });
 });

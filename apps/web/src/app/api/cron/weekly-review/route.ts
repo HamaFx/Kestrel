@@ -18,17 +18,13 @@
 
 // GET /api/cron/weekly-review — Sunday 18:00 UTC.
 //
-// Phase 8 PR-14: this route is now a **manual-fallback path**. The
-// scheduled invocation runs on the GCE worker via
-// `kestrel-job-weekly-review.timer`.
-//
-// Calls `emitWeeklyReview` exactly once. Idempotent within an ISO week
-// via `briefings_emitted` PK on (`weekly_review:<isoWeek>`, 'weekly_review').
+// Manual-fallback path for the scheduled worker `weekly-review` job; both call
+// the same shared `runWeeklyReviewFanout` runner. Idempotent within an ISO week
+// via the `briefings_emitted` primary key.
 
-import { getActiveUserIdsForCron, withCronAuth } from '@/lib/http/cron';
+import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
-import { emitWeeklyReview } from '@/lib/services/alerts';
-import { withUserTenant } from '@/lib/services/db';
+import { runWeeklyReviewFanout } from '@/lib/services/cron-jobs';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -36,33 +32,10 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: Request): Promise<Response> {
   const log = createScopedLoggerWithContext({ component: 'cron', job: 'weekly-review' });
   return withCronAuth(req, async () => {
-    // Phase 3 §3.11 — iterate over real active users. An empty result is
-    // valid on a fresh installation; there is no synthetic fallback.
-    //
-    // Audit 2026-10-31 (R1): the active-user scan joins `chat_threads` (RLS)
-    // and must run cross-tenant on the admin connection; each user's review
-    // writes briefings_emitted / chat_threads / chat_messages / journal
-    // stats under that user's tenant GUC.
-    const activeUsers = await getActiveUserIdsForCron();
-    let emittedCount = 0;
-    const reasons: string[] = [];
-
-    for (const userId of activeUsers) {
-      try {
-        await withUserTenant(userId, async () => {
-          const r = await emitWeeklyReview(userId);
-          if (r.emitted) emittedCount++;
-          if (r.reason) reasons.push(`[${userId}]: ${r.reason}`);
-        });
-      } catch (err) {
-        log.errorContext(err, 'withUserTenant', { userId });
-        reasons.push(`[${userId}]: error`);
-      }
-    }
-
+    const result = await runWeeklyReviewFanout({ log });
     return {
-      processed: emittedCount,
-      ...(reasons.length > 0 ? { note: reasons.join(', ') } : {}),
+      processed: result.processed,
+      ...(result.reasons.length > 0 ? { note: result.reasons.join(', ') } : {}),
     };
   });
 }

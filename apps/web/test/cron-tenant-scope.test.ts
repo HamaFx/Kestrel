@@ -32,34 +32,27 @@ const mocks = vi.hoisted(() => ({
   withCronAuth: vi.fn(),
   withAdminDb: vi.fn(),
   withUserTenant: vi.fn(),
-  getActiveUserIdsForCron: vi.fn(),
   evaluateAlerts: vi.fn(),
   runRetentionCleanup: vi.fn(),
-  findHighImpactEventsInWindow: vi.fn(),
-  listEmittedEventIds: vi.fn(),
-  emitPreEvent: vi.fn(),
-  emitPostEvent: vi.fn(),
-  emitWeeklyReview: vi.fn(),
+  runBriefingsFanout: vi.fn(),
+  runWeeklyReviewFanout: vi.fn(),
 }));
 
 vi.mock('@/lib/http/cron', () => ({
   withCronAuth: mocks.withCronAuth,
-  getActiveUserIdsForCron: mocks.getActiveUserIdsForCron,
 }));
 vi.mock('@/lib/services/alerts', () => ({
   evaluateAlerts: mocks.evaluateAlerts,
-  emitPostEvent: mocks.emitPostEvent,
-  emitPreEvent: mocks.emitPreEvent,
-  emitWeeklyReview: mocks.emitWeeklyReview,
-  findHighImpactEventsInWindow: mocks.findHighImpactEventsInWindow,
-  listEmittedEventIds: mocks.listEmittedEventIds,
+}));
+vi.mock('@/lib/services/cron-jobs', () => ({
+  runBriefingsFanout: mocks.runBriefingsFanout,
+  runWeeklyReviewFanout: mocks.runWeeklyReviewFanout,
 }));
 vi.mock('@/lib/services/admin', () => ({
   runRetentionCleanup: mocks.runRetentionCleanup,
 }));
 vi.mock('@/lib/services/db', () => ({
   withAdminDb: mocks.withAdminDb,
-  withUserTenant: mocks.withUserTenant,
 }));
 vi.mock('@/lib/logger', () => ({
   createScopedLoggerWithContext: () => ({
@@ -173,48 +166,43 @@ describe('cron routes select an explicit database scope (R1)', () => {
     expect(mocks.events).toEqual(['admin:enter', 'retention', 'admin:exit']);
   });
 
-  it('briefings discovers users via admin and scopes each user’s emits', async () => {
-    mocks.getActiveUserIdsForCron.mockResolvedValue(['user-1']);
-    mocks.findHighImpactEventsInWindow.mockResolvedValue([{ id: 'ev-1' }]);
-    mocks.listEmittedEventIds.mockResolvedValue(new Set());
-    mocks.emitPreEvent.mockResolvedValue({ emitted: true });
-    mocks.emitPostEvent.mockResolvedValue({ emitted: true });
+  it('briefings delegates the fan-out to the shared cron runner', async () => {
+    mocks.runBriefingsFanout.mockResolvedValue({
+      processed: 2,
+      preCandidates: 1,
+      preEmitted: 1,
+      postCandidates: 1,
+      postEmitted: 1,
+      note: 'pre=1/1, post=1/1',
+    });
 
     const response = await briefingsGET(request('/api/cron/briefings'));
 
     expect(response.status).toBe(200);
-    expect(mocks.getActiveUserIdsForCron).toHaveBeenCalledTimes(1);
-    expect(mocks.withUserTenant).toHaveBeenCalledWith('user-1', expect.any(Function));
-    expect(mocks.events).toEqual(['tenant:enter:user-1', 'tenant:exit:user-1']);
-    // Phase 3 Task 2 — the idempotency prefetch runs inside the tenant scope
-    // (parity with the worker job), then emits only the remaining pairs.
-    expect(mocks.listEmittedEventIds).toHaveBeenCalledWith('user-1', ['ev-1'], 'pre');
-    expect(mocks.listEmittedEventIds).toHaveBeenCalledWith('user-1', ['ev-1'], 'post');
-    expect(mocks.emitPreEvent).toHaveBeenCalledWith('user-1', 'ev-1');
-    expect(mocks.emitPostEvent).toHaveBeenCalledWith('user-1', 'ev-1');
+    expect(mocks.runBriefingsFanout).toHaveBeenCalledWith({
+      log: expect.objectContaining({ info: expect.any(Function) }),
+    });
+    expect(await response.json()).toMatchObject({
+      processed: 2,
+      note: 'pre=1/1, post=1/1',
+    });
   });
 
-  it('briefings skips events already emitted for the user', async () => {
-    mocks.getActiveUserIdsForCron.mockResolvedValue(['user-1']);
-    mocks.findHighImpactEventsInWindow.mockResolvedValue([{ id: 'ev-1' }]);
-    mocks.listEmittedEventIds.mockResolvedValue(new Set(['ev-1']));
-
-    const response = await briefingsGET(request('/api/cron/briefings'));
-
-    expect(response.status).toBe(200);
-    expect(mocks.emitPreEvent).not.toHaveBeenCalled();
-    expect(mocks.emitPostEvent).not.toHaveBeenCalled();
-  });
-
-  it('weekly-review discovers users via admin and scopes each user’s review', async () => {
-    mocks.getActiveUserIdsForCron.mockResolvedValue(['user-1']);
-    mocks.emitWeeklyReview.mockResolvedValue({ emitted: true });
+  it('weekly-review delegates the fan-out and maps per-user reasons to the note', async () => {
+    mocks.runWeeklyReviewFanout.mockResolvedValue({
+      processed: 1,
+      reasons: ['[user-1]: already-emitted'],
+    });
 
     const response = await weeklyReviewGET(request('/api/cron/weekly-review'));
 
     expect(response.status).toBe(200);
-    expect(mocks.withUserTenant).toHaveBeenCalledWith('user-1', expect.any(Function));
-    expect(mocks.events).toEqual(['tenant:enter:user-1', 'tenant:exit:user-1']);
-    expect(mocks.emitWeeklyReview).toHaveBeenCalledWith('user-1');
+    expect(mocks.runWeeklyReviewFanout).toHaveBeenCalledWith({
+      log: expect.objectContaining({ info: expect.any(Function) }),
+    });
+    expect(await response.json()).toMatchObject({
+      processed: 1,
+      note: '[user-1]: already-emitted',
+    });
   });
 });

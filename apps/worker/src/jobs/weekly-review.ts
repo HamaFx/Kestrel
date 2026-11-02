@@ -14,48 +14,20 @@
  * limitations under the License.
  */
 
-// Phase 8 PR-14 — `weekly-review` heavy job, migrated from
-// /api/cron/weekly-review on Vercel (route stays as manual fallback).
-//
-// Calls `emitWeeklyReview` exactly once per active user. Idempotent within
-// an ISO week via the `briefings_emitted` PK on
-// (`weekly_review:<isoWeek>`, 'weekly_review'). Schedule: Sunday 18:00 UTC.
-//
-// Audit 2026-10-31 (R1) — this job was missed when the tenant scoping fix
-// landed on the web cron route. `getActiveUserIds` joins the RLS-protected
-// `chat_threads` table and `emitWeeklyReview` reads journals and writes
-// `briefings_emitted` / `chat_threads` / `chat_messages`, so discovery runs
-// on the admin connection and each user's review runs inside
-// `withUserTenant`.
+// Weekly-review fan-out. The runner is shared with the
+// `/api/cron/weekly-review` fallback route via `@kestrel/ai/cron`; the worker
+// adds only its tenant-partition filter (PF-23) and SIGTERM signal.
 
-import { emitWeeklyReview } from '@kestrel/ai';
-import { getActiveUserIds, withAdminDb, withUserTenant } from '@kestrel/db';
+import { runWeeklyReviewFanout } from '@kestrel/ai/cron';
 
 import type { JobContext, JobResult } from './types.js';
 
 export async function runWeeklyReview(ctx: JobContext): Promise<JobResult> {
-  // Cross-tenant discovery on the admin (BYPASSRLS) connection.
-  const allUserIds = await withAdminDb(() => getActiveUserIds());
-
-  let emittedCount = 0;
-  for (const userId of allUserIds) {
-    if (ctx.signal?.aborted) break;
-    // PF-23: Skip tenants that belong to another worker partition.
-    if (!ctx.tenantRouter.isMyTenant(userId)) continue;
-    try {
-      await withUserTenant(userId, async () => {
-        const r = await emitWeeklyReview(userId);
-        if (r.emitted) emittedCount++;
-      });
-    } catch (err) {
-      ctx.log.error('weekly-review failed for user', { userId, err: String(err) });
-    }
-  }
-
-  ctx.log.info('weekly-review complete', {
-    emitted: emittedCount,
+  const result = await runWeeklyReviewFanout({
+    signal: ctx.signal,
+    log: ctx.log,
+    filterUserIds: (userIds) => userIds.filter((userId) => ctx.tenantRouter.isMyTenant(userId)),
   });
-  return {
-    processed: emittedCount,
-  };
+  ctx.log.info('weekly-review complete', { emitted: result.processed });
+  return { processed: result.processed };
 }

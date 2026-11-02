@@ -14,58 +14,56 @@
  * limitations under the License.
  */
 
-// eslint-disable-next-line no-restricted-imports -- Tests mock the public AI barrel to preserve job wiring coverage.
-import * as ai from '@kestrel/ai';
+// The `weekly-review` job delegates to the shared `runWeeklyReviewFanout`
+// runner (also used by the `/api/cron/weekly-review` fallback); the worker
+// supplies only its tenant-partition filter and SIGTERM signal.
+
+// eslint-disable-next-line no-restricted-imports -- Tests mock the public AI cron entry to preserve job wiring coverage.
+import * as cron from '@kestrel/ai/cron';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runWeeklyReview } from '../src/jobs/weekly-review';
 import { createLogger } from '../src/log';
 import { TenantRouter } from '../src/runtime/tenant-router';
 
-vi.mock('@kestrel/ai', () => ({
-  emitWeeklyReview: vi.fn(),
-}));
-
-// One user — matches the per-user loop in the new multi-user source.
-vi.mock('@kestrel/db', () => ({
-  getActiveUserIds: vi.fn(async () => ['u1']),
-  withAdminDb: vi.fn(async (fn: () => Promise<unknown>) => fn()),
-  withUserTenant: vi.fn(async (_userId: string, fn: () => Promise<unknown>) => fn()),
+vi.mock('@kestrel/ai/cron', () => ({
+  runWeeklyReviewFanout: vi.fn(),
 }));
 
 const log = createLogger({ service: 'test', forceJson: true });
 const testRouter = new TenantRouter();
 
 beforeEach(() => {
-  vi.mocked(ai.emitWeeklyReview).mockReset();
+  vi.mocked(cron.runWeeklyReviewFanout).mockReset();
 });
 
 describe('runWeeklyReview', () => {
-  it('returns processed=1 when emitWeeklyReview emitted', async () => {
-    vi.mocked(ai.emitWeeklyReview).mockResolvedValue({ emitted: true });
-    const r = await runWeeklyReview({
+  it('delegates to the shared runner and reports the emitted count', async () => {
+    const signal = new AbortController().signal;
+    vi.mocked(cron.runWeeklyReviewFanout).mockResolvedValue({ processed: 1, reasons: [] });
+
+    const result = await runWeeklyReview({ log, signal, tenantRouter: testRouter });
+
+    expect(cron.runWeeklyReviewFanout).toHaveBeenCalledWith({
+      signal,
       log,
-      signal: new AbortController().signal,
-      tenantRouter: testRouter,
+      filterUserIds: expect.any(Function),
     });
-    expect(r.processed).toBe(1);
-    expect(r.note).toBeUndefined();
+    expect(result).toEqual({ processed: 1 });
   });
 
-  it("returns processed=0 when all users already have this week's review", async () => {
-    // Phase A (multi-user): the job now loops per-user. The per-user
-    // 'already-emitted' reason is logged at error level instead of being
-    // propagated to the aggregated JobResult, so `note` is undefined.
-    vi.mocked(ai.emitWeeklyReview).mockResolvedValue({
-      emitted: false,
-      reason: 'already-emitted',
+  it('returns processed=0 without surfacing per-user reasons in the job result', async () => {
+    vi.mocked(cron.runWeeklyReviewFanout).mockResolvedValue({
+      processed: 0,
+      reasons: ['[u1]: already-emitted'],
     });
-    const r = await runWeeklyReview({
+
+    const result = await runWeeklyReview({
       log,
       signal: new AbortController().signal,
       tenantRouter: testRouter,
     });
-    expect(r.processed).toBe(0);
-    expect(r.note).toBeUndefined();
+
+    expect(result).toEqual({ processed: 0 });
   });
 });

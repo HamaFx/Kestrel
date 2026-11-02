@@ -26,11 +26,4 @@
 
 import 'server-only';
 
-export {
-  getAdminDb,
-  getDb,
-  requireTenantIdForUser,
-  schema,
-  withAdminDb,
-  withUserTenant,
-} from '@kestrel/db';
+export { getAdminDb, getDb, requireTenantIdForUser, schema, withAdminDb } from '@kestrel/db';

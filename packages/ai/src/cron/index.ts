@@ -21,6 +21,16 @@
 
 export { runCotIngestion, type CotIngestionResult } from '../cot/ingest';
 export {
+  runBriefingsFanout,
+  type BriefingsFanoutResult,
+  type RunBriefingsFanoutArgs,
+} from './briefings';
+export {
+  runWeeklyReviewFanout,
+  type RunWeeklyReviewFanoutArgs,
+  type WeeklyReviewFanoutResult,
+} from './weekly-review';
+export {
   runSnapshotRefresh,
   type RunSnapshotRefreshArgs,
   type SnapshotRefreshResult,

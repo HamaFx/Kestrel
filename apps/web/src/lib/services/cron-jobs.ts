@@ -18,4 +18,10 @@
 // same functions from `@kestrel/ai`, so the scheduled and manual-fallback
 // paths cannot drift in logic, retention, or note formatting.
 
-export { runCotIngestion, runFredActualsRefresh, runSnapshotRefresh } from '@kestrel/ai/cron';
+export {
+  runBriefingsFanout,
+  runCotIngestion,
+  runFredActualsRefresh,
+  runSnapshotRefresh,
+  runWeeklyReviewFanout,
+} from '@kestrel/ai/cron';
