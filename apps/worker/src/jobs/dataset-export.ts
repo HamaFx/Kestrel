@@ -26,14 +26,13 @@ import { promisify } from 'node:util';
 import {
   assembleTrainingDataset,
   buildJevRlcdTrainingRecords,
-  getDb,
   isRlcdStateSafe,
   publishTrainingDatasetToLangfuse,
   resolveEvaluationAnnotations,
   type FeedbackAnnotationInput,
   type PromptResult,
 } from '@kestrel/ai';
-import { listReviewedTrainingPairs, registerEvalDataset, schema } from '@kestrel/db';
+import { getDb, listReviewedTrainingPairs, registerEvalDataset, schema } from '@kestrel/db';
 import { eq } from 'drizzle-orm';
 
 import type { JobContext, JobResult } from './types.js';

@@ -23,8 +23,7 @@
 // The signIn callback becomes thin glue: validate inputs, delegate to
 // provisionUserOnSignIn, return its decision.
 
-import { getDb } from '@kestrel/ai';
-import { schema, withTenantDb } from '@kestrel/db';
+import { getDb, schema, withTenantDb } from '@kestrel/db';
 import { DEFAULT_WATCHLIST_SYMBOLS } from '@kestrel/shared';
 import { and, eq, isNull } from 'drizzle-orm';
 

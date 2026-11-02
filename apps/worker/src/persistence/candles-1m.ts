@@ -24,7 +24,7 @@
 // (R9, audit 2026-10-31). Batched writes are still not needed: the closed-bar
 // rate is 3 symbols/minute.
 
-import type { getDb } from '@kestrel/ai';
+import type { getDb } from '@kestrel/db';
 import { candles1m } from '@kestrel/db/schema';
 import { SymbolSchema } from '@kestrel/shared';
 import { z } from 'zod';

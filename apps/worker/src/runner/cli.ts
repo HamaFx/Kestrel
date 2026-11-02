@@ -90,7 +90,7 @@ export async function runJob(jobName: JobName): Promise<number> {
   const useLock = !SKIP_DAILY_LOCK.has(jobName);
   if (useLock) {
     try {
-      const { getDb } = await import('@kestrel/ai');
+      const { getDb } = await import('@kestrel/db');
       lock = await acquireCronLock(jobName, getDb());
       if (!lock) {
         log.info('Job skipped — already ran today (idempotency guard)');

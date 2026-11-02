@@ -25,8 +25,8 @@
 // The direct `user` reads below (2FA gate, password hash) carry no RLS
 // (migration 0039); every `user_settings` access is scoped with
 // `withUserTenant`.
-import { getDb } from '@kestrel/ai';
 import {
+  getDb,
   mergeUserByokKeys,
   readUserByokState,
   schema,

@@ -35,8 +35,8 @@ const mocks = vi.hoisted(() => ({
   encryptByok: vi.fn(),
 }));
 
-vi.mock('@kestrel/ai', () => ({ getDb: mocks.catalogDb }));
 vi.mock('@kestrel/db', () => ({
+  getDb: mocks.catalogDb,
   schema: {
     users: { id: 'users.id', name: 'users.name' },
     userSettings: {

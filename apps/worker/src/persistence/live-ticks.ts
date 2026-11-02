@@ -23,7 +23,7 @@
 // route will read in PR-8. Until PR-8 lands, this code path simply makes
 // the data available for inspection in the DB.
 
-import type { getDb } from '@kestrel/ai';
+import type { getDb } from '@kestrel/db';
 import { liveTicks } from '@kestrel/db/schema';
 import { sql } from 'drizzle-orm';
 

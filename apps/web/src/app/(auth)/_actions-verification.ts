@@ -20,8 +20,7 @@
 
 // Email-verification server action: resends verification links without
 // revealing whether an account exists or is already verified.
-import { getDb } from '@kestrel/ai';
-import { schema, withRateLimit } from '@kestrel/db';
+import { getDb, schema, withRateLimit } from '@kestrel/db';
 import { eq } from 'drizzle-orm';
 
 import { generateToken } from '@/lib/auth/auth-tokens';

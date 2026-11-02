@@ -17,7 +17,7 @@
 // WK-2 startup cleanup: mark stale cron_runs rows left behind by a crash
 // as 'error' before the first timer fires.
 
-import { getDb } from '@kestrel/ai';
+import { getDb } from '@kestrel/db';
 import { sql } from 'drizzle-orm';
 
 import type { Logger } from '../log.js';

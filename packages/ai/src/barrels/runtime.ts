@@ -27,10 +27,6 @@ export {
 
 export * from '../runtime/wait-until';
 
-// P2-3 — DI-backed getDb() wrapper.
-// Prefer this over importing getDb from @kestrel/db directly.
-export { getDb } from '../runtime/db';
-
 // Langfuse / OpenTelemetry instrumentation
 export { initLangfuse, flushLangfuse, shutdownLangfuse } from '../runtime/instrumentation';
 export { telemetryConfig, type TelemetryConfigOptions } from '../runtime/telemetry';

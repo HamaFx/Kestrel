@@ -25,8 +25,9 @@
 // Pattern: Service (PF-22). Controllers remain thin: parse request →
 // call service → format Response.
 
-import { getDb, testProviderKey } from '@kestrel/ai';
+import { testProviderKey } from '@kestrel/ai';
 import {
+  getDb,
   getUserWithSettings,
   replaceProviderTestResults,
   requireTenantIdForUser,

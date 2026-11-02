@@ -2,10 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { createAuthProviders } from '../src/lib/auth/providers';
 
-vi.mock('@kestrel/ai', () => ({
-  getDb: vi.fn(),
-}));
-
 describe('auth provider construction', () => {
   it('always creates the credentials provider', () => {
     const providers = createAuthProviders({});

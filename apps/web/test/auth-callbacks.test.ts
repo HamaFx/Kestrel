@@ -40,6 +40,7 @@ const mockWithUserTenant = vi.fn();
 
 vi.mock('@kestrel/db', () => ({
   hasAdminDbScope: () => false,
+  getDb: (...args: unknown[]) => mockGetDb(...args),
   createUserSession: (...args: unknown[]) => mockCreateUserSession(...args),
   // R1: user_sessions is RLS-protected; the session callback must run its
   // checks inside withUserTenant(userId, ...) when a round-trip is due.
@@ -52,10 +53,6 @@ vi.mock('@kestrel/db', () => ({
       lastActiveAt: 'userSessions.lastActiveAt',
     },
   },
-}));
-
-vi.mock('@kestrel/ai', () => ({
-  getDb: (...args: unknown[]) => mockGetDb(...args),
 }));
 
 /** Fake Drizzle client for the real `validateSession` checks. */

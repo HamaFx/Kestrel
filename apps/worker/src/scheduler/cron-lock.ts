@@ -37,7 +37,7 @@
 // is considered expired after LOCK_TTL_MS (default 2h). A new run can
 // acquire the lock by updating the expired row instead of skipping.
 
-import { type getDb } from '@kestrel/ai';
+import { type getDb } from '@kestrel/db';
 import { sql } from 'drizzle-orm';
 
 type DbClient = ReturnType<typeof getDb>;

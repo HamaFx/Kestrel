@@ -1,5 +1,4 @@
-import { getDb } from '@kestrel/ai';
-import { schema } from '@kestrel/db';
+import { getDb, schema } from '@kestrel/db';
 import { logErrorContext } from '@kestrel/shared/logger';
 import { eq } from 'drizzle-orm';
 import type { Provider } from 'next-auth/providers';

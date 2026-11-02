@@ -12,7 +12,7 @@
 // `WORKER_ENABLE_TICK_STREAM=0`) are ignored so on-demand REST mode never
 // emits false stale-tick alerts.
 
-import { getDb } from '@kestrel/ai';
+import { getDb } from '@kestrel/db';
 import { liveTicks } from '@kestrel/db/schema';
 import { metrics } from '@kestrel/shared';
 import { flushMetrics } from '@kestrel/shared/metrics-export';

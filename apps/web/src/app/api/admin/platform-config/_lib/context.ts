@@ -19,8 +19,7 @@
 // Resolve the desk the platform config applies to: the platform admin user,
 // falling back to the caller when no platform admin row exists.
 
-import { getDb } from '@kestrel/ai';
-import { getPlatformAdminUserId, requireTenantIdForUser } from '@kestrel/db';
+import { getDb, getPlatformAdminUserId, requireTenantIdForUser } from '@kestrel/db';
 
 export interface PlatformConfigContext {
   db: ReturnType<typeof getDb>;

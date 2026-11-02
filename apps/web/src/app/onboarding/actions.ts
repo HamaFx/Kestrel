@@ -17,8 +17,13 @@
  */
 import 'server-only';
 
-import { getDb } from '@kestrel/ai';
-import { applyUserByokPatch, requireTenantIdForUser, schema, withUserTenant } from '@kestrel/db';
+import {
+  applyUserByokPatch,
+  getDb,
+  requireTenantIdForUser,
+  schema,
+  withUserTenant,
+} from '@kestrel/db';
 import { DEFAULT_WATCHLIST_SYMBOLS, normalizeSymbol } from '@kestrel/shared';
 import type { PROVIDER_IDS } from '@kestrel/shared/byok';
 import { decryptByok, encryptByok } from '@kestrel/shared/encryption';

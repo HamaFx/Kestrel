@@ -1,5 +1,4 @@
-import { getDb } from '@kestrel/ai';
-import { schema, withRateLimit, type DbClient } from '@kestrel/db';
+import { getDb, schema, withRateLimit, type DbClient } from '@kestrel/db';
 import { decryptSecret } from '@kestrel/shared/encryption';
 import { logErrorContext } from '@kestrel/shared/logger';
 import bcrypt from 'bcryptjs';

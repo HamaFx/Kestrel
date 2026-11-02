@@ -20,8 +20,7 @@
 // Requires an explicit role='admin' — there is no implicit admin fallback;
 // all deployments are multi-user.
 
-import { getDb } from '@kestrel/ai';
-import { schema } from '@kestrel/db';
+import { getDb, schema } from '@kestrel/db';
 import { eq } from 'drizzle-orm';
 
 import { auth } from '@/auth';

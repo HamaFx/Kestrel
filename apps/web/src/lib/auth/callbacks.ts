@@ -1,5 +1,4 @@
-import { getDb } from '@kestrel/ai';
-import { createUserSession, withUserTenant } from '@kestrel/db';
+import { createUserSession, getDb, withUserTenant } from '@kestrel/db';
 import { logErrorContext } from '@kestrel/shared/logger';
 import { AuthError, type Session, type User } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';

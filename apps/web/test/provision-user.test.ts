@@ -78,16 +78,13 @@ function mockDb() {
   };
 }
 
-vi.mock('@kestrel/ai', () => ({
-  getDb: () => mockDb(),
-}));
-
 vi.mock('@/lib/env', () => ({
   getServerEnv: () => ({ REGISTRATION_MODE: process.env.REGISTRATION_MODE ?? 'open' }),
 }));
 
 vi.mock('@kestrel/db', () => ({
   hasAdminDbScope: () => false,
+  getDb: () => mockDb(),
   // R1: new-user provisioning runs in the personal tenant scope (id = user id);
   // the mock just runs the callback with a fresh fake client.
   withTenantDb: async (_tenantId: string, work: (db: unknown) => Promise<void>) => work(mockDb()),

@@ -20,8 +20,7 @@
 
 // Password-reset server actions: reset-link issuance and token-based
 // password rotation.
-import { getDb } from '@kestrel/ai';
-import { createAuditLog, schema, withRateLimit } from '@kestrel/db';
+import { createAuditLog, getDb, schema, withRateLimit } from '@kestrel/db';
 import bcrypt from 'bcryptjs';
 import { and, eq, gt, sql } from 'drizzle-orm';
 import { headers } from 'next/headers';

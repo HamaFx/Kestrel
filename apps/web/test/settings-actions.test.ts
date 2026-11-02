@@ -165,7 +165,6 @@ vi.mock('@kestrel/ai', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
-    getDb: mockGetDb,
     deleteAllThreads: vi.fn(),
     testProviderKey: mockTestProviderKey,
   };

@@ -21,8 +21,7 @@
 // Data-export action: password and 2FA gated, rate-limited export of all
 // tenant-scoped user data as JSON. The payload builder lives in
 // data-export-payload.ts.
-import { getDb } from '@kestrel/ai';
-import { schema, withRateLimit } from '@kestrel/db';
+import { getDb, schema, withRateLimit } from '@kestrel/db';
 import { eq } from 'drizzle-orm';
 
 import { auth } from '@/auth';

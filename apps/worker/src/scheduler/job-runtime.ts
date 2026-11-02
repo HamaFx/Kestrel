@@ -18,7 +18,7 @@
 // hard timeout race, and stuck/abort bookkeeping. Cron registration lives
 // in `./start-scheduler.ts`; this module owns running one job safely.
 
-import { getDb } from '@kestrel/ai';
+import { getDb } from '@kestrel/db';
 
 import type { WorkerEnv } from '../env.js';
 import { JOBS } from '../jobs/index.js';

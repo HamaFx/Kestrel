@@ -16,16 +16,10 @@
 
 // P2-3 — DI-backed getDb() wrapper.
 //
-// Replaces direct `import { getDb } from '@kestrel/db'` across the AI
-// package. Delegates to the global container, which caches the singleton
-// Drizzle client. Tests override via `container.register('db', () => mockDb)`.
-//
-// This module is self-bootstrapping: on first import it registers the
-// real @kestrel/db getDb() as the 'db' factory. This avoids a circular
-// dependency through the AI barrel (services.ts → @kestrel/ai → db.ts).
-//
-// This is the DIP implementation: consumers depend on the container
-// abstraction, not on the @kestrel/db module-level singleton.
+// This accessor now stays private to `@kestrel/ai`: applications import
+// `getDb` from `@kestrel/db`, which owns the RLS-aware scope resolution.
+// The wrapper remains for tests that override the AI container's DB factory
+// (`container.register(DB, ...)`) without touching the shared package.
 
 import {
   getAdminDb as getRawAdminDb,
