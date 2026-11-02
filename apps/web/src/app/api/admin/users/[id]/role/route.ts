@@ -21,8 +21,7 @@
 import { z } from 'zod';
 
 import { withAdminAuth } from '@/lib/auth/admin-auth';
-import { parseJsonBody } from '@/lib/http/api';
-import { jsonApiError } from '@/lib/http/api-errors';
+import { jsonApiError, parseJsonBody } from '@/lib/http/api';
 import { LastAdminError, SelfDemoteError, updateUserRoleService } from '@/lib/services/admin';
 
 export const runtime = 'nodejs';

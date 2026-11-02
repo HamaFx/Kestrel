@@ -18,7 +18,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { formatRelative } from '../src/lib/formatters/format';
+import { formatRelative } from '../src/lib/formatters/datetime';
 
 const NOW = 1_700_000_000_000;
 const MINUTE = 60_000;

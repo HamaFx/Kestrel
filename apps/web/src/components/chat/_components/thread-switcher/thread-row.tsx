@@ -6,7 +6,7 @@
 import { IconCheck } from '@tabler/icons-react';
 
 import { cn } from '@/lib/formatters/cn';
-import { formatRelative } from '@/lib/formatters/format';
+import { formatRelative } from '@/lib/formatters/datetime';
 
 import type { ThreadSummary } from '../../chat-top-bar';
 

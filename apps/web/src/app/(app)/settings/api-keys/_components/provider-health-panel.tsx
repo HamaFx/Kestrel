@@ -19,7 +19,7 @@
 import { BYOK_PROVIDERS_LIST } from '@kestrel/ai';
 import type { ProviderMeta } from '@kestrel/shared';
 
-import { formatRelative } from '@/lib/formatters/format';
+import { formatRelative } from '@/lib/formatters/datetime';
 
 import type { ApiKeyHealth } from './api-key-health';
 import { BulkTestButton } from './bulk-test-button';

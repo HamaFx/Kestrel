@@ -22,7 +22,7 @@
 // no existing code changes (OCP).
 //
 // Pattern mirrors ToolRegistry (packages/ai/src/tools/registry.ts)
-// and IndicatorRegistry (packages/indicators/src/indicator-registry.ts).
+// and IndicatorRegistry (packages/indicators/src/registry.ts).
 
 import type { AlertRule } from '@kestrel/shared';
 

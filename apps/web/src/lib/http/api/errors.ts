@@ -37,6 +37,31 @@ export interface ApiErrorBody {
 }
 
 /**
+ * Direct error envelope for routes that already know the code/status and do
+ * not need `errorResponse`'s exception mapping. Echoes the incoming
+ * X-Request-Id header when present.
+ */
+export function jsonApiError(
+  code: string,
+  message: string,
+  status: number,
+  req?: Request,
+): Response {
+  const requestId = req?.headers.get(REQUEST_ID_HEADER) ?? undefined;
+  const headers = requestId ? { [REQUEST_ID_HEADER]: requestId } : undefined;
+  return Response.json(
+    {
+      error: {
+        code,
+        message,
+        ...(requestId ? { requestId } : {}),
+      },
+    },
+    { status, ...(headers ? { headers } : {}) },
+  );
+}
+
+/**
  * Standardised error response. Pass `req` to echo the X-Request-Id header
  * (and embed it in the error body so the UI can show it in a bug report).
  */

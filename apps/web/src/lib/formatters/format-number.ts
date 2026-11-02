@@ -21,9 +21,6 @@
 // Tabular-nums is applied at the parent level via the `tabular-nums`
 // Tailwind class; these helpers just produce readable strings.
 
-const SECOND = 1000;
-const MINUTE = 60 * SECOND;
-
 /** Format a duration in ms as a human-readable string. ≥1000ms → "1.2s". */
 export function formatMs(ms: number): string {
   if (ms >= 1000) return `${(ms / 1000).toFixed(1)}s`;
@@ -33,26 +30,6 @@ export function formatMs(ms: number): string {
 /** Format a number with thousands separators. */
 export function formatNumber(n: number): string {
   return n.toLocaleString('en-US');
-}
-
-/**
- * Format an ISO timestamp as a relative "5m ago" / "2h ago" / "3d ago"
- * label. Falls back to a short absolute date for timestamps older than
- * 30 days.
- */
-export function formatRelativeTime(iso: string, now: number = Date.now()): string {
-  const t = new Date(iso).getTime();
-  if (!Number.isFinite(t)) return '';
-  const diffMs = now - t;
-  if (diffMs < 0) return 'just now';
-  if (diffMs < MINUTE) return `${Math.floor(diffMs / SECOND)}s ago`;
-  const m = Math.floor(diffMs / MINUTE);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  if (d < 30) return `${d}d ago`;
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 /** Full absolute time for tooltips. */

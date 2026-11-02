@@ -24,7 +24,6 @@ import {
   formatAbsoluteTime,
   formatMs,
   formatNumber,
-  formatRelativeTime,
 } from '@/lib/formatters/format-number';
 
 // ── formatMs ──────────────────────────────────────────────────────────
@@ -57,70 +56,6 @@ describe('formatNumber', () => {
     [1_234_567, '1,234,567'],
   ])('formats %d as %j', (n, expected) => {
     expect(formatNumber(n)).toBe(expected);
-  });
-});
-
-// ── formatRelativeTime ────────────────────────────────────────────────
-
-describe('formatRelativeTime', () => {
-  const NOW = new Date('2026-07-24T12:00:00Z').getTime();
-
-  it.each<{ label: string; iso: string; expected: string }>([
-    { label: 'a non-date string', iso: 'not-a-date', expected: '' },
-    { label: 'an empty string', iso: '', expected: '' },
-    {
-      label: 'a future timestamp (clock skew)',
-      iso: new Date(NOW + 30_000).toISOString(),
-      expected: 'just now',
-    },
-    {
-      label: 'a timestamp <1 minute ago',
-      iso: new Date(NOW - 5_000).toISOString(),
-      expected: '5s ago',
-    },
-    {
-      label: 'a timestamp 59 seconds ago',
-      iso: new Date(NOW - 59_000).toISOString(),
-      expected: '59s ago',
-    },
-    {
-      label: 'a timestamp 1 minute ago',
-      iso: new Date(NOW - 60_000).toISOString(),
-      expected: '1m ago',
-    },
-    {
-      label: 'a timestamp 59 minutes ago',
-      iso: new Date(NOW - 59 * 60_000).toISOString(),
-      expected: '59m ago',
-    },
-    {
-      label: 'a timestamp 1 hour ago',
-      iso: new Date(NOW - 3_600_000).toISOString(),
-      expected: '1h ago',
-    },
-    {
-      label: 'a timestamp 23 hours ago',
-      iso: new Date(NOW - 23 * 3_600_000).toISOString(),
-      expected: '23h ago',
-    },
-    {
-      label: 'a timestamp 1 day ago',
-      iso: new Date(NOW - 86_400_000).toISOString(),
-      expected: '1d ago',
-    },
-    {
-      label: 'a timestamp 29 days ago',
-      iso: new Date(NOW - 29 * 86_400_000).toISOString(),
-      expected: '29d ago',
-    },
-  ])('formats $label', ({ iso, expected }) => {
-    expect(formatRelativeTime(iso, NOW)).toBe(expected);
-  });
-
-  it('falls back to a short absolute date 30+ days ago', () => {
-    const thirtyDaysAgo = new Date(NOW - 30 * 86_400_000).toISOString();
-    // Should be a short date like "Jun 24" (not a relative string)
-    expect(formatRelativeTime(thirtyDaysAgo, NOW)).toMatch(/^[A-Z][a-z]{2} \d{1,2}$/);
   });
 });
 

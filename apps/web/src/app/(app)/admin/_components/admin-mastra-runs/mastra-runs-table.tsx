@@ -8,11 +8,8 @@ import { IconExternalLink, IconStethoscope } from '@tabler/icons-react';
 
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
-import {
-  formatAbsoluteTime,
-  formatNumber,
-  formatRelativeTime,
-} from '@/lib/formatters/format-number';
+import { formatRelative } from '@/lib/formatters/datetime';
+import { formatAbsoluteTime, formatNumber } from '@/lib/formatters/format-number';
 
 import { runFailureDetail, runStatusLabel, runTone } from './mastra-runs-format';
 import type { MastraRun } from './mastra-runs-types';
@@ -79,7 +76,7 @@ function MastraRunRow({ run }: { run: MastraRun }) {
         {formatNumber(run.ms)} ms
       </td>
       <td data-label="When" className="text-fg-subtle px-4 py-2">
-        <span title={formatAbsoluteTime(run.createdAt)}>{formatRelativeTime(run.createdAt)}</span>
+        <span title={formatAbsoluteTime(run.createdAt)}>{formatRelative(run.createdAt)}</span>
       </td>
     </tr>
   );

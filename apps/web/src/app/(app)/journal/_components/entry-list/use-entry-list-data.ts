@@ -5,7 +5,7 @@ import type { JournalEntry, Symbol } from '@kestrel/shared';
 import { useMemo } from 'react';
 
 import { usePrices } from '@/hooks/use-prices';
-import { formatRelative } from '@/lib/formatters/format';
+import { formatRelative } from '@/lib/formatters/datetime';
 
 export function useEntryListData(entries: JournalEntry[]) {
   // Pre-compute relative time labels in the parent to avoid per-row recomputation

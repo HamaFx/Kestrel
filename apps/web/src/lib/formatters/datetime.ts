@@ -79,6 +79,43 @@ export function formatStamp(iso: string): string {
 }
 
 /**
+ * UTC economic-calendar stamp: "11-02 14:23Z". Calendar and event times stay
+ * in UTC (unlike {@link formatStamp}, which renders local time).
+ */
+export function formatUtcStamp(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const mm = (d.getUTCMonth() + 1).toString().padStart(2, '0');
+  const dd = d.getUTCDate().toString().padStart(2, '0');
+  const hh = d.getUTCHours().toString().padStart(2, '0');
+  const mi = d.getUTCMinutes().toString().padStart(2, '0');
+  return `${mm}-${dd} ${hh}:${mi}Z`;
+}
+
+/**
+ * Relative "5m ago" / "2h ago" / "3d ago" / "2w ago" label for a timestamp.
+ * Falls back to a locale date string older than 30 days. Accepts epoch ms,
+ * an ISO string, or a Date. The single canonical relative-time formatter —
+ * do not add a second one (previously `formatRelativeTime` in
+ * `format-number.ts`).
+ */
+export function formatRelative(
+  timestamp: number | string | Date,
+  now: number = Date.now(),
+): string {
+  const t = typeof timestamp === 'number' ? timestamp : new Date(timestamp).getTime();
+  if (!Number.isFinite(t)) return '';
+  const diffMs = now - t;
+  if (diffMs < 0) return 'just now';
+  if (diffMs < 60_000) return 'just now';
+  if (diffMs < 3_600_000) return `${Math.floor(diffMs / 60_000)}m ago`;
+  if (diffMs < 86_400_000) return `${Math.floor(diffMs / 3_600_000)}h ago`;
+  if (diffMs < 7 * 86_400_000) return `${Math.floor(diffMs / 86_400_000)}d ago`;
+  if (diffMs < 30 * 86_400_000) return `${Math.floor(diffMs / (7 * 86_400_000))}w ago`;
+  return new Date(t).toLocaleDateString();
+}
+
+/**
  * Shared radio-group keyboard handler for arrow-key navigation.
  */
 export function handleRadioKeyDown(e: React.KeyboardEvent): void {

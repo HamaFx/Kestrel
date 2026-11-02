@@ -17,7 +17,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { withAdminAuth } from '@/lib/auth/admin-auth';
-import { jsonApiError } from '@/lib/http/api-errors';
+import { jsonApiError } from '@/lib/http/api';
 import { recordAdminAudit } from '@/lib/services/admin';
 import type {
   DiagnosticTraceDetail,

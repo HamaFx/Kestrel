@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Small status chips shown in the API-key card header.
-import { formatRelative } from '@/lib/formatters/format';
+import { formatRelative } from '@/lib/formatters/datetime';
 
 export type TestState =
   { kind: 'idle' } | { kind: 'pending' } | { kind: 'ok' } | { kind: 'err'; message: string };

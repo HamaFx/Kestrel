@@ -19,8 +19,7 @@
 import { z } from 'zod';
 
 import { withAdminAuth } from '@/lib/auth/admin-auth';
-import { errorResponse, parseJsonBody } from '@/lib/http/api';
-import { jsonApiError } from '@/lib/http/api-errors';
+import { errorResponse, jsonApiError, parseJsonBody } from '@/lib/http/api';
 import { recordAdminAudit } from '@/lib/services/admin';
 import { updateAiRegressionCaseStatus } from '@/lib/services/api-boundary';
 

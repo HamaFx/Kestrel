@@ -20,7 +20,7 @@ import {
 
 import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/formatters/cn';
-import { formatRelative } from '@/lib/formatters/format';
+import { formatRelative } from '@/lib/formatters/datetime';
 
 import { describeAlert } from './describe-alert';
 

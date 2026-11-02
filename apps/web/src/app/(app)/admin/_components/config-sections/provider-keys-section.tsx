@@ -23,7 +23,7 @@ import { SettingsSection } from '@/app/(app)/settings/_components/settings-secti
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { formatRelative } from '@/lib/formatters/format';
+import { formatRelative } from '@/lib/formatters/datetime';
 
 import type { PlatformConfigController } from './use-platform-config';
 

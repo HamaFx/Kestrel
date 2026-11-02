@@ -25,12 +25,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import {
-  downloadCSV,
-  formatAbsoluteTime,
-  formatMs,
-  formatRelativeTime,
-} from '@/lib/formatters/format-number';
+import { formatRelative } from '@/lib/formatters/datetime';
+import { downloadCSV, formatAbsoluteTime, formatMs } from '@/lib/formatters/format-number';
 import { apiFetch } from '@/lib/http/api-client';
 import { toastApiError } from '@/lib/http/toast-api-error';
 import type { ToolTelemetryRow } from '@/lib/services/admin-dtos';
@@ -146,7 +142,7 @@ export function AdminToolTelemetryTable() {
                   </td>
                   <td data-label="Time" className="text-fg-subtle px-4 py-2">
                     <span title={formatAbsoluteTime(row.createdAt)}>
-                      {formatRelativeTime(row.createdAt)}
+                      {formatRelative(row.createdAt)}
                     </span>
                   </td>
                 </tr>

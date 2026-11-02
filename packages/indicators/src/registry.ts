@@ -14,16 +14,22 @@
  * limitations under the License.
  */
 
-// P0-3 — Plugin-based dispatch for kind-keyed indicator computation.
+// P0-3 — Plugin-based indicator registry (replaces the switch(kind) dispatch).
 //
-// Delegates to `indicatorRegistry` (plugin registry pattern — same as
-// ToolRegistry in packages/ai). Adding a new indicator requires only
-// implementing a new file + calling `indicatorRegistry.register()`.
-// No existing code changes.
+// Each indicator registers itself with a name, params schema, and a
+// standardized compute function. Adding a new indicator requires only
+// implementing a new file, importing it here, and registering it — no
+// existing dispatch code changes. This mirrors the ToolRegistry pattern
+// from packages/ai/src/tools/registry.ts.
 //
 // Used by the `/api/market/indicators` route handler and the
 // `get_indicators` AI tool so they share a single source of truth
 // for parameter parsing and output shape.
+//
+// P2 consolidation: `indicator-registry.ts` and `registry.ts` used to hold
+// the class and the compute helpers separately, which made the import cycle
+// implicit. One module now owns the registry, the registrations, and the
+// compute entry points.
 
 import {
   IndicatorKindSchema,
@@ -33,9 +39,200 @@ import {
   type Symbol,
   type Timeframe,
 } from '@kestrel/shared';
+import { z } from 'zod';
 
-// Import the barrel that triggers all indicator self-registrations.
-import { indicatorRegistry } from './indicator-registry';
+import { atr } from './atr';
+import { bollinger } from './bollinger';
+import { macd } from './macd';
+import { ema, sma } from './moving-averages';
+import { pivotsAligned } from './pivots';
+import { rsi } from './rsi';
+
+// --- Plugin definition --------------------------------------------------
+
+/**
+ * An indicator plugin registered in the registry.
+ * The `compute` function receives candles + params (already parsed
+ * and validated by the registry) and returns the raw value array.
+ * The registry wraps the result into the standard IndicatorResult shape.
+ */
+export interface IndicatorPlugin {
+  /** Unique indicator kind (e.g. 'sma', 'ema', 'rsi'). */
+  kind: IndicatorKind;
+  /** Zod schema for params. Used by parseIndicatorParams(). */
+  paramsSchema: z.ZodType;
+  /**
+   * Compute the indicator values from candles + parsed params.
+   * Returns the raw value array — the registry wraps it into
+   * `IndicatorResult` with the standard shape.
+   */
+  compute: (candles: Candle[], params: Record<string, number>) => unknown[];
+  /** Human-readable description for catalogues / documentation. */
+  description: string;
+}
+
+// --- Registry ------------------------------------------------------------
+
+/**
+ * Plugin-based indicator registry.
+ *
+ * Usage:
+ * ```ts
+ * import { indicatorRegistry } from './registry';
+ *
+ * // In each indicator file (self-registration):
+ * indicatorRegistry.register({
+ *   kind: 'sma',
+ *   paramsSchema: PeriodOnly.default({ period: 20 }),
+ *   compute: (candles, params) => sma(candles, params.period),
+ *   description: 'Simple Moving Average',
+ * });
+ *
+ * // In computeIndicator():
+ * const plugin = indicatorRegistry.get('sma');
+ * const values = plugin.compute(candles, parsedParams);
+ * ```
+ *
+ * OCP benefit: adding an indicator means registering it —
+ * no existing code changes.
+ */
+export class IndicatorRegistry {
+  private plugins = new Map<IndicatorKind, IndicatorPlugin>();
+
+  /**
+   * Register an indicator plugin. Idempotent — registering
+   * the same kind twice overwrites.
+   */
+  register(plugin: IndicatorPlugin): void {
+    this.plugins.set(plugin.kind, plugin);
+  }
+
+  /**
+   * Get a registered indicator plugin by kind.
+   * Throws if the kind is not registered.
+   */
+  get(kind: IndicatorKind): IndicatorPlugin {
+    const plugin = this.plugins.get(kind);
+    if (!plugin) {
+      throw new Error(
+        `Unknown indicator kind: "${kind}". Registered kinds: ${this.listKinds().join(', ')}. ` +
+          `Add it via indicatorRegistry.register() in the indicator's file and import it in the barrel.`,
+      );
+    }
+    return plugin;
+  }
+
+  /**
+   * Check if an indicator kind is registered.
+   */
+  has(kind: IndicatorKind): boolean {
+    return this.plugins.has(kind);
+  }
+
+  /**
+   * List all registered indicator kinds.
+   */
+  listKinds(): IndicatorKind[] {
+    return [...this.plugins.keys()];
+  }
+
+  /**
+   * List all registered plugins.
+   */
+  listPlugins(): IndicatorPlugin[] {
+    return [...this.plugins.values()];
+  }
+}
+
+/** Global singleton — import this in indicator files to register. */
+export const indicatorRegistry = new IndicatorRegistry();
+
+// --- Per-kind parameter schemas ------------------------------------------
+
+const PeriodOnly = z.object({ period: z.int().min(1).max(500) });
+
+indicatorRegistry.register({
+  kind: 'sma',
+  paramsSchema: PeriodOnly.default({ period: 20 }),
+  compute: (candles, params) => sma(candles, params.period!),
+  description: 'Simple Moving Average',
+});
+
+indicatorRegistry.register({
+  kind: 'ema',
+  paramsSchema: PeriodOnly.default({ period: 20 }),
+  compute: (candles, params) => ema(candles, params.period!),
+  description: 'Exponential Moving Average',
+});
+
+indicatorRegistry.register({
+  kind: 'rsi',
+  paramsSchema: PeriodOnly.default({ period: 14 }),
+  compute: (candles, params) => rsi(candles, params.period!),
+  description: 'Relative Strength Index (0-100)',
+});
+
+indicatorRegistry.register({
+  kind: 'atr',
+  paramsSchema: PeriodOnly.default({ period: 14 }),
+  compute: (candles, params) => atr(candles, params.period!),
+  description: 'Average True Range',
+});
+
+indicatorRegistry.register({
+  kind: 'macd',
+  paramsSchema: z
+    .object({
+      fast: z.int().min(1).max(200).default(12),
+      slow: z.int().min(1).max(500).default(26),
+      signal: z.int().min(1).max(200).default(9),
+    })
+    .default({ fast: 12, slow: 26, signal: 9 }),
+  compute: (candles, params) =>
+    macd(candles, params.fast!, params.slow!, params.signal!).map((p) => ({
+      macd: p.macd,
+      signal: p.signal,
+      hist: p.hist,
+    })),
+  description: 'Moving Average Convergence Divergence (12/26/9)',
+});
+
+indicatorRegistry.register({
+  kind: 'bollinger',
+  paramsSchema: z
+    .object({
+      period: z.int().min(2).max(500).default(20),
+      multiplier: z.number().min(0.1).max(10).default(2),
+    })
+    .default({ period: 20, multiplier: 2 }),
+  compute: (candles, params) =>
+    bollinger(candles, params.period!, params.multiplier!).map((p) => ({
+      upper: p.upper,
+      middle: p.middle,
+      lower: p.lower,
+    })),
+  description: 'Bollinger Bands (20, 2)',
+});
+
+indicatorRegistry.register({
+  kind: 'pivots',
+  paramsSchema: z.object({}).default({}),
+  compute: (candles, _params) =>
+    pivotsAligned(candles).map((p) =>
+      p === null
+        ? null
+        : {
+            pp: p.pp,
+            r1: p.r1,
+            r2: p.r2,
+            r3: p.r3,
+            s1: p.s1,
+            s2: p.s2,
+            s3: p.s3,
+          },
+    ),
+  description: 'Classic Floor Trader Pivots (PP, R1-R3, S1-S3)',
+});
 
 // --- Compute -------------------------------------------------------------
 

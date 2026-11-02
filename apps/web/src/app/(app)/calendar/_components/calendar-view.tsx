@@ -30,8 +30,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/formatters/cn';
-import { startOfDay, startOfDayOffset } from '@/lib/formatters/datetime';
-import { formatRelative } from '@/lib/formatters/format';
+import { formatRelative, startOfDay, startOfDayOffset } from '@/lib/formatters/datetime';
 import { apiFetch } from '@/lib/http/api-client';
 
 import { CalendarToolbar } from './calendar-toolbar';

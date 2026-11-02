@@ -25,6 +25,8 @@
 import type { AnalyzeFundamentalOutput } from '@kestrel/shared';
 import { Link } from 'next-view-transitions';
 
+import { formatUtcStamp } from '@/lib/formatters/datetime';
+
 import type { ToolPartProps } from './registry';
 
 const MAX_EVENTS = 6;
@@ -76,7 +78,7 @@ export function AnalyzeFundamentalPart({
                     {e.country}
                     {e.currency ? ` · ${e.currency}` : ''} ·{' '}
                     <time dateTime={iso} className="tabular-nums">
-                      {formatStamp(iso)}
+                      {formatUtcStamp(iso)}
                     </time>
                   </span>
                 </div>
@@ -124,16 +126,6 @@ function impactClass(importance: 'low' | 'medium' | 'high'): string {
   if (importance === 'high') return 'bg-danger/10 text-danger';
   if (importance === 'medium') return 'bg-warn/10 text-warn';
   return 'bg-bg-elev-2 text-fg-muted';
-}
-
-function formatStamp(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  const mm = (d.getUTCMonth() + 1).toString().padStart(2, '0');
-  const dd = d.getUTCDate().toString().padStart(2, '0');
-  const hh = d.getUTCHours().toString().padStart(2, '0');
-  const mi = d.getUTCMinutes().toString().padStart(2, '0');
-  return `${mm}-${dd} ${hh}:${mi}Z`;
 }
 
 function SkeletonCard() {

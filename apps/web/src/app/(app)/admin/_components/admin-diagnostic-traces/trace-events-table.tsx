@@ -8,7 +8,8 @@ import { IconStethoscope } from '@tabler/icons-react';
 
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
-import { formatAbsoluteTime, formatMs, formatRelativeTime } from '@/lib/formatters/format-number';
+import { formatRelative } from '@/lib/formatters/datetime';
+import { formatAbsoluteTime, formatMs } from '@/lib/formatters/format-number';
 import type { TraceExplorerEvent } from '@/lib/services/admin-dtos';
 
 import { primaryCorrelation, sourceTone, statusTone } from './trace-format';
@@ -59,7 +60,7 @@ function EventRow({
         className="text-fg-subtle px-3 py-2"
         title={formatAbsoluteTime(event.timestamp)}
       >
-        {formatRelativeTime(event.timestamp)}
+        {formatRelative(event.timestamp)}
       </td>
     </tr>
   );

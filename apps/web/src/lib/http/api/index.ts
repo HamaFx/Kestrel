@@ -26,6 +26,6 @@
 //   - PF-10: compose() middleware chain
 
 export { getUserFromRequest, withAuth, type RequestUser } from './auth';
-export { errorResponse, type ApiErrorBody } from './errors';
+export { errorResponse, jsonApiError, type ApiErrorBody } from './errors';
 export { parseJsonBody, parseSearchParams } from './body';
 export { authMiddleware, compose, type Middleware } from './middleware';

@@ -4,7 +4,7 @@
 
 import type { listTelemetry } from '@kestrel/ai';
 
-import { formatRelative } from '@/lib/formatters/format';
+import { formatRelative } from '@/lib/formatters/datetime';
 
 export function RecentTurnsCard({ rows }: { rows: Awaited<ReturnType<typeof listTelemetry>> }) {
   if (rows.length === 0) {

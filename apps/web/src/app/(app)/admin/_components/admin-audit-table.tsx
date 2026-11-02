@@ -24,11 +24,8 @@ import { SettingsSection } from '@/app/(app)/settings/_components/settings-secti
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import {
-  downloadCSV,
-  formatAbsoluteTime,
-  formatRelativeTime,
-} from '@/lib/formatters/format-number';
+import { formatRelative } from '@/lib/formatters/datetime';
+import { downloadCSV, formatAbsoluteTime } from '@/lib/formatters/format-number';
 import { apiFetch } from '@/lib/http/api-client';
 import { toastApiError } from '@/lib/http/toast-api-error';
 
@@ -176,7 +173,7 @@ export function AdminAuditTable() {
                   </td>
                   <td data-label="Date" className="text-fg-subtle px-4 py-2">
                     <span title={formatAbsoluteTime(entry.createdAt)}>
-                      {formatRelativeTime(entry.createdAt)}
+                      {formatRelative(entry.createdAt)}
                     </span>
                   </td>
                 </tr>

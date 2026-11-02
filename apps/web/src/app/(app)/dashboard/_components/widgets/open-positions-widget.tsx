@@ -42,7 +42,7 @@ import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { usePrices } from '@/hooks/use-prices';
 import { cn } from '@/lib/formatters/cn';
-import { formatRelative } from '@/lib/formatters/format';
+import { formatRelative } from '@/lib/formatters/datetime';
 
 interface OpenPositionsWidgetProps {
   entries: readonly JournalEntry[];

@@ -43,7 +43,7 @@ import { memo } from 'react';
 
 import { cleanNewsText } from '@/lib/formatters/clean-news-text';
 import { cn } from '@/lib/formatters/cn';
-import { formatRelative } from '@/lib/formatters/format';
+import { formatRelative } from '@/lib/formatters/datetime';
 
 import { useBookmarks } from './use-bookmarks';
 

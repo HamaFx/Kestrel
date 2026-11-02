@@ -73,7 +73,11 @@ describe('production security boundaries', () => {
       generateImpersonationChallenge: vi.fn(),
       signIn: vi.fn(),
     }));
-    vi.doMock('@/lib/http/api', () => ({ parseJsonBody: vi.fn() }));
+    vi.doMock('@/lib/http/api', () => ({
+      parseJsonBody: vi.fn(),
+      jsonApiError: (code: string, message: string, status: number) =>
+        Response.json({ error: { code, message } }, { status }),
+    }));
     vi.doMock('@/lib/services/admin', () => ({ recordAdminAudit: vi.fn() }));
     vi.doMock('@/lib/services/api-boundary', () => ({ getUserById: vi.fn() }));
 

@@ -25,11 +25,8 @@ import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import {
-  downloadCSV,
-  formatAbsoluteTime,
-  formatRelativeTime,
-} from '@/lib/formatters/format-number';
+import { formatRelative } from '@/lib/formatters/datetime';
+import { downloadCSV, formatAbsoluteTime } from '@/lib/formatters/format-number';
 import { apiFetch } from '@/lib/http/api-client';
 import { toastApiError } from '@/lib/http/toast-api-error';
 import type { CronRun } from '@/lib/services/admin-dtos';
@@ -136,7 +133,7 @@ export function AdminCronTable() {
                   </td>
                   <td data-label="Started" className="text-fg-subtle px-4 py-2">
                     <span title={formatAbsoluteTime(run.startedAt)}>
-                      {formatRelativeTime(run.startedAt)}
+                      {formatRelative(run.startedAt)}
                     </span>
                   </td>
                   <td data-label="Note" className="text-fg-subtle px-4 py-2">

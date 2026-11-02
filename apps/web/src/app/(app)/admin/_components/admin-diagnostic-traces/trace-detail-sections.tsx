@@ -9,7 +9,8 @@ import type { ReactNode } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { formatAbsoluteTime, formatMs, formatRelativeTime } from '@/lib/formatters/format-number';
+import { formatRelative } from '@/lib/formatters/datetime';
+import { formatAbsoluteTime, formatMs } from '@/lib/formatters/format-number';
 import type { DiagnosticTraceDetail, TraceExplorerEvent } from '@/lib/services/admin-dtos';
 
 import { sourceTone, statusTone } from './trace-format';
@@ -65,7 +66,7 @@ function ErrorRow({ error }: { error: DiagnosticTraceDetail['errors'][number] })
         </pre>
       )}
       <p className="text-fg-subtle mt-1 text-xs" title={formatAbsoluteTime(ts.toISOString())}>
-        {formatRelativeTime(ts.toISOString())}
+        {formatRelative(ts.toISOString())}
       </p>
     </div>
   );
@@ -120,7 +121,7 @@ export function TraceDetailSummary({
       </DetailItem>
       <DetailItem label="Started">
         <span className="text-xs" title={formatAbsoluteTime(detail.startedAt)}>
-          {formatRelativeTime(detail.startedAt)}
+          {formatRelative(detail.startedAt)}
         </span>
       </DetailItem>
       {typeof detail.durationMs === 'number' && (

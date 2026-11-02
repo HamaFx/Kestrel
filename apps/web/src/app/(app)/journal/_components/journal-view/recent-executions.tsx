@@ -12,7 +12,7 @@ import type { JournalEntry } from '@kestrel/shared';
 import { IconArrowRight, IconHistory } from '@tabler/icons-react';
 
 import { cn } from '@/lib/formatters/cn';
-import { formatRelative } from '@/lib/formatters/format';
+import { formatRelative } from '@/lib/formatters/datetime';
 
 interface RecentExecutionsProps {
   entries: readonly JournalEntry[];
