@@ -31,10 +31,7 @@ import type { ToolContext } from '@ai/runtime/tool-context';
 import type { BuiltScorers } from '../../evals/scorers';
 import type { ExecutionPlan } from '../../planning/execution-plan';
 import type { MastraGenerationStats } from '../../shared/telemetry';
-import type {
-  MastraToolInvocationPart,
-  MastraToolStreamEvent,
-} from '../../tools/tool-lifecycle';
+import type { MastraToolInvocationPart, MastraToolStreamEvent } from '../../tools/tool-lifecycle';
 import type { checkCanonicalEvidence } from './evidence';
 
 export interface RunMastraCanonicalChatArgs {

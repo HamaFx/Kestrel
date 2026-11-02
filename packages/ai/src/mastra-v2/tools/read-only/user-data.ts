@@ -35,14 +35,14 @@ import {
 import { createTool } from '@mastra/core/tools';
 import type { z } from 'zod';
 
-import { computePositionHealthTool } from '@ai/tools/compute-position-health';
-import { getJournalStatsTool } from '@ai/tools/get-journal-stats';
-import { replaySetupTool } from '@ai/tools/replay-setup';
 import {
   createReadOnlyToolExecute,
   executeLegacyReadOnlyTool,
   readOnlyToolDescription,
 } from '@ai/mastra-v2/tools/tool-lifecycle';
+import { computePositionHealthTool } from '@ai/tools/compute-position-health';
+import { getJournalStatsTool } from '@ai/tools/get-journal-stats';
+import { replaySetupTool } from '@ai/tools/replay-setup';
 
 /** Native sensitive user-read tools by registry name. */
 export function buildUserDataReadOnlyTools(): Readonly<Record<string, unknown>> {

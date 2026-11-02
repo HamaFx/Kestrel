@@ -18,7 +18,10 @@
 
 // Telemetry + finish-metadata builders for the canonical Mastra stream.
 
-import { CANONICAL_EVIDENCE_BLOCKED_MESSAGE, type MastraCanonicalChatStream } from '@kestrel/ai/mastra-v2';
+import {
+  CANONICAL_EVIDENCE_BLOCKED_MESSAGE,
+  type MastraCanonicalChatStream,
+} from '@kestrel/ai/mastra-v2';
 import { MemoryDegradedPartSchema, type ChatStreamEvent } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
 import type { z } from 'zod';

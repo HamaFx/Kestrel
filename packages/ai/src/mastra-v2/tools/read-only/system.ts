@@ -34,6 +34,11 @@ import {
 import { createTool } from '@mastra/core/tools';
 import type { z } from 'zod';
 
+import {
+  createReadOnlyToolExecute,
+  executeLegacyReadOnlyTool,
+  readOnlyToolDescription,
+} from '@ai/mastra-v2/tools/tool-lifecycle';
 import { conveneCommitteeTool } from '@ai/tools/convene-committee';
 import {
   GetSocialSentimentInputSchema,
@@ -42,11 +47,6 @@ import {
 } from '@ai/tools/get-social-sentiment';
 import { getSystemDiagnosticsTool } from '@ai/tools/get-system-diagnostics';
 import { verifyCallTool } from '@ai/tools/verify-call';
-import {
-  createReadOnlyToolExecute,
-  executeLegacyReadOnlyTool,
-  readOnlyToolDescription,
-} from '@ai/mastra-v2/tools/tool-lifecycle';
 
 /** Native system-domain read-only tools by registry name. */
 export function buildSystemReadOnlyTools(): Readonly<Record<string, unknown>> {

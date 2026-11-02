@@ -38,10 +38,7 @@ import type { Tool, ToolExecutionOptions } from 'ai';
 
 import { executeMastraTool } from '@ai/mastra-v2/shared/tool-telemetry';
 
-import {
-  type MastraToolInvocationPart,
-  type MastraToolStreamEvent,
-} from './tool-stream-parts';
+import { type MastraToolInvocationPart, type MastraToolStreamEvent } from './tool-stream-parts';
 
 /** Context Mastra hands to a read-only tool execute function. */
 export interface MastraReadOnlyToolContext {

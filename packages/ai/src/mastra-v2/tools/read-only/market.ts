@@ -41,17 +41,17 @@ import {
 import { createTool } from '@mastra/core/tools';
 import type { z } from 'zod';
 
-import { GetCalendarInputSchema, getCalendarTool } from '@ai/tools/get-calendar';
-import { getCorrelationTool } from '@ai/tools/get-correlation';
-import { getIntermarketResonanceTool } from '@ai/tools/get-intermarket-resonance';
-import { getIntermarketTool } from '@ai/tools/get-intermarket';
-import { getSeasonalityTool } from '@ai/tools/get-seasonality';
-import { getSessionLevelsTool } from '@ai/tools/get-session-levels';
 import {
   createReadOnlyToolExecute,
   executeLegacyReadOnlyTool,
   readOnlyToolDescription,
 } from '@ai/mastra-v2/tools/tool-lifecycle';
+import { GetCalendarInputSchema, getCalendarTool } from '@ai/tools/get-calendar';
+import { getCorrelationTool } from '@ai/tools/get-correlation';
+import { getIntermarketTool } from '@ai/tools/get-intermarket';
+import { getIntermarketResonanceTool } from '@ai/tools/get-intermarket-resonance';
+import { getSeasonalityTool } from '@ai/tools/get-seasonality';
+import { getSessionLevelsTool } from '@ai/tools/get-session-levels';
 
 /** Native market-domain read-only tools by registry name. */
 export function buildMarketReadOnlyTools(): Readonly<Record<string, unknown>> {
@@ -60,11 +60,10 @@ export function buildMarketReadOnlyTools(): Readonly<Record<string, unknown>> {
       id: 'kestrel-get_calendar',
       description: readOnlyToolDescription(getCalendarTool, 'get_calendar'),
       inputSchema: GetCalendarInputSchema,
-      execute: createReadOnlyToolExecute<
-        z.infer<typeof GetCalendarInputSchema>,
-        GetCalendarOutput
-      >('kestrel-get_calendar', 'get_calendar', (input, context) =>
-        executeLegacyReadOnlyTool(getCalendarTool, input, context),
+      execute: createReadOnlyToolExecute<z.infer<typeof GetCalendarInputSchema>, GetCalendarOutput>(
+        'kestrel-get_calendar',
+        'get_calendar',
+        (input, context) => executeLegacyReadOnlyTool(getCalendarTool, input, context),
       ),
     }),
     get_correlation: createTool({

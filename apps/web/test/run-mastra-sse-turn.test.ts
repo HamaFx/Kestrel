@@ -19,9 +19,13 @@
 
 // @vitest-environment node
 
+import type { ChatStreamEvent } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ChatStreamEvent } from '@kestrel/shared';
+import {
+  runMastraSseTurn,
+  type MastraSseStream,
+} from '@/lib/services/mastra/stream/run-mastra-sse-turn';
 
 const mocks = vi.hoisted(() => {
   const ledgerState = { total: 0.1 };
@@ -77,8 +81,6 @@ vi.mock('@/lib/services/mastra/stream/mastra-stream-finalizer', () => ({
   createMastraStreamFinalizer: mocks.createMastraStreamFinalizer,
 }));
 
-import { runMastraSseTurn, type MastraSseStream } from '@/lib/services/mastra/stream/run-mastra-sse-turn';
-
 interface TestCompletion {
   text: string;
   toolParts?: Array<{
@@ -111,7 +113,11 @@ function eventSequence(body: string): string[] {
 const baseInput = {
   userId: 'user-1',
   threadId: 'thread-1',
-  userMessage: { id: 'message-1', role: 'user' as const, parts: [{ type: 'text' as const, text: 'hi' }] },
+  userMessage: {
+    id: 'message-1',
+    role: 'user' as const,
+    parts: [{ type: 'text' as const, text: 'hi' }],
+  },
   idempotencyPrefix: 'mastra-test',
 };
 
@@ -131,7 +137,12 @@ describe('runMastraSseTurn', () => {
     let emit: ((event: ChatStreamEvent, options?: { markEmitted?: boolean }) => void) | null = null;
     const stream: MastraSseStream<TestCompletion> = {
       text: (async function* () {
-        emit?.({ type: 'tool-input-available', toolCallId: 'live-1', toolName: 'get_price', input: {} });
+        emit?.({
+          type: 'tool-input-available',
+          toolCallId: 'live-1',
+          toolName: 'get_price',
+          input: {},
+        });
         yield 'Hello';
         emit?.({ type: 'tool-output-available', toolCallId: 'live-1', output: { ok: true } });
         yield ' world';
@@ -170,7 +181,11 @@ describe('runMastraSseTurn', () => {
           id: messageId,
           data: { observedCost },
         });
-        return { id: messageId, role: 'assistant', parts: [{ type: 'text', text: completed.text }] };
+        return {
+          id: messageId,
+          role: 'assistant',
+          parts: [{ type: 'text', text: completed.text }],
+        };
       },
     });
 

@@ -29,11 +29,11 @@ import {
   packetNeedsDisclosure,
   verifySemanticDisclosureWithJev,
 } from '../../jev/semantic-verifier';
+import { getMastraGenerationStats } from '../../mastra-v2/shared/telemetry';
 import {
   extractToolPartsFromMessages,
   type MastraToolInvocationPart,
 } from '../../mastra-v2/tools/tool-lifecycle';
-import { getMastraGenerationStats } from '../../mastra-v2/shared/telemetry';
 import {
   buildPluginMastraTools,
   getInstalledPluginRuntime,

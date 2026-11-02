@@ -22,7 +22,10 @@ import type * as KestrelDb from '@kestrel/db';
 import { container } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { saveAgentOpinions, saveAgentOpinionsBestEffort } from '../src/committee/opinion-persistence';
+import {
+  saveAgentOpinions,
+  saveAgentOpinionsBestEffort,
+} from '../src/committee/opinion-persistence';
 import { DB } from '../src/runtime/tokens';
 
 const { state, dbStub } = vi.hoisted(() => {

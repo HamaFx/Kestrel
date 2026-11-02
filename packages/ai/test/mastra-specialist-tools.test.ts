@@ -21,7 +21,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { SPECIALIST_DEFINITIONS, resolveSpecialistDeskTools } from '../src/committee/specialists';
+import { resolveSpecialistDeskTools, SPECIALIST_DEFINITIONS } from '../src/committee/specialists';
 import { resolveNativeCanonicalTool } from '../src/mastra-v2/tools/canonical';
 
 describe('Mastra specialist desk tools', () => {

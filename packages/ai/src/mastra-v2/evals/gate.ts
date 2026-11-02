@@ -176,7 +176,9 @@ export function recordsToGateObserved(
         totalCostUsd: group[0]!.metadata?.costUsd ?? 0,
       },
       citationScore: citationRecord?.score ?? null,
-      assertions: [...rubricFailures.map((detail) => ({ kind: 'rubric_failure' as const, detail }))],
+      assertions: [
+        ...rubricFailures.map((detail) => ({ kind: 'rubric_failure' as const, detail })),
+      ],
       agentProgress: [],
       terminalStatus: null,
     };

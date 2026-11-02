@@ -21,7 +21,6 @@ import type { UserSettingsRow } from '@kestrel/db/schema';
 import { estimateCostUsd } from '@ai/budget/cost';
 import { withToolContext } from '@ai/runtime/tool-context';
 
-import { extractToolPartsFromMessages } from '../mastra-v2/tools/tool-lifecycle';
 import {
   beginMastraRun,
   finishMastraRun,
@@ -29,6 +28,7 @@ import {
   mastraOutcomeForError,
 } from '../mastra-v2/shared/telemetry';
 import { runTracingOptions } from '../mastra-v2/telemetry';
+import { extractToolPartsFromMessages } from '../mastra-v2/tools/tool-lifecycle';
 import { buildCustomAgent, type CustomAgentEnv } from './agent-builder';
 import type { CustomAgentDescriptor } from './agent-catalog';
 import type { InstalledPluginRuntime } from './runtime';

@@ -40,17 +40,17 @@ import {
 import { createTool } from '@mastra/core/tools';
 import type { z } from 'zod';
 
+import {
+  createReadOnlyToolExecute,
+  executeLegacyReadOnlyTool,
+  readOnlyToolDescription,
+} from '@ai/mastra-v2/tools/tool-lifecycle';
 import { analyzeChartImageTool } from '@ai/tools/analyze-chart-image';
 import { analyzeFundamentalTool } from '@ai/tools/analyze-fundamental';
 import { analyzeTechnicalTool } from '@ai/tools/analyze-technical';
 import { annotateChartTool } from '@ai/tools/annotate-chart';
 import { computeRiskTool } from '@ai/tools/compute-risk';
 import { forecastVolatilityTool } from '@ai/tools/forecast-volatility';
-import {
-  createReadOnlyToolExecute,
-  executeLegacyReadOnlyTool,
-  readOnlyToolDescription,
-} from '@ai/mastra-v2/tools/tool-lifecycle';
 
 /** Native analysis-domain read-only tools by registry name. */
 export function buildAnalysisReadOnlyTools(): Readonly<Record<string, unknown>> {

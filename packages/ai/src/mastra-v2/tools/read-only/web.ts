@@ -26,13 +26,13 @@
 import type { WebSearchOutput } from '@kestrel/shared';
 import { createTool } from '@mastra/core/tools';
 
-import { webSearchTool } from '@ai/tools/web-search';
-import { InputSchema, type SearchInput } from '@ai/tools/web-search/types';
 import {
   createReadOnlyToolExecute,
   executeLegacyReadOnlyTool,
   readOnlyToolDescription,
 } from '@ai/mastra-v2/tools/tool-lifecycle';
+import { webSearchTool } from '@ai/tools/web-search';
+import { InputSchema, type SearchInput } from '@ai/tools/web-search/types';
 
 /** Native web-domain read-only tools by registry name. */
 export function buildWebReadOnlyTools(): Readonly<Record<string, unknown>> {

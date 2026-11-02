@@ -29,13 +29,13 @@ import {
   estimateKnownCostUsd,
   releaseBudgetReservation,
 } from '../budget/cost';
-import { runMastraText } from '../mastra-v2/shared/text-runner';
 import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
 import {
   beginMastraRun,
   finishMastraRun,
   mastraOutcomeForError,
 } from '../mastra-v2/shared/telemetry';
+import { runMastraText } from '../mastra-v2/shared/text-runner';
 import { resolveChatModel } from '../models/model';
 import { computeStats, type JournalStatsSummary } from './persistence';
 

@@ -42,9 +42,9 @@ import type { UIMessage } from 'ai';
 import { getServerEnv } from '@/lib/env';
 import { maybeGenerateThreadTitle } from '@/lib/services/mastra/chat/mastra-thread-title';
 
+import { pushPendingToolPartEvents, type MastraSseToolPart } from './mastra-sse-tool-parts';
 import { createMastraStreamFinalizer } from './mastra-stream-finalizer';
 import { mastraStreamResponse, type MastraStreamTerminalStatus } from './mastra-stream-response';
-import { pushPendingToolPartEvents, type MastraSseToolPart } from './mastra-sse-tool-parts';
 
 /** Tool-event subset of the SSE contract (the events that carry a call id). */
 type MastraSseToolEvent = Extract<ChatStreamEvent, { toolCallId: string }>;
@@ -124,7 +124,9 @@ export interface RunMastraSseTurnArgs<
    * Recover a `stream.completion` rejection in-band (e.g. the canonical
    * evidence gate). Return null to rethrow.
    */
-  recoverCompletion?: (context: MastraSseTurnRecoveryContext) => Promise<MastraSseTurnRecovery | null>;
+  recoverCompletion?: (
+    context: MastraSseTurnRecoveryContext,
+  ) => Promise<MastraSseTurnRecovery | null>;
   /** Post-settle hook (custom-agent run records and terminal diagnostics). */
   afterSettle?: (context: {
     completed: TCompletion;
@@ -172,7 +174,9 @@ export async function runMastraSseTurn<
           role: 'assistant',
           parts: [{ type: 'text', text: '_Stream interrupted — please retry._' }],
         },
-        { idempotencyKey: `${args.idempotencyPrefix}:${args.threadId}:${args.userMessage.id}:interrupted` },
+        {
+          idempotencyKey: `${args.idempotencyPrefix}:${args.threadId}:${args.userMessage.id}:interrupted`,
+        },
       ).catch(() => undefined);
     },
   });

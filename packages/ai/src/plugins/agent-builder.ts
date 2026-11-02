@@ -28,13 +28,13 @@ import { resolveMastraExecutionModel, type ChatModelResolution } from '@ai/model
 import { DB } from '@ai/runtime/tokens';
 import { type ToolContext } from '@ai/runtime/tool-context';
 
+import { prepareKestrelMemory } from '../mastra-v2/context';
+import { buildGuardrailInputProcessors } from '../mastra-v2/guardrails';
+import { createKestrelMemory, kestrelMemoryOptions } from '../mastra-v2/memory';
 import type {
   MastraToolInvocationPart,
   MastraToolStreamEvent,
 } from '../mastra-v2/tools/tool-lifecycle';
-import { prepareKestrelMemory } from '../mastra-v2/context';
-import { buildGuardrailInputProcessors } from '../mastra-v2/guardrails';
-import { createKestrelMemory, kestrelMemoryOptions } from '../mastra-v2/memory';
 import type { ResolveModelEnv } from '../models/env-factory';
 import type { CustomAgentDescriptor } from './agent-catalog';
 import { alog } from './agent-log';

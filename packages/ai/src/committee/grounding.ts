@@ -8,8 +8,8 @@
  */
 
 import { partitionNumbersByFreshness } from '../mastra-v2/agents/canonical/freshness';
-import { extractNarrativeNumbers } from '../mastra-v2/shared/report-grounding';
 import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
+import { extractNarrativeNumbers } from '../mastra-v2/shared/report-grounding';
 import type { MastraModeOpinion } from './types';
 
 /** Evidence tolerance: legitimate integer rounding of indicator readings. */

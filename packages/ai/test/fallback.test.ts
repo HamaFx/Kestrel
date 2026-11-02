@@ -16,7 +16,11 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { classifyStreamError, makeFallbackPart, shouldFallback } from '../src/models/model-fallback';
+import {
+  classifyStreamError,
+  makeFallbackPart,
+  shouldFallback,
+} from '../src/models/model-fallback';
 
 describe('classifyStreamError', () => {
   it.each<{

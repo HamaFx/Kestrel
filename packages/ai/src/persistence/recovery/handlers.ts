@@ -21,8 +21,8 @@
 import type { UIMessage } from 'ai';
 import { z } from 'zod';
 
-import { persistTraceStrict } from '../../diagnostics/trace-persistence';
 import { saveAgentOpinions } from '../../committee/opinion-persistence';
+import { persistTraceStrict } from '../../diagnostics/trace-persistence';
 import { appendAssistantMessage, appendUserMessage } from '../message-persistence';
 import {
   recordTelemetry,

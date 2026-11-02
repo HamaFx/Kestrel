@@ -24,13 +24,13 @@ import {
   estimateKnownCostUsd,
   releaseBudgetReservation,
 } from '../budget/cost';
-import * as textRunner from '../mastra-v2/shared/text-runner';
 import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
 import {
   beginMastraRun,
   createMastraRunFinalizer,
   mastraOutcomeForError,
 } from '../mastra-v2/shared/telemetry';
+import * as textRunner from '../mastra-v2/shared/text-runner';
 import { resolveChatModel } from '../models/model';
 import {
   CoachInsightsOutputSchema,

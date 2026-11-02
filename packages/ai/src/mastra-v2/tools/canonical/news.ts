@@ -33,8 +33,8 @@ import { type z } from 'zod';
 import { getDb } from '@ai/runtime/db';
 import { maybeGetToolContext } from '@ai/runtime/tool-context';
 
-import { createReadOnlyToolExecute } from '../tool-lifecycle';
 import { quarantineExternalText } from '../../packets/external-content';
+import { createReadOnlyToolExecute } from '../tool-lifecycle';
 import { CANONICAL_NEWS_DESCRIPTION } from './descriptions';
 import { CanonicalNewsInputSchema } from './input-schemas';
 

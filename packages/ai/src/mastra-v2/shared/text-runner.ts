@@ -28,8 +28,8 @@ import {
   createIndirectContentGuardrailProcessor,
   type GuardrailMode,
 } from '../guardrails';
-import { getMastraGenerationStats } from './telemetry';
 import { runTracingOptions } from '../telemetry';
+import { getMastraGenerationStats } from './telemetry';
 
 /** Shared Unicode normalizer applied to every text-runner agent. */
 const NORMALIZER = new UnicodeNormalizer({

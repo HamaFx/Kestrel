@@ -31,11 +31,6 @@ import { withRetry } from '@ai/runtime/retry';
 import { withToolContext } from '@ai/runtime/tool-context';
 
 import { latestUserModelMessages } from '../mastra-v2/agents/canonical/prompts';
-import {
-  extractToolPartsFromMessages,
-  type MastraToolInvocationPart,
-  type MastraToolStreamEvent,
-} from '../mastra-v2/tools/tool-lifecycle';
 import { KESTREL_MEMORY_LAST_MESSAGES } from '../mastra-v2/memory';
 import {
   beginMastraRun,
@@ -44,6 +39,11 @@ import {
   mastraOutcomeForError,
 } from '../mastra-v2/shared/telemetry';
 import { runTracingOptions } from '../mastra-v2/telemetry';
+import {
+  extractToolPartsFromMessages,
+  type MastraToolInvocationPart,
+  type MastraToolStreamEvent,
+} from '../mastra-v2/tools/tool-lifecycle';
 import {
   buildCustomAgent,
   type CustomAgentEnv,
