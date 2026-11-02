@@ -24,7 +24,11 @@ Self-hosted multi-user BYOK AI trading research platform (Next.js 16, React 19, 
   - `@kestrel/indicators`: Pure SMC and technical indicator math.
   - `@kestrel/ai`: Mastra agents, committee workflows, tools, memory/RAG, and integer-cent budget reservations.
 - **Multi-Tenant & RLS Safety:**
-  - Every tenant read/write in RSCs, Server Actions, or Worker jobs MUST run inside `withUserTenant(userId, ...)` (or `withUserTenantRO`). Cross-tenant system jobs MUST use `withAdminDb(...)`.
+  - Every tenant read/write in RSCs, Server Actions, or Worker jobs MUST run inside `withUserTenant(userId, ...)` (or `withUserTenantRO` for read-only callbacks). Cross-tenant system jobs MUST use `withAdminDb(...)`.
+  - Applications (`apps/web`, `apps/worker`) import `getDb` and the scope wrappers from `@kestrel/db`. `@kestrel/ai` keeps its DI-aware `getDb()` internal; it is not re-exported.
+- **Boundary Honesty:**
+  - `apps/web/src/app/api/**/*.ts` are controllers: they call `@/lib/services/*` and never import `@kestrel/ai`, `@kestrel/data`, or `@kestrel/db` directly (ESLint enforces `@kestrel/shared` as the only exception).
+  - `src/lib/services/*` must contain real domain orchestration or queries, never a 1-line re-export of a package. Pass-through shims and `services/db.ts` escape hatches are forbidden.
 - **Protected Guardrails (Never Game or Weaken):**
   - Never modify `scripts/check-*.mjs`, `scripts/maintainability-baseline.json`, `knip.json`, or `packages/config/eslint/index.js` to silence a failure. Fix the underlying code.
   - Never create pass-through re-export shims for moved files; update callers directly and delete the old file.

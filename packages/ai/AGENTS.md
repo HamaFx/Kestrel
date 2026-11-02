@@ -4,6 +4,8 @@ AI engine: Mastra v2 agents and workflows, tool registry, memory/RAG, and the in
 
 ## Conventions
 
+- **One tool registry, one mutation path.** `nativeCanonicalTools()` (`src/mastra-v2/tools/canonical/index.ts`) is the single native read-only tool map; `runMastraMutationTurn` is the single mutation path. Capability manifests, agent domain filters, and the canonical allowlist must resolve against that map.
+- **One DB accessor.** `getDb()` from `src/runtime/db.ts` is the only allowed database accessor inside `@kestrel/ai`. Never call `container.resolve(DB)`; the accessor enforces tenant/admin RLS scope when `KESTREL_ENABLE_RLS=1`. Applications import `getDb` from `@kestrel/db` instead.
 - **Mastra v2 lives in `src/mastra-v2/`.** Agents register native Mastra tools with `createTool`; the canonical seven market tools are in `src/mastra-v2/tools/canonical/` with input schemas in `input-schemas.ts`. Tool names are the contract with the capability manifest and agent domain filters, so never rename one without updating callers.
 - **Tool execute cores** accept an optional `AbortSignal` and fall back to `maybeGetToolContext()?.signal` (`@ai/runtime/tool-context`). Read-only tools must disclose freshness/staleness fields from `@kestrel/data` instead of dropping them.
 - **Run-scoped cost ledger:** record every generation through `createGenerationLedger()` (`src/persistence/generation-ledger.ts`). Entry IDs are idempotency keys, so retries and duplicate callbacks cannot inflate the parent cost.
