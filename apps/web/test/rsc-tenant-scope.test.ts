@@ -216,13 +216,12 @@ describe('RSC tenant scope contract (audit 2026-10-31 R1)', () => {
   });
 
   it('declares a tenant scope in every RSC and server action that reads tenant data indirectly', () => {
-    const violations = TENANT_SCOPED_MODULES.filter(
-      (file) => !SCOPE_DECLARATION.test(read(file)),
-    );
+    const violations = TENANT_SCOPED_MODULES.filter((file) => !SCOPE_DECLARATION.test(read(file)));
     expect(violations).toEqual([]);
   });
 
-  it('keeps every exemption explicit and live', () => {    for (const [file, entry] of Object.entries(EXEMPT)) {
+  it('keeps every exemption explicit and live', () => {
+    for (const [file, entry] of Object.entries(EXEMPT)) {
       expect(serverFiles, `${file} is no longer a covered server component`).toContain(file);
       expect(entry.reason.length, `${file} needs a real reason`).toBeGreaterThan(40);
       const source = read(file);

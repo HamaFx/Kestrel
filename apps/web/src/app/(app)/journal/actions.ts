@@ -8,9 +8,8 @@
  */
 import 'server-only';
 
-import { revalidatePath } from 'next/cache';
-
 import { withUserTenant } from '@kestrel/db';
+import { revalidatePath } from 'next/cache';
 
 import { auth } from '@/auth';
 import {

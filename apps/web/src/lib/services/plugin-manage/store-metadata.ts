@@ -19,11 +19,7 @@
 // Plugin Store metadata: capabilities, badges, settings masking and the
 // Store/shell snapshots consumed by server components and the manage route.
 
-import {
-  listInstalledPlugins,
-  withUserTenant,
-  type InstalledPluginRow,
-} from '@kestrel/db';
+import { listInstalledPlugins, withUserTenant, type InstalledPluginRow } from '@kestrel/db';
 import {
   describePluginSettingsSchema,
   pluginHost,
