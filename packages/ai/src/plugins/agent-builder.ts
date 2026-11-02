@@ -18,14 +18,14 @@
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import { pluginHost } from '@kestrel/plugin-sdk';
-import { container, type ServerEnv } from '@kestrel/shared';
+import { type ServerEnv } from '@kestrel/shared';
 import { Agent, type AgentMemoryOption } from '@mastra/core/agent';
 import type { MastraModelConfig } from '@mastra/core/llm';
 import type { MastraMemory } from '@mastra/core/memory';
 import { RequestContext } from '@mastra/core/request-context';
 
 import { resolveMastraExecutionModel, type ChatModelResolution } from '@ai/models/model';
-import { DB } from '@ai/runtime/tokens';
+import { getDb } from '@ai/runtime/db';
 import { type ToolContext } from '@ai/runtime/tool-context';
 
 import { prepareKestrelMemory } from '../mastra-v2/context';
@@ -269,7 +269,7 @@ export async function buildCustomAgent(args: BuildCustomAgentArgs): Promise<Buil
       max: args.settings.maxDailyUsd ?? args.env.MAX_DAILY_USD ?? 5,
     },
     userSettings: args.settings,
-    db: container.resolve(DB),
+    db: getDb(),
     toolTelemetryBuffer: [],
   };
 

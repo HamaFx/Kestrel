@@ -18,13 +18,12 @@
 
 import { requireTenantIdForUser, schema } from '@kestrel/db';
 import type { AgentOpinionRow } from '@kestrel/db/schema';
-import { container } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { and, asc, eq } from 'drizzle-orm';
 
 import { getDiagnosticContext } from '../diagnostics/run-context';
 import { enqueuePersistenceFailure } from '../persistence/outbox';
-import { DB } from '../runtime/tokens';
+import { getDb } from '../runtime/db';
 
 const plog = createCategorizedLogger('ai', { component: 'committee-opinion-persistence' });
 
@@ -84,7 +83,7 @@ export async function saveAgentOpinionsBestEffort(args: SaveOpinionsArgs): Promi
 }
 
 export async function saveAgentOpinions(args: SaveOpinionsArgs): Promise<void> {
-  const db = container.resolve(DB);
+  const db = getDb();
   const tenantId = await requireTenantIdForUser(args.userId, db);
   if (args.opinions.length === 0) return;
 
@@ -160,7 +159,7 @@ export async function listAgentOpinions(
   userId: string,
   threadId: string,
 ): Promise<AgentOpinionRow[]> {
-  const db = container.resolve(DB);
+  const db = getDb();
   const tenantId = await requireTenantIdForUser(userId, db);
   const rows = await db
     .select({ opinion: schema.agentOpinions })
@@ -196,7 +195,7 @@ export async function listMessageOpinions(
   userId: string,
   messageId: string,
 ): Promise<AgentOpinionRow[]> {
-  const db = container.resolve(DB);
+  const db = getDb();
   const tenantId = await requireTenantIdForUser(userId, db);
   const rows = await db
     .select({ opinion: schema.agentOpinions })

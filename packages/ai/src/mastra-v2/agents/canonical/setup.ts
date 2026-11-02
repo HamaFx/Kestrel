@@ -17,7 +17,7 @@
 // Canonical agent construction: memory, routing, guarded tools, plugins,
 // subagents, guardrails, scorers, and the per-turn tool context.
 
-import { container, getMessageText, metrics, pickAiEnv } from '@kestrel/shared';
+import { getMessageText, metrics, pickAiEnv } from '@kestrel/shared';
 import { Agent } from '@mastra/core/agent';
 import type { MastraModelConfig } from '@mastra/core/llm';
 import { RequestContext } from '@mastra/core/request-context';
@@ -35,7 +35,7 @@ import {
 } from '@ai/plugins';
 import { resolveSemanticRoutingConfig, routeTurn, type RoutingDecision } from '@ai/routing';
 import type { SemanticRoutingAccounting } from '@ai/routing/semantic';
-import { DB } from '@ai/runtime/tokens';
+import { getDb } from '@ai/runtime/db';
 import { type ToolContext } from '@ai/runtime/tool-context';
 
 import { manifestToolsForDomain, type MastraRoutingDomain } from '../../capabilities';
@@ -272,7 +272,7 @@ export async function setupCanonicalChat(
       max: args.settings.maxDailyUsd ?? args.env.MAX_DAILY_USD,
     },
     userSettings: args.settings,
-    db: container.resolve(DB),
+    db: getDb(),
     toolTelemetryBuffer: [],
     ...(args.ledger ? { ledger: args.ledger } : {}),
   };
