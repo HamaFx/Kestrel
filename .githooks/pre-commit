@@ -82,19 +82,22 @@ while IFS= read -r file; do
   for pattern in "${PATTERNS[@]}"; do
     MATCHES=$(echo "$CONTENT" | grep -nE "$pattern" 2>/dev/null || true)
     if [ -n "$MATCHES" ]; then
-      # Determine if this file is likely intentionally storing secrets (like .env.example)
-      if [[ "$file" == *.env* ]] && [[ "$file" != *".example"* ]]; then
-        FOUND_SECRETS=true
-        echo -e "${RED}✗ SECRET FOUND in $file (will be committed unless excluded)${NC}"
-        echo -e "  Matched pattern: $pattern"
-        while IFS= read -r line; do
-          LINE_NUM=$(echo "$line" | cut -d: -f1)
-          LINE_CONTENT=$(echo "$line" | cut -d: -f2-)
-          # Redact the value for display (keep the key name)
-          REDACTED=$(echo "$LINE_CONTENT" | sed -E 's/([=:]["'"'"']?)[^"'"'"' ]{4,}/\1[REDACTED]/g')
-          echo -e "  ${YELLOW}Line $LINE_NUM:${NC} $REDACTED"
-        done <<< "$MATCHES"
-        echo ""
+      # Scan every staged text file. Templates (*.example*) and test fixtures
+      # (*.test.ts) are allowed to contain realistic placeholder values.
+      if [[ "$file" != *".example"* ]]; then
+        if [[ "$file" != *.test.ts ]]; then
+          FOUND_SECRETS=true
+          echo -e "${RED}✗ SECRET FOUND in $file (will be committed unless excluded)${NC}"
+          echo -e "  Matched pattern: $pattern"
+          while IFS= read -r line; do
+            LINE_NUM=$(echo "$line" | cut -d: -f1)
+            LINE_CONTENT=$(echo "$line" | cut -d: -f2-)
+            # Redact the value for display (keep the key name)
+            REDACTED=$(echo "$LINE_CONTENT" | sed -E 's/([=:]["'"'"']?)[^"'"'"' ]{4,}/\1[REDACTED]/g')
+            echo -e "  ${YELLOW}Line $LINE_NUM:${NC} $REDACTED"
+          done <<< "$MATCHES"
+          echo ""
+        fi
       fi
     fi
   done
