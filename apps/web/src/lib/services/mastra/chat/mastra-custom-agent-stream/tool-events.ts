@@ -23,6 +23,8 @@ import type { ChatStreamEvent } from '@kestrel/shared';
 
 export type CustomAgentCompletion = Awaited<CustomAgentStreamResult['completion']>;
 export type CustomAgentToolPart = CustomAgentCompletion['toolParts'][number];
+/** Tool-event subset of the SSE contract (the events that carry a call id). */
+export type CustomAgentToolStreamEvent = Extract<ChatStreamEvent, { toolCallId: string }>;
 
 export interface LiveToolEvent {
   toolCallId: string;
@@ -33,7 +35,7 @@ export interface LiveToolEvent {
   errorText?: string;
 }
 
-export function toolEventToStreamEvent(event: LiveToolEvent): ChatStreamEvent | null {
+export function toolEventToStreamEvent(event: LiveToolEvent): CustomAgentToolStreamEvent | null {
   if (event.state === 'input-available' || event.state === 'input-streaming') {
     return {
       type: 'tool-input-available',
@@ -57,35 +59,4 @@ export function toolEventToStreamEvent(event: LiveToolEvent): ChatStreamEvent | 
     };
   }
   return null;
-}
-
-/** Emit completion-time tool parts that did not already stream live. */
-export function pushCustomToolPartEvents(
-  toolParts: CustomAgentToolPart[],
-  emittedToolCallIds: Set<string>,
-  postTextEvents: ChatStreamEvent[],
-): void {
-  for (const part of toolParts) {
-    if (emittedToolCallIds.has(part.toolCallId)) continue;
-    emittedToolCallIds.add(part.toolCallId);
-    postTextEvents.push({
-      type: 'tool-input-available',
-      toolCallId: part.toolCallId,
-      toolName: part.toolName,
-      input: part.input,
-    });
-    if (part.state === 'output-available') {
-      postTextEvents.push({
-        type: 'tool-output-available',
-        toolCallId: part.toolCallId,
-        output: part.output ?? null,
-      });
-    } else if (part.state === 'output-error') {
-      postTextEvents.push({
-        type: 'tool-output-error',
-        toolCallId: part.toolCallId,
-        errorText: part.errorText ?? 'Tool execution failed.',
-      });
-    }
-  }
 }

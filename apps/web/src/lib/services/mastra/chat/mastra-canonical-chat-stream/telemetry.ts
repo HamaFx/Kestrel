@@ -18,12 +18,13 @@
 
 // Telemetry + finish-metadata builders for the canonical Mastra stream.
 
-import { CANONICAL_EVIDENCE_BLOCKED_MESSAGE } from '@kestrel/ai/mastra-v2';
+import { CANONICAL_EVIDENCE_BLOCKED_MESSAGE, type MastraCanonicalChatStream } from '@kestrel/ai/mastra-v2';
 import { MemoryDegradedPartSchema, type ChatStreamEvent } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
 import type { z } from 'zod';
 
-import type { CanonicalCompletion, CanonicalToolPart } from './tool-parts';
+export type CanonicalCompletion = Awaited<MastraCanonicalChatStream['completion']>;
+export type CanonicalToolPart = NonNullable<CanonicalCompletion['toolParts']>[number];
 
 export type MemoryDegradedPart = z.infer<typeof MemoryDegradedPartSchema>;
 export type CanonicalFallbackPart = NonNullable<CanonicalCompletion['fallbackParts']>[number];
