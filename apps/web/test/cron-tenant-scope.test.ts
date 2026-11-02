@@ -36,6 +36,7 @@ const mocks = vi.hoisted(() => ({
   evaluateAlerts: vi.fn(),
   runRetentionCleanup: vi.fn(),
   findHighImpactEventsInWindow: vi.fn(),
+  listEmittedEventIds: vi.fn(),
   emitPreEvent: vi.fn(),
   emitPostEvent: vi.fn(),
   emitWeeklyReview: vi.fn(),
@@ -49,6 +50,7 @@ vi.mock('@/lib/services/api-boundary', () => ({
   evaluateAlerts: mocks.evaluateAlerts,
   runRetentionCleanup: mocks.runRetentionCleanup,
   findHighImpactEventsInWindow: mocks.findHighImpactEventsInWindow,
+  listEmittedEventIds: mocks.listEmittedEventIds,
   emitPreEvent: mocks.emitPreEvent,
   emitPostEvent: mocks.emitPostEvent,
   emitWeeklyReview: mocks.emitWeeklyReview,
@@ -170,6 +172,7 @@ describe('cron routes select an explicit database scope (R1)', () => {
   it('briefings discovers users via admin and scopes each user’s emits', async () => {
     mocks.getActiveUserIdsForCron.mockResolvedValue(['user-1']);
     mocks.findHighImpactEventsInWindow.mockResolvedValue([{ id: 'ev-1' }]);
+    mocks.listEmittedEventIds.mockResolvedValue(new Set());
     mocks.emitPreEvent.mockResolvedValue({ emitted: true });
     mocks.emitPostEvent.mockResolvedValue({ emitted: true });
 
@@ -179,8 +182,24 @@ describe('cron routes select an explicit database scope (R1)', () => {
     expect(mocks.getActiveUserIdsForCron).toHaveBeenCalledTimes(1);
     expect(mocks.withUserTenant).toHaveBeenCalledWith('user-1', expect.any(Function));
     expect(mocks.events).toEqual(['tenant:enter:user-1', 'tenant:exit:user-1']);
+    // Phase 3 Task 2 — the idempotency prefetch runs inside the tenant scope
+    // (parity with the worker job), then emits only the remaining pairs.
+    expect(mocks.listEmittedEventIds).toHaveBeenCalledWith('user-1', ['ev-1'], 'pre');
+    expect(mocks.listEmittedEventIds).toHaveBeenCalledWith('user-1', ['ev-1'], 'post');
     expect(mocks.emitPreEvent).toHaveBeenCalledWith('user-1', 'ev-1');
     expect(mocks.emitPostEvent).toHaveBeenCalledWith('user-1', 'ev-1');
+  });
+
+  it('briefings skips events already emitted for the user', async () => {
+    mocks.getActiveUserIdsForCron.mockResolvedValue(['user-1']);
+    mocks.findHighImpactEventsInWindow.mockResolvedValue([{ id: 'ev-1' }]);
+    mocks.listEmittedEventIds.mockResolvedValue(new Set(['ev-1']));
+
+    const response = await briefingsGET(request('/api/cron/briefings'));
+
+    expect(response.status).toBe(200);
+    expect(mocks.emitPreEvent).not.toHaveBeenCalled();
+    expect(mocks.emitPostEvent).not.toHaveBeenCalled();
   });
 
   it('weekly-review discovers users via admin and scopes each user’s review', async () => {

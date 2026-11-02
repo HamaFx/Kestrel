@@ -28,13 +28,9 @@ vi.mock('@kestrel/ai', () => ({
 
 // One user — matches the per-user loop in the new multi-user source.
 vi.mock('@kestrel/db', () => ({
-  getDb: () => ({
-    select: vi.fn(() => ({
-      from: vi.fn(async () => [{ id: 'u1' }]),
-    })),
-  }),
-  schema: { users: { id: 'id' } },
   getActiveUserIds: vi.fn(async () => ['u1']),
+  withAdminDb: vi.fn(async (fn: () => Promise<unknown>) => fn()),
+  withUserTenant: vi.fn(async (_userId: string, fn: () => Promise<unknown>) => fn()),
 }));
 
 const log = createLogger({ service: 'test', forceJson: true });

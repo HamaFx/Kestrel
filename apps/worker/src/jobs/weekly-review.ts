@@ -17,26 +17,36 @@
 // Phase 8 PR-14 — `weekly-review` heavy job, migrated from
 // /api/cron/weekly-review on Vercel (route stays as manual fallback).
 //
-// Calls `emitWeeklyReview` exactly once. Idempotent within an ISO week
-// via the `briefings_emitted` PK on (`weekly_review:<isoWeek>`,
-// 'weekly_review'). Schedule: Sunday 18:00 UTC.
+// Calls `emitWeeklyReview` exactly once per active user. Idempotent within
+// an ISO week via the `briefings_emitted` PK on
+// (`weekly_review:<isoWeek>`, 'weekly_review'). Schedule: Sunday 18:00 UTC.
+//
+// Audit 2026-10-31 (R1) — this job was missed when the tenant scoping fix
+// landed on the web cron route. `getActiveUserIds` joins the RLS-protected
+// `chat_threads` table and `emitWeeklyReview` reads journals and writes
+// `briefings_emitted` / `chat_threads` / `chat_messages`, so discovery runs
+// on the admin connection and each user's review runs inside
+// `withUserTenant`.
 
 import { emitWeeklyReview } from '@kestrel/ai';
-import { getActiveUserIds } from '@kestrel/db';
+import { getActiveUserIds, withAdminDb, withUserTenant } from '@kestrel/db';
 
 import type { JobContext, JobResult } from './types.js';
 
 export async function runWeeklyReview(ctx: JobContext): Promise<JobResult> {
-  const userIds = await getActiveUserIds();
+  // Cross-tenant discovery on the admin (BYPASSRLS) connection.
+  const allUserIds = await withAdminDb(() => getActiveUserIds());
 
   let emittedCount = 0;
-  for (const userId of userIds) {
+  for (const userId of allUserIds) {
     if (ctx.signal?.aborted) break;
     // PF-23: Skip tenants that belong to another worker partition.
     if (!ctx.tenantRouter.isMyTenant(userId)) continue;
     try {
-      const r = await emitWeeklyReview(userId);
-      if (r.emitted) emittedCount++;
+      await withUserTenant(userId, async () => {
+        const r = await emitWeeklyReview(userId);
+        if (r.emitted) emittedCount++;
+      });
     } catch (err) {
       ctx.log.error('weekly-review failed for user', { userId, err: String(err) });
     }

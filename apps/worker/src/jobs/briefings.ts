@@ -24,9 +24,13 @@
 // Each emit is idempotent at the (eventId, kind) primary key on
 // briefings_emitted, so any cadence (with possible drift) is safe to re-run.
 //
-// FIX 2026-07-15: Widened both windows from 4-minute slivers to generous
-// ranges so briefings aren't permanently missed during worker downtime.
-// The `wasEmitted` idempotency guard prevents duplicates.
+// Audit 2026-10-31 (R1) — this job was missed when the tenant scoping fix
+// landed on the web cron route. `getActiveUserIds` joins the RLS-protected
+// `chat_threads` table, and every emit writes `briefings_emitted` /
+// `chat_threads` / `chat_messages`. Under the non-bypass `kestrel_app` role
+// the unscoped reads silently returned zero rows and the writes failed RLS,
+// so discovery now runs on the admin connection and each user's work runs
+// inside `withUserTenant`.
 
 import {
   emitPostEvent,
@@ -34,7 +38,7 @@ import {
   findHighImpactEventsInWindow,
   listEmittedEventIds,
 } from '@kestrel/ai';
-import { getActiveUserIds } from '@kestrel/db';
+import { getActiveUserIds, withAdminDb, withUserTenant } from '@kestrel/db';
 
 import type { JobContext, JobResult } from './types.js';
 
@@ -49,89 +53,88 @@ export async function runBriefings(ctx: JobContext): Promise<JobResult> {
   const now = Date.now();
   const log = ctx.log;
 
-  const allUserIds = await getActiveUserIds();
+  // Cross-tenant discovery on the admin (BYPASSRLS) connection.
+  const allUserIds = await withAdminDb(() => getActiveUserIds());
   const userIds = allUserIds.filter((userId) => ctx.tenantRouter.isMyTenant(userId));
   if (userIds.length === 0) {
     return { processed: 0, note: 'no owned active users' };
   }
 
   // --- Pre-event window: [now, now+2h] ---
-  // Any high-impact event happening in the next 2 hours gets a pre-event
-  // briefing. The idempotency check inside emitPreEvent prevents duplicates
-  // across consecutive runs.
   const preCandidates = await findHighImpactEventsInWindow({
     fromMs: now,
     toMs: now + PRE_WINDOW_MS,
   });
-
-  let preEmitted = 0;
   const preEventIds = preCandidates.map((c) => c.id);
-  // One idempotency query per user per phase instead of one per (event,
-  // user) pair on every tick. A failed prefetch falls back to empty sets —
-  // the per-pair guard inside emitPreEvent still prevents duplicates.
-  const preEmittedByUser = new Map<string, Set<string>>();
-  for (const userId of userIds) {
-    try {
-      preEmittedByUser.set(userId, await listEmittedEventIds(userId, preEventIds, 'pre'));
-    } catch (err) {
-      log.warn('briefings pre-idempotency prefetch failed', { userId, err: String(err) });
-      preEmittedByUser.set(userId, new Set());
-    }
-  }
-
-  for (const c of preCandidates) {
-    if (ctx.signal?.aborted) {
-      log.warn('briefings aborted', { phase: 'pre' });
-      break;
-    }
-    for (const userId of userIds) {
-      if (ctx.signal?.aborted) break;
-      if (preEmittedByUser.get(userId)?.has(c.id)) continue;
-      try {
-        const r = await emitPreEvent(userId, c.id);
-        if (r.emitted) preEmitted += 1;
-      } catch (err) {
-        log.error('emitPreEvent failed', { userId, eventId: c.id, err: String(err) });
-      }
-    }
-  }
 
   // --- Post-event catch-up: [now-30d, now-5m] AND actual IS NOT NULL ---
-  // Scans the last 30 days for high-impact events with reported actuals
-  // that haven't had a post-event briefing emitted yet. This catches up on
-  // briefings that were missed during worker downtime.
   const postCandidates = await findHighImpactEventsInWindow({
     fromMs: now - POST_CATCHUP_MS,
     toMs: now - POST_GRACE_MS,
     requireActual: true,
   });
-
-  let postEmitted = 0;
   const postEventIds = postCandidates.map((c) => c.id);
-  const postEmittedByUser = new Map<string, Set<string>>();
-  for (const userId of userIds) {
-    try {
-      postEmittedByUser.set(userId, await listEmittedEventIds(userId, postEventIds, 'post'));
-    } catch (err) {
-      log.warn('briefings post-idempotency prefetch failed', { userId, err: String(err) });
-      postEmittedByUser.set(userId, new Set());
-    }
-  }
 
-  for (const c of postCandidates) {
+  let preEmitted = 0;
+  let postEmitted = 0;
+
+  for (const userId of userIds) {
     if (ctx.signal?.aborted) {
-      log.warn('briefings aborted', { phase: 'post' });
+      log.warn('briefings aborted', { phase: 'user-loop' });
       break;
     }
-    for (const userId of userIds) {
-      if (ctx.signal?.aborted) break;
-      if (postEmittedByUser.get(userId)?.has(c.id)) continue;
-      try {
-        const r = await emitPostEvent(userId, c.id);
-        if (r.emitted) postEmitted += 1;
-      } catch (err) {
-        log.error('emitPostEvent failed', { userId, eventId: c.id, err: String(err) });
-      }
+
+    try {
+      await withUserTenant(userId, async () => {
+        // One idempotency query per phase instead of one per (event, user)
+        // pair. A failed prefetch falls back to empty sets — the per-pair
+        // guard inside emitPreEvent still prevents duplicates.
+        const preAlreadyEmitted = await listEmittedEventIds(userId, preEventIds, 'pre').catch(
+          (err) => {
+            log.warn('briefings pre-idempotency prefetch failed', {
+              userId,
+              err: String(err),
+            });
+            return new Set<string>();
+          },
+        );
+
+        for (const c of preCandidates) {
+          if (ctx.signal?.aborted) break;
+          if (preAlreadyEmitted.has(c.id)) continue;
+          try {
+            const r = await emitPreEvent(userId, c.id);
+            if (r.emitted) preEmitted += 1;
+          } catch (err) {
+            log.error('emitPreEvent failed', { userId, eventId: c.id, err: String(err) });
+          }
+        }
+
+        const postAlreadyEmitted = await listEmittedEventIds(userId, postEventIds, 'post').catch(
+          (err) => {
+            log.warn('briefings post-idempotency prefetch failed', {
+              userId,
+              err: String(err),
+            });
+            return new Set<string>();
+          },
+        );
+
+        for (const c of postCandidates) {
+          if (ctx.signal?.aborted) break;
+          if (postAlreadyEmitted.has(c.id)) continue;
+          try {
+            const r = await emitPostEvent(userId, c.id);
+            if (r.emitted) postEmitted += 1;
+          } catch (err) {
+            log.error('emitPostEvent failed', { userId, eventId: c.id, err: String(err) });
+          }
+        }
+      });
+    } catch (err) {
+      // Tenant resolution failed for this user — skip them without failing
+      // the whole fan-out.
+      log.error('briefings user failed', { userId, err: String(err) });
     }
   }
 

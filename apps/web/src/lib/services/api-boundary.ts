@@ -101,6 +101,7 @@ export {
   emitPreEvent,
   emitWeeklyReview,
   findHighImpactEventsInWindow,
+  listEmittedEventIds,
   upsertEvents,
   upsertCoTReport,
   backfillEmbeddings,

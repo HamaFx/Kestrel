@@ -37,6 +37,7 @@ import {
   emitPostEvent,
   emitPreEvent,
   findHighImpactEventsInWindow,
+  listEmittedEventIds,
   withUserTenant,
 } from '@/lib/services/api-boundary';
 
@@ -62,12 +63,14 @@ export async function GET(req: Request): Promise<Response> {
     });
 
     let preEmitted = 0;
+    const preEventIds = preCandidates.map((c) => c.id);
     // --- Post-event catch-up: [now-24h, now-5m] AND actual IS NOT NULL ---
     const postCandidates = await findHighImpactEventsInWindow({
       fromMs: now - POST_CATCHUP_MS,
       toMs: now - POST_GRACE_MS,
       requireActual: true,
     });
+    const postEventIds = postCandidates.map((c) => c.id);
 
     let postEmitted = 0;
 
@@ -80,7 +83,19 @@ export async function GET(req: Request): Promise<Response> {
     for (const userId of activeUsers) {
       try {
         await withUserTenant(userId, async () => {
+          // Phase 3 Task 2 — parity with `apps/worker/src/jobs/briefings.ts`:
+          // one idempotency query per phase replaces one per (event, user)
+          // pair. A failed prefetch falls back to an empty set; the per-pair
+          // guard inside emitPreEvent still prevents duplicates.
+          const preAlreadyEmitted = await listEmittedEventIds(userId, preEventIds, 'pre').catch(
+            (err) => {
+              log.errorContext(err, 'briefings pre-idempotency prefetch', { userId });
+              return new Set<string>();
+            },
+          );
+
           for (const c of preCandidates) {
+            if (preAlreadyEmitted.has(c.id)) continue;
             try {
               const r = await emitPreEvent(userId, c.id);
               if (r.emitted) preEmitted += 1;
@@ -89,7 +104,15 @@ export async function GET(req: Request): Promise<Response> {
             }
           }
 
+          const postAlreadyEmitted = await listEmittedEventIds(userId, postEventIds, 'post').catch(
+            (err) => {
+              log.errorContext(err, 'briefings post-idempotency prefetch', { userId });
+              return new Set<string>();
+            },
+          );
+
           for (const c of postCandidates) {
+            if (postAlreadyEmitted.has(c.id)) continue;
             try {
               const r = await emitPostEvent(userId, c.id);
               if (r.emitted) postEmitted += 1;
