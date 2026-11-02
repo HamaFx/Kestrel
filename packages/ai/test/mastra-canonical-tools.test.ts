@@ -25,7 +25,10 @@ import {
   assertCanonicalToolAllowlist,
   CANONICAL_READ_ONLY_TOOL_NAMES,
 } from '../src/mastra-v2/agents/canonical';
-import { manifestToolNames } from '../src/mastra-v2/capabilities';
+import {
+  CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES,
+  SENSITIVE_USER_READ_TOOL_NAMES,
+} from '../src/mastra-v2/capabilities';
 import {
   canonicalCandlesTool,
   canonicalCoTTool,
@@ -110,14 +113,8 @@ describe('native canonical tools (B-01)', () => {
     expect(Object.keys(nativeCanonicalTools()).sort()).toEqual(
       [
         ...CANONICAL_READ_ONLY_TOOL_NAMES,
-        // Phase 4 Task 2: the sensitive user reads and the read-only tools
-        // outside the canonical-chat allowlist are part of the native suite
-        // even though canonical chat never sees them.
-        'get_journal_stats',
-        'compute_position_health',
-        'replay_setup',
-        'analyze_chart_image',
-        'annotate_chart',
+        // Phase 4 Task 3: the sensitive user reads are in the allowlist and are
+        // granted per-turn. System diagnostics stays outside canonical chat.
         'get_system_diagnostics',
       ].sort(),
     );
@@ -238,7 +235,10 @@ describe('native canonical tools (B-01)', () => {
     // here, not on the first user call that happens to select the missing
     // tool.
     expect(Object.isFrozen(CANONICAL_READ_ONLY_TOOL_NAMES)).toBe(true);
-    expect([...CANONICAL_READ_ONLY_TOOL_NAMES]).toEqual([...manifestToolNames('canonical-chat')]);
+    expect([...CANONICAL_READ_ONLY_TOOL_NAMES]).toEqual([
+      ...CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES,
+      ...SENSITIVE_USER_READ_TOOL_NAMES,
+    ]);
     expect(() => assertCanonicalToolAllowlist()).not.toThrow();
 
     for (const name of CANONICAL_READ_ONLY_TOOL_NAMES) {

@@ -20,7 +20,12 @@
 // loaded while the capability manifest itself is initializing, so importing
 // the manifest from there creates a temporal-dead-zone cycle.
 
-/** Explicit public read-only boundary for canonical chat (Decision Q11 includes convene_committee). */
+/**
+ * Explicit read-only boundary for canonical chat (Decision Q11 includes
+ * convene_committee). User-scoped reads live in
+ * `SENSITIVE_USER_READ_TOOL_NAMES` and are only granted to the agent when the
+ * turn is a user-data read (see `allowlist.ts` / `setupCanonicalChat`).
+ */
 export const CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES = [
   'get_price',
   'get_candles',
@@ -38,6 +43,8 @@ export const CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES = [
   'forecast_volatility',
   'analyze_technical',
   'analyze_fundamental',
+  'analyze_chart_image',
+  'annotate_chart',
   'compute_risk',
   'web_search',
   'search_knowledge',

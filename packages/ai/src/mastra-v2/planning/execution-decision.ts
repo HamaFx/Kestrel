@@ -20,7 +20,7 @@ import {
   type RoutingDecision,
   type RoutingDomain,
 } from '../../routing';
-import { isHighConfidenceMutationIntent } from '../../routing/keywords';
+import { isHighConfidenceMutationIntent, isUserDataReadIntent } from '../../routing/keywords';
 import {
   evaluateMastraCapability,
   getMastraCapability,
@@ -69,6 +69,11 @@ export interface MastraExecutionDecisionInput {
   env: ResolveModelEnv;
   mutationRequested?: boolean;
   capabilityId?: MastraCapabilityId;
+  /**
+   * Phase 4 Task 3 — explicit user-data read hint. When omitted the
+   * deterministic keyword gate (`isUserDataReadIntent`) decides.
+   */
+  sensitiveUserRead?: boolean;
   signal?: AbortSignal | null;
   /**
    * P0-4 — enabled plugin ids for this user. When the prompt explicitly asks
@@ -151,6 +156,9 @@ export async function decideMastraExecution(
   // provide an explicit server-side decision, but never rely on route code to
   // classify it after planning.
   const mutationRequested = input.mutationRequested ?? classifyMutationRequest(promptText) !== null;
+  // Phase 4 Task 3 — user-journal / alert-status / position-health reads are
+  // sensitive user-scoped reads, not public market-data queries.
+  const sensitiveUserRead = input.sensitiveUserRead ?? isUserDataReadIntent(promptText);
   // P0-4 / Phase 4 (roadmap Phase 5) — an explicit request aimed at an
   // installed plugin ("Backtest RSI on XAUUSD", "Buy 1 lot EURUSD in my paper
   // account", "Schedule my Telegram briefing") must stay in canonical chat:
@@ -164,7 +172,7 @@ export async function decideMastraExecution(
     input.capabilityId ??
     (pluginRouteOverride
       ? null
-      : capabilityFor(mutationRequested, symbolCandidate, comparisonActive));
+      : capabilityFor(mutationRequested, symbolCandidate, comparisonActive, sensitiveUserRead));
   const capability = capabilityId
     ? evaluateMastraCapability({
         capabilityId,

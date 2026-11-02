@@ -34,6 +34,7 @@ import {
   resolvePluginToolsForAgent,
 } from '@ai/plugins';
 import { resolveSemanticRoutingConfig, routeTurn, type RoutingDecision } from '@ai/routing';
+import { isUserDataReadIntent } from '@ai/routing/keywords';
 import type { SemanticRoutingAccounting } from '@ai/routing/semantic';
 import { getDb } from '@ai/runtime/db';
 import { type ToolContext } from '@ai/runtime/tool-context';
@@ -44,7 +45,7 @@ import { buildGuardrailInputProcessors } from '../../guardrails';
 import { assertExecutionPlanRoute } from '../../planning/execution-plan';
 import { nativeCanonicalTools } from '../../tools/canonical';
 import type { MastraToolInvocationPart } from '../../tools/tool-lifecycle';
-import { READ_ONLY_TOOL_NAMES } from './allowlist';
+import { CANONICAL_PUBLIC_READ_ONLY_SET, READ_ONLY_TOOL_NAMES } from './allowlist';
 import { mlog } from './log';
 import { resolveCanonicalModel } from './model';
 import { latestUserModelMessages, messageHistory, systemInstructions } from './prompts';
@@ -121,10 +122,15 @@ export async function setupCanonicalChat(
     tags: { phase: 'model' },
   });
   const disabledTools = new Set(args.settings?.disabledTools ?? []);
-  // Phase 4 Task 2: every read-only tool is a native Mastra registration, so
+  // Phase 4 Task 3: every read-only tool is a native Mastra registration, so
   // the agent's tool belt is the intersection of the native map, the routing
-  // domain's manifest names, the canonical read-only allowlist, and the user's
-  // disabled list. No legacy adaptation step remains.
+  // domain's manifest names, the read-only allowlist, and the user's disabled
+  // list. Sensitive user-scoped reads are granted only when the turn is about
+  // the caller's own journal, alerts, or positions.
+  const userText = getMessageText(args.userMessage);
+  const allowedToolNames = isUserDataReadIntent(userText)
+    ? READ_ONLY_TOOL_NAMES
+    : CANONICAL_PUBLIC_READ_ONLY_SET;
   const domainAllowed =
     routing.domain === 'generic'
       ? null
@@ -133,20 +139,20 @@ export async function setupCanonicalChat(
     Object.entries(nativeCanonicalTools()).filter(
       ([name]) =>
         (domainAllowed === null || domainAllowed.has(name)) &&
-        READ_ONLY_TOOL_NAMES.has(name) &&
+        allowedToolNames.has(name) &&
         !disabledTools.has(name),
     ),
   );
   // Phase 1 (Jev System One) — per-turn fine-grained tool pruning
   // ("When2Call"). The request starts here and is awaited after the memory
   // and plugin promises, so it overlaps them and adds zero serial latency.
-  // Pruning can only remove tools and is bounded by READ_ONLY_TOOL_NAMES; with
+  // Pruning can only remove tools and is bounded by the turn's allowlist; with
   // no Jev provider configured it is a no-op.
   const prunedToolsPromise = pruneToolsWithJev({
-    userText: getMessageText(args.userMessage),
+    userText,
     domain: routing.domain,
     candidateTools: registeredTools,
-    allowedToolNames: READ_ONLY_TOOL_NAMES,
+    allowedToolNames,
     disabledTools: args.settings.disabledTools ?? [],
     settings: { aiApiKeys: args.settings.aiApiKeys },
     env: args.env,

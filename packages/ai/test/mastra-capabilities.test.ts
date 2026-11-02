@@ -26,6 +26,8 @@ import {
   MASTRA_CAPABILITIES,
   type MastraCapability,
 } from '../src/mastra-v2';
+import { READ_ONLY_TOOL_NAMES } from '../src/mastra-v2/agents/canonical/allowlist';
+import { nativeCanonicalTools } from '../src/mastra-v2/tools/canonical';
 
 describe('Mastra capability policy', () => {
   it('keeps the manifest internally consistent and mutation-safe', () => {
@@ -122,6 +124,23 @@ describe('Mastra capability policy', () => {
 
     for (const mutationTool of mutationTools) {
       expect(MASTRA_CAPABILITIES['canonical-chat'].tools).not.toContain(mutationTool);
+    }
+  });
+
+  it('makes every native read-only tool reachable through the allowlist and a capability', () => {
+    // `get_system_diagnostics` is an operator-facing probe that deliberately
+    // never ships in the chat tool belt; every other native read-only tool must
+    // be both allowlisted and declared by at least one capability.
+    const nonChatNativeTools = new Set(['get_system_diagnostics']);
+    const capabilityTools = new Set<string>(
+      Object.values(MASTRA_CAPABILITIES).flatMap((capability) => [...capability.tools]),
+    );
+    for (const name of Object.keys(nativeCanonicalTools())) {
+      if (nonChatNativeTools.has(name)) continue;
+      expect(READ_ONLY_TOOL_NAMES.has(name), `${name} missing from READ_ONLY_TOOL_NAMES`).toBe(
+        true,
+      );
+      expect(capabilityTools.has(name), `${name} missing from MASTRA_CAPABILITIES`).toBe(true);
     }
   });
 

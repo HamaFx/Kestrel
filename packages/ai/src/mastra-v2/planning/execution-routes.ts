@@ -23,6 +23,7 @@ export function capabilityFor(
   mutationRequested = false,
   symbolCandidate = false,
   comparisonActive = false,
+  sensitiveUserReadRequested = false,
 ): MastraCapabilityId | null {
   if (mutationRequested) return 'mutation-workflows';
   // A-01: bounded comparisons run through the generic symbol capability; each
@@ -32,6 +33,9 @@ export function capabilityFor(
   // committee — `single` for the one-desk read, `full` for the 4-desk
   // committee (the durable queue wraps the same capability).
   if (symbolCandidate) return 'symbol-research';
+  // Phase 4 Task 3: journal / alert / position-health reads stay in canonical
+  // chat but are granted through the explicit sensitive-read capability.
+  if (sensitiveUserReadRequested) return 'sensitive-user-read';
   return null;
 }
 

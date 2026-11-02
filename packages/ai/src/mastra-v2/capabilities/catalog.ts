@@ -41,6 +41,7 @@ const LEGACY_DOMAIN_TOOL_NAMES = {
     'get_price',
     'search_knowledge',
     'analyze_chart_image',
+    'annotate_chart',
     'get_candles',
     'get_indicators',
     'get_market_structure',

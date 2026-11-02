@@ -141,6 +141,19 @@ export const FORBIDDEN_FOLLOWUP_TERMS =
   /\b(?:buy|sell|enter|exit|execute|place|open|close|trade|position|portfolio|journal|alert|notify|schedule|automate)\b/i;
 
 /**
+ * User-data read intent: the prompt asks about the caller's own journal,
+ * alerts, positions, or trade history. Routes such reads through the
+ * `sensitive-user-read` capability instead of the public market-data surface.
+ */
+const USER_DATA_READ_TERMS =
+  /\b(?:my\s+(?:journal|trades?|alerts?|positions?|performance|win\s*rate|results?|stats|statistics)|journal\s+(?:stats|statistics|summary|overview)|trade\s+(?:stats|statistics)|(?:my|the)\s+position\s+health|position\s+health|replay\s+(?:my|this|that|the)\s+(?:setup|trade)|how\s+(?:am|are)\s+(?:i|my\s+trades?)\s+doing)\b/i;
+
+/** True when the prompt is asking for the user's own trading data. */
+export function isUserDataReadIntent(prompt: string): boolean {
+  return USER_DATA_READ_TERMS.test(prompt);
+}
+
+/**
  * Broad mutation-routing exclusion. Used by the unified router to route a
  * prompt *away* from the research/symbol paths; it is intentionally wider
  * than the high-confidence chat gate below.
@@ -223,6 +236,7 @@ export const ROUTING_KEYWORD_REGISTRY = {
     deepResearch: DEEP_RESEARCH_TERMS,
     followup: FOLLOWUP_TERMS,
     forbiddenFollowup: FORBIDDEN_FOLLOWUP_TERMS,
+    userDataRead: USER_DATA_READ_TERMS,
     broadMutation: BROAD_MUTATION_TERMS,
     executionVerbs: EXECUTION_VERBS,
     executionPhrases: EXECUTION_PHRASES,

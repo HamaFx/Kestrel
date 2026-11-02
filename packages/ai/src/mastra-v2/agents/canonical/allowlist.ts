@@ -16,19 +16,36 @@
 
 // Fail-closed canonical read-only tool allowlist.
 
-import { manifestToolNames } from '../../capabilities';
+import {
+  CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES,
+  SENSITIVE_USER_READ_TOOL_NAMES,
+} from '../../capabilities';
 import { resolveNativeCanonicalTool } from '../../tools/canonical';
 
+/**
+ * Tools every canonical chat turn may use: public market data plus the two
+ * public chart-analysis tools.
+ */
+export const CANONICAL_PUBLIC_READ_ONLY_SET: ReadonlySet<string> = new Set<string>(
+  CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES,
+);
+
+/**
+ * Every read-only tool the canonical agent can ever use. The sensitive
+ * user-scoped reads are part of the native suite and are granted only when the
+ * turn is a user-data read (`isUserDataReadIntent`), so the capability
+ * manifest and the runtime tool belt stay consistent.
+ */
 export const CANONICAL_READ_ONLY_TOOL_NAMES: readonly string[] = Object.freeze([
-  ...manifestToolNames('canonical-chat'),
+  ...new Set<string>([...CANONICAL_PUBLIC_READ_ONLY_TOOL_NAMES, ...SENSITIVE_USER_READ_TOOL_NAMES]),
 ]);
 
 export const READ_ONLY_TOOL_NAMES = new Set<string>(CANONICAL_READ_ONLY_TOOL_NAMES);
 
 /**
- * Fail at module init when the manifest names a tool the native Mastra suite
- * cannot resolve. Phase 4 Task 2: every read-only tool is a native
- * registration, so the native map is the only source the allowlist needs.
+ * Fail at module init when the allowlist names a tool the native Mastra suite
+ * cannot resolve. Every read-only tool is a native registration, so the native
+ * map is the only source the allowlist needs.
  */
 export function assertCanonicalToolAllowlist(): void {
   const missing = CANONICAL_READ_ONLY_TOOL_NAMES.filter(

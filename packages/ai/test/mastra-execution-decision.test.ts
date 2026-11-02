@@ -68,6 +68,21 @@ describe('Mastra execution decision facade', () => {
     expect(decision.modelPurpose).toBe('worker');
   });
 
+  it('routes user-data reads to the sensitive-user-read capability', async () => {
+    const decision = await decideMastraExecution({
+      userMessage: message('Show my journal stats'),
+      mode: 'single',
+      settings,
+      env,
+    });
+
+    expect(decision.route).toBe('canonical-chat');
+    expect(decision.capability).toMatchObject({
+      allowed: true,
+      capability: { id: 'sensitive-user-read' },
+    });
+  });
+
   it('classifies mutation before selecting a research route', async () => {
     const decision = await decideMastraExecution({
       userMessage: message('Please place a trade and set an alert'),
