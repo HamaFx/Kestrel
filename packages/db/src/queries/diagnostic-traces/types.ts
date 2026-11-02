@@ -17,7 +17,6 @@
 import type { schema } from '../../client';
 
 export type DiagnosticTraceRow = typeof schema.diagnosticTraces.$inferSelect;
-export type DiagnosticTraceInsert = typeof schema.diagnosticTraces.$inferInsert;
 
 export interface TraceExplorerFilters {
   /** Optional owner scope. Omit only for an authenticated admin caller. */
@@ -30,7 +29,7 @@ export interface TraceExplorerFilters {
   limit?: number | undefined;
 }
 
-export type TraceExplorerSource = 'trace' | 'turn' | 'tool' | 'agent' | 'budget' | 'outbox';
+type TraceExplorerSource = 'trace' | 'turn' | 'tool' | 'agent' | 'budget' | 'outbox';
 
 export interface TraceExplorerEvent {
   id: string;

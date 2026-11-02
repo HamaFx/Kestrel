@@ -25,9 +25,6 @@ import { desc, eq, gte, sql } from 'drizzle-orm';
 
 import { getAdminDb, getDb, schema, type DbClient } from '../client';
 
-export type ToolTelemetryRow = typeof schema.chatToolTelemetry.$inferSelect;
-export type ToolTelemetryInsert = typeof schema.chatToolTelemetry.$inferInsert;
-
 /**
  * List chat tool telemetry entries, newest first, with an optional threadId
  * filter. Returns the raw schema-inferred rows from `chat_tool_telemetry`.

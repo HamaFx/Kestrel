@@ -22,7 +22,6 @@ import { getDb, schema } from '../client';
 import { requireTenantIdForUser } from '../tenant';
 
 export type UserSymbolRow = typeof schema.userSymbols.$inferSelect;
-export type UserSymbolInsert = typeof schema.userSymbols.$inferInsert;
 
 export async function listUserSymbols(userId: string): Promise<UserSymbolRow[]> {
   const db = getDb();

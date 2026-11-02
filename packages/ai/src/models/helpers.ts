@@ -114,10 +114,6 @@ export function envFallbackKeys(env: ResolveModelEnv): ByokPayload {
 // ───────────────────────────────────────────────────────────────────────
 
 /** Returns true when the resolved model supports explicit cache markers. */
-export function supportsPromptCaching(modelId: string): boolean {
-  return modelId.includes('anthropic');
-}
-
 // ───────────────────────────────────────────────────────────────────────
 // Internal helpers (exported for sibling resolver modules only).
 // ───────────────────────────────────────────────────────────────────────

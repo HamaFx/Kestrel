@@ -58,10 +58,4 @@ export {
   type LangfusePublishOptions,
   type LangfusePublishResult,
 } from '../eval/langfuse-publisher';
-export {
-  consumeUIMessageStream,
-  type ParsedStreamResult,
-  type ParsedToolCall,
-  type ParsedStreamMetadata,
-  type AgentProgressSnapshot,
-} from '../eval/parse-stream';
+export { consumeUIMessageStream, type ParsedStreamResult } from '../eval/parse-stream';

@@ -18,18 +18,11 @@
 // re-exported here so `./diagnostic-traces`, `../queries/diagnostic-traces`,
 // `queries.diagnosticTraces.*` and `@kestrel/db` imports keep resolving.
 
-export type {
-  DiagnosticTraceInsert,
-  DiagnosticTraceRow,
-  TraceExplorerEvent,
-  TraceExplorerFilters,
-  TraceExplorerSource,
-} from './types';
+export type { DiagnosticTraceRow, TraceExplorerEvent, TraceExplorerFilters } from './types';
 export {
   getDiagnosticTrace,
   getDiagnosticTraceForAdmin,
   listDiagnosticTraces,
   listDiagnosticTracesForAdmin,
 } from './read';
-export { insertDiagnosticTrace } from './write';
 export { listTraceExplorerEvents } from './explorer';

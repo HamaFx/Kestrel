@@ -23,15 +23,14 @@
 // the worker skipped non-finite closes and checked for aborts before writing,
 // while the chat tool did neither.
 
-import type { DbClient } from '@kestrel/db';
-import { schema } from '@kestrel/db';
 import { fred } from '@kestrel/data';
+import { schema, type DbClient } from '@kestrel/db';
 import { and, eq, gte, lte, sql } from 'drizzle-orm';
 
 import { getDb } from '../runtime/db';
 
 /** Ingest the last 45 calendar days of daily observations. */
-export const RESONANCE_SYNC_WINDOW_DAYS = 45;
+const RESONANCE_SYNC_WINDOW_DAYS = 45;
 
 /** Minimum aligned observations required to fit a regression. */
 const MIN_ALIGNED_OBSERVATIONS = 5;
@@ -163,12 +162,18 @@ export async function syncIntermarketResonance(
     // slope undefined. A 0 slope (and the intercept-only baseline) would be
     // persisted as measured coefficients and turned into fake divergence
     // scores, so skip the run entirely and leave stored rows untouched.
-    return skipped(`regression not estimable (no variance in real yields, aligned=${n}); nothing written`, n);
+    return skipped(
+      `regression not estimable (no variance in real yields, aligned=${n}); nothing written`,
+      n,
+    );
   }
   const slope = (n * sumXY - sumX * sumY) / denominator;
   const intercept = (sumY - slope * sumX) / n;
   if (!Number.isFinite(slope) || !Number.isFinite(intercept)) {
-    return skipped(`regression not estimable (non-finite coefficients, aligned=${n}); nothing written`, n);
+    return skipped(
+      `regression not estimable (non-finite coefficients, aligned=${n}); nothing written`,
+      n,
+    );
   }
 
   const residuals: number[] = [];
@@ -187,7 +192,13 @@ export async function syncIntermarketResonance(
   const divergencesDefined = Number.isFinite(stdDevResidual) && stdDevResidual > 0;
 
   if (options.signal?.aborted) {
-    return { status: 'aborted', processed: 0, aligned: n, divergencesDefined, note: 'aborted before persistence' };
+    return {
+      status: 'aborted',
+      processed: 0,
+      aligned: n,
+      divergencesDefined,
+      note: 'aborted before persistence',
+    };
   }
 
   const rows = aligned.map((point) => {

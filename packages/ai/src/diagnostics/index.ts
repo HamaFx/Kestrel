@@ -35,4 +35,3 @@ export {
 } from './run-context';
 
 export { redactSecrets, redactString } from './redact';
-export { persistTrace, type PersistedTrace } from './trace-persistence';

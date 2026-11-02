@@ -31,21 +31,13 @@
       "entry": [
         "src/index.ts",
         "src/budget/cost.ts",
-        "src/budget/usage.ts",
-        "src/diagnostics/index.ts",
-        "src/eval/*.ts",
-        "src/mastra-v2/index.ts",
-        "src/mastra-v2/studio-server.ts",
-        "src/memory/memory-index/index.ts",
-        "src/models/{model,byok-providers,circuit-breaker,embeddings,catalogue}.ts",
-        "src/models/rag/index.ts",
-        "src/notifications/index.ts",
         "src/persistence/index.ts",
+        "src/cron/index.ts",
+        "src/mastra-v2/index.ts",
         "src/plugins/index.ts",
-        "src/routing/index.ts",
         "src/runtime/instrumentation.ts",
-        "src/share/persistence.ts",
-        "src/tools/{index,market,analysis,journal,system,web,by-domain,registry}.ts",
+        "src/mastra-v2/studio-server.ts",
+        "scripts/eval-gate.ts",
         "test/**/*.test.ts"
       ],
       "project": ["src/**/*.ts", "test/**/*.ts"]
@@ -55,7 +47,6 @@
         "src/index.ts",
         "src/adapters/*.ts",
         "src/cache/index.ts",
-        "src/cache/throttle.ts",
         "src/providers/*/index.ts",
         "test/**/*.test.ts"
       ],
@@ -67,8 +58,7 @@
         "src/client.ts",
         "src/queue/index.ts",
         "src/schema/index.ts",
-        "src/queries/index.ts",
-        "scripts/**/*.{ts,mjs}",
+        "scripts/**/*.mjs",
         "test/**/*.test.ts"
       ],
       "project": ["src/**/*.ts", "scripts/**/*.{ts,mjs}", "test/**/*.ts"]
@@ -99,8 +89,7 @@
         "src/env/secrets.ts",
         "src/errors/index.ts",
         "src/logger/index.ts",
-        "src/metrics-export/index.ts",
-        "src/observability/log-stream.ts"
+        "src/metrics-export/index.ts"
       ],
       "project": ["src/**/*.ts"]
     },

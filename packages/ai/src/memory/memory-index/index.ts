@@ -38,17 +38,13 @@
 //   - count.ts                   — tenant-scoped corpus probe
 
 export type { MemoryKind, MemoryRow } from './types';
-export {
-  rememberJournalEntry,
-  composeJournalText,
-  type RememberJournalArgs,
-} from './remember-journal';
-export { rememberBriefing, type RememberBriefingArgs } from './remember-briefing';
+export { rememberJournalEntry, composeJournalText } from './remember-journal';
+export { rememberBriefing } from './remember-briefing';
 export {
   composeRegimeStateText,
   rememberMarketRegime,
   type RegimeOutcome,
   type RememberMarketRegimeArgs,
 } from './remember-regime';
-export { searchMemory, type SearchMemoryArgs } from './search';
+export { searchMemory } from './search';
 export { countMemory } from './count';

@@ -22,7 +22,7 @@ export interface EvalQualityGateThresholds {
   maxAverageCostUsd: number | null;
 }
 
-export interface EvalQualityGateObserved {
+interface EvalQualityGateObserved {
   caseCount: number;
   successfulCaseCount: number;
   transportPassRate: number;

@@ -18,7 +18,7 @@
 // here so `./auth`, `../queries/auth`, `queries.auth.*` and `@kestrel/db`
 // imports keep resolving unchanged.
 
-export type { AuthUserRow, CreateUserInput } from './types';
+export type { AuthUserRow } from './types';
 export {
   createUserWithSettings,
   getUserByEmail,

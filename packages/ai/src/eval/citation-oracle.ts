@@ -20,7 +20,7 @@
 // runner module (fs, crypto, network client) into the web bundle.
 
 /** Tools that can support a numeric price claim (mirrors the eval runner). */
-export const NUMERIC_SUPPORT_TOOLS: ReadonlySet<string> = new Set([
+const NUMERIC_SUPPORT_TOOLS: ReadonlySet<string> = new Set([
   'get_price',
   'get_candles',
   'get_indicators',
@@ -36,7 +36,7 @@ export const NUMERIC_SUPPORT_TOOLS: ReadonlySet<string> = new Set([
 ]);
 
 /** Tools that can support an event claim (mirrors the eval runner). */
-export const EVENT_SUPPORT_TOOLS: ReadonlySet<string> = new Set([
+const EVENT_SUPPORT_TOOLS: ReadonlySet<string> = new Set([
   'get_news',
   'get_calendar',
   'analyze_fundamental',

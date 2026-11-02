@@ -13,11 +13,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./model": {
-      "source": "./src/models/model.ts",
-      "types": "./dist/models/model.d.ts",
-      "import": "./dist/models/model.js"
-    },
     "./cost": {
       "source": "./src/budget/cost.ts",
       "types": "./dist/budget/cost.d.ts",
@@ -28,105 +23,10 @@
       "types": "./dist/persistence/index.d.ts",
       "import": "./dist/persistence/index.js"
     },
-    "./tools": {
-      "source": "./src/tools/index.ts",
-      "types": "./dist/tools/index.d.ts",
-      "import": "./dist/tools/index.js"
-    },
-    "./tools/market": {
-      "source": "./src/tools/market.ts",
-      "types": "./dist/tools/market.d.ts",
-      "import": "./dist/tools/market.js"
-    },
-    "./tools/analysis": {
-      "source": "./src/tools/analysis.ts",
-      "types": "./dist/tools/analysis.d.ts",
-      "import": "./dist/tools/analysis.js"
-    },
-    "./tools/journal": {
-      "source": "./src/tools/journal.ts",
-      "types": "./dist/tools/journal.d.ts",
-      "import": "./dist/tools/journal.js"
-    },
-    "./tools/system": {
-      "source": "./src/tools/system.ts",
-      "types": "./dist/tools/system.d.ts",
-      "import": "./dist/tools/system.js"
-    },
-    "./tools/web": {
-      "source": "./src/tools/web.ts",
-      "types": "./dist/tools/web.d.ts",
-      "import": "./dist/tools/web.js"
-    },
-    "./tools/registry": {
-      "source": "./src/tools/registry.ts",
-      "types": "./dist/tools/registry.d.ts",
-      "import": "./dist/tools/registry.js"
-    },
-    "./diagnostics": {
-      "source": "./src/diagnostics/index.ts",
-      "types": "./dist/diagnostics/index.d.ts",
-      "import": "./dist/diagnostics/index.js"
-    },
-    "./notifications": {
-      "source": "./src/notifications/index.ts",
-      "types": "./dist/notifications/index.d.ts",
-      "import": "./dist/notifications/index.js"
-    },
-    "./catalogue": {
-      "source": "./src/models/catalogue.ts",
-      "types": "./dist/models/catalogue.d.ts",
-      "import": "./dist/models/catalogue.js"
-    },
-    "./byok-providers": {
-      "source": "./src/models/byok-providers.ts",
-      "types": "./dist/models/byok-providers.d.ts",
-      "import": "./dist/models/byok-providers.js"
-    },
-    "./memory": {
-      "source": "./src/memory/memory-index/index.ts",
-      "types": "./dist/memory/memory-index/index.d.ts",
-      "import": "./dist/memory/memory-index/index.js"
-    },
-    "./share": {
-      "source": "./src/share/persistence.ts",
-      "types": "./dist/share/persistence.d.ts",
-      "import": "./dist/share/persistence.js"
-    },
-    "./embeddings": {
-      "source": "./src/models/embeddings.ts",
-      "types": "./dist/models/embeddings.d.ts",
-      "import": "./dist/models/embeddings.js"
-    },
     "./cron": {
       "source": "./src/cron/index.ts",
       "types": "./dist/cron/index.d.ts",
       "import": "./dist/cron/index.js"
-    },
-    "./rag": {
-      "source": "./src/models/rag/index.ts",
-      "types": "./dist/models/rag/index.d.ts",
-      "import": "./dist/models/rag/index.js"
-    },
-    "./usage": {
-      "source": "./src/budget/usage.ts",
-      "types": "./dist/budget/usage.d.ts",
-      "import": "./dist/budget/usage.js"
-    },
-    "./instrumentation": {
-      "source": "./src/runtime/instrumentation.ts",
-      "types": "./dist/runtime/instrumentation.d.ts",
-      "import": "./dist/runtime/instrumentation.js"
-    },
-    "./eval/training-export": {
-      "source": "./src/eval/training-export.ts",
-      "types": "./dist/eval/training-export.d.ts",
-      "import": "./dist/eval/training-export.js"
-    },
-    "./eval/runner": {
-      "source": "./src/eval/runner.ts",
-      "types": "./dist/eval/runner.d.ts",
-      "import": "./dist/eval/runner.js"
     },
     "./mastra-v2": {
       "source": "./src/mastra-v2/index.ts",
@@ -137,6 +37,11 @@
       "source": "./src/plugins/index.ts",
       "types": "./dist/plugins/index.d.ts",
       "import": "./dist/plugins/index.js"
+    },
+    "./instrumentation": {
+      "source": "./src/runtime/instrumentation.ts",
+      "types": "./dist/runtime/instrumentation.d.ts",
+      "import": "./dist/runtime/instrumentation.js"
     }
   },
   "scripts": {

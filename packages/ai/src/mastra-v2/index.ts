@@ -73,6 +73,9 @@ export {
   type KestrelMastraOptions,
 } from './instance';
 export { closeKestrelVectorStore } from './memory';
+// R14 mid-turn failover metadata is part of `CanonicalCompletion`, so the
+// payload type must be nameable through this public barrel as well.
+export type { FallbackPartPayload } from '../models/model-fallback';
 export {
   MASTRA_WORKFLOW_IDS,
   providerFromModel,

@@ -44,7 +44,7 @@ export interface ParsedStreamMetadata {
   ttfbMs?: number | null;
 }
 
-export interface AgentProgressEntry {
+interface AgentProgressEntry {
   agentName: string;
   status: string;
   error?: string;

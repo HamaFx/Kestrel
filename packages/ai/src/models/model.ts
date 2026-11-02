@@ -18,7 +18,7 @@
 // 6 focused sub-modules (architecture-audit P1-1, SRP compliance).
 //
 //   model-helpers.ts    — pure utilities (PROVIDER_PRIORITY, envFallbackKeys,
-//                          supportsPromptCaching, parsePickedModelId)
+//                          parsePickedModelId)
 //   model-chat.ts       — chat model resolution (resolveChatModel,
 //                          resolveModelForProvider, derivePlannerModel,
 //                          deriveTitleModel)
@@ -34,36 +34,11 @@
 export { resolveModel, type ResolveModelEnv } from './env-factory';
 
 // ── Provider key tester & validator ──────────────────────────────────
-export {
-  testProviderKey,
-  validateProviderConfig,
-  type ProviderValidationResult,
-} from './provider-tester';
+export { testProviderKey, validateProviderConfig } from './provider-tester';
 
 // ── BYOK registry re-exports ─────────────────────────────────────────
-export {
-  BYOK_PROVIDERS,
-  BYOK_PROVIDERS_LIST,
-  defaultModelFor,
-  providerCapabilities,
-  type ProviderCapability,
-} from './byok-providers';
-export type { ModelDomain, ByokProviderSpec } from './byok-providers';
-
-// ── Helpers (pure utilities) ─────────────────────────────────────────
-export { PROVIDER_PRIORITY, supportsPromptCaching } from './helpers';
-// Note: envFallbackKeys and parsePickedModelId are internal —
-// imported directly by sibling resolver modules (model-chat.ts,
-// model-vision.ts, etc.) but NOT re-exported from the public barrel.
-
-// ── Role-based model resolution ──────────────────────────────────────
-export {
-  getAvailableProviders,
-  resolveModelForRole,
-  type ModelRole,
-  type ModelRoleResolution,
-  type ResolveRoleOptions,
-} from './role';
+export { BYOK_PROVIDERS, defaultModelFor } from './byok-providers';
+export type { ModelDomain } from './byok-providers';
 
 // ── Chat model resolution ────────────────────────────────────────────
 export {
@@ -72,11 +47,7 @@ export {
   derivePlannerModel,
   deriveTitleModel,
 } from './chat';
-export {
-  resolveMastraModel,
-  resolveMastraExecutionModel,
-  MastraModelSnapshotSchema,
-} from './resolution';
+export { resolveMastraModel, resolveMastraExecutionModel } from './resolution';
 export type {
   ChatModelResolution,
   MastraModelPurpose,
@@ -92,9 +63,6 @@ export {
   resolveFallbackChain,
   runWithModelFallback,
   type FallbackModelCandidate,
-  type ResolveFallbackChainArgs,
-  type RunWithModelFallbackArgs,
-  type RunWithModelFallbackResult,
 } from './model-fallback';
 export type { FallbackPartPayload } from './model-fallback';
 
@@ -108,4 +76,3 @@ export type { EmbeddingModelResolution, EmbeddingModelResolutionDetails } from '
 
 // ── Override model resolution ────────────────────────────────────────
 export { resolveOverrideModel } from './override';
-export type { OverrideResolution } from './override';

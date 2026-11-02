@@ -21,12 +21,7 @@
 // intentionally disabled in production and must be opted into via
 // `ENABLE_LOG_STREAM=true` in development.
 
-export interface LogStreamClient {
-  id: string;
-  controller: ReadableStreamDefaultController<string>;
-}
-
-export class LogStreamHub {
+class LogStreamHub {
   private buffer: string[] = [];
   private clients = new Map<string, ReadableStreamDefaultController<string>>();
   private maxSize: number;
