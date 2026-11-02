@@ -21,7 +21,7 @@
 // propagate so the workflow's retry/abort handling sees them, while every
 // other failure becomes a step-level marker.
 
-import { classifyStreamError } from '../../models/fallback';
+import { classifyStreamError } from '../../models/model-fallback';
 
 export function isTransientProviderError(error: unknown): boolean {
   const { reason } = classifyStreamError(error);

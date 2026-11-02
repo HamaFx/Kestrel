@@ -142,7 +142,7 @@ export {
   listAgentOpinions,
   listMessageOpinions,
   type SaveOpinionsArgs,
-} from '../multi-agent/persistence';
+} from '../committee/opinion-persistence';
 
 // F3 — Social Sentiment Integration
 export {

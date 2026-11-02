@@ -26,7 +26,7 @@
 // Usage:
 //   const result = await withRetry(() => fetchSomeApi(url), { signal });
 
-import { classifyStreamError } from '../models/fallback';
+import { classifyStreamError } from '../models/model-fallback';
 
 // ── Retry-After header parsing ─────────────────────────────────────────
 // Phase A RL-4 — Honor server-advertised retry delays.

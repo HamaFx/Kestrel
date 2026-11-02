@@ -86,6 +86,7 @@ export type {
 } from './resolution';
 
 // ── Mid-turn provider failover (R14) ─────────────────────────────────
+// ── Mid-turn provider failover (R14) ─────────────────────────────────
 export {
   MAX_TURN_FALLBACKS,
   resolveFallbackChain,
@@ -95,15 +96,15 @@ export {
   type RunWithModelFallbackArgs,
   type RunWithModelFallbackResult,
 } from './model-fallback';
-export type { FallbackPartPayload } from './fallback';
+export type { FallbackPartPayload } from './model-fallback';
 
 // ── Vision model resolution ──────────────────────────────────────────
 export { resolveVisionModel } from './vision';
 export type { VisionModelResolution } from './vision';
 
 // ── Embedding model resolution ───────────────────────────────────────
-export { resolveEmbeddingModel, resolveEmbeddingModelDetails } from './embedding';
-export type { EmbeddingModelResolution, EmbeddingModelResolutionDetails } from './embedding';
+export { resolveEmbeddingModel, resolveEmbeddingModelDetails } from './embeddings';
+export type { EmbeddingModelResolution, EmbeddingModelResolutionDetails } from './embeddings';
 
 // ── Override model resolution ────────────────────────────────────────
 export { resolveOverrideModel } from './override';

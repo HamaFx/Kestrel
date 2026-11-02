@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Multi-Agent Orchestration — opinion persistence.
+// Committee (multi-agent) orchestration — opinion persistence.
 
 import { requireTenantIdForUser, schema } from '@kestrel/db';
 import type { AgentOpinionRow } from '@kestrel/db/schema';
@@ -26,7 +26,7 @@ import { getDiagnosticContext } from '../diagnostics/run-context';
 import { enqueuePersistenceFailure } from '../persistence/outbox';
 import { DB } from '../runtime/tokens';
 
-const plog = createCategorizedLogger('ai', { component: 'multi-agent-persistence' });
+const plog = createCategorizedLogger('ai', { component: 'committee-opinion-persistence' });
 
 export interface SaveOpinionsArgs {
   userId: string;

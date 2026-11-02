@@ -18,7 +18,7 @@ import { embedMany } from 'ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { embedTexts, EXPECTED_EMBEDDING_DIMENSIONS, vectorLiteral } from '../src/models/embeddings';
-import { resolveEmbeddingModel } from '../src/models/model';
+import { resolveModelForRole } from '../src/models/role';
 
 /** A valid 1536-dimension vector for the mocked provider. */
 function vec(fill = 0.1): number[] {
@@ -30,9 +30,15 @@ vi.mock('ai', () => ({
   embedMany: vi.fn(),
 }));
 
-// Mock model resolver
-vi.mock('../src/models/model', () => ({
-  resolveEmbeddingModel: vi.fn(() => 'mocked-embedding-model'),
+// Mock the role resolver so embedTexts' userSettings branch is isolated from
+// provider/env resolution (resolveEmbeddingModel now lives in embeddings.ts,
+// so model.ts can no longer be mocked for this).
+vi.mock('../src/models/role', () => ({
+  resolveModelForRole: vi.fn(() => ({
+    providerId: 'openai',
+    bareModelId: 'mocked-embedding-model',
+    modelId: 'mocked-embedding-model',
+  })),
 }));
 
 describe('vectorLiteral', () => {
@@ -140,7 +146,7 @@ describe('embedTexts', () => {
     });
 
     expect(result.model).toBe('mocked-embedding-model');
-    expect(resolveEmbeddingModel).toHaveBeenCalled();
+    expect(resolveModelForRole).toHaveBeenCalled();
   });
 
   it('rejects vectors that are not 1536 dimensions', async () => {

@@ -82,7 +82,7 @@ vi.mock('../src/persistence/message-persistence', () => ({
   appendUserMessage: mockAppendUserMessage,
   appendAssistantMessage: mockAppendAssistantMessage,
 }));
-vi.mock('../src/multi-agent/persistence', () => ({
+vi.mock('../src/committee/opinion-persistence', () => ({
   saveAgentOpinions: mockSaveAgentOpinions,
 }));
 vi.mock('../src/diagnostics/trace-persistence', () => ({

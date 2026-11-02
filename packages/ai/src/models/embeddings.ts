@@ -14,10 +14,14 @@
  * limitations under the License.
  */
 
-// Embedding helper. Sits behind the AI Gateway so the same model spec works
-// in dev and prod ("openai/text-embedding-3-small" by default; switchable
-// via env). The default model outputs 1536 dimensions — matches the
-// `news_embeddings.embedding` column.
+// Embedding model resolution and helpers. Sits behind the AI Gateway so the
+// same model spec works in dev and prod ("openai/text-embedding-3-small" by
+// default; switchable via env). The default model outputs 1536 dimensions —
+// matches the `news_embeddings.embedding` column.
+//
+// Model resolution (P1-1, merged from embedding.ts) lives at the top of this
+// module so `embedTexts` and `resolveEmbeddingModel*` share one import path
+// with no circular reference through model.ts.
 //
 // We use AI SDK's top-level `embedMany` helper (v5) which:
 //   - calls the provider with the right batching
@@ -34,11 +38,77 @@ import { logErrorContext } from '@kestrel/shared/logger';
 import { embedMany, type EmbeddingModel } from 'ai';
 
 import { buildByokEmbeddingModel, providerCapabilities } from './byok-providers';
-import { resolveEmbeddingModelDetails } from './embedding';
+import type { ResolveModelEnv } from './env-factory';
 import { envFallbackKeys } from './helpers';
-import { resolveEmbeddingModel } from './model';
+import { resolveModelForRole } from './role';
 
 const DEFAULT_MODEL = 'openai/text-embedding-3-small';
+
+export interface EmbeddingModelResolutionDetails {
+  model: EmbeddingModel | string;
+  modelId: string;
+}
+
+/**
+ * Phase D2 — result of resolving the user's default embedding model.
+ * Returns the qualified model id string.
+ */
+export type EmbeddingModelResolution = string;
+
+/**
+ * Resolve the user's default embedding model details, returning both the
+ * qualified model id string and an instantiated EmbeddingModel instance
+ * when a direct provider BYOK key is configured.
+ */
+export function resolveEmbeddingModelDetails(
+  userSettings: Pick<UserSettingsRow, 'aiApiKeys' | 'embeddingModel'>,
+  env: ResolveModelEnv,
+): EmbeddingModelResolutionDetails {
+  const stored = decryptByok(userSettings.aiApiKeys);
+  const res = resolveModelForRole('embedding', stored ?? {}, env, {
+    userSettings: { embeddingModel: userSettings.embeddingModel },
+  });
+
+  const providerId = res.providerId;
+  const keys = {
+    ...envFallbackKeys(env),
+    ...(stored ?? {}),
+  };
+  const apiKey = keys[providerId];
+
+  if (apiKey && providerCapabilities[providerId]?.supportsEmbedding) {
+    try {
+      const model = buildByokEmbeddingModel(providerId, res.bareModelId, apiKey);
+      return { model, modelId: res.modelId };
+    } catch {
+      // Fall through to modelId string (Gateway routing)
+    }
+  }
+
+  return { model: res.modelId, modelId: res.modelId };
+}
+
+/**
+ * Resolve the user's default embedding model.
+ *
+ * Decision tree:
+ *   1. If `userSettings.embeddingModel` is set + valid → use it.
+ *   2. Else if `env.AI_EMBEDDING_MODEL` is set (operator override) →
+ *      use it. The default is `openai/text-embedding-3-small` which
+ *      routes through the AI Gateway.
+ *   3. Else pick the highest-priority configured provider's
+ *      `spec.defaultModels.embedding`.
+ *   4. Else return the hardcoded universal default
+ *      `openai/text-embedding-3-small` (works across providers via
+ *      the AI Gateway; OpenAI's text-embedding-3-small has the
+ *      widest cross-vendor compatibility).
+ */
+export function resolveEmbeddingModel(
+  userSettings: Pick<UserSettingsRow, 'aiApiKeys' | 'embeddingModel'>,
+  env: ResolveModelEnv,
+): EmbeddingModelResolution {
+  return resolveEmbeddingModelDetails(userSettings, env).modelId;
+}
 
 /**
  * Dimension of the `pgvector` columns (`news_embeddings.embedding`,
