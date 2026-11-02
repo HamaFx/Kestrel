@@ -24,12 +24,12 @@ import { randomBytes } from 'node:crypto';
 
 import {
   createAuditLog,
-  getDb,
   getTwoFactorSecret,
   schema,
   setTwoFactorEnabled,
   updateTwoFactorSecret,
   withRateLimit,
+  withUserTenant,
 } from '@kestrel/db';
 import { decryptSecret, encryptSecret } from '@kestrel/shared/encryption';
 import bcrypt from 'bcryptjs';
@@ -93,15 +93,17 @@ export async function setupTwoFactorAction(): Promise<
 
     const codes = await generateBackupCodes();
 
-    await updateTwoFactorSecret(session.user.id, encryptSecret(secret));
-    await getDb()
-      .update(schema.users)
-      .set({
-        twoFactorBackupCodes: codes.map((c) => c.hashed),
-        failed2faAttempts: 0,
-        twoFactorLockedUntil: null,
-      })
-      .where(eq(schema.users.id, session.user.id));
+    await withUserTenant(session.user.id, async (db) => {
+      await updateTwoFactorSecret(session.user.id, encryptSecret(secret));
+      await db
+        .update(schema.users)
+        .set({
+          twoFactorBackupCodes: codes.map((c) => c.hashed),
+          failed2faAttempts: 0,
+          twoFactorLockedUntil: null,
+        })
+        .where(eq(schema.users.id, session.user.id));
+    });
 
     return { ok: true, data: { secret, qrDataUrl, backupCodes: codes.map((c) => c.raw) } };
   } catch (err) {
@@ -129,14 +131,16 @@ export async function regenerateBackupCodesAction(): Promise<
 
   try {
     const codes = await generateBackupCodes();
-    await getDb()
-      .update(schema.users)
-      .set({
-        twoFactorBackupCodes: codes.map((c) => c.hashed),
-        failed2faAttempts: 0,
-        twoFactorLockedUntil: null,
-      })
-      .where(eq(schema.users.id, session.user.id));
+    await withUserTenant(session.user.id, async (db) => {
+      await db
+        .update(schema.users)
+        .set({
+          twoFactorBackupCodes: codes.map((c) => c.hashed),
+          failed2faAttempts: 0,
+          twoFactorLockedUntil: null,
+        })
+        .where(eq(schema.users.id, session.user.id));
+    });
 
     return { ok: true, data: { backupCodes: codes.map((c) => c.raw) } };
   } catch (err) {
@@ -160,7 +164,9 @@ export async function verifyTwoFactorAction(token: string): Promise<ActionResult
   }
 
   try {
-    const twoFactorSecret = await getTwoFactorSecret(session.user.id);
+    const twoFactorSecret = await withUserTenant(session.user.id, () =>
+      getTwoFactorSecret(session.user.id),
+    );
     if (!twoFactorSecret) {
       return { ok: false, error: 'No 2FA secret found. Start setup first.' };
     }
@@ -176,7 +182,7 @@ export async function verifyTwoFactorAction(token: string): Promise<ActionResult
       return { ok: false, error: 'Invalid code. Try again.' };
     }
 
-    await setTwoFactorEnabled(session.user.id, true);
+    await withUserTenant(session.user.id, () => setTwoFactorEnabled(session.user.id, true));
 
     revalidatePath('/settings');
     return { ok: true };
@@ -201,7 +207,9 @@ export async function disableTwoFactorAction(token: string): Promise<ActionResul
   }
 
   try {
-    const twoFactorSecret = await getTwoFactorSecret(session.user.id);
+    const twoFactorSecret = await withUserTenant(session.user.id, () =>
+      getTwoFactorSecret(session.user.id),
+    );
     if (!twoFactorSecret) {
       return { ok: false, error: '2FA is not configured' };
     }
@@ -217,16 +225,18 @@ export async function disableTwoFactorAction(token: string): Promise<ActionResul
       return { ok: false, error: 'Invalid code. Try again.' };
     }
 
-    await updateTwoFactorSecret(session.user.id, null);
-    await getDb()
-      .update(schema.users)
-      .set({
-        twoFactorBackupCodes: null,
-        failed2faAttempts: 0,
-        twoFactorLockedUntil: null,
-      })
-      .where(eq(schema.users.id, session.user.id));
-    await setTwoFactorEnabled(session.user.id, false);
+    await withUserTenant(session.user.id, async (db) => {
+      await updateTwoFactorSecret(session.user.id, null);
+      await db
+        .update(schema.users)
+        .set({
+          twoFactorBackupCodes: null,
+          failed2faAttempts: 0,
+          twoFactorLockedUntil: null,
+        })
+        .where(eq(schema.users.id, session.user.id));
+    });
+    await withUserTenant(session.user.id, () => setTwoFactorEnabled(session.user.id, false));
 
     // FEAT-03: Audit log for 2FA disabled
     await createAuditLog(session.user.id, '2fa_disabled');

@@ -21,6 +21,7 @@ import {
   listRecentArticles,
   listUpcomingEvents,
 } from '@kestrel/ai';
+import { withUserTenantRO } from '@kestrel/db';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
@@ -49,15 +50,23 @@ export default async function DashboardPage() {
   // wires them to these props. Failures on a single source shouldn't
   // break the whole dashboard — each Promise settles independently.
   // Phase 5.6 — track per-source errors so widgets can surface them.
-  const settled = await Promise.allSettled([
-    listAlerts(userId, { limit: 20 }),
-    listUpcomingEvents({ limit: 12 }),
-    listEntries(userId, { limit: 50 }),
-    listRecentArticles(30),
-    getLatestBriefing(userId),
+  //
+  // Tenant reads run inside one read-only tenant transaction so the RLS
+  // role can resolve `app.current_tenant`; feed reads have no tenant scope
+  // and run alongside it rather than holding the transaction open.
+  const [tenantSettled, feedSettled] = await Promise.all([
+    withUserTenantRO(userId, () =>
+      Promise.allSettled([
+        listAlerts(userId, { limit: 20 }),
+        listEntries(userId, { limit: 50 }),
+        getLatestBriefing(userId),
+      ]),
+    ),
+    Promise.allSettled([listUpcomingEvents({ limit: 12 }), listRecentArticles(30)]),
   ]);
 
-  const [alertsR, eventsR, entriesR, newsR, briefingR] = settled;
+  const [alertsR, entriesR, briefingR] = tenantSettled;
+  const [eventsR, newsR] = feedSettled;
 
   // Narrow helpers — never throw on a single failed source.
   const unwrap = <T,>(r: PromiseSettledResult<T>, fallback: T): T =>

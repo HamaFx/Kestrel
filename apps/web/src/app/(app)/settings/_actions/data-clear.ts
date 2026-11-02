@@ -21,7 +21,7 @@
 // Clear-chat-history action: rate-limited deletion of all AI chat threads
 // owned by the signed-in user.
 import { deleteAllThreads } from '@kestrel/ai';
-import { withRateLimit } from '@kestrel/db';
+import { withRateLimit, withUserTenant } from '@kestrel/db';
 
 import { auth } from '@/auth';
 import { logActionError } from '@/lib/http/action-errors';
@@ -46,7 +46,7 @@ export async function clearChatHistoryAction(): Promise<ActionResult> {
   }
 
   try {
-    await deleteAllThreads(session.user.id);
+    await withUserTenant(session.user.id, () => deleteAllThreads(session.user.id));
     return { ok: true as const };
   } catch (err) {
     logActionError(err, 'settings-action');

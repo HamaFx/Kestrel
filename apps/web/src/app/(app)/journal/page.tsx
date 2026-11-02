@@ -17,6 +17,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { computeStats, listEntries } from '@kestrel/ai';
+import { withUserTenantRO } from '@kestrel/db';
 import type { JournalEntry, JournalStatsWithNulls } from '@kestrel/shared';
 import type { Metadata } from 'next';
 
@@ -37,10 +38,9 @@ export default async function JournalPage() {
   const session = await auth();
   if (session?.user?.id) {
     try {
-      const [entries, stats] = await Promise.all([
-        listEntries(session.user.id),
-        computeStats(session.user.id),
-      ]);
+      const [entries, stats] = await withUserTenantRO(session.user.id, () =>
+        Promise.all([listEntries(session.user.id), computeStats(session.user.id)]),
+      );
       initialData = { entries, stats };
     } catch {
       // Fall back gracefully to client-side hydration if server prefetch fails

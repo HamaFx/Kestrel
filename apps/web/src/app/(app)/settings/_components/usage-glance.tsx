@@ -17,6 +17,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { computeUsage } from '@kestrel/ai';
+import { withUserTenantRO } from '@kestrel/db';
 import { IconChevronRight } from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
 
@@ -25,7 +26,7 @@ export async function UsageGlance({ userId }: { userId?: string }) {
 
   let stats: Awaited<ReturnType<typeof computeUsage>>;
   try {
-    stats = await computeUsage(userId);
+    stats = await withUserTenantRO(userId, () => computeUsage(userId));
   } catch {
     return null;
   }

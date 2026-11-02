@@ -109,6 +109,23 @@ const ADMIN_CONNECTION_REQUIRED = [
 /** Identifiers that count as a declared per-user scope in a covered file. */
 const SCOPE_DECLARATION = /\bwithUserTenant(?:RO)?\b/;
 
+/**
+ * Server actions and server components outside the page/layout walk above.
+ * They run outside the API boundary too, so the same scope requirement
+ * applies: a read or write reached through `@kestrel/ai` or a service module
+ * is invisible to the direct `@kestrel/db` scan, but still needs a tenant
+ * transaction when the RLS role is active.
+ */
+const TENANT_SCOPED_MODULES = [
+  'apps/web/src/app/(app)/dashboard/page.tsx',
+  'apps/web/src/app/(app)/journal/page.tsx',
+  'apps/web/src/app/(app)/settings/_components/usage-glance.tsx',
+  'apps/web/src/app/(app)/journal/actions.ts',
+  'apps/web/src/app/(app)/alerts/actions.ts',
+  'apps/web/src/app/(app)/settings/_actions/data-clear.ts',
+  'apps/web/src/app/(app)/settings/_actions/security-two-factor.ts',
+] as const;
+
 type ExemptionKind = 'unscoped-non-rls' | 'tracked-gap';
 
 interface ScopeExemption {
@@ -198,8 +215,14 @@ describe('RSC tenant scope contract (audit 2026-10-31 R1)', () => {
     expect(violations).toEqual([]);
   });
 
-  it('keeps every exemption explicit and live', () => {
-    for (const [file, entry] of Object.entries(EXEMPT)) {
+  it('declares a tenant scope in every RSC and server action that reads tenant data indirectly', () => {
+    const violations = TENANT_SCOPED_MODULES.filter(
+      (file) => !SCOPE_DECLARATION.test(read(file)),
+    );
+    expect(violations).toEqual([]);
+  });
+
+  it('keeps every exemption explicit and live', () => {    for (const [file, entry] of Object.entries(EXEMPT)) {
       expect(serverFiles, `${file} is no longer a covered server component`).toContain(file);
       expect(entry.reason.length, `${file} needs a real reason`).toBeGreaterThan(40);
       const source = read(file);

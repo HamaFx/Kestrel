@@ -10,6 +10,8 @@ import 'server-only';
 
 import { revalidatePath } from 'next/cache';
 
+import { withUserTenant } from '@kestrel/db';
+
 import { auth } from '@/auth';
 import {
   AlertCreateSchema,
@@ -42,7 +44,9 @@ export async function createAlertAction(
   }
 
   try {
-    const result = await createAlertService(session.user.id, parsed.data);
+    const result = await withUserTenant(session.user.id, () =>
+      createAlertService(session.user.id, parsed.data),
+    );
     revalidatePath('/alerts');
     return { ok: true, data: { alert: result.alert } };
   } catch (err) {
@@ -70,7 +74,9 @@ export async function toggleAlertAction(
   }
 
   try {
-    const alert = await updateAlertService(session.user.id, id, parsed.data);
+    const alert = await withUserTenant(session.user.id, () =>
+      updateAlertService(session.user.id, id, parsed.data),
+    );
     if (!alert) {
       return { ok: false, error: 'Alert not found' };
     }
@@ -88,7 +94,7 @@ export async function deleteAlertAction(id: string): Promise<ActionResult<{ id: 
   }
 
   try {
-    await deleteAlertService(session.user.id, id);
+    await withUserTenant(session.user.id, () => deleteAlertService(session.user.id, id));
     revalidatePath('/alerts');
     return { ok: true, data: { id } };
   } catch (err) {

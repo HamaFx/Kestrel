@@ -10,6 +10,8 @@ import 'server-only';
 
 import { revalidatePath } from 'next/cache';
 
+import { withUserTenant } from '@kestrel/db';
+
 import { auth } from '@/auth';
 import {
   createJournalEntryService,
@@ -42,7 +44,9 @@ export async function createJournalEntryAction(
   }
 
   try {
-    const entry = await createJournalEntryService(session.user.id, parsed.data);
+    const entry = await withUserTenant(session.user.id, () =>
+      createJournalEntryService(session.user.id, parsed.data),
+    );
     revalidatePath('/journal');
     return { ok: true, data: { entry } };
   } catch (err) {
@@ -68,7 +72,9 @@ export async function updateJournalEntryAction(
   }
 
   try {
-    const entry = await updateJournalEntryService(session.user.id, id, parsed.data);
+    const entry = await withUserTenant(session.user.id, () =>
+      updateJournalEntryService(session.user.id, id, parsed.data),
+    );
     if (!entry) {
       return { ok: false, error: 'Journal entry not found' };
     }
@@ -89,7 +95,9 @@ export async function deleteJournalEntryAction(id: string): Promise<ActionResult
   }
 
   try {
-    const deleted = await deleteJournalEntryService(session.user.id, id);
+    const deleted = await withUserTenant(session.user.id, () =>
+      deleteJournalEntryService(session.user.id, id),
+    );
     if (!deleted) {
       return { ok: false, error: 'Journal entry not found' };
     }

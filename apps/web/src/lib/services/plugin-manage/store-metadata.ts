@@ -21,8 +21,7 @@
 
 import {
   listInstalledPlugins,
-  requireTenantIdForUser,
-  withTenantDb,
+  withUserTenant,
   type InstalledPluginRow,
 } from '@kestrel/db';
 import {
@@ -109,17 +108,6 @@ export function decryptedRowSettings(
     manifest.settingsSchema,
     row.settings && typeof row.settings === 'object' ? row.settings : {},
   );
-}
-
-/**
- * Run a plugin-table read inside the caller's tenant transaction.
- *
- * API routes already have one from `withAuth`; server components do not, so
- * this wrapper resolves the tenant and sets the RLS GUC either way.
- */
-async function withUserTenant<T>(userId: string, work: () => Promise<T>): Promise<T> {
-  const tenantId = await requireTenantIdForUser(userId);
-  return withTenantDb(tenantId, work, { userId });
 }
 
 export function buildPluginStoreEntry(
