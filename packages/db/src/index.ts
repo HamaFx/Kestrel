@@ -53,8 +53,8 @@ export {
 } from './retention';
 export { getActiveUserIds } from './ops/active-users';
 export { checkAndIncrementDailyQuota, type DailyQuotaResult } from './ops/provider-quota';
-// PF-01 — Query/repository layer barrel. Import via `queries` namespace
-// or individual named exports for tree-shaking.
+// PF-01 — Query/repository layer. Every helper is exported by name so
+// consumers tree-shake what they do not use.
 export {
   getPlatformAdminSettings,
   getPlatformAdminUserId,
@@ -259,7 +259,6 @@ export {
   type PluginStorageValue,
   type UpdatePluginSettingsInput,
 } from './queries/plugins';
-export * as queries from './queries';
 export {
   withCancellablePostgresQuery,
   abortError,

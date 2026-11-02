@@ -51,7 +51,6 @@ import {
   SearchKnowledgeOutputSchema,
   SetAlertOutputSchema,
   ShareSnapshotOutputSchema,
-  SummarizeThreadOutputSchema,
   VerifyCallOutputSchema,
   WebSearchOutputSchema,
 } from '@kestrel/shared';
@@ -683,17 +682,6 @@ describe('remaining output schemas', () => {
         ],
         fetchedAt: Date.now(),
         available: true,
-      },
-    },
-    {
-      name: 'SummarizeThreadOutputSchema',
-      schema: SummarizeThreadOutputSchema,
-      sample: {
-        threadId: '550e8400-e29b-41d4-a716-446655440000',
-        asOf: Date.now(),
-        synopsis: 'Discussion about EURUSD.',
-        insights: [{ text: 'Monitor resistance.', symbol: null }],
-        remembered: true,
       },
     },
     {

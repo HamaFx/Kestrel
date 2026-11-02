@@ -123,17 +123,6 @@ export {
   type CommitteeProgressSnapshot,
 } from './shared/progress';
 export {
-  assertMastraRegistryComplete,
-  mastraRegistrationFor,
-  resolveMastraAgent,
-  resolveMastraWorkflow,
-  MASTRA_COMPONENT_REGISTRY,
-  MastraComponentKindMismatchError,
-  MastraComponentNotRegisteredError,
-  type MastraComponentRegistration,
-  type MastraCapabilityRegistrationId,
-} from './registry';
-export {
   buildConversationGuardrails,
   buildGuardrailInputProcessors,
   buildResearchGuardrails,
