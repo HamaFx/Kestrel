@@ -25,7 +25,7 @@
 import type { UIMessage } from 'ai';
 
 import { isInjectionAttempt } from '@/lib/services/chat-ai';
-import { runCustomAgentStreamService } from '@/lib/services/mastra/chat-orchestrator';
+import { runCustomAgentStreamService } from '@/lib/services/mastra/chat/mastra-custom-agent-stream';
 import {
   getInstalledPluginRuntime,
   hasUserAgentCatalogs,

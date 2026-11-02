@@ -22,7 +22,6 @@
 // Phase 4 Task 4 — XAUUSD runs the same dispatcher paths as every other
 // symbol; the legacy packet/report route split is retired.
 
-import type { UserSettingsRow } from '@kestrel/db';
 import type { UIMessage } from 'ai';
 
 import type { getServerEnv } from '@/lib/env';
@@ -35,7 +34,8 @@ import {
 import {
   runConversationalTurn,
   runResearchWorkflow,
-} from '@/lib/services/mastra/chat-orchestrator';
+} from '@/lib/services/mastra/chat/mastra-execution';
+import type { UserSettingsRow } from '@/lib/services/settings/domain';
 
 import { ROUTE_TIMEOUT_MS } from './constants';
 import { errorJson } from './errors';

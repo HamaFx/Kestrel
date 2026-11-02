@@ -25,111 +25,23 @@
 //     totalCostUsd, totalTurns
 //   }
 //
-// Reads from the agent_opinions table (specialist agents) — the Decision
-// agent's cost is not in agent_opinions (it doesn't produce an opinion),
-// so we include it as a synthetic row with cost = totalCost - sum(specialists).
-//
 // Auth: NextAuth session gate. Per-user data only.
 
-import { and, eq, gte, sql } from 'drizzle-orm';
-
 import { errorResponse, withAuth } from '@/lib/http/api';
-import { getDb, requireTenantIdForUser, schema } from '@/lib/services/db';
+import { getUsageByAgent } from '@/lib/services/settings/usage-by-agent';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+const USAGE_WINDOW_DAYS = 30;
+
 export const GET = withAuth<void>(async (_req, { user }) => {
   try {
-    const db = getDb();
-    const tenantId = await requireTenantIdForUser(user.userId, db);
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
-    // Per-agent breakdown (specialist agents only — they have rows in agent_opinions).
-    const byAgentRows = await db
-      .select({
-        agentName: schema.agentOpinions.agentName,
-        turns: sql<number>`count(*)::int`,
-        totalCostUsd: sql<number>`coalesce(sum(${schema.agentOpinions.costUsd}), 0)::float8`,
-        avgLatencyMs: sql<number>`coalesce(avg(${schema.agentOpinions.latencyMs}), 0)::int`,
-      })
-      .from(schema.agentOpinions)
-      .innerJoin(
-        schema.chatThreads,
-        and(
-          eq(schema.chatThreads.id, schema.agentOpinions.threadId),
-          eq(schema.chatThreads.userId, user.userId),
-          eq(schema.chatThreads.tenantId, tenantId),
-        ),
-      )
-      .innerJoin(
-        schema.chatMessages,
-        and(
-          eq(schema.chatMessages.id, schema.agentOpinions.messageId),
-          eq(schema.chatMessages.threadId, schema.agentOpinions.threadId),
-          eq(schema.chatMessages.tenantId, tenantId),
-        ),
-      )
-      .where(
-        and(
-          eq(schema.agentOpinions.userId, user.userId),
-          eq(schema.agentOpinions.tenantId, tenantId),
-          gte(schema.agentOpinions.createdAt, thirtyDaysAgo),
-        ),
-      )
-      .groupBy(schema.agentOpinions.agentName);
-
-    // Per-mode breakdown.
-    const byModeRows = await db
-      .select({
-        analysisMode: schema.agentOpinions.analysisMode,
-        turns: sql<number>`count(*)::int`,
-        totalCostUsd: sql<number>`coalesce(sum(${schema.agentOpinions.costUsd}), 0)::float8`,
-      })
-      .from(schema.agentOpinions)
-      .innerJoin(
-        schema.chatThreads,
-        and(
-          eq(schema.chatThreads.id, schema.agentOpinions.threadId),
-          eq(schema.chatThreads.userId, user.userId),
-          eq(schema.chatThreads.tenantId, tenantId),
-        ),
-      )
-      .innerJoin(
-        schema.chatMessages,
-        and(
-          eq(schema.chatMessages.id, schema.agentOpinions.messageId),
-          eq(schema.chatMessages.threadId, schema.agentOpinions.threadId),
-          eq(schema.chatMessages.tenantId, tenantId),
-        ),
-      )
-      .where(
-        and(
-          eq(schema.agentOpinions.userId, user.userId),
-          eq(schema.agentOpinions.tenantId, tenantId),
-          gte(schema.agentOpinions.createdAt, thirtyDaysAgo),
-        ),
-      )
-      .groupBy(schema.agentOpinions.analysisMode);
-
-    const totalCostUsd = byAgentRows.reduce((s, r) => s + Number(r.totalCostUsd), 0);
-    const totalTurns = byAgentRows.reduce((s, r) => s + Number(r.turns), 0);
-
-    return Response.json({
-      byAgent: byAgentRows.map((r) => ({
-        agentName: r.agentName,
-        turns: Number(r.turns),
-        totalCostUsd: Number(r.totalCostUsd),
-        avgLatencyMs: Number(r.avgLatencyMs),
-      })),
-      byMode: byModeRows.map((r) => ({
-        analysisMode: r.analysisMode,
-        turns: Number(r.turns),
-        totalCostUsd: Number(r.totalCostUsd),
-      })),
-      totalCostUsd,
-      totalTurns,
+    const usage = await getUsageByAgent({
+      userId: user.userId,
+      periodDays: USAGE_WINDOW_DAYS,
     });
+    return Response.json(usage);
   } catch (err) {
     return errorResponse(err);
   }

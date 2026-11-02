@@ -14,10 +14,8 @@
  * limitations under the License.
  */
 
-// BiQuote SignalR consumer barrel. Every name previously exported from
-// `src/signalr/consumer.ts` is re-exported here so `./consumer.js`,
-// `../signalr/consumer.js` and `./consumer/index.js` imports keep
-// resolving unchanged.
+// BiQuote SignalR consumer barrel. `./consumer/index.js` and
+// `../signalr/consumer/index.js` are the canonical import paths.
 
 export { SignalRConsumer } from './connection.js';
 export { createDefaultBuildConnection } from './build-connection.js';

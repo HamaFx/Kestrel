@@ -19,13 +19,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from '@/app/api/cron/health-alerts/route';
 
 const mockWithCronAuth = vi.hoisted(() => vi.fn());
-const mockAdminDb = vi.hoisted(() => vi.fn());
 const mockComputeHealth = vi.hoisted(() => vi.fn());
 const mockDeliverHealthAlert = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/http/cron', () => ({ withCronAuth: mockWithCronAuth }));
-vi.mock('@/lib/services/db', () => ({ getAdminDb: mockAdminDb }));
-vi.mock('@/lib/services/admin-health', () => ({ computeHealthSloService: mockComputeHealth }));
+vi.mock('@/lib/services/admin-health', () => ({
+  computeHealthSloWithAdminDb: mockComputeHealth,
+}));
 vi.mock('@/lib/services/health-alert-delivery', () => ({
   deliverHealthAlert: mockDeliverHealthAlert,
 }));
@@ -44,7 +44,6 @@ const snapshot = {
 describe('GET /api/cron/health-alerts', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockAdminDb.mockReturnValue({});
     mockComputeHealth.mockResolvedValue(snapshot);
     mockDeliverHealthAlert.mockResolvedValue({ status: 'sent', anomalyCount: 1 });
     mockWithCronAuth.mockImplementation(async (_request: Request, fn: () => Promise<unknown>) => {
@@ -63,7 +62,7 @@ describe('GET /api/cron/health-alerts', () => {
       processed: 1,
       note: 'degraded; webhook=sent',
     });
-    expect(mockComputeHealth).toHaveBeenCalledWith({}, { hours: 1 });
+    expect(mockComputeHealth).toHaveBeenCalledWith({ hours: 1 });
     expect(mockDeliverHealthAlert).toHaveBeenCalledWith(snapshot);
   });
 

@@ -21,7 +21,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { createLogger } from '../src/log';
 import { flushLiveTicks, type LiveTicksWriterArgs } from '../src/persistence/live-ticks';
-import type { NormalizedTick } from '../src/signalr/consumer';
+import type { NormalizedTick } from '../src/signalr/consumer/index';
 import { TickBuffer } from '../src/signalr/tick-buffer';
 
 const log = createLogger({ service: 'test', forceJson: true });

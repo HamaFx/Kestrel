@@ -35,7 +35,6 @@
 // the last 24 hours so the system-status card can detect stuck jobs.
 
 import { REQUIRED_HEALTH_ENV_VARS } from '@kestrel/shared/env-secrets';
-import { sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 import { withAuth } from '@/lib/http/api';
@@ -45,81 +44,19 @@ import {
   validateTelemetryStartup,
 } from '@/lib/services/admin';
 import { getFullAnalysisQueueHealth } from '@/lib/services/chat-ai';
-import { getDb } from '@/lib/services/db';
+import {
+  checkCronRunsHealth,
+  checkDatabaseConnectivity,
+  checkPgvectorExtension,
+  type HealthCheckResult,
+} from '@/lib/services/health/db-health';
 import { withRateLimit } from '@/lib/services/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-interface CheckResult {
-  ok: boolean;
-  latencyMs?: number;
-  message?: string;
-}
-
-async function checkDb(): Promise<CheckResult> {
-  const start = Date.now();
-  try {
-    const db = getDb();
-    await db.execute(sql`SELECT 1`);
-    return { ok: true, latencyMs: Date.now() - start };
-  } catch (err) {
-    return {
-      ok: false,
-      latencyMs: Date.now() - start,
-      message: err instanceof Error ? err.message : 'db check failed',
-    };
-  }
-}
-
-// STAB-11: Verify pgvector extension is installed.
-async function checkPgvector(): Promise<CheckResult> {
-  try {
-    const db = getDb();
-    const rows = await db.execute<{ extname: string }>(sql`
-      SELECT extname FROM pg_extension WHERE extname = 'vector'
-    `);
-    if (rows.length === 0) {
-      return { ok: false, message: 'pgvector extension not installed' };
-    }
-    return { ok: true };
-  } catch (err) {
-    return { ok: false, message: err instanceof Error ? err.message : 'pgvector check failed' };
-  }
-}
-
-async function checkCronRuns(): Promise<CheckResult & { recentRuns?: number; stuckRuns?: number }> {
-  try {
-    const db = getDb();
-    // postgres.js `unsafe()` bindings accept strings, not Date instances —
-    // passing a Date here throws ERR_INVALID_ARG_TYPE inside the driver and
-    // makes /api/health fail for authenticated callers. Bind an ISO string
-    // (cast explicitly so parameter inference is unambiguous).
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    // Count recent cron runs and detect any that are stuck in 'started' > 5 min ago.
-    const [row] = await db.execute<{ recent: string; stuck: string }>(sql`
-      SELECT
-        COUNT(*)::text AS recent,
-        COUNT(*) FILTER (
-          WHERE status = 'started'
-          AND started_at < now() - INTERVAL '5 minutes'
-        )::text AS stuck
-      FROM cron_runs
-      WHERE started_at >= ${since}::timestamptz
-    `);
-    return {
-      ok: true,
-      recentRuns: Number((row as { recent: string; stuck: string }).recent ?? 0),
-      stuckRuns: Number((row as { recent: string; stuck: string }).stuck ?? 0),
-    };
-  } catch {
-    // cron_runs table may not exist yet (pre-migration). Non-fatal.
-    return { ok: true, message: 'cron_runs unavailable (may need migration)' };
-  }
-}
-
 async function checkAnalysisJobs(): Promise<
-  CheckResult & { pending?: number; stuckRunning?: number; stalePending?: number }
+  HealthCheckResult & { pending?: number; stuckRunning?: number; stalePending?: number }
 > {
   try {
     const health = await getFullAnalysisQueueHealth();
@@ -138,7 +75,7 @@ async function checkAnalysisJobs(): Promise<
   }
 }
 
-function checkEnv(): CheckResult {
+function checkEnv(): HealthCheckResult {
   const required = REQUIRED_HEALTH_ENV_VARS as readonly string[];
   const missing = required.filter((key) => {
     if (key === 'DATABASE_URL') return !process.env.DATABASE_URL && !process.env.POSTGRES_URL;
@@ -166,12 +103,12 @@ export const GET = withAuth<void>(async (req, { user }) => {
     );
   }
   const [dbCheck, cronCheck, analysisCheck] = await Promise.all([
-    checkDb(),
-    checkCronRuns(),
+    checkDatabaseConnectivity(),
+    checkCronRunsHealth(),
     checkAnalysisJobs(),
   ]);
   const envCheck = checkEnv();
-  const pgvectorCheck = await checkPgvector();
+  const pgvectorCheck = await checkPgvectorExtension();
 
   // OBS-13 (Phase 5.5): Include pgvector + stuck-cron in allOk.
   // Previously `allOk = dbCheck.ok && envCheck.ok` which meant a missing

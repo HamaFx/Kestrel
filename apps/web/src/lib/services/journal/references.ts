@@ -42,10 +42,10 @@
 // costs one kept object, while a false negative would delete a file a logged
 // trade still points at, so the match errs wide.
 
+import { schema, withAdminDb } from '@kestrel/db';
 import { and, eq, or, sql } from 'drizzle-orm';
 
 import type { JournalReferenceLoader, JournalReferenceLookup } from '@/lib/http/upload-cleanup';
-import { schema, withAdminDb } from '@/lib/services/db';
 
 /**
  * Rows read per user per run. A user with more matching rows than this has

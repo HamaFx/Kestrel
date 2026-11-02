@@ -20,7 +20,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { Candle1mAggregator, type CandleGap, type ClosedCandle } from '../src/aggregator/candle-1m';
-import type { NormalizedTick } from '../src/signalr/consumer';
+import type { NormalizedTick } from '../src/signalr/consumer/index';
 
 const MINUTE_MS = 60_000;
 const BASE_MIN = 28_000_000; // arbitrary minute bucket

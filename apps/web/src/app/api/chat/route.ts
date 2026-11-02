@@ -37,7 +37,7 @@ import {
   routeUnified,
 } from '@/lib/services/chat-ai';
 import { extractLatestMastraReport } from '@/lib/services/mastra/mastra-report-context';
-import { startMutationDraft } from '@/lib/services/mastra/mutation-handler';
+import { startMutationDraft } from '@/lib/services/mastra/mutation/mastra-mutation-draft';
 import {
   detectInstalledPluginIntent,
   getInstalledPluginIdsForUser,

@@ -13,7 +13,7 @@ import { runMetricsFlush } from '../src/jobs/metrics-flush';
 import { createLogger } from '../src/log';
 import { TenantRouter } from '../src/runtime/tenant-router';
 
-vi.mock('@kestrel/ai', () => ({
+vi.mock('@kestrel/db', () => ({
   getDb: () => mockDb,
 }));
 

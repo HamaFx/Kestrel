@@ -20,6 +20,7 @@
 // (`WORKER_ENABLE_TICK_STREAM=0`), empty `live_ticks` is expected and
 // reported as healthy on-demand mode rather than a false outage.
 
+import { getAdminDb } from '@kestrel/db';
 import { sql } from 'drizzle-orm';
 
 import type { HealthSloResponse } from './admin-dtos';
@@ -120,4 +121,16 @@ export async function computeHealthSloService(
     anomalies: assessment.anomalies,
     spendWatch: assessment.spendWatch,
   };
+}
+
+/**
+ * Cross-tenant SLO evaluation for cron/monitor routes.
+ *
+ * Every aggregate the service reads is RLS-protected and `withCronAuth` opens
+ * no scope, so the evaluation must run on the admin (BYPASSRLS) connection.
+ */
+export async function computeHealthSloWithAdminDb(
+  options: ComputeHealthSloOptions,
+): Promise<HealthSloResponse> {
+  return computeHealthSloService(getAdminDb(), options);
 }

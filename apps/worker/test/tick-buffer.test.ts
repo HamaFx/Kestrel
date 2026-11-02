@@ -16,7 +16,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import type { NormalizedTick } from '../src/signalr/consumer';
+import type { NormalizedTick } from '../src/signalr/consumer/index';
 import { TickBuffer } from '../src/signalr/tick-buffer';
 
 function tick(symbol: NormalizedTick['symbol'], mid: number, ts = 0): NormalizedTick {

@@ -51,7 +51,7 @@ vi.mock('@/lib/http/cron', () => ({
   getActiveUserIdsForCron: vi.fn(),
 }));
 
-vi.mock('@/app/api/cron/cleanup-uploads/journal-references', () => ({
+vi.mock('@/lib/services/journal/references', () => ({
   loadJournalReferences: mocks.loadJournalReferences,
 }));
 

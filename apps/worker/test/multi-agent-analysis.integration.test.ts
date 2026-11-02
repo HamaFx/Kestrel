@@ -194,7 +194,6 @@ vi.mock('@kestrel/ai/mastra-v2', () => ({
 }));
 
 vi.mock('@kestrel/ai', () => ({
-  getDb: () => mockDb,
   resolveMastraModel: mockResolveMastraModel,
   appendUserMessage: mockAppendUserMessage,
   appendAssistantMessage: mockAppendAssistantMessage,
@@ -204,6 +203,13 @@ vi.mock('@kestrel/ai', () => ({
   withDiagnostics: async (_userId: string, _threadId: string, fn: () => Promise<unknown>) => fn(),
   createExecutionLifecycle: mockCreateExecutionLifecycle,
   createGenerationLedger: mockCreateGenerationLedger,
+}));
+
+vi.mock('@kestrel/db', () => ({
+  getDb: () => mockDb,
+  schema: {
+    userSettings: { userId: 'user_id', tenantId: 'tenant_id' },
+  },
 }));
 
 vi.mock('@kestrel/shared', async (importOriginal) => {

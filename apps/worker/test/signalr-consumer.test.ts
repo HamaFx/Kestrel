@@ -25,7 +25,7 @@ import {
   type BuildConnection,
   type MinimalHubConnection,
   type NormalizedTick,
-} from '../src/signalr/consumer';
+} from '../src/signalr/consumer/index';
 
 const VALID_BIQUOTE_TICK = {
   symbol: 'XAUUSD',

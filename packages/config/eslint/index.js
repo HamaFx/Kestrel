@@ -89,10 +89,10 @@ export default [
   // `api-boundary.ts` barrel; only ai/data/db/indicators/plugins stay
   // restricted to the service layer.
   {
-    files: ['src/app/api/**/route.ts'],
+    files: ['src/app/api/**/*.ts'],
     rules: {
       'no-restricted-imports': [
-        'warn',
+        'error',
         {
           paths: [
             {

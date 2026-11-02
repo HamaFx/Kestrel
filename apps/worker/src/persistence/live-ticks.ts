@@ -28,7 +28,7 @@ import { liveTicks } from '@kestrel/db/schema';
 import { sql } from 'drizzle-orm';
 
 import type { Logger } from '../log.js';
-import type { NormalizedTick } from '../signalr/consumer.js';
+import type { NormalizedTick } from '../signalr/consumer/index.js';
 import type { TickBuffer } from '../signalr/tick-buffer.js';
 
 export interface LiveTicksWriterArgs {

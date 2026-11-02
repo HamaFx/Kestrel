@@ -41,7 +41,7 @@
 
 import type { Symbol } from '@kestrel/shared';
 
-import type { NormalizedTick } from '../signalr/consumer.js';
+import type { NormalizedTick } from '../signalr/consumer/index.js';
 
 /**
  * A 1-minute bar as persisted to `candles_1m`. The aggregator produces

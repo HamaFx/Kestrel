@@ -24,7 +24,6 @@
 // resolves exactly that model from the row (no failover). If the override
 // cannot be resolved at enqueue time, fail closed with a clear message.
 
-import type { UserSettingsRow } from '@kestrel/db';
 import { AnalysisQueuedEventSchema } from '@kestrel/shared';
 import { traceIdStorage } from '@kestrel/shared/logger';
 
@@ -37,6 +36,7 @@ import {
   type ExecutionPlan,
 } from '@/lib/services/chat-ai';
 import { resolveProviderMode } from '@/lib/services/providers';
+import type { UserSettingsRow } from '@/lib/services/settings/domain';
 
 import { errorJson } from './errors';
 import type { ChatUserParts } from './request-validation';

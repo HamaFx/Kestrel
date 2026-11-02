@@ -34,7 +34,7 @@ import {
   SignalRConsumer,
   type BuildConnection,
   type NormalizedTick,
-} from '../signalr/consumer.js';
+} from '../signalr/consumer/index.js';
 import { TickBuffer } from '../signalr/tick-buffer.js';
 import { SymbolManager } from '../streams/symbol-manager.js';
 import { createTickBus, type TickBus } from '../streams/tick-bus.js';

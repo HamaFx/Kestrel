@@ -24,6 +24,7 @@
 import {
   createAlert as aiCreateAlert,
   deleteAlert as aiDeleteAlert,
+  evaluateAlerts as aiEvaluateAlerts,
   getAlert as aiGetAlert,
   listAlerts as aiListAlerts,
   updateAlert as aiUpdateAlert,
@@ -33,7 +34,7 @@ import {
   type SimCandle,
 } from '@kestrel/ai';
 import { getCandles } from '@kestrel/data';
-import { getRecentCandles, withRateLimit } from '@kestrel/db';
+import { getRecentCandles, withAdminDb, withRateLimit } from '@kestrel/db';
 import {
   SEVERITY_RANK,
   type Alert,
@@ -302,4 +303,15 @@ export async function previewDigestService(userId: string): Promise<PreviewDiges
 // runs through the shared `@kestrel/ai/cron` runners instead of route-local
 // loops.
 
-export { evaluateAlerts } from '@kestrel/ai';
+/**
+ * Evaluate every tenant's alerts for the cron route.
+ *
+ * The evaluator scans all users and writes per-user rows with explicit tenant
+ * predicates, while the cron route carries no tenant scope. Run it on the
+ * admin (BYPASSRLS) connection, exactly like the worker does.
+ */
+export async function evaluateAlertsAcrossTenants(
+  options: Parameters<typeof aiEvaluateAlerts>[0] = {},
+): ReturnType<typeof aiEvaluateAlerts> {
+  return withAdminDb(() => aiEvaluateAlerts(options));
+}

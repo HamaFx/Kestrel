@@ -29,16 +29,15 @@
  */
 
 import { withCronAuth } from '@/lib/http/cron';
-import { computeHealthSloService } from '@/lib/services/admin-health';
-import { getAdminDb } from '@/lib/services/db';
+import { computeHealthSloWithAdminDb } from '@/lib/services/admin-health';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request): Promise<Response> {
-  let snapshot: Awaited<ReturnType<typeof computeHealthSloService>> | undefined;
+  let snapshot: Awaited<ReturnType<typeof computeHealthSloWithAdminDb>> | undefined;
   const authResponse = await withCronAuth(request, async () => {
-    snapshot = await computeHealthSloService(getAdminDb(), {
+    snapshot = await computeHealthSloWithAdminDb({
       // NOTE: the shared env schema validates ALERT_WINDOW_HOURS and caps it
       // at 24 (whole days are the monitoring unit). An out-of-range value
       // fails instance boot for every route that loads the shared env

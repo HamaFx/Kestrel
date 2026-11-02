@@ -36,8 +36,7 @@ import { getServerEnv } from '@/lib/env';
 import { withCronAuth } from '@/lib/http/cron';
 import { runUploadCleanup, UPLOAD_RETENTION_DAYS } from '@/lib/http/upload-cleanup';
 import { createScopedLoggerWithContext } from '@/lib/logger';
-
-import { loadJournalReferences } from './journal-references';
+import { loadJournalReferences } from '@/lib/services/journal/references';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

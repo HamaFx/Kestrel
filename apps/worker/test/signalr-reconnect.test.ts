@@ -28,7 +28,7 @@ import {
   SignalRConsumer,
   type BuildConnection,
   type MinimalHubConnection,
-} from '../src/signalr/consumer';
+} from '../src/signalr/consumer/index';
 
 interface FakeHub {
   startCalls: number;

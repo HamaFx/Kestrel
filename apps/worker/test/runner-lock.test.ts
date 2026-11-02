@@ -33,7 +33,6 @@ vi.mock('@kestrel/ai', async (importOriginal) => {
     ...actual,
     initLangfuse: vi.fn(),
     shutdownLangfuse: vi.fn().mockResolvedValue(undefined),
-    getDb: vi.fn(() => ({})),
   };
 });
 
@@ -47,6 +46,7 @@ vi.mock('@kestrel/db', async (importOriginal) => {
   const actual = await importOriginal<typeof dbModule>();
   return {
     ...actual,
+    getDb: vi.fn(() => ({})),
     closeDb: vi.fn().mockResolvedValue(undefined),
   };
 });

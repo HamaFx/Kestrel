@@ -27,7 +27,7 @@ import { runDatasetExport } from './dataset-export.js';
 import { runEmbeddingBackfill } from './embedding-backfill.js';
 import { runFredActuals } from './fred-actuals.js';
 import { runMetricsFlush } from './metrics-flush.js';
-import { runDurableResearchJob } from './multi-agent-analysis.js';
+import { runDurableResearchJob } from './multi-agent-analysis/index.js';
 import { runOpinionCalibration } from './opinion-calibration.js';
 import { runPersistenceRecovery } from './persistence-recovery.js';
 import { runResonanceSync } from './resonance-sync.js';

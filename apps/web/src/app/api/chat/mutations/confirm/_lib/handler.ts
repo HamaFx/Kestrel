@@ -39,8 +39,8 @@ import {
   parseMutationRunContext,
   runMutationWorkflow,
 } from '@/lib/services/chat-ai';
+import { atomicExecutorFor, executorFor } from '@/lib/services/chat/mutation-executors';
 
-import { atomicExecutorFor, executorFor } from './executors';
 import { findMutationRun } from './find-mutation-run';
 
 const ConfirmBodySchema = z.object({

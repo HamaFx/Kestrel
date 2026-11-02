@@ -30,7 +30,6 @@ import { GET as weeklyReviewGET } from '@/app/api/cron/weekly-review/route';
 const mocks = vi.hoisted(() => ({
   events: [] as string[],
   withCronAuth: vi.fn(),
-  withAdminDb: vi.fn(),
   withUserTenant: vi.fn(),
   evaluateAlerts: vi.fn(),
   runRetentionCleanup: vi.fn(),
@@ -42,17 +41,14 @@ vi.mock('@/lib/http/cron', () => ({
   withCronAuth: mocks.withCronAuth,
 }));
 vi.mock('@/lib/services/alerts', () => ({
-  evaluateAlerts: mocks.evaluateAlerts,
+  evaluateAlertsAcrossTenants: mocks.evaluateAlerts,
 }));
 vi.mock('@/lib/services/cron-jobs', () => ({
   runBriefingsFanout: mocks.runBriefingsFanout,
   runWeeklyReviewFanout: mocks.runWeeklyReviewFanout,
 }));
 vi.mock('@/lib/services/admin', () => ({
-  runRetentionCleanup: mocks.runRetentionCleanup,
-}));
-vi.mock('@/lib/services/db', () => ({
-  withAdminDb: mocks.withAdminDb,
+  runRetentionCleanupAcrossTenants: mocks.runRetentionCleanup,
 }));
 vi.mock('@/lib/logger', () => ({
   createScopedLoggerWithContext: () => ({
@@ -81,12 +77,6 @@ beforeEach(() => {
       return Response.json({ ok: true, ...(result as object) });
     },
   );
-  mocks.withAdminDb.mockImplementation(async (work: (db: unknown) => Promise<unknown>) => {
-    mocks.events.push('admin:enter');
-    const result = await work({});
-    mocks.events.push('admin:exit');
-    return result;
-  });
   mocks.withUserTenant.mockImplementation(
     async (userId: string, work: (db: unknown) => Promise<unknown>) => {
       mocks.events.push(`tenant:enter:${userId}`);
@@ -97,8 +87,8 @@ beforeEach(() => {
   );
 });
 
-describe('cron routes select an explicit database scope (R1)', () => {
-  it('alerts evaluates every tenant inside withAdminDb', async () => {
+describe('cron routes delegate cross-tenant work to admin-scoped services (R1)', () => {
+  it('alerts delegates cross-tenant evaluation to the admin-scoped service', async () => {
     mocks.evaluateAlerts.mockImplementation(async () => {
       mocks.events.push('evaluate');
       return { total: 0, matched: 0, fired: 0, skipped: 0, errors: [], deliveries: [] };
@@ -107,8 +97,8 @@ describe('cron routes select an explicit database scope (R1)', () => {
     const response = await alertsGET(request('/api/cron/alerts'));
 
     expect(response.status).toBe(200);
-    expect(mocks.withAdminDb).toHaveBeenCalledTimes(1);
-    expect(mocks.events).toEqual(['admin:enter', 'evaluate', 'admin:exit']);
+    expect(mocks.evaluateAlerts).toHaveBeenCalledTimes(1);
+    expect(mocks.events).toEqual(['evaluate']);
   });
 
   it('alerts filters users through the worker partition (R16)', async () => {
@@ -127,7 +117,7 @@ describe('cron routes select an explicit database scope (R1)', () => {
     const response = await alertsGET(request('/api/cron/alerts'));
 
     expect(response.status).toBe(200);
-    expect(mocks.events).toEqual(['admin:enter', 'evaluate', 'admin:exit']);
+    expect(mocks.events).toEqual(['evaluate']);
   });
 
   it('alerts fails closed on an invalid partition pair (R16)', async () => {
@@ -140,7 +130,7 @@ describe('cron routes select an explicit database scope (R1)', () => {
     expect(mocks.evaluateAlerts).not.toHaveBeenCalled();
   });
 
-  it('cleanup-telemetry deletes retention rows inside withAdminDb', async () => {
+  it('cleanup-telemetry delegates retention deletion to the admin-scoped service', async () => {
     mocks.runRetentionCleanup.mockImplementation(async () => {
       mocks.events.push('retention');
       return {
@@ -163,7 +153,8 @@ describe('cron routes select an explicit database scope (R1)', () => {
     const response = await cleanupTelemetryGET(request('/api/cron/cleanup-telemetry'));
 
     expect(response.status).toBe(200);
-    expect(mocks.events).toEqual(['admin:enter', 'retention', 'admin:exit']);
+    expect(mocks.runRetentionCleanup).toHaveBeenCalledTimes(1);
+    expect(mocks.events).toEqual(['retention']);
   });
 
   it('briefings delegates the fan-out to the shared cron runner', async () => {

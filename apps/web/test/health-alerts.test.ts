@@ -21,12 +21,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from '@/app/api/health/alerts/route';
 
 const mockWithCronAuth = vi.hoisted(() => vi.fn());
-const mockGetDb = vi.hoisted(() => vi.fn());
 const mockComputeHealth = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/http/cron', () => ({ withCronAuth: mockWithCronAuth }));
-vi.mock('@/lib/services/db', () => ({ getDb: mockGetDb, getAdminDb: mockGetDb }));
-vi.mock('@/lib/services/admin-health', () => ({ computeHealthSloService: mockComputeHealth }));
+vi.mock('@/lib/services/admin-health', () => ({
+  computeHealthSloWithAdminDb: mockComputeHealth,
+}));
 
 const healthySnapshot = {
   overall: 'healthy',
@@ -39,7 +39,6 @@ const healthySnapshot = {
 describe('GET /api/health/alerts', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetDb.mockReturnValue({});
     mockWithCronAuth.mockImplementation(
       async (_request: Request, handler: () => Promise<unknown>) => {
         await handler();

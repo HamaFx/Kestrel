@@ -32,8 +32,7 @@
 
 import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
-import { runRetentionCleanup } from '@/lib/services/admin';
-import { withAdminDb } from '@/lib/services/db';
+import { runRetentionCleanupAcrossTenants } from '@/lib/services/admin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -41,7 +40,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: Request): Promise<Response> {
   const log = createScopedLoggerWithContext({ component: 'cron', job: 'cleanup-telemetry' });
   return withCronAuth(req, async () => {
-    const result = await withAdminDb(() => runRetentionCleanup());
+    const result = await runRetentionCleanupAcrossTenants();
 
     log.info('retention cleanup completed', {
       telemetryDeleted: result.telemetryDeleted,

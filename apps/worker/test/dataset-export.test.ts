@@ -69,7 +69,6 @@ const { mockAssemble, mockListPairs, mockRegister, mockDb, mockPublishLangfuse, 
   });
 
 vi.mock('@kestrel/ai', () => ({
-  getDb: () => mockDb,
   // Faithful stand-in for the real resolver: reviewer label wins, eval
   // fallback for unlinked cases, needs_review for hint-only feedback.
   resolveEvaluationAnnotations: (input: {
@@ -96,6 +95,7 @@ vi.mock('@kestrel/ai', () => ({
 }));
 
 vi.mock('@kestrel/db', () => ({
+  getDb: () => mockDb,
   listReviewedTrainingPairs: mockListPairs,
   registerEvalDataset: mockRegister,
   schema: { users: {} },

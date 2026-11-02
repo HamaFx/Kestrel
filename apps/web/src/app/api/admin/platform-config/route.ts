@@ -22,9 +22,8 @@
 // adapters, spend guardrails, and agent tool switches.
 
 import { withAdminAuth } from '@/lib/auth/admin-auth';
-
-import { handleGetPlatformConfig } from './_lib/get-handler';
-import { handlePatchPlatformConfig } from './_lib/patch-handler';
+import { handleGetPlatformConfig } from '@/lib/services/admin-platform-config/get-handler';
+import { handlePatchPlatformConfig } from '@/lib/services/admin-platform-config/patch-handler';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

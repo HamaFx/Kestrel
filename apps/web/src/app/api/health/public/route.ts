@@ -32,10 +32,9 @@
 //   503 — DB is unreachable
 //   429 — rate limited
 
-import { sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
-import { getDb } from '@/lib/services/db';
+import { pingDatabase } from '@/lib/services/health/db-health';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -107,17 +106,7 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   // Minimal check: DB connectivity only.
-  let dbOk = false;
-  try {
-    const start = Date.now();
-    const db = getDb();
-    await db.execute(sql`SELECT 1`);
-    void start; // latency not exposed in public endpoint
-    dbOk = true;
-  } catch {
-    // DB unreachable — return 503 below. Keep the public response minimal;
-    // detailed connection errors must never be exposed to uptime monitors.
-  }
+  const dbOk = await pingDatabase();
 
   const healthy = dbOk;
   const httpStatus = healthy ? 200 : 503;

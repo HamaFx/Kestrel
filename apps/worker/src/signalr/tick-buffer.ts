@@ -32,7 +32,7 @@
 
 import type { Symbol } from '@kestrel/shared';
 
-import type { NormalizedTick } from './consumer.js';
+import type { NormalizedTick } from './consumer/index.js';
 
 interface Slot {
   tick: NormalizedTick;

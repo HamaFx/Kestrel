@@ -29,7 +29,7 @@ import type { Candle1mBar, CandleGap } from '../src/aggregator/candle-1m';
 import { createCandleFlushRig, type CandleFlushRigOptions } from '../src/bootstrap/candle-flush';
 import type { Logger } from '../src/log';
 import type { GapBackfillResult } from '../src/persistence/candle-backfill';
-import type { NormalizedTick } from '../src/signalr/consumer';
+import type { NormalizedTick } from '../src/signalr/consumer/index';
 
 const MINUTE_MS = 60_000;
 const BASE_MIN = 28_000_000; // arbitrary minute bucket

@@ -19,8 +19,8 @@
 // the Full workflow under the runId, and projects terminal state after a lease-
 // conditional queue transition. No stale worker may overwrite a requeued run.
 
-import { getDb } from '@kestrel/db';
 import { claimNextFullAnalysisRun } from '@kestrel/ai/mastra-v2';
+import { getDb } from '@kestrel/db';
 
 import type { JobContext, JobResult } from '../types.js';
 import { MAX_JOBS_PER_RUN } from './constants.js';

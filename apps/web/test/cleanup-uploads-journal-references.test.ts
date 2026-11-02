@@ -27,14 +27,14 @@ import {
   journalReferencesFromRows,
   loadJournalReferences,
   MAX_JOURNAL_REFERENCE_ROWS,
-} from '@/app/api/cron/cleanup-uploads/journal-references';
+} from '@/lib/services/journal/references';
 
 const mocks = vi.hoisted(() => ({
   withAdminDb: vi.fn(),
   limit: vi.fn(),
 }));
 
-vi.mock('@/lib/services/db', async () => {
+vi.mock('@kestrel/db', async () => {
   const { schema } = await import('@kestrel/db');
   return { schema, withAdminDb: mocks.withAdminDb };
 });

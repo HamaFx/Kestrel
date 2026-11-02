@@ -37,7 +37,7 @@ import { ChatStreamEventSchema } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
 
 import { getServerEnv } from '@/lib/env';
-import { maybeGenerateThreadTitle } from '@/lib/services/mastra/chat-orchestrator';
+import { maybeGenerateThreadTitle } from '@/lib/services/mastra/chat/mastra-thread-title';
 
 import { runBufferedExecution } from './mastra-chat-service-lifecycle';
 

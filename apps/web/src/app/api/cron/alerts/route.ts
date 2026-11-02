@@ -44,8 +44,7 @@
 
 import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
-import { evaluateAlerts } from '@/lib/services/alerts';
-import { withAdminDb } from '@/lib/services/db';
+import { evaluateAlertsAcrossTenants } from '@/lib/services/alerts';
 import { ownsTenantInPartition, resolveWorkerPartition } from '@/lib/services/worker-partition';
 
 export const runtime = 'nodejs';
@@ -57,12 +56,10 @@ export async function GET(req: Request): Promise<Response> {
     // Resolve once per request: an invalid WORKER_PARTITION pair fails before
     // any alert is evaluated rather than mid-pass.
     const partition = resolveWorkerPartition();
-    const result = await withAdminDb(() =>
-      evaluateAlerts({
-        ...(req.signal ? { signal: req.signal } : {}),
-        ownsTenant: (userId) => ownsTenantInPartition(userId, partition),
-      }),
-    );
+    const result = await evaluateAlertsAcrossTenants({
+      ...(req.signal ? { signal: req.signal } : {}),
+      ownsTenant: (userId) => ownsTenantInPartition(userId, partition),
+    });
 
     // OBS-04 (Phase 5.3): Capture per-alert errors to Sentry + pino logger
     if (result.errors.length > 0) {
