@@ -43,7 +43,7 @@ export type CanonicalNewsInput = z.infer<typeof CanonicalNewsInputSchema>;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Shared execute core: recent news rows with external content quarantined. */
-export async function executeCanonicalNews(input: CanonicalNewsInput): Promise<GetNewsOutput> {
+async function executeCanonicalNews(input: CanonicalNewsInput): Promise<GetNewsOutput> {
   const { symbol, since, limit, minSentiment } = input;
   const sinceDate = new Date(since ?? Date.now() - ONE_DAY_MS);
 

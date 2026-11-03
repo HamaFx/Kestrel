@@ -24,7 +24,6 @@
 //                          deriveTitleModel)
 //   model-vision.ts     — vision model resolution (resolveVisionModel)
 //   model-embedding.ts  — embedding model resolution (resolveEmbeddingModel)
-//   model-override.ts   — explicit override resolution (resolveOverrideModel)
 //
 // Pattern: Factory. resolveChatModel/resolveVisionModel are Factory methods.
 // Audit v2 §4.2 — the dead model-strategy.ts (MODEL_ROUTER /
@@ -37,7 +36,6 @@ export { resolveModel, type ResolveModelEnv } from './env-factory';
 export { testProviderKey, validateProviderConfig } from './provider-tester';
 
 // ── BYOK registry re-exports ─────────────────────────────────────────
-export { BYOK_PROVIDERS, defaultModelFor } from './byok-providers';
 export type { ModelDomain } from './byok-providers';
 
 // ── Chat model resolution ────────────────────────────────────────────
@@ -73,6 +71,3 @@ export type { VisionModelResolution } from './vision';
 // ── Embedding model resolution ───────────────────────────────────────
 export { resolveEmbeddingModel, resolveEmbeddingModelDetails } from './embeddings';
 export type { EmbeddingModelResolution, EmbeddingModelResolutionDetails } from './embeddings';
-
-// ── Override model resolution ────────────────────────────────────────
-export { resolveOverrideModel } from './override';

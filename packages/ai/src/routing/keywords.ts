@@ -107,16 +107,9 @@ export const SUMMARY_PATTERNS: RoutingKeywordPattern[] = [
 // from this file so the layers can never drift apart again.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** XAUUSD-specific terms (gold). */
-export const XAUUSD_TERMS = /\b(?:xauusd|xau\/usd|gold|bullion)\b/i;
-
 /** Other canonical symbols that disambiguate away from a pure XAUUSD prompt. */
 export const OTHER_SYMBOL_TERMS =
   /\b(?:btc|bitcoin|eth|ethereum|eurusd|eur\/usd|gbpusd|gbp\/usd|usdjpy|usd\/jpy|silver|oil|nasdaq|spx|s&p\s*500)\b/i;
-
-/** Deep-research phrasing that upgrades an XAUUSD chat to a verified report. */
-const DEEP_RESEARCH_TERMS =
-  /\b(?:analy[sz]e|analysis|outlook|forecast|predict|technical|fundamental|macro|structure|indicator|level|setup|bullish|bearish|bias|scenario|support|resistance|volatility)\b/i;
 
 /**
  * Lexical prompt-injection / jailbreak markers (always blocks, no exceptions).
@@ -206,43 +199,3 @@ export function isHighConfidenceMutationIntent(prompt: string): boolean {
   if (EXECUTION_VERBS.test(prompt) && !isReadOnlyContext(prompt)) return true;
   return false;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Canonical keyword registry (A-03 / C-04).
-//
-// Every routing vocabulary this module exports — domain scoring patterns,
-// symbol-scope terms, and intent gates — is indexed here by policy dimension
-// so routing, planning, and the web boundary consume one canonical map
-// instead of parallel hand-maintained lists. The named exports above remain
-// the definition sites; this registry is the lookup surface (add a term once,
-// and every layer that reads the registry sees it).
-// ─────────────────────────────────────────────────────────────────────────────
-
-export const ROUTING_KEYWORD_REGISTRY = {
-  /** Domain scoring patterns consumed by `routing.ts` (weighted). */
-  domains: {
-    fundamental: FUNDAMENTAL_PATTERNS,
-    technical: TECHNICAL_PATTERNS,
-    summary: SUMMARY_PATTERNS,
-  },
-  /** Symbol-scope terms consumed by `mastra-v2/planning/routing-policy.ts`. */
-  symbols: {
-    xauusd: XAUUSD_TERMS,
-    other: OTHER_SYMBOL_TERMS,
-  },
-  /** Intent / gate regexes shared by the planner, the router, and the boundary. */
-  intents: {
-    injection: INJECTION_TERMS,
-    deepResearch: DEEP_RESEARCH_TERMS,
-    followup: FOLLOWUP_TERMS,
-    forbiddenFollowup: FORBIDDEN_FOLLOWUP_TERMS,
-    userDataRead: USER_DATA_READ_TERMS,
-    broadMutation: BROAD_MUTATION_TERMS,
-    executionVerbs: EXECUTION_VERBS,
-    executionPhrases: EXECUTION_PHRASES,
-    alwaysUnsafe: ALWAYS_UNSAFE,
-    mutationCommands: MUTATION_COMMANDS,
-    negativeReadOnly: NEGATIVE_READONLY_PATTERNS,
-    questionStarters: QUESTION_STARTERS,
-  },
-} as const;

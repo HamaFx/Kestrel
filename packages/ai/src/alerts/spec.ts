@@ -142,23 +142,6 @@ export function decideMatch(direction: 'above' | 'below', value: number, level: 
   return new LevelSpec(direction, level).isSatisfiedBy({ value, source: 'compat' });
 }
 
-/**
- * PF-08 — Legacy function. Use `new CrossingSpec(direction, level)` instead.
- * Kept for backward compatibility with tests and external consumers.
- */
-export function decideCross(
-  direction: 'above' | 'below',
-  prev: number | null | undefined,
-  curr: number,
-  level: number,
-): boolean {
-  if (prev === null || prev === undefined) return false;
-  return new CrossingSpec(direction, level).isSatisfiedBy(
-    { value: curr, source: 'compat' },
-    { previousValue: prev },
-  );
-}
-
 export function specFromRule(rule: AlertRule): AlertSpec {
   return alertRuleRegistry.get(rule.type).specFactory(rule);
 }

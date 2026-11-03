@@ -41,7 +41,7 @@ export interface EvalBaselineArtifact {
 }
 
 /** Relative drop vs baseline that fails the gate (5% of the baseline value). */
-export const EVAL_BASELINE_RELATIVE_DROP_LIMIT = 0.05;
+const EVAL_BASELINE_RELATIVE_DROP_LIMIT = 0.05;
 
 export interface EvalBaselineComparison {
   ok: boolean;

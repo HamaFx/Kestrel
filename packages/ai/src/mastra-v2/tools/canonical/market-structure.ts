@@ -52,7 +52,7 @@ export type CanonicalMarketStructureInput = z.infer<typeof CanonicalMarketStruct
 
 const TAIL = 15;
 
-export interface MarketStructureComputationArgs {
+interface MarketStructureComputationArgs {
   symbol: Symbol;
   tf: Timeframe;
   lookback: number;
@@ -69,7 +69,7 @@ interface RecentRange {
  * Pure projection shared by the native registration and the XAUUSD
  * market-structure tool.
  */
-export function computeMarketStructureOutput({
+function computeMarketStructureOutput({
   symbol,
   tf,
   lookback,

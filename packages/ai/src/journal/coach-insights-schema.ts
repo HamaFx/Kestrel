@@ -39,8 +39,8 @@ export type CoachInsightsPayload = z.infer<typeof CoachInsightsOutputSchema>;
  * Caps applied to model prose before it can be shown or mirrored into working
  * memory. The schema validates the shape; these bound the content.
  */
-export const COACH_SUMMARY_MAX_CHARS = 600;
-export const COACH_BULLET_MAX_CHARS = 240;
+const COACH_SUMMARY_MAX_CHARS = 600;
+const COACH_BULLET_MAX_CHARS = 240;
 const COACH_MAX_BULLETS = 5;
 
 /**
@@ -82,7 +82,7 @@ function coerceStringList(value: unknown): string[] | null {
   return bullets;
 }
 
-export function coerceCoachInsights(raw: unknown): CoachInsightsPayload | null {
+function coerceCoachInsights(raw: unknown): CoachInsightsPayload | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const candidate = raw as Record<string, unknown>;
   const disciplineGrade =

@@ -116,7 +116,7 @@ export function resolveEmbeddingModel(
  * that returns a different width would crash the query with SQLSTATE 22000, so
  * `embedTexts` validates it before the vector ever reaches Postgres.
  */
-export const EXPECTED_EMBEDDING_DIMENSIONS = 1536;
+const EXPECTED_EMBEDDING_DIMENSIONS = 1536;
 
 export interface EmbedTextsArgs {
   texts: string[];

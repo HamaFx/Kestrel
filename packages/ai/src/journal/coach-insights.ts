@@ -43,12 +43,7 @@ import { computeStats, listEntries, type JournalStatsSummary } from './persisten
 // R13 (audit 2026-10-31): the schema, content caps, and model-output
 // normalization live in `./coach-insights-schema`; re-exported here so the
 // existing public surface is unchanged.
-export {
-  COACH_BULLET_MAX_CHARS,
-  COACH_SUMMARY_MAX_CHARS,
-  CoachInsightsUnavailableError,
-  coerceCoachInsights,
-} from './coach-insights-schema';
+export { CoachInsightsUnavailableError } from './coach-insights-schema';
 
 export interface CoachInsightsArgs {
   userId: string;

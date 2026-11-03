@@ -92,8 +92,6 @@ export const SPECIALIST_DEFINITIONS: Record<MastraSpecialistName, SpecialistDefi
   },
 };
 
-export { SPECIALIST_DESK_TOOL_NAMES };
-
 /**
  * Resolve the dedicated read-only Mastra toolset for a specialist desk
  * (Audit v3 Phase 4, Owner Decision Q8).

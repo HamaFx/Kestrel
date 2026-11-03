@@ -39,14 +39,6 @@ import { canonicalMarketStructureTool } from './market-structure';
 import { canonicalNewsTool } from './news';
 import { canonicalPriceTool } from './price';
 
-export { canonicalCandlesTool } from './candles';
-export { canonicalCoTTool } from './cot';
-export { canonicalIndicatorsTool } from './indicators';
-export { canonicalKnowledgeTool } from './knowledge';
-export { canonicalMarketStructureTool } from './market-structure';
-export { canonicalNewsTool } from './news';
-export { canonicalPriceTool } from './price';
-
 /**
  * Native canonical tools by their legacy registry name (the key the
  * capability manifest and the agent's domain tool filter use).

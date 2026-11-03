@@ -47,7 +47,7 @@ const TRADER_PROFILE_BULLET_CHARS = 200;
  * Quantitative edge and behavioral summary produced by
  * `journal/coach-insights.ts` and merged into working memory.
  */
-export interface TraderProfileSummary {
+interface TraderProfileSummary {
   /** Coach discipline grade (`A+`…`F`). */
   disciplineGrade: string;
   /**
@@ -158,7 +158,7 @@ function replaceMarkdownSection(markdown: string, heading: string, section: stri
  * replaced or appended. All coach prose is sanitized and the section is capped
  * at `TRADER_PROFILE_MAX_CHARS`.
  */
-export function mergeTraderProfileIntoWorkingMemory(
+function mergeTraderProfileIntoWorkingMemory(
   existingMarkdown: string | null,
   profile: TraderProfileSummary,
   fallbackSettings?: WorkingMemorySeedArgs['settings'],

@@ -38,9 +38,8 @@
 //   - adapters.ts    — row → `SearchKnowledgeItem` mapping
 //   - embed-query.ts — query embedding with the corpus model id
 
-export { type RagRow, type RunMemoryQueryArgs } from './types';
+export { type RunMemoryQueryArgs } from './types';
 export { runRagQuery } from './search';
-export { decayRow, rrfFuse } from './fusion';
 export { runMemoryQuery } from './memory';
 export { countEmbeddings, memoryRowToItem, ragRowToItem } from './adapters';
 export { embedQuery } from './embed-query';

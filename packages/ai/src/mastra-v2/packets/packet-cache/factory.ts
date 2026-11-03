@@ -63,7 +63,7 @@ export interface PacketCache<T> {
 }
 
 /** Reset hooks for every cache created in this process (test support). */
-export const cacheRegistry: Array<{ reset(): void }> = [];
+const cacheRegistry: Array<{ reset(): void }> = [];
 
 export function createPacketCache<T>(opts: PacketCacheOptions<T>): PacketCache<T> {
   const store = new Map<string, CacheEntry<T>>();

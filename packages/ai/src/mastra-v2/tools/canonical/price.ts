@@ -55,7 +55,7 @@ const PRICE_AGE_WARN_SECONDS = 60;
  * the quote age reach the model as output fields it can disclose, instead of
  * being dropped at the adapter boundary.
  */
-export async function executeCanonicalPrice(
+async function executeCanonicalPrice(
   input: CanonicalPriceInput,
   signal?: AbortSignal,
 ): Promise<GetPriceOutput> {

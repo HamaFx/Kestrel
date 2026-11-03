@@ -142,13 +142,6 @@ export function classifyStreamError(err: unknown): FallbackDecision {
 }
 
 /**
- * Convenience wrapper — returns the boolean only.
- */
-export function shouldFallback(err: unknown): boolean {
-  return classifyStreamError(err).fallback;
-}
-
-/**
  * Build the payload of a `data-fallback` UIMessage part. The shape
  * matches what ChatScreen / message.tsx already renders for
  * `data-citation-warning` parts: typed fields, no React.
@@ -166,10 +159,7 @@ export interface FallbackPartPayload {
   message: string;
 }
 
-export function makeFallbackPart(
-  override: string,
-  decision: FallbackDecision,
-): FallbackPartPayload {
+function makeFallbackPart(override: string, decision: FallbackDecision): FallbackPartPayload {
   return {
     type: 'data-fallback',
     reason: decision.reason,

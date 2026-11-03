@@ -27,7 +27,7 @@ const mlog = createCategorizedLogger('ai', { component: 'message-text' });
  * the chat boundary's per-message limit, so accepted messages are never
  * silently shortened here.
  */
-export const MAX_USER_TEXT_CHARS = 50_000;
+const MAX_USER_TEXT_CHARS = 50_000;
 
 /**
  * Patterns that indicate a prompt injection attempt.
@@ -88,7 +88,7 @@ const INJECTION_PATTERNS: ReadonlyArray<{ rx: RegExp; label: string }> = [
  * The audit log records pattern labels, length, and a stable hash — never the
  * raw payload.
  */
-export function detectPromptInjection(raw: string): {
+function detectPromptInjection(raw: string): {
   flagged: boolean;
   patterns: string[];
 } {

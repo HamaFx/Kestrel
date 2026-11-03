@@ -32,7 +32,7 @@ export class ToolTimeoutError extends Error {
 }
 
 /** Default per-tool timeout in milliseconds. */
-export const DEFAULT_TOOL_TIMEOUT_MS = 25_000;
+const DEFAULT_TOOL_TIMEOUT_MS = 25_000;
 
 /** Per-tool timeout overrides for especially slow or fast tools (ms). */
 const TOOL_TIMEOUT_OVERRIDES: Record<string, number> = {

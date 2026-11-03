@@ -56,7 +56,7 @@ export function budgetSignal(timeoutMs: number, parent?: AbortSignal | undefined
 }
 
 /** Reason string used when an attempt is abandoned at its budget. */
-export class DeliveryAbandonedError extends Error {
+class DeliveryAbandonedError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'DeliveryAbandonedError';

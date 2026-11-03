@@ -60,10 +60,3 @@ export async function getRedisMirror(): Promise<RedisLike | null> {
     return null;
   }
 }
-
-/** Test helper — forget the resolved mirror so the next call re-reads REDIS_URL. */
-export function resetRedisMirrorState(): void {
-  redis = null;
-  redisAttempted = false;
-  redisBroken = false;
-}

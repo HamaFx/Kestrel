@@ -20,7 +20,6 @@ export {
   type MastraGenerationStats,
 } from './stats';
 export {
-  agentLabelForTelemetryKind,
   beginMastraRun,
   createMastraRunFinalizer,
   finishMastraRun,
@@ -28,4 +27,3 @@ export {
   resetMastraTelemetryHealth,
   type MastraRunObservation,
 } from './run-telemetry';
-export { executeMastraTool } from './tool-telemetry';

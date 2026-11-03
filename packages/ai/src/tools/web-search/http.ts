@@ -108,15 +108,6 @@ function assertAllowedProviderUrl(value: string): void {
   }
 }
 
-export function isAllowedWebSearchProviderUrl(value: string): boolean {
-  try {
-    assertAllowedProviderUrl(value);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 function concatBytes(chunks: readonly Uint8Array[], total: number): Uint8Array {
   const output = new Uint8Array(total);
   let offset = 0;

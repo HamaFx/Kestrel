@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+// Keeps the vitest `server-only` alias target in the module graph for knip.
+import './__mocks__/server-only';
+
 import { describe, expect, it, vi } from 'vitest';
 
 import { guardrailPolicyForCapability, MASTRA_CAPABILITIES } from '../src/mastra-v2/capabilities';

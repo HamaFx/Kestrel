@@ -24,11 +24,6 @@
 //   - xauusd-assemble.ts  — XAUUSD verified macro evidence
 
 export { GenericMacroExtensionSchema, type GenericMacroExtension } from './schemas';
-export {
-  fetchGenericMacroData,
-  fetchXauusdMacroData,
-  type GenericMacroFetchResult,
-  type XauusdMacroFetchResult,
-} from './fetch';
+export { fetchGenericMacroData, fetchXauusdMacroData, type GenericMacroFetchResult } from './fetch';
 export { assembleGenericMacroExtension } from './generic-assemble';
 export { assembleXauusdMacroEvidence } from './xauusd-assemble';

@@ -33,7 +33,4 @@
 // Side-effect import: registers the `web_search` entry on the shared ToolIOMap.
 import './types';
 
-export { isAllowedWebSearchProviderUrl } from './http';
-export { normalizeWebSearchResults } from './normalize';
-export { buildSearchCacheKey } from './cache';
 export { webSearchTool } from './tool';

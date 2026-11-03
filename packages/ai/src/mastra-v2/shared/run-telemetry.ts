@@ -99,7 +99,7 @@ function canonicalTelemetryKind(
  * (and the legacy `*_poc` alias / omitted kind) keeps the historical agent id
  * so existing dashboards and telemetry tests keep resolving.
  */
-export function agentLabelForTelemetryKind(kind?: MastraRunObservation['telemetryKind']): string {
+function agentLabelForTelemetryKind(kind?: MastraRunObservation['telemetryKind']): string {
   switch (kind) {
     case 'mastra_canonical_chat':
       return 'kestrel-mastra-canonical-chat';

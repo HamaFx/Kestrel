@@ -38,8 +38,7 @@ const modelChatLog = createCategorizedLogger('ai', { component: 'model-chat' });
 
 /**
  * Result of resolving the user's "default chat model" — the single
- * model that handles every main chat turn unless overridden per-thread
- * via `resolveOverrideModel`.
+ * model that handles every main chat turn unless overridden per-thread.
  *
  * `model` is the AI-SDK `LanguageModel` instance ready to pass to
  * `streamText` / `generateText`. `modelId` is the qualified

@@ -39,7 +39,7 @@ import { classifyStreamError } from '../models/model-fallback';
  *   3. `err.retryAfter`                         (plain number or string)
  * Supports both seconds (integer) and HTTP-date (RFC 7231) forms.
  */
-export function getRetryAfterMs(err: unknown): number | null {
+function getRetryAfterMs(err: unknown): number | null {
   const raw = readRetryAfter(err);
   if (raw === null) return null;
 
@@ -116,7 +116,7 @@ function jitteredDelay(base: number, attempt: number, max: number): number {
  * causes unnecessary user-facing chat failures (C3 fix —
  * RELIABILITY_AUDIT_REPORT.md).
  */
-export function isRetryableTransientError(err: unknown): boolean {
+function isRetryableTransientError(err: unknown): boolean {
   const { reason } = classifyStreamError(err);
   // 'unknown' covers provider SDK errors with novel shapes that the
   // classifier doesn't recognise yet — retrying once is cheap insurance.

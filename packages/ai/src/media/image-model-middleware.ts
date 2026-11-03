@@ -61,7 +61,7 @@ const KESTREL_IMAGE_URL_PATTERNS: readonly RegExp[] = [
 ];
 
 /** True when a URL string has one of the Kestrel chat-image shapes. */
-export function isKestrelImageUrlShape(value: string): boolean {
+function isKestrelImageUrlShape(value: string): boolean {
   return KESTREL_IMAGE_URL_PATTERNS.some((pattern) => pattern.test(value));
 }
 
@@ -70,7 +70,7 @@ export function isKestrelImageUrlShape(value: string): boolean {
  * boundary. The cache dedupes repeated references across the steps of one
  * model instance (multi-step tool loops, committee agents).
  */
-export function createImageResolutionMiddleware(
+function createImageResolutionMiddleware(
   options: ResolveImagePartOptions = {},
 ): LanguageModelMiddleware {
   const cache = options.cache ?? createImageResolutionCache();

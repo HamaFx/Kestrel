@@ -48,7 +48,7 @@ export type CanonicalCandlesInput = z.infer<typeof CanonicalCandlesInputSchema>;
 const TAIL_BARS = 30;
 
 /** Shared execute core: candles plus the deterministic period summary. */
-export async function executeCanonicalCandles(
+async function executeCanonicalCandles(
   input: CanonicalCandlesInput,
   signal?: AbortSignal,
 ): Promise<GetCandlesOutput> {

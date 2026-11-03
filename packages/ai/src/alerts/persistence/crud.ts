@@ -81,7 +81,7 @@ const EVALUATION_BATCH_LIMIT = 200;
 const EVALUATION_ROTATION_WINDOW_MS = 60_000;
 
 /** Rotation seed for a point in time (deterministic, so tests can pin it). */
-export function evaluationRotationSeed(now: number = Date.now()): number {
+function evaluationRotationSeed(now: number = Date.now()): number {
   return Math.floor(now / EVALUATION_ROTATION_WINDOW_MS);
 }
 

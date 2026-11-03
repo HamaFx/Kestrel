@@ -89,7 +89,7 @@ export interface EvaluationResult {
   claimsReleased: number;
 }
 
-export interface EvaluationOptions {
+interface EvaluationOptions {
   env?: EvaluatorEnv;
   signal?: AbortSignal;
   ownsTenant?: (userId: string) => boolean;

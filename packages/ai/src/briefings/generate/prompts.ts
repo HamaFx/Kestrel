@@ -72,7 +72,7 @@ export function deterministicEventSummary(event: EconomicEvent, kind: 'pre' | 'p
 }
 
 /** Exported for testing — labels the surprise direction of an economic event. */
-export function surpriseLabel(event: EconomicEvent): string {
+function surpriseLabel(event: EconomicEvent): string {
   if (event.actual === null || event.forecast === null) return 'No surprise detectable.';
   const diff = event.actual - event.forecast;
   if (Math.abs(diff) < 1e-9) return 'Print matched forecast.';

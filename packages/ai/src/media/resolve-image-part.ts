@@ -54,8 +54,6 @@ import { fetchChatImageInline } from './chat-image-storage';
 /** Provider-visible note when an attached image cannot be delivered. */
 export const CHAT_IMAGE_UNAVAILABLE_TEXT = 'The attached image could not be loaded.';
 
-const DEFAULT_MEDIA_TYPE = 'image';
-
 /** Per-turn cache keyed by storage object path (positive and negative results). */
 export type ImageResolutionCache = Map<string, Promise<ImageResolution>>;
 
@@ -73,23 +71,6 @@ export interface ResolveImagePartOptions {
   /** Override the 5 MB cap (tests use small values). */
   maxBytes?: number | undefined;
 }
-
-/** A part the provider can consume: inline bytes, or the original reference. */
-interface ResolvedProviderImagePart {
-  type: 'file';
-  mediaType: string;
-  /** `data:` URL for Kestrel-owned images; the original reference otherwise. */
-  url: string;
-  filename?: string;
-}
-
-/** The honest placeholder when an image cannot be resolved. */
-interface UnavailableProviderImagePart {
-  type: 'text';
-  text: string;
-}
-
-export type ProviderImagePart = ResolvedProviderImagePart | UnavailableProviderImagePart;
 
 export type ImageResolution =
   | { kind: 'inline'; mediaType: string; dataUrl: string; base64: string }
@@ -116,42 +97,6 @@ export async function resolveImageReference(
   }
   if (classification === 'undeliverable') return { kind: 'unavailable' };
   return resolveKestrelImage(reference, options);
-}
-
-/**
- * Resolve one UI-message-style chat image part into a provider-consumable
- * part, or a text note when the image cannot be delivered. Returns null for
- * anything that is not an image file part, so callers can leave other parts
- * untouched.
- *
- * Callers that persist the result must not use this: the inline form holds
- * the bytes. Resolution belongs at the provider boundary (the image model
- * middleware); everywhere earlier must keep the reference.
- */
-export async function resolveImagePartForProvider(
-  part: unknown,
-  options: ResolveImagePartOptions = {},
-): Promise<ProviderImagePart | null> {
-  const filePart = asImageFilePart(part);
-  if (filePart === null) return null;
-
-  const filename =
-    typeof filePart.filename === 'string' && filePart.filename ? filePart.filename : undefined;
-  const declaredMediaType =
-    typeof filePart.mediaType === 'string' && filePart.mediaType.length > 0
-      ? filePart.mediaType
-      : DEFAULT_MEDIA_TYPE;
-  const reference = firstNonEmptyString(filePart.url) ?? firstNonEmptyString(filePart.data);
-  if (reference === null) return unavailable();
-
-  const resolution = await resolveImageReference(reference, options);
-  if (resolution.kind === 'inline') {
-    return filePartResult(resolution.mediaType, resolution.dataUrl, filename);
-  }
-  if (resolution.kind === 'passthrough') {
-    return filePartResult(declaredMediaType, reference, filename);
-  }
-  return unavailable();
 }
 
 type ImageReferenceClass = 'kestrel' | 'inline' | 'foreign' | 'undeliverable';
@@ -190,43 +135,4 @@ async function resolveKestrelImage(
   const pending: Promise<ImageResolution> = fetchChatImageInline(parsed.storagePath, options);
   cache?.set(parsed.storagePath, pending);
   return pending;
-}
-
-interface ImageFilePartShape {
-  url?: unknown;
-  data?: unknown;
-  mediaType?: unknown;
-  filename?: unknown;
-}
-
-function asImageFilePart(part: unknown): ImageFilePartShape | null {
-  if (part === null || typeof part !== 'object') return null;
-  const candidate = part as Record<string, unknown>;
-  if (candidate.type !== 'file') return null;
-  const mediaType = candidate.mediaType;
-  if (typeof mediaType === 'string' && mediaType !== 'image' && !mediaType.startsWith('image/')) {
-    return null;
-  }
-  return candidate as ImageFilePartShape;
-}
-
-function filePartResult(
-  mediaType: string,
-  url: string,
-  filename: string | undefined,
-): ResolvedProviderImagePart {
-  return {
-    type: 'file',
-    mediaType,
-    url,
-    ...(filename ? { filename } : {}),
-  };
-}
-
-function unavailable(): UnavailableProviderImagePart {
-  return { type: 'text', text: CHAT_IMAGE_UNAVAILABLE_TEXT };
-}
-
-function firstNonEmptyString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim().length > 0 ? value : null;
 }

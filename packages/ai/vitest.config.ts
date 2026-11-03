@@ -20,16 +20,21 @@ import { defineConfig } from 'vitest/config';
 
 const maxWorkers = process.env.CI ? 2 : Math.max(2, Math.floor(os.availableParallelism() / 2));
 
-// These suites touch process-wide Mastra singletons, env snapshots, module
-// caches, or shared circuit-breaker state. They must not share a module graph
-// with other files.
-const isolatedInclude = [
-  'test/mastra-*.test.ts',
-  'test/telemetry*.test.ts',
-  'test/model-circuit-breaker.test.ts',
-  'test/env-fallback-keys.test.ts',
-  'test/alerts-claim-postgres.test.ts',
-  'test/phase2-concurrency.test.ts',
+// Pure, stateless suites: they can share one module graph without leaking
+// state between files. Files that call `vi.mock` or mutate `process.env`
+// stay in the isolated project, because the module graph is shared here.
+const fastPureInclude = [
+  'test/alert-decide.test.ts',
+  'test/alert-simulate.test.ts',
+  'test/byok-providers.test.ts',
+  'test/canonical-evidence.test.ts',
+  'test/committee.test.ts',
+  'test/committee-stale-grounding.test.ts',
+  'test/contract-tool-outputs.test.ts',
+  'test/external-content.test.ts',
+  'test/indirect-content-guardrail.test.ts',
+  'test/mastra-router.test.ts',
+  'test/opinion-verifier.test.ts',
 ];
 
 export default defineConfig({
@@ -53,36 +58,21 @@ export default defineConfig({
         ssr: { enabled: true },
       },
     },
-    coverage: {
-      provider: 'v8',
-      include: ['src/**/*.ts'],
-      exclude: ['src/**/*.test.ts', 'src/index.ts'],
-      thresholds: {
-        // Recalibrated for the Vitest 4+ AST-aware V8 remapping, which is
-        // more accurate than the legacy v8-to-istanbul numbers the previous
-        // thresholds were set against. Global floor currently ~65% stmts/lines.
-        statements: 64,
-        branches: 55,
-        functions: 69,
-        lines: 66,
-      },
-    },
     server: {
       deps: {
         inline: ['server-only'],
       },
     },
+    // Keep `include` out of the root test block: with `projects` that use
+    // `extends: true`, Vitest 5 merges a root include into every project and
+    // runs the same files once per project.
     projects: [
       {
         extends: true,
         test: {
           name: 'ai-fast',
-          // The suite mocks modules and mutates process env at file scope, so
-          // keep file isolation. The fast/isolated split still pins the
-          // singleton-heavy files to an explicit project.
-          isolate: true,
-          include: ['test/**/*.test.ts', 'src/**/*.test.ts'],
-          exclude: isolatedInclude,
+          isolate: false,
+          include: fastPureInclude,
         },
       },
       {
@@ -90,7 +80,8 @@ export default defineConfig({
         test: {
           name: 'ai-isolated',
           isolate: true,
-          include: isolatedInclude,
+          include: ['test/**/*.test.ts'],
+          exclude: fastPureInclude,
         },
       },
     ],

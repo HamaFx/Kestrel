@@ -125,7 +125,7 @@ export function loadLegacyEvalCases(datasetId: EvalDatasetId): EvalCaseInput[] {
   return parsed;
 }
 
-export interface MigrateDatasetsOptions {
+interface MigrateDatasetsOptions {
   /** Skip datasets that already exist (default: true — idempotent re-runs). */
   skipExisting?: boolean;
 }

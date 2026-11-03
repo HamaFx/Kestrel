@@ -33,7 +33,7 @@ function extractErrorMessage(raw: string): string {
   return firstLine.replace(/\.+$/, '').slice(0, 160);
 }
 
-export interface ProviderValidationResult {
+interface ProviderValidationResult {
   ok: boolean;
   reason?: string;
 }

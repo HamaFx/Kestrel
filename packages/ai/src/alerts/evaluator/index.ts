@@ -27,10 +27,8 @@
 // satisfies the trigger. The legacy `decideMatch` and `decideCross`
 // exports are re-exported for backward compatibility.
 
-export { decideMatch, decideCross } from '../spec';
+export { decideMatch } from '../spec';
 export type { RuleReading } from '../spec';
 export { describeRule } from '../rule-registry';
-export { parseIndicatorSpec } from './indicator-spec';
-export { lastClosedBar } from './bars';
 export type { EvaluatorEnv } from './env';
 export { evaluateAlerts, type EvaluationResult } from './evaluate';
