@@ -98,6 +98,7 @@
       "env": [
         "RUN_POSTGRES_RLS_TESTS",
         "TEST_POSTGRES_ADMIN_URL",
+        "TEST_POSTGRES_APP_URL",
         "RUN_AI_QUEUE_POSTGRES_TESTS",
         "RUN_PG_TESTS",
         "THROTTLE_TEST_DATABASE_URL",
@@ -119,6 +120,7 @@
       "env": [
         "RUN_POSTGRES_RLS_TESTS",
         "TEST_POSTGRES_ADMIN_URL",
+        "TEST_POSTGRES_APP_URL",
         "RUN_AI_QUEUE_POSTGRES_TESTS",
         "RUN_PG_TESTS",
         "THROTTLE_TEST_DATABASE_URL",

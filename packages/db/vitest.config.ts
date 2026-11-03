@@ -40,8 +40,8 @@ export default defineConfig({
     testTimeout: 60_000,
     hookTimeout: 60_000,
     include: ['test/**/*.test.ts'],
-    // The package owns its connection pools and resets module state per file.
-    isolate: false,
+    // Real-Postgres suites and mocked-client suites share module-level state;
+    // keep per-file isolation so one file's mocks/env cannot poison another.
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
