@@ -53,7 +53,7 @@ const CftcRowSchema = z.looseObject({
 
 export type CftcRow = z.infer<typeof CftcRowSchema>;
 
-export interface FetchLatestArgs {
+interface FetchLatestArgs {
   /** CFTC `market_and_exchange_names` literal — see `./map.ts`. */
   commodityName: string;
   signal?: AbortSignal;

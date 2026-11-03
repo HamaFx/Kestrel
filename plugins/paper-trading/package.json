@@ -50,7 +50,6 @@
   },
   "devDependencies": {
     "@kestrel/config": "workspace:*",
-    "@kestrel/test-utils": "workspace:*",
     "@types/node": "^22.20.5",
     "@types/react": "^19.3.0",
     "tsrs": "0.20.1-ts7.1.0-beta",

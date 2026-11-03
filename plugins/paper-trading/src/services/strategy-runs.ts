@@ -31,7 +31,7 @@ import type { PaperSettings } from '../settings';
 import { resolvePaperAccount } from './accounts';
 import { strategyRunView } from './views';
 
-export class StrategyRunError extends Error {
+class StrategyRunError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'StrategyRunError';

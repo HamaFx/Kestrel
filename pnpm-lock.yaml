@@ -951,9 +951,6 @@ importers:
       '@kestrel/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@kestrel/test-utils':
-        specifier: workspace:*
-        version: link:../../packages/test-utils
       '@types/node':
         specifier: ^22.20.5
         version: 22.20.5
@@ -1012,9 +1009,6 @@ importers:
       '@kestrel/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@kestrel/test-utils':
-        specifier: workspace:*
-        version: link:../../packages/test-utils
       '@types/node':
         specifier: ^22.20.5
         version: 22.20.5

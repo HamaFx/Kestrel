@@ -16,7 +16,7 @@
 
 // User symbol watchlist query helpers.
 
-import { and, asc, count, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
 import { requireTenantIdForUser } from '../tenant';
@@ -86,14 +86,4 @@ export async function removeUserSymbol(userId: string, symbol: string): Promise<
         eq(schema.userSymbols.symbol, symbol),
       ),
     );
-}
-
-export async function countUserSymbols(userId: string): Promise<number> {
-  const db = getDb();
-  const tenantId = await requireTenantIdForUser(userId, db);
-  const rows = await db
-    .select({ total: count() })
-    .from(schema.userSymbols)
-    .where(and(eq(schema.userSymbols.userId, userId), eq(schema.userSymbols.tenantId, tenantId)));
-  return rows[0]?.total ?? 0;
 }

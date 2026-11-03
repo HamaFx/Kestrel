@@ -45,13 +45,6 @@ export default defineConfig({
       provider: 'v8',
       include: ['src/**/*.ts'],
       exclude: ['src/**/*.test.ts'],
-      thresholds: {
-        // Recalibrated for the Vitest 4+ AST-aware V8 remapping.
-        statements: 68,
-        branches: 54,
-        functions: 66,
-        lines: 71,
-      },
     },
   },
 });

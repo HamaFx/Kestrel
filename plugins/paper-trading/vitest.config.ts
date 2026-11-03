@@ -35,6 +35,8 @@ export default defineConfig({
     fsModuleCachePath: 'node_modules/.vitest-cache',
     pool: 'threads',
     maxWorkers,
+    // Engine/math suites share no module-level mutable state between files.
+    isolate: false,
     environment: 'node',
     include: ['test/**/*.test.ts'],
   },

@@ -57,7 +57,7 @@ import {
 
 const STRATEGY_LOOKBACK_BARS = 500;
 
-export interface LatestStrategySignal {
+interface LatestStrategySignal {
   barTime: number;
   candleCount: number;
   signal: StrategySignal | null;
@@ -69,7 +69,7 @@ export interface LatestStrategySignal {
 }
 
 /** Evaluate a strategy's latest closed bar in the same engine as a backtest. */
-export async function evaluateLatestStrategySignal(args: {
+async function evaluateLatestStrategySignal(args: {
   symbol: string;
   timeframe: string;
   source: string;

@@ -247,7 +247,7 @@ function createFinnhubProvider(): MarketDataProvider {
   };
 }
 
-export const finnhubProvider = createFinnhubProvider();
+const finnhubProvider = createFinnhubProvider();
 /** Wraps the Binance REST provider for crypto. */
 const binanceProvider: MarketDataProvider = {
   name: 'binance',

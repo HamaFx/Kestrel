@@ -46,7 +46,7 @@ export const UPDATE_COLLECTION = 'updates';
  * handler is never treated as stale, and it should stay short enough that an
  * update whose process died mid-handler is still retried by Telegram.
  */
-export const UPDATE_CLAIM_LEASE_MS = 2 * 60_000;
+const UPDATE_CLAIM_LEASE_MS = 2 * 60_000;
 
 export interface TelegramUpdateClaimArgs {
   tenantId: string;

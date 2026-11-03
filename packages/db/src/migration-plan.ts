@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { getTableConfig, type PgTable } from 'drizzle-orm/pg-core';
 
-export interface MigrationEntry {
+interface MigrationEntry {
   tag: string;
   when?: number;
   breakpoints?: number;
@@ -41,7 +41,7 @@ export const HISTORICAL_DUPLICATE_WHEN_TAGS: readonly string[] = Object.freeze([
   '0113_paper_strategy_runs',
 ]);
 
-export interface DuplicateWhenGroup {
+interface DuplicateWhenGroup {
   when: number;
   tags: string[];
   /** True only for a duplicate group made up entirely of grandfathered tags. */
@@ -66,7 +66,7 @@ export function findDuplicateWhenGroups(entries: readonly MigrationEntry[]): Dup
   return groups.sort((a, b) => a.when - b.when);
 }
 
-export interface AppliedMigration {
+interface AppliedMigration {
   hash: string;
   /** `created_at` from `drizzle.__drizzle_migrations`; drizzle records the journal entry's `when`. */
   createdAt: number;
@@ -80,7 +80,7 @@ interface MigrationEntryStatus {
   state: MigrationEntryState;
 }
 
-export interface MigrationAppliedAudit {
+interface MigrationAppliedAudit {
   /** `MAX(created_at)` in `drizzle.__drizzle_migrations`, or null when nothing is applied. */
   newestAppliedAt: number | null;
   /** Journal entries whose hash is recorded in the database. */
@@ -264,7 +264,7 @@ export function assertMigrationPlanWillApply(
   return audit;
 }
 
-export interface RequiredSchemaObjects {
+interface RequiredSchemaObjects {
   tables: string[];
   /** `table.column` keys, sorted. */
   columns: string[];

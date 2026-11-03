@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+// The suite aliases `server-only` to this stub; importing it here keeps the
+// mock in the module graph so knip does not report it as an unused file.
+import './__mocks__/server-only';
+
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
