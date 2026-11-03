@@ -169,11 +169,11 @@ async function runPluginJobSafely(job: RegisteredPluginJob, log: Logger): Promis
 /**
  * Resolve the plugin's enabled users, filtered to this worker's partition.
  *
- * Exported for tests; production code reaches it through the job closure in
- * `startPluginJobs`. `router` and `listUsers` are injectable so the partition
- * filter can be tested without a database or a process-wide partition config.
+ * Production code reaches it through the job closure in `startPluginJobs`.
+ * `router` and `listUsers` are injectable so the partition filter can be
+ * exercised without a database or a process-wide partition config.
  */
-export async function loadInstalledUsers(
+async function loadInstalledUsers(
   pluginId: string,
   log: Logger,
   router: TenantRouter = tenantRouter,

@@ -31,7 +31,7 @@ import { SKIP_DAILY_LOCK } from './skip-daily-lock.js';
 // Maximum wall-clock time any scheduled job may run.
 // Overridable via JOB_TIMEOUT_MS env var, or per job through
 // `JobRegistration.timeoutMs` for long-lived durable work.
-export const JOB_TIMEOUT_MS = Number(process.env.JOB_TIMEOUT_MS) || 120_000;
+const JOB_TIMEOUT_MS = Number(process.env.JOB_TIMEOUT_MS) || 120_000;
 
 // PERF-7: In-flight guard — ensures no two invocations of the same job
 // overlap. Complements the DB-level acquireCronLock for daily-cadence jobs.
@@ -46,7 +46,7 @@ const _jobStartedAt = new Map<keyof typeof JOBS, number>();
 const _activeControllers = new Set<AbortController>();
 
 /** Wall-clock budget for one invocation of a job (per-job override wins). */
-export function effectiveJobTimeoutMs(name: keyof typeof JOBS): number {
+function effectiveJobTimeoutMs(name: keyof typeof JOBS): number {
   return JOBS[name]?.timeoutMs ?? JOB_TIMEOUT_MS;
 }
 
@@ -55,7 +55,7 @@ export function effectiveJobTimeoutMs(name: keyof typeof JOBS): number {
 // moment they cross their timeout.
 const STUCK_GRACE_MS = 5 * 60_000;
 
-export interface StuckJobSummary {
+interface StuckJobSummary {
   stuck: Array<{ name: string; stuckForMs: number }>;
   oldestStuckMs: number | null;
 }
@@ -82,7 +82,7 @@ export interface JobHealthSummary extends StuckJobSummary {
  * that job until the process restarts — while a busy job must not be
  * restarted out from under its work.
  */
-export function summarizeJobHealth(
+function summarizeJobHealth(
   entries: Iterable<[string, number]>,
   now: number,
   timeoutFor: (name: string) => number,
@@ -102,16 +102,6 @@ export function summarizeJobHealth(
   stuck.sort((a, b) => b.stuckForMs - a.stuckForMs);
   running.sort((a, b) => b.runningForMs - a.runningForMs);
   return { stuck, running, oldestStuckMs: stuck.length > 0 ? oldest : null };
-}
-
-/** Wedged jobs only — see `summarizeJobHealth` for the full classification. */
-export function summarizeStuckJobs(
-  entries: Iterable<[string, number]>,
-  now: number,
-  timeoutFor: (name: string) => number,
-): StuckJobSummary {
-  const { stuck, oldestStuckMs } = summarizeJobHealth(entries, now, timeoutFor);
-  return { stuck, oldestStuckMs };
 }
 
 /** Current in-flight jobs, classified busy versus wedged (R16). */

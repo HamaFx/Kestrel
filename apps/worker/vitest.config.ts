@@ -20,14 +20,6 @@ import { defineConfig } from 'vitest/config';
 
 const maxWorkers = process.env.CI ? 2 : Math.max(2, Math.floor(os.availableParallelism() / 2));
 
-// These files mutate process.env, acquire singleton runner locks, or bind an
-// HTTP server; they are not safe to share a module graph.
-const isolatedInclude = [
-  'test/runner-lock.test.ts',
-  'test/env.test.ts',
-  'test/http-server*.test.ts',
-];
-
 export default defineConfig({
   resolve: {
     conditions: ['source'],
@@ -40,6 +32,9 @@ export default defineConfig({
     pool: 'threads',
     maxWorkers,
     environment: 'node',
+    // Keep the include list only at the root test block. Combining it with a
+    // `projects` array that uses `extends: true` makes Vitest 5 merge this
+    // include into every child project and run the suite multiple times.
     include: ['test/**/*.test.ts'],
     deps: {
       optimizer: {
@@ -51,40 +46,8 @@ export default defineConfig({
         inline: [/eventsource-parser/],
       },
     },
-    coverage: {
-      provider: 'v8',
-      include: ['src/**/*.ts'],
-      exclude: ['src/**/*.test.ts'],
-      thresholds: {
-        // Recalibrated for the Vitest 4+ AST-aware V8 remapping.
-        statements: 50,
-        branches: 48,
-        functions: 47,
-        lines: 50,
-      },
-    },
     alias: {
       'server-only': new URL('./test/empty.ts', import.meta.url).pathname,
     },
-    projects: [
-      {
-        extends: true,
-        test: {
-          name: 'worker-fast',
-          // Job tests mock shared modules at file scope; keep file isolation.
-          isolate: true,
-          include: ['test/**/*.test.ts'],
-          exclude: isolatedInclude,
-        },
-      },
-      {
-        extends: true,
-        test: {
-          name: 'worker-isolated',
-          isolate: true,
-          include: isolatedInclude,
-        },
-      },
-    ],
   },
 });

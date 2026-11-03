@@ -215,10 +215,3 @@ export function loadEnv(input: NodeJS.ProcessEnv = process.env): WorkerEnv {
   }
   return result.data;
 }
-
-/** Resolve the active Postgres connection string, preferring DATABASE_URL. */
-export function resolveDatabaseUrl(env: WorkerEnv): string {
-  const url = env.DATABASE_URL || env.POSTGRES_URL;
-  if (!url) throw new Error('Neither DATABASE_URL nor POSTGRES_URL is set');
-  return url;
-}

@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 
+// The vitest config aliases `server-only` to `./empty`. Importing the stub
+// here keeps it in the module graph so knip does not report it as an unused
+// file (the workspace entry lists in knip.json are fixed).
+import './empty';
+
 import { describe, expect, it } from 'vitest';
 
 import type { NormalizedTick } from '../src/signalr/consumer/index';

@@ -33,18 +33,6 @@ interface ActiveSymbol {
   watchlistCount: number;
 }
 
-export interface SymbolChangeEvent {
-  current: string[];
-  added: string[];
-  removed: string[];
-}
-
-export interface PerConsumerChangeEvent {
-  symbols: string[];
-  added: string[];
-  removed: string[];
-}
-
 export class SymbolManager extends EventEmitter {
   private symbols: Set<string> = new Set();
   private pollTimer: NodeJS.Timeout | null = null;

@@ -112,13 +112,13 @@ function toDeadLetter(row: JobWithMetadata<Record<string, unknown>>, queue: stri
 }
 
 /** The subset of the pg-boss client the probe needs (injectable for tests). */
-export interface QueueProbeSource {
+interface QueueProbeSource {
   getQueues(names?: string[]): Promise<QueueResult[]>;
   findJobs<T>(name: string, options?: { limit?: number }): Promise<JobWithMetadata<T>[]>;
 }
 
 /** Query the queues once. Throws on any database/queue error. */
-export async function sampleQueueHealth(boss?: QueueProbeSource): Promise<QueueHealthSnapshot> {
+async function sampleQueueHealth(boss?: QueueProbeSource): Promise<QueueHealthSnapshot> {
   const queue = boss ?? (await getQueue());
   const names = [...SOURCE_QUEUES, ...DEAD_LETTER_QUEUES];
   const results = await queue.getQueues(names);
@@ -165,7 +165,7 @@ export async function sampleQueueHealth(boss?: QueueProbeSource): Promise<QueueH
  * Refresh the cached snapshot (deduplicated when a refresh is in flight).
  * `boss` is injectable so tests can exercise the failure path.
  */
-export function refreshQueueHealth(log?: Logger, boss?: QueueProbeSource): Promise<void> {
+function refreshQueueHealth(log?: Logger, boss?: QueueProbeSource): Promise<void> {
   starting ??= sampleQueueHealth(boss)
     .then((next) => {
       lastError = null;
@@ -218,15 +218,4 @@ export function startQueueHealthProbe(log: Logger): () => void {
   }, QUEUE_HEALTH_INTERVAL_MS);
   timer.unref?.();
   return () => clearInterval(timer);
-}
-
-/**
- * True when no queue job is being worked in the given snapshot. Unknown or
- * errored snapshots count as idle: `getQueue()` keeps a failed sample from
- * blocking an update forever, and the scheduled-job check is done separately
- * by the caller.
- */
-export function isSnapshotIdle(snapshot: QueueHealthSnapshot | null): boolean {
-  if (!snapshot || snapshot.error) return true;
-  return snapshot.queues.every((queue) => queue.active === 0);
 }

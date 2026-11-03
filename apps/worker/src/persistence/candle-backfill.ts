@@ -42,7 +42,7 @@ import type { Logger } from '../log.js';
 const MINUTE_MS = 60_000;
 
 /** Longest gap we will ask a provider to backfill in one call. */
-export const MAX_GAP_BACKFILL_MINUTES = 240;
+const MAX_GAP_BACKFILL_MINUTES = 240;
 
 type GapBackfillStatus =
   | 'ok'
