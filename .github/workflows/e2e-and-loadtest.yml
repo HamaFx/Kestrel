@@ -126,4 +126,3 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @kestrel/loadtest typecheck
       - run: pnpm --filter @kestrel/loadtest build
-      - run: pnpm --filter @kestrel/web test -- test/loadtest-contracts.test.ts

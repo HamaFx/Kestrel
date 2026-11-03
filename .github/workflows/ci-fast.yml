@@ -91,9 +91,8 @@ jobs:
       - run: pnpm turbo run test:coverage
         env:
           # The unit-tests job provisions the pgvector service container, so
-          # the Postgres-gated suites (RLS isolation, query-layer integration,
-          # full-analysis queue) run here — they are part of the coverage
-          # thresholds.
+          # the Postgres-gated suites (RLS, app-role proof, money exactness,
+          # alert claims, candle outbox) run against a real database here.
           RUN_POSTGRES_RLS_TESTS: '1'
           TEST_POSTGRES_ADMIN_URL: postgres://hamafx:test@localhost:5432/hamafx
           RUN_AI_QUEUE_POSTGRES_TESTS: '1'

@@ -55,7 +55,16 @@ try {
 
   run(
     'pnpm',
-    ['--filter', '@kestrel/db', 'test', '--', '--run', 'test/postgres-rls-isolation.test.ts'],
+    [
+      '--filter',
+      '@kestrel/db',
+      'exec',
+      'vitest',
+      'run',
+      'test/postgres-app-role.test.ts',
+      'test/postgres-auth-rls.test.ts',
+      'test/money-exactness.test.ts',
+    ],
     {
       env: { ...process.env, RUN_POSTGRES_RLS_TESTS: '1', TEST_POSTGRES_ADMIN_URL: url },
     },
