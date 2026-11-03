@@ -79,6 +79,19 @@ jobs:
           node-version: 22.23.3
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Build the db migration tooling
+        run: pnpm turbo run build --filter=@kestrel/db...
+      - name: Migrate the base Postgres database
+        run: pnpm --filter @kestrel/db migrate:apply
+        env:
+          DATABASE_URL: postgres://hamafx:test@localhost:5432/hamafx
+          DIRECT_URL: postgres://hamafx:test@localhost:5432/hamafx
+      - name: Provision the non-bypass kestrel_app role
+        run: pnpm --filter @kestrel/db provision:app-role
+        env:
+          DIRECT_URL: postgres://hamafx:test@localhost:5432/hamafx
+          # Throwaway CI-only credential for the non-bypass test role.
+          POSTGRES_APP_PASSWORD: kestrel-ci-app-password
       - name: Cache Turborepo cache (test results)
         uses: actions/cache@v4
         with:
@@ -95,6 +108,8 @@ jobs:
           # alert claims, candle outbox) run against a real database here.
           RUN_POSTGRES_RLS_TESTS: '1'
           TEST_POSTGRES_ADMIN_URL: postgres://hamafx:test@localhost:5432/hamafx
+          TEST_POSTGRES_APP_URL: postgres://kestrel_app:kestrel-ci-app-password@localhost:5432/hamafx
+          DB_DISABLE_SSL: 'true'
           RUN_AI_QUEUE_POSTGRES_TESTS: '1'
       # The report action hard-requires coverage/coverage-summary.json at the
       # repo root; derive it from the per-workspace istanbul output.
