@@ -51,7 +51,7 @@ export function isIOS(): boolean {
   return isIPad();
 }
 
-export function isIPad(): boolean {
+function isIPad(): boolean {
   return /iPad/.test(ua()) || isIPadOS();
 }
 
@@ -59,12 +59,12 @@ export function isAndroid(): boolean {
   return /Android/.test(ua());
 }
 
-export function isMacOS(): boolean {
+function isMacOS(): boolean {
   const agent = ua();
   return /Macintosh/.test(agent) && !isIOS();
 }
 
-export function isWindows(): boolean {
+function isWindows(): boolean {
   return /Windows/.test(ua());
 }
 
@@ -80,10 +80,6 @@ export function isDesktopSafari(): boolean {
 /** Chromium family (Chrome, Edge, Brave, Opera, Arc). */
 export function isChromium(): boolean {
   return /Chrome|Chromium|CriOS|Edg\//.test(ua());
-}
-
-export function isFirefox(): boolean {
-  return /Firefox|FxiOS/.test(ua());
 }
 
 export function platform(): Platform {

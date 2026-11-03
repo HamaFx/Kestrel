@@ -66,7 +66,7 @@ interface ConfirmDrawerProps {
   onConfirm: () => void | Promise<void>;
 }
 
-export function ConfirmDrawer({
+function ConfirmDrawer({
   open,
   onOpenChange,
   title,

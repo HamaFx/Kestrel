@@ -42,7 +42,7 @@ import { Tooltip } from '@/components/ui/tooltip';
  * Pure text-builder for the tooltip. Exported for unit tests so
  * the rendering logic can be asserted without rendering React.
  */
-export function buildProviderTooltip(provider: ProviderMeta): string {
+function buildProviderTooltip(provider: ProviderMeta): string {
   const supports: string[] = [];
   if (provider.supports?.vision) supports.push('Vision');
   if (provider.supports?.embedding) supports.push('Embeddings');
@@ -60,7 +60,7 @@ export function buildProviderTooltip(provider: ProviderMeta): string {
   return lines.join(' · ');
 }
 
-export function buildProviderAriaLabel(provider: ProviderMeta): string {
+function buildProviderAriaLabel(provider: ProviderMeta): string {
   return buildProviderTooltip(provider).split(' · ').join('. ');
 }
 

@@ -23,7 +23,7 @@
  * rules. Content-specific components remain responsible for their hierarchy.
  */
 
-import { createElement, type HTMLAttributes, type ReactNode } from 'react';
+import { createElement, type HTMLAttributes } from 'react';
 
 import { cn } from '@/lib/formatters/cn';
 
@@ -40,20 +40,4 @@ export function Card({ as = 'div', className, ...props }: CardProps) {
       className,
     ),
   });
-}
-
-interface CardSlotProps extends HTMLAttributes<HTMLDivElement> {
-  children?: ReactNode;
-}
-
-export function CardHeader({ className, ...props }: CardSlotProps) {
-  return <div className={cn('flex items-center justify-between gap-2', className)} {...props} />;
-}
-
-export function CardContent({ className, ...props }: CardSlotProps) {
-  return <div className={cn('min-w-0', className)} {...props} />;
-}
-
-export function CardFooter({ className, ...props }: CardSlotProps) {
-  return <div className={cn('mt-auto flex items-center gap-2', className)} {...props} />;
 }

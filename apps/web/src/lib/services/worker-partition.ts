@@ -55,7 +55,7 @@ export function resolveWorkerPartition(env: NodeJS.ProcessEnv = process.env): Wo
 }
 
 /** The partition bucket a tenant belongs to (0 to totalPartitions - 1). */
-export function tenantBucket(tenantId: string, totalPartitions: number): number {
+function tenantBucket(tenantId: string, totalPartitions: number): number {
   const hash = createHash('md5').update(tenantId).digest();
   return hash.readUInt32BE(0) % totalPartitions;
 }

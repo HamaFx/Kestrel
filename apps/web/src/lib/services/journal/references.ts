@@ -52,7 +52,7 @@ import type { JournalReferenceLoader, JournalReferenceLookup } from '@/lib/http/
  * their sweep deferred (objects kept, `journalUsersDeferred` reported) rather
  * than risking a partial exclusion list.
  */
-export const MAX_JOURNAL_REFERENCE_ROWS = 1000;
+const MAX_JOURNAL_REFERENCE_ROWS = 1000;
 
 /** Cron-side loader passed to `runUploadCleanup`. */
 export const loadJournalReferences: JournalReferenceLoader = async (userId, expiredDays) => {
@@ -82,7 +82,7 @@ export const loadJournalReferences: JournalReferenceLoader = async (userId, expi
 };
 
 /** Flatten one page of journal rows into the raw reference list. */
-export function journalReferencesFromRows(
+function journalReferencesFromRows(
   rows: readonly { screenshotUrl: string | null; attachments: readonly string[] | null }[],
   truncated: boolean,
 ): JournalReferenceLookup {

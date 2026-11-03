@@ -38,7 +38,7 @@ export const MAX_TEXT_CHARS = 8000;
  * Threshold at which the char count switches from "normal" to
  * "warn" tone. Soft — the user can still type up to MAX_TEXT_CHARS.
  */
-export const SOFT_LIMIT_CHARS = 7500;
+const SOFT_LIMIT_CHARS = 7500;
 
 export type CharCountTone = 'normal' | 'warn' | 'danger';
 

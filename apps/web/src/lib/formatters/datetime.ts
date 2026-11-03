@@ -139,28 +139,3 @@ export function handleRadioKeyDown(e: React.KeyboardEvent): void {
   items[next]?.focus();
   items[next]?.click();
 }
-
-/**
- * Refresh interval per chart timeframe.
- *
- * Extracted from duplicated definitions in use-candles.ts,
- * use-chart-data.ts.
- */
-
-export function refetchIntervalFor(
-  tf: '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '1w',
-): number {
-  switch (tf) {
-    case '1m':
-      return 5_000;
-    case '5m':
-    case '15m':
-    case '30m':
-    case '1h':
-    case '4h':
-      return 30_000;
-    case '1d':
-    case '1w':
-      return 5 * 60_000;
-  }
-}

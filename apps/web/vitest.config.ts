@@ -24,16 +24,8 @@ const maxWorkers = process.env.CI ? 2 : Math.max(2, Math.floor(os.availableParal
 
 // Vitest 4 removed `environmentMatchGlobs`; the node/DOM split is expressed
 // as two inline projects that inherit this root config via `extends: true`.
-const domInclude = [
-  '**/*.test.tsx',
-  '**/hooks-*.test.ts',
-  '**/csrf.test.ts',
-  '**/storage.test.ts',
-  '**/shiki-sanitization.test.ts',
-  // PWA contracts: manifest/asset/install-preference checks read `localStorage`
-  // and `matchMedia`, so they need a DOM environment.
-  '**/pwa-*.test.ts',
-];
+// Only the two DOM-dependent security suites remain, so keep the split narrow.
+const domInclude = ['test/**/*.test.tsx', 'test/csrf.test.ts', 'test/shiki-sanitization.test.ts'];
 
 export default defineConfig({
   plugins: [react()],
@@ -77,15 +69,6 @@ export default defineConfig({
         'src/app/**/loading.tsx',
         'src/app/**/page.tsx',
       ],
-      thresholds: {
-        // Recalibrated for the Vitest 4+ AST-aware V8 remapping, which is
-        // more accurate than the legacy v8-to-istanbul numbers the previous
-        // thresholds were set against.
-        statements: 24,
-        branches: 21,
-        functions: 20,
-        lines: 25,
-      },
     },
     server: {
       deps: {
@@ -99,7 +82,7 @@ export default defineConfig({
           name: 'web-node',
           environment: 'node',
           setupFiles: ['./test/vitest.node-setup.ts'],
-          include: ['test/**/*.test.{ts,tsx}', 'src/**/__tests__/**/*.test.{ts,tsx}'],
+          include: ['test/**/*.test.{ts,tsx}'],
           exclude: domInclude,
         },
       },

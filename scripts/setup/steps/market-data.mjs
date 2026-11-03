@@ -28,7 +28,7 @@ export const hint = 'Keys are optional — add them later in Settings or the .en
  * be consumed non-interactively. Returns { byEnvKey, ids } where `ids` are the
  * provider ids that were supplied a value.
  */
-export function parseApiKeys(specs) {
+function parseApiKeys(specs) {
   const byEnvKey = {};
   const ids = [];
   for (const spec of specs ?? []) {

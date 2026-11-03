@@ -37,9 +37,6 @@ import type { HealthSloDb } from './health/probe-types';
 import { buildSliSnapshots } from './health/sli-builder';
 import { resolveAdminSpendAlertThresholdUsd } from './health/spend-watch';
 
-export type { HealthSloDb } from './health/probe-types';
-export { resetAdminSpendAlertDedup, resolveSpendWatch } from './health/spend-watch';
-
 const ONE_SECOND = 1000;
 const ONE_MINUTE = 60 * ONE_SECOND;
 
@@ -49,7 +46,7 @@ export interface ComputeHealthSloOptions {
   spendAlertThresholdUsd?: number;
 }
 
-export async function computeHealthSloService(
+async function computeHealthSloService(
   db: HealthSloDb,
   { hours, spendAlertThresholdUsd }: ComputeHealthSloOptions,
 ): Promise<HealthSloResponse> {

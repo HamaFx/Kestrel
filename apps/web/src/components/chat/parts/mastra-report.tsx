@@ -76,7 +76,7 @@ export function MastraReportPart({ data }: { data: unknown }) {
   return null;
 }
 
-export function MastraReportCard({
+function MastraReportCard({
   meta,
   compactInline,
 }: {

@@ -63,8 +63,3 @@ export function checkAdminRateLimit(
 
   return { allowed: true };
 }
-
-/** Reset all buckets. Exported for test isolation. */
-export function resetAdminRateLimit(): void {
-  buckets.clear();
-}

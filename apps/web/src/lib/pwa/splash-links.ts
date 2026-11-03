@@ -13,7 +13,7 @@
 
 import devicesFile from './splash-devices.json';
 
-export interface SplashDevice {
+interface SplashDevice {
   readonly id: string;
   readonly label: string;
   readonly widthPt: number;
@@ -33,7 +33,7 @@ export interface SplashLink {
   readonly orientation: 'portrait' | 'landscape';
 }
 
-export const SPLASH_DEVICES: readonly SplashDevice[] = (devicesFile as { devices: SplashDevice[] })
+const SPLASH_DEVICES: readonly SplashDevice[] = (devicesFile as { devices: SplashDevice[] })
   .devices;
 
 /** Physical pixel size, portrait orientation. */
@@ -76,13 +76,3 @@ export const SPLASH_LINKS: readonly SplashLink[] = SPLASH_DEVICES.flatMap((devic
     orientation,
   })),
 );
-
-/** Unique PNG files the icon generator must produce for the current matrix. */
-export function requiredSplashFiles(): readonly string[] {
-  const files = new Set<string>();
-  for (const device of SPLASH_DEVICES) {
-    files.add(splashFileName(device, 'portrait'));
-    files.add(splashFileName(device, 'landscape'));
-  }
-  return [...files].sort();
-}

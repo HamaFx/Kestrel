@@ -31,7 +31,7 @@ import { chmodSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 const ENV_FILE_MODE = 0o600;
 
 /** Parse raw env content into { entries, raw }. */
-export function parseEnv(content) {
+function parseEnv(content) {
   const lines = content.split(/\r?\n/);
   const entries = new Map();
   for (const raw of lines) {
@@ -68,7 +68,7 @@ export function readEnvFile(filePath) {
  *   - string[]    → mask only the listed keys
  *   - undefined   → mask keys that look secret (KEY/SECRET/PASSWORD/…)
  */
-export function diffEnv(existing, target, { mask = undefined } = {}) {
+function diffEnv(existing, target, { mask = undefined } = {}) {
   const maskValue = (value, key) => {
     if (value === undefined) return value;
     if (mask === true) return '•'.repeat(Math.min(value.length, 12));
@@ -96,7 +96,7 @@ export function diffEnv(existing, target, { mask = undefined } = {}) {
 }
 
 /** Serialize entries back into env file content. */
-export function serializeEnv(lines, entries) {
+function serializeEnv(lines, entries) {
   const out = [...lines];
   const seen = new Set();
   for (let i = 0; i < out.length; i++) {

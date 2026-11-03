@@ -48,10 +48,6 @@ export function resolveSpendWatch(rows: DailySpendRow[], thresholdUsd: number): 
 
 const spendThresholdObserved = new Set<string>();
 
-export function resetAdminSpendAlertDedup(): void {
-  spendThresholdObserved.clear();
-}
-
 export function recordSpendThresholdMetric(spendWatch: SpendWatchSummary): void {
   const day = new Date().toISOString().slice(0, 10);
   for (const entry of spendWatch.overThreshold) {

@@ -23,8 +23,6 @@ import { updateAiPrefsAction } from '@/app/(app)/settings/actions';
 import { INSTRUCTION_PRESETS } from './instruction-presets';
 import { useAiPrefs } from './use-ai-prefs';
 
-export { appendPreset, getPreset, INSTRUCTION_PRESETS } from './instruction-presets';
-
 /**
  * Card on /settings → "AI Preferences".
  *

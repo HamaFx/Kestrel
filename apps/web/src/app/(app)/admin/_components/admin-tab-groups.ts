@@ -9,7 +9,7 @@
 // the grouping helper, and lives separately to keep every file inside the
 // ≤250 LOC component budget.
 
-export const TAB_GROUPS = [
+const TAB_GROUPS = [
   { id: 'access', label: 'Platform & Access' },
   { id: 'ops', label: 'System Operations' },
   { id: 'observability', label: 'Observability' },

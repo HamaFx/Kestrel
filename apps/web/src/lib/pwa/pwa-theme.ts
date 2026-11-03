@@ -11,7 +11,7 @@
 
 import themeFile from './pwa-theme.json';
 
-export interface PwaPalette {
+interface PwaPalette {
   readonly bg: string;
   readonly bgElev1: string;
   readonly bgElev2: string;
@@ -38,4 +38,3 @@ const theme = themeFile as {
 export const PWA_BACKGROUND = theme.background;
 /** OS chrome colour for the installed app. Matches `--color-bg`. */
 export const PWA_THEME_COLOR = theme.themeColor;
-export const PWA_PALETTE: PwaPalette = theme.palette;

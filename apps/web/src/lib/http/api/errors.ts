@@ -20,21 +20,12 @@
 // provider/AppError → HTTP mapping.
 
 import { ProviderError, toAppError } from '@kestrel/data';
-import { AppError, formatErrorResponse, validationError, type ErrorCode } from '@kestrel/shared';
+import { AppError, formatErrorResponse, validationError } from '@kestrel/shared';
 import { ZodError } from 'zod';
 
 import { createScopedLoggerWithContext } from '../../logger';
 import { REQUEST_ID_HEADER } from '../request-id';
 import { readRequestId, routeTag } from './request-context';
-
-export interface ApiErrorBody {
-  error: {
-    code: ErrorCode | 'VALIDATION';
-    message: string;
-    details?: unknown;
-    requestId?: string;
-  };
-}
 
 /**
  * Direct error envelope for routes that already know the code/status and do

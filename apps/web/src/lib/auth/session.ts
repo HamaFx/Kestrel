@@ -44,7 +44,7 @@
  * Pure function: no I/O. Tested in apps/web/test/session.test.ts.
  */
 
-export type TradingSession = 'asian' | 'london' | 'ny' | 'closed' | 'weekend';
+type TradingSession = 'asian' | 'london' | 'ny' | 'closed' | 'weekend';
 
 export interface SessionInfo {
   session: TradingSession;

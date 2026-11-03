@@ -32,4 +32,3 @@ export {
   resetOnboarding,
   updateUserSettingsField,
 } from '@kestrel/db';
-export type { UserSettingsRow } from '@kestrel/db';

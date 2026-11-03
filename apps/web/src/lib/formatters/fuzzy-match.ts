@@ -63,7 +63,7 @@ function normalize(s: string): string {
     .toLowerCase();
 }
 
-export function fuzzyMatch(query: string, target: string): FuzzyMatch | null {
+function fuzzyMatch(query: string, target: string): FuzzyMatch | null {
   if (query.length === 0) {
     if (target.length === 0) {
       return { score: -1, indices: [] };

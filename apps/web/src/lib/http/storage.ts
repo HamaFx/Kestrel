@@ -177,8 +177,6 @@ export async function uploadChatImage(
 
 export const CHAT_IMAGE_MAX_BYTES = MAX_UPLOAD_BYTES;
 
-export { CHAT_IMAGE_BUCKET_NAME };
-
 const LEGACY_STORAGE_PREFIXES = ['hamafx:', 'hfx_'] as const;
 
 const LEGACY_STORAGE_ALIASES: Record<string, string> = {
@@ -220,27 +218,6 @@ export function migrateLegacyStorageNamespace(): void {
 export function migrateLegacyStorageKey(newKey: string): void {
   if (!newKey.startsWith('kestrel:')) return;
   migrateLegacyStorageNamespace();
-}
-
-export function safeGetItem<T>(key: string, fallback: T): T {
-  try {
-    if (typeof window === 'undefined') return fallback;
-    const item = localStorage.getItem(key);
-    return item === null ? fallback : (JSON.parse(item) as T);
-  } catch {
-    return fallback;
-  }
-}
-
-export function safeSetItem<T>(key: string, value: T): boolean {
-  try {
-    if (typeof window === 'undefined') return false;
-    localStorage.setItem(key, JSON.stringify(value));
-    return true;
-  } catch {
-    // Silently fail - localStorage may be unavailable or quota exceeded
-    return false;
-  }
 }
 
 /**

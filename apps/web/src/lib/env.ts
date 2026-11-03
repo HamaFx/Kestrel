@@ -72,7 +72,7 @@ function writeDevSecrets(store: DevSecretStore): void {
  * mode (NODE_ENV !== 'production') we either reuse a previously
  * persisted value or generate a fresh one.
  */
-export function loadOrGenerateDevSecrets(): {
+function loadOrGenerateDevSecrets(): {
   generated: boolean;
   store: DevSecretStore;
 } {

@@ -18,7 +18,7 @@
  * definition instead of duplicating the strings (the install-nudge tests used to
  * hardcode them, so a rename could silently pass).
  */
-export const INSTALL_STORAGE_KEYS = {
+const INSTALL_STORAGE_KEYS = {
   /** Current preference record. */
   preference: 'kestrel:pwa-install',
   /** Legacy numeric dismissal counter (pre-snooze model). */
@@ -35,7 +35,7 @@ const LEGACY_DISMISS_KEY_V0 = INSTALL_STORAGE_KEYS.legacyDismissalV0;
 const ENGAGEMENT_KEY = INSTALL_STORAGE_KEYS.engagement;
 
 const SNOOZE_DAYS = [3, 14] as const;
-export const PERMANENT_DISMISSAL_LIMIT = SNOOZE_DAYS.length + 1;
+const PERMANENT_DISMISSAL_LIMIT = SNOOZE_DAYS.length + 1;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Engagement gate: a second visit, or a minute of real use. */
@@ -124,11 +124,6 @@ export function recordDismissal(): InstallPreference {
   });
 }
 
-/** Hide the nudge until `until` without counting another dismissal. */
-export function snooze(until: number): InstallPreference {
-  return updateInstallPreference({ snoozeUntil: until });
-}
-
 /** True when the nudge may be shown again for the current preference. */
 export function isOfferable(pref: InstallPreference, now = Date.now()): boolean {
   if (pref.installedAt) return false;
@@ -142,10 +137,6 @@ export interface EngagementState {
   sessions: number;
   /** Epoch ms of the first load. */
   firstSeenAt: number;
-}
-
-export function readEngagement(): EngagementState {
-  return readJson<EngagementState>(ENGAGEMENT_KEY) ?? { sessions: 0, firstSeenAt: Date.now() };
 }
 
 /** Register this app load (called once per session from the install hook). */
@@ -172,7 +163,7 @@ export function registerEngagementOnce(now = Date.now()): EngagementState {
  * very first paint is the classic way to get dismissed forever, so the nudge
  * waits for a second visit or a minute of use.
  */
-export function hasEngaged(engagement: EngagementState, now = Date.now()): boolean {
+function hasEngaged(engagement: EngagementState, now = Date.now()): boolean {
   return engagement.sessions >= 2 || now - engagement.firstSeenAt >= MIN_SESSION_MS;
 }
 

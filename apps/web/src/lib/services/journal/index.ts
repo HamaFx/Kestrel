@@ -46,11 +46,7 @@ export {
 } from './entries';
 export { getCoachInsightsService } from './coach';
 export { importJournalEntriesService, JournalImportPayloadSchema } from './import';
-export {
-  computeReplayWindow,
-  getTradeSetupReplayService,
-  type TradeSetupReplayDTO,
-} from './replay';
+export { getTradeSetupReplayService, type TradeSetupReplayDTO } from './replay';
 
 // Phase 3 Task 4 — journal domain re-exports for route handlers.
 export { getEntry, reviewTrade } from '@kestrel/ai';

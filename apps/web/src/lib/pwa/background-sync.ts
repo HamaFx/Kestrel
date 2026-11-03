@@ -16,10 +16,10 @@
  * Tag the worker listens for. Mirrored in `scripts/sw.template.js` — change both
  * together.
  */
-export const SHELL_REFRESH_TAG = 'kestrel-shell-refresh';
+const SHELL_REFRESH_TAG = 'kestrel-shell-refresh';
 
 /** Minimum spacing the browser is asked to respect between refreshes. */
-export const SHELL_REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const SHELL_REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 interface PeriodicSyncManagerLike {
   register(tag: string, options?: { minInterval?: number }): Promise<void>;
@@ -31,7 +31,7 @@ interface RegistrationWithPeriodicSync extends ServiceWorkerRegistration {
 }
 
 /** True when this browser exposes Periodic Background Sync at all. */
-export function supportsPeriodicSync(registration: ServiceWorkerRegistration): boolean {
+function supportsPeriodicSync(registration: ServiceWorkerRegistration): boolean {
   return (
     typeof (registration as RegistrationWithPeriodicSync).periodicSync?.register === 'function'
   );

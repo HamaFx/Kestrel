@@ -22,14 +22,7 @@
 // app. The old `MarketApiError` / `fetchWithTimeout` duplication is gone;
 // `ApiError` from `api-client` is re-exported for backward compatibility.
 
-import type {
-  Candle,
-  IndicatorKind,
-  IndicatorResult,
-  Symbol,
-  Tick,
-  Timeframe,
-} from '@kestrel/shared';
+import type { Symbol, Tick } from '@kestrel/shared';
 
 import { apiFetch } from '../http/api-client';
 
@@ -50,60 +43,4 @@ export async function fetchPrices(
     retries: 2,
   });
   return body.ticks;
-}
-
-/** GET /api/market/candles?symbol&tf&count */
-export async function fetchCandles(
-  symbol: Symbol,
-  tf: Timeframe,
-  count = 300,
-  opts: FetchOptions = {},
-): Promise<Candle[]> {
-  const params = new URLSearchParams({ symbol, tf, count: String(count) });
-  const body = await apiFetch<{ symbol: Symbol; tf: Timeframe; candles: Candle[] }>(
-    `/api/market/candles?${params.toString()}`,
-    {
-      cache: 'no-store',
-      ...(opts.signal ? { signal: opts.signal } : {}),
-      retries: 2,
-    },
-  );
-  return body.candles;
-}
-
-export interface IndicatorRequest {
-  kind: IndicatorKind;
-  params?: Record<string, number | string | boolean>;
-}
-
-/** POST /api/market/indicators */
-
-export interface ChartDataResponse {
-  symbol: Symbol;
-  tf: Timeframe;
-  count: number;
-  candles: Candle[];
-  results: IndicatorResult[];
-}
-
-/** POST /api/market/indicators — returns both candles and calculated indicators in one payload */
-export async function fetchChartData(
-  symbol: Symbol,
-  tf: Timeframe,
-  indicators: readonly IndicatorRequest[],
-  count = 300,
-  opts: FetchOptions = {},
-): Promise<ChartDataResponse> {
-  return apiFetch<ChartDataResponse>('/api/market/indicators', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      symbol,
-      tf,
-      count,
-      indicators: indicators.map((i) => ({ kind: i.kind, params: i.params ?? {} })),
-    }),
-    ...(opts.signal ? { signal: opts.signal } : {}),
-    retries: 2,
-  });
 }

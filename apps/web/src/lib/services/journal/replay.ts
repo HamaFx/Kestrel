@@ -85,7 +85,7 @@ const WEEKEND_PAD_MS = 48 * 60 * 60 * 1000;
  * when the warmup window crosses a weekend), and 20 bars after `closedAt`
  * (capped at BiQuote's 1,000-bar limit).
  */
-export function computeReplayWindow(
+function computeReplayWindow(
   openedAt: number,
   closedAt: number | null,
   tf: Timeframe,

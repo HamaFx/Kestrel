@@ -17,16 +17,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { DbMessage } from '@kestrel/ai';
-import {
-  isMastraXauusdFollowupCandidate,
-  XauusdResearchReportSchema,
-  type XauusdResearchReport,
-} from '@kestrel/ai/mastra-v2';
-
-/** Avoid an extra history query for ordinary conversation. */
-export function mayReferToMastraReport(prompt: string): boolean {
-  return isMastraXauusdFollowupCandidate(prompt);
-}
+import { XauusdResearchReportSchema, type XauusdResearchReport } from '@kestrel/ai/mastra-v2';
 
 /**
  * Find the newest persisted Mastra report without trusting arbitrary client

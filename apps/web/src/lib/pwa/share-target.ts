@@ -39,7 +39,7 @@ const MAX_URL = 2_048;
  * a URL, so the encoded size — not the character count — is what can overflow a
  * proxy header limit (CJK and emoji encode to 9 bytes per byte of UTF-8).
  */
-export const MAX_ENCODED_PROMPT = 3_000;
+const MAX_ENCODED_PROMPT = 3_000;
 
 export interface SharePayload {
   title?: string | string[];
@@ -135,7 +135,7 @@ const ELLIPSIS_ENCODED_LENGTH = encodeURIComponent('…').length;
  * Shrink `value` until its percent-encoded form fits `maxEncoded`, keeping the
  * string valid UTF-16 (never splitting a surrogate pair).
  */
-export function fitToEncodedBudget(value: string, maxEncoded = MAX_ENCODED_PROMPT): string {
+function fitToEncodedBudget(value: string, maxEncoded = MAX_ENCODED_PROMPT): string {
   if (encodeURIComponent(value).length <= maxEncoded) return value;
   if (maxEncoded < ELLIPSIS_ENCODED_LENGTH) return '';
 
