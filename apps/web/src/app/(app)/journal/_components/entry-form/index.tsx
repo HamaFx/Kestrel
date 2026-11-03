@@ -39,7 +39,10 @@ export function EntryForm({ onCreated }: EntryFormProps) {
   const form = useEntryForm({ onCreated });
 
   return (
-    <form onSubmit={form.submit} className="flex flex-col gap-4 px-4 pb-4">
+    <form
+      onSubmit={form.submit}
+      className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4"
+    >
       <Segmented<Symbol>
         label="Symbol"
         value={form.symbol}

@@ -46,7 +46,10 @@ export function AlertForm({ initialSymbol, onCreated }: AlertFormProps) {
   } = controller;
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-4 px-4 pb-4">
+    <form
+      onSubmit={submit}
+      className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4"
+    >
       <AlertRuleFields controller={controller} />
 
       <PreviewCallout
