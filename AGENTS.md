@@ -36,3 +36,15 @@ Self-hosted multi-user BYOK AI trading research platform (Next.js 16, React 19, 
 - **Protected Guardrails (Never Game or Weaken):**
   - Never modify `scripts/check-*.mjs`, `scripts/maintainability-baseline.json`, `knip.json`, or `packages/config/eslint/index.js` to silence a failure. Fix the underlying code.
   - Never create pass-through re-export shims for moved files; update callers directly and delete the old file.
+
+## Testing Architecture & Anti-Bloat Rules
+
+- **Hard Cap on Test Sprawl (~100 Test Files Total Across Monorepo):**
+  - Do NOT create a new `.test.ts` file for every bug fix, audit ticket, or phase (`phase2-*`, `p0-4-*`, `r8-*`). Add behavioral assertions to the existing canonical domain test file, or do not write a unit test if `pnpm typecheck` and `pnpm check:guards` already enforce the invariant.
+- **Forbidden Low-Value Test Categories:**
+  - **No `readFileSync` Source Grepping:** Never read `.ts`, `.tsx`, `.css`, `.sh`, or `docker-compose.yml` files inside Vitest. Static code-shape checks belong only in `scripts/check-*.mjs`.
+  - **No Tailwind / CSS Token Assertions:** Never assert `className` tokens (`rounded-xl`, `h-11`, `border-border`) or presentational DOM structure in `.test.tsx` files.
+  - **No Mocked-ORM Chain Tests:** Never mock `@kestrel/db` query builders (`select().from().where()`) to assert that a service called Drizzle. Use real Postgres RLS integration tests for database invariants.
+  - **No Pass-Through Controller / Job Mocks:** Never write a test that mocks `@/lib/services/*` or `@kestrel/ai` and only asserts `expect(mockFn).toHaveBeenCalled()`.
+  - **No Third-Party / Schema / Stub Tests:** Never test `clsx`, `tailwind-merge`, `server-only` stubs, static constant arrays, or Drizzle table column existence.
+  - **No Coverage Threshold Gaming:** Coverage thresholds are intentionally omitted from `vitest.config.ts`. Never write tests to increase line coverage percentages.
