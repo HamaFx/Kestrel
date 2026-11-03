@@ -5,6 +5,9 @@ pre-commit:
       run: bash .githooks/pre-commit
     lint:
       glob: '*.{ts,tsx,js,jsx,mjs,cjs}'
+      # Oxlint ignores *.config.* (see .oxlintrc.json); passing only those to
+      # it exits non-zero, so filter them out of the staged-file set.
+      exclude: '**/*.config.{js,mjs,ts}'
       run: pnpm exec oxlint {staged_files}
     format:
       glob: '*.{ts,tsx,js,jsx,mjs,cjs,json,md,css}'
