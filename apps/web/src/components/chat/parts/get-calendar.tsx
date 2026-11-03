@@ -67,11 +67,8 @@ export function GetCalendarPart({ output, state, errorMessage }: GetCalendarPart
       <Card as="section" aria-label="Calendar status" className="text-body-sm p-3">
         <p className="text-fg-muted flex items-start gap-2">
           <IconCalendarEvent className="mt-0.5 size-4 shrink-0" aria-hidden="true" /> Calendar
-          pipeline hasn&apos;t populated the DB yet. Trigger the{' '}
-          <code className="bg-bg-elev-2 text-caption rounded-sm px-1 py-0.5">
-            /api/cron/calendar
-          </code>{' '}
-          cron once and try again.
+          pipeline hasn&apos;t populated the DB yet. Use the Calendar page&apos;s{' '}
+          <span className="text-fg font-medium">Refresh</span> button once and try again.
         </p>
       </Card>
     );

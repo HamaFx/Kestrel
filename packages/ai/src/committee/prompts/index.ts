@@ -27,12 +27,10 @@
  * packet string is computed once per packet object and shared by every
  * specialist and the fusion call in the same run.
  *
- * Barrel for the domain files: specialist, fusion, critique/debate, and
- * comparison prompts.
+ * Barrel for the domain files: specialist, fusion, and comparison prompts.
  */
 
 export { comparisonFusionInstructionsForRequest } from './comparison';
-export { critiqueInstructionsForRequest, debateRevisionInstructionsForRequest } from './critique';
 export { fusionInstructionsForRequest } from './fusion';
 export {
   SPECIALIST_DESK_TOOL_NAMES,

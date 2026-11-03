@@ -29,12 +29,12 @@ point is to test them on the user's symbol/timeframe with realistic costs.
 - **Test two windows.** A strategy that only works on the last 300 bars is a
   curve-fit.
 
-## Combining SMC and quant
+## Combining levels and quant
 
-SMC gives location (where), quant gives regime (when). A common high-quality
+Levels give location (where), quant gives regime (when). A common high-quality
 combination is:
 
 - Regime: `ema50 > ema200` and `adx14 > 20`.
-- Location: price retraces into a bullish FVG or order block.
+- Location: price retraces toward the latest swing low or the previous day low.
 - Trigger: bullish close / RSI cross back above 40.
-- Stop: below the zone, ATR-buffered.
+- Stop: beyond the level, ATR-buffered.

@@ -2,13 +2,12 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Live 5-stage Kestrel Plasma Circuit Spine + 2×2 live desk matrix shown while
+// Live 4-stage Kestrel Plasma Circuit Spine + 2×2 live desk matrix shown while
 // the council deliberates. The circuit trace lives in `syndicate-spine.tsx`
 // (adapted from `landing-stepper/circuit-spine.tsx`); the desk tiles in
 // `syndicate-live-desk-tile.tsx`. 100% SVG/CSS — no WebGL in `/chat`
 // (Locked Decision 2A). Replaced the legacy pixel-desk thinking card
 // (Locked Decision 4A).
-import { IconSwords } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 
 import { cn } from '@/lib/formatters/cn';
@@ -46,11 +45,6 @@ const FULL_COUNCIL_STAGES: readonly StageDef[] = [
     caption: 'HORUS · ASTROLABE · AEGIS · SENTINEL deliberating in parallel',
   },
   {
-    id: 'critique',
-    title: 'Cross-Examination',
-    caption: 'Desks audit peer assumptions and revise conviction',
-  },
-  {
     id: 'verify',
     title: 'Risk Audit',
     caption: 'Aegis 1.0% ceiling and numerical grounding against the packet',
@@ -71,7 +65,7 @@ const FAST_SCOUT_STAGES: readonly StageDef[] = [
   {
     id: 'deliberation',
     title: 'Specialist Desk',
-    caption: 'ASTROLABE mapping structure, order blocks, FVG and invalidation',
+    caption: 'ASTROLABE mapping swing structure, session levels and invalidation',
   },
   {
     id: 'verify',
@@ -83,10 +77,6 @@ const FAST_SCOUT_STAGES: readonly StageDef[] = [
 /** Map a live committee step id onto its circuit stage row. */
 function stageIndexFor(step: string | undefined, stages: readonly StageDef[]): number {
   if (!step) return 0;
-  if (step === 'critique' || step === 'debate') {
-    const idx = stages.findIndex((s) => s.id === 'critique');
-    return idx >= 0 ? idx : 2;
-  }
   if (step === 'fusion') return stages.length - 1;
   if (step === 'verify') {
     const idx = stages.findIndex((s) => s.id === 'verify');
@@ -130,7 +120,6 @@ export function SyndicateCircuitLive({
     : allDone
       ? stages.length - 1
       : fallbackStep;
-  const isClashStage = stages[activeIndex]?.id === 'critique';
 
   return (
     <div
@@ -188,9 +177,6 @@ export function SyndicateCircuitLive({
                 )}
               >
                 <div className="flex items-center gap-1.5">
-                  {stage.id === 'critique' && isActive ? (
-                    <IconSwords className="text-brand size-3.5 animate-pulse" />
-                  ) : null}
                   <span
                     className={cn(
                       'font-mono text-[10px] font-bold tracking-wider uppercase',
@@ -206,13 +192,6 @@ export function SyndicateCircuitLive({
           })}
         </ol>
       </div>
-
-      {isClashStage ? (
-        <div className="border-brand/30 bg-brand/[0.05] text-brand flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 font-mono text-[10px] font-semibold tracking-wide uppercase">
-          <IconSwords className="size-3.5" /> Cross-Critique Active: desks auditing peer
-          assumptions…
-        </div>
-      ) : null}
 
       {!isSingle ? (
         <div className="grid grid-cols-2 gap-2">

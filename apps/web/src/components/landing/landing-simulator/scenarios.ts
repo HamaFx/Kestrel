@@ -34,9 +34,9 @@ export type SimulationStage = 'idle' | 'voting' | 'verdict' | 'dispatching' | 'd
 export const SCENARIOS: Scenario[] = [
   {
     id: 'london-sweep',
-    name: 'London Fix Liquidity Sweep',
+    name: 'London Session Breakout',
     symbol: 'XAU/USD',
-    catalyst: 'Asia session low swept into 15m Bullish Fair Value Gap + NY Open Displacement',
+    catalyst: 'Asian range resolved to the upside at the London open with EMA50 > EMA200 on 4H',
     action: 'BUY / LONG',
     orderType: 'LIMIT SETUP',
     entry: '2,864.20',
@@ -82,7 +82,7 @@ export const SCENARIOS: Scenario[] = [
     consensusScore: 89,
     bullProbability: 16,
     arbiterVerdict:
-      'Macro Rate Divergence Confirmed. Institutional liquidity sweep at 1.0850 tapped. Short plan validated with a strict 30-pip invalidation.',
+      'Macro Rate Divergence Confirmed. Previous-day high at 1.0850 rejected. Short plan validated with a strict 30-pip invalidation.',
     txHash: 'KSL-EUR-3D7C91',
     journalSummary:
       'Setup: EUR/USD Short @ 1.0845 | Stop: 1.0875 (0.75% Risk) | Targets: 1.0810 / 1.0760 / 1.0715 | Alerts Armed: Telegram, Push & Email',

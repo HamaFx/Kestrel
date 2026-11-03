@@ -15,15 +15,13 @@
  * limitations under the License.
  */
 
-// Wire the repository's tracked `.githooks/` directory into this clone.
-//
-// The secret scanner and other pre-commit checks live in `.githooks/` so they
-// travel with the code. Git only runs them when `core.hooksPath` points there,
-// which is a per-clone setting. `prepare` runs this on every `pnpm install`;
-// outside a Git checkout (published tarballs, Docker build contexts without
-// `.git`) it is a no-op.
+// Install lefthook's Git hooks for this clone. `lefthook.yml` fans the
+// pre-commit checks out in parallel; the secret scanner still lives in
+// `.githooks/pre-commit` so it travels with the code. Outside a Git checkout
+// (published tarballs, Docker build contexts without `.git`) this is a no-op.
 
 import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
@@ -39,7 +37,19 @@ function git(args) {
 try {
   const toplevel = resolve(git(['rev-parse', '--show-toplevel']));
   if (toplevel !== root) process.exit(0);
-  git(['config', '--local', 'core.hooksPath', '.githooks']);
+
+  // Older clones pointed core.hooksPath at `.githooks`; lefthook installs into
+  // `.git/hooks`, so clear the override before installing.
+  try {
+    git(['config', '--local', '--unset', 'core.hooksPath']);
+  } catch {
+    // Already unset.
+  }
+
+  const lefthook = resolve(root, 'node_modules/.bin/lefthook');
+  if (existsSync(lefthook)) {
+    execFileSync(lefthook, ['install'], { cwd: root, stdio: 'ignore' });
+  }
 } catch {
   // Not a Git checkout (or Git is unavailable): nothing to wire.
   process.exit(0);

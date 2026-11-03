@@ -14,54 +14,40 @@
  * limitations under the License.
  */
 
-// Phase 1 (Jev System One) — the OpenCode Console key (`jev-1.13-free` at
-// $0.00) and the direct TypeSafe AI key (`jev-latest`) are env + BYOK
-// credentials for the /v1/systemone decision-model client. Jev is not a chat
-// LLM, so the keys stay OUT of PROVIDER_IDS and only appear as optional keys
-// on the BYOK payload / AI env schema.
+// The AI env schema carries only chat/embedding provider transports; BYOK
+// keys live in the encrypted user vault. These tests pin the optional server
+// transports and the BYOK payload shape.
 
 import { describe, expect, it } from 'vitest';
 
 import { type ByokPayload } from '../src/crypto/byok';
 import { AiEnv } from '../src/env/schema/ai';
 
-describe('AiEnv & ByokPayload Jev keys', () => {
-  it('accepts optional OPENCODE_API_KEY and TYPESAFE_API_KEY in AiEnv', () => {
+describe('AiEnv & ByokPayload', () => {
+  it('accepts optional gateway and direct Google keys in AiEnv', () => {
     const parsed = AiEnv.parse({
-      OPENCODE_API_KEY: 'oc-free-key',
-      TYPESAFE_API_KEY: 'ts-live-key',
+      AI_GATEWAY_API_KEY: 'gateway-key',
+      GOOGLE_GENERATIVE_AI_API_KEY: 'google-key',
     });
-    expect(parsed.OPENCODE_API_KEY).toBe('oc-free-key');
-    expect(parsed.TYPESAFE_API_KEY).toBe('ts-live-key');
+    expect(parsed.AI_GATEWAY_API_KEY).toBe('gateway-key');
+    expect(parsed.GOOGLE_GENERATIVE_AI_API_KEY).toBe('google-key');
   });
 
-  it('accepts an optional JEV_BASE_URL endpoint override', () => {
-    const parsed = AiEnv.parse({
-      JEV_BASE_URL: 'https://jev.internal.example/v1/systemone',
-    });
-    expect(parsed.JEV_BASE_URL).toBe('https://jev.internal.example/v1/systemone');
+  it('defaults the model ids when no env override is set', () => {
+    const parsed = AiEnv.parse({});
+    expect(parsed.AI_DEFAULT_MODEL).toBe('google/gemini-2.5-flash');
+    expect(parsed.AI_TITLE_MODEL).toBe('google/gemini-2.5-flash-lite');
+    expect(parsed.AI_EMBEDDING_MODEL).toBe('openai/text-embedding-3-small');
   });
 
-  it('rejects a non-URL JEV_BASE_URL', () => {
-    expect(AiEnv.safeParse({ JEV_BASE_URL: 'not-a-url' }).success).toBe(false);
-  });
-
-  it('allows opencode and typesafe fields on ByokPayload', () => {
+  it('allows chat provider fields on ByokPayload', () => {
     const payload: ByokPayload = {
-      opencode: 'oc-key',
-      typesafe: 'ts-key',
+      openai: 'sk-key',
+      anthropic: 'sk-ant-key',
+      finnhub: 'fh-key',
     };
-    expect(payload.opencode).toBe('oc-key');
-    expect(payload.typesafe).toBe('ts-key');
-  });
-
-  it('accepts an optional LIQUID_API_KEY in AiEnv', () => {
-    const parsed = AiEnv.parse({ LIQUID_API_KEY: 'liquid_test-key' });
-    expect(parsed.LIQUID_API_KEY).toBe('liquid_test-key');
-  });
-
-  it('allows a liquid field on ByokPayload', () => {
-    const payload: ByokPayload = { liquid: 'liquid-byok-key' };
-    expect(payload.liquid).toBe('liquid-byok-key');
+    expect(payload.openai).toBe('sk-key');
+    expect(payload.anthropic).toBe('sk-ant-key');
+    expect(payload.finnhub).toBe('fh-key');
   });
 });

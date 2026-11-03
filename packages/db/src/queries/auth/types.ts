@@ -33,5 +33,18 @@ export interface CreateUserInput {
   id: string;
   email: string;
   name: string;
-  hashedPassword: string;
+  hashedPassword: string | null;
+  /** Avatar URL; defaults to the generated initials avatar when omitted. */
+  image?: string | null;
+  /** Set for OAuth users whose provider already verified the address. */
+  emailVerified?: Date | null;
+  /** 'admin' for the first account when the registration policy promotes it. */
+  role?: 'admin' | 'user';
+  /**
+   * When true the insert is atomic with an empty-table check: it acquires a
+   * transaction-scoped advisory lock, verifies `user` is still empty, and
+   * throws {@link FirstUserRegistrationClosedError} otherwise. This closes the
+   * race where two concurrent first registrations both become admin.
+   */
+  requireFirstUser?: boolean;
 }

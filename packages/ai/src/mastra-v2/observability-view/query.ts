@@ -21,12 +21,15 @@
 // and which provider produced a model id.
 
 /** Known workflow ids whose snapshots back Mastra runs (from the registry). */
-export const MASTRA_WORKFLOW_IDS = ['symbol-research', 'full-analysis', 'xauusd-report'] as const;
+export const MASTRA_WORKFLOW_IDS = [
+  'symbol-research',
+  'multi-symbol-research',
+  'xauusd-report',
+] as const;
 
 /** Map a telemetry kind to the workflow id that would hold its run state. */
 export function workflowIdForKind(kind: string | null): string | null {
   if (!kind) return null;
-  if (kind.startsWith('mastra_full_job')) return 'full-analysis';
   if (kind.startsWith('mastra_mode')) return 'symbol-research';
   if (kind.startsWith('mastra_xauusd')) return 'xauusd-report';
   if (kind.startsWith('mastra_canonical_chat')) return null;

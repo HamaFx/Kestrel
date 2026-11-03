@@ -79,21 +79,33 @@ function mockDb() {
 }
 
 vi.mock('@/lib/env', () => ({
-  getServerEnv: () => ({ REGISTRATION_MODE: process.env.REGISTRATION_MODE ?? 'open' }),
+  getServerEnv: () => ({ REGISTRATION_MODE: process.env.REGISTRATION_MODE ?? 'first_user' }),
 }));
 
-vi.mock('@kestrel/db', () => ({
-  hasAdminDbScope: () => false,
-  getDb: () => mockDb(),
-  // R1: new-user provisioning runs in the personal tenant scope (id = user id);
-  // the mock just runs the callback with a fresh fake client.
-  withTenantDb: async (_tenantId: string, work: (db: unknown) => Promise<void>) => work(mockDb()),
-  schema: {
-    users: 'users',
-    userSettings: 'userSettings',
-    accounts: 'accounts',
-  },
-}));
+vi.mock('@kestrel/db', () => {
+  class FirstUserRegistrationClosedError extends Error {}
+  return {
+    hasAdminDbScope: () => false,
+    getDb: () => mockDb(),
+    countUsers: async () => (process.env.MOCK_USER_COUNT ? Number(process.env.MOCK_USER_COUNT) : 0),
+    // Phase 1 (Task 1.2): new-user provisioning delegates to the shared helper,
+    // which owns the transaction and the first-user advisory lock.
+    createUserWithSettings: async (input: Record<string, unknown>) => {
+      insertedUsers.push(input);
+      insertedSettings.push({
+        userId: input.id,
+        onboardingCompleted: false,
+        defaultSymbol: 'XAUUSD',
+      });
+    },
+    FirstUserRegistrationClosedError,
+    schema: {
+      users: 'users',
+      userSettings: 'userSettings',
+      accounts: 'accounts',
+    },
+  };
+});
 
 // Must be imported after mocks
 const { provisionUserOnSignIn } = await vi.importActual<typeof ProvisionUserModule>(
@@ -129,6 +141,7 @@ function googleAccount(overrides?: Record<string, unknown>) {
 
 beforeEach(() => {
   delete process.env.REGISTRATION_MODE;
+  delete process.env.MOCK_USER_COUNT;
   mockSelectResult = [];
   insertedUsers = [];
   insertedSettings = [];
@@ -195,6 +208,20 @@ describe('provisionUserOnSignIn', () => {
 
     expect(result.allow).toBe(false);
     expect(result.reason).toMatch(/registration is disabled/i);
+    expect(insertedUsers).toHaveLength(0);
+  });
+
+  it('blocks a new OAuth account once the first_user instance is claimed', async () => {
+    process.env.MOCK_USER_COUNT = '1';
+
+    const result = await provisionUserOnSignIn({
+      user: {},
+      account: googleAccount(),
+      profile: googleProfile(),
+    });
+
+    expect(result.allow).toBe(false);
+    expect(result.reason).toMatch(/registration is closed/i);
     expect(insertedUsers).toHaveLength(0);
   });
 

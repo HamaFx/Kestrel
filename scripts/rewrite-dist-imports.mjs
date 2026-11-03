@@ -76,4 +76,6 @@ for (const file of files) {
   if (rewritten !== source) fs.writeFileSync(file, rewritten);
 }
 
-console.log(`Rewrote publish imports in ${files.length} JavaScript/declaration files under ${distDir}`);
+console.log(
+  `Rewrote publish imports in ${files.length} JavaScript/declaration files under ${distDir}`,
+);

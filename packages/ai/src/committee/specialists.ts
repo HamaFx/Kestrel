@@ -125,7 +125,8 @@ export const FUSION_AGENT_ID = 'kestrel-mastra-decision';
  * single injected context instead of pre-serialized strings.
  */
 export type CommitteeInstructions =
-  string | ((args: { requestContext: RequestContext<ModeRequestContext> }) => string);
+  | string
+  | ((args: { requestContext: RequestContext<ModeRequestContext> }) => string);
 
 /**
  * P-01 (audit 2026-10-18) — Mastra's Agent generics cannot infer the runtime

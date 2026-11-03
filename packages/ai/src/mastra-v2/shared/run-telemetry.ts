@@ -77,10 +77,8 @@ export interface MastraRunObservation {
     | 'mastra_xauusd_research'
     | 'mastra_xauusd_poc'
     | 'mastra_mode'
-    | 'mastra_full_job'
     | 'mastra_worker_task'
-    | 'mastra_canonical_chat'
-    | 'mastra_custom_agent';
+    | 'mastra_canonical_chat';
   error?: unknown;
 }
 
@@ -107,12 +105,8 @@ export function agentLabelForTelemetryKind(kind?: MastraRunObservation['telemetr
       return 'kestrel-mastra-canonical-chat';
     case 'mastra_mode':
       return 'kestrel-committee-mode';
-    case 'mastra_full_job':
-      return 'kestrel-committee-full-job';
     case 'mastra_worker_task':
       return 'kestrel-worker-task';
-    case 'mastra_custom_agent':
-      return 'kestrel-custom-agent';
     default:
       return MASTRA_XAUUSD_AGENT_ID;
   }
@@ -125,10 +119,6 @@ function stepNameForTelemetryKind(kind?: MastraRunObservation['telemetryKind']):
       return 'mastra_canonical_chat_run';
     case 'mastra_mode':
       return 'mastra_mode_run';
-    case 'mastra_full_job':
-      return 'mastra_full_job_run';
-    case 'mastra_custom_agent':
-      return 'mastra_custom_agent_run';
     default:
       return 'mastra_xauusd_run';
   }
@@ -264,15 +254,11 @@ export async function finishMastraRun(args: MastraRunObservation): Promise<void>
           ? canonicalTelemetryKind(args.telemetryKind)
           : args.telemetryKind === 'mastra_mode'
             ? 'mastra_mode_failed'
-            : args.telemetryKind === 'mastra_full_job'
-              ? 'mastra_full_job_failed'
-              : args.telemetryKind === 'mastra_worker_task'
-                ? 'mastra_worker_task_failed'
-                : args.telemetryKind === 'mastra_canonical_chat'
-                  ? 'mastra_canonical_chat_failed'
-                  : args.telemetryKind === 'mastra_custom_agent'
-                    ? 'mastra_custom_agent_failed'
-                    : 'mastra_xauusd_research_failed',
+            : args.telemetryKind === 'mastra_worker_task'
+              ? 'mastra_worker_task_failed'
+              : args.telemetryKind === 'mastra_canonical_chat'
+                ? 'mastra_canonical_chat_failed'
+                : 'mastra_xauusd_research_failed',
     });
   } catch (error) {
     telemetryDegraded = true;

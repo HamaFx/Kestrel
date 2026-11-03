@@ -16,15 +16,19 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Helpers for Vercel-Cron-triggered route handlers. Scheduler invocations use
-// CRON_SECRET; browser-session invocations are admin-only unless a route
-// explicitly opts into `session: 'any'` (content-refresh routes the UI calls
-// directly, e.g. news/calendar — those must also declare a per-user rate
-// limit). Legacy signed-cookie authentication is intentionally unsupported.
+// Auth for scheduler-triggered route handlers.
 //
-// Audit 2026-10-31 (R4): the previous default allowed *any* authenticated
-// session to run any cron job. The default is now the conservative one, and a
-// missing/empty CRON_SECRET fails closed instead of matching `Bearer `.
+// Two identities may invoke a `/api/cron/*` route:
+//
+//   1. the scheduler, with `Authorization: Bearer $CRON_SECRET` (the secret
+//      must be at least 16 characters, compared in constant time), or
+//   2. a signed-in administrator opening the route in a browser.
+//
+// Audit 2026-10-31 (R4) removed the default allowance for any authenticated
+// session. Phase 1 (Task 1.3) removes the per-route `session: 'any'` escape
+// hatch entirely: user-facing refresh buttons call the ordinary `/api/*`
+// routes, which authenticate the session and rate-limit per user. A
+// non-admin browser session always receives 403 here.
 
 import { timingSafeEqual } from 'node:crypto';
 
@@ -33,13 +37,12 @@ import { createScopedLoggerWithContext } from '../logger';
 import { getUserFromRequest } from './api';
 import { getRequestId } from './request-id';
 
+const MIN_CRON_SECRET_LENGTH = 16;
+
 function constantTimeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   return timingSafeEqual(Buffer.from(a), Buffer.from(b));
 }
-
-/** How a browser session is allowed to invoke a cron route. */
-type CronSessionPolicy = 'admin' | 'any';
 
 /** Identity that satisfied `withCronAuth`, handed to the handler. */
 export interface CronAuthContext {
@@ -49,56 +52,31 @@ export interface CronAuthContext {
   userId: string | null;
 }
 
-export interface CronAuthOptions {
-  /**
-   * `admin` (default) — a browser session must belong to an administrator.
-   * `any` — any authenticated session may run this job. Reserved for
-   * content-refresh routes the UI calls directly.
-   */
-  session?: CronSessionPolicy;
-  /**
-   * Per-user request limit applied to browser-session invocations only;
-   * scheduler (bearer) invocations are exempt. Routes that opt into
-   * `session: 'any'` must set this so one account cannot hammer a global
-   * refresh (and the shared provider quota behind it).
-   */
-  sessionRateLimit?: { group: string; perMinute: number };
-}
-
 /**
  * Authenticate and execute a cron handler.
  *
  * Bearer authentication (CRON_SECRET) is intended for schedulers. A browser
- * session is accepted only from an administrator unless the route opts into
- * `session: 'any'`.
+ * session is accepted only from an administrator.
  */
 export async function withCronAuth(
   req: Request,
   fn: (ctx: CronAuthContext) => Promise<{ processed: number; note?: string }>,
-  options: CronAuthOptions = {},
 ): Promise<Response> {
   const env = getAuthEnv();
   const requestId = getRequestId(req);
   const responseOptions = requestId ? { headers: { 'x-request-id': requestId } } : undefined;
-  const sessionPolicy = options.session ?? 'admin';
 
   const header = req.headers.get('authorization') ?? '';
-  // Fail closed when the deployment secret is missing or empty: comparing
-  // against the literal `Bearer ` (or `Bearer undefined`) would otherwise let
-  // any caller authenticate with the same empty value.
+  // Fail closed when the deployment secret is missing, too short, or empty:
+  // comparing against `Bearer ` (or `Bearer undefined`) would otherwise let any
+  // caller authenticate with the same value.
   const secret = env.CRON_SECRET?.trim() ?? '';
-  const hasBearerAuth = secret.length > 0 && constantTimeEqual(header, `Bearer ${secret}`);
+  const hasBearerAuth =
+    secret.length >= MIN_CRON_SECRET_LENGTH && constantTimeEqual(header, `Bearer ${secret}`);
 
-  let sessionUserId: string | null = null;
-  if (!hasBearerAuth) {
-    sessionUserId = (await getUserFromRequest(req))?.userId ?? null;
-  }
-  const hasSessionAuth = sessionUserId !== null;
+  const sessionUserId = hasBearerAuth ? null : ((await getUserFromRequest(req))?.userId ?? null);
 
-  // Sensitive maintenance jobs may be run by the scheduler, but by default a
-  // browser session must belong to an administrator. Bearer scheduler
-  // credentials remain valid because they are deployment-level credentials.
-  if (sessionPolicy === 'admin' && !hasBearerAuth && hasSessionAuth) {
+  if (!hasBearerAuth && sessionUserId) {
     const { getAdminUser } = await import('../auth/admin-auth');
     const admin = await getAdminUser();
     if (!admin.admin) {
@@ -115,32 +93,11 @@ export async function withCronAuth(
     }
   }
 
-  if (!hasBearerAuth && !hasSessionAuth) {
+  if (!hasBearerAuth && !sessionUserId) {
     return Response.json(
       { error: { code: 'AUTH', message: 'Unauthorized', ...(requestId ? { requestId } : {}) } },
       { status: 401, ...(responseOptions ?? {}) },
     );
-  }
-
-  if (!hasBearerAuth && sessionUserId && options.sessionRateLimit) {
-    const { withRateLimit } = await import('@kestrel/db');
-    const rate = await withRateLimit(
-      sessionUserId,
-      options.sessionRateLimit.group,
-      options.sessionRateLimit.perMinute,
-    );
-    if (!rate.allowed) {
-      return Response.json(
-        {
-          error: {
-            code: 'RATE_LIMITED',
-            message: 'Too many refresh requests. Try again in a minute.',
-            ...(requestId ? { requestId } : {}),
-          },
-        },
-        { status: 429, ...(responseOptions ?? {}) },
-      );
-    }
   }
 
   try {

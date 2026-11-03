@@ -30,13 +30,12 @@
 
 import type { UIMessage } from 'ai';
 
-import { evaluateJevTurnRouting, type JevTurnRoutingDecision } from '../../jev/turn-router';
 import type { ResolveModelEnv } from '../../models/env-factory';
 import type { MastraModelPurpose } from '../../models/model';
 import { detectInstalledPluginIntent } from '../../plugins/intent';
 import type { RoutingDecision, RoutingDomain } from '../../routing';
 import { isHighConfidenceMutationIntent } from '../../routing/keywords';
-import { classifyMutationRequestWithJev } from '../mutation/mutation-detect';
+import { classifyMutationRequest } from '../mutation/mutation-detect';
 import {
   decideMastraExecution,
   type MastraExecutionDecision,
@@ -46,7 +45,7 @@ import {
 import { isInjectionAttempt, messageText } from './routing-policy';
 
 /** Mutation kinds the model-based classifier can detect. */
-export type UnifiedMutationKind = NonNullable<ReturnType<typeof classifyMutationRequestWithJev>>;
+export type UnifiedMutationKind = NonNullable<ReturnType<typeof classifyMutationRequest>>;
 
 export interface UnifiedRoutingDecision {
   /** Semantic/keyword domain from `routeTurn`. */
@@ -81,12 +80,6 @@ export interface UnifiedRouterInput extends MastraExecutionDecisionInput {
    * the LLM call twice.
    */
   classifiedMutationKind?: UnifiedMutationKind | null;
-  /**
-   * Phase 1 (Jev) — a pre-computed turn-routing decision. Callers that
-   * already evaluated the parallel Jev request pass it here; when omitted the
-   * router evaluates it once itself.
-   */
-  jevDecision?: JevTurnRoutingDecision | null;
 }
 
 /**
@@ -96,48 +89,23 @@ export interface UnifiedRouterInput extends MastraExecutionDecisionInput {
  * (semantic routing + capability + model resolution) runs once and is embedded
  * in the result for the execution plan.
  *
- * Phase 1 (Jev): one parallel `/v1/systemone` evaluation resolves domain,
- * XAUUSD chat kind, report follow-up, mutation intent, and injection risk.
- * The deterministic lexical gates still run and are OR-ed with the Jev
- * verdicts, so a Jev call can only ever tighten the read-only boundary —
- * never weaken it. With no Jev provider configured the network call is
- * skipped and the previous regex/keyword behavior is preserved.
+ * The deterministic lexical gates run first and are the only safety verdicts:
+ * no model should ever see an injection attempt, and high-confidence trade
+ * commands are rejected before routing.
  */
 export async function routeUnified(input: UnifiedRouterInput): Promise<UnifiedRoutingDecision> {
   const promptText = messageText(input.userMessage);
 
-  const jevDecision =
-    input.jevDecision !== undefined
-      ? input.jevDecision
-      : await evaluateJevTurnRouting({
-          userText: promptText,
-          priorReportAvailable: input.priorReportAvailable === true,
-          settings: input.settings,
-          env: input.env,
-          signal: input.signal ?? null,
-        });
-
-  // Zero-cost safety gates first — no model should ever see an injection
-  // attempt, and high-confidence trade commands are rejected before routing.
-  // Jev can only add a block on top of the zero-cost verdicts.
-  //
-  // P0-3 — a prompt that explicitly targets an installed plugin (paper order,
-  // backtest, Telegram scheduling, custom agents) is an execution request the
-  // plugin's own tools own: the read-only 422 gate must not fire for it. The
-  // plugin match is deterministic and only exists for installed plugins.
-  //
-  // Phase 4 (roadmap Phase 5) — the deterministic match also suppresses a
-  // *Jev* false positive: a paper-trade/briefing phrasing the model misread as
-  // injection or as a `log_journal` mutation still reaches canonical chat. The
-  // lexical `isInjectionAttempt` guard always runs and can never be weakened.
+  // Zero-cost safety gates first. P0-3 — a prompt that explicitly targets an
+  // installed plugin (paper order, backtest, Telegram scheduling) is an
+  // execution request the plugin's own tools own: the read-only 422 gate must
+  // not fire for it. The plugin match is deterministic and only exists for
+  // installed plugins.
   const pluginIntent = detectInstalledPluginIntent(promptText, input.installedPluginIds ?? []);
-  const injectionBlocked =
-    isInjectionAttempt(promptText) ||
-    (pluginIntent === null && jevDecision?.injectionBlocked === true);
+  const injectionBlocked = isInjectionAttempt(promptText);
   const highConfidenceMutationIntent =
     pluginIntent === null && isHighConfidenceMutationIntent(promptText);
-  const rawMutationKind =
-    input.classifiedMutationKind ?? classifyMutationRequestWithJev(promptText, jevDecision);
+  const rawMutationKind = input.classifiedMutationKind ?? classifyMutationRequest(promptText);
   const mutationKind =
     pluginIntent?.pluginId === 'paper-trading' && rawMutationKind === 'log_journal'
       ? null
@@ -146,12 +114,6 @@ export async function routeUnified(input: UnifiedRouterInput): Promise<UnifiedRo
   const decision = await decideMastraExecution({
     ...input,
     mutationRequested: mutationKind !== null,
-    jevHints: jevDecision
-      ? {
-          domain: jevDecision.domain,
-          reportFollowup: jevDecision.isReportFollowup,
-        }
-      : null,
   });
 
   const routing = decision.routing;
@@ -159,7 +121,6 @@ export async function routeUnified(input: UnifiedRouterInput): Promise<UnifiedRo
     `domain=${routing.domain}`,
     decision.symbol ? `symbol=${decision.symbol}` : 'symbol=none',
     `route=${decision.route}`,
-    jevDecision ? `jev=${jevDecision.providerId}@${jevDecision.latencyMs}ms` : 'jev=off',
     injectionBlocked ? 'injection=blocked' : null,
     mutationKind ? `mutation=${mutationKind}` : null,
     highConfidenceMutationIntent ? 'high-confidence-mutation' : null,

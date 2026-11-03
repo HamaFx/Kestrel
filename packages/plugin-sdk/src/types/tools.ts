@@ -48,7 +48,8 @@ export interface PluginToolRegistration<TInput = any, TOutput = any> {
    * but run autonomously in the Agent Sandbox account.
    */
   requiresConfirmation?:
-    boolean | ((input: TInput, ctx: PluginExecutionContext) => boolean | Promise<boolean>);
+    | boolean
+    | ((input: TInput, ctx: PluginExecutionContext) => boolean | Promise<boolean>);
   /**
    * Which core agents receive this tool when the plugin is installed.
    * Defaults to `['canonical-chat']`.
@@ -75,16 +76,3 @@ export interface PluginInlineSkill {
  * directory (resolved by Mastra at agent construction time).
  */
 export type PluginSkillInput = string | PluginInlineSkill;
-
-/**
- * Safe core tool metadata exposed to plugins that let users compose agents
- * (the custom-agents studio). The AI package registers it at boot; the plugin
- * never imports the core tool registry directly.
- */
-export interface PluginCoreToolInfo {
-  name: string;
-  description: string;
-  access: PluginToolAccess;
-  /** Category hint for the studio picker. */
-  group: 'market-data' | 'analysis' | 'research' | 'journal' | 'portfolio' | 'system' | 'other';
-}

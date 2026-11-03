@@ -21,7 +21,6 @@
 // Use --no-thresholds to keep running after first breach.
 import { sleep } from 'k6';
 
-import { env } from '../config/environments.js';
 import { stress } from '../config/load-profiles.js';
 import { STRESS, WRITE_MIX_TAGGED_RELAXED } from '../config/thresholds.js';
 import { applyAuth, bootstrapAuth, pickUser } from '../lib/auth.js';

@@ -16,13 +16,14 @@
 
 // Audit plan §1.11 — alert delivery noise control (P1-16) and channel
 // iteration (P1-17). External providers are mocked; noise state is a
-// controllable in-memory stub standing in for DbNoiseState.
+// controllable in-memory stub standing in for InMemoryNoiseState.
 
 import { DEFAULT_NOISE_CONFIG, metrics, type Alert, type NoiseConfig } from '@kestrel/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { deliverAlert } from '../src/alerts/delivery';
 import { markFiredForAlert } from '../src/alerts/persistence';
+import type * as NoiseControl from '../src/notifications/noise-control';
 import { getNoiseConfig } from '../src/notifications/noise-state';
 
 const pluginMocks = vi.hoisted(() => ({
@@ -72,14 +73,20 @@ vi.mock('../src/plugins', () => ({
 }));
 
 vi.mock('../src/notifications/noise-state', () => ({
-  DbNoiseState: class DbNoiseState {
-    constructor(public userId: string) {}
-    hasSeen = noiseMocks.hasSeen;
-    inCooldown = noiseMocks.inCooldown;
-    record = noiseMocks.record;
-  },
   getNoiseConfig: vi.fn(async (): Promise<NoiseConfig> => ({ ...DEFAULT_NOISE_CONFIG })),
 }));
+
+vi.mock('../src/notifications/noise-control', async () => {
+  const actual = await vi.importActual<typeof NoiseControl>('../src/notifications/noise-control');
+  return {
+    ...actual,
+    InMemoryNoiseState: class InMemoryNoiseState {
+      hasSeen = noiseMocks.hasSeen;
+      inCooldown = noiseMocks.inCooldown;
+      record = noiseMocks.record;
+    },
+  };
+});
 
 const fetchMock = vi.fn(async () => new Response('{"id":"resp-1"}', { status: 200 }));
 

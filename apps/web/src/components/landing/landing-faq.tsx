@@ -49,7 +49,7 @@ const FAQS: FAQItem[] = [
     id: '04',
     question: 'Do I need to configure my own AI API keys or market data feeds?',
     answer:
-      'Yes — Kestrel is self-hosted and bring-your-own-key (BYOK). You connect your own provider keys (OpenAI, Anthropic, Google, OpenRouter, or a local model) plus optional market data adapters; they are encrypted at rest with AES-256-GCM in the local vault and never leave your deployment. Local spend guardrails cap monthly and per-provider usage before a single request is sent. Feature plugins — Backtesting Lab, Paper Trading, Custom Agent Studio, and Telegram Copilot — install with one click from the Plugin Store whenever you want them.',
+      'Yes — Kestrel is self-hosted and bring-your-own-key (BYOK). You connect your own provider keys (OpenAI, Anthropic, Google, OpenRouter, or a local model) plus optional market data adapters; they are encrypted at rest with AES-256-GCM in the local vault and never leave your deployment. Local spend guardrails cap monthly and per-provider usage before a single request is sent. Feature plugins — Backtesting Lab, Paper Trading, and Telegram Copilot — install with one click from the Plugin Store whenever you want them.',
   },
   {
     id: '05',

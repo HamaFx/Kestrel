@@ -237,9 +237,9 @@ export function createKestrelEmbedder(args: KestrelEmbedderArgs): MastraEmbeddin
 export interface KestrelMemoryOptionsArgs {
   env: ResolveModelEnv;
   /**
-   * Force observational memory on regardless of the env var. Used by the
-   * worker's durable Full-mode path where the process is long-lived and
-   * background observation agents are appropriate.
+   * Force observational memory on regardless of the env var. Only call this
+   * from a long-lived process where background observation agents are
+   * appropriate.
    */
   forceObservationalMemory?: boolean;
   /**

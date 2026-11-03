@@ -14,8 +14,8 @@ function getSignal(ctx) {
     maxBars: 40,
     breakEvenAtR: 1,
     trailing: { type: 'atr', value: 1.5 },
-    reason: 'London sweep + FVG reclaim',
-    tags: ['smc', 'london'],
+    reason: 'London open reclaim of the Asian high',
+    tags: ['session', 'london'],
   };
 }
 ```
@@ -50,27 +50,22 @@ crash the run.
 - `ctx.bars` is the number of bars seen so far (1-based), while `ctx.i` is
   0-based.
 
-## SMC snapshots
+## Level snapshots
 
-Zones are point-in-time:
+Levels are point-in-time:
 
-- FVG becomes visible on its third bar (the confirmation bar).
-- Order block becomes visible after its two impulse bars.
-- Swing becomes visible after its right-hand lookback.
-- Sweep becomes visible on the sweeping bar.
-- Structure event becomes visible on the break bar.
-- `age` is the number of bars since visibility.
-
-The engine exposes only the **nearest unmitigated** zone on each side of price:
+- A swing becomes visible after its right-hand lookback bars close.
+- PDH/PDL only populate once a full prior UTC day has closed.
+- The Asian range populates at 07:00 UTC and holds until the next session.
+- `0` means "not known yet" — gate on it before comparing prices.
 
 ```js
-if (ctx.smc.fvg.bullish && ctx.low <= ctx.smc.fvg.bullish.top) {
-  // price is retesting a bullish FVG
-}
+const asianHigh = ctx.levels.asianHigh;
+if (!asianHigh || ctx.close <= asianHigh) return null;
 ```
 
-Mitigation is bar-by-bar: a wick into a zone keeps it alive, a close through the
-far side invalidates it.
+Only objective price extremes are exposed: recent swing pivots and session
+highs/lows. There are no zone or break detectors.
 
 ## Params
 
@@ -106,10 +101,12 @@ const target = ctx.close + risk * 2;
 **Limit entry**
 
 ```js
+const swingHigh = ctx.levels.swingHigh;
+if (!swingHigh) return null;
 return {
   side: 'long',
-  entry: ctx.smc.fvg.bullish.top,
-  stop: ctx.smc.fvg.bullish.bottom - ctx.atr() * 0.25,
+  entry: swingHigh,
+  stop: ctx.levels.swingLow - ctx.atr() * 0.25,
   validBars: 8,
 };
 ```

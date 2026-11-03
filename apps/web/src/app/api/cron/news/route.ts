@@ -35,12 +35,5 @@ export const maxDuration = 60;
 
 export async function GET(req: Request): Promise<Response> {
   const log = createScopedLoggerWithContext({ component: 'cron', job: 'news' });
-  return withCronAuth(
-    req,
-    async () => refreshNewsService(log),
-    // Audit 2026-10-31 (R4): the News page's Refresh button calls this route
-    // from a normal user session, so it opts into any-session access and
-    // carries its own per-user limit to protect the shared provider quota.
-    { session: 'any', sessionRateLimit: { group: 'cron_news_refresh', perMinute: 4 } },
-  );
+  return withCronAuth(req, async () => refreshNewsService(log));
 }

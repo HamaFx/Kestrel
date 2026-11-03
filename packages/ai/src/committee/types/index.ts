@@ -59,14 +59,11 @@ export {
   type MastraSpecialistName,
 } from './mode';
 export {
-  CommitteeCritiqueSchema,
-  CritiqueSchema,
   MastraModeOpinionSchema,
   OpinionSchema,
   StatsSchema,
   committeeModelMetadata,
   zeroStats,
-  type CommitteeCritique,
   type CommitteeModelMetadata,
   type MastraModeOpinion,
 } from './opinion';

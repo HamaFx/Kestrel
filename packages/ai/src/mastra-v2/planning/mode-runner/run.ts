@@ -34,7 +34,6 @@ import { rememberMarketRegime } from '@ai/memory/memory-index';
 import { createGenerationLedger } from '@ai/persistence/generation-ledger';
 
 import { logWorkflowError } from '../../logger';
-import { kestrelMemoryOptions } from '../../memory';
 import { prepareResearchRunContext } from '../../research-context';
 import { beginMastraRun, finishMastraRun, mastraOutcomeForError } from '../../shared/telemetry';
 import { assertExecutionPlanRoute } from '../execution-plan';
@@ -46,12 +45,11 @@ import { buildToolContext } from './run-context';
 import type { MastraModeResult, RunMastraModeArgs } from './types';
 
 export async function runMastraMode(args: RunMastraModeArgs): Promise<MastraModeResult> {
-  // Phase 1 (observability roadmap) — synchronous committee runs
-  // (`symbol-research`, `multi-symbol-research`, and the web full-mode stream)
-  // get their own diagnostic scope so they write durable traces. The durable
-  // worker path already wraps `runMastraMode` in `withDiagnostics`
-  // (multi-agent-analysis/execute-run.ts) — reuse that scope instead of
-  // nesting a second one that would double-persist the trace.
+  // Phase 1 (observability roadmap) — committee runs (`symbol-research`,
+  // `multi-symbol-research`, and the full-mode stream) get their own
+  // diagnostic scope so they write durable traces. A caller that already
+  // opened one reuses it instead of nesting a second scope that would
+  // double-persist the trace.
   if (getDiagnosticContext()) return executeMastraMode(args);
   return withDiagnostics(args.userId, args.threadId, () => executeMastraMode(args), {
     traceId: args.runId,
@@ -97,23 +95,8 @@ async function executeMastraMode(args: RunMastraModeArgs): Promise<MastraModeRes
   });
 
   try {
-    // The worker's durable Full-mode path is long-lived, so observational
-    // memory (background observation agents) is safe to enable there.
-    // Vercel paths keep it off (short-lived functions).
     // Shared research-run context (Phase 7): native memory preparation plus
     // research guardrails/scorers, identical to the XAUUSD research paths.
-    const memoryOptions =
-      args.telemetryKind === 'mastra_full_job'
-        ? kestrelMemoryOptions({
-            env: args.env,
-            forceObservationalMemory: true,
-            // Capability-specific semantic recall from the execution plan
-            // (Phase 9): the manifest default wins over the global gate.
-            ...(args.executionPlan
-              ? { semanticRecall: args.executionPlan.memoryPolicy.semanticRecall }
-              : {}),
-          })
-        : undefined;
     const runContext = await prepareResearchRunContext({
       userId: args.userId,
       threadId: args.threadId,
@@ -134,7 +117,6 @@ async function executeMastraMode(args: RunMastraModeArgs): Promise<MastraModeRes
       // P2-03: reuse the resolved run model for the injection detector
       // instead of resolving the user's model a second time.
       guardrailModel: resolution.model,
-      ...(memoryOptions ? { memoryOptions } : {}),
       ...(args.backfillExcludeMessageIdempotencyKey
         ? { backfillExcludeMessageIdempotencyKey: args.backfillExcludeMessageIdempotencyKey }
         : {}),
@@ -207,7 +189,7 @@ async function executeMastraMode(args: RunMastraModeArgs): Promise<MastraModeRes
       ...(args.telemetryKind ? { telemetryKind: args.telemetryKind } : {}),
     });
 
-    // Phase 3 (Jev roadmap) — record the JEPA-style market-regime descriptor for
+    // Phase 3 — record the JEPA-style market-regime descriptor for
     // this run's packet so later recalls can compare similar regimes. Best-effort:
     // a memory failure is telemetry-only and never fails the answer path.
     try {

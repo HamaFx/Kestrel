@@ -310,11 +310,12 @@ describe('parseServerEnv — defaults and transforms', () => {
     expect(env.LOG_PROMPTS).toBe(false);
   });
 
-  it('defaults to multi-user + RLS with open registration', () => {
+  it('defaults to multi-user + RLS with first-user registration', () => {
     const env = parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'test' });
     expect(env.MULTI_USER_ENABLED).toBe(true);
     expect(env.KESTREL_ENABLE_RLS).toBe(true);
-    expect(env.REGISTRATION_MODE).toBe('open');
+    expect(env.REGISTRATION_MODE).toBe('first_user');
+    expect(env.ALLOW_SHARED_OPERATOR_KEYS).toBe(false);
   });
 
   it('rejects RLS disabled while multi-user mode is on', () => {
@@ -341,6 +342,17 @@ describe('parseServerEnv — defaults and transforms', () => {
       REGISTRATION_MODE: 'disabled',
     });
     expect(env.REGISTRATION_MODE).toBe('disabled');
+  });
+
+  it('rejects first-user registration without tenant isolation', () => {
+    expect(() =>
+      parseServerEnv({
+        ...MINIMAL_ENV,
+        NODE_ENV: 'test',
+        MULTI_USER_ENABLED: '0',
+        KESTREL_ENABLE_RLS: '0',
+      }),
+    ).toThrow(/REGISTRATION_MODE=first_user or open/i);
   });
 
   it('rejects the removed owner-first registration mode', () => {

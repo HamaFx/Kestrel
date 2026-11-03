@@ -49,7 +49,6 @@ export async function deleteUserAccount(userId: string): Promise<void> {
       // Remove rows that reference chat messages/feedback before deleting the
       // owning threads. Explicit deletes also cover legacy rows whose denormalized
       // parent IDs were inconsistent but whose user_id still identifies ownership.
-      await tx.delete(schema.aiRegressionCases).where(eq(schema.aiRegressionCases.userId, userId));
       await tx.delete(schema.aiMessageFeedback).where(eq(schema.aiMessageFeedback.userId, userId));
       await tx.delete(schema.agentOpinions).where(eq(schema.agentOpinions.userId, userId));
       await tx.delete(schema.briefingsEmitted).where(eq(schema.briefingsEmitted.userId, userId));
@@ -59,11 +58,6 @@ export async function deleteUserAccount(userId: string): Promise<void> {
       await tx
         .delete(schema.memoryBackfillState)
         .where(eq(schema.memoryBackfillState.userId, userId));
-      await tx
-        .delete(schema.memoryProjectionState)
-        .where(eq(schema.memoryProjectionState.userId, userId));
-      await tx.delete(schema.fullAnalysisQueue).where(eq(schema.fullAnalysisQueue.userId, userId));
-      await tx.delete(schema.persistenceOutbox).where(eq(schema.persistenceOutbox.userId, userId));
       await tx
         .delete(schema.mutationExecutions)
         .where(eq(schema.mutationExecutions.userId, userId));
@@ -83,9 +77,6 @@ export async function deleteUserAccount(userId: string): Promise<void> {
       await tx.delete(schema.sharedSnapshots).where(eq(schema.sharedSnapshots.userId, userId));
       await tx.delete(schema.pushSubscriptions).where(eq(schema.pushSubscriptions.userId, userId));
       await tx.delete(schema.providerTests).where(eq(schema.providerTests.userId, userId));
-      await tx
-        .delete(schema.notificationNoiseState)
-        .where(eq(schema.notificationNoiseState.userId, userId));
       await tx.delete(schema.botLinks).where(eq(schema.botLinks.userId, userId));
       await tx.delete(schema.userSymbols).where(eq(schema.userSymbols.userId, userId));
       await tx.delete(schema.rateLimits).where(eq(schema.rateLimits.userId, userId));

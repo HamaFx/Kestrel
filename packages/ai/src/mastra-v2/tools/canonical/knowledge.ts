@@ -149,9 +149,6 @@ async function executeCanonicalKnowledge(
           // Audit R15 — untrusted news snippets are screened with this
           // capability's posture before they can enter the context window.
           screenMode,
-          ...(ctx ? { jevEnv: ctx.env } : {}),
-          ...(ctx?.userSettings ? { jevSettings: { aiApiKeys: ctx.userSettings.aiApiKeys } } : {}),
-          ...(ctx?.signal ? { jevSignal: ctx.signal } : {}),
           reportSink,
         })
       : Promise.resolve([]),
@@ -169,9 +166,6 @@ async function executeCanonicalKnowledge(
           ...(since !== undefined ? { since } : {}),
           ...(symbol !== undefined ? { symbol } : {}),
           ...(halflifeDays !== undefined ? { halflifeDays: halflifeDays * 4 } : {}),
-          ...(ctx ? { jevEnv: ctx.env } : {}),
-          ...(ctx?.userSettings ? { jevSettings: { aiApiKeys: ctx.userSettings.aiApiKeys } } : {}),
-          ...(ctx?.signal ? { jevSignal: ctx.signal } : {}),
           reportSink,
         })
       : Promise.resolve([]),

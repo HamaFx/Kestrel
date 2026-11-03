@@ -3,7 +3,12 @@
 // Log-stream presentation helpers: connection-status badges, severity colours
 // and the plain-text log download.
 export type LogStatus =
-  'idle' | 'connecting' | 'connected' | 'not_enabled' | 'production' | 'error';
+  | 'idle'
+  | 'connecting'
+  | 'connected'
+  | 'not_enabled'
+  | 'production'
+  | 'error';
 
 export const STATUS_BADGE: Record<LogStatus, { label: string; color: string }> = {
   idle: { label: 'Disconnected', color: 'bg-fg-subtle' },

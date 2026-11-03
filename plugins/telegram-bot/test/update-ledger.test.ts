@@ -27,12 +27,8 @@
 // Opt in with RUN_POSTGRES_RLS_TESTS=1 and TEST_POSTGRES_ADMIN_URL (the same
 // gate as the PostgreSQL RLS suites).
 
-import { randomUUID } from 'node:crypto';
-import { readdirSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import { closeDb } from '@kestrel/db';
+import { createMigratedTestDatabase, type MigratedTestDatabase } from '@kestrel/test-utils';
 import postgres from 'postgres';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
@@ -53,39 +49,12 @@ const PLUGIN_ID = 'telegram-bot';
 
 type Raw = ReturnType<typeof postgres>;
 
-let admin: Raw | null = null;
 let raw: Raw | null = null;
-let databaseName = '';
+let testDb: MigratedTestDatabase | null = null;
 const previousEnv = {
   DATABASE_URL: process.env.DATABASE_URL,
   DB_DISABLE_SSL: process.env.DB_DISABLE_SSL,
 };
-
-async function applyMigrations(client: Raw): Promise<void> {
-  const dir = join(
-    dirname(fileURLToPath(import.meta.url)),
-    '..',
-    '..',
-    '..',
-    'packages',
-    'db',
-    'drizzle',
-  );
-  const journal = JSON.parse(readFileSync(join(dir, 'meta/_journal.json'), 'utf-8'));
-  for (const entry of journal.entries ?? []) {
-    const file = readdirSync(dir).find((name: string) => name.startsWith(`${entry.tag}.sql`));
-    if (!file) throw new Error(`Missing migration ${entry.tag}`);
-    const statements = readFileSync(join(dir, file), 'utf-8').split('--> statement-breakpoint');
-    for (const statement of statements) {
-      const executable = statement
-        .split('\n')
-        .filter((line: string) => !line.trim().startsWith('--'))
-        .join('\n')
-        .trim();
-      if (executable) await client.unsafe(executable);
-    }
-  }
-}
 
 function claim(updateId: number, now?: Date) {
   return claimTelegramUpdate({
@@ -110,33 +79,15 @@ async function readEntry(
 
 describe.skipIf(!enabled || !adminUrl)('telegram update ledger — real PostgreSQL (R10)', () => {
   beforeAll(async () => {
-    admin = postgres(adminUrl!, { max: 2, prepare: false });
-    databaseName = `kestrel_tg_ledger_${randomUUID().replaceAll('-', '_')}`;
-    await admin.unsafe(`CREATE DATABASE ${databaseName}`);
-
-    const url = new URL(adminUrl!);
-    url.pathname = `/${databaseName}`;
-    const isolatedUrl = url.toString();
-
-    raw = postgres(isolatedUrl, { max: 4, prepare: false });
-    await raw.unsafe(`CREATE EXTENSION IF NOT EXISTS vector`);
-    await raw.unsafe(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon NOLOGIN; END IF;
-        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
-        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role NOLOGIN; END IF;
-      END
-      $$;
-    `);
-    await applyMigrations(raw);
+    testDb = await createMigratedTestDatabase(adminUrl!, 'kestrel_tg_ledger');
+    raw = postgres(testDb.connectionString, { max: 4, prepare: false });
     await raw.unsafe(`INSERT INTO "user" ("id","email") VALUES ($1, $2)`, [
       USER_ID,
       'telegram-ledger@example.com',
     ]);
 
     // The ledger resolves the app connection through `@kestrel/db`'s getDb().
-    process.env.DATABASE_URL = isolatedUrl;
+    process.env.DATABASE_URL = testDb.connectionString;
     process.env.DB_DISABLE_SSL = 'true';
   }, 300_000);
 
@@ -151,13 +102,7 @@ describe.skipIf(!enabled || !adminUrl)('telegram update ledger — real PostgreS
     if (previousEnv.DB_DISABLE_SSL === undefined) delete process.env.DB_DISABLE_SSL;
     else process.env.DB_DISABLE_SSL = previousEnv.DB_DISABLE_SSL;
     await raw?.end({ timeout: 5 });
-    if (admin && databaseName) {
-      try {
-        await admin.unsafe(`DROP DATABASE IF EXISTS ${databaseName} WITH (FORCE)`);
-      } finally {
-        await admin.end({ timeout: 5 });
-      }
-    }
+    await testDb?.drop();
   });
 
   it('records the claim under the plugin_storage primary key', async () => {

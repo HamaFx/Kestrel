@@ -33,13 +33,12 @@ import {
   recordProviderTestResult,
   withUserTenant,
 } from '@kestrel/db';
-import { JEV_PROVIDER_IDS, PROVIDER_IDS, type ProviderId } from '@kestrel/shared/encryption';
+import { PROVIDER_IDS, type ProviderId } from '@kestrel/shared/encryption';
 import { revalidatePath } from 'next/cache';
 
 import { auth } from '@/auth';
 
-import { BYOK_KEY_KEEP } from '../api-keys/_components/byok-key-sentinel';
-import { JEV_DECISION_KEY_KEEP } from '../api-keys/_components/jev-decision-keys';
+import { BYOK_KEY_KEEP, BYOK_KEY_REMOVE } from '../api-keys/_components/byok-key-sentinel';
 import { type SaveKeysResult } from './shared';
 
 type ProviderTestResult =
@@ -62,21 +61,21 @@ export async function updateApiKeysAction(
   const set: Record<string, string> = {};
   const remove: string[] = [];
   let clearedCount = 0;
-  // Audit 2026-10-31 (R5): write-only inputs submit the KEEP sentinel for a
-  // stored key the user did not touch, and an absent field means the form did
-  // not speak about that provider at all (older client, or a provider missing
-  // from the catalog). Both cases preserve whatever is stored — only an
-  // explicitly empty field clears a key.
+  // Audit 2026-10-31 (R5) / Phase 1 (Task 1.1): the vault inputs are
+  // write-only. An empty or absent field preserves the stored value (the form
+  // no longer prefills a sentinel), the legacy KEEP sentinel from an open
+  // pre-Phase-1 tab also preserves it, and only the explicit REMOVE sentinel
+  // deletes a provider key.
   for (const id of PROVIDER_IDS) {
     const raw = formData.get(id);
     if (raw === null) continue;
     const value = typeof raw === 'string' ? raw.trim() : '';
     if (value === BYOK_KEY_KEEP) continue;
-    if (value.length > 0) {
-      set[id] = value;
-    } else {
+    if (value === BYOK_KEY_REMOVE) {
       remove.push(id);
       clearedCount += 1;
+    } else if (value.length > 0) {
+      set[id] = value;
     }
   }
 
@@ -85,7 +84,7 @@ export async function updateApiKeysAction(
 
     // Audit 2026-10-31 (R1): read the stored payload inside the user's scope.
     // The patch below only names providers the form spoke about, so untouched
-    // keys (including the Jev decision keys and finnhub) are carried forward.
+    // keys (including finnhub) are carried forward.
     const before = await withUserTenant(userId, (db) => readUserByokState(userId, db));
 
     // STAB-10: Run all network calls (testProviderKey) BEFORE opening a
@@ -145,64 +144,6 @@ export async function updateApiKeysAction(
         clearedCount,
         at: Date.now(),
       },
-    };
-  } catch (err) {
-    return {
-      ok: false as const,
-      error: err instanceof Error ? err.message : String(err),
-    };
-  }
-}
-
-/**
- * Decision 4A — save the Jev System One decision-model keys (OpenCode /
- * Liquid / TypeSafe) without touching the chat providers or the finnhub
- * market-data key. An empty field clears that decision key; the
- * `***KEEP***` prefill sentinel (or an absent field) preserves the stored
- * value.
- */
-export async function updateJevApiKeysAction(
-  _prevState: SaveKeysResult,
-  formData: FormData,
-): Promise<SaveKeysResult> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { ok: false as const, error: 'Not authenticated' };
-  }
-
-  try {
-    const userId = session.user.id;
-
-    const set: Record<string, string> = {};
-    const remove: string[] = [];
-    let savedCount = 0;
-
-    for (const id of JEV_PROVIDER_IDS) {
-      const raw = formData.get(id);
-      // An absent field preserves the stored key (older clients, partial posts).
-      if (raw === null) continue;
-      const value = typeof raw === 'string' ? raw.trim() : '';
-      // The prefilled sentinel means "leave the stored key as-is".
-      if (value === JEV_DECISION_KEY_KEEP) continue;
-      if (value.length === 0) {
-        remove.push(id);
-        continue;
-      }
-      set[id] = value;
-      savedCount += 1;
-    }
-
-    // Preservation invariant: the chat providers and finnhub have no inputs in
-    // this form. The patch only names Jev ids, so `mergeUserByokKeys` carries
-    // every other stored key forward.
-    const merged = await withUserTenant(userId, () => mergeUserByokKeys(userId, { set, remove }));
-
-    const clearedCount = merged.removed.length;
-
-    revalidatePath('/settings/api-keys');
-    return {
-      ok: true as const,
-      data: { savedCount, clearedCount, at: Date.now() },
     };
   } catch (err) {
     return {

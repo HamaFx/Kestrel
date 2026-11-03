@@ -29,8 +29,7 @@
  *
  * Split by domain group: transport config in `./metrics-export/config`, key
  * parsing in `./metrics-export/keys`, the OTLP JSON transport in
- * `./metrics-export/otlp`, the Prometheus remote-write transport in
- * `./metrics-export/remote-write`, and the fail-closed entry in
+ * `./metrics-export/otlp`, and the fail-closed entry in
  * `./metrics-export/flush`. This file keeps every name the
  * `@kestrel/shared/metrics-export` subpath used to export.
  */
@@ -38,15 +37,10 @@
 export {
   GRAFANA_OTLP_API_KEY_ENV,
   GRAFANA_OTLP_ENDPOINT_ENV,
-  GRAFANA_RW_ENDPOINT_ENV,
-  GRAFANA_RW_INSTANCE_ID_ENV,
   buildMetricsUrl,
   grafanaOtlpConfigFromEnv,
-  grafanaRemoteWriteConfigFromEnv,
   type GrafanaOtlpConfig,
-  type GrafanaRemoteWriteConfig,
 } from './config';
 export { parseSnapshotKey } from './keys';
 export { exportMetricsToOtlp, snapshotToOtlpJson } from './otlp';
-export { exportMetricsToRemoteWrite, snapshotToPromRemoteWrite } from './remote-write';
 export { flushMetrics } from './flush';

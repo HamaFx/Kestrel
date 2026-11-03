@@ -21,7 +21,6 @@
 
 export * from './core';
 export * from './tools';
-export * from './agents';
 export * from './jobs';
 export * from './ticks';
 export * from './alert-channels';

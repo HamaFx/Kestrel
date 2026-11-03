@@ -19,7 +19,7 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { requireTenantIdForUser, schema } from '@kestrel/db';
+import { requireTenantIdForUser, schema, withDbRetry } from '@kestrel/db';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { eq } from 'drizzle-orm';
 
@@ -27,7 +27,6 @@ import { estimateCostUsd } from '../budget/cost';
 import { getDiagnosticContext } from '../diagnostics/run-context';
 import { resolveProviderMode } from '../models/byok-providers';
 import { getDb } from '../runtime/db';
-import { enqueuePersistenceFailure } from './outbox';
 
 const perlog = createCategorizedLogger('ai', { component: 'persistence' });
 
@@ -43,11 +42,11 @@ const perlog = createCategorizedLogger('ai', { component: 'persistence' });
  * pre-Mastra Title_Generator kinds `title_generated` / `title_failed` /
  * `title_skipped_budget`) are intentionally absent: nothing emits them.
  * `title_skipped_budget` cannot exist at all while the budget is ledger-only
- * (Q4 — a title is never budget-blocked). Legacy rows and queued outbox
- * payloads may still carry those kinds; they remain valid *stored* values in
- * `ChatTelemetryKind` (packages/db) and in the replay schema — budget usage
- * aggregation still reads `multi_agent_turn` / `multi_specialist_*` historical
- * rows — they are just not part of the emitted vocabulary.
+ * (Q4 — a title is never budget-blocked). Legacy rows may still carry those
+ * kinds; they remain valid *stored* values in `ChatTelemetryKind`
+ * (packages/db) — budget usage aggregation still reads `multi_agent_turn` /
+ * `multi_specialist_*` historical rows — they are just not part of the
+ * emitted vocabulary.
  */
 export const TELEMETRY_KINDS = [
   // P-03 (audit 2026-10-18): footprint-neutral name; the `mastra_xauusd_poc`
@@ -59,14 +58,10 @@ export const TELEMETRY_KINDS = [
   'mastra_xauusd_poc_failed',
   'mastra_mode',
   'mastra_mode_failed',
-  'mastra_full_job',
-  'mastra_full_job_failed',
   'mastra_worker_task',
   'mastra_worker_task_failed',
   'mastra_canonical_chat',
   'mastra_canonical_chat_failed',
-  'mastra_custom_agent',
-  'mastra_custom_agent_failed',
   'turn_failed',
 ] as const;
 
@@ -118,39 +113,35 @@ export async function recordTelemetry(t: TelemetryInput): Promise<void> {
   }
 
   try {
-    await db
-      .insert(schema.chatTelemetry)
-      .values({
-        userId,
-        ...(tenantId ? { tenantId } : {}),
-        threadId: t.threadId,
-        messageId: t.messageId,
-        traceId: t.traceId ?? context?.traceId ?? null,
-        runId: t.runId ?? context?.runId ?? null,
-        jobId: t.jobId ?? context?.jobId ?? null,
-        idempotencyKey,
-        model: t.model,
-        inputTokens: t.inputTokens,
-        outputTokens: t.outputTokens,
-        toolCalls: t.toolCalls,
-        ms: t.ms,
-        estCostUsd,
-        kind: t.kind ?? null,
-        providerMode,
-      })
-      .onConflictDoNothing({ target: schema.chatTelemetry.idempotencyKey });
+    await withDbRetry(() =>
+      db
+        .insert(schema.chatTelemetry)
+        .values({
+          userId,
+          ...(tenantId ? { tenantId } : {}),
+          threadId: t.threadId,
+          messageId: t.messageId,
+          traceId: t.traceId ?? context?.traceId ?? null,
+          runId: t.runId ?? context?.runId ?? null,
+          jobId: t.jobId ?? context?.jobId ?? null,
+          idempotencyKey,
+          model: t.model,
+          inputTokens: t.inputTokens,
+          outputTokens: t.outputTokens,
+          toolCalls: t.toolCalls,
+          ms: t.ms,
+          estCostUsd,
+          kind: t.kind ?? null,
+          providerMode,
+        })
+        .onConflictDoNothing({ target: schema.chatTelemetry.idempotencyKey }),
+    );
   } catch (err) {
-    await enqueuePersistenceFailure({
-      userId,
-      operation: 'telemetry.turn',
-      dedupeKey: `telemetry.turn:${idempotencyKey}`,
+    perlog.error('turn telemetry insert failed', {
       threadId: t.threadId,
       messageId: t.messageId,
-      traceId: t.traceId ?? context?.traceId,
-      runId: t.runId ?? context?.runId,
-      jobId: t.jobId ?? context?.jobId,
-      payload: { ...t, userId, idempotencyKey },
-      error: err,
+      kind: t.kind ?? null,
+      err: err instanceof Error ? err.message : String(err),
     });
     throw err;
   }
@@ -185,39 +176,29 @@ export async function recordToolTelemetry(t: ToolTelemetryInput): Promise<boolea
   const context = getDiagnosticContext();
   const idempotencyKey = t.idempotencyKey ?? `telemetry.tool:${randomUUID()}`;
   try {
-    await db
-      .insert(schema.chatToolTelemetry)
-      .values({
-        userId,
-        ...(tenantId ? { tenantId } : {}),
-        threadId: t.threadId,
-        messageId: t.messageId,
-        traceId: t.traceId ?? context?.traceId ?? null,
-        runId: t.runId ?? context?.runId ?? null,
-        jobId: t.jobId ?? context?.jobId ?? null,
-        idempotencyKey,
-        tool: t.tool,
-        ms: t.ms,
-        ok: t.ok,
-        errorCode: t.errorCode ?? null,
-        outputChars: t.outputChars ?? null,
-      })
-      .onConflictDoNothing({ target: schema.chatToolTelemetry.idempotencyKey });
+    await withDbRetry(() =>
+      db
+        .insert(schema.chatToolTelemetry)
+        .values({
+          userId,
+          ...(tenantId ? { tenantId } : {}),
+          threadId: t.threadId,
+          messageId: t.messageId,
+          traceId: t.traceId ?? context?.traceId ?? null,
+          runId: t.runId ?? context?.runId ?? null,
+          jobId: t.jobId ?? context?.jobId ?? null,
+          idempotencyKey,
+          tool: t.tool,
+          ms: t.ms,
+          ok: t.ok,
+          errorCode: t.errorCode ?? null,
+          outputChars: t.outputChars ?? null,
+        })
+        .onConflictDoNothing({ target: schema.chatToolTelemetry.idempotencyKey }),
+    );
     return true;
   } catch (err) {
-    await enqueuePersistenceFailure({
-      userId,
-      operation: 'telemetry.tool',
-      dedupeKey: `telemetry.tool:${idempotencyKey}`,
-      threadId: t.threadId,
-      messageId: t.messageId,
-      traceId: t.traceId ?? context?.traceId,
-      runId: t.runId ?? context?.runId,
-      jobId: t.jobId ?? context?.jobId,
-      payload: { ...t, userId, idempotencyKey },
-      error: err,
-    });
-    perlog.error('tool telemetry insert failed; queued for replay', {
+    perlog.error('tool telemetry insert failed', {
       threadId: t.threadId,
       tool: t.tool,
       ok: t.ok,

@@ -49,17 +49,6 @@ export const PROVIDER_IDS = [
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
 /**
- * Decision 4A — the Jev System One decision-model providers. These are
- * deliberately NOT part of `PROVIDER_IDS`: Jev providers are non-generative
- * decision models, so they must never appear in chat-model pickers or be
- * cleared by chat-provider key saves. The canonical tuple is shared by the
- * API-keys save action (which must carry them forward), the backup import
- * (which may restore them), and the settings UI card.
- */
-export const JEV_PROVIDER_IDS = ['opencode', 'liquid', 'typesafe'] as const;
-export type JevByokProviderId = (typeof JEV_PROVIDER_IDS)[number];
-
-/**
  * Deduplicated Set derived from PROVIDER_IDS — used by cost tracking
  * and usage analytics to canonicalize provider prefixes from model IDs.
  * Single source of truth; keep PROVIDER_IDS updated and this follows.
@@ -83,21 +72,6 @@ export interface ByokPayload {
   iamhc?: string;
   /** HCNSEC OpenAI-compatible gateway API key. */
   hcnsec?: string;
-  /**
-   * OpenCode Console API key. Serves the free `jev-1.13-free` System One
-   * endpoint ($0.00 in / $0.00 out) — deliberately NOT in PROVIDER_IDS
-   * because Jev is a non-generative decision model, not a chat LLM.
-   */
-  opencode?: string;
-  /** Direct TypeSafe AI key for `/v1/systemone` (`jev-latest`). */
-  typesafe?: string;
-  /**
-   * Liquid AI key for the d1 decision models. Complex tasks resolve to
-   * `d1-ultra` ($0.042/1M in) and simple tasks to `d1.1` ($0.02/1M in).
-   * Like the other decision-model keys, deliberately NOT in `PROVIDER_IDS`:
-   * d1 is a non-generative decision model, not a chat LLM.
-   */
-  liquid?: string;
 }
 
 /**

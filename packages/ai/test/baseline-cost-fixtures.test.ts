@@ -23,11 +23,6 @@
 import { describe, expect, it } from 'vitest';
 
 import { estimateKnownCostUsd } from '../src/budget/cost';
-import { observationalMemoryAllowanceUsd } from '../src/mastra-v2/memory';
-import {
-  FULL_ANALYSIS_ESTIMATE_USD,
-  FULL_ANALYSIS_TURN_ESTIMATE_USD,
-} from '../src/mastra-v2/workflows/full-analysis';
 import {
   createGenerationLedger,
   restoreGenerationLedger,
@@ -201,20 +196,5 @@ describe('Phase 0 cost fixtures', () => {
       'specialist:technical',
       'fusion',
     ]);
-  });
-});
-
-describe('Phase 9 — durable full-analysis reservation fixture (observational memory allowance)', () => {
-  it('reserves the visible turn plus the independent observational allowance', () => {
-    // 5.0c visible turn + 0.8c observational allowance (2 refinements × 0.4c).
-    expect(FULL_ANALYSIS_TURN_ESTIMATE_USD).toBe(0.05);
-    expect(observationalMemoryAllowanceUsd(1)).toBeCloseTo(0.008, 6);
-    expect(FULL_ANALYSIS_ESTIMATE_USD).toBeCloseTo(0.058, 6);
-    // Deterministic cents-level fixture: 5.8 cents, never float drift.
-    expect(Math.round(FULL_ANALYSIS_ESTIMATE_USD * 100_000) / 1_000).toBe(5.8);
-  });
-
-  it('keeps the observational allowance a small fraction of the turn estimate', () => {
-    expect(observationalMemoryAllowanceUsd(1) / FULL_ANALYSIS_TURN_ESTIMATE_USD).toBeLessThan(0.25);
   });
 });

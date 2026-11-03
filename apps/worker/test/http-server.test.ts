@@ -152,7 +152,7 @@ describe('worker health server', () => {
       getLastTickAt: () => 0,
       isSignalRConnected: () => false,
       isTickStreamEnabled: () => false,
-      getStuckJobs: () => [{ name: 'multi-agent-analysis', stuckForMs: 1_260_000 }],
+      getStuckJobs: () => [{ name: 'alerts', stuckForMs: 1_260_000 }],
     });
 
     const jobs = await request(wedged, '/health/jobs');
@@ -160,7 +160,7 @@ describe('worker health server', () => {
     await expect(jobs.json()).resolves.toMatchObject({
       status: 'degraded',
       jobsHealthy: false,
-      stuckJobs: [{ name: 'multi-agent-analysis', stuckForMs: 1_260_000 }],
+      stuckJobs: [{ name: 'alerts', stuckForMs: 1_260_000 }],
       oldestStuckJobMs: 1_260_000,
     });
 
@@ -186,7 +186,7 @@ describe('worker health server', () => {
       getLastTickAt: () => 0,
       isSignalRConnected: () => false,
       isTickStreamEnabled: () => false,
-      getRunningJobs: () => [{ name: 'multi-agent-analysis', runningForMs: 600_000 }],
+      getRunningJobs: () => [{ name: 'alerts', runningForMs: 600_000 }],
     });
 
     // Busy is not wedged: a 10-minute committee run must not fail the job
@@ -197,7 +197,7 @@ describe('worker health server', () => {
       status: 'ok',
       jobsHealthy: true,
       stuckJobs: [],
-      runningJobs: [{ name: 'multi-agent-analysis', runningForMs: 600_000 }],
+      runningJobs: [{ name: 'alerts', runningForMs: 600_000 }],
       idle: false,
     });
 

@@ -15,6 +15,13 @@ describe('multi-user boundary', () => {
 
     expect(env.MULTI_USER_ENABLED).toBe(true);
     expect(env.KESTREL_ENABLE_RLS).toBe(true);
+    expect(env.REGISTRATION_MODE).toBe('first_user');
+    expect(env.ALLOW_SHARED_OPERATOR_KEYS).toBe(false);
+  });
+
+  it('accepts explicit open registration with tenant isolation', () => {
+    const env = parseServerEnv({ ...base, REGISTRATION_MODE: 'open' });
+
     expect(env.REGISTRATION_MODE).toBe('open');
   });
 

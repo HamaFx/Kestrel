@@ -36,9 +36,8 @@
 // as the sibling PostgreSQL suites).
 
 import { randomUUID } from 'node:crypto';
-import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
 
+import { createMigratedTestDatabase, type MigratedTestDatabase } from '@kestrel/test-utils';
 import { eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
@@ -62,7 +61,6 @@ const ACCOUNT_ID = randomUUID();
 const MONEY_COLUMNS: ReadonlyArray<readonly [string, readonly string[]]> = [
   ['chat_telemetry', ['est_cost_usd']],
   ['agent_opinions', ['cost_usd']],
-  ['plg_custom_agents_runs', ['cost_usd']],
   ['plg_paper_trading_accounts', ['initial_balance', 'balance', 'leverage', 'risk_per_trade_pct']],
   [
     'plg_paper_trading_positions',
@@ -105,78 +103,34 @@ const MONEY_COLUMNS: ReadonlyArray<readonly [string, readonly string[]]> = [
 ];
 
 type Raw = ReturnType<typeof postgres>;
-let admin: Raw | null = null;
 let raw: Raw | null = null;
 let db: ReturnType<typeof drizzle<typeof schema>> | null = null;
-let databaseName = '';
-
-async function applyMigrations(client: Raw): Promise<void> {
-  const dir = join(process.cwd(), 'drizzle');
-  const journal = JSON.parse(readFileSync(join(dir, 'meta/_journal.json'), 'utf-8'));
-  for (const entry of journal.entries ?? []) {
-    const file = readdirSync(dir).find((name: string) => name.startsWith(`${entry.tag}.sql`));
-    if (!file) throw new Error(`Missing migration ${entry.tag}`);
-    const statements = readFileSync(join(dir, file), 'utf-8').split('--> statement-breakpoint');
-    for (const statement of statements) {
-      const executable = statement
-        .split('\n')
-        .filter((line: string) => !line.trim().startsWith('--'))
-        .join('\n')
-        .trim();
-      if (executable) await client.unsafe(executable);
-    }
-  }
-}
+let testDb: MigratedTestDatabase | null = null;
 
 describe.skipIf(!enabled || !adminUrl)('money columns are exact numeric — real PostgreSQL', () => {
   beforeAll(async () => {
-    admin = postgres(adminUrl!, { max: 2, prepare: false });
-    databaseName = `kestrel_money_exactness_${randomUUID().replaceAll('-', '_')}`;
-    await admin.unsafe(`CREATE DATABASE ${databaseName}`);
+    testDb = await createMigratedTestDatabase(adminUrl!, 'kestrel_money_exactness');
+    const isolatedUrl = testDb.connectionString;
 
-    const url = new URL(adminUrl!);
-    url.pathname = `/${databaseName}`;
-    const isolatedUrl = url.toString();
-
-    const migrateClient = postgres(isolatedUrl, { max: 1, prepare: false });
-    await migrateClient.unsafe(`CREATE EXTENSION IF NOT EXISTS vector`);
-    await migrateClient.unsafe(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon NOLOGIN; END IF;
-        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
-        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role NOLOGIN; END IF;
-      END
-      $$;
-    `);
-    await applyMigrations(migrateClient);
+    raw = postgres(isolatedUrl, { max: 1, prepare: false });
 
     // Seed the owner of the probe account (and, via the trigger, its tenant).
-    await migrateClient.unsafe(
+    await raw.unsafe(
       `INSERT INTO "user" ("id","email") VALUES ('${USER_ID}','money-exactness@example.com')`,
     );
-    await migrateClient.unsafe(
+    await raw.unsafe(
       `INSERT INTO plg_paper_trading_accounts
          (id, tenant_id, user_id, name, mode, currency, initial_balance, balance, leverage,
           risk_per_trade_pct, status, seeded)
        VALUES ($1, $2, $3, 'Exactness account', 'confirm', 'USD', 10000, 0, 30, 1, 'active', true)`,
       [ACCOUNT_ID, TENANT_ID, USER_ID],
     );
-    await migrateClient.end({ timeout: 1 });
-
-    raw = postgres(isolatedUrl, { max: 1, prepare: false });
     db = drizzle(raw, { schema });
   });
 
   afterAll(async () => {
     await raw?.end({ timeout: 5 });
-    if (admin && databaseName) {
-      try {
-        await admin.unsafe(`DROP DATABASE IF EXISTS ${databaseName} WITH (FORCE)`);
-      } finally {
-        await admin.end({ timeout: 5 });
-      }
-    }
+    await testDb?.drop();
   });
 
   it('types every converted column numeric(20, 8) and leaves market data float', async () => {

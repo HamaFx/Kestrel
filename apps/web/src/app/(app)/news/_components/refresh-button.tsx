@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 
-// Refresh button — calls the cron endpoint (session-cookie auth) then
-// asks Next to revalidate the server component. Confirmation/error
-// surface through sonner toasts (no inline status string).
+// Refresh button — calls the authenticated per-user refresh endpoint, then
+// asks Next to revalidate the server component. Confirmation/error surface
+// through sonner toasts (no inline status string).
 import { IconRefresh } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';

@@ -23,7 +23,6 @@
 // previews), so SLOs are more generous than the read-mix equivalents.
 import { sleep } from 'k6';
 
-import { env } from '../config/environments.js';
 import { averageLoad } from '../config/load-profiles.js';
 import { WRITE_MIX, WRITE_MIX_TAGGED_RELAXED } from '../config/thresholds.js';
 import { applyAuth, bootstrapAuth, pickUser } from '../lib/auth.js';

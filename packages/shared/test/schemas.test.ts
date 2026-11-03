@@ -281,47 +281,6 @@ describe('StructureResultSchema', () => {
       { index: 5, time: 1748378101000, price: 2390.5, type: 'high', lookback: 3 },
       { index: 10, time: 1748378102000, price: 2385.0, type: 'low', lookback: 3 },
     ],
-    events: [
-      {
-        kind: 'bos',
-        direction: 'bullish',
-        brokenAt: 12,
-        time: 1748378103000,
-        level: 2390.5,
-        swingIndex: 0,
-      },
-    ],
-    fvg: [
-      {
-        side: 'bullish',
-        startIndex: 8,
-        endIndex: 10,
-        startTime: 1748378101000,
-        endTime: 1748378103000,
-        top: 2391.0,
-        bottom: 2388.5,
-        mitigated: false,
-      },
-    ],
-    orderBlocks: [
-      {
-        side: 'bullish',
-        index: 7,
-        time: 1748378102000,
-        top: 2389.0,
-        bottom: 2387.5,
-        mitigated: false,
-      },
-    ],
-    liquidity: [
-      {
-        side: 'high',
-        index: 15,
-        time: 1748378104000,
-        level: 2395.0,
-        wick: 2396.2,
-      },
-    ],
     fetchedAt: 1748378105000,
   };
 
@@ -329,33 +288,31 @@ describe('StructureResultSchema', () => {
     expect(() => StructureResultSchema.parse(valid)).not.toThrow();
   });
 
-  it('accepts minimal result with only required fields', () => {
-    const parsed = StructureResultSchema.parse({
-      symbol: 'EURUSD',
-      tf: '1h',
-      bars: 50,
-      fetchedAt: 1748378101000,
-    });
-    expect(parsed.swings).toBeUndefined();
-    expect(parsed.events).toBeUndefined();
-    expect(parsed.fvg).toBeUndefined();
+  it('accepts an empty swing list', () => {
+    const parsed = StructureResultSchema.parse({ ...valid, swings: [] });
+    expect(parsed.swings).toEqual([]);
+  });
+
+  it('rejects a result without swings', () => {
+    const { swings: _, ...rest } = valid;
+    expect(() => StructureResultSchema.parse(rest)).toThrow();
   });
 
   it('rejects negative bars', () => {
     expect(() =>
-      StructureResultSchema.parse({ symbol: 'EURUSD', tf: '1h', bars: -1, fetchedAt: 1 }),
+      StructureResultSchema.parse({
+        symbol: 'EURUSD',
+        tf: '1h',
+        bars: -1,
+        swings: [],
+        fetchedAt: 1,
+      }),
     ).toThrow();
   });
 
   it('rejects invalid swing type', () => {
     expect(() =>
-      StructureResultSchema.parse({ ...valid, swings: [{ ...valid.swings![0], type: 'mid' }] }),
-    ).toThrow();
-  });
-
-  it('rejects invalid structure event kind', () => {
-    expect(() =>
-      StructureResultSchema.parse({ ...valid, events: [{ ...valid.events![0], kind: 'invalid' }] }),
+      StructureResultSchema.parse({ ...valid, swings: [{ ...valid.swings[0], type: 'mid' }] }),
     ).toThrow();
   });
 });

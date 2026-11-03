@@ -16,16 +16,15 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Mastra mode dispatch for /api/chat: bounded comparison, durable Full
-// analysis, shared-packet symbol research, and canonical conversation.
+// Mastra mode dispatch for /api/chat: bounded comparison, shared-packet
+// symbol research (single and full committee modes, both streamed over SSE),
+// and canonical conversation.
 //
 // Phase 4 Task 4 — XAUUSD runs the same dispatcher paths as every other
 // symbol; the legacy packet/report route split is retired.
 
 import type { UIMessage } from 'ai';
 
-import type { getServerEnv } from '@/lib/env';
-import type { createRequestLogger } from '@/lib/logger';
 import {
   mastraComparisonScope,
   MAX_COMPARISON_SYMBOLS,
@@ -35,33 +34,22 @@ import {
   runConversationalTurn,
   runResearchWorkflow,
 } from '@/lib/services/mastra/chat/mastra-execution';
-import type { UserSettingsRow } from '@/lib/services/settings/domain';
 
 import { ROUTE_TIMEOUT_MS } from './constants';
 import { errorJson } from './errors';
-import { enqueueFullAnalysisResponse } from './full-analysis-enqueue';
 import type { PresentationPrefs } from './presentation-prefs';
-import type { ChatUserParts } from './request-validation';
-
-type RequestLogger = ReturnType<typeof createRequestLogger>;
 
 export async function dispatchMastraRun(args: {
   userId: string;
   threadId: string;
   userMessage: UIMessage;
   userText: string;
-  userParts: ChatUserParts;
-  lastMessageId: string;
   executionPlan: ExecutionPlan | null;
-  userSettings: UserSettingsRow | null;
-  serverEnv: ReturnType<typeof getServerEnv>;
   modelOverride: string | null | undefined;
   prefs: PresentationPrefs;
-  requestId: string | undefined;
-  log: RequestLogger;
   requestSignal: AbortSignal | null;
 }): Promise<Response> {
-  const { userId, threadId, userMessage, userText, executionPlan, userSettings } = args;
+  const { userId, threadId, userMessage, userText, executionPlan } = args;
 
   // A-01 (B-01/B-08): a prompt naming more symbols than the comparison cap
   // is disambiguated at the boundary — never silently collapsed into a
@@ -72,28 +60,6 @@ export async function dispatchMastraRun(args: {
       `I can compare up to ${MAX_COMPARISON_SYMBOLS} symbols — which ones should I include?`,
       422,
     );
-  }
-
-  // Full mode remains durable: the web request enqueues a Mastra workflow
-  // run (pending snapshot) and the worker claims it.
-  if (executionPlan?.route === 'full-analysis') {
-    const settings = userSettings;
-    if (!settings) {
-      return errorJson('ONBOARDING_REQUIRED', 'User settings not found.', 409);
-    }
-    return enqueueFullAnalysisResponse({
-      userId,
-      threadId,
-      requestId: args.requestId,
-      userMessageText: userText,
-      userMessageParts: args.userParts,
-      lastMessageId: args.lastMessageId,
-      settings,
-      serverEnv: args.serverEnv,
-      modelOverride: args.modelOverride ?? null,
-      executionPlan,
-      log: args.log,
-    });
   }
 
   const timeout = AbortSignal.timeout(ROUTE_TIMEOUT_MS);
@@ -124,8 +90,9 @@ export async function dispatchMastraRun(args: {
 
   // Single-symbol research (XAUUSD included) uses the bounded shared-packet
   // Mastra mode workflow when the user has explicitly named a supported
-  // symbol. Symbol-free prompts and implicit report follow-ups fall through to
-  // canonical chat.
+  // symbol. Both analysis modes stream live desk progress over SSE; `full`
+  // runs the strict 4-of-4 committee in the same request. Symbol-free prompts
+  // and implicit report follow-ups fall through to canonical chat.
   if (executionPlan?.route === 'symbol-research' && symbol !== null) {
     return await runResearchWorkflow({
       plan: executionPlan,

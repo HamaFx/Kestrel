@@ -17,22 +17,22 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // verify step of the single-symbol committee workflow (DEC-05 split of
-// single-workflow.ts). Extracted verbatim from the former module: both modes
-// are strict — any required specialist failure (including a failed critique or
-// debate round) is terminal.
+// single-workflow.ts). The strict 4-of-4 hard gate: every required specialist
+// must have succeeded and passed deterministic verification. One missing or
+// failed desk aborts the run before fusion — a partial answer is never
+// returned to the user.
 
 import { createStep } from '@mastra/core/workflows';
 import { z } from 'zod';
 
-import { readCritiqueStepResult, readDebateStepResult } from '../critique';
 import { readCollectPacketResult, readSpecialistStepResult } from '../specialist-runner';
 import { recordCommitteeStepSpan } from '../step-spans';
 import { MastraModeStrictFailureError, type MastraSpecialistName } from '../types';
 import { VerifyOutputSchema } from '../workflow-shared';
-import type { SingleVerifyStepContext } from './context';
+import type { SingleStepContext } from './context';
 
-export function createSingleVerifyStep(ctx: SingleVerifyStepContext) {
-  const { deps, mode, specialists, strict, critiqueEnabled, debateEnabled } = ctx;
+export function createSingleVerifyStep(ctx: SingleStepContext) {
+  const { deps, mode, specialists, strict } = ctx;
 
   return createStep({
     id: 'verify',
@@ -44,23 +44,12 @@ export function createSingleVerifyStep(ctx: SingleVerifyStepContext) {
       const deadlineAgents: string[] = [];
       for (const name of specialists) {
         const marker = readSpecialistStepResult(getStepResult, name);
-        if (marker?.ok === false) {
+        // Hard gate: a desk that did not produce a verified opinion (missing
+        // marker, failed generation, or failed grounding) is a failure. Never
+        // let an absent marker pass as success.
+        if (!marker?.ok) {
           failedAgents.push(name);
-          if (marker.error === 'deadline') deadlineAgents.push(name);
-        }
-      }
-      if (critiqueEnabled) {
-        const critiqueOutput = readCritiqueStepResult(getStepResult);
-        for (const failed of critiqueOutput?.failedAgents ?? []) {
-          const name = failed as MastraSpecialistName;
-          if (!failedAgents.includes(name)) failedAgents.push(name);
-        }
-      }
-      if (debateEnabled) {
-        const debateOutput = readDebateStepResult(getStepResult);
-        for (const failed of debateOutput?.failedAgents ?? []) {
-          const name = failed as MastraSpecialistName;
-          if (!failedAgents.includes(name)) failedAgents.push(name);
+          if (marker?.error === 'deadline') deadlineAgents.push(name);
         }
       }
       const collectForSpan = readCollectPacketResult(getStepResult);

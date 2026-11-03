@@ -148,18 +148,19 @@ const ROUTE_MATRIX: MatrixCell[] = [
     },
   },
   {
-    name: 'full durable analysis',
+    name: 'full committee analysis over SSE',
     mode: 'full',
     prompt: 'Analyze EURUSD deeply',
+    credentials: true,
     expected: {
-      route: 'full-analysis',
+      route: 'symbol-research',
       capabilityId: 'symbol-research',
       streaming: false,
       readOnly: true,
       memoryMode: 'native',
       memoryRequired: true,
       symbol: 'EURUSD',
-      bareModelId: null,
+      bareModelId: 'gemini-2.5-flash',
     },
   },
   {

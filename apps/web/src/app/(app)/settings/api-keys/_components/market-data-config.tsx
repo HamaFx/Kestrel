@@ -38,7 +38,10 @@ interface MarketDataConfigProps {
 }
 
 type TestState =
-  { kind: 'idle' } | { kind: 'pending' } | { kind: 'ok' } | { kind: 'err'; message: string };
+  | { kind: 'idle' }
+  | { kind: 'pending' }
+  | { kind: 'ok' }
+  | { kind: 'err'; message: string };
 
 export function MarketDataConfig({ initialProvider, finnhubKeySet }: MarketDataConfigProps) {
   const [selected, setSelected] = useState(initialProvider);

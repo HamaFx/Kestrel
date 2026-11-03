@@ -19,7 +19,8 @@
         "scripts/**/*.mjs",
         "test/**/*.{test,spec}.{ts,tsx}",
         "test/vitest.setup.ts",
-        "tests/**/*.spec.ts"
+        "tests/**/*.spec.ts",
+        "test/vitest.node-setup.ts"
       ],
       "project": ["src/**/*.{ts,tsx}", "test/**/*.{ts,tsx}", "src/**/*.css"]
     },
@@ -113,10 +114,6 @@
         "src/ui/index.tsx",
         "test/**/*.test.ts"
       ],
-      "project": ["src/**/*.{ts,tsx}", "test/**/*.ts"]
-    },
-    "plugins/custom-agents": {
-      "entry": ["src/index.ts", "src/ui/index.tsx", "test/**/*.test.ts"],
       "project": ["src/**/*.{ts,tsx}", "test/**/*.ts"]
     },
     "plugins/paper-trading": {

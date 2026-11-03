@@ -1,4 +1,10 @@
 {
   "extends": "@kestrel/config/typescript/base",
+  "compilerOptions": {
+    "paths": {
+      "@ai/*": ["../packages/ai/src/*"],
+      "@data/*": ["../packages/data/src/*"]
+    }
+  },
   "include": ["registry.ts", "ui-registry.ts"]
 }

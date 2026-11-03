@@ -25,7 +25,12 @@ import type { Symbol, Timeframe } from '@kestrel/shared';
 export type TradeSide = 'long' | 'short';
 
 export type TradeExitReason =
-  'stop_loss' | 'take_profit' | 'trailing_stop' | 'max_bars' | 'end_of_data' | 'manual';
+  | 'stop_loss'
+  | 'take_profit'
+  | 'trailing_stop'
+  | 'max_bars'
+  | 'end_of_data'
+  | 'manual';
 
 export type EntryType = 'market' | 'limit';
 

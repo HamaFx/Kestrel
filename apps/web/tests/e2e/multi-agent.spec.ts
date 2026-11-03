@@ -75,112 +75,18 @@ test.describe('Multi-Agent Chat', () => {
     await expect(page.getByText('Bottom Line')).toBeVisible({ timeout: 15_000 });
   });
 
-  test('full mode queued worker path polls until all four specialists and Decision complete', async ({
+  test('full mode streams all four desks and the synthesis in one SSE response', async ({
     authedPage,
   }) => {
     const page = authedPage;
     let modeSeen: string | undefined;
-    let pollCount = 0;
-
-    await page.route('**/api/chat/analysis-jobs/full-e2e-job', (route) => {
-      pollCount += 1;
-      const agents = [
-        {
-          agentName: 'technical',
-          status: 'done',
-          opinion: {
-            agentName: 'technical',
-            bias: 'bullish',
-            confidence: 0.85,
-            reasoning: 'Strong 4h uptrend with bullish order flow',
-          },
-        },
-        {
-          agentName: 'fundamental',
-          status: 'done',
-          opinion: {
-            agentName: 'fundamental',
-            bias: 'bullish',
-            confidence: 0.8,
-            reasoning: 'Real rates falling and dollar index softening',
-          },
-        },
-        {
-          agentName: 'risk',
-          status: 'done',
-          opinion: {
-            agentName: 'risk',
-            bias: 'neutral',
-            confidence: 0.65,
-            reasoning: 'ATR elevated; keep stop distance wide',
-          },
-        },
-        {
-          agentName: 'sentiment',
-          status: 'done',
-          opinion: {
-            agentName: 'sentiment',
-            bias: 'bullish',
-            confidence: 0.7,
-            reasoning: 'Retail net short while ETF inflows rise',
-          },
-        },
-        {
-          agentName: 'decision',
-          status: 'done',
-          opinion: {
-            agentName: 'decision',
-            bias: 'bullish',
-            confidence: 0.8,
-            reasoning: 'Aligned technical and macro picture supports long exposure',
-          },
-        },
-      ];
-
-      if (pollCount === 1) {
-        return route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            status: 'running',
-            progress: agents.slice(0, 2).map((a) => ({
-              agentName: a.agentName,
-              status: 'done',
-              opinion: a.opinion,
-            })),
-          }),
-        });
-      }
-
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          status: 'complete',
-          result: {
-            finalText:
-              '**Bottom Line:** XAUUSD is strongly bullish across technical and macro desks.',
-            agentOpinions: agents.map((a) => a.opinion),
-            mode: 'full',
-            totalCostUsd: 0.04,
-            totalLatencyMs: 4200,
-            messageId: 'final-assistant-message-id',
-          },
-          progress: agents,
-        }),
-      });
-    });
-
     await page.route('**/api/chat', (route) => {
       modeSeen = route.request().postDataJSON()?.analysisMode;
       return route.fulfill({
         status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          type: 'analysis-queued',
-          jobId: 'full-e2e-job',
-          status: 'queued',
-        }),
+        contentType: 'text/event-stream',
+        headers: { 'Cache-Control': 'no-cache', Connection: 'keep-alive' },
+        body: FULL_MODE_SSE,
       });
     });
 
@@ -193,51 +99,28 @@ test.describe('Multi-Agent Chat', () => {
     await expect(page.getByLabel('Fundamental agent: done')).toBeVisible({ timeout: 15_000 });
     await expect(page.getByLabel('Risk agent: done')).toBeVisible({ timeout: 15_000 });
     await expect(page.getByLabel('Sentiment agent: done')).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByLabel('Decision agent: done')).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/strongly bullish across technical and macro/i)).toBeVisible({
+    await expect(page.getByText(/XAUUSD is bullish with moderate confidence/i)).toBeVisible({
       timeout: 15_000,
     });
-    await expect.poll(() => pollCount, { timeout: 15_000 }).toBeGreaterThanOrEqual(2);
   });
 
-  test('full mode displays error badges and surfaces failure banner when committee fails', async ({
+  test('full mode surfaces a strict committee failure on the same SSE stream', async ({
     authedPage,
   }) => {
     const page = authedPage;
-    let pollCount = 0;
-
-    const progress = {
-      agentName: 'sentiment',
-      status: 'error',
-      error: 'provider rate limit exceeded',
-    };
-
-    await page.route('**/api/chat/analysis-jobs/full-degraded-job', (route) => {
-      pollCount += 1;
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(
-          pollCount === 1
-            ? { status: 'running', progress: [progress] }
-            : {
-                status: 'failed',
-                progress: [progress],
-                error: 'Full analysis could not be completed. No partial answer was returned.',
-              },
-        ),
-      });
-    });
-
     await page.route('**/api/chat', (route) =>
       route.fulfill({
         status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          type: 'analysis-queued',
-          jobId: 'full-degraded-job',
-          status: 'queued',
-        }),
+        contentType: 'text/event-stream',
+        headers: { 'Cache-Control': 'no-cache', Connection: 'keep-alive' },
+        body: [
+          'data: {"type":"data-agent-progress","data":{"agents":[{"agentName":"technical","status":"done"},{"agentName":"fundamental","status":"done"},{"agentName":"risk","status":"done"},{"agentName":"sentiment","status":"running"}],"mode":"full","stage":"verify"}}',
+          '',
+          'data: {"type":"error","errorText":"Committee analysis could not complete. Failed agents: sentiment. No partial answer was returned."}',
+          '',
+          'data: {"type":"turn-complete","id":"failed-turn","status":"failed"}',
+          '',
+        ].join('\n'),
       }),
     );
 
@@ -245,12 +128,10 @@ test.describe('Multi-Agent Chat', () => {
     await page.getByRole('textbox').fill('Analyze XAUUSD despite missing sentiment data.');
     await page.getByRole('textbox').press('Enter');
 
-    await expect(page.getByLabel('Sentiment agent: error')).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByLabel('Decision agent: error')).toBeVisible();
-    await expect(page.getByText(/Full analysis was not completed/i)).toBeVisible();
-    await expect(page.getByText(/No partial answer was returned/i)).toBeVisible();
+    await expect(page.getByText(/No partial answer was returned/i)).toBeVisible({
+      timeout: 15_000,
+    });
     await expect(page.getByText(/degraded committee result/i)).not.toBeVisible();
-    await expect.poll(() => pollCount, { timeout: 15_000 }).toBeGreaterThanOrEqual(2);
   });
 
   test('analysis mode pill arms Fast Scout (single) and Convene Council (full)', async ({
@@ -326,55 +207,5 @@ test.describe('Multi-Agent Chat', () => {
 
     await expect.poll(() => modeSeen, { timeout: 15_000 }).toBe('full');
     await expect(page.getByText('Multi-Agent')).toBeVisible({ timeout: 15_000 });
-  });
-
-  test('full mode survives one transient worker poll failure', async ({ authedPage }) => {
-    const page = authedPage;
-    let pollCount = 0;
-    await page.route('**/api/chat/analysis-jobs/full-retry-job', (route) => {
-      pollCount += 1;
-      if (pollCount === 1) {
-        return route.fulfill({
-          status: 503,
-          contentType: 'application/json',
-          body: JSON.stringify({ error: 'worker restarting' }),
-        });
-      }
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          status: 'complete',
-          result: {
-            finalText: '**Bottom Line:** worker recovered and completed the Full-mode decision.',
-            agentOpinions: [],
-            mode: 'full',
-            totalCostUsd: 0.01,
-            totalLatencyMs: 3000,
-            messageId: 'retry-assistant-message',
-          },
-        }),
-      });
-    });
-    await page.route('**/api/chat', (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          type: 'analysis-queued',
-          jobId: 'full-retry-job',
-          status: 'queued',
-        }),
-      }),
-    );
-
-    await selectAnalysisMode(page, 'full');
-    await page.getByRole('textbox').fill('Run Full mode while the worker restarts.');
-    await page.getByRole('textbox').press('Enter');
-
-    await expect(page.getByText(/worker recovered and completed/i)).toBeVisible({
-      timeout: 20_000,
-    });
-    await expect.poll(() => pollCount, { timeout: 20_000 }).toBeGreaterThanOrEqual(2);
   });
 });

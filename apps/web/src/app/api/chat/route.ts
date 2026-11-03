@@ -46,7 +46,6 @@ import { withRateLimit } from '@/lib/services/rate-limit';
 import { getUserWithSettings } from '@/lib/services/settings';
 
 import { CHAT_RATE_LIMIT } from './_lib/constants';
-import { dispatchCustomAgent } from './_lib/custom-agent-dispatch';
 import {
   chatRateLimitResponse,
   errorJson,
@@ -106,19 +105,6 @@ export const POST = withAuth<void>(async (req, { user }) => {
       409,
     );
   }
-
-  // ── Standalone custom agents (`@handle` or an explicit composer pick) ──
-  const agentResponse = await dispatchCustomAgent({
-    userId: user.userId,
-    threadId: body.threadId,
-    userMessage,
-    userText,
-    agentSlug: body.agentSlug,
-    modelOverride: body.modelOverride,
-    prefs: { customInstructions, responseStyle, citeSources },
-    requestSignal: req.signal,
-  });
-  if (agentResponse) return agentResponse;
 
   const provisionalReport = isMastraXauusdFollowupCandidate(userText)
     ? await listMessages(user.userId, body.threadId, 100)
@@ -213,7 +199,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
 
   // Lexical high-confidence mutation gate — only blocks unambiguous trade
   // commands that the model classifier may have missed. Prompts targeting an
-  // installed plugin (paper orders, backtests, Telegram, custom agents) are
+  // installed plugin (paper orders, backtests, Telegram) are
   // exempt: their own tools enforce `requiresConfirmation` instead.
   if (highConfidenceMutationIntent) {
     return errorJson(
@@ -229,15 +215,9 @@ export const POST = withAuth<void>(async (req, { user }) => {
       threadId: body.threadId,
       userMessage,
       userText,
-      userParts,
-      lastMessageId: last.id,
       executionPlan,
-      userSettings,
-      serverEnv,
       modelOverride: body.modelOverride,
       prefs: { customInstructions, responseStyle, citeSources },
-      requestId: req.headers.get('x-request-id') ?? undefined,
-      log,
       requestSignal: req.signal,
     });
   } catch (error) {

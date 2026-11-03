@@ -185,7 +185,6 @@ export async function runMastraModeChatStream(input: RunMastraModeChatInput): Pr
                     memoryBackfill: result.memoryBackfill,
                     modelSnapshot: result.modelSnapshot,
                     agentOpinions: result.agentOpinions,
-                    committeeCritiques: result.committeeCritiques ?? [],
                   },
                 } as UIMessage['parts'][number],
               ],
@@ -193,23 +192,22 @@ export async function runMastraModeChatStream(input: RunMastraModeChatInput): Pr
             return { result, observedCost, assistantMessage };
           },
           buildAssistantMessage: ({ assistantMessage }) => assistantMessage!,
-          // Phase 3 (Jev roadmap) — record one `agent_opinions` row per desk
-          // after the assistant message is durable, so the scheduled
-          // opinion-calibration job can grade desk accuracy. Best-effort.
-          afterPersist: async ({ messageId: persistedMessageId, result }) => {
-            await saveAgentOpinionsBestEffort({
-              userId: input.userId,
-              threadId: input.threadId,
-              messageId: persistedMessageId,
-              analysisMode: result.mode,
-              symbol: result.symbol,
-              opinions: result.agentOpinions,
-            });
-          },
           isCancelled: () => input.signal?.aborted === true,
         });
 
         const result = execution.result;
+
+        // Best-effort per-desk cost/latency attribution for the settings usage
+        // page. The assistant message is already durable, so this can never
+        // fail the turn.
+        await saveAgentOpinionsBestEffort({
+          userId: input.userId,
+          threadId: input.threadId,
+          messageId: execution.messageId,
+          analysisMode: result.mode,
+          symbol: result.symbol,
+          opinions: result.agentOpinions,
+        });
 
         emit({ type: 'text-start', id: messageId });
         emit({ type: 'text-delta', id: messageId, delta: result.finalText });
@@ -221,7 +219,6 @@ export async function runMastraModeChatStream(input: RunMastraModeChatInput): Pr
             'complete',
             result.agentOpinions,
             input.symbols,
-            result.committeeCritiques,
           ),
         });
         emit({
@@ -247,7 +244,6 @@ export async function runMastraModeChatStream(input: RunMastraModeChatInput): Pr
             memoryBackfill: result.memoryBackfill,
             modelSnapshot: result.modelSnapshot,
             agentOpinions: result.agentOpinions,
-            committeeCritiques: result.committeeCritiques ?? [],
             messageId: execution.messageId,
           },
         });

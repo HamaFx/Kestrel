@@ -20,25 +20,39 @@ import { defineConfig } from 'vitest/config';
 
 const maxWorkers = process.env.CI ? 2 : Math.max(2, Math.floor(os.availableParallelism() / 2));
 
+// These suites touch process-wide Mastra singletons, env snapshots, module
+// caches, or shared circuit-breaker state. They must not share a module graph
+// with other files.
+const isolatedInclude = [
+  'test/mastra-*.test.ts',
+  'test/telemetry*.test.ts',
+  'test/model-circuit-breaker.test.ts',
+  'test/env-fallback-keys.test.ts',
+  'test/alerts-claim-postgres.test.ts',
+  'test/phase2-concurrency.test.ts',
+];
+
 export default defineConfig({
-  esbuild: { target: 'es2022' },
   resolve: {
     conditions: ['source'],
+    alias: {
+      'server-only': new URL('./test/__mocks__/server-only.ts', import.meta.url).pathname,
+      '@ai': new URL('./src', import.meta.url).pathname,
+    },
   },
   test: {
     // Vitest 5 shares one filesystem module cache per workspace by default;
     // turbo runs every package's suite in parallel, so keep the cache
     // package-local to avoid concurrent-cache races.
     fsModuleCachePath: 'node_modules/.vitest-cache',
-    pool: 'forks',
+    pool: 'threads',
     maxWorkers,
     environment: 'node',
-    // B-09 / P-07 (audit 2026-10-18): this package keeps process-global test
-    // singletons (`globalForMastraInstance`, `globalForMastraStorage`). Test
-    // files must not share module state, so file isolation is a hard
-    // requirement here — do NOT enable `isolate: false` for speed.
-    isolate: true,
-    include: ['test/**/*.test.ts', 'src/**/*.test.ts'],
+    deps: {
+      optimizer: {
+        ssr: { enabled: true },
+      },
+    },
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
@@ -58,9 +72,27 @@ export default defineConfig({
         inline: ['server-only'],
       },
     },
-    alias: {
-      'server-only': new URL('./test/__mocks__/server-only.ts', import.meta.url).pathname,
-      '@ai': new URL('./src', import.meta.url).pathname,
-    },
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'ai-fast',
+          // The suite mocks modules and mutates process env at file scope, so
+          // keep file isolation. The fast/isolated split still pins the
+          // singleton-heavy files to an explicit project.
+          isolate: true,
+          include: ['test/**/*.test.ts', 'src/**/*.test.ts'],
+          exclude: isolatedInclude,
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'ai-isolated',
+          isolate: true,
+          include: isolatedInclude,
+        },
+      },
+    ],
   },
 });

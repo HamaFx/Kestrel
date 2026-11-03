@@ -17,8 +17,6 @@
  */
 import { IconAlertTriangle, IconClock, IconDatabase } from '@tabler/icons-react';
 
-import { normalizeCritiques } from '@/lib/chat-transport/job-result';
-
 import { useWarRoomOpen } from '../war-room-context';
 import { type AgentProgress } from './agent-deliberation/agent-meta';
 import { ReportBody } from './mastra-report-body';
@@ -48,7 +46,6 @@ export function MastraReportPart({ data }: { data: unknown }) {
       symbol?: string;
       dataQuality?: string;
       agentOpinions: SyndicateTradeOpinion[];
-      committeeCritiques?: unknown[];
     };
     const agents: AgentProgress[] = multiData.agentOpinions.map((op) => ({
       agentName: op.agentName,
@@ -68,7 +65,6 @@ export function MastraReportPart({ data }: { data: unknown }) {
         agents={agents}
         opinions={agents}
         mode={multiData.mode ?? 'full'}
-        critiques={normalizeCritiques(multiData.committeeCritiques)}
         symbol={multiData.symbol ?? null}
         tradeOpinions={multiData.agentOpinions}
         compactInline={warRoomOpen}

@@ -38,9 +38,8 @@
 // Opt in with RUN_POSTGRES_RLS_TESTS=1 and TEST_POSTGRES_ADMIN_URL.
 
 import { randomUUID } from 'node:crypto';
-import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
 
+import { createMigratedTestDatabase, type MigratedTestDatabase } from '@kestrel/test-utils';
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -57,25 +56,7 @@ const TENANT_B = USER_B;
 
 let admin: ReturnType<typeof postgres> | null = null;
 let isolatedClient: ReturnType<typeof postgres> | null = null;
-let databaseName = '';
-
-async function applyMigrations(client: ReturnType<typeof postgres>): Promise<void> {
-  const dir = join(process.cwd(), 'drizzle');
-  const journal = JSON.parse(readFileSync(join(dir, 'meta/_journal.json'), 'utf-8'));
-  for (const entry of journal.entries ?? []) {
-    const file = readdirSync(dir).find((name: string) => name.startsWith(`${entry.tag}.sql`));
-    if (!file) throw new Error(`Missing migration ${entry.tag}`);
-    const statements = readFileSync(join(dir, file), 'utf-8').split('--> statement-breakpoint');
-    for (const statement of statements) {
-      const executable = statement
-        .split('\n')
-        .filter((line: string) => !line.trim().startsWith('--'))
-        .join('\n')
-        .trim();
-      if (executable) await client.unsafe(executable);
-    }
-  }
-}
+let testDb: MigratedTestDatabase | null = null;
 
 /** Minimal shape of a transaction handle for the raw queries below. */
 interface TxLike {
@@ -100,25 +81,10 @@ async function asAppRole<T>(fn: (tx: TxLike) => Promise<T>, tenant?: string): Pr
 describe.skipIf(!enabled || !adminUrl)('application role enforces RLS on the real schema', () => {
   beforeAll(async () => {
     admin = postgres(adminUrl!, { max: 2, prepare: false });
-    databaseName = `kestrel_app_role_${randomUUID().replaceAll('-', '_')}`;
-    await admin.unsafe(`CREATE DATABASE ${databaseName}`);
-
-    const url = new URL(adminUrl!);
-    url.pathname = `/${databaseName}`;
-    const isolated = url.toString();
+    testDb = await createMigratedTestDatabase(adminUrl!, 'kestrel_app_role');
+    const isolated = testDb.connectionString;
 
     const migrateClient = postgres(isolated, { max: 1, prepare: false });
-    await migrateClient.unsafe(`CREATE EXTENSION IF NOT EXISTS vector`);
-    await migrateClient.unsafe(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon NOLOGIN; END IF;
-        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
-        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role NOLOGIN; END IF;
-      END
-      $$;
-    `);
-    await applyMigrations(migrateClient);
 
     // Seed two users (their personal organizations are created by the trigger).
     await migrateClient.unsafe(
@@ -133,10 +99,8 @@ describe.skipIf(!enabled || !adminUrl)('application role enforces RLS on the rea
 
   afterAll(async () => {
     await isolatedClient?.end({ timeout: 2 });
-    if (admin) {
-      await admin.unsafe(`DROP DATABASE IF EXISTS ${databaseName} WITH (FORCE)`);
-      await admin.end({ timeout: 2 });
-    }
+    if (admin) await admin.end({ timeout: 2 });
+    await testDb?.drop();
   });
 
   it('connects as a role that cannot bypass row level security', async () => {
@@ -258,7 +222,7 @@ describe.skipIf(!enabled || !adminUrl)('application role enforces RLS on the rea
       );
 
       const url = new URL(adminUrl!);
-      url.pathname = `/${databaseName}`;
+      url.pathname = `/${testDb!.databaseName}`;
       url.username = probeRole;
       url.password = probePassword;
       probeUrl = url.toString();

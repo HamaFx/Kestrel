@@ -103,19 +103,11 @@ const WorkerEnvSchema = z.object({
   HC_UPDATE_UUID: optionalNonEmpty,
   HC_JOB_EMBEDDING_BACKFILL_UUID: optionalNonEmpty,
   HC_JOB_BRIEFINGS_UUID: optionalNonEmpty,
-  HC_JOB_SNAPSHOTS_UUID: optionalNonEmpty,
   HC_JOB_COT_UUID: optionalNonEmpty,
   HC_JOB_FRED_ACTUALS_UUID: optionalNonEmpty,
-  HC_JOB_WEEKLY_REVIEW_UUID: optionalNonEmpty,
   HC_JOB_RESONANCE_SYNC_UUID: optionalNonEmpty,
   HC_JOB_ALERTS_UUID: optionalNonEmpty,
-  HC_JOB_BUDGET_RECOVERY_UUID: optionalNonEmpty,
-  HC_JOB_PERSISTENCE_RECOVERY_UUID: optionalNonEmpty,
   HC_JOB_RETENTION_UUID: optionalNonEmpty,
-  HC_JOB_DATASET_EXPORT_UUID: optionalNonEmpty,
-  HC_JOB_METRICS_FLUSH_UUID: optionalNonEmpty,
-  HC_JOB_MULTI_AGENT_ANALYSIS_UUID: optionalNonEmpty,
-  HC_JOB_OPINION_CALIBRATION_UUID: optionalNonEmpty,
   HC_DISK_CHECK_UUID: optionalNonEmpty,
   HC_TENANT_DELETE_UUID: optionalNonEmpty,
   HC_TENANT_EXPORT_UUID: optionalNonEmpty,
@@ -137,8 +129,7 @@ const WorkerEnvSchema = z.object({
   RATE_LIMIT_RETENTION_HOURS: z.coerce.number().int().min(1).max(720).prefault(2),
   PROVIDER_DAILY_QUOTA_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(3),
   CRON_RUN_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(30),
-  ANALYSIS_JOB_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(7),
-  PERSISTENCE_OUTBOX_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(30),
+  CANDLES_1M_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(14),
   BUDGET_RESERVATION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(90),
 
   // `.default` (not `.prefault`) keeps the inferred output a narrow `string`;
@@ -149,8 +140,8 @@ const WorkerEnvSchema = z.object({
 
   /**
    * 'docker' runs the internal node-cron scheduler, which is what this repo
-   * ships (see `infra/cron-vm/` compose files and `scripts/botkeep-start.mjs`;
-   * no job systemd units exist in the repository).
+   * ships (see `docker-compose.yml`; no job systemd units exist in the
+   * repository).
    * 'systemd' expects the operator to provide their own one-shot units
    * invoking `node dist/runner/cli.js <job>`; with no units, no core or
    * plugin job runs at all.
@@ -173,8 +164,6 @@ const WorkerEnvSchema = z.object({
 
   BINANCE_CRYPTO_SYMBOLS: optionalNonEmpty,
   BINANCE_WS_URL: optionalUrl,
-  DATASETS_DIR: optionalNonEmpty,
-  EVAL_REPORTS_DIR: optionalNonEmpty,
 });
 
 export type WorkerEnv = z.infer<typeof WorkerEnvSchema>;

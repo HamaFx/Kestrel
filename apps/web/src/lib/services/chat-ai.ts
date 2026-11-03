@@ -19,8 +19,7 @@
 // Phase 3 Task 4 — AI chat orchestration service boundary.
 //
 // Replaces the `api-boundary.ts` pass-through for the chat pipeline: unified
-// routing, execution plans, the full-analysis queue, and the confirmed-mutation
-// workflow. Route handlers and their `_lib` helpers import from here instead
+// routing, execution plans, and the confirmed-mutation workflow. Route handlers and their `_lib` helpers import from here instead
 // of `@kestrel/ai/mastra-v2` so the controller stays on the service layer.
 
 import 'server-only';
@@ -29,14 +28,10 @@ export {
   assertMastraMutationAllowed,
   assertRegisteredSystemAction,
   assertSystemActionAuthorized,
-  cancelFullAnalysisRun,
   cancelMutationWorkflow,
   createExecutionPlan,
   createMutationWorkflow,
-  enqueueFullAnalysis,
   extractMastraSymbols,
-  getFullAnalysisQueueHealth,
-  getFullAnalysisRun,
   getKestrelMastra,
   isHighConfidenceMutationIntent,
   isInjectionAttempt,
@@ -47,7 +42,6 @@ export {
   MutationExtractionError,
   MutationKindSchema,
   parseMutationRunContext,
-  resolveMastraModeModel,
   resolveMode,
   routeUnified,
   runMutationWorkflow,
@@ -60,12 +54,7 @@ export {
   type MutationExecutor,
   type MutationExecutorResult,
 } from '@kestrel/ai/mastra-v2';
-export {
-  extractUserMessageText,
-  isBudgetEnforced,
-  syncIntermarketResonance,
-  withDiagnostics,
-} from '@kestrel/ai';
+export { extractUserMessageText, isBudgetEnforced, syncIntermarketResonance } from '@kestrel/ai';
 export { BudgetExceededError } from '@kestrel/ai/cost';
 export {
   executeMutationOnce,

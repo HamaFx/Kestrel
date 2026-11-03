@@ -122,18 +122,17 @@ describe('Phase 10 — Migration hash stability guard', () => {
 });
 
 describe('Phase 2 — schema/migration parity', () => {
-  it('registers 0122 as the latest journal entry and keeps files consistent', () => {
+  it('registers 0124 as the latest journal entry and keeps files consistent', () => {
     const plan = buildMigrationPlan(DRIZZLE_DIR);
     expect(() => assertMigrationPlanIsConsistent(plan)).not.toThrow();
-    expect(plan.entries.at(-1)?.tag).toBe('0122_audit_phase4_cleanup');
+    expect(plan.entries.at(-1)?.tag).toBe('0124_drop_bloat_tables');
   });
 
-  it('defines composite primary keys on the memory state tables', async () => {
+  it('defines a composite primary key on the memory backfill state table', async () => {
     const { getTableConfig } = await import('drizzle-orm/pg-core');
     const schema = await import('../src/schema');
 
     expect(getTableConfig(schema.memoryBackfillState).primaryKeys).toHaveLength(1);
-    expect(getTableConfig(schema.memoryProjectionState).primaryKeys).toHaveLength(1);
   });
 
   it('restores the 0028 CHECK constraints and synced 0032 indexes', async () => {

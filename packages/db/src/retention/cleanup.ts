@@ -18,8 +18,8 @@
 //
 // Shared between the web cron route and the worker job. Cleanup is bounded
 // per statement and only removes disposable/terminal records; pending work,
-// active leases, retryable outbox rows, unresolved budget reservations,
-// active Telegram deduplication rows, and unexpired share snapshots survive.
+// active leases, unresolved budget reservations, and unexpired share
+// snapshots survive. `candles_1m` keeps the trailing chart window only.
 //
 // Audit v2 §4.4 (P2-4): also covers the Mastra runtime observational-memory
 // table. Mastra's own `prune()` cannot touch it — the table is excluded from
@@ -52,11 +52,10 @@ function isoCutoff(now: Date, milliseconds: number): string {
  * Run retention cleanup for operational and recovery tables.
  *
  * Terminal-only rules:
- * - outbox: completed/dead rows only
  * - analysis jobs: complete/failed rows with a completion timestamp
+ * - candles_1m: everything before the trailing multi-day window
  * - budget ledger: reconciled/released rows only
  * - share snapshots: expired rows only
- * - notification noise state: expired rows only
  * - Mastra observational memory: rows whose last write predates the cutoff
  */
 export async function runRetentionCleanup(
@@ -74,11 +73,7 @@ export async function runRetentionCleanup(
     retention.providerDailyQuotaRetentionDays * 24 * 60 * 60 * 1_000,
   ).slice(0, 10);
   const cronCutoff = isoCutoff(now, retention.cronRunRetentionDays * 24 * 60 * 60 * 1_000);
-  const outboxCutoff = isoCutoff(now, retention.outboxRetentionDays * 24 * 60 * 60 * 1_000);
-  const analysisJobCutoff = isoCutoff(
-    now,
-    retention.analysisJobRetentionDays * 24 * 60 * 60 * 1_000,
-  );
+  const candlesCutoff = isoCutoff(now, retention.candles1mRetentionDays * 24 * 60 * 60 * 1_000);
   const budgetCutoff = isoCutoff(
     now,
     retention.budgetReservationRetentionDays * 24 * 60 * 60 * 1_000,
@@ -104,16 +99,7 @@ export async function runRetentionCleanup(
     providerQuotaCutoff,
   );
   const cronRunsDeleted = await deleteBatched(db, 'cron_runs', 'started_at', cronCutoff);
-  const outboxDeleted = await deleteBatchedWhere(
-    db,
-    'persistence_outbox',
-    `status IN ('completed', 'dead') AND updated_at < '${outboxCutoff}'`,
-  );
-  const fullAnalysisQueueDeleted = await deleteBatchedWhere(
-    db,
-    'full_analysis_queue',
-    `status IN ('succeeded', 'failed', 'cancelled', 'blocked') AND completed_at IS NOT NULL AND completed_at < '${analysisJobCutoff}'`,
-  );
+  const candles1mDeleted = await deleteBatched(db, 'candles_1m', 't', candlesCutoff);
   const budgetReservationsDeleted = await deleteBatchedWhere(
     db,
     'ai_budget_reservations',
@@ -125,12 +111,6 @@ export async function runRetentionCleanup(
     db,
     'shared_snapshots',
     `expires_at < '${now.toISOString()}'`,
-  );
-  const notificationNoiseStateDeleted = await deleteBatched(
-    db,
-    'notification_noise_state',
-    'expires_at',
-    now.toISOString(),
   );
   // Audit v2 §4.4 (P2-4) — Mastra's observational-memory table is excluded
   // from the storage domain's own retention tables, so prune() can never
@@ -159,11 +139,9 @@ export async function runRetentionCleanup(
     rateLimitsDeleted,
     providerDailyQuotaDeleted,
     cronRunsDeleted,
-    outboxDeleted,
-    fullAnalysisQueueDeleted,
+    candles1mDeleted,
     budgetReservationsDeleted,
     sharedSnapshotsDeleted,
-    notificationNoiseStateDeleted,
     mastraObservationalMemoryDeleted,
   };
 

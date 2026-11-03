@@ -27,9 +27,8 @@ export async function registerBundledPlugins(log: Logger): Promise<void> {
   try {
     const { ensureBundledPluginsRegistered } = await import('@kestrel/plugins');
     ensureBundledPluginsRegistered();
-    const { syncPluginCoreTools, syncPluginIndicators } = await import('@kestrel/ai/plugins');
+    const { syncPluginIndicators } = await import('@kestrel/ai/plugins');
     syncPluginIndicators();
-    await syncPluginCoreTools();
   } catch (err) {
     log.error('plugin registration failed; continuing with core capabilities only', {
       err: err instanceof Error ? err.message : String(err),

@@ -63,7 +63,8 @@ describe('runEmbeddingBackfill', () => {
     expect(backfillEmbeddings).toHaveBeenCalledTimes(1);
 
     const args = vi.mocked(backfillEmbeddings).mock.calls[0]?.[0] as
-      Record<string, unknown> | undefined;
+      | Record<string, unknown>
+      | undefined;
     expect(args?.['batchSize']).toBe(32);
     // Phase 8 cap: 1024 rows per run, up from the Vercel-bound 256.
     expect(args?.['maxRows']).toBe(1024);
@@ -81,7 +82,8 @@ describe('runEmbeddingBackfill', () => {
     await runEmbeddingBackfill({ log, signal: ac.signal, tenantRouter: testRouter });
 
     const args = vi.mocked(backfillEmbeddings).mock.calls[0]?.[0] as
-      Record<string, unknown> | undefined;
+      | Record<string, unknown>
+      | undefined;
     expect(args?.['signal']).toBe(ac.signal);
   });
 });

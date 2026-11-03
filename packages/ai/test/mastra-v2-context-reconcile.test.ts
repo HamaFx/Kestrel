@@ -2,21 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { backfillThreadHistoryIfNeeded } from '../src/mastra-v2/context';
 
-const {
-  claimMemoryBackfill,
-  completeMemoryBackfill,
-  failMemoryBackfill,
-  getMemoryBackfillState,
-  markMemoryProjectionFailed,
-  markMemoryProjectionProjected,
-} = vi.hoisted(() => ({
-  claimMemoryBackfill: vi.fn(),
-  completeMemoryBackfill: vi.fn(),
-  failMemoryBackfill: vi.fn(),
-  getMemoryBackfillState: vi.fn(),
-  markMemoryProjectionFailed: vi.fn(),
-  markMemoryProjectionProjected: vi.fn(),
-}));
+const { claimMemoryBackfill, completeMemoryBackfill, failMemoryBackfill, getMemoryBackfillState } =
+  vi.hoisted(() => ({
+    claimMemoryBackfill: vi.fn(),
+    completeMemoryBackfill: vi.fn(),
+    failMemoryBackfill: vi.fn(),
+    getMemoryBackfillState: vi.fn(),
+  }));
 const listMessages = vi.hoisted(() => vi.fn());
 
 vi.mock('@kestrel/db', () => ({
@@ -24,8 +16,6 @@ vi.mock('@kestrel/db', () => ({
   completeMemoryBackfill,
   failMemoryBackfill,
   getMemoryBackfillState,
-  markMemoryProjectionFailed,
-  markMemoryProjectionProjected,
 }));
 vi.mock('../src/persistence', () => ({ listMessages }));
 

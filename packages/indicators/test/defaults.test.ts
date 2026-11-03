@@ -16,7 +16,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { defaultSwingLookback } from '../src/smc/defaults';
+import { defaultSwingLookback } from '../src/structure/defaults';
 
 describe('defaultSwingLookback', () => {
   it.each([

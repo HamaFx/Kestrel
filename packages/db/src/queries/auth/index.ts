@@ -21,6 +21,7 @@
 export type { AuthUserRow } from './types';
 export {
   createUserWithSettings,
+  FirstUserRegistrationClosedError,
   getUserByEmail,
   getTokenVersion,
   incrementFailedLogins,

@@ -31,8 +31,8 @@ const tplog = createCategorizedLogger('ai', { component: 'thread-persistence' })
  * P1-7 — thread-scoped memory rows that have no FK to `chat_threads`.
  *
  * `chat_messages` cascades via its FK, but the legacy→Mastra migration
- * checkpoints (`memory_backfill_state`, `memory_projection_state`) and the
- * `thread_synopsis` memory embeddings key on a plain-text thread id, so a
+ * checkpoint (`memory_backfill_state`) and the `thread_synopsis` memory
+ * embeddings key on a plain-text thread id, so a
  * thread delete used to leave them orphaned — "deleted" conversation content
  * stayed queryable for the retention window. Deleting them in the same
  * transaction keeps the business row and its derived state consistent.
@@ -50,15 +50,6 @@ export async function deleteThreadMemoryState(
         eq(schema.memoryBackfillState.userId, userId),
         eq(schema.memoryBackfillState.tenantId, tenantId),
         eq(schema.memoryBackfillState.threadId, threadId),
-      ),
-    );
-  await tx
-    .delete(schema.memoryProjectionState)
-    .where(
-      and(
-        eq(schema.memoryProjectionState.userId, userId),
-        eq(schema.memoryProjectionState.tenantId, tenantId),
-        eq(schema.memoryProjectionState.threadId, threadId),
       ),
     );
   // Thread synopses are embeddings derived from the thread's messages

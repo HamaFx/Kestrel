@@ -29,7 +29,6 @@ import type {
   KestrelPluginManifest,
   PluginAgentTarget,
   PluginApiRouteHandler,
-  PluginCoreToolInfo,
   PluginId,
   PluginPublicApiRouteHandler,
   PluginSkillInput,
@@ -40,10 +39,9 @@ import type {
   RegisteredPluginSkill,
   RegisteredPluginTickSubscriber,
   RegisteredPluginTool,
-  RegisteredPluginUserAgentCatalog,
 } from '../types';
 import { collectCapabilities } from './collect';
-import { installedPlugins, resolveAgentCatalogs, resolveSkills, resolveTools } from './resolution';
+import { installedPlugins, resolveSkills, resolveTools } from './resolution';
 import { assert, assertKebabId } from './validation';
 
 export interface RegisteredPlugin {
@@ -51,7 +49,6 @@ export interface RegisteredPlugin {
   readonly manifest: KestrelPluginManifest;
   readonly tools: readonly RegisteredPluginTool[];
   readonly skills: readonly PluginSkillInput[];
-  readonly agentCatalogs: readonly RegisteredPluginUserAgentCatalog[];
   readonly jobs: readonly RegisteredPluginJob[];
   readonly tickSubscribers: readonly RegisteredPluginTickSubscriber[];
   readonly alertChannels: readonly RegisteredPluginAlertChannel[];
@@ -80,9 +77,7 @@ export class PluginHost {
   private readonly tickSubscribers = new Map<string, RegisteredPluginTickSubscriber>();
   private readonly alertChannels = new Map<string, RegisteredPluginAlertChannel>();
   private readonly indicators = new Map<string, RegisteredPluginIndicator>();
-  private readonly agentCatalogs = new Map<string, RegisteredPluginUserAgentCatalog>();
   private readonly packetEnrichers = new Map<string, RegisteredPluginPacketEnricher>();
-  private coreTools: readonly PluginCoreToolInfo[] = [];
   private readonly apiRoutes = new Map<string, Readonly<Record<string, PluginApiRouteHandler>>>();
   private readonly publicApiRoutes = new Map<
     string,
@@ -132,7 +127,6 @@ export class PluginHost {
       manifest,
       tools: capabilities.tools,
       skills: capabilities.skills,
-      agentCatalogs: capabilities.agentCatalogs,
       jobs: capabilities.jobs,
       tickSubscribers: capabilities.tickSubscribers,
       alertChannels: capabilities.alertChannels,
@@ -148,9 +142,6 @@ export class PluginHost {
     }
     for (const channel of capabilities.alertChannels) this.alertChannels.set(channel.id, channel);
     for (const indicator of capabilities.indicators) this.indicators.set(indicator.kind, indicator);
-    for (const catalog of capabilities.agentCatalogs) {
-      this.agentCatalogs.set(`${catalog.pluginId}:${catalog.id}`, catalog);
-    }
     for (const enricher of capabilities.packetEnrichers) {
       this.packetEnrichers.set(`${enricher.pluginId}:${enricher.id}`, enricher);
     }
@@ -191,32 +182,6 @@ export class PluginHost {
 
   resolveSkillsForUser(installedPluginIds: readonly string[]): readonly RegisteredPluginSkill[] {
     return resolveSkills(this.plugins, installedPluginIds);
-  }
-
-  /**
-   * Per-user agent catalogs belonging to installed plugins.
-   *
-   * The core asks each catalog for its user's agents; a catalog from an
-   * uninstalled plugin is never returned.
-   */
-  resolveAgentCatalogsForUser(
-    installedPluginIds: readonly string[],
-  ): readonly RegisteredPluginUserAgentCatalog[] {
-    return resolveAgentCatalogs(this.agentCatalogs, installedPluginIds);
-  }
-
-  /**
-   * Register the safe core tool catalog used by user-agent studios.
-   *
-   * Host-injected so plugin packages never import the core tool registry.
-   * Idempotent; the latest registration wins (boot + tests).
-   */
-  setCoreTools(tools: readonly PluginCoreToolInfo[]): void {
-    this.coreTools = [...tools];
-  }
-
-  getCoreTools(): readonly PluginCoreToolInfo[] {
-    return this.coreTools;
   }
 
   getTool(name: string): RegisteredPluginTool | undefined {
@@ -285,11 +250,9 @@ export class PluginHost {
     this.tickSubscribers.clear();
     this.alertChannels.clear();
     this.indicators.clear();
-    this.agentCatalogs.clear();
     this.packetEnrichers.clear();
     this.apiRoutes.clear();
     this.publicApiRoutes.clear();
-    this.coreTools = [];
   }
 }
 

@@ -81,8 +81,8 @@ vi.mock('../src/journal/persistence', () => ({
       exit: 2520,
       outcome: 'win',
       rMultiple: 2.0,
-      tags: ['smc', 'london'],
-      notes: 'Clean FVG tap at London open',
+      tags: ['session', 'london'],
+      notes: 'Clean session-level retest at the London open',
     },
   ]),
 }));

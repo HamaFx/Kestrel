@@ -24,7 +24,6 @@ import { z } from 'zod';
 import { POST } from '@/app/api/chat/route';
 
 const {
-  mockEnqueueFullAnalysis,
   mockGetUserWithSettings,
   mockGetThread,
   mockWithRateLimit,
@@ -36,7 +35,6 @@ const {
   mockTripWire,
   mockGetInstalledPluginIdsForUser,
 } = vi.hoisted(() => ({
-  mockEnqueueFullAnalysis: vi.fn(),
   mockGetUserWithSettings: vi.fn(),
   mockGetThread: vi.fn(),
   mockWithRateLimit: vi.fn(),
@@ -161,10 +159,10 @@ vi.mock('@/lib/services/chat-ai', () => ({
         mutationKind: null,
         highConfidenceMutationIntent: /\bbuy\b|\bsell\b/i.test(text),
         capabilityId: symbol ? 'symbol-research' : null,
-        route: input.mode === 'full' ? 'full-analysis-queue' : 'canonical-chat',
+        route: symbol ? 'symbol-research' : 'canonical-chat',
         modelPurpose: 'canonical-chat',
         rationale: 'test',
-        decision: { route: input.mode === 'full' ? 'full-analysis-queue' : 'canonical-chat' },
+        decision: { route: symbol ? 'symbol-research' : 'canonical-chat' },
         routing: { domain: 'technical', planRequired: false, rationale: 'test' },
       };
     },
@@ -182,7 +180,6 @@ vi.mock('@/lib/services/chat-ai', () => ({
     !/\b(?:buy|sell|enter|exit|execute|place|open|close|trade|position|portfolio|journal|alert|notify|schedule|automate)\b/i.test(
       prompt,
     ),
-  enqueueFullAnalysis: mockEnqueueFullAnalysis,
   isMastraMutationEnabled: () => false,
   classifyMutationRequest: () => null,
   resolveMastraModeModel: () => ({
@@ -215,11 +212,9 @@ vi.mock('@/lib/services/chat-ai', () => ({
       version: 1,
       route: comparisonActive
         ? 'multi-symbol-research'
-        : mode === 'full'
-          ? 'full-analysis'
-          : plannedSymbol
-            ? 'symbol-research'
-            : 'canonical-chat',
+        : plannedSymbol
+          ? 'symbol-research'
+          : 'canonical-chat',
       capabilityId: plannedSymbol ? 'symbol-research' : null,
       capabilityVersion: 'test',
       symbol: comparisonActive ? null : plannedSymbol,
@@ -292,7 +287,6 @@ vi.mock('@kestrel/shared', async (importOriginal) => {
   const actual = await importOriginal<typeof SharedModule>();
   return {
     ...actual,
-    AnalysisQueuedEventSchema: { parse: (value: unknown) => value },
     UserMessagePartsSchema: z.array(z.unknown()).transform((parts) => parts),
     PresentationPreferencesSchema: z.object({ customInstructions: z.string().optional() }),
   };
@@ -324,6 +318,9 @@ function body(overrides: Record<string, unknown> = {}): Record<string, unknown> 
 describe('POST /api/chat Mastra boundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // clearAllMocks keeps implementations; reset the previous test's rejection.
+    mockRunMastraModeChatStream.mockReset();
+    mockRunMastraModeChatStream.mockImplementation(() => new Response('mode', { status: 200 }));
     mockWithRateLimit.mockResolvedValue({ allowed: true, count: 1, limit: 30 });
     mockGetInstalledPluginIdsForUser.mockResolvedValue([]);
     mockGetThread.mockResolvedValue({ id: 'thread-1', userId: 'user-1' });
@@ -334,15 +331,9 @@ describe('POST /api/chat Mastra boundary', () => {
         embeddingModel: null,
       },
     });
-    mockEnqueueFullAnalysis.mockResolvedValue('run-1');
     mockDecideMastraExecution.mockImplementation(
-      async ({ mode, symbol }: { mode: string; symbol: string | null }) => ({
-        route:
-          mode === 'full'
-            ? 'full-analysis'
-            : symbol !== null
-              ? 'symbol-research'
-              : 'canonical-chat',
+      async ({ symbol }: { mode: string; symbol: string | null }) => ({
+        route: symbol !== null ? 'symbol-research' : 'canonical-chat',
         routing: { domain: 'generic', planRequired: false, rationale: 'test' },
         capability: null,
         model: null,
@@ -475,21 +466,20 @@ describe('POST /api/chat Mastra boundary', () => {
     expect(mockRunMastraModeChatStream).not.toHaveBeenCalled();
   });
 
-  it('queues Full mode for the Mastra worker with authoritative-history semantics', async () => {
+  it('streams Full mode over SSE through the 4-desk committee', async () => {
     const response = await POST(request(body({ analysisMode: 'full' })), {
       params: Promise.resolve(undefined),
     });
 
     expect(response.status).toBe(200);
-    expect(mockEnqueueFullAnalysis).toHaveBeenCalledWith(
+    expect(mockRunMastraModeChatStream).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: 'user-1',
         threadId: '11111111-1111-4111-8111-111111111111',
-        idempotencyKey: expect.stringContaining('full:'),
-        traceId: 'trace-route-1',
+        symbol: 'XAUUSD',
+        mode: 'full',
       }),
     );
-    expect(mockRunMastraModeChatStream).not.toHaveBeenCalled();
   });
 
   it('passes an explicit model override to the Mastra canonical agent', async () => {
@@ -631,21 +621,15 @@ describe('POST /api/chat Mastra boundary', () => {
     expect(await response.json()).toMatchObject({ error: { code: 'INJECTION_BLOCKED' } });
   });
 
-  it('serializes Full mode model overrides onto the durable queue (Q7)', async () => {
+  it('passes Full mode model overrides to the streaming committee', async () => {
     const response = await POST(
       request(body({ analysisMode: 'full', modelOverride: 'mistral:mistral-small-latest' })),
       { params: Promise.resolve(undefined) },
     );
 
     expect(response.status).toBe(200);
-    expect(mockEnqueueFullAnalysis).toHaveBeenCalledTimes(1);
-    expect(mockEnqueueFullAnalysis).toHaveBeenCalledWith(
-      expect.objectContaining({
-        modelSnapshot: expect.objectContaining({
-          modelId: 'google/gemini-3.6-flash',
-          providerId: 'google',
-        }),
-      }),
+    expect(mockRunMastraModeChatStream).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: 'full', modelOverride: 'mistral:mistral-small-latest' }),
     );
   });
 
@@ -660,13 +644,12 @@ describe('POST /api/chat Mastra boundary', () => {
     });
     expect(mockRunMastraModeChatStream).not.toHaveBeenCalled();
     expect(mockRunMastraCanonicalChatStreamService).not.toHaveBeenCalled();
-    expect(mockEnqueueFullAnalysis).not.toHaveBeenCalled();
   });
 
   it("rejects a turn addressed to another user's thread before any model work", async () => {
     // A thread lookup scoped to the authenticated user returns nothing for a
     // mismatched owner — the route must fail closed with 404 and never touch
-    // a provider or queue.
+    // a provider.
     mockGetThread.mockResolvedValue(null);
 
     const response = await POST(request(body()), { params: Promise.resolve(undefined) });
@@ -675,60 +658,5 @@ describe('POST /api/chat Mastra boundary', () => {
     expect(await response.json()).toMatchObject({ error: { code: 'NOT_FOUND' } });
     expect(mockRunMastraModeChatStream).not.toHaveBeenCalled();
     expect(mockRunMastraCanonicalChatStreamService).not.toHaveBeenCalled();
-    expect(mockEnqueueFullAnalysis).not.toHaveBeenCalled();
-  });
-
-  it('reuses a stable idempotency key for duplicate Full-mode requests', async () => {
-    const first = await POST(request(body({ analysisMode: 'full' })), {
-      params: Promise.resolve(undefined),
-    });
-    const second = await POST(request(body({ analysisMode: 'full' })), {
-      params: Promise.resolve(undefined),
-    });
-
-    expect(first.status).toBe(200);
-    expect(second.status).toBe(200);
-    expect(mockEnqueueFullAnalysis).toHaveBeenCalledTimes(2);
-    expect(mockEnqueueFullAnalysis).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        idempotencyKey: 'full:11111111-1111-4111-8111-111111111111:user-message-1',
-      }),
-    );
-    expect(mockEnqueueFullAnalysis).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        idempotencyKey: 'full:11111111-1111-4111-8111-111111111111:user-message-1',
-      }),
-    );
-  });
-
-  it('derives the idempotency key from the user message id (retry-safe scope)', async () => {
-    const withDifferentMessage = body({
-      analysisMode: 'full',
-      messages: [
-        {
-          id: 'user-message-2',
-          role: 'user',
-          content: 'Analyze gold again',
-          parts: [{ type: 'text', text: 'Analyze gold again' }],
-        },
-      ],
-    });
-    const first = await POST(request(withDifferentMessage), {
-      params: Promise.resolve(undefined),
-    });
-    const second = await POST(request(withDifferentMessage), {
-      params: Promise.resolve(undefined),
-    });
-
-    expect(first.status).toBe(200);
-    expect(second.status).toBe(200);
-    expect(mockEnqueueFullAnalysis).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        idempotencyKey: 'full:11111111-1111-4111-8111-111111111111:user-message-2',
-      }),
-    );
   });
 });

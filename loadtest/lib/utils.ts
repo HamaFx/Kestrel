@@ -27,7 +27,7 @@ export function uuidv4(): string {
   return out;
 }
 
-export function formatTextSummary(data: Record<string, any>): string {
+export function formatTextSummary(data: Record<string, unknown>): string {
   const lines: string[] = ['=== Kestrel k6 Load Test Summary ==='];
   const metrics = (data.metrics ?? {}) as Record<
     string,

@@ -19,7 +19,7 @@
 // §3.5 step 4: GET /api/cron/cleanup-tokens — purges expired
 // verificationTokens rows. Idempotent; safe to run frequently.
 //
-// Schedule: daily via the GCE VM systemd timer or Vercel cron.
+// Schedule: daily via Vercel cron or an external scheduler.
 
 import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';

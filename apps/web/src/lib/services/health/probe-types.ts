@@ -42,18 +42,7 @@ export interface ChatAggregate {
   turns: number;
 }
 
-export interface AnalysisAggregate {
-  stale: number;
-  stuck: number;
-}
-
 export interface OperationalAggregate {
-  fullTotal: number;
-  fullCompleted: number;
-  fullFailed: number;
-  outboxTerminal: number;
-  outboxCompleted: number;
-  outboxDead: number;
   budgetTerminal: number;
   budgetErrors: number;
   traceTotal: number;

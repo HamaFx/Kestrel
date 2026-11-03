@@ -27,13 +27,9 @@ import { z } from 'zod';
 import { SymbolSchema } from '../../domain/symbols';
 import { TimeframeSchema } from '../../domain/timeframes';
 
-/** Categories the model can request from `annotate_chart`. */
+/** Objective levels the model can request from `annotate_chart`. */
 export const AnnotateChartKindSchema = z.union([
   z.literal('swings'),
-  z.literal('bos_choch'),
-  z.literal('fvg'),
-  z.literal('order_blocks'),
-  z.literal('liquidity'),
   z.literal('pdh_pdl'),
   z.literal('asian_range'),
 ]);

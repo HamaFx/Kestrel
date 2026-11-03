@@ -49,8 +49,8 @@ export interface CanonicalEvidenceCheck {
  * Tool names that count as evidence for numeric claims in a canonical reply.
  *
  * Core market tools match the lexical namespaces; the plugin namespaces
- * (`backtest_*`, `paper_*`, `custom_agent_run_script`, `delegate_to_agent_*`,
- * `telegram_*`, …) are included so plugin results can ground their own numbers
+ * (`backtest_*`, `paper_*`, `telegram_*`, …) are included so plugin results
+ * can ground their own numbers
  * instead of tripping `CanonicalEvidenceBlockedError` (P0-5).
  */
 const MARKET_TOOL_PATTERN =

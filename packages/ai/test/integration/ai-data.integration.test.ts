@@ -18,7 +18,7 @@
 //
 // The previous revision mocked BOTH @kestrel/data and @kestrel/indicators,
 // turning this file into duplicate mock-only unit tests. The indicator and
-// SMC packages are real workspace code with deterministic math, so the only
+// Indicator packages are real workspace code with deterministic math, so the only
 // boundary that needs a mock is the external market-data fetch
 // (@kestrel/data getCandles / getPrice). Every asserted number below is
 // computed by the real @kestrel/indicators package at runtime.
@@ -88,8 +88,10 @@ const execStructure = executeCanonicalMarketStructure as unknown as (input: {
   symbol: string;
   tf: string;
   bars: number;
-  swings?: Array<{ type: string; price: number; index: number }>;
-  events?: Array<{ kind: string; direction: string; index: number; level: number }>;
+  swings: Array<{ type: string; price: number; index: number }>;
+  recentSwingHigh: number | null;
+  recentSwingLow: number | null;
+  rangeSize: number | null;
   summary: string;
 }>;
 
@@ -120,7 +122,7 @@ const TREND_CLOSES = [
   2688, 2691,
 ];
 
-/** 40-bar zigzag — produces alternating swing highs/lows plus BOS/CHoCH events. */
+/** 40-bar zigzag — produces alternating swing highs and lows. */
 const ZIGZAG_CLOSES = [
   100, 101, 102, 103, 102, 101, 100, 99, 98, 99, 100, 101, 102, 103, 104, 105, 104, 103, 102, 101,
   100, 99, 98, 97, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 106, 105, 104, 103,
@@ -176,7 +178,7 @@ describe('AI tools → real @kestrel/indicators integration', () => {
     expect(rsiValues[rsiValues.length - 1]).toBeGreaterThan(60);
   });
 
-  it('get_market_structure derives real swings, BOS/CHoCH events and summary from the candle window', async () => {
+  it('get_market_structure derives real swings and a swing range from the candle window', async () => {
     const candles = makeCandles(ZIGZAG_CLOSES);
     mockGetCandles.mockResolvedValue(candles);
 
@@ -191,17 +193,17 @@ describe('AI tools → real @kestrel/indicators integration', () => {
 
     expect(mockGetCandles).toHaveBeenCalledWith('XAUUSD', '1h', { count: 40 });
     expect(result.bars).toBe(40);
-    expect(result.swings).toEqual(expected.swings!.slice(-15));
-    expect(result.events).toEqual(expected.events!.slice(-15));
+    expect(result.swings).toEqual(expected.swings.slice(-15));
 
-    // Real structural features: alternating pivots plus both event kinds.
-    expect(result.swings!.some((s) => s.type === 'high')).toBe(true);
-    expect(result.swings!.some((s) => s.type === 'low')).toBe(true);
-    const kinds = result.events!.map((e) => e.kind);
-    expect(kinds).toContain('bos');
-    expect(kinds).toContain('choch');
+    // Real structural features: alternating pivots and a positive swing range.
+    expect(result.swings.some((s) => s.type === 'high')).toBe(true);
+    expect(result.swings.some((s) => s.type === 'low')).toBe(true);
+    expect(result.recentSwingHigh).not.toBeNull();
+    expect(result.recentSwingLow).not.toBeNull();
+    expect(result.rangeSize).toBeGreaterThan(0);
     expect(result.summary).toContain('swings');
-    expect(result.summary).toContain('last structure');
+    expect(result.summary).toContain('recent high');
+    expect(result.summary).toContain('recent low');
   });
 
   it('verify_call agrees when the nearest real swing high sits beyond the target', async () => {

@@ -62,14 +62,6 @@ export async function deleteAllThreads(userId: string): Promise<void> {
         ),
       );
     await tx
-      .delete(schema.memoryProjectionState)
-      .where(
-        and(
-          eq(schema.memoryProjectionState.userId, userId),
-          eq(schema.memoryProjectionState.tenantId, tenantId),
-        ),
-      );
-    await tx
       .delete(schema.memoryEmbeddings)
       .where(
         and(

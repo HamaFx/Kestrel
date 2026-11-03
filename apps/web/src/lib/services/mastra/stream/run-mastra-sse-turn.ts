@@ -17,7 +17,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Phase 4 Task 3 — the single SSE turn lifecycle shared by the canonical chat,
-// custom-agent, and XAUUSD conversation streaming services.
+// and XAUUSD conversation streaming services.
 //
 // A service supplies only its agent-specific stream factory (`openStream`) and
 // its tail (`finalize`): the shared runner owns budget reservation, user
@@ -62,7 +62,7 @@ interface MastraSseTurnOpenContext {
   /**
    * Queue a live tool event for in-band delivery. Events are drained before,
    * between, and after text chunks. `markEmitted: false` keeps the completion
-   * tool part eligible for the post-text tail (custom-agent semantics).
+   * tool part eligible for the post-text tail.
    */
   emitToolEvent: (event: MastraSseToolEvent, options?: { markEmitted?: boolean }) => void;
 }
@@ -127,7 +127,7 @@ export interface RunMastraSseTurnArgs<
   recoverCompletion?: (
     context: MastraSseTurnRecoveryContext,
   ) => Promise<MastraSseTurnRecovery | null>;
-  /** Post-settle hook (custom-agent run records and terminal diagnostics). */
+  /** Post-settle hook (terminal diagnostics and run bookkeeping). */
   afterSettle?: (context: {
     completed: TCompletion;
     observedCost: number;

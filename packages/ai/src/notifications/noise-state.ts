@@ -14,14 +14,11 @@
  * limitations under the License.
  */
 
-// F4 — Notification Noise Control Persistence
-//
-// DB-backed noise state using the notification_noise_state table.
-// This replaces the in-memory state for multi-instance deployments
-// (Vercel/Docker) so all instances share the same dedup/cooldown view.
+// F4 — Notification Noise Control configuration persistence.
 //
 // Noise config and route config are stored as JSONB in the existing
-// user_settings table (notificationPreferences field).
+// user_settings table (notificationPreferences field). Dedup/cooldown state
+// is process-local (`InMemoryNoiseState`) — there is no per-user state table.
 
 import { requireTenantIdForUser, schema } from '@kestrel/db';
 import {
@@ -30,93 +27,9 @@ import {
   type NoiseConfig,
   type RouteConfig,
 } from '@kestrel/shared';
-import { and, eq, lt } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { getDb } from '../runtime/db';
-import type { NoiseState } from './noise-control';
-
-// ---------------------------------------------------------------------------
-// DB-backed noise state
-// ---------------------------------------------------------------------------
-
-export class DbNoiseState implements NoiseState {
-  private userId: string;
-
-  constructor(userId: string) {
-    this.userId = userId;
-  }
-
-  async hasSeen(dedupKey: string, _ttlSeconds: number): Promise<boolean> {
-    const db = getDb();
-    const tenantId = await requireTenantIdForUser(this.userId, db);
-    const rows = await db
-      .select({ expiresAt: schema.notificationNoiseState.expiresAt })
-      .from(schema.notificationNoiseState)
-      .where(
-        and(
-          eq(schema.notificationNoiseState.userId, this.userId),
-          eq(schema.notificationNoiseState.tenantId, tenantId),
-          eq(schema.notificationNoiseState.dedupKey, dedupKey),
-        ),
-      )
-      .limit(1);
-    // If the entry exists and hasn't expired, it's a duplicate
-    return rows.length > 0 && rows[0]!.expiresAt > new Date();
-  }
-
-  async inCooldown(cooldownKey: string, cooldownSeconds: number): Promise<boolean> {
-    const db = getDb();
-    const tenantId = await requireTenantIdForUser(this.userId, db);
-    const cutoff = new Date(Date.now() - cooldownSeconds * 1000);
-    const rows = await db
-      .select({ lastSentAt: schema.notificationNoiseState.lastSentAt })
-      .from(schema.notificationNoiseState)
-      .where(
-        and(
-          eq(schema.notificationNoiseState.userId, this.userId),
-          eq(schema.notificationNoiseState.tenantId, tenantId),
-          eq(schema.notificationNoiseState.routeType, cooldownKey),
-        ),
-      )
-      .limit(1);
-    return rows.length > 0 && rows[0]!.lastSentAt > cutoff;
-  }
-
-  async record(dedupKey: string, cooldownKey: string): Promise<void> {
-    const db = getDb();
-    const tenantId = await requireTenantIdForUser(this.userId, db);
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24h expiry
-
-    await db
-      .insert(schema.notificationNoiseState)
-      .values({
-        userId: this.userId,
-        tenantId,
-        dedupKey,
-        routeType: cooldownKey,
-        lastSentAt: now,
-        expiresAt,
-      })
-      .onConflictDoUpdate({
-        target: [schema.notificationNoiseState.userId, schema.notificationNoiseState.dedupKey],
-        set: {
-          routeType: cooldownKey,
-          lastSentAt: now,
-          expiresAt,
-        },
-      });
-  }
-
-  /** Purge expired entries — call from a cron or periodic cleanup. */
-  static async purgeExpired(): Promise<number> {
-    const db = getDb();
-    const result = await db
-      .delete(schema.notificationNoiseState)
-      .where(lt(schema.notificationNoiseState.expiresAt, new Date()));
-    return (result as { count?: number }).count ?? (result as { rowCount?: number }).rowCount ?? 0;
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Noise config persistence — stored in user_settings.notificationPreferences

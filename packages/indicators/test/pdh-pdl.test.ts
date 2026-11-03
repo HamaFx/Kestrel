@@ -17,7 +17,7 @@
 import type { Candle } from '@kestrel/shared';
 import { describe, expect, it } from 'vitest';
 
-import { computePdhPdl } from '../src/smc/pdh-pdl';
+import { computePdhPdl } from '../src/structure/pdh-pdl';
 
 function makeCandle(h: number, l: number, t: number): Candle {
   return {

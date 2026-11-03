@@ -55,7 +55,7 @@ export async function runLlmCommittee(args: {
 
   const runId = crypto.randomUUID();
   // The nested committee run gets its own ledger: committee entry ids
-  // (`specialist:*`, `critique:*`, `fusion`) are not namespaced, so a
+  // (`specialist:*`, `fusion`) are not namespaced, so a
   // shared ledger would silently drop the spend of a second committee call
   // in the same turn. The run's total is folded into the caller's turn
   // ledger below, where the budget reservation settles it.

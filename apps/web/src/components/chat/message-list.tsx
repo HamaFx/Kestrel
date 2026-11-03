@@ -184,7 +184,6 @@ export const MessageList = memo(function MessageList({
                         {...(agentProgress.comparisonSymbols
                           ? { comparisonSymbols: agentProgress.comparisonSymbols }
                           : {})}
-                        {...(agentProgress.critiques ? { critiques: agentProgress.critiques } : {})}
                         {...(agentProgress.stage ? { stage: agentProgress.stage } : {})}
                         {...(agentProgress.symbol ? { symbol: agentProgress.symbol } : {})}
                       />

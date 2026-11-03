@@ -407,16 +407,4 @@ describe('Composer — analysis mode pill', () => {
     const singleButton = screen.getByRole('button', { name: 'Analysis mode: Fast Scout' });
     expect(singleButton.getAttribute('aria-pressed')).toBe('true');
   });
-
-  it('does not render the mode pill for a standalone custom agent', () => {
-    render(
-      <Composer
-        onSubmit={vi.fn()}
-        analysisMode="single"
-        onAnalysisModeChange={vi.fn()}
-        selectedAgentSlug="gold-desk"
-      />,
-    );
-    expect(screen.queryByRole('group', { name: 'Analysis mode' })).toBeNull();
-  });
 });

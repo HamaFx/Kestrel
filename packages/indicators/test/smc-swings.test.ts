@@ -17,7 +17,7 @@
 import type { Candle } from '@kestrel/shared';
 import { describe, expect, it } from 'vitest';
 
-import { findSwings } from '../src/smc/swings';
+import { findSwings } from '../src/structure/swings';
 
 function bar(idx: number, h: number, l: number, c: number = (h + l) / 2): Candle {
   return {

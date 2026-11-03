@@ -111,7 +111,7 @@ const LICENSE_HEADER = `/**
  */
 `;
 
-function packageJson({ id, name, description }) {
+function packageJson({ id, description }) {
   return `${JSON.stringify(
     {
       name: `@kestrel/plugin-${id}`,

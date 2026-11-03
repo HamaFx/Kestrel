@@ -18,7 +18,6 @@
 
 import type { Symbol } from '@kestrel/shared';
 
-import type { JevEnv, JevSettings } from '../../jev/types';
 import type {
   ContentScreenMode,
   ContentScreenReportSink,
@@ -61,17 +60,6 @@ export interface RunRagQueryArgs {
    * conversation callers may pass `availability`.
    */
   screenMode: ContentScreenMode;
-  /**
-   * Phase 2 (Jev) — settings/env for the snippet quarantine & rerank pass.
-   * When both are omitted in `availability` mode the RRF result is returned
-   * untouched (the deployer chose the uncalibrated path). `strict` never skips
-   * the screen.
-   */
-  jevSettings?: JevSettings | null | undefined;
-  jevEnv?: JevEnv | null | undefined;
-  jevSignal?: AbortSignal | null | undefined;
-  /** Test seam / custom transport for the screening batch. Defaults to global fetch. */
-  jevFetchImpl?: typeof fetch | undefined;
   /** Run context that receives the screening event. */
   reportSink?: ContentScreenReportSink | null | undefined;
 }
@@ -94,9 +82,6 @@ export interface RunMemoryQueryArgs {
    * same strict/availability treatment as news retrieval.
    */
   screenMode: ContentScreenMode;
-  jevSettings?: JevSettings | null | undefined;
-  jevEnv?: JevEnv | null | undefined;
-  jevSignal?: AbortSignal | null | undefined;
   /** Run context that receives the screening event. */
   reportSink?: ContentScreenReportSink | null | undefined;
 }

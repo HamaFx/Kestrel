@@ -27,11 +27,9 @@
 // gate as the PostgreSQL RLS suites).
 
 import { randomUUID } from 'node:crypto';
-import { readdirSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import { schema, setDbForTest } from '@kestrel/db';
+import { createMigratedTestDatabase, type MigratedTestDatabase } from '@kestrel/test-utils';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -55,36 +53,9 @@ const TENANT_ID = USER_ID;
 type TestDb = ReturnType<typeof drizzle<typeof schema>>;
 type Raw = ReturnType<typeof postgres>;
 
-let admin: Raw | null = null;
 let raw: Raw | null = null;
 let db: TestDb | null = null;
-let databaseName = '';
-
-async function applyMigrations(client: Raw): Promise<void> {
-  const dir = join(
-    dirname(fileURLToPath(import.meta.url)),
-    '..',
-    '..',
-    '..',
-    'packages',
-    'db',
-    'drizzle',
-  );
-  const journal = JSON.parse(readFileSync(join(dir, 'meta/_journal.json'), 'utf-8'));
-  for (const entry of journal.entries ?? []) {
-    const file = readdirSync(dir).find((name: string) => name.startsWith(`${entry.tag}.sql`));
-    if (!file) throw new Error(`Missing migration ${entry.tag}`);
-    const statements = readFileSync(join(dir, file), 'utf-8').split('--> statement-breakpoint');
-    for (const statement of statements) {
-      const executable = statement
-        .split('\n')
-        .filter((line: string) => !line.trim().startsWith('--'))
-        .join('\n')
-        .trim();
-      if (executable) await client.unsafe(executable);
-    }
-  }
-}
+let testDb: MigratedTestDatabase | null = null;
 
 async function seedAlerts(count: number): Promise<string[]> {
   const ids = Array.from({ length: count }, () => randomUUID());
@@ -111,26 +82,8 @@ async function readRow(
 
 describe.skipIf(!enabled || !adminUrl)('alert fan-out and claims — real PostgreSQL (R10)', () => {
   beforeAll(async () => {
-    admin = postgres(adminUrl!, { max: 2, prepare: false });
-    databaseName = `kestrel_alerts_r10_${randomUUID().replaceAll('-', '_')}`;
-    await admin.unsafe(`CREATE DATABASE ${databaseName}`);
-
-    const url = new URL(adminUrl!);
-    url.pathname = `/${databaseName}`;
-    const isolatedUrl = url.toString();
-
-    raw = postgres(isolatedUrl, { max: 4, prepare: false });
-    await raw.unsafe(`CREATE EXTENSION IF NOT EXISTS vector`);
-    await raw.unsafe(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon NOLOGIN; END IF;
-        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
-        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role NOLOGIN; END IF;
-      END
-      $$;
-    `);
-    await applyMigrations(raw);
+    testDb = await createMigratedTestDatabase(adminUrl!, 'kestrel_alerts_r10');
+    raw = postgres(testDb.connectionString, { max: 4, prepare: false });
     await raw.unsafe(`INSERT INTO "user" ("id","email") VALUES ($1, $2)`, [
       USER_ID,
       'alerts-r10@example.com',
@@ -147,13 +100,7 @@ describe.skipIf(!enabled || !adminUrl)('alert fan-out and claims — real Postgr
   afterAll(async () => {
     setDbForTest(null);
     await raw?.end({ timeout: 5 });
-    if (admin && databaseName) {
-      try {
-        await admin.unsafe(`DROP DATABASE IF EXISTS ${databaseName} WITH (FORCE)`);
-      } finally {
-        await admin.end({ timeout: 5 });
-      }
-    }
+    await testDb?.drop();
   });
 
   it('bounds the batch to the requested limit', async () => {

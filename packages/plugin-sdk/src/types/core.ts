@@ -29,13 +29,21 @@
 export type PluginId = string & {};
 
 export type PluginCategory =
-  'trading-execution' | 'quant-research' | 'channels-automation' | 'agents-skills' | 'market-data';
+  | 'trading-execution'
+  | 'quant-research'
+  | 'channels-automation'
+  | 'agents-skills'
+  | 'market-data';
 
 export type PluginInstallMode = 'instant' | 'wizard';
 
 /** Core agents a plugin tool may be attached to. */
 export type PluginAgentTarget =
-  'canonical-chat' | 'technical' | 'fundamental' | 'risk' | 'sentiment';
+  | 'canonical-chat'
+  | 'technical'
+  | 'fundamental'
+  | 'risk'
+  | 'sentiment';
 
 export type PluginToolAccess = 'read-only' | 'sensitive-read' | 'write';
 

@@ -17,11 +17,10 @@
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { schema } from '@kestrel/db';
+import { schema, withDbRetry } from '@kestrel/db';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 import { langfuseTraceUrl } from '../mastra-v2/langfuse-link';
-import { enqueuePersistenceFailure } from '../persistence/outbox';
 import { getDb } from '../runtime/db';
 
 const log = createCategorizedLogger('ai', { component: 'trace-persistence' });
@@ -60,7 +59,7 @@ function traceDocumentWithDeepLinks(trace: PersistedTrace): Record<string, unkno
  * Never throws — persistence failures are logged but must not affect the
  * chat turn.
  */
-export async function persistTraceStrict(trace: PersistedTrace): Promise<void> {
+async function persistTraceStrict(trace: PersistedTrace): Promise<void> {
   await persistToDb(trace);
 }
 
@@ -83,38 +82,37 @@ async function persistToDb(trace: PersistedTrace): Promise<void> {
   try {
     const db = getDb();
     const document = traceDocumentWithDeepLinks(trace);
-    await db
-      .insert(schema.diagnosticTraces)
-      .values({
-        id: trace.traceId,
-        userId: trace.userId,
-        threadId: trace.threadId,
-        startedAt: new Date(trace.startedAt),
-        durationMs: trace.durationMs,
-        stepCount: trace.stepCount,
-        errorCount: trace.errorCount,
-        status: trace.status,
-        trace: document,
-      })
-      .onConflictDoUpdate({
-        target: schema.diagnosticTraces.id,
-        set: {
+    await withDbRetry(() =>
+      db
+        .insert(schema.diagnosticTraces)
+        .values({
+          id: trace.traceId,
+          userId: trace.userId,
+          threadId: trace.threadId,
+          startedAt: new Date(trace.startedAt),
           durationMs: trace.durationMs,
           stepCount: trace.stepCount,
           errorCount: trace.errorCount,
           status: trace.status,
           trace: document,
-        },
-      });
+        })
+        .onConflictDoUpdate({
+          target: schema.diagnosticTraces.id,
+          set: {
+            durationMs: trace.durationMs,
+            stepCount: trace.stepCount,
+            errorCount: trace.errorCount,
+            status: trace.status,
+            trace: document,
+          },
+        }),
+    );
   } catch (err) {
-    await enqueuePersistenceFailure({
-      userId: trace.userId,
-      operation: 'diagnostic.trace',
-      dedupeKey: `diagnostic.trace:${trace.traceId}`,
-      threadId: trace.threadId,
+    log.error('diagnostic trace persistence failed', {
       traceId: trace.traceId,
-      payload: trace as unknown as Record<string, unknown>,
-      error: err,
+      userId: trace.userId,
+      threadId: trace.threadId,
+      err: err instanceof Error ? err.message : String(err),
     });
     throw err;
   }

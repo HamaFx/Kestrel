@@ -167,7 +167,7 @@ export async function closeKestrelMastra(): Promise<void> {
 
 /**
  * Test helper — injects an instance (e.g. one backed by temp storage) into
- * the singleton so module-level consumers like the durable full-analysis
+ * the singleton so module-level consumers
  * queue resolve the injected storage. Tests must reset afterwards.
  */
 export function _setKestrelMastraForTest(mastra: KestrelMastra): void {

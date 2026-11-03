@@ -1,26 +1,26 @@
 {
   "name": "@kestrel/config",
   "version": "0.0.0",
+  "license": "Apache-2.0",
+  "files": [
+    "eslint",
+    "tailwind",
+    "typescript"
+  ],
   "type": "module",
   "exports": {
     "./eslint": "./eslint/index.js",
-    "./prettier": "./prettier/index.js",
     "./tailwind/tokens": "./tailwind/tokens.ts",
     "./typescript/base": "./typescript/base.json",
     "./typescript/nextjs": "./typescript/nextjs.json",
     "./typescript/node": "./typescript/node.json"
   },
-  "files": [
-    "eslint",
-    "prettier",
-    "tailwind",
-    "typescript"
-  ],
   "scripts": {
-    "lint": "echo 'no lint for config'",
+    "lint": "oxlint .",
     "typecheck": "echo 'no typecheck for config'",
     "test": "echo 'no tests for config'",
-    "clean": "rm -rf node_modules .turbo"
+    "clean": "rm -rf node_modules .turbo",
+    "test:coverage": "echo 'no coverage for this package'"
   },
   "dependencies": {
     "@eslint/js": "^10.0.1",
@@ -30,7 +30,6 @@
     "typescript-eslint": "^8.71.2"
   },
   "devDependencies": {
-    "typescript": "~6.0.3"
-  },
-  "license": "Apache-2.0"
+    "typescript": "^7.0.2"
+  }
 }

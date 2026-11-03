@@ -115,12 +115,6 @@ export {
   type WorkingMemorySeedArgs,
 } from './context';
 export {
-  FullAnalysisLeaseLostError,
-  FullAnalysisPayloadSchema,
-  FULL_ANALYSIS_LEASE_MS,
-  updateFullAnalysisProgress,
-} from './workflows/full-analysis';
-export {
   committeeProgressSnapshot,
   type CommitteeAgentProgress,
   type CommitteeProgressSnapshot,
@@ -243,7 +237,6 @@ export * from './capabilities/index';
 export * from './packets/symbol-research';
 export * from './packets/evidence';
 export * from './shared/persistence-boundary';
-export * from './shared/confidence';
 export * from './shared/background-text';
 export * from './shared/title';
 export * from './shared/title-service';
@@ -253,9 +246,6 @@ export * from './mutation/mutation-extract';
 export * from './mutation/mutation-detect';
 export * from './agents/canonical/evidence';
 export * from '../committee/verifier';
-export * from '../committee/calibration-weights';
-export * from './workflows/full-analysis';
-export * from './workflows/full-analysis-retry';
 export * from './planning/routing-policy';
 export * from './planning/router';
 export * from './shared/report-types';

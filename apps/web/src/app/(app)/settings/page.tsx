@@ -69,7 +69,7 @@ export default async function SettingsPage() {
             href="/settings/plugins"
             icon={<IconPuzzle className="size-4.5" />}
             title="Plugins"
-            description="Install backtesting, paper trading, Telegram, and custom agents in one click"
+            description="Install backtesting, paper trading, and Telegram in one click"
           />
           <QuickLink
             href="/settings/symbols"

@@ -54,10 +54,6 @@ export type ToolEnv = Pick<
       | 'WEB_SEARCH_TIMEOUT_MS'
       // Audit R15 — screening posture for untrusted web results.
       | 'WEB_SEARCH_SCREEN_MODE'
-      // Phase 2 (Jev) — RAG/web-search quarantine & rerank key resolution.
-      | 'OPENCODE_API_KEY'
-      | 'TYPESAFE_API_KEY'
-      | 'JEV_BASE_URL'
     >
   >;
 

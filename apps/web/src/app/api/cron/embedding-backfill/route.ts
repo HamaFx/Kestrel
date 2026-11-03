@@ -21,9 +21,8 @@
 // under Vercel's function timeout regardless of backlog.
 //
 // Phase 8 PR-9: this route is a manual-fallback path. The scheduled invocation
-// runs on the GCE worker VM via a systemd timer
-// (`kestrel-job-embedding-backfill.timer`), where it's not bound by the 60s
-// function ceiling.
+// runs as the optional worker `embedding-backfill` job, where it is not bound
+// by the 60s function ceiling.
 
 import { withCronAuth } from '@/lib/http/cron';
 import { backfillNewsEmbeddingsService } from '@/lib/services/news';

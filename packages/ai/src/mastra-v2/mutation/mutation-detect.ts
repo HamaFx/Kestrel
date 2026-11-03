@@ -27,7 +27,6 @@
  * was not really a mutation. Matches are case-insensitive word/phrase checks.
  */
 
-import type { JevTurnRoutingDecision } from '../../jev/turn-router';
 import { MutationKindSchema, type MutationKind } from '../workflows/mutation';
 
 const PATTERNS: Record<MutationKind, RegExp> = {
@@ -51,23 +50,6 @@ export function classifyMutationRequest(text: string): MutationKind | null {
     if (PATTERNS[kind].test(text)) return kind;
   }
   return null;
-}
-
-/**
- * Phase 1 (Jev System One) — prefer the parallel Jev turn-routing decision
- * when one was computed for this turn, and fall back to the deterministic
- * `PATTERNS` regexes when Jev is unconfigured or unreachable.
- *
- * `evaluateJevTurnRouting` already suppresses any kind whose raw modal
- * probability is below 0.85, so `none` (and any low-confidence paraphrase)
- * lands here as null.
- */
-export function classifyMutationRequestWithJev(
-  text: string,
-  jevDecision?: JevTurnRoutingDecision | null,
-): MutationKind | null {
-  if (jevDecision) return jevDecision.mutationKind;
-  return classifyMutationRequest(text);
 }
 
 /**

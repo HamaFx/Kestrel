@@ -26,7 +26,6 @@
 
 import { metrics } from '@kestrel/shared';
 
-import { hasNegatedDisclosure, packetNeedsDisclosure } from '../jev/semantic-verifier';
 import type { SymbolResearchPacket } from '../mastra-v2/packets/symbol-research';
 import {
   isSupportedByEvidence,
@@ -111,11 +110,9 @@ export function verifyMastraOpinion(
   // P1-01 (audit 2026-10-18) — temporal/degraded disclosure. When the packet
   // carries warnings, missing data, or a non-complete quality, the opinion
   // must say so (reasoning disclosure or an explicit missingEvidence list);
-  // otherwise fusion can present a degraded read as complete.
-  //
-  // Phase 2 (Jev) — a NEGATED disclosure ("the data is not stale") asserts the
-  // opposite of the packet metadata and must never satisfy the requirement;
-  // the naive DISCLOSURE_TERMS regex previously accepted it.
+  // otherwise fusion can present a degraded read as complete. A NEGATED
+  // disclosure ("the data is not stale") asserts the opposite of the packet
+  // metadata and must never satisfy the requirement.
   if (packet.status === 'ready' && packetNeedsDisclosure(packet)) {
     const reason = opinion.reasoning;
     const missingEvidence = opinion.rawData?.missingEvidence;
@@ -132,6 +129,37 @@ export function verifyMastraOpinion(
   return { ok: findings.length === 0, findings };
 }
 
+const DISCLOSURE_WORDS =
+  'stale|missing|unavailable|incomplete|degraded|partial|outdated|delayed|limited|provisional';
+
 /** Words that count as a disclosure of degraded/missing packet context. */
-const DISCLOSURE_TERMS =
-  /\b(?:stale|missing|unavailable|incomplete|degraded|partial|outdated|delayed|limited|provisional)\b/i;
+const DISCLOSURE_TERMS = new RegExp(`\\b(?:${DISCLOSURE_WORDS})\\b`, 'i');
+
+/**
+ * Negated disclosure chains: `not stale`, `never degraded`, `no missing data`,
+ * `without delayed data`, including chained forms like `not stale or degraded`.
+ */
+const NEGATED_DISCLOSURE_PATTERN = new RegExp(
+  `\\b(?:not|never|no|without)\\s+(?:${DISCLOSURE_WORDS})(?:\\s+(?:or|and|nor)\\s+(?:${DISCLOSURE_WORDS}))*`,
+  'i',
+);
+
+/** True when the text negates a disclosure term ("data is not stale"). */
+function hasNegatedDisclosure(text: string): boolean {
+  return NEGATED_DISCLOSURE_PATTERN.test(text);
+}
+
+/**
+ * True when the packet's own metadata demands a disclosure sentence.
+ * Defensive against injected/test packets that predate these fields.
+ */
+function packetNeedsDisclosure(packet: SymbolResearchPacket): boolean {
+  const warnings = Array.isArray(packet.warnings) ? packet.warnings : [];
+  const missingData = Array.isArray(packet.missingData) ? packet.missingData : [];
+  const dataQuality = (packet as { dataQuality?: string }).dataQuality;
+  return (
+    warnings.length > 0 ||
+    missingData.length > 0 ||
+    (dataQuality !== undefined && dataQuality !== 'complete')
+  );
+}

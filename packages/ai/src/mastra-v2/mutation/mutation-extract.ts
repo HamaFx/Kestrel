@@ -41,7 +41,10 @@ import { checkLevelsAgainstMarket, type ModelLevel } from './level-sanity';
 
 /** Why an extraction failed; level reasons come from the market cross-check. */
 export type MutationExtractionFailureReason =
-  'extraction_failed' | 'invalid_level' | 'level_out_of_band' | 'market_data_unavailable';
+  | 'extraction_failed'
+  | 'invalid_level'
+  | 'level_out_of_band'
+  | 'market_data_unavailable';
 
 export class MutationExtractionError extends Error {
   readonly kind: MutationKind;

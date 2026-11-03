@@ -16,7 +16,6 @@ const packages = [
   { name: 'packages/shared', path: join(root, 'packages/shared') },
   { name: 'packages/test-utils', path: join(root, 'packages/test-utils') },
   { name: 'plugins/backtesting', path: join(root, 'plugins/backtesting') },
-  { name: 'plugins/custom-agents', path: join(root, 'plugins/custom-agents') },
   { name: 'plugins/paper-trading', path: join(root, 'plugins/paper-trading') },
   { name: 'plugins/telegram-bot', path: join(root, 'plugins/telegram-bot') },
 ];
@@ -81,7 +80,7 @@ for (const pkg of packages) {
   const zeroAssertionFiles = [];
   const allSkipFiles = [];
   for (const file of allTestFiles) {
-    const { count, hasAny, allSkip } = countAssertions(file);
+    const { hasAny, allSkip } = countAssertions(file);
     if (!hasAny) {
       zeroAssertionFiles.push(file);
     } else if (allSkip) {

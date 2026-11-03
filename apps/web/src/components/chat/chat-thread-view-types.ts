@@ -1,7 +1,6 @@
 import type { Symbol } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
 
-import type { CustomAgentSummary } from '@/hooks/use-custom-agents';
 import type { AgentProgress } from '@/lib/chat-transport';
 
 import type { AnalysisMode } from './chat-top-bar';
@@ -34,7 +33,4 @@ export interface ChatThreadViewProps {
   onRegenerate: (opts?: { modelOverride?: string }) => void;
   onEdit: (messageId: string, newText: string) => void;
   placeholder: string;
-  customAgents: readonly CustomAgentSummary[];
-  selectedAgentSlug: string | null;
-  onAgentChange: (slug: string | null) => void;
 }

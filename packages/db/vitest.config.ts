@@ -21,7 +21,6 @@ import { defineConfig } from 'vitest/config';
 const maxWorkers = process.env.CI ? 2 : Math.max(2, Math.floor(os.availableParallelism() / 2));
 
 export default defineConfig({
-  esbuild: { target: 'es2022' },
   resolve: {
     conditions: ['source'],
   },
@@ -30,7 +29,7 @@ export default defineConfig({
     // turbo runs every package's suite in parallel, so keep the cache
     // package-local to avoid concurrent-cache races.
     fsModuleCachePath: 'node_modules/.vitest-cache',
-    pool: 'forks',
+    pool: 'threads',
     maxWorkers,
     deps: {
       optimizer: {

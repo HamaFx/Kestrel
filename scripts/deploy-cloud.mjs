@@ -12,10 +12,10 @@
 /**
  * One-Command Cloud Deployment Config Generator (`node scripts/deploy-cloud.mjs`)
  *
- * Generates and synchronizes environment variables for:
- *   1. Botkeep Founder Free (`.env.botkeep` — minimal 4-variable setup)
- *   2. Vercel Hobby Web App (`.env.vercel`)
- *   3. Google Cloud Always Free e2-micro VM (`/opt/kestrel/.env`)
+ * Generates and synchronizes environment variables for the two supported
+ * deployment profiles:
+ *   1. Standalone worker on Compose or a small VM (`.env.worker`)
+ *   2. Vercel web app (`/.env.vercel` pasted into Project Settings)
  *
  * Usage:
  *   node scripts/deploy-cloud.mjs --db="postgres://..." --url="https://hamafx-ai.vercel.app"
@@ -88,7 +88,7 @@ function main() {
   const existing = new Map([
     ...parseEnvFile(resolve(ROOT, '.env')),
     ...parseEnvFile(resolve(ROOT, '.env.local')),
-    ...parseEnvFile(resolve(ROOT, '.env.botkeep')),
+    ...parseEnvFile(resolve(ROOT, '.env.worker')),
   ]);
 
   const getOrGen = (key, bytes) => {
@@ -163,10 +163,10 @@ function main() {
     'https://hamafx-ai.vercel.app'
   ).replace(/\/+$/, '');
 
-  const botkeepEnv = [
+  const workerEnv = [
     '# ============================================================================',
-    '# KESTREL — BOTKEEP FOUNDER FREE / CLOUD WORKER CONFIG (.env.botkeep)',
-    '# Startup Command on Botkeep:  node scripts/botkeep-start.mjs',
+    '# KESTREL — STANDALONE WORKER CONFIG (.env.worker)',
+    '# Use with: docker run --env-file .env.worker kestrel-worker',
     '# DO NOT commit this file to Git.',
     '# ============================================================================',
     '',
@@ -187,7 +187,7 @@ function main() {
     'WORKER_MODE=docker',
     'MULTI_USER_ENABLED=1',
     'KESTREL_ENABLE_RLS=1',
-    'REGISTRATION_MODE=open',
+    'REGISTRATION_MODE=first_user',
     '',
   ].join('\n');
 
@@ -210,26 +210,27 @@ function main() {
     `NEXTAUTH_URL=${appUrl}`,
     'MULTI_USER_ENABLED=1',
     'KESTREL_ENABLE_RLS=1',
-    'REGISTRATION_MODE=open',
+    'REGISTRATION_MODE=first_user',
     '',
   ].join('\n');
 
-  const botkeepPath = resolve(ROOT, '.env.botkeep');
+  const workerPath = resolve(ROOT, '.env.worker');
   const vercelPath = resolve(ROOT, '.env.vercel');
-  writeSecureFile(botkeepPath, botkeepEnv);
+  writeSecureFile(workerPath, workerEnv);
   writeSecureFile(vercelPath, vercelEnv);
 
   // eslint-disable-next-line no-console
   console.log(
     [
       '✅ Generated cloud deployment files:',
-      `   • .env.botkeep  (for Botkeep Founder Free or GCP e2-micro VM)`,
-      `   • .env.vercel   (matching secrets for Vercel Project Settings)`,
+      `   • .env.worker  (standalone worker on Compose or a small VM)`,
+      `   • .env.vercel  (matching secrets for Vercel Project Settings)`,
       '',
-      '🚀 On Botkeep Founder Free:',
-      '   1. Connect your GitHub repo (HamaFx/Kestrel, branch: main)',
-      '   2. Copy the variables from .env.botkeep into Botkeep Environment Variables',
-      '   3. Set Startup Command to:  node scripts/botkeep-start.mjs',
+      '🚀 Vercel + Supabase:',
+      '   1. Paste .env.vercel into Vercel Project Settings -> Environment Variables',
+      '   2. Run the worker elsewhere:',
+      '      docker build -f Dockerfile.worker -t kestrel-worker .',
+      '      docker run -d --env-file .env.worker kestrel-worker',
     ].join('\n'),
   );
 }

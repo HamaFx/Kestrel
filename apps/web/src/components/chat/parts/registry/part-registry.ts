@@ -25,7 +25,8 @@ const partSchemas: PartSchemaMap = {
 };
 
 export type BespokeParseResult<K extends CoreToolName> =
-  { ok: true; data: ToolOutput<K> } | { ok: false };
+  | { ok: true; data: ToolOutput<K> }
+  | { ok: false };
 
 /**
  * `safeParse` a raw stream payload against the tool's output schema. A

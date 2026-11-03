@@ -19,7 +19,7 @@
 /**
  * Committee step spans (audit plan §5.4).
  *
- * Every committee stage (collect-packet, specialists, critique, verify,
+ * Every committee stage (collect-packet, specialists, verify,
  * fusion) emits one span record with the fields operators need to debug
  * quality and cost: packetId, modelId, latencyMs, and token cost. Spans
  * land in three places without new vendor lock-in:

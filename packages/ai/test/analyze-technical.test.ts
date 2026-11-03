@@ -32,9 +32,17 @@ const exec = analyzeTechnicalTool.execute as unknown as (input: {
     structure: {
       swingHigh: number | null;
       swingLow: number | null;
-      latestStructureEvent: 'BOS_up' | 'BOS_down' | 'CHoCH_up' | 'CHoCH_down' | null;
     };
-    levels: { pivot: number | null; r1: number | null; s1: number | null; atr14: number | null };
+    levels: {
+      pivot: number | null;
+      r1: number | null;
+      s1: number | null;
+      atr14: number | null;
+      pdh: number | null;
+      pdl: number | null;
+      asianHigh: number | null;
+      asianLow: number | null;
+    };
   }>;
   summary: string;
   partial: boolean;
@@ -43,6 +51,8 @@ const exec = analyzeTechnicalTool.execute as unknown as (input: {
 const mockGetCandles = vi.fn();
 const mockComputeIndicator = vi.fn();
 const mockComputeStructure = vi.fn();
+const mockComputePdhPdl = vi.fn();
+const mockComputeAsianRange = vi.fn();
 
 vi.mock('@kestrel/data', () => ({
   getCandlesUnchecked: (...args: unknown[]) => mockGetCandles(...args),
@@ -51,6 +61,8 @@ vi.mock('@kestrel/data', () => ({
 vi.mock('@kestrel/indicators', () => ({
   computeIndicator: (...args: unknown[]) => mockComputeIndicator(...args),
   computeStructure: (...args: unknown[]) => mockComputeStructure(...args),
+  computePdhPdl: (...args: unknown[]) => mockComputePdhPdl(...args),
+  computeAsianRange: (...args: unknown[]) => mockComputeAsianRange(...args),
 }));
 
 vi.mock('@kestrel/shared/logger', () => ({
@@ -81,11 +93,38 @@ function makeCandle(time: number, close: number, high = close + 0.005, low = clo
   };
 }
 
-describe('analyze_technical — Phase 0.10', () => {
+function stubStructure(swings: Array<{ type: 'high' | 'low'; price: number; index: number }>) {
+  return {
+    symbol: 'EURUSD',
+    tf: '1h',
+    bars: 200,
+    fetchedAt: Date.now(),
+    swings: swings.map((s) => ({ ...s, time: 0, lookback: 3 })),
+  };
+}
+
+describe('analyze_technical — Phase 3', () => {
   beforeEach(() => {
     mockGetCandles.mockReset();
     mockComputeIndicator.mockReset();
     mockComputeStructure.mockReset();
+    mockComputePdhPdl.mockReset();
+    mockComputeAsianRange.mockReset();
+    mockComputePdhPdl.mockReturnValue({
+      date: '2026-01-01',
+      high: 1.091,
+      low: 1.079,
+      highTime: 0,
+      lowTime: 0,
+    });
+    mockComputeAsianRange.mockReturnValue({
+      date: '2026-01-01',
+      high: 1.088,
+      low: 1.081,
+      fromTime: 0,
+      toTime: 0,
+      forming: false,
+    });
   });
 
   function setupCleanMocks(closePrice = 1.082) {
@@ -104,19 +143,12 @@ describe('analyze_technical — Phase 0.10', () => {
       .mockReturnValueOnce(fakeIndicatorResult([0.001])) // atr14
       .mockReturnValueOnce(fakeIndicatorResult([{ pp: 1.08, r1: 1.09, s1: 1.07 }])); // pivots
 
-    mockComputeStructure.mockReturnValue({
-      symbol: 'EURUSD',
-      tf: '1h',
-      bars: 200,
-      fetchedAt: Date.now(),
-      swings: [
+    mockComputeStructure.mockReturnValue(
+      stubStructure([
         { type: 'high', price: 1.09, index: 50 },
         { type: 'low', price: 1.07, index: 100 },
-      ],
-      events: [{ kind: 'bos', direction: 'bullish', index: 10 }],
-      fvgs: [],
-      orderBlocks: [],
-    });
+      ]),
+    );
   }
 
   it('returns perTimeframe readings for a single default timeframe', async () => {
@@ -138,7 +170,35 @@ describe('analyze_technical — Phase 0.10', () => {
     expect(r.momentum.macdHist).toBe(0.0001);
     expect(r.structure.swingHigh).toBe(1.09);
     expect(r.structure.swingLow).toBe(1.07);
-    expect(r.structure.latestStructureEvent).toBe('BOS_up');
+    expect(r.levels.pdh).toBe(1.091);
+    expect(r.levels.pdl).toBe(1.079);
+    expect(r.levels.asianHigh).toBe(1.088);
+    expect(r.levels.asianLow).toBe(1.081);
+  });
+
+  it('reports session levels as null when the window cannot supply them', async () => {
+    setupCleanMocks();
+    mockComputePdhPdl.mockReturnValue(null);
+    mockComputeAsianRange.mockReturnValue(null);
+
+    const result = await exec({ symbol: 'EURUSD', timeframes: ['1h'] });
+    const r = result.perTimeframe[0]!;
+
+    expect(r.levels.pdh).toBeNull();
+    expect(r.levels.pdl).toBeNull();
+    expect(r.levels.asianHigh).toBeNull();
+    expect(r.levels.asianLow).toBeNull();
+  });
+
+  it('does not request removed structure kinds', async () => {
+    setupCleanMocks();
+
+    await exec({ symbol: 'EURUSD', timeframes: ['1h'] });
+
+    expect(mockComputeStructure).toHaveBeenCalledWith(
+      expect.objectContaining({ symbol: 'EURUSD', tf: '1h', swings: { lookback: 3 } }),
+    );
+    expect(mockComputeStructure.mock.calls[0]![0]).not.toHaveProperty('kinds');
   });
 
   it('returns trend: range when EMAs cross', async () => {
@@ -152,16 +212,7 @@ describe('analyze_technical — Phase 0.10', () => {
       .mockReturnValueOnce(fakeIndicatorResult([{ hist: 0 }]))
       .mockReturnValueOnce(fakeIndicatorResult([0.001]))
       .mockReturnValueOnce(fakeIndicatorResult([{ pp: 1.08, r1: null, s1: null }]));
-    mockComputeStructure.mockReturnValue({
-      symbol: 'EURUSD',
-      tf: '1h',
-      bars: 2,
-      fetchedAt: Date.now(),
-      swings: [],
-      events: [],
-      fvgs: [],
-      orderBlocks: [],
-    });
+    mockComputeStructure.mockReturnValue(stubStructure([]));
 
     const result = await exec({ symbol: 'EURUSD', timeframes: ['1h'] });
     const r = result.perTimeframe[0]!;
@@ -186,16 +237,7 @@ describe('analyze_technical — Phase 0.10', () => {
       .mockReturnValueOnce(fakeIndicatorResult([{ hist: 0.0001 }]))
       .mockReturnValueOnce(fakeIndicatorResult([0.001]))
       .mockReturnValueOnce(fakeIndicatorResult([{ pp: 1.08, r1: 1.09, s1: 1.07 }]));
-    mockComputeStructure.mockReturnValue({
-      symbol: 'EURUSD',
-      tf: '1h',
-      bars: 200,
-      fetchedAt: Date.now(),
-      swings: [],
-      events: [],
-      fvgs: [],
-      orderBlocks: [],
-    });
+    mockComputeStructure.mockReturnValue(stubStructure([]));
 
     const result = await exec({ symbol: 'EURUSD', timeframes: ['1h', '4h'] });
 
@@ -214,16 +256,7 @@ describe('analyze_technical — Phase 0.10', () => {
       .mockReturnValueOnce(fakeIndicatorResult([{ hist: -0.0001 }]))
       .mockReturnValueOnce(fakeIndicatorResult([0.001]))
       .mockReturnValueOnce(fakeIndicatorResult([{ pp: 1.08, r1: null, s1: null }]));
-    mockComputeStructure.mockReturnValue({
-      symbol: 'EURUSD',
-      tf: '1h',
-      bars: 2,
-      fetchedAt: Date.now(),
-      swings: [],
-      events: [],
-      fvgs: [],
-      orderBlocks: [],
-    });
+    mockComputeStructure.mockReturnValue(stubStructure([]));
 
     const result = await exec({ symbol: 'EURUSD', timeframes: ['1h'] });
     const r = result.perTimeframe[0]!;

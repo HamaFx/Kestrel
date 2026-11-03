@@ -40,7 +40,11 @@ export type ContentScreenMode = 'strict' | 'availability';
 
 /** Paths that can screen indirect content, used to tag run-report events. */
 export type ContentScreenPath =
-  'user-turn' | 'prompt-tool-result' | 'rag' | 'web-search' | 'memory';
+  | 'user-turn'
+  | 'prompt-tool-result'
+  | 'rag'
+  | 'web-search'
+  | 'memory';
 
 /**
  * One content-screening event for the run report. Never carries raw payload

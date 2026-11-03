@@ -35,6 +35,7 @@ vi.mock('@kestrel/db', () => ({
       $inferInsert: {} as Record<string, unknown>,
     },
   },
+  withDbRetry: (fn: () => Promise<unknown>) => fn(),
 }));
 
 vi.mock('node:fs/promises', () => ({

@@ -35,7 +35,6 @@ export interface PluginCapabilitySummary {
   tickSubscribers: number;
   alertChannels: number;
   indicators: number;
-  agents: number;
   packetEnrichers: number;
   apiRoutes: number;
   navItems: number;

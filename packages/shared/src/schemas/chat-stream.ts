@@ -110,12 +110,6 @@ export const UserMessagePartSchema = z.discriminatedUnion('type', [
 ]);
 export const UserMessagePartsSchema = z.array(UserMessagePartSchema).max(50);
 export type UserMessagePart = z.infer<typeof UserMessagePartSchema>;
-export const AnalysisQueuedEventSchema = z.object({
-  type: z.literal('analysis-queued'),
-  jobId: z.string(),
-  status: z.string(),
-});
-
 /**
  * The server's chat route returns this JSON when a prompt is routed to the
  * mutation confirmation workflow. The payload is the draft's suspend card:

@@ -96,11 +96,12 @@ export const ServerEnvSchema = z
       'MULTI_USER_ENABLED requires KESTREL_ENABLE_RLS=true. Multi-user PostgreSQL deployments must fail closed instead of running without database tenant isolation.',
   })
   .refine(
-    (env) => env.REGISTRATION_MODE !== 'open' || (env.MULTI_USER_ENABLED && env.KESTREL_ENABLE_RLS),
+    (env) =>
+      env.REGISTRATION_MODE === 'disabled' || (env.MULTI_USER_ENABLED && env.KESTREL_ENABLE_RLS),
     {
       path: ['REGISTRATION_MODE'],
       error:
-        'REGISTRATION_MODE=open requires MULTI_USER_ENABLED=1 and KESTREL_ENABLE_RLS=1; open registration is unsafe without tenant isolation.',
+        'Public registration (REGISTRATION_MODE=first_user or open) requires MULTI_USER_ENABLED=1 and KESTREL_ENABLE_RLS=1; registration is unsafe without tenant isolation.',
     },
   );
 // NOTE: `REGISTRATION_MODE=owner-first` is rejected by the enum in RuntimeEnv

@@ -35,7 +35,8 @@ export interface KnowledgeBaseState {
 }
 
 export type KnowledgeBaseAction =
-  { type: 'patch'; patch: Partial<KnowledgeBaseState> } | { type: 'toggleCreating' };
+  | { type: 'patch'; patch: Partial<KnowledgeBaseState> }
+  | { type: 'toggleCreating' };
 
 export function createInitialState(): KnowledgeBaseState {
   return {

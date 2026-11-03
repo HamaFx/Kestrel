@@ -26,17 +26,15 @@ const exec = executeCanonicalMarketStructure as unknown as (input: {
   symbol: string;
   tf: string;
   count?: number;
-  kinds?: string[];
   lookback?: number;
 }) => Promise<{
   symbol: string;
   tf: string;
   bars: number;
-  swings?: Array<{ type: string; price: number; index: number }>;
-  events?: Array<{ kind: string; direction: string; index: number; level: number }>;
-  fvg?: Array<{ mitigated: boolean }>;
-  orderBlocks?: Array<{ mitigated: boolean }>;
-  liquidity?: unknown[];
+  swings: Array<{ type: string; price: number; index: number }>;
+  recentSwingHigh: number | null;
+  recentSwingLow: number | null;
+  rangeSize: number | null;
   summary: string;
 }>;
 
@@ -66,56 +64,80 @@ function makeCandle(time: number, close: number) {
   };
 }
 
-describe('get_market_structure — Phase 0.10', () => {
+function swing(type: 'high' | 'low', price: number, index: number) {
+  return { type, price, index, time: 1_700_000_000_000 + index, lookback: 5 };
+}
+
+describe('get_market_structure — Phase 3', () => {
   beforeEach(() => {
     mockGetCandles.mockReset();
     mockComputeStructure.mockReset();
   });
 
-  it('returns structure data for a symbol and timeframe', async () => {
+  it('returns swings and the recent swing range', async () => {
     mockGetCandles.mockResolvedValue([makeCandle(Date.now(), 1.085)]);
     mockComputeStructure.mockReturnValue({
       symbol: 'EURUSD',
       tf: '1h',
       bars: 1,
       fetchedAt: Date.now(),
-      swings: [{ type: 'high', price: 1.09, index: 0 }],
-      events: [{ kind: 'bos', direction: 'bullish', index: 0, level: 1.085 }],
-      fvg: [],
-      orderBlocks: [],
-      liquidity: [],
+      swings: [
+        swing('high', 1.08, 5),
+        swing('low', 1.06, 10),
+        swing('high', 1.095, 40),
+        swing('low', 1.058, 60),
+      ],
     });
 
-    const result = await exec({ symbol: 'EURUSD', tf: '1h' });
+    const result = await exec({ symbol: 'EURUSD', tf: '1h', lookback: 5 });
 
     expect(result.symbol).toBe('EURUSD');
     expect(result.tf).toBe('1h');
-    expect(result.swings).toBeDefined();
-    expect(result.swings![0]!.price).toBe(1.09);
-    expect(result.summary).toContain('swings');
+    expect(result.swings).toHaveLength(4);
+    expect(result.recentSwingHigh).toBe(1.095);
+    expect(result.recentSwingLow).toBe(1.058);
+    expect(result.rangeSize).toBeCloseTo(0.037, 5);
+    expect(result.summary).toBe('4 swings · recent high 1.09500 · recent low 1.05800');
   });
 
-  it('generates a summary with unmitigated counts', async () => {
+  it('caps the returned swing list at the last 15 pivots', async () => {
+    const swings = Array.from({ length: 20 }, (_, i) =>
+      swing(i % 2 === 0 ? 'high' : 'low', 1 + i * 0.001, i * 2),
+    );
+    // Last swing is a low, so both sides qualify.
+    swings.push(swing('low', 1.0005, 80));
+    mockGetCandles.mockResolvedValue([makeCandle(Date.now(), 1.085)]);
+    mockComputeStructure.mockReturnValue({
+      symbol: 'EURUSD',
+      tf: '1h',
+      bars: 90,
+      fetchedAt: Date.now(),
+      swings,
+    });
+
+    const result = await exec({ symbol: 'EURUSD', tf: '1h' });
+
+    expect(result.swings).toHaveLength(15);
+    expect(result.summary.startsWith(`${swings.length} swings`)).toBe(true);
+  });
+
+  it('reports null range fields when only one pivot side qualified', async () => {
     mockGetCandles.mockResolvedValue([makeCandle(Date.now(), 1.085)]);
     mockComputeStructure.mockReturnValue({
       symbol: 'EURUSD',
       tf: '1h',
       bars: 1,
       fetchedAt: Date.now(),
-      swings: [{ type: 'high', price: 1.09, index: 0 }],
-      events: [{ kind: 'bos', direction: 'bullish', index: 0, level: 1.085 }],
-      fvg: [
-        { mitigated: false, high: 1.086, low: 1.085, index: 0 },
-        { mitigated: true, high: 1.087, low: 1.086, index: 1 },
-      ],
-      orderBlocks: [],
-      liquidity: [],
+      swings: [swing('high', 1.09, 5)],
     });
 
     const result = await exec({ symbol: 'EURUSD', tf: '1h' });
 
-    expect(result.summary).toMatch(/1/);
-    expect(result.summary).toMatch(/unmitigated/i);
+    expect(result.recentSwingHigh).toBe(1.09);
+    expect(result.recentSwingLow).toBeNull();
+    expect(result.rangeSize).toBeNull();
+    expect(result.summary).toContain('1 swing ·');
+    expect(result.summary).toContain('recent low n/a');
   });
 
   it('calls getCandlesUnchecked with correct parameters', async () => {
@@ -125,6 +147,7 @@ describe('get_market_structure — Phase 0.10', () => {
       tf: '4h',
       bars: 0,
       fetchedAt: Date.now(),
+      swings: [],
     });
 
     await exec({ symbol: 'EURUSD', tf: '4h', count: 300 });
@@ -179,22 +202,25 @@ describe('get_market_structure — Phase 0.10', () => {
     ).toBe(false);
   });
 
-  it('passes kinds and lookback through to computeStructure', async () => {
+  it('passes only the swing lookback through to computeStructure', async () => {
     mockGetCandles.mockResolvedValue([makeCandle(Date.now(), 1.085)]);
     mockComputeStructure.mockReturnValue({
       symbol: 'EURUSD',
       tf: '1h',
       bars: 1,
       fetchedAt: Date.now(),
+      swings: [],
     });
 
-    await exec({ symbol: 'EURUSD', tf: '1h', kinds: ['swings', 'fvg'], lookback: 5 });
+    await exec({ symbol: 'EURUSD', tf: '1h', lookback: 5 });
 
     expect(mockComputeStructure).toHaveBeenCalledWith(
       expect.objectContaining({
-        kinds: ['swings', 'fvg'],
+        symbol: 'EURUSD',
+        tf: '1h',
         swings: { lookback: 5 },
       }),
     );
+    expect(mockComputeStructure.mock.calls[0]![0]).not.toHaveProperty('kinds');
   });
 });

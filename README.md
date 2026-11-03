@@ -7,7 +7,7 @@
 ### _Your self-hosted AI copilot for gold, forex, and crypto research._
 
 <p align="center">
-  <strong>Multi-Agent Intelligence • Smart Money Concepts (SMC) • Real-Time Feeds • BYOK Privacy-First • Zero-Config Setup</strong>
+  <strong>Multi-Agent Intelligence • Multi-Timeframe Structure • Real-Time Feeds • BYOK Privacy-First • Zero-Config Setup</strong>
 </p>
 
 <p align="center">
@@ -24,7 +24,7 @@
   <a href="#-self-hosted-deployment-profiles">🚀 Deployment Profiles</a> •
   <a href="#-key-features">✨ Features</a> •
   <a href="#-ai-agent-committee--analysis-modes">🤖 AI Agent Committee</a> •
-  <a href="#-market-data--smc-indicators">📊 SMC & Indicators</a> •
+  <a href="#-market-data--quantitative-structure">📊 Market Data & Structure</a> •
   <a href="#-configuration--byok">🔑 BYOK & Config</a> •
   <a href="#-troubleshooting--faq">🛠️ Troubleshooting</a>
 </p>
@@ -40,12 +40,12 @@
 
 ## 🌟 What is Kestrel?
 
-Trading gold (`XAUUSD`), forex, and crypto requires analyzing price action, institutional order flow, macroeconomic releases (CPI, FOMC, NFP), Smart Money Concepts (FVG, Order Blocks), and risk mathematics.
+Trading gold (`XAUUSD`), forex, and crypto requires analyzing price action, multi-timeframe structure, session levels, macroeconomic releases (CPI, FOMC, NFP), and risk mathematics.
 
 **Kestrel turns your chat terminal and browser into an institutional-grade research workspace:**
 
 - 🧠 **4-Agent AI Committee**: Technical, Fundamental, Risk, and Sentiment specialist agents collaborate using [Mastra](https://mastra.ai) to synthesize multi-factor trade ideas with strict citations and guardrails.
-- 📐 **Institutional Smart Money Concepts (SMC)**: Native detection of Order Blocks, Fair Value Gaps (FVG), Liquidity Sweeps, Asian Session Killzones, and Market Structure Shifts (BOS/CHoCH).
+- 📐 **Objective Market Structure**: Confirmed swing highs/lows, previous day/week levels (PDH/PDL), Asian/London/New York session ranges, and classic indicators (EMA, SMA, RSI, MACD, ATR, Bollinger, Pivots) through an extensible indicator registry.
 - 🏛️ **Kestrel Design Standard**: Institutional dark-chrome terminal blending Classical Antiquity with cyber-industrial hardware — Funnel Display typography, Redaction Italic emphasis, Geist Mono tabular figures, recessed instrument wells, and bottom-up ember illumination. See [Design System](docs/design-system.md).
 - ⚡ **Dual Real-Time Feeds**: SignalR sub-second streaming for Gold & Forex, plus Binance WebSockets for 24/7 crypto candles. The streaming worker pipeline is opt-in (`WORKER_ENABLE_TICK_STREAM=1`); the default install reads the same instruments on demand over REST.
 - 🛠️ **Zero-Friction Self-Hosting**: Launch the full private multi-user stack with 1-click Docker Compose or connect to your own PostgreSQL.
@@ -80,7 +80,7 @@ docker compose up -d
 ```
 
 1. Open **[http://localhost:3000](http://localhost:3000)** in your browser.
-2. Register your admin account (`REGISTRATION_MODE=open` by default).
+2. Register the first account (`REGISTRATION_MODE=first_user` by default). It becomes the instance admin and public registration then closes.
 3. Navigate to **Settings → API Keys** and paste your AI provider key (OpenAI, Gemini, Anthropic, DeepSeek, Groq, or Ollama).
 4. Start chatting with live market data! 🚀
 
@@ -167,16 +167,16 @@ All deployments enforce Postgres Row Level Security (RLS) across all user tables
 
 <div align="center">
 
-| Feature                     | Description                                                                                 |
-| :-------------------------- | :------------------------------------------------------------------------------------------ |
-| 🤖 **Multi-Agent Research** | 4 specialized Mastra agents (Technical, Fundamental, Risk, Sentiment) + Fusion synthesizer. |
-| 📊 **Smart Money Concepts** | Order Blocks, Fair Value Gaps (FVG), Liquidity pools, Asian Range, BOS/CHoCH.               |
-| 📈 **Interactive Studio**   | Live candlestick charts with multi-timeframe analysis, indicators, and image upload vision. |
-| 📅 **Macro Intelligence**   | Real-time economic calendar (CPI, NFP, FOMC) with live countdowns & consensus data.         |
-| 📓 **Interactive Journal**  | Trade logger with automated screenshot attachments, R-multiple calculations, and replay.    |
-| 🚨 **Multi-Channel Alerts** | Instant alert triggers delivered via **Telegram Bot**, **Web Push**, or **Email (Resend)**. |
-| 🔑 **Encrypted BYOK**       | 100% user-owned API keys stored with AES-256 encryption. Support for 8+ AI providers.       |
-| 🛡️ **Defensive Guardrails** | Strict prompt-injection sanitization, daily cost budget caps, and tool-iteration limits.    |
+| Feature                     | Description                                                                                    |
+| :-------------------------- | :--------------------------------------------------------------------------------------------- |
+| 🤖 **Multi-Agent Research** | 4 specialized Mastra agents (Technical, Fundamental, Risk, Sentiment) + Fusion synthesizer.    |
+| 📊 **Market Structure**     | Swing highs/lows, PDH/PDL, Asian/London/NY session ranges, and a pluggable indicator registry. |
+| 📈 **Interactive Studio**   | Live candlestick charts with multi-timeframe analysis, indicators, and image upload vision.    |
+| 📅 **Macro Intelligence**   | Real-time economic calendar (CPI, NFP, FOMC) with live countdowns & consensus data.            |
+| 📓 **Interactive Journal**  | Trade logger with automated screenshot attachments, R-multiple calculations, and replay.       |
+| 🚨 **Multi-Channel Alerts** | Instant alert triggers delivered via **Telegram Bot**, **Web Push**, or **Email (Resend)**.    |
+| 🔑 **Encrypted BYOK**       | 100% user-owned API keys stored with AES-256 encryption. Support for 8+ AI providers.          |
+| 🛡️ **Defensive Guardrails** | Strict prompt-injection sanitization, daily cost budget caps, and tool-iteration limits.       |
 
 </div>
 
@@ -214,7 +214,7 @@ flowchart LR
 
 ---
 
-## 📊 Market Data & SMC Indicators
+## 📊 Market Data & Quantitative Structure
 
 ### Supported Markets
 
@@ -222,14 +222,15 @@ flowchart LR
 - 💱 **Forex**: `EURUSD`, `GBPUSD`, `USDJPY`, `AUDUSD`, `USDCAD`, `USDCHF`, `NZDUSD`, `EURGBP`, `EURJPY`, `GBPJPY`
 - 🪙 **Crypto**: `BTCUSDT`, `ETHUSDT`, `SOLUSDT`, `BNBUSDT`, `XRPUSDT`, and top Binance pairs
 
-### Institutional Smart Money Concepts (SMC) Engine
+Default providers: **BiQuote** for gold and forex, **Binance** for crypto, **FRED** for macro and real yields, and **CFTC** for Commitment of Traders, with health-scored failover to the remaining configured feeds.
 
-- 🧱 **Order Blocks (OB)**: High-probability institutional supply & demand zones.
-- ⚡ **Fair Value Gaps (FVG)**: Imbalance detection across 1m, 5m, 15m, 1h, 4h, and Daily timeframes.
-- 🌊 **Liquidity Sweeps**: Identification of buy-side (BSL) and sell-side (SSL) liquidity pools.
-- 🔄 **Market Structure**: Automatic detection of Break of Structure (**BOS**) and Change of Character (**CHoCH**).
-- 🌏 **Session Killzones**: Asian Range high/low tracking, London Open Killzone, New York Open Killzone.
-- 🎯 **Session Levels**: Previous Day High/Low (**PDH/PDL**), Weekly High/Low (**PWH/PWL**).
+### Objective Structure & Session Levels
+
+- 🎯 **Swing Highs & Lows**: Confirmed pivots with a per-timeframe lookback, reported as exact prices and bar indices.
+- 📏 **Previous Day High/Low (PDH/PDL)**: The prior UTC session's extremes, with the bar where each was set.
+- 🌏 **Session Ranges**: Asian (00:00–07:00 UTC) highs/lows plus London and New York window flags.
+- 🔄 **Recent Range**: The band between the strongest recent swing high and deepest recent swing low.
+- 🧩 **Indicator Registry**: Every indicator is a self-contained plugin in `packages/indicators/src/registry.ts`, so VWAP, Keltner, Donchian, ADX or Supertrend can be added without touching call sites.
 
 ### Technical & Macro Indicators
 
@@ -274,9 +275,9 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 PORT=3000
 
 # Authentication & Encryption (Generate with: openssl rand -hex 32)
-AUTH_SECRET=your_32_character_random_hex_string
-ENCRYPTION_SECRET=your_64_character_hex_string_32_bytes
-CRON_SECRET=your_16_character_cron_bearer_token
+AUTH_SECRET=<openssl rand -hex 32>
+ENCRYPTION_SECRET=<openssl rand -hex 32>
+CRON_SECRET=<openssl rand -hex 16>
 
 # Database (Bundled Docker default; PostgreSQL is required)
 DATABASE_URL=postgres://hamafx:your_postgres_password@db:5432/hamafx
@@ -285,7 +286,7 @@ POSTGRES_PASSWORD=your_postgres_password
 # Deployment environment (multi-user + RLS required)
 MULTI_USER_ENABLED=1
 KESTREL_ENABLE_RLS=1
-REGISTRATION_MODE=open
+REGISTRATION_MODE=first_user
 ```
 
 #### Optional Integrations
@@ -306,7 +307,7 @@ EXA_API_KEY=your_exa_api_key
 
 # External Market Data (Optional fallbacks)
 FINNHUB_API_KEY=your_finnhub_key
-FRED_API_KEY=your_fred_stlouisfed_key
+FRED_API_KEY=<your FRED API key>
 MARKETAUX_API_KEY=your_marketaux_key
 ```
 
@@ -325,7 +326,7 @@ kestrel/
 │   ├── ai/                # Mastra agents, workflows, tools, memory, routing
 │   ├── data/              # Market data adapters, failover manager, caching
 │   ├── db/                # Drizzle ORM schema, migrations, Postgres client & RLS
-│   ├── indicators/        # Pure TypeScript SMC & Technical Indicators math
+│   ├── indicators/        # Pure TypeScript technical indicators & structure math
 │   ├── shared/            # Zod validation schemas, encryption, logging, types
 │   ├── config/            # Shared TypeScript & ESLint configs
 │   └── test-utils/        # Testing factories, mocks, and Vitest fixtures
@@ -360,7 +361,7 @@ pnpm check:env-contract
 
 Kestrel is designed with strict privacy and security defaults:
 
-- 🛡️ **Multi-User Tenant Isolation**: Tenant isolation is enforced via Postgres RLS on every user-data table. Operators choose `REGISTRATION_MODE=open` (default) or `disabled` (invite-only) and require explicit `role='admin'` for administration.
+- 🛡️ **Multi-User Tenant Isolation**: Tenant isolation is enforced via Postgres RLS on every user-data table. Operators choose `REGISTRATION_MODE=first_user` (default: one admin claim, then closed), `open`, or `disabled` (invite-only), and administration requires an explicit `role='admin'`.
 - 🔐 **AES-256 BYOK Encryption**: Stored provider keys are encrypted with `ENCRYPTION_SECRET`. Decrypted keys exist only in memory during the duration of an active tool call.
 - 🚫 **Strict Prompt Injection Defenses**: Input sanitization, Unicode normalization, and strict tool-loop iteration caps prevent prompt manipulation.
 - 🛑 **No Leaked Telemetry**: Langfuse tracing is strictly opt-in and disabled by default; Kestrel does not include Sentry reporting.

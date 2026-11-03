@@ -59,8 +59,6 @@ describe('committee mode policy (Q2: single + full, Q3: strict everywhere)', () 
       'fundamental',
       'risk',
       'sentiment',
-      // §3.2 (Q6): cross-critique is a first-class stage for full.
-      'critique',
       'verify',
       'fusion',
     ]);

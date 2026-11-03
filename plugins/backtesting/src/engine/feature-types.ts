@@ -63,30 +63,7 @@ export interface BarMatrix {
   v: (number | null)[];
 }
 
-export interface SmcMatrix {
-  fvgBullTop: number[];
-  fvgBullBottom: number[];
-  fvgBullAge: number[];
-  fvgBearTop: number[];
-  fvgBearBottom: number[];
-  fvgBearAge: number[];
-  obBullTop: number[];
-  obBullBottom: number[];
-  obBullAge: number[];
-  obBullStrength: number[];
-  obBearTop: number[];
-  obBearBottom: number[];
-  obBearAge: number[];
-  obBearStrength: number[];
-  sweepSide: number[];
-  sweepLevel: number[];
-  sweepWick: number[];
-  sweepMagnitude: number[];
-  sweepAge: number[];
-  structureDirection: number[];
-  structureKind: number[];
-  structureLevel: number[];
-  structureAge: number[];
+export interface LevelsMatrix {
   swingHigh: number[];
   swingLow: number[];
   pdh: number[];
@@ -98,10 +75,8 @@ export interface SmcMatrix {
 export interface FeatureMatrix {
   bars: BarMatrix;
   series: Record<SeriesName, (number | null)[]>;
-  smc: SmcMatrix;
+  levels: LevelsMatrix;
 }
-
-export const MAX_ACTIVE_ZONES = 200;
 
 export function emptyMatrix(n: number): FeatureMatrix {
   const series = {} as Record<SeriesName, (number | null)[]>;
@@ -116,30 +91,7 @@ export function emptyMatrix(n: number): FeatureMatrix {
       v: [],
     },
     series,
-    smc: {
-      fvgBullTop: new Array<number>(n).fill(0),
-      fvgBullBottom: new Array<number>(n).fill(0),
-      fvgBullAge: new Array<number>(n).fill(0),
-      fvgBearTop: new Array<number>(n).fill(0),
-      fvgBearBottom: new Array<number>(n).fill(0),
-      fvgBearAge: new Array<number>(n).fill(0),
-      obBullTop: new Array<number>(n).fill(0),
-      obBullBottom: new Array<number>(n).fill(0),
-      obBullAge: new Array<number>(n).fill(0),
-      obBullStrength: new Array<number>(n).fill(0),
-      obBearTop: new Array<number>(n).fill(0),
-      obBearBottom: new Array<number>(n).fill(0),
-      obBearAge: new Array<number>(n).fill(0),
-      obBearStrength: new Array<number>(n).fill(0),
-      sweepSide: new Array<number>(n).fill(0),
-      sweepLevel: new Array<number>(n).fill(0),
-      sweepWick: new Array<number>(n).fill(0),
-      sweepMagnitude: new Array<number>(n).fill(0),
-      sweepAge: new Array<number>(n).fill(0),
-      structureDirection: new Array<number>(n).fill(0),
-      structureKind: new Array<number>(n).fill(0),
-      structureLevel: new Array<number>(n).fill(0),
-      structureAge: new Array<number>(n).fill(0),
+    levels: {
       swingHigh: new Array<number>(n).fill(0),
       swingLow: new Array<number>(n).fill(0),
       pdh: new Array<number>(n).fill(0),

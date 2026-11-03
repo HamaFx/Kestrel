@@ -55,40 +55,6 @@ export function buildSliSnapshots(
   const operationalSlis: SliSnapshot[] = operational
     ? [
         {
-          key: 'full_mode_completion',
-          label: 'Full-mode Completion',
-          current:
-            operational.fullTotal > 0 ? operational.fullCompleted / operational.fullTotal : null,
-          sloTarget: 0.995,
-          window: HOUR_LABEL,
-          success: operational.fullCompleted,
-          total: operational.fullTotal,
-          errorBudget: computeErrorBudget(
-            operational.fullTotal > 0 ? operational.fullCompleted / operational.fullTotal : null,
-            0.995,
-          ),
-          details: `${operational.fullCompleted}/${operational.fullTotal} Full-mode jobs completed`,
-        },
-        {
-          key: 'persistence_outbox',
-          label: 'Persistence Recovery',
-          current:
-            operational.outboxTerminal > 0
-              ? operational.outboxCompleted / operational.outboxTerminal
-              : null,
-          sloTarget: 0.999,
-          window: HOUR_LABEL,
-          success: operational.outboxCompleted,
-          total: operational.outboxTerminal,
-          errorBudget: computeErrorBudget(
-            operational.outboxTerminal > 0
-              ? operational.outboxCompleted / operational.outboxTerminal
-              : null,
-            0.999,
-          ),
-          details: `${operational.outboxCompleted} completed, ${operational.outboxDead} dead-lettered`,
-        },
-        {
           key: 'budget_recovery',
           label: 'Budget Recovery',
           current:

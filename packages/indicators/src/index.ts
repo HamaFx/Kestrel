@@ -31,16 +31,12 @@ export {
   type IndicatorRegistry,
 } from './registry';
 
-// Smart Money Concepts (Phase 2)
+// Objective market structure (swing pivots) and session levels.
 export {
   computeStructure,
   findSwings,
-  detectStructure,
-  detectFvgs,
-  detectOrderBlocks,
-  detectLiquiditySweeps,
   defaultSwingLookback,
   type ComputeStructureArgs,
-} from './smc';
-export { computePdhPdl, type PdhPdl } from './smc/pdh-pdl';
-export { computeAsianRange, type AsianRange } from './smc/asian-range';
+} from './structure';
+export { computePdhPdl, type PdhPdl } from './structure/pdh-pdl';
+export { computeAsianRange, type AsianRange } from './structure/asian-range';

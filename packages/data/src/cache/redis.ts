@@ -17,7 +17,7 @@
 // PF-14 — Redis-backed cache implementation.
 //
 // Provides a multi-instance, process-shared cache via Redis. Useful in the
-// GCE VM worker (long-lived single process) and in horizontal-scaling Vercel
+// long-lived worker (Docker Compose / small VM) and in horizontal-scaling Vercel
 // deployments where MemoryCache is per-instance.
 //
 // Usage:

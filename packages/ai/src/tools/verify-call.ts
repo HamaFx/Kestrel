@@ -151,7 +151,6 @@ export const verifyCallTool: Tool<z.infer<typeof InputSchema>, VerifyCallOutput>
         symbol,
         tf,
         candles,
-        kinds: ['swings'],
         swings: { lookback: 1 },
       });
       const swings = structure.swings ?? [];

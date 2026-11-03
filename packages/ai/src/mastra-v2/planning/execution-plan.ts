@@ -19,7 +19,6 @@ export const ExecutionRouteSchema = z.enum([
   'canonical-chat',
   'symbol-research',
   'multi-symbol-research',
-  'full-analysis',
   'mutation-draft',
 ]);
 
@@ -27,8 +26,7 @@ export const ExecutionRouteSchema = z.enum([
  * Q2 decision: exactly two analysis modes. The Q8 shim removal (audit plan
  * §4.6) retired the one-release compat shim: serialized plans carrying the
  * legacy `quick`/`standard`/`auto` values are rejected instead of being
- * mapped. Durable Full queue rows still holding a legacy mode fail parsing
- * with the clear message below and are terminally rejected by the worker.
+ * mapped, with the clear message below.
  */
 export const ExecutionModeSchema = z.enum(['single', 'full'], {
   error:
@@ -111,8 +109,6 @@ function routeForDecision(
   switch (route) {
     case 'mutation':
       return 'mutation-draft';
-    case 'full-analysis-queue':
-      return 'full-analysis';
     default:
       return route;
   }
@@ -131,7 +127,6 @@ function planCapabilityId(route: ExecutionPlan['route']): MastraCapabilityId {
       return 'canonical-chat';
     case 'mutation-draft':
       return 'mutation-workflows';
-    case 'full-analysis':
     case 'symbol-research':
     case 'multi-symbol-research':
       return 'symbol-research';
@@ -224,8 +219,8 @@ export async function createExecutionPlan(input: CreateExecutionPlanInput): Prom
 
 /**
  * Legacy plan fields written before the Phase 4 XAUUSD PoC route retirement.
- * In-flight durable-queue rows may still carry them; strip them on read so the
- * current strict schema stays authoritative without failing those rows.
+ * Stored plans may still carry them; strip them on read so the current strict
+ * schema stays authoritative without failing those rows.
  */
 const LEGACY_PLAN_FIELDS = ['xauusdChatKind', 'xauusdCandidate'] as const;
 

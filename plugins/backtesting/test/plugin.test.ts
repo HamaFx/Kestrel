@@ -93,6 +93,6 @@ describe('backtesting plugin', () => {
   it('normalises settings and derives kebab-case slugs', () => {
     expect(normaliseSettings({})).toEqual(DEFAULT_SETTINGS);
     expect(normaliseSettings({ defaultRiskPct: 2.5 }).defaultRiskPct).toBe(2.5);
-    expect(slugifyName('London Sweep + FVG (15m)!')).toBe('london-sweep-fvg-15m');
+    expect(slugifyName('London Session Breakout (15m)!')).toBe('london-session-breakout-15m');
   });
 });

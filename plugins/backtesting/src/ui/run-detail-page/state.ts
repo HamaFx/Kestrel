@@ -33,7 +33,8 @@ export interface RunDetailState {
 }
 
 export type RunDetailAction =
-  { type: 'patch'; patch: Partial<RunDetailState> } | { type: 'setTab'; tab: DetailTab };
+  | { type: 'patch'; patch: Partial<RunDetailState> }
+  | { type: 'setTab'; tab: DetailTab };
 
 export function createInitialState(): RunDetailState {
   return {

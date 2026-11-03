@@ -17,9 +17,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Committee opinion, critique, and generation-metadata types: the shapes the
- * specialists return, the cross-critique records, and the standardized model
- * metadata every generation carries into fusion and snapshots.
+ * Committee opinion and generation-metadata types: the shapes the specialists
+ * return and the standardized model metadata every generation carries into
+ * fusion and snapshots.
  */
 
 import { z } from 'zod';
@@ -53,45 +53,6 @@ export const OpinionSchema = z.object({
     })
     .catchall(z.unknown())
     .default({}),
-});
-
-/**
- * Audit plan §3.2 (Q6: ON by default for full) — one cross-critique round.
- * Each specialist reviews the other desks' {bias, confidence, reasoning} and
- * returns whether it confirms its own view, a revised confidence, and a short
- * critique capturing agreement/disagreement.
- */
-export const CritiqueSchema = z.object({
-  confirms: z.boolean(),
-  revisedConfidence: z.number().min(0).max(1),
-  critique: z.string().min(1),
-});
-
-/** Full critique record the workflow emits so fusion and snapshots can use it. */
-export interface CommitteeCritique {
-  agentName: MastraSpecialistName;
-  confirms: boolean;
-  revisedConfidence: number;
-  critique: string;
-  model: string;
-  providerId: string;
-  inputTokens: number;
-  outputTokens: number;
-  costUsd: number;
-  latencyMs: number;
-}
-
-export const CommitteeCritiqueSchema = z.object({
-  agentName: MastraSpecialistNameSchema,
-  confirms: z.boolean(),
-  revisedConfidence: z.number().min(0).max(1),
-  critique: z.string().min(1),
-  model: z.string(),
-  providerId: z.string(),
-  inputTokens: z.number(),
-  outputTokens: z.number(),
-  costUsd: z.number(),
-  latencyMs: z.number(),
 });
 
 /** Full opinion shape the workflow emits so callers can persist metadata. */

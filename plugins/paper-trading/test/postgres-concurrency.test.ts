@@ -31,11 +31,9 @@
 // as the packages/db PostgreSQL suites).
 
 import { randomUUID } from 'node:crypto';
-import { readdirSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import { closeDb, withTenantDbFresh } from '@kestrel/db';
+import { createMigratedTestDatabase, type MigratedTestDatabase } from '@kestrel/test-utils';
 import postgres from 'postgres';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -80,35 +78,8 @@ const previousEnv = {
 };
 
 type Raw = ReturnType<typeof postgres>;
-let admin: Raw | null = null;
 let raw: Raw | null = null;
-let databaseName = '';
-
-async function applyMigrations(client: Raw): Promise<void> {
-  const dir = join(
-    dirname(fileURLToPath(import.meta.url)),
-    '..',
-    '..',
-    '..',
-    'packages',
-    'db',
-    'drizzle',
-  );
-  const journal = JSON.parse(readFileSync(join(dir, 'meta/_journal.json'), 'utf-8'));
-  for (const entry of journal.entries ?? []) {
-    const file = readdirSync(dir).find((name: string) => name.startsWith(`${entry.tag}.sql`));
-    if (!file) throw new Error(`Missing migration ${entry.tag}`);
-    const statements = readFileSync(join(dir, file), 'utf-8').split('--> statement-breakpoint');
-    for (const statement of statements) {
-      const executable = statement
-        .split('\n')
-        .filter((line: string) => !line.trim().startsWith('--'))
-        .join('\n')
-        .trim();
-      if (executable) await client.unsafe(executable);
-    }
-  }
-}
+let testDb: MigratedTestDatabase | null = null;
 
 /**
  * Run work inside its own tenant transaction — exactly what the API route
@@ -216,25 +187,13 @@ async function readBalance(): Promise<number> {
 
 describe.skipIf(!enabled || !adminUrl)('paper trading money races — real PostgreSQL', () => {
   beforeAll(async () => {
-    admin = postgres(adminUrl!, { max: 2, prepare: false });
-    databaseName = `kestrel_paper_concurrency_${randomUUID().replaceAll('-', '_')}`;
-    await admin.unsafe(`CREATE DATABASE ${databaseName}`);
-
-    const url = new URL(adminUrl!);
-    url.pathname = `/${databaseName}`;
-    const isolatedUrl = url.toString();
-
-    const migrateClient = postgres(isolatedUrl, { max: 1, prepare: false });
-    await migrateClient.unsafe(`CREATE EXTENSION IF NOT EXISTS vector`);
-    await applyMigrations(migrateClient);
-    await migrateClient.unsafe(
+    testDb = await createMigratedTestDatabase(adminUrl!, 'kestrel_paper_concurrency');
+    raw = postgres(testDb.connectionString, { max: 2, prepare: false });
+    await raw.unsafe(
       `INSERT INTO "user" ("id","email") VALUES ('${USER_ID}','paper-concurrency@example.com')`,
     );
-    await migrateClient.end({ timeout: 1 });
 
-    raw = postgres(isolatedUrl, { max: 2, prepare: false });
-
-    process.env.DATABASE_URL = isolatedUrl;
+    process.env.DATABASE_URL = testDb!.connectionString;
     process.env.DB_DISABLE_SSL = 'true';
     // @kestrel/db caps the pool at one connection under NODE_ENV=test; this
     // suite needs two connections to make the operations genuinely concurrent.
@@ -259,13 +218,7 @@ describe.skipIf(!enabled || !adminUrl)('paper trading money races — real Postg
     if (previousEnv.DB_POOL_MAX === undefined) delete process.env.DB_POOL_MAX;
     else process.env.DB_POOL_MAX = previousEnv.DB_POOL_MAX;
     await raw?.end({ timeout: 5 });
-    if (admin && databaseName) {
-      try {
-        await admin.unsafe(`DROP DATABASE IF EXISTS ${databaseName} WITH (FORCE)`);
-      } finally {
-        await admin.end({ timeout: 5 });
-      }
-    }
+    await testDb?.drop();
   });
 
   it('two concurrent partial closes: one fill, one credit, size never over-closed', async () => {

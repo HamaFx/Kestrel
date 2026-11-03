@@ -37,39 +37,9 @@ function __kestrelSession(ms) {
   };
 }
 
-function __kestrelZone(top, bottom, age, strength) {
-  if (!top || !bottom) return null;
-  var zone = { top: top, bottom: bottom, age: age };
-  if (strength !== undefined) zone.strength = strength;
-  return zone;
-}
-
-function __kestrelSmc(i) {
-  var s = __KP.smc;
-  var sweep = s.sweepSide[i] ? {
-    side: s.sweepSide[i] > 0 ? 'high' : 'low',
-    level: s.sweepLevel[i],
-    wick: s.sweepWick[i],
-    magnitude: s.sweepMagnitude[i],
-    age: s.sweepAge[i]
-  } : null;
-  var structure = s.structureDirection[i] ? {
-    direction: s.structureDirection[i] > 0 ? 'bullish' : 'bearish',
-    kind: s.structureKind[i] === 1 ? 'bos' : 'choch',
-    level: s.structureLevel[i],
-    age: s.structureAge[i]
-  } : null;
+function __kestrelLevels(i) {
+  var s = __KP.levels;
   return {
-    fvg: {
-      bullish: __kestrelZone(s.fvgBullTop[i], s.fvgBullBottom[i], s.fvgBullAge[i]),
-      bearish: __kestrelZone(s.fvgBearTop[i], s.fvgBearBottom[i], s.fvgBearAge[i])
-    },
-    orderBlock: {
-      bullish: __kestrelZone(s.obBullTop[i], s.obBullBottom[i], s.obBullAge[i], s.obBullStrength[i]),
-      bearish: __kestrelZone(s.obBearTop[i], s.obBearBottom[i], s.obBearAge[i], s.obBearStrength[i])
-    },
-    sweep: sweep,
-    structure: structure,
     swingHigh: s.swingHigh[i] || null,
     swingLow: s.swingLow[i] || null,
     pdh: s.pdh[i] || null,
@@ -221,7 +191,7 @@ function __kestrelRun() {
       bar: price,
       series: series,
       session: __kestrelSession(__KP.bars.t[I]),
-      smc: __kestrelSmc(I),
+      levels: __kestrelLevels(I),
       costs: __KP.costs,
       atr: function (offset) { return series('atr14', offset); }
     };

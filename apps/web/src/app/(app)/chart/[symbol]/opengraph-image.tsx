@@ -137,7 +137,7 @@ export default async function OGImage({ params }: { params: Promise<{ symbol: st
           marginBottom: 28,
         }}
       >
-        Real-time institutional candlestick charts, Smart Money Concepts & AI market flow
+        Real-time institutional candlestick charts, quantitative structure & AI market flow
       </div>
 
       {/* Indicator Badges */}
@@ -171,7 +171,7 @@ export default async function OGImage({ params }: { params: Promise<{ symbol: st
             fontWeight: 600,
           }}
         >
-          Order Blocks & Fair Value Gaps
+          Swing Structure & Session Levels
         </div>
         <div
           style={{

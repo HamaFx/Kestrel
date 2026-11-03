@@ -139,7 +139,7 @@ export {
   listMessages,
   listThreads,
 } from '@kestrel/ai/persistence';
-export { appendAssistantMessage, listAgentOpinions } from '@kestrel/ai';
+export { appendAssistantMessage } from '@kestrel/ai';
 export {
   batchDeleteThreads,
   deleteMessageFeedback,

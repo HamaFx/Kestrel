@@ -24,6 +24,7 @@ import { and, eq } from 'drizzle-orm';
 import { buildCatalogForUser } from '@/lib/services/catalog-server';
 
 import type { ApiKeyHealth } from '../_components/api-key-health';
+import { buildKeyPreviewMap } from './mask-api-key';
 
 export interface ApiKeysPageData {
   /** Merged settings (platform inheritance applied) — non-secret values only. */
@@ -32,6 +33,12 @@ export interface ApiKeysPageData {
   ownSettings: Awaited<ReturnType<typeof getOwnUserSettings>>;
   /** Provider ids that currently have a stored key. */
   configuredKeyIds: string[];
+  /**
+   * Display-only masked previews keyed by provider id. Audit R5 / Phase 1:
+   * the plaintext never leaves this function; only `••••1a2b`-style masks are
+   * serialised into the RSC payload.
+   */
+  maskedPreviewByProvider: Record<string, string>;
   healthByProvider: Map<string, ApiKeyHealth>;
   usageByProvider: Map<string, { turns: number; costUsd: number }>;
   configured: CatalogResponse['providers'];
@@ -63,6 +70,7 @@ export async function loadApiKeysPageData(userId: string): Promise<ApiKeysPageDa
           .filter(([, v]) => typeof v === 'string' && v.length > 0)
           .map(([k]) => k)
       : [];
+    const maskedPreviewByProvider = buildKeyPreviewMap(ownKeyPayload);
 
     // Phase A — UX_UPGRADE_PLAN.md item 7. Load the latest health snapshot per
     // provider so the badge can render without waiting for the user to click
@@ -128,6 +136,7 @@ export async function loadApiKeysPageData(userId: string): Promise<ApiKeysPageDa
       effSettings,
       ownSettings,
       configuredKeyIds,
+      maskedPreviewByProvider,
       healthByProvider,
       usageByProvider,
       configured,

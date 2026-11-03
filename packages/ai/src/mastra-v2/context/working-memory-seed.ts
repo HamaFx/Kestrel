@@ -27,7 +27,7 @@ import { sanitizeExternalText } from '../packets/external-content';
 import { mlog } from './log';
 
 /**
- * Phase 3 (Jev roadmap) — markdown heading of the coach-synced trader edge and
+ * Phase 3 — markdown heading of the coach-synced trader edge and
  * risk profile. `syncTraderProfileToWorkingMemory()` owns this section; the
  * seed below never writes or clears it.
  */

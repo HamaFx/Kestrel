@@ -161,40 +161,21 @@ export async function runRetentionCleanupAcrossTenants() {
 }
 
 export {
-  approveEvalDataset,
   createAuditLog,
   createUserWithSettings,
-  deleteOldCronRuns,
-  getActiveUserIds,
-  getEvalDataset,
-  getPlatformAdminSettings,
-  getPlatformAdminUserId,
   getUserById,
   getUserRole,
-  lazyPurgeExpiredTokens,
   listAdminAuditLogs,
-  listAiRegressionCases,
   listCronRuns,
-  listEvalDatasets,
   listFeedbackForReview,
-  listReviewedTrainingPairs,
   listTraceExplorerEvents,
   listToolTelemetry,
-  registerEvalDataset,
   reviewMessageFeedback,
-  updateAiRegressionCaseStatus,
 } from '@kestrel/db';
 export {
-  assembleTrainingDataset,
-  buildJevRlcdTrainingRecords,
   getTelemetryStartupCheck,
   isMastraTelemetryDegraded,
-  isRlcdStateSafe,
-  publishTrainingDatasetToLangfuse,
-  resolveEvaluationAnnotations,
   validateTelemetryStartup,
-  type FeedbackAnnotationInput,
-  type PromptResult,
 } from '@kestrel/ai';
 export type { RunTelemetryRow } from '@kestrel/ai/mastra-v2';
 

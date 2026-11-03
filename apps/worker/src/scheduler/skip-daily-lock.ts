@@ -30,8 +30,4 @@ export const SKIP_DAILY_LOCK = new Set<keyof typeof JOBS>([
   'alerts',
   'briefings',
   'embedding-backfill',
-  'multi-agent-analysis',
-  'budget-recovery',
-  'persistence-recovery',
-  'metrics-flush',
 ]);

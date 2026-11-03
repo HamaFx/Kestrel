@@ -32,15 +32,11 @@ export const MAX_COMPARISON_SYMBOLS = 3;
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Committee deadline for synchronous runs (audit plan §1.7). Leaves ~10s of
- * headroom under the chat route's 55s window so a deadline surfaces as an
- * explicit strict failure instead of an opaque route abort. Durable worker
- * runs are lease-governed and omit it.
+ * Committee deadline for every synchronous run (audit plan §1.7). Leaves ~10s
+ * of headroom under the chat route's 55s window so a deadline surfaces as an
+ * explicit strict failure instead of an opaque route abort.
  */
 export const COMMITTEE_DEADLINE_MS = 45_000;
-
-/** Durable Full-analysis queue lease; worker heartbeats renew ownership. */
-export const FULL_ANALYSIS_LEASE_MS = 90_000;
 
 /** Q5 decision: 30s fresh-only symbol-research packet cache TTL. */
 export const PACKET_CACHE_TTL_MS = 30_000;

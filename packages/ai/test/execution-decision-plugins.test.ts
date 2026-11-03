@@ -88,7 +88,7 @@ describe('decideMastraExecution — installed plugin intents (P0-4)', () => {
       mode: 'single',
       settings: researchSettings,
       env: researchEnv,
-      installedPluginIds: ['backtesting', 'paper-trading', 'telegram-bot', 'custom-agents'],
+      installedPluginIds: ['backtesting', 'paper-trading', 'telegram-bot'],
     });
 
     expect(decision.route).toBe('symbol-research');

@@ -34,7 +34,7 @@ test.describe('Chat UI — empty state', () => {
     await expect(
       page
         .locator('button')
-        .filter({ hasText: /SMC|Order Blocks|Multi-Timeframe|Calendar|Macro|Risk|COT|XAUUSD/i })
+        .filter({ hasText: /Swing|Structure|Multi-Timeframe|Calendar|Macro|Risk|COT|XAUUSD/i })
         .first(),
     ).toBeVisible();
   });

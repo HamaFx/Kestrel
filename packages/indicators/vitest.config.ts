@@ -29,7 +29,7 @@ export default defineConfig({
     // turbo runs every package's suite in parallel, so keep the cache
     // package-local to avoid concurrent-cache races.
     fsModuleCachePath: 'node_modules/.vitest-cache',
-    pool: 'forks',
+    pool: 'threads',
     maxWorkers,
     // Pure, stateless math: files cannot pollute each other's module state.
     isolate: false,

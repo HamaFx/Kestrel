@@ -6,7 +6,7 @@
 // card that retires `MastraReportCard`'s free-floating summary,
 // `VerdictSummary`, and `ConveneCommitteePart`'s synthesis block. Header +
 // plan ticket + guardrail + 4 execution wells sit above adaptive segmented
-// tabs for the 4-Desk Matrix, the Cross-Examination ledger, and the data
+// tabs for the 4-Desk Matrix, the desk-alignment ledger, and the data
 // provenance panel. On desktop with the War Room open the parent passes
 // `compactInline` so the desks/clashes live only in the sidecar.
 import { IconDatabase, IconSwords, IconUsers } from '@tabler/icons-react';
@@ -20,7 +20,7 @@ import {
   extractSyndicateTradeLevels,
   type SyndicateTradeOpinion,
 } from './extract-trade-levels';
-import { SyndicateClashStrip, type SyndicateClash } from './syndicate-clash-strip';
+import { SyndicateClashStrip } from './syndicate-clash-strip';
 import { SyndicateDeskGrid } from './syndicate-desk-grid';
 import { SyndicateTicketHeader } from './syndicate-dossier-header';
 
@@ -31,7 +31,6 @@ export interface SyndicateDossierCardProps {
   opinions: AgentProgress[];
   mode: string;
   status?: 'complete' | 'failed' | 'retrying';
-  critiques?: readonly SyndicateClash[];
   symbol?: string | null;
   /** Raw opinions (with `rawData.keyLevels`) preferred for level extraction. */
   tradeOpinions?: readonly SyndicateTradeOpinion[];
@@ -88,7 +87,6 @@ export function SyndicateDossierCard({
   agents,
   opinions,
   mode,
-  critiques,
   symbol = null,
   tradeOpinions,
   text,
@@ -137,14 +135,12 @@ export function SyndicateDossierCard({
     [symbol, mode, opinions, levels.entry, levels.invalidation],
   );
 
-  const clashCount =
-    (critiques ?? []).filter((clash) => !clash.confirms).length || (levels.dissent ? 1 : 0);
   const doneDesks = opinions.length;
 
   // Clean vector iconography without redundant OS emoji prefixes.
   const tabs: Array<{ id: DossierTab; label: string; icon: typeof IconUsers }> = [
     { id: 'desks', label: `4 Desks (${doneDesks}/${doneDesks || 4})`, icon: IconUsers },
-    { id: 'clash', label: `Cross-Examination (${clashCount})`, icon: IconSwords },
+    { id: 'clash', label: `Alignment${levels.dissent ? ' (split)' : ''}`, icon: IconSwords },
     { id: 'data', label: 'Data & Sources', icon: IconDatabase },
   ];
 
@@ -236,9 +232,7 @@ export function SyndicateDossierCard({
         />
       ) : null}
 
-      {!compactInline && tab === 'clash' ? (
-        <SyndicateClashStrip critiques={critiques} opinions={opinions} />
-      ) : null}
+      {!compactInline && tab === 'clash' ? <SyndicateClashStrip opinions={opinions} /> : null}
 
       {!compactInline && tab === 'data' ? (
         <DataPanel symbol={symbol} mode={mode} dataQuality={dataQuality} deskCount={doneDesks} />

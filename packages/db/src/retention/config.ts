@@ -25,8 +25,7 @@ const DEFAULT_RETENTION: Required<RetentionConfig> = {
   rateLimitRetentionHours: 2,
   providerDailyQuotaRetentionDays: 3,
   cronRunRetentionDays: 30,
-  outboxRetentionDays: 30,
-  analysisJobRetentionDays: 7,
+  candles1mRetentionDays: 14,
   budgetReservationRetentionDays: 90,
   observationalMemoryRetentionDays: 90,
 };
@@ -42,10 +41,8 @@ export interface RetentionConfig {
   providerDailyQuotaRetentionDays?: number;
   /** Retention window in days for cron_runs. */
   cronRunRetentionDays?: number;
-  /** Retention window in days for completed/dead persistence outbox rows. */
-  outboxRetentionDays?: number;
-  /** Retention window in days for terminal Full-analysis queue rows. */
-  analysisJobRetentionDays?: number;
+  /** Retention window in days for candles_1m (keep the chart window small). */
+  candles1mRetentionDays?: number;
   /** Retention window in days for terminal budget reservation ledger rows. */
   budgetReservationRetentionDays?: number;
   /**
@@ -62,11 +59,9 @@ export interface RetentionResult {
   rateLimitsDeleted: number;
   providerDailyQuotaDeleted: number;
   cronRunsDeleted: number;
-  outboxDeleted: number;
-  fullAnalysisQueueDeleted: number;
+  candles1mDeleted: number;
   budgetReservationsDeleted: number;
   sharedSnapshotsDeleted: number;
-  notificationNoiseStateDeleted: number;
   mastraObservationalMemoryDeleted: number;
   note: string;
 }
@@ -106,13 +101,9 @@ export function resolveRetention(config: RetentionConfig): Required<RetentionCon
       config.cronRunRetentionDays,
       DEFAULT_RETENTION.cronRunRetentionDays,
     ),
-    outboxRetentionDays: boundedDays(
-      config.outboxRetentionDays,
-      DEFAULT_RETENTION.outboxRetentionDays,
-    ),
-    analysisJobRetentionDays: boundedDays(
-      config.analysisJobRetentionDays,
-      DEFAULT_RETENTION.analysisJobRetentionDays,
+    candles1mRetentionDays: boundedDays(
+      config.candles1mRetentionDays,
+      DEFAULT_RETENTION.candles1mRetentionDays,
     ),
     budgetReservationRetentionDays: boundedDays(
       config.budgetReservationRetentionDays,
@@ -150,13 +141,9 @@ export function getRetentionConfigFromEnv(): Required<RetentionConfig> {
       'CRON_RUN_RETENTION_DAYS',
       DEFAULT_RETENTION.cronRunRetentionDays,
     ),
-    outboxRetentionDays: envDays(
-      'PERSISTENCE_OUTBOX_RETENTION_DAYS',
-      DEFAULT_RETENTION.outboxRetentionDays,
-    ),
-    analysisJobRetentionDays: envDays(
-      'ANALYSIS_JOB_RETENTION_DAYS',
-      DEFAULT_RETENTION.analysisJobRetentionDays,
+    candles1mRetentionDays: envDays(
+      'CANDLES_1M_RETENTION_DAYS',
+      DEFAULT_RETENTION.candles1mRetentionDays,
     ),
     budgetReservationRetentionDays: envDays(
       'BUDGET_RESERVATION_RETENTION_DAYS',

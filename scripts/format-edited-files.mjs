@@ -98,19 +98,27 @@ const payload = readPayload();
 const toolName = String(
   payload.tool_name ?? payload.toolName ?? payload.name ?? payload.tool ?? '',
 ).toLowerCase();
-const explicitPaths = collectPaths(payload.tool_input ?? payload.toolInput ?? payload.input ?? payload);
-const looksLikeEdit = explicitPaths.length > 0 || EDIT_TOOL_HINTS.some((hint) => toolName.includes(hint));
+const explicitPaths = collectPaths(
+  payload.tool_input ?? payload.toolInput ?? payload.input ?? payload,
+);
+const looksLikeEdit =
+  explicitPaths.length > 0 || EDIT_TOOL_HINTS.some((hint) => toolName.includes(hint));
 
 if (!looksLikeEdit) process.exit(0);
 
-const files = [...new Set([...explicitPaths, ...changedFiles()])]
+// Fast path: when the agent hook supplies explicit edited file path(s), format
+// only those files without scanning the entire git working tree.
+const candidatePaths = explicitPaths.length > 0 ? explicitPaths : changedFiles();
+const files = [...new Set(candidatePaths)]
   .map(toRepoRelative)
   .filter((file) => file !== null && SUPPORTED.test(file));
 
 if (files.length === 0) process.exit(0);
 
+const oxfmtBin = resolve(root, 'node_modules/.bin/oxfmt');
+
 try {
-  execFileSync('pnpm', ['exec', 'prettier', '--write', '--ignore-unknown', ...files], {
+  execFileSync(oxfmtBin, ['--write', ...files], {
     cwd: root,
     stdio: 'ignore',
   });

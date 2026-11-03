@@ -50,7 +50,6 @@ import {
   resetOnboardingAction,
   updateApiKeysAction,
   updateChatModelAction,
-  updateJevApiKeysAction,
   updateProfileAction,
   updateUsageSettingsAction,
 } from '../src/app/(app)/settings/actions';
@@ -61,7 +60,6 @@ vi.mock('@kestrel/shared/encryption', async () => {
   const byok = await import('@kestrel/shared/byok');
   return {
     PROVIDER_IDS: byok.PROVIDER_IDS,
-    JEV_PROVIDER_IDS: byok.JEV_PROVIDER_IDS,
     encryptByok: vi.fn((payload: unknown) => `enc:${JSON.stringify(payload)}`),
     decryptByok: vi.fn((encrypted: string | null | undefined) => {
       if (!encrypted || !encrypted.startsWith('enc:')) return null;
@@ -645,23 +643,18 @@ describe('exportDataAction', () => {
       [[]], // spend
       [[]], // briefings
       [[]], // audit logs
+      [[]], // installed plugins
+      [[]], // plugin storage
       [[]], // provider tests
-      [[]], // notification noise state
       [[]], // bot links
       [[]], // rate limits
       [[]], // tool telemetry
       [[{ id: 'feedback-a' }]],
-      [[{ id: 'regression-a' }]],
-      [[{ id: 'shadow-a' }]],
-      [[{ id: 'quality-a' }]],
-      [[{ runId: 'queue-a' }]],
-      [[{ id: 'outbox-a' }]],
       [[{ runId: 'mutation-a' }]],
       [[{ id: 'budget-a' }]],
       [[{ id: 'opinion-a' }]],
       [[{ id: 'trace-a', userId: USER_ID }]],
       [[]], // memory backfill state
-      [[]], // memory projection state
     ];
     const authDb = mockQueryChain(rows.slice(0, 1));
     const exportDb = mockQueryChain(rows.slice(1));
@@ -676,7 +669,7 @@ describe('exportDataAction', () => {
 
     const serialized = result.data;
     expect(serialized).toContain('feedback');
-    expect(serialized).toContain('regressionCases');
+    expect(serialized).toContain('installedPlugins');
     expect(serialized).toContain('toolTelemetry');
     expect(serialized).not.toContain('bcrypt-hash');
     expect(serialized).not.toContain('encrypted-totp');
@@ -688,7 +681,7 @@ describe('exportDataAction', () => {
 });
 
 // ===========================================================================
-// updateApiKeysAction / updateJevApiKeysAction  (Decision 4A — preservation)
+// updateApiKeysAction  (Phase 1 — preservation)
 // ===========================================================================
 
 describe('updateApiKeysAction', () => {
@@ -703,17 +696,11 @@ describe('updateApiKeysAction', () => {
     expect(result).toEqual({ ok: false, error: 'Not authenticated' });
   });
 
-  it('preserves opencode, liquid, typesafe, and finnhub keys when saving chat provider keys', async () => {
+  it('preserves the finnhub market-data key when saving chat provider keys', async () => {
     mockDb([
       [
         {
-          aiApiKeys: encryptByok({
-            google: 'old-g',
-            opencode: 'oc-free-1',
-            liquid: 'lq-1',
-            typesafe: 'ts-1',
-            finnhub: 'fh-1',
-          }),
+          aiApiKeys: encryptByok({ google: 'old-g', finnhub: 'fh-1' }),
           aiApiKeysUpdatedAt: null,
         },
       ],
@@ -722,21 +709,15 @@ describe('updateApiKeysAction', () => {
     const result = await updateApiKeysAction({ status: 'idle' }, formData({ google: 'new-g' }));
 
     expect(result.ok).toBe(true);
-    expect(savedByokPayload()).toMatchObject({
-      google: 'new-g',
-      opencode: 'oc-free-1',
-      liquid: 'lq-1',
-      typesafe: 'ts-1',
-      finnhub: 'fh-1',
-    });
+    expect(savedByokPayload()).toMatchObject({ google: 'new-g', finnhub: 'fh-1' });
     expect(mockTestProviderKey).toHaveBeenCalledWith('google', 'new-g');
   });
 
-  it('clears a chat key when its field is submitted empty, without touching the decision-model or market-data keys', async () => {
+  it('keeps a chat key when its field is submitted empty (Phase 1: empty means unchanged)', async () => {
     mockDb([
       [
         {
-          aiApiKeys: encryptByok({ google: 'old-g', opencode: 'oc-free-1' }),
+          aiApiKeys: encryptByok({ google: 'old-g', finnhub: 'fh-1' }),
           aiApiKeysUpdatedAt: null,
         },
       ],
@@ -745,7 +726,27 @@ describe('updateApiKeysAction', () => {
     const result = await updateApiKeysAction({ status: 'idle' }, formData({ google: '' }));
 
     expect(result.ok).toBe(true);
-    expect(savedByokPayload()).toMatchObject({ opencode: 'oc-free-1' });
+    expect(savedByokPayload()).toMatchObject({ google: 'old-g', finnhub: 'fh-1' });
+    expect(mockTestProviderKey).not.toHaveBeenCalled();
+  });
+
+  it('clears a chat key only through the explicit REMOVE sentinel', async () => {
+    mockDb([
+      [
+        {
+          aiApiKeys: encryptByok({ google: 'old-g', finnhub: 'fh-1' }),
+          aiApiKeysUpdatedAt: null,
+        },
+      ],
+    ]);
+
+    const result = await updateApiKeysAction(
+      { status: 'idle' },
+      formData({ google: '***REMOVE***' }),
+    );
+
+    expect(result.ok).toBe(true);
+    expect(savedByokPayload()).toMatchObject({ finnhub: 'fh-1' });
     expect(savedByokPayload()).not.toHaveProperty('google');
   });
 
@@ -790,8 +791,7 @@ describe('updateApiKeysAction', () => {
 
     expect(result.ok).toBe(true);
     const saved = savedByokPayload();
-    expect(saved).not.toHaveProperty('google');
-    expect(saved).toMatchObject({ deepseek: 'old-d' });
+    expect(saved).toMatchObject({ google: 'old-g', deepseek: 'old-d' });
   });
 
   it('replaces a stored key when the user types a new value (R5)', async () => {
@@ -830,7 +830,7 @@ describe('updateApiKeysAction', () => {
     mockDb([
       [
         {
-          aiApiKeys: encryptByok({ google: 'old-g', opencode: 'oc-1' }),
+          aiApiKeys: encryptByok({ google: 'old-g', finnhub: 'fh-1' }),
           aiApiKeysUpdatedAt: null,
         },
       ],
@@ -845,80 +845,7 @@ describe('updateApiKeysAction', () => {
     // Two phases: the preserving read and the atomic settings + health write.
     expect(mockWithUserTenant).toHaveBeenCalledTimes(2);
     expect(mockWithUserTenant).toHaveBeenCalledWith(USER_ID, expect.any(Function));
-    expect(savedByokPayload()).toMatchObject({ google: 'old-g', opencode: 'oc-1' });
-  });
-});
-
-describe('updateJevApiKeysAction', () => {
-  beforeEach(() => {
-    (auth as Mock).mockImplementation(mockNextAuthSession(USER_ID));
-  });
-
-  it('returns error when not authenticated', async () => {
-    (auth as Mock).mockResolvedValue(null);
-    const result = await updateJevApiKeysAction({ status: 'idle' }, formData({ opencode: 'x' }));
-    expect(result).toEqual({ ok: false, error: 'Not authenticated' });
-  });
-
-  it('saves decision-model keys without touching chat providers or finnhub', async () => {
-    mockDb([
-      [
-        {
-          aiApiKeys: encryptByok({ google: 'old-g', finnhub: 'fh-1' }),
-          aiApiKeysUpdatedAt: null,
-        },
-      ],
-    ]);
-
-    const result = await updateJevApiKeysAction(
-      { status: 'idle' },
-      formData({ opencode: 'oc-new', liquid: 'lq-new', typesafe: 'ts-new' }),
-    );
-
-    expect(result).toEqual({
-      ok: true,
-      data: { savedCount: 3, clearedCount: 0, at: expect.any(Number) },
-    });
-    expect(savedByokPayload()).toMatchObject({
-      google: 'old-g',
-      finnhub: 'fh-1',
-      opencode: 'oc-new',
-      liquid: 'lq-new',
-      typesafe: 'ts-new',
-    });
-  });
-
-  it('clears one decision key with an empty value while untouched keys keep their stored value', async () => {
-    mockDb([
-      [
-        {
-          aiApiKeys: encryptByok({ opencode: 'oc-old', liquid: 'lq-old' }),
-          aiApiKeysUpdatedAt: null,
-        },
-      ],
-    ]);
-
-    const result = await updateJevApiKeysAction({ status: 'idle' }, formData({ liquid: '' }));
-
-    expect(result.ok).toBe(true);
-    const saved = savedByokPayload();
-    expect(saved).toMatchObject({ opencode: 'oc-old' });
-    expect(saved).not.toHaveProperty('liquid');
-  });
-
-  it('keeps the stored value when the field still carries the KEEP sentinel', async () => {
-    mockDb([
-      [
-        {
-          aiApiKeys: encryptByok({ opencode: 'oc-old' }),
-          aiApiKeysUpdatedAt: null,
-        },
-      ],
-    ]);
-
-    await updateJevApiKeysAction({ status: 'idle' }, formData({ opencode: '***KEEP***' }));
-
-    expect(savedByokPayload()).toMatchObject({ opencode: 'oc-old' });
+    expect(savedByokPayload()).toMatchObject({ google: 'old-g', finnhub: 'fh-1' });
   });
 });
 
@@ -964,31 +891,22 @@ describe('importKeysAction', () => {
     expect(mockWithUserTenant).toHaveBeenCalledWith(USER_ID, expect.any(Function));
   });
 
-  it('imports decision-model and market-data keys from the backup payload', async () => {
-    const backup = encryptWithPassword(
-      { google: 'g-new', opencode: 'oc-b', liquid: 'lq-b', typesafe: 'ts-b', finnhub: 'fh-b' },
-      TEST_PASSWORD,
-    );
+  it('imports chat provider and market-data keys from the backup payload', async () => {
+    const backup = encryptWithPassword({ google: 'g-new', finnhub: 'fh-b' }, TEST_PASSWORD);
     mockDb([[{ aiApiKeys: null, aiApiKeysUpdatedAt: null }]]);
 
     const result = await importKeysAction(backup, TEST_PASSWORD);
 
-    expect(result).toEqual({ ok: true, data: { importedCount: 5 } });
-    expect(savedByokPayload()).toMatchObject({
-      google: 'g-new',
-      opencode: 'oc-b',
-      liquid: 'lq-b',
-      typesafe: 'ts-b',
-      finnhub: 'fh-b',
-    });
+    expect(result).toEqual({ ok: true, data: { importedCount: 2 } });
+    expect(savedByokPayload()).toMatchObject({ google: 'g-new', finnhub: 'fh-b' });
   });
 
-  it('carries stored decision-model and market-data keys forward when the backup predates them', async () => {
+  it('carries the stored market-data key forward when the backup predates it', async () => {
     const backup = encryptWithPassword({ google: 'g-new' }, TEST_PASSWORD);
     mockDb([
       [
         {
-          aiApiKeys: encryptByok({ opencode: 'oc-old', finnhub: 'fh-old' }),
+          aiApiKeys: encryptByok({ finnhub: 'fh-old' }),
           aiApiKeysUpdatedAt: null,
         },
       ],
@@ -996,12 +914,8 @@ describe('importKeysAction', () => {
 
     const result = await importKeysAction(backup, TEST_PASSWORD);
 
-    expect(result).toEqual({ ok: true, data: { importedCount: 3 } });
-    expect(savedByokPayload()).toMatchObject({
-      google: 'g-new',
-      opencode: 'oc-old',
-      finnhub: 'fh-old',
-    });
+    expect(result).toEqual({ ok: true, data: { importedCount: 2 } });
+    expect(savedByokPayload()).toMatchObject({ google: 'g-new', finnhub: 'fh-old' });
   });
 
   it('filters out unknown provider keys', async () => {

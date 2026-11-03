@@ -56,11 +56,11 @@ beforeEach(() => {
 
 describe('applyUserByokPatch', () => {
   const state: UserByokState = {
-    keys: { openai: 'sk-old', anthropic: 'sk-ant', opencode: 'jev-key', finnhub: 'fh-key' },
+    keys: { openai: 'sk-old', anthropic: 'sk-ant', groq: 'groq-key', finnhub: 'fh-key' },
     updatedAt: {
       openai: '2026-10-01T00:00:00.000Z',
       anthropic: '2026-10-02T00:00:00.000Z',
-      opencode: '2026-10-03T00:00:00.000Z',
+      groq: '2026-10-03T00:00:00.000Z',
       finnhub: '2026-10-04T00:00:00.000Z',
     },
   };
@@ -71,7 +71,7 @@ describe('applyUserByokPatch', () => {
     expect(result.keys).toEqual({
       openai: 'sk-new',
       anthropic: 'sk-ant',
-      opencode: 'jev-key',
+      groq: 'groq-key',
       finnhub: 'fh-key',
     });
     expect(result.changed).toEqual(['openai']);
@@ -99,13 +99,13 @@ describe('applyUserByokPatch', () => {
   it('replace drops unmentioned keys but keeps preserve', () => {
     const result = applyUserByokPatch(
       state,
-      { set: { openai: 'sk-imported' }, replace: true, preserve: ['opencode', 'finnhub'] },
+      { set: { openai: 'sk-imported' }, replace: true, preserve: ['groq', 'finnhub'] },
       CHANGED_AT,
     );
 
     expect(result.keys).toEqual({
       openai: 'sk-imported',
-      opencode: 'jev-key',
+      groq: 'groq-key',
       finnhub: 'fh-key',
     });
     expect(result.changed).toEqual(['openai']);

@@ -53,7 +53,11 @@ const alog = createCategorizedLogger('ai', { component: 'budget' });
 export const UNCAPPED_DAILY_USD = 1_000_000;
 
 /**
- * Q4: budget enforcement is off by default; spend is ledgered, never blocking.
+ * Q4 / audit 2026-10-31 (R3): enforcement is ON by default. Spend is ledgered
+ * and a turn that would cross the daily ceiling is rejected. Set
+ * `ENFORCE_BUDGET=0` only for a trusted instance that wants ledger-only
+ * observation.
+ *
  * Audit v2 P2-14 — read fresh on every call (the flag parser is a documented
  * cheap raw read) so runtime env flips apply without a process restart.
  */

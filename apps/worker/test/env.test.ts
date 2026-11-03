@@ -148,14 +148,12 @@ describe('loadEnv', () => {
     expect(env.HC_BACKUP_DB_UUID).toBeUndefined();
   });
 
-  it('accepts the metrics-flush and multi-agent-analysis healthcheck UUIDs added for R16', () => {
+  it('accepts the retention healthcheck UUID added for R16', () => {
     const env = loadEnv({
       ...VALID,
-      HC_JOB_METRICS_FLUSH_UUID: 'metrics-uuid',
-      HC_JOB_MULTI_AGENT_ANALYSIS_UUID: 'committee-uuid',
+      HC_JOB_RETENTION_UUID: 'retention-uuid',
     } as unknown as NodeJS.ProcessEnv);
-    expect(env.HC_JOB_METRICS_FLUSH_UUID).toBe('metrics-uuid');
-    expect(env.HC_JOB_MULTI_AGENT_ANALYSIS_UUID).toBe('committee-uuid');
+    expect(env.HC_JOB_RETENTION_UUID).toBe('retention-uuid');
   });
 
   it('treats empty HC UUIDs as undefined (operator can leave the row blank)', () => {

@@ -30,12 +30,7 @@ import type { LanguageModel } from 'ai';
 import type { SymbolResearchPacket } from '../../mastra-v2/packets/symbol-research';
 import type { MastraGenerationStats } from '../../mastra-v2/shared/telemetry';
 import type { GenerationLedger } from '../../persistence/generation-ledger';
-import type {
-  CommitteeCritique,
-  MastraAnalysisMode,
-  MastraModeOpinion,
-  ModeRequestContext,
-} from '../types';
+import type { MastraAnalysisMode, MastraModeOpinion, ModeRequestContext } from '../types';
 
 interface CommitteeSynthesisDeps {
   model: LanguageModel;
@@ -67,8 +62,6 @@ export interface CommitteeSynthesisArgs {
   prompt: string;
   packet: SymbolResearchPacket;
   opinions: MastraModeOpinion[];
-  /** §3.2: peer reviews from the cross-critique round, when it ran. */
-  critiques?: CommitteeCritique[];
   executionStats: MastraGenerationStats[];
   requestContext: RequestContext<ModeRequestContext>;
   signal?: AbortSignal;

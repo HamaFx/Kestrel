@@ -40,8 +40,8 @@
  * The LLM detector stays scoped to the user turn (`lastMessageOnly`): scoring
  * every historical message would cost one judge call per message per turn.
  * Indirect content is covered by the deterministic screen above plus the
- * model-backed (Jev) snippet screen on the retrieval paths, which carries the
- * strict/conversation posture described in `ContentScreenMode`.
+ * retrieval-path snippet screen, which carries the strict/conversation posture
+ * described in `ContentScreenMode`.
  *
  * The deterministic `isInjectionAttempt` and `isMutationIntent` gates in the
  * route remain the zero-cost first line of defense; the LLM detector catches
@@ -59,9 +59,6 @@ import {
 import type { LanguageModel } from 'ai';
 
 import { hashLogValue } from '../diagnostics/redact';
-import { createJevGuardrailProcessor } from '../jev/guardrail-processor';
-import { resolveJevEndpoint } from '../jev/resolve-endpoint';
-import type { JevEnv, ResolvedJevEndpoint } from '../jev/types';
 import type { ResolveModelEnv } from '../models/env-factory';
 import { resolveChatModel } from '../models/model';
 import {
@@ -115,27 +112,16 @@ export interface GuardrailOptions {
   mode?: GuardrailMode;
   /** Confidence threshold (0–1). Default: 0.7. */
   threshold?: number;
-  /**
-   * Phase 1 (Jev System One) — a pre-resolved Jev endpoint. When omitted the
-   * builder resolves one from `settings.aiApiKeys` / `env`; passing `null`
-   * explicitly forces the generative fallback path (tests / hermetic runs).
-   */
-  jevEndpoint?: ResolvedJevEndpoint | null | undefined;
 }
 
 /**
  * Build the Mastra input processors for a chat agent. The outer array places
  * the UnicodeNormalizer first so the detector sees clean text.
  *
- * Phase 1 (Jev): when any Jev provider can be resolved, the fast
- * non-generative `kestrel-jev-guardrail` processor replaces the generative
- * `PromptInjectionDetector` (no prefill/decode, 100% turn coverage). With no
- * Jev provider the previous behavior is unchanged.
- *
- * In `availability` mode (default), returns the normalizer only when no BYOK
- * model and no Jev endpoint are available. In `strict` mode, throws
- * `GuardrailUnavailableError` when neither Jev nor a generative detector
- * model can be resolved, so the caller can reject the turn.
+ * In `availability` mode (default), returns the normalizer (and the indirect
+ * content screen) only when no BYOK model is available. In `strict` mode,
+ * throws `GuardrailUnavailableError` when a generative detector model cannot be
+ * resolved, so the caller can reject the turn.
  */
 export function buildGuardrailInputProcessors(options: GuardrailOptions): GuardrailBundle {
   const mode = options.mode ?? 'availability';
@@ -151,35 +137,6 @@ export function buildGuardrailInputProcessors(options: GuardrailOptions): Guardr
   // including the degraded ones. A missing detector model therefore never
   // means unscreened indirect content.
   const indirect = createIndirectContentGuardrailProcessor({ mode });
-
-  // Phase 1 (Jev System One) — free-first endpoint resolution. Any resolved
-  // endpoint (OpenCode free, Vercel Gateway credits, TypeSafe/OpenRouter
-  // BYOK) makes the generative detector unnecessary.
-  const jevEndpoint =
-    options.jevEndpoint !== undefined
-      ? options.jevEndpoint
-      : resolveJevEndpoint(options.settings, options.env);
-  if (jevEndpoint) {
-    const env: JevEnv = options.env;
-    return {
-      processors: [
-        normalizer,
-        createJevGuardrailProcessor({
-          settings: options.settings,
-          env,
-          strategy: options.strategy,
-          threshold: options.threshold ?? 0.7,
-          endpoint: jevEndpoint,
-          // Fail closed when the detector is unreachable on a strict path.
-          mode,
-        }),
-        indirect,
-      ],
-      warnings,
-      mode,
-      indirect,
-    };
-  }
 
   let resolution: { model: LanguageModel } | null = options.model ? { model: options.model } : null;
   if (!resolution) {

@@ -6,7 +6,10 @@
 import { formatRelative } from '@/lib/formatters/datetime';
 
 export type TestState =
-  { kind: 'idle' } | { kind: 'pending' } | { kind: 'ok' } | { kind: 'err'; message: string };
+  | { kind: 'idle' }
+  | { kind: 'pending' }
+  | { kind: 'ok' }
+  | { kind: 'err'; message: string };
 
 /**
  * StatusPill — single small chip on the right of the provider name

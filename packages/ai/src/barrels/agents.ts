@@ -86,7 +86,7 @@ export type { SemanticRoutingAccounting } from '../routing/semantic';
 export {
   rememberJournalEntry,
   rememberBriefing,
-  // Phase 3 (Jev roadmap) — JEPA-style market-regime memories.
+  // JEPA-style market-regime memories.
   composeRegimeStateText,
   rememberMarketRegime,
   searchMemory,
@@ -129,7 +129,7 @@ export {
   type MastraExecutionRoute,
 } from '../mastra-v2/planning/execution-decision';
 
-// Canonical Mastra routing and historical opinion persistence.
+// Canonical Mastra routing.
 export {
   resolveMode,
   type AnalysisMode,
@@ -138,10 +138,8 @@ export {
 export {
   saveAgentOpinions,
   saveAgentOpinionsBestEffort,
-  listAgentOpinions,
-  listMessageOpinions,
   type SaveOpinionsArgs,
-} from '../committee/opinion-persistence';
+} from '../committee/opinion-history';
 
 // F3 — Social Sentiment Integration
 export {

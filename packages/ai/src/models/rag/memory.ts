@@ -20,12 +20,11 @@
 //
 // Audit R15 — recalled memory is screened before it becomes tool output. A
 // journal note or thread synopsis can contain pasted external prose ("here is
-// the headline I read"), so the same two-layer screen runs here: the
-// deterministic regex floor always, and the model-backed snippet screen with
-// the caller's strict/availability posture.
+// the headline I read"), so the same deterministic instruction screen runs
+// here before any row reaches the model.
 // ---------------------------------------------------------------------------
 
-import { quarantineAndRerankSnippets } from '../../jev/rag-quarantine';
+import { screenSnippets } from '../../mastra-v2/packets/snippet-screen';
 import { searchMemory, type MemoryRow } from '../../memory/memory-index';
 import { DEFAULT_HALFLIFE_DAYS_MEMORY, type RunMemoryQueryArgs } from './types';
 
@@ -49,16 +48,10 @@ export async function runMemoryQuery(args: RunMemoryQueryArgs): Promise<MemoryRo
   if (decayed.length === 0) return decayed;
 
   // Memory rows are the user's own records, so relevance gating stays off:
-  // only injection screening runs here.
-  const screened = await quarantineAndRerankSnippets({
-    query: args.query ?? '',
+  // only the deterministic injection screen runs here.
+  const screened = screenSnippets({
     items: decayed.map((row) => ({ id: row.id, text: row.text })),
     mode: args.screenMode,
-    minRelevanceScore: 0,
-    settings: args.jevSettings ?? null,
-    env: args.jevEnv ?? null,
-    ...(args.jevSignal !== undefined ? { signal: args.jevSignal } : {}),
-    ledgerEntryId: 'memory-query',
     reportPath: 'memory',
     reportSink: args.reportSink ?? null,
   });

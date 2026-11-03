@@ -45,13 +45,6 @@ export interface AgentDeliberationProps {
    * the run as one desk per symbol + cross-symbol synthesis.
    */
   comparisonSymbols?: string[];
-  /** Cross-examination ledger from `data-agent-progress` (full mode). */
-  critiques?: Array<{
-    agentName: string;
-    confirms: boolean;
-    revisedConfidence: number;
-    critique: string;
-  }>;
   /** Executing workflow stage (`collect-packet` … `fusion`). */
   stage?: string;
   /** Symbol the run analyzes (settled dossier header). */

@@ -34,8 +34,7 @@ import { organization, users } from '../core/auth';
  * Legacy assistant turns leave `kind` null. Live writers emit the kinds
  * documented in `TELEMETRY_KINDS` (packages/ai persistence/telemetry).
  * The values below additionally include HISTORICAL kinds that may exist in
- * older rows or queued replay payloads but are no longer emitted
- * (audit v2 §4.5):
+ * older rows but are no longer emitted (audit v2 §4.5):
  * - `title_generated` / `title_failed` — pre-Mastra Title_Generator
  *   outcomes; the Mastra-native title path records cost through the parent
  *   turn's ledger instead and emits no rows.

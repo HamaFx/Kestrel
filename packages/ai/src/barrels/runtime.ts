@@ -15,7 +15,7 @@
  */
 
 // Runtime sub-barrel: workflow status, DB accessor, telemetry and Langfuse
-// instrumentation, retry/recovery helpers, and run diagnostics.
+// instrumentation, retry helpers, and run diagnostics.
 // Re-exported by `src/index.ts`.
 
 export * from '../runtime/workflow-status';
@@ -30,7 +30,6 @@ export * from '../runtime/wait-until';
 // Langfuse / OpenTelemetry instrumentation
 export { initLangfuse, flushLangfuse, shutdownLangfuse } from '../runtime/instrumentation';
 export { telemetryConfig, type TelemetryConfigOptions } from '../runtime/telemetry';
-export { replayPersistenceFailures } from '../persistence/recovery';
 
 // STAB-06: Exponential-backoff retry helper.
 export { withRetry, type RetryOptions } from '../runtime/retry';

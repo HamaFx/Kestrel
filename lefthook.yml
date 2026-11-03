@@ -1,0 +1,11 @@
+pre-commit:
+  parallel: true
+  commands:
+    secrets:
+      run: bash .githooks/pre-commit
+    lint:
+      glob: '*.{ts,tsx,js,jsx,mjs,cjs}'
+      run: pnpm exec oxlint {staged_files}
+    format:
+      glob: '*.{ts,tsx,js,jsx,mjs,cjs,json,md,css}'
+      run: pnpm exec oxfmt --check {staged_files}

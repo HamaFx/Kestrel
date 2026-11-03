@@ -52,35 +52,28 @@ test.describe('P3 chat contracts', () => {
     });
   });
 
-  test('polls a queued Full analysis to completion', async ({ authedPage }) => {
+  test('streams Full analysis progress and text over one SSE response', async ({ authedPage }) => {
     const page = authedPage;
-    let polls = 0;
-    await page.route('**/api/chat/analysis-jobs/p3-full-job', (route) => {
-      polls += 1;
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(
-          polls === 1
-            ? { status: 'running', progress: [] }
-            : {
-                status: 'complete',
-                result: {
-                  finalText: 'P3 Full analysis completed.',
-                  mode: 'full',
-                  agentOpinions: [],
-                  totalCostUsd: 0.01,
-                  totalLatencyMs: 100,
-                },
-              },
-        ),
-      });
-    });
     await page.route(/\/api\/chat(?:\?.*)?$/, (route) =>
       route.fulfill({
         status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ type: 'analysis-queued', jobId: 'p3-full-job', status: 'queued' }),
+        contentType: 'text/event-stream',
+        body: [
+          'data: {"type":"data-agent-progress","data":{"agents":[{"agentName":"technical","status":"running"},{"agentName":"fundamental","status":"pending"},{"agentName":"risk","status":"pending"},{"agentName":"sentiment","status":"pending"}],"mode":"full","stage":"technical"}}',
+          '',
+          'data: {"type":"data-agent-progress","data":{"agents":[{"agentName":"technical","status":"done"},{"agentName":"fundamental","status":"done"},{"agentName":"risk","status":"done"},{"agentName":"sentiment","status":"done"}],"mode":"full","stage":"fusion","status":"complete"}}',
+          '',
+          'data: {"type":"text-start","id":"p3-full"}',
+          '',
+          'data: {"type":"text-delta","id":"p3-full","delta":"P3 Full analysis completed."}',
+          '',
+          'data: {"type":"data-multi-agent-meta","id":"p3-full","data":{"engine":"mastra","mode":"full","agentOpinions":[]}}',
+          '',
+          'data: {"type":"text-end","id":"p3-full"}',
+          '',
+          'data: {"type":"turn-complete","id":"p3-full","status":"persisted"}',
+          '',
+        ].join('\n'),
       }),
     );
 
@@ -88,7 +81,6 @@ test.describe('P3 chat contracts', () => {
     await page.getByRole('textbox').fill('Run a Full XAUUSD analysis.');
     await page.getByRole('textbox').press('Enter');
     await expect(page.getByText('P3 Full analysis completed.')).toBeVisible({ timeout: 20_000 });
-    expect(polls).toBeGreaterThanOrEqual(2);
   });
 
   test('renders a bounded multi-symbol comparison response (A-01)', async ({ authedPage }) => {

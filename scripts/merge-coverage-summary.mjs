@@ -101,7 +101,12 @@ function summarizeFile(fileCoverage) {
 }
 
 const summary = {
-  total: { lines: emptyMetric(), statements: emptyMetric(), functions: emptyMetric(), branches: emptyMetric() },
+  total: {
+    lines: emptyMetric(),
+    statements: emptyMetric(),
+    functions: emptyMetric(),
+    branches: emptyMetric(),
+  },
 };
 const mergedFinal = {};
 let fileCount = 0;

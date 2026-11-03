@@ -79,7 +79,7 @@ export function chatSvg() {
   body.push(text(478, 864, '58.4', 18, COLORS.fg, 700));
   body.push(rect(698, 804, 222, 76, COLORS.panel, 2, COLORS.border));
   body.push(text(720, 832, 'STRUCTURE', 10, COLORS.subtle, 700));
-  body.push(text(720, 864, 'BOS UP', 18, COLORS.bull, 700));
+  body.push(text(720, 864, 'SWING HI', 18, COLORS.bull, 700));
   body.push(text(214, 944, 'KEY LEVELS', 11, COLORS.subtle, 700));
   body.push(text(214, 980, 'Support  2,318.40', 17, COLORS.fg, 600));
   body.push(text(600, 980, 'Resistance  2,356.80', 17, COLORS.fg, 600));

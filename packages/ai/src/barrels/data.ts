@@ -176,7 +176,6 @@ export {
   hashContent,
   isQuietHours,
   InMemoryNoiseState,
-  DbNoiseState,
   getNoiseConfig,
   saveNoiseConfig,
   getRouteConfig,

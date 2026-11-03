@@ -18,9 +18,8 @@
 
 // GET /api/cron/snapshots — daily HLOC, pivots, ATR, key levels per symbol.
 //
-// Manual-fallback path for the scheduled worker `snapshots` job; both call the
-// same shared `runSnapshotRefresh` runner, which also tail-prunes `candles_1m`
-// to the trailing retention window.
+// Calls the shared `runSnapshotRefresh` runner, which also tail-prunes
+// `candles_1m` to the trailing retention window.
 
 import { withCronAuth } from '@/lib/http/cron';
 import { runSnapshotsCronService } from '@/lib/services/cron-jobs';

@@ -21,13 +21,13 @@
 // Audit plan §1.11 / P1-16 — before any provider is touched, the user's
 // noise control settings (dedup / cooldown / quiet hours) are consulted.
 // Suppressed alerts are never delivered but stay active, so they fire
-// normally once the suppression window lifts. The dedup/cooldown state is
-// persisted via `DbNoiseState` so every cron runner shares one view.
+// normally once the suppression window lifts. Dedup/cooldown state is
+// process-local.
 
 import type { Alert, NoiseDecision } from '@kestrel/shared';
 
-import { evaluateNoise, hashContent } from '../../notifications/noise-control';
-import { DbNoiseState, getNoiseConfig } from '../../notifications/noise-state';
+import { evaluateNoise, hashContent, InMemoryNoiseState } from '../../notifications/noise-control';
+import { getNoiseConfig } from '../../notifications/noise-state';
 import type { RuleReading } from '../spec';
 import { ALERT_NOISE_SEVERITY, alog } from './context';
 import { renderEmailBody } from './render';
@@ -50,7 +50,7 @@ export async function evaluateAlertNoise(
   const content = renderEmailBody(alert, reading);
   try {
     const config = await getNoiseConfig(alert.userId);
-    const state = new DbNoiseState(alert.userId);
+    const state = new InMemoryNoiseState();
     const decision = await evaluateNoise(content, 'alert', ALERT_NOISE_SEVERITY, config, {
       hasSeen: (dedupKey, ttlSeconds) => state.hasSeen(dedupKey, ttlSeconds),
       inCooldown: (cooldownKey, cooldownSeconds) => state.inCooldown(cooldownKey, cooldownSeconds),

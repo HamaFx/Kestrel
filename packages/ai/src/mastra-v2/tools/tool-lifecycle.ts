@@ -63,9 +63,11 @@ export function createReadOnlyToolExecute<TInput, TOutput>(
   return async (input: TInput, context: MastraReadOnlyToolContext) => {
     const toolCallId = context.toolCallId ?? `call-${uiToolName}-${crypto.randomUUID()}`;
     const onToolEvent = context.requestContext?.get('onToolEvent') as
-      ((event: MastraToolStreamEvent) => void) | undefined;
+      | ((event: MastraToolStreamEvent) => void)
+      | undefined;
     const toolParts = context.requestContext?.get('toolParts') as
-      MastraToolInvocationPart[] | undefined;
+      | MastraToolInvocationPart[]
+      | undefined;
 
     if (typeof onToolEvent === 'function') {
       try {

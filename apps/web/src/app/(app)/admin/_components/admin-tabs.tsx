@@ -5,9 +5,7 @@
 // Admin section registry: lazy-loaded section chunks with their labels and
 // icons, plus the tab-id guards used by the route.
 import {
-  IconBug,
   IconCpu,
-  IconDatabase,
   IconFlask,
   IconHeartbeat,
   IconHistory,
@@ -73,16 +71,6 @@ const AdminAuditTable = dynamic(
 
 const AdminFeedbackReview = dynamic(
   () => import('./admin-feedback-review').then((m) => m.AdminFeedbackReview),
-  { loading: AdminTabFallback },
-) as ComponentType;
-
-const AdminDatasetReview = dynamic(
-  () => import('./admin-dataset-review').then((m) => m.AdminDatasetReview),
-  { loading: AdminTabFallback },
-) as ComponentType;
-
-const AdminRegressionCases = dynamic(
-  () => import('./admin-regression-cases').then((m) => m.AdminRegressionCases),
   { loading: AdminTabFallback },
 ) as ComponentType;
 
@@ -166,20 +154,6 @@ export const TABS = [
     label: 'Feedback',
     icon: IconMessageReport,
     Component: AdminFeedbackReview,
-    group: 'eval',
-  },
-  {
-    id: 'datasets',
-    label: 'Datasets',
-    icon: IconDatabase,
-    Component: AdminDatasetReview,
-    group: 'eval',
-  },
-  {
-    id: 'regressions',
-    label: 'Regressions',
-    icon: IconBug,
-    Component: AdminRegressionCases,
     group: 'eval',
   },
   {

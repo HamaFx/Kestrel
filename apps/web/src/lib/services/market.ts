@@ -236,9 +236,4 @@ export async function getIndicatorsService(
 // route-local implementations.
 
 export { getSentimentService } from '@kestrel/ai';
-export {
-  getCandlesWithMeta,
-  getPricesWithMeta,
-  marketDataProviders,
-  ProviderError,
-} from '@kestrel/data';
+export { getCandlesWithMeta, getPricesWithMeta, marketDataProviders } from '@kestrel/data';

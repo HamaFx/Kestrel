@@ -33,12 +33,7 @@ import {
   withRateLimit,
   withUserTenant,
 } from '@kestrel/db';
-import {
-  decryptWithPassword,
-  encryptWithPassword,
-  JEV_PROVIDER_IDS,
-  PROVIDER_IDS,
-} from '@kestrel/shared/encryption';
+import { decryptWithPassword, encryptWithPassword, PROVIDER_IDS } from '@kestrel/shared/encryption';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
@@ -146,9 +141,9 @@ export async function importKeysAction(
     }
 
     const validKeys: Record<string, string> = {};
-    // Decision 4A — backups may carry the decision-model keys and the finnhub
-    // market-data key alongside the chat providers.
-    for (const id of [...PROVIDER_IDS, ...JEV_PROVIDER_IDS, 'finnhub'] as const) {
+    // Backups may carry the finnhub market-data key alongside the chat
+    // providers.
+    for (const id of [...PROVIDER_IDS, 'finnhub'] as const) {
       const val = decryptedKeys[id];
       if (typeof val === 'string' && val.trim().length > 0) {
         validKeys[id] = val.trim();
@@ -160,13 +155,13 @@ export async function importKeysAction(
     }
 
     // Audit 2026-10-31 (R1): the write must share the user's tenant scope.
-    // A restore replaces the vault, carrying the decision-model and
-    // market-data keys forward when the backup predates them.
+    // A restore replaces the vault, carrying the market-data key forward when
+    // the backup predates it.
     const merged = await withUserTenant(session.user.id, () =>
       mergeUserByokKeys(session.user.id, {
         set: validKeys,
         replace: true,
-        preserve: [...JEV_PROVIDER_IDS, 'finnhub'],
+        preserve: ['finnhub'],
       }),
     );
 

@@ -18,11 +18,9 @@
 import { IconArrowUp, IconMicrophone, IconPaperclip, IconSquare } from '@tabler/icons-react';
 import { AnimatePresence, m } from 'motion/react';
 
-import type { CustomAgentSummary } from '@/hooks/use-custom-agents';
 import { cn } from '@/lib/formatters/cn';
 
 import { ChatModelSelector } from './_components/chat-model-selector';
-import { CustomAgentSelector } from './_components/custom-agent-selector';
 import type { AnalysisMode } from './chat-top-bar';
 import { formatCharCount, getCharCountTone, MAX_TEXT_CHARS } from './composer-helpers';
 import { ComposerModePill } from './composer-mode-pill';
@@ -34,9 +32,6 @@ export function ComposerControls({
   onAnalysisModeChange,
   chatModel,
   onChatModelChange,
-  customAgents,
-  selectedAgentSlug,
-  onAgentChange,
   disabled,
   isStreaming,
   onStop,
@@ -47,9 +42,6 @@ export function ComposerControls({
   onAnalysisModeChange?: ((mode: AnalysisMode) => void) | undefined;
   chatModel?: string | null | undefined;
   onChatModelChange?: ((modelId: string) => void) | undefined;
-  customAgents: readonly CustomAgentSummary[];
-  selectedAgentSlug: string | null;
-  onAgentChange?: ((slug: string | null) => void) | undefined;
   disabled?: boolean | undefined;
   isStreaming?: boolean | undefined;
   onStop?: (() => void) | undefined;
@@ -114,7 +106,7 @@ export function ComposerControls({
           </button>
         ) : null}
 
-        {analysisMode && onAnalysisModeChange && !selectedAgentSlug ? (
+        {analysisMode && onAnalysisModeChange ? (
           <ComposerModePill
             analysisMode={analysisMode}
             onAnalysisModeChange={onAnalysisModeChange}
@@ -126,15 +118,6 @@ export function ComposerControls({
             activeModelId={chatModel ?? null}
             disabled={disabled}
             onPick={onChatModelChange}
-          />
-        ) : null}
-
-        {onAgentChange ? (
-          <CustomAgentSelector
-            agents={customAgents}
-            value={selectedAgentSlug}
-            onChange={onAgentChange}
-            disabled={disabled}
           />
         ) : null}
       </div>

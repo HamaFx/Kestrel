@@ -21,20 +21,20 @@
  * `get_market_structure`.
  *
  * Lets the agent ask "what does structure look like on EURUSD 1h?" and get
- * back swings, BOS/CHoCH events, fair-value gaps, order blocks, and liquidity
- * sweeps in one round-trip. Outputs are sparse events (not per-candle
- * scalars) so they live in their own envelope alongside `get_indicators`.
+ * back recent swing pivots plus the band between the strongest recent swing
+ * high and the deepest recent swing low. Objective, reproducible price
+ * extremes only: no heuristic zones or subjective break labels.
  */
 
 import { getCandlesUnchecked } from '@kestrel/data';
 import { computeStructure } from '@kestrel/indicators';
 import {
+  priceDecimals,
   type Candle,
   type GetMarketStructureOutput,
-  type StructureKindSchema,
-  type StructureResult,
-  type SymbolSchema,
-  type TimeframeSchema,
+  type SwingPoint,
+  type Symbol,
+  type Timeframe,
 } from '@kestrel/shared';
 import { createTool } from '@mastra/core/tools';
 import { type z } from 'zod';
@@ -53,12 +53,16 @@ export type CanonicalMarketStructureInput = z.infer<typeof CanonicalMarketStruct
 const TAIL = 15;
 
 export interface MarketStructureComputationArgs {
-  symbol: z.infer<typeof SymbolSchema>;
-  tf: z.infer<typeof TimeframeSchema>;
-  count: number;
-  kinds?: z.infer<typeof StructureKindSchema>[];
+  symbol: Symbol;
+  tf: Timeframe;
   lookback: number;
   candles: Candle[];
+}
+
+interface RecentRange {
+  recentSwingHigh: number | null;
+  recentSwingLow: number | null;
+  rangeSize: number | null;
 }
 
 /**
@@ -68,30 +72,19 @@ export interface MarketStructureComputationArgs {
 export function computeMarketStructureOutput({
   symbol,
   tf,
-  kinds,
   lookback,
   candles,
 }: MarketStructureComputationArgs): GetMarketStructureOutput {
-  const r = computeStructure({
-    symbol,
-    tf,
-    candles,
-    ...(kinds ? { kinds } : {}),
-    swings: { lookback },
-  });
+  const r = computeStructure({ symbol, tf, candles, swings: { lookback } });
+  const range = recentRange(r.swings, lookback, symbol);
 
   return {
     symbol,
     tf,
     bars: r.bars,
-    ...(r.swings ? { swings: r.swings.slice(-TAIL) } : {}),
-    ...(r.events ? { events: r.events.slice(-TAIL) } : {}),
-    ...(r.fvg ? { fvg: r.fvg.filter((z) => !z.mitigated).slice(-TAIL) } : {}),
-    ...(r.orderBlocks
-      ? { orderBlocks: r.orderBlocks.filter((o) => !o.mitigated).slice(-TAIL) }
-      : {}),
-    ...(r.liquidity ? { liquidity: r.liquidity.slice(-TAIL) } : {}),
-    summary: summarize(r),
+    swings: r.swings.slice(-TAIL),
+    ...range,
+    summary: summarize(symbol, r.swings.length, range),
   };
 }
 
@@ -100,20 +93,13 @@ export async function executeCanonicalMarketStructure(
   input: CanonicalMarketStructureInput,
   signal?: AbortSignal,
 ): Promise<GetMarketStructureOutput> {
-  const { symbol, tf, count, kinds, lookback } = input;
+  const { symbol, tf, count, lookback } = input;
   const effectiveSignal = signal ?? maybeGetToolContext()?.signal ?? undefined;
   const candles = await getCandlesUnchecked(symbol, tf, {
     count,
     ...(effectiveSignal ? { signal: effectiveSignal } : {}),
   });
-  return computeMarketStructureOutput({
-    symbol,
-    tf,
-    count,
-    ...(kinds ? { kinds } : {}),
-    lookback,
-    candles,
-  });
+  return computeMarketStructureOutput({ symbol, tf, lookback, candles });
 }
 
 export const canonicalMarketStructureTool = createTool({
@@ -127,26 +113,39 @@ export const canonicalMarketStructureTool = createTool({
   ),
 });
 
+/**
+ * Band between the strongest of the last `lookback` swing highs and the
+ * deepest of the last `lookback` swing lows. Both sides must qualify before
+ * a range size is reported.
+ */
+function recentRange(swings: readonly SwingPoint[], lookback: number, symbol: Symbol): RecentRange {
+  const highs = swings
+    .filter((s) => s.type === 'high')
+    .slice(-lookback)
+    .map((s) => s.price);
+  const lows = swings
+    .filter((s) => s.type === 'low')
+    .slice(-lookback)
+    .map((s) => s.price);
+
+  const recentSwingHigh = highs.length > 0 ? Math.max(...highs) : null;
+  const recentSwingLow = lows.length > 0 ? Math.min(...lows) : null;
+  const rangeSize =
+    recentSwingHigh !== null && recentSwingLow !== null && recentSwingHigh > recentSwingLow
+      ? round(recentSwingHigh - recentSwingLow, symbol)
+      : null;
+
+  return { recentSwingHigh, recentSwingLow, rangeSize };
+}
+
 /** Compact human-readable summary the model can echo without big-array reasoning. */
-function summarize(r: StructureResult): string {
-  const parts: string[] = [];
-  if (r.swings) parts.push(`${r.swings.length} swings`);
-  if (r.events && r.events.length > 0) {
-    const lastEvent = r.events[r.events.length - 1]!;
-    parts.push(
-      `last structure: ${lastEvent.kind.toUpperCase()} ${lastEvent.direction} @ ${lastEvent.level}`,
-    );
-  } else if (r.events) {
-    parts.push('no structure breaks');
-  }
-  if (r.fvg) {
-    const open = r.fvg.filter((z) => !z.mitigated).length;
-    parts.push(`${open}/${r.fvg.length} unmitigated FVGs`);
-  }
-  if (r.orderBlocks) {
-    const open = r.orderBlocks.filter((o) => !o.mitigated).length;
-    parts.push(`${open}/${r.orderBlocks.length} unmitigated OBs`);
-  }
-  if (r.liquidity) parts.push(`${r.liquidity.length} liquidity sweeps`);
-  return parts.join(' · ');
+function summarize(symbol: Symbol, swingCount: number, range: RecentRange): string {
+  const fmt = (value: number | null) =>
+    value === null ? 'n/a' : value.toFixed(priceDecimals(symbol));
+  const label = swingCount === 1 ? 'swing' : 'swings';
+  return `${swingCount} ${label} · recent high ${fmt(range.recentSwingHigh)} · recent low ${fmt(range.recentSwingLow)}`;
+}
+
+function round(value: number, symbol: Symbol): number {
+  return Number(value.toFixed(priceDecimals(symbol)));
 }

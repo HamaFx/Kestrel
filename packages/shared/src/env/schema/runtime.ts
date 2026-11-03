@@ -82,18 +82,33 @@ export const RuntimeEnv = z.object({
   RATE_LIMIT_RETENTION_HOURS: z.coerce.number().int().min(1).max(720).prefault(2),
   PROVIDER_DAILY_QUOTA_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(3),
   CRON_RUN_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(30),
-  ANALYSIS_JOB_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(7),
-  PERSISTENCE_OUTBOX_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(30),
+  CANDLES_1M_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(14),
   BUDGET_RESERVATION_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).prefault(90),
 
   // Feature Flags
   /**
-   * Public account creation policy: `open` = anyone who can reach the instance
-   * can register; `disabled` = admin-invite only. `owner-first` was removed —
-   * a stale `.env` pin fails validation with a Zod enum error naming this
-   * variable (see the `REGISTRATION_MODE` refusals below).
+   * Public account creation policy.
+   *
+   * - `first_user` (default) — registration is open only while the `user` table
+   *   is empty. The first account becomes `role='admin'`, then public sign-up
+   *   closes until the operator sets `open` or invites users.
+   * - `open` — anyone who can reach the instance can register as a regular user.
+   * - `disabled` — no public registration; administrators create or invite users.
+   *
+   * `owner-first` was removed — a stale `.env` pin fails validation with a Zod
+   * enum error naming this variable (see the `REGISTRATION_MODE` refusals below).
    */
-  REGISTRATION_MODE: z.enum(['open', 'disabled']).default('open'),
+  REGISTRATION_MODE: z.enum(['first_user', 'open', 'disabled']).default('first_user'),
+  /**
+   * Phase 1 (Task 1.2) — non-admin accounts do not inherit the primary
+   * administrator's stored BYOK keys, and therefore cannot spend operator-paid
+   * provider quota, unless this is explicitly enabled. The administrator's
+   * non-secret routing preferences still inherit.
+   */
+  ALLOW_SHARED_OPERATOR_KEYS: z
+    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
+    .default('0')
+    .transform((v) => v === '1' || v === 'true'),
   /**
    * Row-level security is required for every deployment. Multi-user is the only
    * supported mode, so this defaults to on; the flag is retained so tests can
@@ -123,22 +138,8 @@ export const RuntimeEnv = z.object({
     .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
     .default('0')
     .transform((v) => v === '1' || v === 'true'),
-  /** Phase 3.2 — one round of cross-critique before fusion (Full mode). ON per Q6. */
-  ENABLE_COMMITTEE_CRITIQUE: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('1')
-    .transform((v) => v === '1' || v === 'true'),
   /** Phase 3.3 — structured fusion output for Full mode. */
   PHASE3_STRUCTURED_FUSION: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('0')
-    .transform((v) => v === '1' || v === 'true'),
-  /**
-   * Audit plan §3.3 — optional bounded debate round for Full: one revision
-   * pass where each desk may update its opinion after reading the critiques.
-   * OFF by default (adds one LLM call per desk per run).
-   */
-  ENABLE_COMMITTEE_DEBATE: z
     .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
     .default('0')
     .transform((v) => v === '1' || v === 'true'),

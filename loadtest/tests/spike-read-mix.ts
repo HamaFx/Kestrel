@@ -21,7 +21,6 @@
 // Defaults chosen for 50 RPS × 1.5s = 75 VUs with headroom.
 import { sleep } from 'k6';
 
-import { env } from '../config/environments.js';
 import { spike } from '../config/load-profiles.js';
 import { READ_MIX, READ_MIX_TAGGED_RELAXED } from '../config/thresholds.js';
 import { applyAuth, bootstrapAuth, pickUser } from '../lib/auth.js';

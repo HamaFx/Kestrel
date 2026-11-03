@@ -28,7 +28,7 @@ export const FILTER_FIELDS: Array<{
 export function sourceTone(source: TraceExplorerEvent['source']): BadgeTone {
   if (source === 'tool') return 'brand';
   if (source === 'agent' || source === 'analysis-job') return 'success';
-  if (source === 'budget' || source === 'outbox') return 'warn';
+  if (source === 'budget') return 'warn';
   return 'neutral';
 }
 

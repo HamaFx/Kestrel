@@ -17,7 +17,6 @@ import {
   IndicatorKindSchema,
   IndicatorParamsSchema,
   SearchKnowledgeInputSchema,
-  StructureKindSchema,
   SymbolSchema,
   TimeframeSchema,
 } from '@kestrel/shared';
@@ -64,12 +63,10 @@ export const CanonicalMarketStructureInputSchema = z.object({
   /** Bars to scan. 300 covers ~12 days on 1h, 12 weeks on 4h. */
   count: z.int().min(50).max(1000).default(300),
   /**
-   * Which kinds to compute. Skip the ones you don't need to keep the
-   * payload small in the chat history.
-   * Default: all 5 structure kinds.
+   * How many most recent swings per side define the "recent range"
+   * (recentSwingHigh / recentSwingLow). Also the pivot lookback width.
+   * Default 5.
    */
-  kinds: z.array(StructureKindSchema).optional(),
-  /** How many most recent events per kind to return. Default 5. */
   lookback: z.int().min(2).max(10).default(5),
 });
 

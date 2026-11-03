@@ -25,7 +25,7 @@ export interface SandboxPayload {
   bars: FeatureMatrix['bars'];
   series: FeatureMatrix['series'];
   seriesNames: readonly SeriesName[];
-  smc: FeatureMatrix['smc'];
+  levels: FeatureMatrix['levels'];
   params: Record<string, unknown>;
   costs: { spread: number; slippage: number; commissionPerUnit: number };
   limits: Pick<SandboxLimits, 'maxLogs' | 'maxSignals'>;

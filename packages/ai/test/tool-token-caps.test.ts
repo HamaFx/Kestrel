@@ -132,21 +132,16 @@ describe('prevent LLM context token bloat (F-15)', () => {
     expect(res.results[0]!.values.length).toBeLessThanOrEqual(15);
   });
 
-  it('computeMarketStructureOutput caps returned items to 15', () => {
+  it('computeMarketStructureOutput caps returned swings to 15', () => {
     const rawCandles = generateCandles(100);
     const res = computeMarketStructureOutput({
       symbol: 'XAUUSD',
       tf: '1h',
-      count: 100,
       lookback: 2,
       candles: rawCandles,
     });
 
-    if (res.swings) {
-      expect(res.swings.length).toBeLessThanOrEqual(15);
-    }
-    if (res.events) {
-      expect(res.events.length).toBeLessThanOrEqual(15);
-    }
+    expect(res.swings.length).toBeLessThanOrEqual(15);
+    expect(res.summary).toContain('swings');
   });
 });

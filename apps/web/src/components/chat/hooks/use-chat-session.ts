@@ -16,17 +16,15 @@
  * limitations under the License.
  */
 
-// Chat session: useChat transport, standalone-agent selection, auto-submit,
-// summary, error/progress state, and message edit/fork.
+// Chat session: useChat transport, auto-submit, summary, error/progress
+// state, and message edit/fork.
 import { useChat } from '@ai-sdk/react';
 import type { UIMessage } from 'ai';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-import { useInstalledPluginIds } from '@/components/layout/installed-plugins-context';
 import { useConfirm } from '@/components/ui/confirm-drawer';
-import { useCustomAgents } from '@/hooks/use-custom-agents';
 import { useThreadTitle } from '@/hooks/use-thread-title';
 import { getCsrfToken } from '@/lib/auth/csrf';
 import {
@@ -42,7 +40,6 @@ export function useChatSession({
   threadId,
   initialTitle,
   initialMessages,
-  initialAgentSlug,
   autoSubmitPrompt,
   customInstructions,
   responseStyle,
@@ -52,23 +49,12 @@ export function useChatSession({
   threadId: string;
   initialTitle: string;
   initialMessages: UIMessage[];
-  initialAgentSlug: string | null;
   autoSubmitPrompt: string | null | undefined;
   customInstructions: string;
   responseStyle: 'default' | 'concise' | 'technical' | 'risk-first';
   citeSources: boolean;
   analysisModeRef: { current: 'single' | 'full' };
 }) {
-  // P2-3 — only ask for custom agents when the plugin is installed (or when
-  // the shell has not told us, which keeps isolated renders working).
-  const installedPluginIds = useInstalledPluginIds();
-  const { agents: customAgents, loading: customAgentsLoading } = useCustomAgents({
-    enabled: installedPluginIds === null || installedPluginIds.includes('custom-agents'),
-  });
-  const [selectedAgentSlug, setSelectedAgentSlug] = useState<string | null>(initialAgentSlug);
-  const selectedAgent = selectedAgentSlug
-    ? (customAgents.find((agent) => agent.slug === selectedAgentSlug) ?? null)
-    : null;
   const lastUserTextRef = useRef<string>('');
   const autoSubmittedRef = useRef<string | null>(null);
   const router = useRouter();
@@ -77,17 +63,6 @@ export function useChatSession({
   const [confirmEl, confirm] = useConfirm();
   const modelOverrideRef = useRef<string | null>(null);
   const singleTurnOverrideRef = useRef<'single' | null>(null);
-
-  useEffect(() => {
-    setSelectedAgentSlug(initialAgentSlug);
-  }, [initialAgentSlug]);
-
-  useEffect(() => {
-    if (customAgentsLoading) return;
-    if (selectedAgentSlug && !customAgents.some((agent) => agent.slug === selectedAgentSlug)) {
-      setSelectedAgentSlug(null);
-    }
-  }, [customAgentsLoading, customAgents, selectedAgentSlug]);
 
   const onAgentProgressRef = useRef<(progress: AgentProgress | null) => void>(() => {});
 
@@ -106,7 +81,6 @@ export function useChatSession({
             ...body,
             modelOverride: override ?? undefined,
             analysisMode: singleTurnOverride ?? analysisModeRef.current,
-            agentSlug: selectedAgentSlug ?? undefined,
             threadId,
             id,
             messages,
@@ -118,7 +92,7 @@ export function useChatSession({
         },
         onAgentProgress: (p) => onAgentProgressRef.current(p),
       }),
-    [threadId, customInstructions, responseStyle, citeSources, selectedAgentSlug, analysisModeRef],
+    [threadId, customInstructions, responseStyle, citeSources, analysisModeRef],
   );
 
   useEffect(() => {
@@ -252,11 +226,6 @@ export function useChatSession({
   }, [messages]);
 
   return {
-    customAgents,
-    customAgentsLoading,
-    selectedAgentSlug,
-    setSelectedAgentSlug,
-    selectedAgent,
     lastUserTextRef,
     messages,
     status,

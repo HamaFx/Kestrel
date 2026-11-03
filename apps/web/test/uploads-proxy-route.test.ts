@@ -117,7 +117,7 @@ describe('GET /api/uploads/[[...path]] ownership', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [requestedUrl, init] = fetchMock.mock.calls[0]!;
     expect(String(requestedUrl)).toBe(UPSTREAM_URL);
-    expect((init?.headers as Record<string, string>).authorization).toBe('Bearer service-role-key');
+    expect((init!.headers as Record<string, string>).authorization).toBe('Bearer service-role-key');
   });
 
   it('returns 404 for another user and never contacts storage', async () => {

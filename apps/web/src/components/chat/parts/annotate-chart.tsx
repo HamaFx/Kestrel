@@ -28,10 +28,6 @@ import type { ToolPartProps } from './registry';
 
 const KIND_LABELS: Record<AnnotateChartKind, string> = {
   swings: 'swings',
-  bos_choch: 'BOS/CHoCH',
-  fvg: 'FVG',
-  order_blocks: 'OB',
-  liquidity: 'liq',
   pdh_pdl: 'PDH/PDL',
   asian_range: 'Asian',
 };

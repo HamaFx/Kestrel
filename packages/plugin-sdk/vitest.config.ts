@@ -29,8 +29,10 @@ export default defineConfig({
   },
   test: {
     fsModuleCachePath: 'node_modules/.vitest-cache',
-    pool: 'forks',
+    pool: 'threads',
     maxWorkers,
+    // Stateless suite: files cannot pollute each other's module state.
+    isolate: false,
     environment: 'node',
     include: ['test/**/*.test.ts', 'test/**/*.test.tsx'],
     coverage: {

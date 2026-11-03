@@ -27,7 +27,7 @@ import { RequestContext } from '@mastra/core/request-context';
 import { z } from 'zod';
 
 import type { SymbolResearchPacket } from '../../mastra-v2/packets/symbol-research';
-import type { CommitteeCritique, MastraModeOpinion } from './opinion';
+import type { MastraModeOpinion } from './opinion';
 
 export const REQUEST_CONTEXT_SCHEMA = z.object({
   userId: z.string().min(1),
@@ -39,37 +39,12 @@ export const REQUEST_CONTEXT_SCHEMA = z.object({
   packets: z.unknown().optional(),
   /** Typed committee opinions injected for the fusion call (§2.2). */
   opinions: z.unknown().optional(),
-  /** Cross-critique records injected for the fusion call (§3.2). */
-  critiques: z.unknown().optional(),
   /** F-01: symbols whose packet was blocked and excluded from the comparison. */
   blockedSymbols: z.unknown().optional(),
   /** F-01: the blocked packets' `missingData` lines for the fusion disclosure. */
   blockedMissingData: z.unknown().optional(),
   /** Phase 1 plugins — installed + enabled plugin ids for this request. */
   installedPlugins: z.array(z.string()).optional(),
-  /**
-   * Phase 2 (Jev) — "Jev Scores, LLM Explains" calibration written by the
-   * collect step and read by every specialist prompt/runner. Absent when Jev
-   * is unconfigured or the packet is not ready.
-   */
-  jevCalibration: z.unknown().optional(),
-  /**
-   * Phase 3 (Jev) — per-symbol calibrations for comparison runs, keyed by
-   * symbol. Each desk pass resolves its own symbol's anchor from here before
-   * falling back to the single-symbol `jevCalibration`.
-   */
-  jevCalibrationsBySymbol: z.unknown().optional(),
-  /**
-   * Phase 2 (Jev) — the consensus-gate decision written by the critique step
-   * and reused by the debate step (one Jev gate call per run).
-   */
-  committeeDeliberationDecision: z.unknown().optional(),
-  /**
-   * Phase 3 — empirical per-desk reliability weights (graded historical
-   * opinions) loaded by the run context and embedded in the fusion
-   * instructions. Absent when the user has no graded history.
-   */
-  deskReliability: z.unknown().optional(),
 });
 
 export type ModeRequestContext = z.infer<typeof REQUEST_CONTEXT_SCHEMA>;
@@ -79,7 +54,6 @@ export function contextWithPacket(
   base: RequestContext<ModeRequestContext>,
   packet: SymbolResearchPacket,
   opinions?: MastraModeOpinion[],
-  critiques?: CommitteeCritique[],
 ): RequestContext<ModeRequestContext> {
   const entries: [string, unknown][] = [
     ['userId', base.get('userId') as string],
@@ -94,26 +68,7 @@ export function contextWithPacket(
   if (installedPlugins !== undefined) {
     entries.push(['installedPlugins', installedPlugins]);
   }
-  // Phase 2 (Jev): the calibrated packet anchor travels into every desk's
-  // agent call so its instructions include the statistical reference.
-  const jevCalibration = base.get('jevCalibration');
-  if (jevCalibration !== undefined) {
-    entries.push(['jevCalibration', jevCalibration]);
-  }
-  // Phase 3 (Jev): comparison runs carry one calibration per symbol; the
-  // rebuilt context keeps them so a specialist can resolve its own anchor.
-  const jevCalibrationsBySymbol = base.get('jevCalibrationsBySymbol');
-  if (jevCalibrationsBySymbol !== undefined) {
-    entries.push(['jevCalibrationsBySymbol', jevCalibrationsBySymbol]);
-  }
-  // Phase 3: the empirical desk reliability weights travel into the fusion
-  // call so its instructions can weigh the desks by calibrated accuracy.
-  const deskReliability = base.get('deskReliability');
-  if (deskReliability !== undefined) {
-    entries.push(['deskReliability', deskReliability]);
-  }
   if (opinions) entries.push(['opinions', opinions]);
-  if (critiques) entries.push(['critiques', critiques]);
   return new RequestContext<ModeRequestContext>(entries as never);
 }
 

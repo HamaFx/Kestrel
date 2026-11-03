@@ -25,10 +25,6 @@
 // validates its structured opinion via `verifyMastraOpinion`.
 
 import { estimateCostUsd } from '../../budget/cost';
-import {
-  packetNeedsDisclosure,
-  verifySemanticDisclosureWithJev,
-} from '../../jev/semantic-verifier';
 import { getMastraGenerationStats } from '../../mastra-v2/shared/telemetry';
 import {
   extractToolPartsFromMessages,
@@ -44,11 +40,6 @@ import {
 import { withRetry } from '../../runtime/retry';
 import { maybeGetToolContext, withToolContext } from '../../runtime/tool-context';
 import { extractNumbersFromToolOutput } from '../grounding';
-import {
-  blendSpecialistConfidence,
-  deskJevConfidence,
-  type JevPacketCalibration,
-} from '../jev-packet-scorer';
 import { specialistInstructionsForRequest } from '../prompts';
 import {
   createCommitteeAgent,
@@ -95,22 +86,11 @@ export async function runSpecialistGeneration(
   };
   try {
     const toolPartsBuffer: MastraToolInvocationPart[] = [];
-    // Phase 2/3 (Jev) — the calibrated anchor published by the collect step.
-    // Comparison runs publish one calibration per symbol; prefer this desk's
-    // symbol-specific anchor and fall back to the single-symbol key. It is
-    // copied onto the agent's context so the desk prompt and the confidence
-    // blend both read it.
-    const calibrationsBySymbol = requestContext.get('jevCalibrationsBySymbol') as
-      Record<string, JevPacketCalibration> | undefined;
-    const jevCalibration =
-      (args.symbol ? calibrationsBySymbol?.[args.symbol] : undefined) ??
-      (requestContext.get('jevCalibration') as JevPacketCalibration | undefined);
     const packetContext = contextWithPacket(requestContext, packet);
     const packetContextWithSet = packetContext as unknown as {
       set?: (k: string, v: unknown) => void;
     };
     packetContextWithSet.set?.('toolParts', toolPartsBuffer);
-    if (jevCalibration) packetContextWithSet.set?.('jevCalibration', jevCalibration);
 
     // Audit v3 Phase 4 (Q8): bind each specialist's dedicated read-only
     // domain toolset. Phase 1 plugin extension: merge only the tools from
@@ -195,26 +175,13 @@ export async function runSpecialistGeneration(
         ...rawOpinion,
         details: enrichedDetails,
       };
-      // Phase 2 (Jev) — "Jev Scores, LLM Explains": the desk's reported
-      // confidence blends the calibrated Jev confidence (70%) with the LLM's
-      // self-reported confidence (30%). The raw LLM value is preserved in
-      // details for auditability. Without a calibration this is a no-op.
-      const jevDeskConfidence = jevCalibration ? deskJevConfidence(jevCalibration, name) : null;
-      const finalOpinion =
-        jevDeskConfidence === null
-          ? opinion
-          : {
-              ...opinion,
-              confidence: blendSpecialistConfidence(opinion.confidence, jevDeskConfidence),
-              details: { ...enrichedDetails, llmConfidence: opinion.confidence, jevDeskConfidence },
-            };
       const candidateOpinion: MastraModeOpinion = {
         agentName: name,
         ...(args.symbol ? { symbol: args.symbol } : {}),
-        bias: finalOpinion.bias,
-        confidence: finalOpinion.confidence,
-        reasoning: finalOpinion.reasoning,
-        rawData: finalOpinion.details,
+        bias: opinion.bias,
+        confidence: opinion.confidence,
+        reasoning: opinion.reasoning,
+        rawData: opinion.details,
         ...committeeModelMetadata(
           agentModel.modelId,
           agentModel.providerId,
@@ -224,7 +191,7 @@ export async function runSpecialistGeneration(
         ),
       };
       const costUsd = estimateCostUsd(agentModel.modelId, stats.inputTokens, stats.outputTokens);
-      return { opinion: finalOpinion, candidateOpinion, stats, costUsd };
+      return { opinion, candidateOpinion, stats, costUsd };
     };
 
     // P1-01: max one verification-driven retry; the spend of every attempt is
@@ -239,24 +206,6 @@ export async function runSpecialistGeneration(
       totalCostUsd += costUsd;
       const opinionVerification = verifyMastraOpinion(candidateOpinion, packet);
       if (opinionVerification.ok) {
-        // Phase 2 (Jev) — semantic disclosure verification. Deterministic
-        // terms can be echoed superficially ("data is not stale"); for ready
-        // packets that demand a disclosure, one Jev batch checks the claim is
-        // honest. Blocking findings feed the same bounded retry as
-        // deterministic ones; unavailable Jev leaves the verdict untouched.
-        if (packet.status === 'ready' && packetNeedsDisclosure(packet)) {
-          const semantic = await verifySemanticDisclosureWithJev(opinion.reasoning, packet, {
-            settings: deps.jevSettings ?? null,
-            env: deps.jevEnv ?? null,
-            signal,
-            ledger: deps.ledger,
-            ledgerEntryId: `specialist:${name}:disclosure:${attemptIndex}`,
-          });
-          if (semantic && !semantic.ok) {
-            lastFindings = semantic.findings;
-            continue;
-          }
-        }
         deps.ledger.recordCost(`specialist:${name}`, 'specialist', totalCostUsd);
         return {
           ok: true,

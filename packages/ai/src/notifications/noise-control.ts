@@ -17,8 +17,7 @@
 // F4 — Notification Noise Control Engine
 //
 // Pure logic for dedup, cooldown, quiet hours, and severity filtering.
-// DB-agnostic — operates on in-memory state that the caller provides.
-// The persistence layer (noise-state.ts) wraps this with DB-backed state.
+// DB-agnostic — operates on the in-memory state the caller provides.
 //
 // Ported from DSA's `notification_noise.py` and adapted for TypeScript.
 //

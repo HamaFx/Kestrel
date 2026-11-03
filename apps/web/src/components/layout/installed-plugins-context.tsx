@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Installed plugin ids for the current user, shared with client surfaces that
-// adapt plugin UI slots (chat composer slash commands, custom-agent gating).
+// adapt plugin UI slots (chat composer slash commands).
 // The app shell resolves the list once per request and provides it here; the
 // default is `null` ("not provided"), which callers treat as unknown — outside
 // the shell nothing is disabled, while inside it plugins can be gated exactly.

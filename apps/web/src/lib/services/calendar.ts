@@ -23,9 +23,12 @@
 // Pattern: Service (PF-22). Controllers remain thin: parse request →
 // call service → format Response.
 
-import { listUpcomingEvents } from '@kestrel/ai';
+import { listUpcomingEvents, upsertEvents } from '@kestrel/ai';
+import { fetchUpcomingEvents, ProviderError } from '@kestrel/data';
 import { withRateLimit } from '@kestrel/db';
 import type { EconomicEvent } from '@kestrel/shared';
+
+import type { CategorizedLogger } from '@/lib/logger';
 
 // ── DTOs ─────────────────────────────────────────────────────────────────────
 
@@ -40,6 +43,7 @@ export interface CalendarEventDTO {
 }
 
 const CALENDAR_RATE_LIMIT = Number(process.env.CALENDAR_RATE_LIMIT) || 60;
+const CALENDAR_REFRESH_RATE_LIMIT = 4;
 
 // ── DTO mappers ──────────────────────────────────────────────────────────────
 
@@ -73,16 +77,61 @@ export async function checkCalendarRateLimit(userId: string): Promise<{
   return { allowed: rl.allowed, count: rl.count, limit: rl.limit };
 }
 
+/**
+ * Per-user bucket for the user-facing calendar refresh button. Separate from
+ * the read bucket so a refresh cannot exhaust the page's read allowance, and
+ * from the scheduler path, which is bearer-authenticated and never rate
+ * limited here.
+ */
+export async function checkCalendarRefreshRateLimit(userId: string): Promise<{
+  allowed: boolean;
+  count: number;
+  limit: number;
+}> {
+  const rl = await withRateLimit(userId, 'calendar_refresh', CALENDAR_REFRESH_RATE_LIMIT);
+  return { allowed: rl.allowed, count: rl.count, limit: rl.limit };
+}
+
+export interface CalendarRefreshResult {
+  processed: number;
+  note: string;
+}
+
+/**
+ * Pull upcoming calendar events and upsert them.
+ *
+ * A ProviderError is a "skip this tick" event, not a failure: the upstream
+ * times out periodically, the next run retries, and the rows already stored
+ * stay valid. Shared by `/api/cron/calendar` (scheduler/admin) and
+ * `/api/calendar/refresh` (any signed-in user).
+ */
+export async function refreshCalendarService(
+  log: CategorizedLogger,
+): Promise<CalendarRefreshResult> {
+  try {
+    const events = await fetchUpcomingEvents();
+    const { inserted } = await upsertEvents(events);
+    return {
+      processed: events.length,
+      note: `upserted=${inserted}`,
+    };
+  } catch (err) {
+    if (err instanceof ProviderError) {
+      log.warn('calendar provider skipped', {
+        provider: err.provider,
+        code: err.code,
+        message: err.message,
+      });
+      return {
+        processed: 0,
+        note: `provider ${err.provider} unavailable (${err.code})`,
+      };
+    }
+    throw err;
+  }
+}
+
 export async function listEventsService(): Promise<CalendarEventDTO[]> {
   const events = await listUpcomingEvents();
   return events.map(toCalendarEventDTO);
 }
-
-// ── Domain re-exports for routes ────────────────────────────────────────────
-//
-// The calendar ingestion cron route reads the provider events and upserts
-// them; the FRED actuals backfill itself lives in the shared `@kestrel/ai`
-// runner used by both the worker job and `/api/cron/fred-actuals`.
-
-export { upsertEvents } from '@kestrel/ai';
-export { fetchUpcomingEvents } from '@kestrel/data';

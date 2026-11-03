@@ -17,9 +17,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // fusion step of the single-symbol committee workflow (DEC-05 split of
-// single-workflow.ts). Extracted verbatim from the former module: LLM
-// synthesis of the verified opinions (debate revisions win), grounded by the
-// fusion verifier.
+// single-workflow.ts): conflict-aware LLM synthesis of the four verified,
+// independent desk opinions, grounded by the fusion verifier.
 
 import type { RequestContext } from '@mastra/core/request-context';
 import { createStep } from '@mastra/core/workflows';
@@ -27,32 +26,21 @@ import { z } from 'zod';
 
 import type { MastraGenerationStats } from '../../mastra-v2/shared/stats';
 import { isDeadlineAbort } from '../../utils/timeout';
-import { readCritiqueStepResult, readDebateStepResult } from '../critique';
 import { readCollectPacketResult, readSpecialistStepResult } from '../specialist-runner';
 import { recordCommitteeStepSpan } from '../step-spans';
 import { synthesizeCommitteeAnswer } from '../synthesizer';
 import {
   committeeModelMetadata,
   MastraModeStrictFailureError,
-  type CommitteeCritique,
   type MastraModeOpinion,
   type MastraSpecialistName,
   type ModeRequestContext,
 } from '../types';
 import { CommitteeWorkflowOutputSchema } from '../workflow-shared';
-import type { SingleVerifyStepContext } from './context';
+import type { SingleStepContext } from './context';
 
-export function createSingleFusionStep(ctx: SingleVerifyStepContext) {
-  const {
-    deps,
-    specialists,
-    critiqueEnabled,
-    debateEnabled,
-    runSignals,
-    runSignal,
-    generationLedger,
-    maxSteps,
-  } = ctx;
+export function createSingleFusionStep(ctx: SingleStepContext) {
+  const { deps, specialists, runSignals, runSignal, generationLedger, maxSteps } = ctx;
 
   return createStep({
     id: 'fusion',
@@ -69,45 +57,27 @@ export function createSingleFusionStep(ctx: SingleVerifyStepContext) {
       const failedAgents: MastraSpecialistName[] = [];
       const opinions: MastraModeOpinion[] = [];
       const executionStats: MastraGenerationStats[] = [];
-      const critiqueOutput = critiqueEnabled ? readCritiqueStepResult(getStepResult) : undefined;
-      const critiques: CommitteeCritique[] = critiqueOutput?.critiques ?? [];
-      const debateOutput = debateEnabled ? readDebateStepResult(getStepResult) : undefined;
-      const revisions = new Map(
-        (debateOutput?.revisions ?? []).map((revision) => [revision.agentName, revision]),
-      );
 
       for (const name of specialists) {
         const marker = readSpecialistStepResult(getStepResult, name);
-        if (marker?.ok === false) {
+        if (!marker?.ok || !marker.opinion || !marker.stats) {
           failedAgents.push(name);
           continue;
         }
-        if (!marker?.ok || !marker.opinion || !marker.stats) continue;
-        const revised = revisions.get(name);
-        if (revised) {
-          opinions.push(revised);
-          executionStats.push({
-            inputTokens: revised.inputTokens,
-            outputTokens: revised.outputTokens,
-            toolCalls: 0,
-            steps: 1,
-          });
-        } else {
-          opinions.push({
-            agentName: name,
-            bias: marker.opinion.bias,
-            confidence: marker.opinion.confidence,
-            reasoning: marker.opinion.reasoning,
-            rawData: marker.opinion.details,
-            ...committeeModelMetadata(
-              marker.model ?? deps.modelId,
-              marker.providerId ?? deps.providerId,
-              marker.stats,
-              marker.costUsd ?? 0,
-              marker.latencyMs ?? 0,
-            ),
-          });
-        }
+        opinions.push({
+          agentName: name,
+          bias: marker.opinion.bias,
+          confidence: marker.opinion.confidence,
+          reasoning: marker.opinion.reasoning,
+          rawData: marker.opinion.details,
+          ...committeeModelMetadata(
+            marker.model ?? deps.modelId,
+            marker.providerId ?? deps.providerId,
+            marker.stats,
+            marker.costUsd ?? 0,
+            marker.latencyMs ?? 0,
+          ),
+        });
         executionStats.push(marker.stats);
       }
 
@@ -118,7 +88,6 @@ export function createSingleFusionStep(ctx: SingleVerifyStepContext) {
           prompt,
           packet,
           opinions,
-          ...(critiques.length > 0 ? { critiques } : {}),
           executionStats,
           requestContext: requestContext as RequestContext<ModeRequestContext>,
           signal,
@@ -164,7 +133,6 @@ export function createSingleFusionStep(ctx: SingleVerifyStepContext) {
         status: 'ready' as const,
         finalText: synthesis.finalText,
         opinions,
-        critiques,
         packet,
         stats: synthesis.stats,
         failedAgents,

@@ -68,8 +68,8 @@ interface RunningJobSummary {
 
 export interface JobHealthSummary extends StuckJobSummary {
   /**
-   * Jobs currently running and not past their budget. A long run (the
-   * 15-minute Full-analysis committee) shows up here, not in `stuck`.
+   * Jobs currently running and not past their budget. A long run shows up
+   * here, not in `stuck`.
    */
   running: RunningJobSummary[];
 }

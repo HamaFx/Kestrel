@@ -65,7 +65,7 @@ export const LAYERS: LayerSpec[] = [
     title: '4-Desk Specialist AI Committee',
     shortDesc: 'Four specialized AI analysts evaluating independent market factors.',
     fullDesc:
-      'Four specialist AI desks analyze your setup in parallel: Technicals maps price structure and Fair Value Gaps, Macro tracks central bank policy and yields, Risk calculates position sizing, and Sentiment monitors institutional COT positioning.',
+      'Four specialist AI desks analyze your setup in parallel: Technicals maps trend alignment, swing structure and session levels, Macro tracks central bank policy and yields, Risk calculates position sizing, and Sentiment monitors institutional COT positioning.',
     accentColor: 'text-brand',
     borderColor: 'border-brand/50',
     glowColor: 'rgba(255, 54, 22, 0.45)',
@@ -92,7 +92,7 @@ export const LAYERS: LayerSpec[] = [
     telemetry: [
       { label: 'PRIMARY MARKETS', value: 'XAU/USD · EUR · GBP · JPY' },
       { label: 'MACRO BENCHMARKS', value: 'US10Y / US02Y · DXY Index' },
-      { label: 'TECHNICAL ENGINE', value: 'RSI · EMA · MACD · ATR · FVG' },
+      { label: 'TECHNICAL ENGINE', value: 'EMA · RSI · MACD · ATR · Bollinger' },
       { label: 'CALENDAR & WIRES', value: 'Live Red-Folder Event Alerts' },
     ],
   },

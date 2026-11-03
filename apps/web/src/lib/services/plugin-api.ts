@@ -23,11 +23,7 @@ import 'server-only';
 // and builds the same execution context (decrypted settings + storage) that
 // plugin tools and jobs receive.
 
-import {
-  createPluginExecutionContext,
-  getInstalledPluginRuntime,
-  syncPluginCoreTools,
-} from '@kestrel/ai/plugins';
+import { createPluginExecutionContext, getInstalledPluginRuntime } from '@kestrel/ai/plugins';
 import {
   listInstalledPlugins,
   requireTenantIdForUser,
@@ -151,17 +147,6 @@ export async function dispatchPluginApiRequest({
   }
   if (!match) {
     return jsonError('PLUGIN_ROUTE_NOT_FOUND', 'Plugin route not found', 404);
-  }
-
-  // The custom-agent studio reads the reviewed core tool catalog from the
-  // host. Populate it lazily when a route chunk is evaluated without the
-  // Next instrumentation boot path (dev, tests, isolated workers).
-  if (pluginHost.getCoreTools().length === 0) {
-    try {
-      await syncPluginCoreTools();
-    } catch (err) {
-      console.error('[plugin-api] core tool catalog registration failed', err);
-    }
   }
 
   const ctx = createPluginExecutionContext({

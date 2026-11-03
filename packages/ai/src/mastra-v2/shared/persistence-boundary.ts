@@ -17,7 +17,6 @@ export const PERSISTENCE_OWNERSHIP = {
     'chat threads and messages',
     'user settings and tenant ownership',
     'budgets, telemetry, audit records, and mutation ledgers',
-    'durable Full-analysis queue rows',
   ],
   mastra: [
     'agent memory and semantic recall',

@@ -31,7 +31,7 @@ export function capabilityFor(
   if (comparisonActive) return 'symbol-research';
   // Q2 two-mode collapse: any named symbol in either mode goes through the
   // committee — `single` for the one-desk read, `full` for the 4-desk
-  // committee (the durable queue wraps the same capability).
+  // committee.
   if (symbolCandidate) return 'symbol-research';
   // Phase 4 Task 3: journal / alert / position-health reads stay in canonical
   // chat but are granted through the explicit sensitive-read capability.
@@ -40,7 +40,6 @@ export function capabilityFor(
 }
 
 export function routeFor(
-  mode: 'single' | 'full',
   mutationRequested = false,
   capabilityId: MastraCapabilityId | null = null,
   symbolCandidate = false,
@@ -56,9 +55,10 @@ export function routeFor(
   // both modes — a multi-symbol prompt must never be silently answered as one
   // symbol's research or as symbol-free canonical chat.
   if (comparisonActive) return 'multi-symbol-research';
-  if (mode === 'full') return 'full-analysis-queue';
-  // Any named symbol (XAUUSD included) runs the shared committee pipeline;
-  // symbol-free prompts and implicit report follow-ups stay conversational.
+  // Both modes run the same shared committee pipeline over SSE. `single` is a
+  // one-desk read; `full` is the strict 4-of-4 committee. Any named symbol
+  // (XAUUSD included) runs it; symbol-free prompts and implicit report
+  // follow-ups stay conversational.
   if (symbolCandidate) return 'symbol-research';
   return 'canonical-chat';
 }
@@ -67,8 +67,6 @@ export function purposeFor(route: MastraExecutionRoute): MastraModelPurpose | nu
   switch (route) {
     case 'mutation':
       return null;
-    case 'full-analysis-queue':
-      return 'worker';
     case 'multi-symbol-research':
       return 'mode';
     case 'symbol-research':

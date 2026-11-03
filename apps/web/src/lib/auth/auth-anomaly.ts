@@ -32,7 +32,11 @@
 import { createScopedLoggerWithContext } from '@/lib/logger';
 
 type AuthEventType =
-  'login_success' | 'login_failure' | 'account_locked' | '2fa_failure' | 'unauthorized_401';
+  | 'login_success'
+  | 'login_failure'
+  | 'account_locked'
+  | '2fa_failure'
+  | 'unauthorized_401';
 
 interface AuthEvent {
   type: AuthEventType;

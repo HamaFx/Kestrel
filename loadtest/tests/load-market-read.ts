@@ -19,7 +19,6 @@
 // SLO: p95 < 500ms, p99 < 1200ms, <1% failures.
 import { sleep } from 'k6';
 
-import { env } from '../config/environments.js';
 import { averageLoad } from '../config/load-profiles.js';
 import { MARKET_READ, MARKET_READ_TAGGED_RELAXED } from '../config/thresholds.js';
 import { applyAuth, bootstrapAuth, pickUser } from '../lib/auth.js';

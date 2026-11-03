@@ -19,8 +19,9 @@
 // News ingestion, page reads, and embedding backfill.
 //
 // Route handlers are controllers over these functions. The refresh loop and
-// its high-water mark live here so the manual `/api/cron/news` fallback and
-// the worker job cannot drift in pagination, lookback, or error handling.
+// its high-water mark live here so the scheduler route, the manual
+// `/api/news/refresh` action, and the worker job cannot drift in pagination,
+// lookback, or error handling.
 
 import 'server-only';
 
@@ -32,6 +33,7 @@ import {
   upsertArticles,
 } from '@kestrel/ai';
 import { fetchNews } from '@kestrel/data';
+import { withRateLimit } from '@kestrel/db';
 
 import type { CategorizedLogger } from '@/lib/logger';
 
@@ -49,6 +51,22 @@ const PAGE_LIMIT = 50;
 
 /** Hard ceiling so a misconfigured cron cannot burn the daily quota. */
 const MAX_PAGES = 4;
+
+/** Per-user bucket for the news page's refresh button. */
+const NEWS_REFRESH_RATE_LIMIT = 4;
+
+/**
+ * Rate-limit the user-facing news refresh. Scheduler invocations use the
+ * bearer-authenticated `/api/cron/news` route and are not limited here.
+ */
+export async function checkNewsRefreshRateLimit(userId: string): Promise<{
+  allowed: boolean;
+  count: number;
+  limit: number;
+}> {
+  const rl = await withRateLimit(userId, 'news_refresh', NEWS_REFRESH_RATE_LIMIT);
+  return { allowed: rl.allowed, count: rl.count, limit: rl.limit };
+}
 
 export interface NewsPageInput {
   offset?: string | null;

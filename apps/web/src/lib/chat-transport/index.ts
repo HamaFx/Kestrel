@@ -18,13 +18,12 @@
 
 // Unified AI SDK v5 chat transport.
 //
-// Smooths over three backend modes: native data stream, legacy multi-agent
-// SSE, and Full-mode background jobs. The UI sees one `useChat` surface.
-import { AnalysisQueuedEventSchema, MutationDraftEventSchema } from '@kestrel/shared';
+// Smooths over two backend response shapes: the native AI SDK data stream and
+// the mutation-draft confirmation card. The UI sees one `useChat` surface.
+import { MutationDraftEventSchema } from '@kestrel/shared';
 import { DefaultChatTransport, type HttpChatTransportInitOptions, type UIMessage } from 'ai';
 
 import { surfaceApiErrorEnvelope } from './error-normalizer';
-import { pollJobToStreamResponse } from './job-stream';
 import { mutationDraftToStreamResponse } from './mutation-stream';
 import { getContentType, transformSseToDataStream } from './sse-parser';
 import type { AgentProgress, KestrelChatTransportOptions } from './types';
@@ -56,10 +55,6 @@ async function kestrelChatFetch(
       return res;
     }
 
-    const queued = AnalysisQueuedEventSchema.safeParse(json);
-    if (queued.success) {
-      return pollJobToStreamResponse(queued.data.jobId, init?.signal ?? undefined, onProgress);
-    }
     const draft = MutationDraftEventSchema.safeParse(json);
     if (draft.success) {
       return mutationDraftToStreamResponse(draft.data);

@@ -216,7 +216,7 @@ describe('model circuit breaker (§1.6)', () => {
     recordModelFailure('provider/model');
     await vi.waitFor(() => expect(mocks.execute).toHaveBeenCalled());
 
-    // Same ERR_INVALID_ARG_TYPE class as the outbox replay fix: raw `sql`
+    // Same ERR_INVALID_ARG_TYPE class as the DB retry fix: raw `sql`
     // templates with Date parameters crash in postgres-js before reaching
     // Postgres, and this write's catch silently degrades to per-instance
     // breaker state.

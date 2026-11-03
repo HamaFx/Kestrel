@@ -19,14 +19,12 @@ import { IconChartBar, IconNotebook, IconSettings, IconTerminal2 } from '@tabler
 import { memo } from 'react';
 
 import { useInstalledPluginIds } from '@/components/layout/installed-plugins-context';
-import type { CustomAgentSummary } from '@/hooks/use-custom-agents';
 import { cn } from '@/lib/formatters/cn';
 
 import type { AnalysisMode } from './chat-top-bar';
 import { ComposerAttachments } from './composer-attachments';
 import { ComposerControls } from './composer-controls';
 import { MAX_TEXT_CHARS } from './composer-helpers';
-import { ComposerMentionMenu } from './composer-mention-menu';
 import { ComposerSlashMenu, type SlashMenuCommand } from './composer-slash-menu';
 import { useComposer, type ComposerImage } from './use-composer';
 
@@ -43,9 +41,6 @@ interface ComposerProps {
   chatModel?: string | null;
   onChatModelChange?: (modelId: string) => void;
   contextUsagePercent?: number;
-  customAgents?: readonly CustomAgentSummary[];
-  selectedAgentSlug?: string | null;
-  onAgentChange?: (slug: string | null) => void;
 }
 
 export const Composer = memo(function Composer({
@@ -59,21 +54,16 @@ export const Composer = memo(function Composer({
   chatModel,
   onChatModelChange,
   contextUsagePercent,
-  customAgents = [],
-  selectedAgentSlug = null,
-  onAgentChange,
 }: ComposerProps) {
   const installedPluginIds = useInstalledPluginIds();
   const composer = useComposer({
     onSubmit,
     disabled,
     isStreaming,
-    customAgents,
     installedPluginIds,
   });
   const {
     value,
-    setValue,
     focused,
     setFocused,
     dragOver,
@@ -86,10 +76,6 @@ export const Composer = memo(function Composer({
     selectSlashCommand,
     handleSlashKeyDown,
     handleSlashChange,
-    mentionAgents,
-    activeMentionIndex,
-    setMentionIndex,
-    insertMention,
     send,
     handlePaste,
     handleDrop,
@@ -125,7 +111,6 @@ export const Composer = memo(function Composer({
         onDrop={handleDrop}
       >
         <ComposerAttachments composer={composer} />
-        <ComposerMentionMenu composer={composer} />
 
         <ComposerSlashMenu
           active={slashActive && filteredCommands.length > 0}
@@ -165,33 +150,6 @@ export const Composer = memo(function Composer({
               '[field-sizing:content] max-h-[4lh] min-h-[36px] sm:max-h-[10lh]',
             )}
             onKeyDown={(e) => {
-              if (mentionAgents.length > 0) {
-                if (e.key === 'ArrowDown') {
-                  e.preventDefault();
-                  setMentionIndex((activeMentionIndex + 1) % mentionAgents.length);
-                  return;
-                }
-                if (e.key === 'ArrowUp') {
-                  e.preventDefault();
-                  setMentionIndex(
-                    (activeMentionIndex - 1 + mentionAgents.length) % mentionAgents.length,
-                  );
-                  return;
-                }
-                if (e.key === 'Enter' || e.key === 'Tab') {
-                  const picked = mentionAgents[activeMentionIndex];
-                  if (picked) {
-                    e.preventDefault();
-                    insertMention(picked.slug);
-                    return;
-                  }
-                }
-                if (e.key === 'Escape') {
-                  e.preventDefault();
-                  setValue('');
-                  return;
-                }
-              }
               if (handleSlashKeyDown(e)) return;
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -199,7 +157,6 @@ export const Composer = memo(function Composer({
               }
             }}
             onChange={(e) => {
-              setMentionIndex(0);
               handleSlashChange(e.target.value);
             }}
           />
@@ -211,9 +168,6 @@ export const Composer = memo(function Composer({
           onAnalysisModeChange={onAnalysisModeChange}
           chatModel={chatModel}
           onChatModelChange={onChatModelChange}
-          customAgents={customAgents}
-          selectedAgentSlug={selectedAgentSlug}
-          onAgentChange={onAgentChange}
           disabled={disabled}
           isStreaming={isStreaming}
           onStop={onStop}

@@ -151,12 +151,7 @@ function scoreToInt(score) {
   return Math.round((score ?? 0) * 100);
 }
 
-export async function auditAllRoutes(
-  baseUrl,
-  cookie,
-  routes = LIGHTHOUSE_TARGETS,
-  deps = {},
-) {
+export async function auditAllRoutes(baseUrl, cookie, routes = LIGHTHOUSE_TARGETS, deps = {}) {
   const launch = deps.launchChrome ?? chromeLauncher.launch;
   const runLh = deps.runLighthouseFn ?? runLighthouse;
   const chrome = await launch({
@@ -228,13 +223,15 @@ async function main() {
   /** @type {{ route: string, category: 'performance' | 'accessibility', score: number, threshold: number }[]} */
   const failures = [];
 
-  console.log(`[lighthouse] auditing ${LIGHTHOUSE_TARGETS.length} routes using shared Chrome instance ...`);
+  console.log(
+    `[lighthouse] auditing ${LIGHTHOUSE_TARGETS.length} routes using shared Chrome instance ...`,
+  );
   const outcomes = await auditAllRoutes(args.baseUrl, args.cookie, LIGHTHOUSE_TARGETS);
 
   for (const { route, lhr, error } of outcomes) {
     if (error || !lhr) {
       console.error(
-        `[lighthouse] route ${route} failed to audit: ${error ? (error.message || String(error)) : 'no result'}`,
+        `[lighthouse] route ${route} failed to audit: ${error ? error.message || String(error) : 'no result'}`,
       );
       summary.push(`| ${route} | - | - | \u274C audit error |`);
       failures.push({ route, category: 'performance', score: 0, threshold: PERF_THRESHOLD });

@@ -208,19 +208,17 @@ describe('SyndicateCircuitLive', () => {
     };
   }
 
-  it('renders the five council stages and highlights Cross-Examination at the critique stage', () => {
-    render(<SyndicateCircuitLive agentProgress={fullProgress('critique')} />);
+  it('renders the four council stages and highlights the verify gate', () => {
+    render(<SyndicateCircuitLive agentProgress={fullProgress('verify')} />);
 
     expect(screen.getByText(/Market Packet/)).toBeTruthy();
     expect(screen.getByText(/4-Desk Deliberation/)).toBeTruthy();
-    expect(screen.getByText(/Cross-Examination/)).toBeTruthy();
     expect(screen.getByText(/Risk Audit/)).toBeTruthy();
     expect(screen.getByText(/Arbiter Synthesis/)).toBeTruthy();
 
-    const clash = screen.getByText(/Cross-Examination/).closest('[data-stage]');
-    expect(clash?.getAttribute('data-stage')).toBe('critique');
-    expect(clash?.getAttribute('data-active')).toBe('true');
-    expect(screen.getByText(/Cross-Critique Active/i)).toBeTruthy();
+    const verify = screen.getByText(/Risk Audit/).closest('[data-stage]');
+    expect(verify?.getAttribute('data-stage')).toBe('verify');
+    expect(verify?.getAttribute('data-active')).toBe('true');
 
     const packet = screen.getByText(/Market Packet/).closest('[data-stage]');
     expect(packet?.getAttribute('data-active')).toBe('false');

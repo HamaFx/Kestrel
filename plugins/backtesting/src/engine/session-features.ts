@@ -28,7 +28,7 @@ function utcDayKey(ms: number): string {
 export function applySessionLevels(matrix: FeatureMatrix): void {
   const { t } = matrix.bars;
   const { h, l } = matrix.bars;
-  const { pdh, pdl, asianHigh, asianLow } = matrix.smc;
+  const { pdh, pdl, asianHigh, asianLow } = matrix.levels;
 
   let dayKey = '';
   let dayHigh = Number.NEGATIVE_INFINITY;

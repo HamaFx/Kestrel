@@ -29,8 +29,10 @@ export default defineConfig({
     // turbo runs every package's suite in parallel, so keep the cache
     // package-local to avoid concurrent-cache races.
     fsModuleCachePath: 'node_modules/.vitest-cache',
-    pool: 'forks',
+    pool: 'threads',
     maxWorkers,
+    // Stateless suite: files cannot pollute each other's module state.
+    isolate: false,
     deps: {
       optimizer: {
         ssr: { enabled: true },
@@ -41,7 +43,9 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
-      exclude: ['src/index.ts'],
+      // The PostgreSQL template helper is integration-only: it is exercised by
+      // the gated Postgres suites, not by the unit run.
+      exclude: ['src/index.ts', 'src/postgres-template.ts'],
       thresholds: {
         statements: 60,
         branches: 50,

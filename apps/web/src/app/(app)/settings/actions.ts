@@ -40,7 +40,7 @@ export { changePasswordAction } from './_actions/security-password';
 export { deleteAccountAction } from './_actions/security-account';
 
 // API keys
-export { updateApiKeysAction, updateJevApiKeysAction } from './_actions/api-keys-save';
+export { updateApiKeysAction } from './_actions/api-keys-save';
 export { exportKeysAction, importKeysAction } from './_actions/api-keys-transfer';
 export { updateMarketDataProviderAction } from './_actions/api-keys-market';
 

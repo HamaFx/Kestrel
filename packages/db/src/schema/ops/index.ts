@@ -4,7 +4,6 @@ export * from './alerts';
 export * from './cron-runs';
 export * from './diagnostic-traces';
 export * from './journal';
-export * from './noise-control';
 export * from './plugins';
 export * from './provider-daily-quota';
 export * from './push';

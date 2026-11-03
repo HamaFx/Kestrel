@@ -24,7 +24,6 @@
 
 // @kestrel:plugin-ui-imports-start
 import backtestingUi from '@kestrel/plugin-backtesting/ui';
-import customAgentsUi from '@kestrel/plugin-custom-agents/ui';
 import paperTradingUi from '@kestrel/plugin-paper-trading/ui';
 import {
   pluginUiRegistry,
@@ -43,7 +42,6 @@ export interface BundledPluginUi {
 export const BUNDLED_PLUGIN_UI: readonly BundledPluginUi[] = [
   // @kestrel:plugin-ui-list-start
   { pluginId: 'backtesting', ui: backtestingUi },
-  { pluginId: 'custom-agents', ui: customAgentsUi },
   { pluginId: 'paper-trading', ui: paperTradingUi },
   { pluginId: 'telegram-bot', ui: telegramBotUi },
   // @kestrel:plugin-ui-list-end

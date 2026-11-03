@@ -44,7 +44,10 @@ function decrypt(encrypted, key, label) {
   try {
     const decipher = createDecipheriv(ALGORITHM, key, iv);
     decipher.setAuthTag(authTag);
-    return Buffer.concat([decipher.update(Buffer.from(ciphertext, 'hex')), decipher.final()]).toString('utf8');
+    return Buffer.concat([
+      decipher.update(Buffer.from(ciphertext, 'hex')),
+      decipher.final(),
+    ]).toString('utf8');
   } catch {
     throw new Error(`${label} cannot be decrypted with OLD_ENCRYPTION_SECRET`);
   }
@@ -64,7 +67,9 @@ function requireDatabaseUrl() {
     process.env.DATABASE_URL ||
     process.env.POSTGRES_URL;
   if (!url) {
-    throw new Error('Set DIRECT_URL (preferred) or POSTGRES_URL_NON_POOLING/DATABASE_URL/POSTGRES_URL');
+    throw new Error(
+      'Set DIRECT_URL (preferred) or POSTGRES_URL_NON_POOLING/DATABASE_URL/POSTGRES_URL',
+    );
   }
   return url;
 }
@@ -118,7 +123,11 @@ try {
     // transaction, so malformed data cannot result in a partial rotation.
     const updates = [];
     for (const row of byok) {
-      const plaintext = decrypt(row.ai_api_keys, oldKey, `user_settings.ai_api_keys user=${row.user_id}`);
+      const plaintext = decrypt(
+        row.ai_api_keys,
+        oldKey,
+        `user_settings.ai_api_keys user=${row.user_id}`,
+      );
       const parsed = JSON.parse(plaintext);
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
         throw new Error(`user_settings.ai_api_keys user=${row.user_id} is not a JSON object`);
@@ -134,7 +143,11 @@ try {
       updates.push({ table: 'telegram', id: row.user_id, value: encrypt(plaintext, newKey) });
     }
     for (const row of totp) {
-      const plaintext = decrypt(row.two_factor_secret, oldKey, `user.two_factor_secret user=${row.id}`);
+      const plaintext = decrypt(
+        row.two_factor_secret,
+        oldKey,
+        `user.two_factor_secret user=${row.id}`,
+      );
       updates.push({ table: 'totp', id: row.id, value: encrypt(plaintext, newKey) });
     }
 

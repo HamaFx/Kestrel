@@ -22,7 +22,6 @@ import { sql } from 'drizzle-orm';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 
 import type {
-  AnalysisAggregate,
   ChatAggregate,
   CronAggregate,
   DailySpendRow,
@@ -151,12 +150,6 @@ export async function queryOperationalAggregate(
   try {
     const result = await db.execute(sql`
       SELECT
-        (SELECT COUNT(*) FROM mastra_workflow_snapshot WHERE workflow_name = 'full-analysis' AND "createdAt" >= ${since})::text AS full_total,
-        (SELECT COUNT(*) FROM mastra_workflow_snapshot WHERE workflow_name = 'full-analysis' AND "createdAt" >= ${since} AND snapshot ->> 'status' = 'success')::text AS full_completed,
-        (SELECT COUNT(*) FROM mastra_workflow_snapshot WHERE workflow_name = 'full-analysis' AND "createdAt" >= ${since} AND snapshot ->> 'status' = 'failed')::text AS full_failed,
-        (SELECT COUNT(*) FROM persistence_outbox WHERE created_at >= ${since} AND status IN ('completed', 'dead'))::text AS outbox_terminal,
-        (SELECT COUNT(*) FROM persistence_outbox WHERE created_at >= ${since} AND status = 'completed')::text AS outbox_completed,
-        (SELECT COUNT(*) FROM persistence_outbox WHERE created_at >= ${since} AND status = 'dead')::text AS outbox_dead,
         (SELECT COUNT(*) FROM ai_budget_reservations WHERE created_at >= ${since} AND status IN ('reconciled', 'released'))::text AS budget_terminal,
         (SELECT COUNT(*) FROM ai_budget_reservations WHERE created_at >= ${since} AND status IN ('reconciled', 'released') AND last_error IS NOT NULL)::text AS budget_errors,
         (SELECT COUNT(*) FROM diagnostic_traces WHERE created_at >= ${since})::text AS trace_total,
@@ -175,12 +168,6 @@ export async function queryOperationalAggregate(
     const row = rows[0] as Record<string, string> | undefined;
     if (!row) return null;
     return {
-      fullTotal: Number(row.full_total ?? 0),
-      fullCompleted: Number(row.full_completed ?? 0),
-      fullFailed: Number(row.full_failed ?? 0),
-      outboxTerminal: Number(row.outbox_terminal ?? 0),
-      outboxCompleted: Number(row.outbox_completed ?? 0),
-      outboxDead: Number(row.outbox_dead ?? 0),
       budgetTerminal: Number(row.budget_terminal ?? 0),
       budgetErrors: Number(row.budget_errors ?? 0),
       traceTotal: Number(row.trace_total ?? 0),
@@ -205,48 +192,6 @@ export async function queryOperationalAggregate(
       },
       'health SLI operational aggregate query failed',
     );
-    return null;
-  }
-}
-
-/**
- * Full-analysis backlog health, read from the durable queue itself.
- *
- * This used to read `mastra_workflow_snapshot`, which is only written once a
- * worker starts a run — a job waiting in the queue (the exact shape of the
- * 2026-10-28 worker outage) never produced a snapshot, so the probe reported
- * zero and no alert fired. The queue table is the source of truth:
- *   stale  — pending > 10 minutes (the worker polls every ~3s)
- *   stuck  — running with an expired or missing lease
- */
-export async function queryAnalysisAggregate(
-  db: HealthSloDb,
-  _since: string,
-): Promise<AnalysisAggregate | null> {
-  try {
-    const result = await db.execute(sql`
-      SELECT
-        COUNT(*) FILTER (
-          WHERE status = 'pending'
-          AND created_at < NOW() - INTERVAL '10 minutes'
-        )::text AS stale,
-        COUNT(*) FILTER (
-          WHERE status = 'running'
-          AND (
-            lease_expires_at <= NOW()
-            OR (lease_expires_at IS NULL AND updated_at < NOW() - INTERVAL '30 seconds')
-          )
-        )::text AS stuck
-      FROM full_analysis_queue
-    `);
-    const rows = extractRows(result);
-    const row = rows[0] as { stale: string; stuck: string } | undefined;
-
-    return {
-      stale: Number(row?.stale ?? 0),
-      stuck: Number(row?.stuck ?? 0),
-    };
-  } catch {
     return null;
   }
 }

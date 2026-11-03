@@ -35,8 +35,8 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request): Promise<Response> {
   return withCronAuth(request, async () => {
     // Audit 2026-10-31 (R1): the SLO aggregates span every tenant
-    // (chat_telemetry, diagnostic_traces, persistence_outbox,
-    // ai_budget_reservations, full_analysis_queue, daily_ai_spend, …), all
+    // (chat_telemetry, diagnostic_traces,
+    // ai_budget_reservations, daily_ai_spend, …), all
     // RLS-protected. `withCronAuth` opens no scope, so read them on the
     // admin (BYPASSRLS) connection — same as /api/health/alerts.
     const snapshot = await computeHealthSloWithAdminDb({

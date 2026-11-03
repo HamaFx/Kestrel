@@ -23,8 +23,6 @@ import {
   completeMemoryBackfill,
   failMemoryBackfill,
   getMemoryBackfillState,
-  markMemoryProjectionFailed,
-  markMemoryProjectionProjected,
   type MemoryBackfillClaim,
 } from '@kestrel/db';
 import { AIV5Adapter } from '@mastra/core/agent/message-list';
@@ -181,20 +179,6 @@ async function performThreadHistoryBackfill(args: {
     await memory.saveMessages({
       messages: rows.map((row) => toMastraMessage(row, userId, threadId)),
     });
-    const projectedMessage = allRows.at(-1);
-    if (projectedMessage) {
-      try {
-        await markMemoryProjectionProjected(userId, threadId, projectedMessage.id);
-      } catch (projectionStateError) {
-        mlog.warn('Could not persist memory projection checkpoint', {
-          threadId,
-          error:
-            projectionStateError instanceof Error
-              ? projectionStateError.message
-              : String(projectionStateError),
-        });
-      }
-    }
     const latest = allRows.at(-1);
     if (durableClaim) {
       await completeMemoryBackfill(
@@ -219,14 +203,6 @@ async function performThreadHistoryBackfill(args: {
           error: stateError instanceof Error ? stateError.message : String(stateError),
         });
       }
-    }
-    try {
-      await markMemoryProjectionFailed(userId, threadId, error);
-    } catch (projectionError) {
-      mlog.warn('Could not persist memory projection failure state', {
-        threadId,
-        error: projectionError instanceof Error ? projectionError.message : String(projectionError),
-      });
     }
     mlog.warn('Thread-history backfill skipped (non-fatal)', {
       threadId,

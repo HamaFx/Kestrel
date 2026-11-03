@@ -82,7 +82,7 @@ export function CalendarView({ initialEvents }: CalendarViewProps) {
   function manualRefresh() {
     startTransition(async () => {
       try {
-        await apiFetch('/api/cron/calendar');
+        await apiFetch('/api/calendar/refresh');
         toast.success('Calendar refreshed');
         refetch();
         setLastRefreshed(Date.now());

@@ -1,7 +1,11 @@
 {
   "extends": "@kestrel/config/typescript/base",
   "compilerOptions": {
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "paths": {
+      "@ai/*": ["../../packages/ai/src/*"],
+      "@data/*": ["../../packages/data/src/*"]
+    }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts"]
 }

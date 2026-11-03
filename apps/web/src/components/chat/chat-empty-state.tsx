@@ -48,8 +48,8 @@ export function ChatEmptyState({
   const quickPrompts = useMemo(
     () => [
       `Analyze ${sym} 4H structure`,
-      `Key liquidation levels for ${sym}`,
-      `SMC Order Blocks on ${sym}`,
+      `Key levels & session ranges for ${sym}`,
+      `EMA trend alignment on ${sym}`,
       `Macro Yield Dynamics on ${sym}`,
       `Risk Budget & Invalidation for ${sym}`,
       'Compare EURUSD vs GBPUSD',

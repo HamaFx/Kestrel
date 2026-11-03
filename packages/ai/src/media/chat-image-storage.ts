@@ -50,7 +50,8 @@ export interface ChatImageStorageOptions {
 }
 
 export type ChatImageStorageResult =
-  { kind: 'inline'; mediaType: string; dataUrl: string; base64: string } | { kind: 'unavailable' };
+  | { kind: 'inline'; mediaType: string; dataUrl: string; base64: string }
+  | { kind: 'unavailable' };
 
 /** Download one object and inline it, or report it unavailable. */
 export async function fetchChatImageInline(

@@ -101,7 +101,7 @@ function chatColumn() {
   const chips = [
     ['BIAS', 'BULLISH', COLORS.bull],
     ['RSI14', '58.4', COLORS.fg],
-    ['STRUCTURE', 'BOS UP', COLORS.bull],
+    ['STRUCTURE', 'SWING HI', COLORS.bull],
   ];
   chips.forEach((chip, i) => {
     const x = MAIN_X + 116 + i * 240;

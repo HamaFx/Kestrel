@@ -318,7 +318,7 @@ try {
     },
   });
   console.log('[predeploy-migrate] OK — pending migrations applied');
-} catch (err) {
+} catch {
   console.error('[predeploy-migrate] FAILED — migration step errored.');
   console.error('[predeploy-migrate] The build will not proceed. Fix the migration and re-deploy.');
   // Don't swallow the exit code.

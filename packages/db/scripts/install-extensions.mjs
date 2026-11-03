@@ -7,9 +7,16 @@
 // `public` when the database role has permission to alter the extension.
 import postgres from 'postgres';
 
-const databaseUrl = process.env.DIRECT_URL || process.env.POSTGRES_URL_NON_POOLING || process.env.DATABASE_URL || process.env.POSTGRES_URL;
+const databaseUrl =
+  process.env.DIRECT_URL ||
+  process.env.POSTGRES_URL_NON_POOLING ||
+  process.env.ADMIN_DATABASE_URL ||
+  process.env.DATABASE_URL ||
+  process.env.POSTGRES_URL;
 if (!databaseUrl) {
-  throw new Error('Set DIRECT_URL, POSTGRES_URL_NON_POOLING, DATABASE_URL, or POSTGRES_URL before installing database extensions.');
+  throw new Error(
+    'Set DIRECT_URL, POSTGRES_URL_NON_POOLING, ADMIN_DATABASE_URL, DATABASE_URL, or POSTGRES_URL before installing database extensions.',
+  );
 }
 
 function resolveSslOption() {
@@ -40,15 +47,15 @@ CMTyZKG3XEu5Ghl1LEnI3QmEKsqaCLv12BnVjbkSeZsMnevJPs1Ye6TjjJwdik5P
 o/bKiIz+Fq8=
 -----END CERTIFICATE-----`;
 
-  if (databaseUrl && (databaseUrl.includes('supabase.co') || databaseUrl.includes('supabase.com'))) {
+  if (
+    databaseUrl &&
+    (databaseUrl.includes('supabase.co') || databaseUrl.includes('supabase.com'))
+  ) {
     return { ca: SUPABASE_ROOT_CA_2021, rejectUnauthorized: true };
   }
 
   if (process.env.DB_DISABLE_SSL === 'true') {
-    if (
-      process.env.NODE_ENV !== 'production' ||
-      process.env.KESTREL_LOCAL_DOCKER === 'true'
-    ) {
+    if (process.env.NODE_ENV !== 'production' || process.env.KESTREL_LOCAL_DOCKER === 'true') {
       return false;
     }
     throw new Error(

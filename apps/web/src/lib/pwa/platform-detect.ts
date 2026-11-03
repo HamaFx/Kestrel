@@ -9,7 +9,11 @@
 export type Platform = 'ios' | 'ipados' | 'android' | 'macos' | 'windows' | 'linux' | 'other';
 
 export type DisplayMode =
-  'browser' | 'standalone' | 'minimal-ui' | 'fullscreen' | 'window-controls-overlay';
+  | 'browser'
+  | 'standalone'
+  | 'minimal-ui'
+  | 'fullscreen'
+  | 'window-controls-overlay';
 
 function ua(): string {
   return typeof navigator === 'undefined' ? '' : navigator.userAgent;

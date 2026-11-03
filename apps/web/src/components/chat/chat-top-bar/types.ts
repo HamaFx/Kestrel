@@ -4,7 +4,6 @@
 
 import type { Symbol } from '@kestrel/shared';
 
-import type { CustomAgentSummary } from '@/hooks/use-custom-agents';
 import type { AnalysisMode } from '@/lib/analysis-mode';
 
 export interface ThreadSummary {
@@ -29,6 +28,4 @@ export interface ChatTopBarProps {
   onToggleSplitMode?: () => void;
   viewsOpen?: boolean;
   onToggleViews?: () => void;
-  /** Active standalone agent, when the composer has one selected. */
-  activeAgent?: CustomAgentSummary | null;
 }

@@ -22,8 +22,8 @@
  * The former 1,100-line god workflow now dispatches to one of two graphs:
  *
  *   single-workflow.ts       single-symbol committee
- *                            (collect → specialists → critique → debate →
- *                             verify → fusion)
+ *                            (collect → parallel specialists → verify →
+ *                             fusion)
  *   comparison-workflow.ts   bounded multi-symbol comparison
  *                            (per-symbol packets → per-symbol desk passes →
  *                             verify → cross-symbol fusion)

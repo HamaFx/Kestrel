@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-// Shared snapshot refresh runner: the worker `snapshots` job and
-// `/api/cron/snapshots` both execute this code, including the candles_1m tail
-// prune that the legacy web route skipped.
+// Shared snapshot refresh runner: the `/api/cron/snapshots` route executes
+// this code, including the candles_1m tail prune.
 
 import { getCandlesUnchecked } from '@kestrel/data';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

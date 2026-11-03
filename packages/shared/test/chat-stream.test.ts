@@ -18,7 +18,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { AnalysisQueuedEventSchema, ChatStreamEventSchema } from '../src/schemas/chat-stream';
+import { ChatStreamEventSchema } from '../src/schemas/chat-stream';
 
 describe('ChatStreamEventSchema', () => {
   it('parses a text-start event', () => {
@@ -58,18 +58,5 @@ describe('ChatStreamEventSchema', () => {
   it('rejects unknown event types', () => {
     const result = ChatStreamEventSchema.safeParse({ type: 'unknown', id: 'x' });
     expect(result.success).toBe(false);
-  });
-});
-
-describe('AnalysisQueuedEventSchema', () => {
-  it('parses the analysis-queued envelope', () => {
-    const result = AnalysisQueuedEventSchema.safeParse({
-      type: 'analysis-queued',
-      jobId: 'job-123',
-      status: 'queued',
-    });
-    expect(result.success).toBe(true);
-    if (!result.success) return;
-    expect(result.data.jobId).toBe('job-123');
   });
 });

@@ -24,7 +24,7 @@ import { KESTREL_MEMORY_LAST_MESSAGES } from '../../memory';
 import type { RunMastraCanonicalChatArgs } from './types';
 
 /**
- * Phase 3 (Jev roadmap) — anchor-preserving context compaction.
+ * Phase 3 — anchor-preserving context compaction.
  *
  * The previous window walked backwards from the newest message and stopped at
  * 60,000 characters, which dropped the thread's opening setup/thesis (message

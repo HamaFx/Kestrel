@@ -27,7 +27,6 @@
 
 // @kestrel:plugin-imports-start
 import backtestingPlugin from '@kestrel/plugin-backtesting';
-import customAgentsPlugin from '@kestrel/plugin-custom-agents';
 import paperTradingPlugin from '@kestrel/plugin-paper-trading';
 import { pluginHost, type KestrelPlugin, type PluginHost } from '@kestrel/plugin-sdk';
 import telegramBotPlugin from '@kestrel/plugin-telegram-bot';
@@ -42,7 +41,6 @@ import telegramBotPlugin from '@kestrel/plugin-telegram-bot';
 export const BUNDLED_PLUGINS: readonly KestrelPlugin[] = [
   // @kestrel:plugin-list-start
   backtestingPlugin,
-  customAgentsPlugin,
   paperTradingPlugin,
   telegramBotPlugin,
   // @kestrel:plugin-list-end

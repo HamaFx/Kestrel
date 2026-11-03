@@ -19,7 +19,6 @@
 // The host adds `pluginId` and resolves defaults so consumers never have to
 // infer which package a capability came from.
 
-import type { PluginUserAgentCatalog } from './agents';
 import type { PluginAlertChannelRegistration } from './alert-channels';
 import type { PluginAgentTarget, PluginId } from './core';
 import type { PluginJobRegistration } from './jobs';
@@ -35,10 +34,6 @@ export interface RegisteredPluginTool extends PluginToolRegistration {
 export interface RegisteredPluginSkill {
   readonly pluginId: PluginId;
   readonly skill: PluginSkillInput;
-}
-
-export interface RegisteredPluginUserAgentCatalog extends PluginUserAgentCatalog {
-  readonly pluginId: PluginId;
 }
 
 export interface RegisteredPluginJob extends PluginJobRegistration {

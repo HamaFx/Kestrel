@@ -26,11 +26,5 @@ export {
   type NoiseState,
 } from './noise-control';
 
-// Persistence (DB-backed)
-export {
-  DbNoiseState,
-  getNoiseConfig,
-  saveNoiseConfig,
-  getRouteConfig,
-  saveRouteConfig,
-} from './noise-state';
+// Persistence (user settings)
+export { getNoiseConfig, saveNoiseConfig, getRouteConfig, saveRouteConfig } from './noise-state';

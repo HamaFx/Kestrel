@@ -53,7 +53,7 @@ export async function runStrategySandbox(args: {
     bars: args.matrix.bars,
     series: args.matrix.series,
     seriesNames: SERIES_NAMES,
-    smc: args.matrix.smc,
+    levels: args.matrix.levels,
     params: args.params ?? {},
     costs: args.costs ?? { spread: 0, slippage: 0, commissionPerUnit: 0 },
     limits: { maxLogs: limits.maxLogs, maxSignals: limits.maxSignals },

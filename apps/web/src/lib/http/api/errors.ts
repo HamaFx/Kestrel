@@ -102,7 +102,8 @@ export function errorResponse(err: unknown, req?: Request): Response {
   ) {
     const statusCode = (err as unknown as Record<string, unknown>).statusCode as number;
     const extraHeaders = (err as unknown as Record<string, unknown>).headers as
-      Record<string, string> | undefined;
+      | Record<string, string>
+      | undefined;
     return Response.json(
       {
         error: {

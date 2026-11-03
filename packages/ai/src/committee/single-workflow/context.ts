@@ -44,9 +44,3 @@ export interface SingleStepContext {
   runSignal: AbortSignal | undefined;
   specialistDeps: CommitteeRunnerDeps;
 }
-
-/** Verify/fusion context: adds the Full-mode critique/debate rollback flags. */
-export interface SingleVerifyStepContext extends SingleStepContext {
-  critiqueEnabled: boolean;
-  debateEnabled: boolean;
-}

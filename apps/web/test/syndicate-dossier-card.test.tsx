@@ -58,7 +58,7 @@ function alignedDesks(): AgentProgress[] {
         agentName: 'technical',
         bias: 'bullish',
         confidence: 0.94,
-        reasoning: '15m FVG sweep reclaimed with displacement.',
+        reasoning: '15m swing low reclaimed with an EMA reclaim.',
       },
     },
     {
@@ -150,37 +150,21 @@ describe('SyndicateDossierCard', () => {
     expect(screen.getByText('DESK-IV // SENTINEL')).toBeTruthy();
   });
 
-  it('renders the cross-examination ledger with challenged status and revised confidence', () => {
+  it('renders the desk alignment ledger from the independent opinions', () => {
     render(
       <SyndicateDossierCard
-        agents={alignedDesks()}
-        opinions={alignedDesks()}
+        agents={dissentingDesks()}
+        opinions={dissentingDesks()}
         mode="full"
         symbol="XAUUSD"
-        critiques={[
-          {
-            agentName: 'risk',
-            confirms: false,
-            revisedConfidence: 0.92,
-            critique: 'Tight 2,852 stop is inside 1H ATR noise. Widened to 2,846.50.',
-          },
-          {
-            agentName: 'fundamental',
-            confirms: true,
-            revisedConfidence: 0.88,
-            critique: 'Real-yield compression confirms the technical reclaim.',
-          },
-        ]}
       />,
     );
 
-    fireEvent.click(screen.getByRole('tab', { name: /Cross-Examination \(1\)/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /Alignment \(split\)/i }));
 
-    expect(screen.getByText('⚔️ CHALLENGED')).toBeTruthy();
-    expect(screen.getByText('✓ CONFIRMED')).toBeTruthy();
-    expect(screen.getByText('CONF 92%')).toBeTruthy();
-    expect(screen.getByText(/Tight 2,852 stop is inside 1H ATR noise/i)).toBeTruthy();
-    expect(screen.getByText(/Real-yield compression confirms/i)).toBeTruthy();
+    expect(screen.getByText(/Desks disagree on direction/i)).toBeTruthy();
+    expect(screen.getByText(/Real yields still restrictive/i)).toBeTruthy();
+    expect(screen.getByText(/synthesizer weighs each desk equally/i)).toBeTruthy();
   });
 
   it('renders the Aegis Risk Guardrail when desks dissent', () => {
@@ -243,18 +227,10 @@ describe('MastraReportPart multi-agent routing (Locked Decision 4A)', () => {
               agentName: 'technical',
               bias: 'bullish',
               confidence: 0.94,
-              reasoning: '15m FVG sweep',
+              reasoning: '15m swing low',
               rawData: {},
               model: 'claude-4-sonnet',
               latencyMs: 1200,
-            },
-          ],
-          committeeCritiques: [
-            {
-              agentName: 'risk',
-              confirms: false,
-              revisedConfidence: 0.9,
-              critique: 'Widened invalidation to 2,846.50.',
             },
           ],
         }}
@@ -263,7 +239,7 @@ describe('MastraReportPart multi-agent routing (Locked Decision 4A)', () => {
 
     expect(screen.getByText(/VERIFIED SYNDICATE DOSSIER · XAUUSD/i)).toBeTruthy();
     expect(screen.getByText('DESK-II // ASTROLABE')).toBeTruthy();
-    fireEvent.click(screen.getByRole('tab', { name: /Cross-Examination \(1\)/i }));
-    expect(screen.getByText(/Widened invalidation/i)).toBeTruthy();
+    fireEvent.click(screen.getByRole('tab', { name: /^Alignment$/i }));
+    expect(screen.getByText(/All reporting desks agree on direction/i)).toBeTruthy();
   });
 });

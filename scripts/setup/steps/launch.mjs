@@ -260,7 +260,10 @@ export async function run(ctx) {
     child.on('error', (err) => {
       if (err.code === 'ENOENT') {
         fail(io, "Docker doesn't appear to be installed (not found on your PATH).");
-        info(io, 'Install Docker (https://docs.docker.com/get-docker/), then re-run the setup wizard.');
+        info(
+          io,
+          'Install Docker (https://docs.docker.com/get-docker/), then re-run the setup wizard.',
+        );
       } else {
         fail(io, `Failed to start Docker: ${err.message}`);
       }
@@ -286,7 +289,9 @@ export async function run(ctx) {
           }
           io.line();
           info(io, 'Diagnose it with:');
-          io.line(`  ${paint('docker compose ps', 'brand')}  ${paint('·', 'dim')}  ${paint('docker compose logs app', 'brand')}`);
+          io.line(
+            `  ${paint('docker compose ps', 'brand')}  ${paint('·', 'dim')}  ${paint('docker compose logs app', 'brand')}`,
+          );
           info(io, `You can still try opening: ${paint(appUrl, 'brand')}`);
           io.line();
         }
@@ -415,8 +420,18 @@ function defaultHostPorts(repoRoot, langfuseEnabled = false) {
     return Number.isInteger(port) && port > 0 ? port : Number(fallback.split(':').pop());
   };
   return [
-    { service: 'db', host: '127.0.0.1', port: hostPort('POSTGRES_PUBLISHED_PORT', '127.0.0.1:5432'), target: 5432 },
-    { service: 'app', host: '127.0.0.1', port: hostPort('APP_PUBLISHED_PORT', '127.0.0.1:3000'), target: 3000 },
+    {
+      service: 'db',
+      host: '127.0.0.1',
+      port: hostPort('POSTGRES_PUBLISHED_PORT', '127.0.0.1:5432'),
+      target: 5432,
+    },
+    {
+      service: 'app',
+      host: '127.0.0.1',
+      port: hostPort('APP_PUBLISHED_PORT', '127.0.0.1:3000'),
+      target: 3000,
+    },
     // Observability profile ports, mirrored from the compose file for the
     // best-effort fallback when `docker compose config` is unavailable.
     ...(langfuseEnabled
@@ -444,7 +459,10 @@ async function ensureFreePorts(ctx, repoRoot, envPath, profileArgs = []) {
     // Never skip the check silently: say why compose config failed, then
     // check the documented defaults as an explicit best effort.
     const { error } = checkComposeConfig(repoRoot);
-    warn(io, 'Could not read the stack ports from docker compose — checking the default ports instead.');
+    warn(
+      io,
+      'Could not read the stack ports from docker compose — checking the default ports instead.',
+    );
     if (error) io.line(paint(`  ${error.trim().split('\n')[0]}`, 'dim'));
     hostPorts = defaultHostPorts(repoRoot, langfuseEnabled);
   }
@@ -458,15 +476,23 @@ async function ensureFreePorts(ctx, repoRoot, envPath, profileArgs = []) {
 
     const remap = PORT_REMAPS[entry.service];
     if (!remap) {
-      warn(io, `Port ${entry.port} (${entry.service}) is already in use — the stack may fail to start.`);
+      warn(
+        io,
+        `Port ${entry.port} (${entry.service}) is already in use — the stack may fail to start.`,
+      );
       continue;
     }
     // Never remap onto another service's published port (e.g. the app onto
     // Langfuse's 3001 when the observability profile is enabled).
-    const reserved = new Set(hostPorts.filter((e) => e.service !== entry.service).map((e) => e.port));
+    const reserved = new Set(
+      hostPorts.filter((e) => e.service !== entry.service).map((e) => e.port),
+    );
     const freePort = await findFreePort(remap.start, '127.0.0.1', 50, reserved);
     if (freePort === null) {
-      warn(io, `No free port found near ${entry.port} for the ${remap.label}. Free one up and re-run.`);
+      warn(
+        io,
+        `No free port found near ${entry.port} for the ${remap.label}. Free one up and re-run.`,
+      );
       return null;
     }
     const proposed = `127.0.0.1:${freePort}`;
@@ -477,11 +503,17 @@ async function ensureFreePorts(ctx, repoRoot, envPath, profileArgs = []) {
     });
     if (answer === 'cancel') return null;
     if (!answer) {
-      warn(io, `Keeping port ${entry.port}. If the stack fails to start, set ${remap.key} in .env.`);
+      warn(
+        io,
+        `Keeping port ${entry.port}. If the stack fails to start, set ${remap.key} in .env.`,
+      );
       continue;
     }
     upsertEnvFile(envPath, { [remap.key]: proposed }, { backup: false });
-    ok(io, `Port ${entry.port} was taken — the ${remap.label} will use ${proposed} (saved to .env).`);
+    ok(
+      io,
+      `Port ${entry.port} was taken — the ${remap.label} will use ${proposed} (saved to .env).`,
+    );
     entry.port = freePort;
   }
 

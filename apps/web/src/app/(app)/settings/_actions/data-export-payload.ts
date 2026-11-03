@@ -156,35 +156,21 @@ async function collectUserDataExport(userId: string, db: DbClient): Promise<stri
     );
   const [
     providerTests,
-    notificationNoiseState,
     botLinks,
     rateLimits,
     toolTelemetry,
     feedback,
-    regressionCases,
-    fullAnalysisQueue,
-    persistenceOutbox,
     mutationExecutions,
     budgetReservations,
     agentOpinions,
     traces,
     memoryBackfillState,
-    memoryProjectionState,
   ] = await Promise.all([
     db
       .select()
       .from(schema.providerTests)
       .where(
         and(eq(schema.providerTests.userId, userId), eq(schema.providerTests.tenantId, tenantId)),
-      ),
-    db
-      .select()
-      .from(schema.notificationNoiseState)
-      .where(
-        and(
-          eq(schema.notificationNoiseState.userId, userId),
-          eq(schema.notificationNoiseState.tenantId, tenantId),
-        ),
       ),
     db
       .select()
@@ -210,33 +196,6 @@ async function collectUserDataExport(userId: string, db: DbClient): Promise<stri
         and(
           eq(schema.aiMessageFeedback.userId, userId),
           eq(schema.aiMessageFeedback.tenantId, tenantId),
-        ),
-      ),
-    db
-      .select()
-      .from(schema.aiRegressionCases)
-      .where(
-        and(
-          eq(schema.aiRegressionCases.userId, userId),
-          eq(schema.aiRegressionCases.tenantId, tenantId),
-        ),
-      ),
-    db
-      .select()
-      .from(schema.fullAnalysisQueue)
-      .where(
-        and(
-          eq(schema.fullAnalysisQueue.userId, userId),
-          eq(schema.fullAnalysisQueue.tenantId, tenantId),
-        ),
-      ),
-    db
-      .select()
-      .from(schema.persistenceOutbox)
-      .where(
-        and(
-          eq(schema.persistenceOutbox.userId, userId),
-          eq(schema.persistenceOutbox.tenantId, tenantId),
         ),
       ),
     db
@@ -271,15 +230,6 @@ async function collectUserDataExport(userId: string, db: DbClient): Promise<stri
         and(
           eq(schema.memoryBackfillState.userId, userId),
           eq(schema.memoryBackfillState.tenantId, tenantId),
-        ),
-      ),
-    db
-      .select()
-      .from(schema.memoryProjectionState)
-      .where(
-        and(
-          eq(schema.memoryProjectionState.userId, userId),
-          eq(schema.memoryProjectionState.tenantId, tenantId),
         ),
       ),
   ]);
@@ -321,18 +271,13 @@ async function collectUserDataExport(userId: string, db: DbClient): Promise<stri
     budgetReservations: budgetReservations.map(({ userId: _userId, ...row }) => row),
     briefings: briefings.map(({ userId: _userId, ...briefing }) => briefing),
     providerTests: providerTests.map(({ userId: _userId, ...test }) => test),
-    notificationNoiseState: notificationNoiseState.map(({ userId: _userId, ...state }) => state),
     botLinks: botLinks.map(({ userId: _userId, ...link }) => link),
     rateLimits: rateLimits.map(({ userId: _userId, ...limit }) => limit),
     feedback: feedback.map(({ userId: _userId, ...row }) => row),
-    regressionCases: regressionCases.map(({ userId: _userId, ...row }) => row),
-    fullAnalysisQueue: fullAnalysisQueue.map(({ userId: _userId, ...row }) => row),
-    persistenceOutbox: persistenceOutbox.map(({ userId: _userId, ...row }) => row),
     mutationExecutions: mutationExecutions.map(({ userId: _userId, ...row }) => row),
     agentOpinions: agentOpinions.map(({ userId: _userId, ...opinion }) => opinion),
     traces: traces.map(({ userId: _userId, ...trace }) => trace),
     memoryBackfillState: memoryBackfillState.map(({ userId: _userId, ...row }) => row),
-    memoryProjectionState: memoryProjectionState.map(({ userId: _userId, ...row }) => row),
     auditLogs: auditLogs.map(({ userId: _userId, ...audit }) => audit),
     installedPlugins,
     pluginStorage,

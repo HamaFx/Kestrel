@@ -21,22 +21,18 @@
  *
  *   collect-packet (deterministic, fail closed on blocked)
  *     → parallel(technical[, fundamental, risk, sentiment])
- *     → critique (full only; cross-critique round, see ENABLE_COMMITTEE_CRITIQUE)
- *     → debate (full only; ENABLE_COMMITTEE_DEBATE)
- *     → verify (both modes strict: any required specialist failure is terminal)
- *     → fusion (LLM synthesis, grounded by the fusion verifier)
+ *     → verify (strict 4-of-4 hard gate; any required desk failure is terminal)
+ *     → fusion (conflict-aware LLM synthesis, grounded by the fusion verifier)
  *
  * The step bodies live in the sibling `*-step.ts` files and receive the same
- * closures this file builds — policy, deadline signals, ledger, and the
+ * closures this file builds: policy, deadline signals, ledger, and the
  * specialist deps copy.
  */
 
-import { readFeatureFlag } from '@kestrel/shared';
 import { Workflow } from '@mastra/core/workflows';
 
 import { collectSymbolResearchPacketCached } from '../../mastra-v2/packets/packet-cache';
 import { createGenerationLedger } from '../../persistence/generation-ledger';
-import { createCritiqueStep, createDebateStep, type CritiqueStepContext } from '../critique-steps';
 import {
   committeeModePolicy,
   committeeProgressStages,
@@ -52,7 +48,7 @@ import {
   type CommitteeWorkflowDeps,
 } from '../workflow-shared';
 import { createSingleCollectStep } from './collect-step';
-import type { SingleStepContext, SingleVerifyStepContext } from './context';
+import type { SingleStepContext } from './context';
 import { createSingleFusionStep } from './fusion-step';
 import { createSingleSpecialistSteps } from './specialist-steps';
 import { createSingleVerifyStep } from './verify-step';
@@ -73,7 +69,7 @@ export function createSingleCommitteeWorkflow(
   const collectPacket = deps.collectPacket ?? collectSymbolResearchPacketCached;
   // Audit plan §1.7: one deadline signal shared by every step in this run.
   const { runSignals, runSignal } = runSignalsFor(deps);
-  // One deps copy for every specialist/critique/debate step (P2-02 cleanup).
+  // One deps copy for every specialist step (P2-02 cleanup).
   const specialistDeps = specialistRunnerDepsFor(deps, generationLedger, maxSteps);
 
   const stepContext: SingleStepContext = {
@@ -92,27 +88,8 @@ export function createSingleCommitteeWorkflow(
 
   const collectPacketStep = createSingleCollectStep(stepContext);
   const specialistSteps = createSingleSpecialistSteps(stepContext);
-
-  const critiqueEnabled = mode === 'full' && readFeatureFlag('ENABLE_COMMITTEE_CRITIQUE');
-  const debateEnabled = critiqueEnabled && readFeatureFlag('ENABLE_COMMITTEE_DEBATE');
-  const critiqueRoundContext: CritiqueStepContext = {
-    deps,
-    specialists,
-    mode,
-    generationLedger,
-    maxSteps,
-    runSignals,
-    runSignal,
-  };
-  const critiqueStep = createCritiqueStep(critiqueRoundContext, {
-    enabled: critiqueEnabled,
-    debateEnabled,
-  });
-  const debateStep = createDebateStep(critiqueRoundContext, { enabled: debateEnabled });
-
-  const verifyContext: SingleVerifyStepContext = { ...stepContext, critiqueEnabled, debateEnabled };
-  const verifyStep = createSingleVerifyStep(verifyContext);
-  const fusionStep = createSingleFusionStep(verifyContext);
+  const verifyStep = createSingleVerifyStep(stepContext);
+  const fusionStep = createSingleFusionStep(stepContext);
 
   const workflow = new Workflow({
     id: workflowId,
@@ -124,8 +101,6 @@ export function createSingleCommitteeWorkflow(
   })
     .then(collectPacketStep)
     .parallel(asParallelSteps(specialistSteps))
-    .then(critiqueStep)
-    .then(debateStep)
     .then(verifyStep)
     .then(fusionStep)
     .commit() as unknown as Workflow;

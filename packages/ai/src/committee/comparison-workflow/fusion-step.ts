@@ -152,7 +152,6 @@ export function createComparisonFusionStep(ctx: ComparisonStepContext) {
         status: 'ready' as const,
         finalText: synthesis.finalText,
         opinions,
-        critiques: [],
         packet: collect.packet,
         packets: packetRecord,
         ...(blockedSymbols.length > 0 ? { blockedSymbols } : {}),

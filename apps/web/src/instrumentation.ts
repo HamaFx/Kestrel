@@ -33,9 +33,8 @@ export async function register() {
     try {
       const { ensureBundledPluginsRegistered } = await import('@kestrel/plugins');
       ensureBundledPluginsRegistered();
-      const { syncPluginCoreTools, syncPluginIndicators } = await import('@kestrel/ai/plugins');
+      const { syncPluginIndicators } = await import('@kestrel/ai/plugins');
       syncPluginIndicators();
-      await syncPluginCoreTools();
     } catch (err) {
       console.error('[instrumentation] Plugin registration failed; core capabilities only', err);
     }

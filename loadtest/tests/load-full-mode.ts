@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-// Full-mode queue load test — explicitly opt-in because it invokes real LLMs.
-// This measures the user-facing enqueue path and the worker polling bridge;
-// it does not bypass the queue or mutate internal tables directly.
-import { check, sleep } from 'k6';
+// Full-mode SSE load test — explicitly opt-in because it invokes real LLMs.
+// One `/api/chat` request runs the four-desk committee and streams the final
+// synthesis on the same response; this measures the user-facing path.
+import { check } from 'k6';
 import { Counter, Rate, Trend } from 'k6/metrics';
 
 import { applyAuth, bootstrapAuth, pickUser } from '../lib/auth.js';
-import { getJson, postJson } from '../lib/http.js';
+import { postJson } from '../lib/http.js';
 import { handleSummary } from '../lib/summary.js';
 import { uuidv4 } from '../lib/utils.js';
 
 const fullModeCompleted = new Rate('full_mode_completed');
 const fullModeFailures = new Counter('full_mode_failures');
-const fullModePolls = new Trend('full_mode_polls');
+const fullModeDuration = new Trend('full_mode_duration_ms', true);
 
 if (__ENV['K6_ENABLE_FULL_MODE'] !== 'true') {
   throw new Error(
@@ -37,7 +37,6 @@ if (__ENV['K6_ENABLE_FULL_MODE'] !== 'true') {
 
 const VUS = parseInt(__ENV['K6_FULL_MODE_VUS'] ?? '2', 10);
 const ITERATIONS = parseInt(__ENV['K6_FULL_MODE_ITERS'] ?? '2', 10);
-const MAX_POLLS = parseInt(__ENV['K6_FULL_MODE_MAX_POLLS'] ?? '30', 10);
 
 export const options = {
   scenarios: {
@@ -53,7 +52,7 @@ export const options = {
     checks: ['rate>0.95'],
     full_mode_completed: ['rate>0.95'],
     full_mode_failures: ['count<2'],
-    full_mode_polls: ['p(95)<30'],
+    full_mode_duration_ms: ['p(95)<60000'],
   },
 };
 
@@ -68,8 +67,9 @@ export default function (contexts: ReturnType<typeof bootstrapAuth>) {
     throw new Error('Full-mode load requires session auth with seeded thread IDs.');
   }
 
+  const startedAt = Date.now();
   const messageId = uuidv4();
-  const response = postJson('/api/chat', 'full_mode_enqueue', {
+  const response = postJson('/api/chat', 'full_mode_stream', {
     threadId: ctx.threadId,
     analysisMode: 'full',
     messages: [
@@ -81,50 +81,17 @@ export default function (contexts: ReturnType<typeof bootstrapAuth>) {
     ],
   });
 
+  const body = typeof response.body === 'string' ? response.body : '';
   const accepted = check(response, {
-    'full mode enqueue accepted': (res) => res.status >= 200 && res.status < 300,
+    'full mode accepted': (res) => res.status >= 200 && res.status < 300,
+    'full mode streamed a final answer': () =>
+      body.includes('"type":"text-delta"') && body.includes('"type":"turn-complete"'),
+    'full mode returned no stream error': () => !body.includes('"type":"error"'),
   });
-  if (!accepted) {
-    fullModeFailures.add(1);
-    fullModeCompleted.add(false);
-    return;
-  }
 
-  let jobId = '';
-  try {
-    const body = JSON.parse(response.body as string) as { jobId?: unknown };
-    if (typeof body.jobId === 'string') jobId = body.jobId;
-  } catch {
-    // Count malformed queue responses as a visible failure.
-  }
-
-  if (!jobId) {
-    fullModeFailures.add(1);
-    fullModeCompleted.add(false);
-    return;
-  }
-
-  let completed = false;
-  let polls = 0;
-  for (; polls < MAX_POLLS; polls += 1) {
-    sleep(2);
-    const poll = getJson(`/api/chat/analysis-jobs/${jobId}`, 'full_mode_poll');
-    if (poll.status < 200 || poll.status >= 300) continue;
-    try {
-      const body = JSON.parse(poll.body as string) as { status?: unknown };
-      if (body.status === 'complete') {
-        completed = true;
-        break;
-      }
-      if (body.status === 'failed') break;
-    } catch {
-      // A malformed poll result remains retryable until MAX_POLLS.
-    }
-  }
-
-  fullModePolls.add(polls + 1);
-  fullModeCompleted.add(completed);
-  if (!completed) fullModeFailures.add(1);
+  fullModeDuration.add(Date.now() - startedAt);
+  fullModeCompleted.add(accepted);
+  if (!accepted) fullModeFailures.add(1);
 }
 
 export { handleSummary };

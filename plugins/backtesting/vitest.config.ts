@@ -22,7 +22,6 @@ import { defineConfig } from 'vitest/config';
 const maxWorkers = process.env.CI ? 2 : Math.max(2, Math.floor(os.availableParallelism() / 2));
 
 export default defineConfig({
-  esbuild: { target: 'es2022' },
   resolve: {
     conditions: ['source'],
     alias: {
@@ -34,7 +33,7 @@ export default defineConfig({
   },
   test: {
     fsModuleCachePath: 'node_modules/.vitest-cache',
-    pool: 'forks',
+    pool: 'threads',
     maxWorkers,
     environment: 'node',
     include: ['test/**/*.test.ts'],

@@ -17,14 +17,15 @@
 // Per-bar feature matrix for agent-authored strategies.
 //
 // Everything here is point-in-time: a bar's feature row only contains values
-// that were knowable when that bar closed. SMC zones become visible on the
-// bar that confirms them, and mitigation is evaluated bar by bar.
+// that were knowable when that bar closed. Swing pivots become visible on the
+// bar that confirms them, and session levels only roll over once the prior
+// day or session has actually closed.
 
 import type { Candle, Symbol, Timeframe } from '@kestrel/shared';
 
 import { emptyMatrix, type FeatureMatrix } from './feature-types';
 import { applySessionLevels } from './session-features';
-import { applySmc } from './smc-features';
+import { applySwingLevels } from './level-features';
 import { applyTaFeatures } from './ta-features';
 
 export * from './feature-types';
@@ -53,7 +54,7 @@ export function buildFeatureMatrix(args: {
   matrix.bars.v = candles.map((c) => c.v);
 
   applyTaFeatures(matrix, candles);
-  applySmc(matrix, candles, args.symbol, args.timeframe);
+  applySwingLevels(matrix, candles, args.symbol, args.timeframe);
   applySessionLevels(matrix);
   return matrix;
 }

@@ -94,10 +94,10 @@ describe('unified router (§1.1)', () => {
     expect(decision.capabilityId).toBe('symbol-research');
   });
 
-  it('routes full mode to the durable analysis queue', async () => {
+  it('routes full mode to the streaming symbol-research committee', async () => {
     const decision = await route('deep analysis of EURUSD', 'full');
-    expect(decision.route).toBe('full-analysis-queue');
-    expect(decision.modelPurpose).toBe('worker');
+    expect(decision.route).toBe('symbol-research');
+    expect(decision.modelPurpose).toBe('mode');
   });
 
   it('routes bounded multi-symbol comparisons to the comparison graph (A-01)', async () => {
@@ -126,7 +126,7 @@ describe('unified router (§1.1)', () => {
     expect(decision.decision.route).toBe(decision.route);
   });
 
-  it('lets an installed-plugin intent survive a Jev injection / log_journal false positive (Phase 4)', async () => {
+  it('keeps an installed-plugin order request in canonical chat (Phase 4)', async () => {
     const decision = await routeUnified({
       userMessage: message('Buy 1 lot XAUUSD in my paper account'),
       mode: 'single',
@@ -134,19 +134,11 @@ describe('unified router (§1.1)', () => {
       settings,
       env,
       installedPluginIds: ['paper-trading'],
-      jevDecision: {
-        domain: null,
-        mutationKind: 'log_journal',
-        isReportFollowup: false,
-        injectionBlocked: true,
-        confidence: { domain: 0, mutation: 0.9, reportFollowup: 0, injection: 0.9 },
-        providerId: 'test-jev',
-        latencyMs: 1,
-      },
     });
 
-    // The deterministic plugin match suppresses the Jev false positives while
-    // the lexical injection guard still runs (this prompt is not an injection).
+    // The deterministic plugin match keeps the execution request on the
+    // canonical-chat route where the plugin's own tools live; the lexical
+    // injection guard still runs (this prompt is not an injection).
     expect(decision.injection.blocked).toBe(false);
     expect(decision.mutationKind).toBeNull();
     expect(decision.route).toBe('canonical-chat');

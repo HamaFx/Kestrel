@@ -19,7 +19,6 @@
 
 import type { SpendWatchSummary } from '../admin-dtos';
 import type {
-  AnalysisAggregate,
   ChatAggregate,
   CronAggregate,
   DailySpendRow,
@@ -36,7 +35,6 @@ export interface HealthAssessmentInput {
   cron: CronAggregate | null;
   tools: ToolAggregate | null;
   chat: ChatAggregate | null;
-  analysis: AnalysisAggregate | null;
   operational: OperationalAggregate | null;
   dailySpend: DailySpendRow[] | null;
   spendThresholdUsd: number;
@@ -67,7 +65,7 @@ function formatUsd(value: number): string {
 }
 
 export function buildHealthAssessment(input: HealthAssessmentInput): HealthAssessment {
-  const { ticks, cron, tools, chat, analysis, operational, dailySpend } = input;
+  const { ticks, cron, tools, chat, operational, dailySpend } = input;
   const anomalies: string[] = [];
 
   const TICK_FRESH_S = 60;
@@ -144,30 +142,11 @@ export function buildHealthAssessment(input: HealthAssessmentInput): HealthAsses
     anomalies.push('No chat turns in the selected window — chat health cannot be verified');
   }
 
-  if (analysis) {
-    if (analysis.stale > 0) {
-      anomalies.push(`${analysis.stale} analysis job(s) pending > 10 minutes — worker may be down`);
-    }
-    if (analysis.stuck > 0) {
-      anomalies.push(
-        `${analysis.stuck} analysis job(s) running with an expired lease — worker may be wedged`,
-      );
-    }
-  }
-
   if (!operational) {
     anomalies.push(
-      'Recovery telemetry is unavailable — outbox, budget, trace, and Full-mode health cannot be verified',
+      'Recovery telemetry is unavailable — budget and trace health cannot be verified',
     );
   } else {
-    if (operational.fullTotal > 0 && operational.fullCompleted / operational.fullTotal < 0.995) {
-      anomalies.push(
-        `Full-mode completion is below SLO: ${operational.fullCompleted}/${operational.fullTotal} completed`,
-      );
-    }
-    if (operational.outboxDead > 0) {
-      anomalies.push(`${operational.outboxDead} persistence outbox record(s) are dead-lettered`);
-    }
     if (operational.budgetErrors > 0) {
       anomalies.push(`${operational.budgetErrors} budget reservation(s) have recovery errors`);
     }

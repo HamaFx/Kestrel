@@ -32,7 +32,6 @@ export function AgentDeliberation({
   status,
   error,
   comparisonSymbols,
-  critiques,
   stage,
   symbol,
   compactInline,
@@ -53,7 +52,6 @@ export function AgentDeliberation({
         opinions={opinions}
         mode={mode}
         {...(status ? { status } : {})}
-        {...(critiques ? { critiques } : {})}
         {...(symbol ? { symbol } : {})}
         {...(compactInline ? { compactInline: true } : {})}
         {...(onOpenWarRoom ? { onOpenWarRoom } : {})}

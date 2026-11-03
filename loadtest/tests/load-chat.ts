@@ -19,7 +19,6 @@
 // Requires seeded users with threadIds (Strategy B only).
 import { sleep } from 'k6';
 
-import { env } from '../config/environments.js';
 import { CHAT, CHAT_TAGGED } from '../config/thresholds.js';
 import { applyAuth, bootstrapAuth, pickUser } from '../lib/auth.js';
 import { handleSummary } from '../lib/summary.js';

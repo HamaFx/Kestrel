@@ -17,7 +17,7 @@
 import type { Candle } from '@kestrel/shared';
 import { describe, expect, it } from 'vitest';
 
-import { computeAsianRange } from '../src/smc/asian-range';
+import { computeAsianRange } from '../src/structure/asian-range';
 
 // Asian session is 00:00-07:00 UTC. Use timestamps that fall in this window.
 // 2025-01-15 03:00 UTC = 1736905200000

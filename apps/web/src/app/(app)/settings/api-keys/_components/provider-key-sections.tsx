@@ -29,6 +29,11 @@ interface ProviderKeySectionsProps {
    * plaintext keys are no longer part of this payload.
    */
   configuredIds: readonly string[];
+  /**
+   * Display-only masks keyed by provider id. Phase 1 (Task 1.1): the card shows
+   * this in the empty input's placeholder instead of prefilling a sentinel.
+   */
+  keyPreviews: Readonly<Record<string, string>>;
   keyUpdatedAtByProvider: Record<string, string> | undefined;
   healthByProvider: Map<string, ApiKeyHealth>;
   usageByProvider: Map<string, { turns: number; costUsd: number }>;
@@ -38,6 +43,7 @@ export function ProviderKeySections({
   configured,
   available,
   configuredIds,
+  keyPreviews,
   keyUpdatedAtByProvider,
   healthByProvider,
   usageByProvider,
@@ -61,6 +67,7 @@ export function ProviderKeySections({
                 key={p.id}
                 provider={p}
                 isConfigured={configuredIds.includes(p.id)}
+                maskedPreview={keyPreviews[p.id]}
                 keyUpdatedAt={keyUpdatedAt}
                 {...(health ? { health } : {})}
                 {...(u ? { usage: u } : {})}
@@ -87,6 +94,7 @@ export function ProviderKeySections({
                 key={p.id}
                 provider={p}
                 isConfigured={false}
+                maskedPreview={keyPreviews[p.id]}
                 keyUpdatedAt={keyUpdatedAt}
                 {...(health ? { health } : {})}
                 {...(u ? { usage: u } : {})}

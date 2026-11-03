@@ -44,7 +44,7 @@ describe('PluginManageRequestSchema', () => {
     expect(
       PluginManageRequestSchema.parse({
         action: 'set-enabled',
-        pluginId: 'custom-agents',
+        pluginId: 'telegram-bot',
         enabled: false,
       }),
     ).toMatchObject({ enabled: false });

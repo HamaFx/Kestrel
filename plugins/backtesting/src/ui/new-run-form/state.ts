@@ -39,7 +39,8 @@ export interface NewRunFormState {
 }
 
 export type NewRunFormAction =
-  { type: 'patch'; patch: Partial<NewRunFormState> } | { type: 'toggleAdvanced' };
+  | { type: 'patch'; patch: Partial<NewRunFormState> }
+  | { type: 'toggleAdvanced' };
 
 export function createInitialState(prefill: Prefill | null): NewRunFormState {
   return {

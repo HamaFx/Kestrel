@@ -90,8 +90,7 @@ export default async function ChatThreadPage({ params, searchParams }: PageProps
   const customInstructions = settings?.customInstructions;
   if (!thread) notFound();
 
-  const { prompt, agent, mode, desk } = await searchParams;
-  const initialAgentSlug = agent && /^[a-z][a-z0-9-]{1,31}$/.test(agent) ? agent : null;
+  const { prompt, mode, desk } = await searchParams;
 
   const modeOverride =
     mode === 'council' || mode === 'full' || desk === 'arbiter'
@@ -145,7 +144,6 @@ export default async function ChatThreadPage({ params, searchParams }: PageProps
       initialShowAgentOpinions={settings?.showAgentOpinions ?? true}
       initialCustomInstructions={customInstructions ?? null}
       autoSubmitPrompt={promptToSubmit}
-      initialAgentSlug={initialAgentSlug}
     />
   );
 }

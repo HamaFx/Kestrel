@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-// Shared weekly-review fan-out runner: the worker `weekly-review` job and the
-// `/api/cron/weekly-review` fallback both execute this code.
+// Shared weekly-review fan-out runner: the `/api/cron/weekly-review` route
+// executes this code.
 
 import { getActiveUserIds, withAdminDb, withUserTenant } from '@kestrel/db';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

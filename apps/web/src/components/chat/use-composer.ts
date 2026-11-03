@@ -16,12 +16,11 @@
  * limitations under the License.
  */
 
-// Composer state: text, images, slash/mention menus, voice input, and upload.
+// Composer state: text, images, the slash menu, voice input, and upload.
 import { pluginUiRegistry } from '@kestrel/plugin-sdk/ui';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-import type { CustomAgentSummary } from '@/hooks/use-custom-agents';
 import { useSlashCommands, type SlashCommand } from '@/hooks/use-slash-commands';
 import { useVoiceInput } from '@/hooks/use-voice-input';
 import { fetchCsrf } from '@/lib/auth/csrf';
@@ -83,18 +82,16 @@ export function useComposer(args: {
   onSubmit: (text: string, images: ComposerImage[]) => void;
   disabled?: boolean | undefined;
   isStreaming?: boolean | undefined;
-  customAgents: readonly CustomAgentSummary[];
   /** Enabled plugin ids; their slash commands join the composer menu. */
   installedPluginIds?: readonly string[] | null | undefined;
 }) {
-  const { onSubmit, disabled, isStreaming, customAgents, installedPluginIds } = args;
+  const { onSubmit, disabled, isStreaming, installedPluginIds } = args;
   const [value, setValue] = useState('');
   const [images, setImages] = useState<ComposerImage[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [focused, setFocused] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [isTouch, setIsTouch] = useState(false);
-  const [mentionIndex, setMentionIndex] = useState(0);
   const ref = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -136,21 +133,6 @@ export function useComposer(args: {
     textareaRef: ref,
     commands: slashCommands,
   });
-
-  const mentionMatch = /^@([a-z0-9-]*)$/i.exec(value);
-  const mentionAgents =
-    mentionMatch && customAgents.length > 0
-      ? customAgents
-          .filter((agent) => agent.slug.startsWith((mentionMatch[1] ?? '').toLowerCase()))
-          .slice(0, 6)
-      : [];
-  const activeMentionIndex = Math.min(mentionIndex, Math.max(0, mentionAgents.length - 1));
-
-  function insertMention(slug: string) {
-    setValue(`@${slug} `);
-    setMentionIndex(0);
-    requestAnimationFrame(() => ref.current?.focus());
-  }
 
   function send() {
     const trimmed = value.trim();
@@ -280,8 +262,6 @@ export function useComposer(args: {
     dragOver,
     setDragOver,
     isTouch,
-    mentionIndex,
-    setMentionIndex,
     ref,
     fileInputRef,
     voice,
@@ -292,9 +272,6 @@ export function useComposer(args: {
     selectSlashCommand,
     handleSlashKeyDown,
     handleSlashChange,
-    mentionAgents,
-    activeMentionIndex,
-    insertMention,
     send,
     pickImages,
     removeImage,

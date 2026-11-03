@@ -69,17 +69,6 @@ vi.mock('@mastra/core/agent', () => ({
         ...(typeof _prompt === 'string' ? { prompt: _prompt } : {}),
         ...(options ? { options } : {}),
       });
-      if (this.id.includes('-critique')) {
-        return {
-          object: {
-            confirms: true,
-            revisedConfidence: 0.65,
-            critique: `${this.id} agrees with peers`,
-          },
-          usage: { inputTokens: 8, outputTokens: 4 },
-          steps: [{}],
-        };
-      }
       if (mocks.hangSpecialists && !this.id.includes('decision')) {
         const abortSignal = (options as { abortSignal?: AbortSignal } | undefined)?.abortSignal;
         if (abortSignal) {
@@ -518,17 +507,7 @@ describe('committee workflow', () => {
     });
 
     expect(result.status).toBe('success');
-    // §3.2: critique agents are read-only desks too — exclude them from the
-    // specialist count but assert their memory is read-only as well.
-    const specialistCalls = mocks.generateCalls.filter(
-      (call) => !call.id.includes('decision') && !call.id.includes('-critique'),
-    );
-    const critiqueCalls = mocks.generateCalls.filter((call) => call.id.includes('-critique'));
-    expect(critiqueCalls).toHaveLength(4);
-    for (const call of critiqueCalls) {
-      const memory = call.options?.memory as { options?: { readOnly?: boolean } } | undefined;
-      expect(memory?.options?.readOnly).toBe(true);
-    }
+    const specialistCalls = mocks.generateCalls.filter((call) => !call.id.includes('decision'));
     const fusionCall = mocks.generateCalls.find((call) => call.id.includes('decision'));
     expect(specialistCalls).toHaveLength(4);
     for (const call of specialistCalls) {
@@ -536,7 +515,8 @@ describe('committee workflow', () => {
       expect(memory?.options?.readOnly).toBe(true);
     }
     const fusionMemory = fusionCall?.options?.memory as
-      { options?: { readOnly?: boolean } } | undefined;
+      | { options?: { readOnly?: boolean } }
+      | undefined;
     expect(fusionMemory?.options?.readOnly).not.toBe(true);
   });
 
@@ -585,50 +565,9 @@ describe('committee workflow', () => {
       'fundamental',
       'risk',
       'sentiment',
-      // §3.2 (Q6): the cross-critique round is a first-class stage for Full.
-      'critique',
       'verify',
       'fusion',
     ]);
-  });
-
-  it('produces cross-critique records for Full and skips them for single (§3.2, Q6)', async () => {
-    const fullWorkflow = createCommitteeWorkflow(deps, 'full');
-    const fullResult = await startWorkflow(fullWorkflow, 'wf-critique-full', {
-      prompt: 'Full committee analysis',
-      symbol: 'EURUSD',
-      mode: 'full',
-    });
-    expect(fullResult.status).toBe('success');
-    const fullOutput = fullResult.result as { critiques: unknown[] };
-    expect(fullOutput.critiques).toHaveLength(4);
-
-    const singleWorkflow = createCommitteeWorkflow(deps, 'single');
-    const singleResult = await startWorkflow(singleWorkflow, 'wf-critique-single', {
-      prompt: 'Single technical read',
-      symbol: 'EURUSD',
-      mode: 'single',
-    });
-    expect(singleResult.status).toBe('success');
-    const singleOutput = singleResult.result as { critiques: unknown[] };
-    expect(singleOutput.critiques).toHaveLength(0);
-  });
-
-  it('skips the critique round when ENABLE_COMMITTEE_CRITIQUE=0 (rollback flag)', async () => {
-    process.env.ENABLE_COMMITTEE_CRITIQUE = '0';
-    try {
-      const workflow = createCommitteeWorkflow(deps, 'full');
-      const result = await startWorkflow(workflow, 'wf-critique-off', {
-        prompt: 'Full committee analysis',
-        symbol: 'EURUSD',
-        mode: 'full',
-      });
-      expect(result.status).toBe('success');
-      const output = result.result as { critiques: unknown[] };
-      expect(output.critiques).toHaveLength(0);
-    } finally {
-      delete process.env.ENABLE_COMMITTEE_CRITIQUE;
-    }
   });
 });
 
@@ -738,7 +677,8 @@ describe('committee comparison workflow (A-01 / B-01)', () => {
     // …and the fusion prompt carries the gap explicitly.
     const decisionCall = mocks.generateCalls.find((call) => call.id.includes('decision'));
     const requestContext = decisionCall?.options?.['requestContext'] as
-      { get?: (key: string) => unknown } | undefined;
+      | { get?: (key: string) => unknown }
+      | undefined;
     expect(requestContext?.get?.('blockedSymbols')).toEqual(['XAUUSD']);
     expect(requestContext?.get?.('blockedMissingData')).toEqual([
       'Current XAUUSD price is unavailable.',

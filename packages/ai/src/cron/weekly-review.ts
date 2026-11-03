@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-// Weekly-review fan-out. Shared by the worker `weekly-review` job and the
-// `/api/cron/weekly-review` fallback route.
+// Weekly-review fan-out. Executed by the `/api/cron/weekly-review` route.
 //
 // Cross-tenant discovery runs on the admin (BYPASSRLS) connection; each user's
 // review runs inside that user's tenant GUC. `emitWeeklyReview` is idempotent

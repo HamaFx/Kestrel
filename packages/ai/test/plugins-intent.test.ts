@@ -64,7 +64,9 @@ describe('detectInstalledPluginIntent', () => {
       detectInstalledPluginIntent('Pause my deployed strategy', ['paper-trading']),
     ).toMatchObject({ pluginId: 'paper-trading' });
     expect(
-      detectInstalledPluginIntent('Test a strategy on XAUUSD 15m using FVG', ['backtesting']),
+      detectInstalledPluginIntent('Test a strategy on XAUUSD 15m using the Asian range', [
+        'backtesting',
+      ]),
     ).toMatchObject({ pluginId: 'backtesting' });
   });
 
@@ -87,18 +89,12 @@ describe('detectInstalledPluginIntent', () => {
     expect(detectInstalledPluginIntent('Schedule my daily briefing', [])).toBeNull();
   });
 
-  it('matches custom-agent prompts and slash commands', () => {
-    expect(
-      detectInstalledPluginIntent('Create a custom agent for risk reviews', ['custom-agents']),
-    ).toMatchObject({ pluginId: 'custom-agents' });
+  it('matches plugin prompts and slash commands', () => {
     expect(detectInstalledPluginIntent('/backtest RSI on gold', ['backtesting'])).toMatchObject({
       pluginId: 'backtesting',
     });
     expect(detectInstalledPluginIntent('/paper', ['paper-trading'])).toMatchObject({
       pluginId: 'paper-trading',
-    });
-    expect(detectInstalledPluginIntent('/agents', ['custom-agents'])).toMatchObject({
-      pluginId: 'custom-agents',
     });
     expect(detectInstalledPluginIntent('/telegram', ['telegram-bot'])).toMatchObject({
       pluginId: 'telegram-bot',
@@ -111,7 +107,6 @@ describe('detectInstalledPluginIntent', () => {
         'paper-trading',
         'backtesting',
         'telegram-bot',
-        'custom-agents',
       ]),
     ).toBeNull();
     expect(detectInstalledPluginIntent('   ', ['paper-trading'])).toBeNull();

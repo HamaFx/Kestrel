@@ -19,7 +19,6 @@
 // Never run in PR/regular CI; nightly or manual only.
 import { sleep } from 'k6';
 
-import { env } from '../config/environments.js';
 import { soak } from '../config/load-profiles.js';
 import { READ_MIX, READ_MIX_TAGGED_RELAXED } from '../config/thresholds.js';
 import { applyAuth, bootstrapAuth, pickUser } from '../lib/auth.js';

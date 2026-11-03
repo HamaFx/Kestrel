@@ -77,7 +77,7 @@ export async function run(ctx) {
   // C2: Providers supplied via --api-key are always selected and their value
   // is used without prompting — this is the non-interactive path that also
   // works under --yes / non-TTY (where text() would otherwise return '').
-  const viaApiKey = selectedApiKeyIds => {
+  const viaApiKey = (selectedApiKeyIds) => {
     if (selectedApiKeyIds.length === 0) return false;
     info(io, `Providers provided via --api-key: ${selectedApiKeyIds.join(', ')}`);
     return true;
@@ -119,7 +119,10 @@ export async function run(ctx) {
     // --yes / non-TTY where text() returns '').
     if (apiKeysByEnv[provider.envKey]) {
       marketKeys[provider.envKey] = apiKeysByEnv[provider.envKey];
-      ok(io, `${provider.label} key provided via --api-key ${paint(maskKey(apiKeysByEnv[provider.envKey]), 'dim')}`);
+      ok(
+        io,
+        `${provider.label} key provided via --api-key ${paint(maskKey(apiKeysByEnv[provider.envKey]), 'dim')}`,
+      );
       continue;
     }
     if (flags.dryRun) {

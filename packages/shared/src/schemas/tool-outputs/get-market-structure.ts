@@ -15,33 +15,29 @@
  */
 
 // Output envelope returned by the `get_market_structure` AI tool. The tool
-// tail-trims each event list and adds a `summary` prose field, so the
-// envelope is bespoke (it is NOT `StructureResultSchema`). We reuse the
-// per-event sub-schemas directly.
+// tail-trims the swing list, folds the most recent pivot high/low into a
+// range band, and adds a `summary` prose field, so the envelope is bespoke
+// (it is NOT `StructureResultSchema`).
 //
 // Source of truth: packages/ai/src/mastra-v2/tools/canonical/market-structure.ts
 // execute() return type.
 
 import { z } from 'zod';
 
-import {
-  FvgZoneSchema,
-  LiquiditySweepSchema,
-  OrderBlockSchema,
-  StructureEventSchema,
-  SwingPointSchema,
-} from '../structure';
+import { SwingPointSchema } from '../structure';
 
 export const GetMarketStructureOutputSchema = z.object({
   symbol: z.string(),
   tf: z.string(),
   /** Number of candles the result was computed against. */
   bars: z.int().nonnegative(),
-  swings: z.array(SwingPointSchema).optional(),
-  events: z.array(StructureEventSchema).optional(),
-  fvg: z.array(FvgZoneSchema).optional(),
-  orderBlocks: z.array(OrderBlockSchema).optional(),
-  liquidity: z.array(LiquiditySweepSchema).optional(),
+  swings: z.array(SwingPointSchema),
+  /** Highest of the recent swing highs, or null when none qualified. */
+  recentSwingHigh: z.number().nullable(),
+  /** Lowest of the recent swing lows, or null when none qualified. */
+  recentSwingLow: z.number().nullable(),
+  /** Distance between the recent range extremes, or null when incomplete. */
+  rangeSize: z.number().nullable(),
   /** Compact human-readable summary the model can echo verbatim. */
   summary: z.string(),
 });

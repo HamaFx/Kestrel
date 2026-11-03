@@ -61,8 +61,6 @@ function capabilitiesFor(registered: RegisteredPlugin): PluginCapabilitySummary 
     tickSubscribers: registered.tickSubscribers.length,
     alertChannels: registered.alertChannels.length,
     indicators: registered.indicators.length,
-    // Per-user agent catalogs (the former static `agents` list was removed).
-    agents: registered.agentCatalogs.length,
     packetEnrichers: registered.packetEnrichers.length,
     apiRoutes: Object.keys(pluginHost.getApiRoutes(registered.manifest.id) ?? {}).length,
     navItems: ui?.navItems?.length ?? 0,

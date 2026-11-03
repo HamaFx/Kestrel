@@ -3,22 +3,17 @@
   "version": "0.1.0",
   "description": "The Self-Hosted Multi-User BYOK AI Trading Platform",
   "license": "Apache-2.0",
-  "packageManager": "pnpm@12.14.0",
-  "engines": {
-    "node": ">=22.22.2",
-    "pnpm": ">=12.0"
-  },
   "scripts": {
     "build": "turbo run build",
     "dev": "tsx scripts/dev.ts && turbo run dev",
     "setup": "node scripts/setup.mjs",
-    "lint": "turbo run lint",
+    "lint": "oxlint .",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
     "test:watch": "turbo run test -- --watch",
-    "test:coverage": "turbo run test -- --coverage",
+    "test:coverage": "turbo run test:coverage",
     "test:e2e": "pnpm --filter @kestrel/web exec playwright test",
     "test:e2e:local": "node scripts/run-e2e-local.mjs",
     "test:web": "pnpm --filter @kestrel/web test",
@@ -35,30 +30,39 @@
     "check:knip-config": "node scripts/check-knip-config.mjs",
     "check:env-contract": "node scripts/check-env-contract.mjs",
     "test:postgres-rls": "node scripts/run-postgres-rls-test.mjs",
-    "test:ai-postgres-queue": "node scripts/run-ai-postgres-queue-test.mjs",
     "docker:prune": "node scripts/docker-prune-safe.mjs",
     "build:packages": "turbo run build --filter=@kestrel/shared --filter=@kestrel/plugin-sdk --filter=@kestrel/plugins --filter=@kestrel/indicators --filter=@kestrel/db --filter=@kestrel/data --filter=@kestrel/ai --filter=@kestrel/test-utils --filter=@kestrel/loadtest",
     "create:plugin": "node scripts/create-plugin.mjs",
     "knip": "knip",
     "eval:gate": "pnpm --filter @kestrel/ai run eval:gate",
     "prepare": "node scripts/install-git-hooks.mjs",
-    "format:edited": "node scripts/format-edited-files.mjs"
+    "format:edited": "node scripts/format-edited-files.mjs",
+    "lint:turbo": "turbo run lint",
+    "check:guards": "node scripts/check-all-guards.mjs",
+    "check:fast": "NODE_COMPILE_CACHE=node_modules/.cache/node-compile-cache node scripts/check-all-guards.mjs && pnpm exec oxlint . && NODE_COMPILE_CACHE=node_modules/.cache/node-compile-cache turbo run typecheck test --affected",
+    "typecheck:affected": "NODE_COMPILE_CACHE=node_modules/.cache/node-compile-cache turbo run typecheck --affected",
+    "test:affected": "NODE_COMPILE_CACHE=node_modules/.cache/node-compile-cache turbo run test --affected"
   },
   "dependencies": {
     "postgres": "^3.4.9"
   },
   "devDependencies": {
-    "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
     "@types/node": "^22.20.5",
     "@vitest/coverage-v8": "^5.0.5",
     "chrome-launcher": "^1.2.2",
-    "knip": "^6.42.0",
+    "knip": "^6.43.0",
+    "lefthook": "^2.2.2",
     "lighthouse": "^13.5.0",
-    "prettier": "^3.9.10",
-    "prettier-plugin-tailwindcss": "^0.8.1",
+    "oxfmt": "^0.75.0",
+    "oxlint": "^1.90.0",
     "tsx": "^4.23.15",
     "turbo": "^2.11.9",
     "typescript": "^7.0.2",
     "vite": "^8.3.4"
-  }
+  },
+  "engines": {
+    "node": ">=22.22.2",
+    "pnpm": ">=12.0"
+  },
+  "packageManager": "pnpm@12.14.0"
 }

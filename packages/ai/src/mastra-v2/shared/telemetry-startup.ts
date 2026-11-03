@@ -4,10 +4,7 @@
  */
 
 import { metrics } from '@kestrel/shared';
-import {
-  grafanaOtlpConfigFromEnv,
-  grafanaRemoteWriteConfigFromEnv,
-} from '@kestrel/shared/metrics-export';
+import { grafanaOtlpConfigFromEnv } from '@kestrel/shared/metrics-export';
 
 import { isMastraTelemetryDegraded } from './run-telemetry';
 
@@ -38,9 +35,7 @@ export function validateTelemetryStartup(
   // Phase 1 (observability roadmap) — report real exporter readiness instead
   // of hardcoding 'unknown' for the DB, metrics, and Mastra surfaces.
   const databaseConfigured = Boolean(env.DATABASE_URL?.trim() || env.POSTGRES_URL?.trim());
-  const metricsConfigured = Boolean(
-    grafanaOtlpConfigFromEnv(env) || grafanaRemoteWriteConfigFromEnv(env),
-  );
+  const metricsConfigured = Boolean(grafanaOtlpConfigFromEnv(env));
   const langfuseConfigured = Boolean(
     env.LANGFUSE_PUBLIC_KEY && env.LANGFUSE_SECRET_KEY && env.LANGFUSE_BASE_URL,
   );

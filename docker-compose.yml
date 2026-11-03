@@ -33,9 +33,10 @@ services:
       POSTGRES_USER: hamafx
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run docker/init-secrets.sh to generate .env}
       POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Run docker/init-secrets.sh to generate .env}
-      # Optional so existing volumes keep starting; the init script skips
-      # kestrel_app provisioning when it is empty (see init-admin-role.sh).
-      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:-}
+      # Required: the web app connects as this non-bypass role so row-level
+      # security applies. Fresh volumes get it from init-admin-role.sh; the
+      # runtime migrator also (re)provisions it on boot for existing volumes.
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:?Run docker/init-secrets.sh to generate .env}
     ports:
       - '${POSTGRES_PUBLISHED_PORT:-127.0.0.1:5432}:5432'
     volumes:
@@ -126,16 +127,15 @@ services:
       # host port when 3000 is already taken. Binds localhost only.
       - '${APP_PUBLISHED_PORT:-127.0.0.1:3000}:3000'
     environment:
-      # Audit 2026-10-31 (R1): the application connects as the non-bypass
-      # `kestrel_app` role once its credential exists, which is what makes row
-      # level security apply (`docker/init-secrets.sh` generates
-      # POSTGRES_APP_PASSWORD for a fresh install). An existing volume has no
-      # such credential yet, so it keeps using the bundled superuser — with RLS
-      # consequently unenforced — until the one-off
-      # `pnpm --filter @kestrel/db provision:app-role` run documented in
-      # docs/configuration.md. That path is deliberate: refusing to boot an
-      # existing stack would be a worse failure than telling the operator.
-      DATABASE_URL: postgres://${POSTGRES_APP_PASSWORD:+kestrel_app:}${POSTGRES_APP_PASSWORD:-hamafx:${POSTGRES_PASSWORD}}@db:5432/hamafx
+      # Phase 1 (Task 1.4): always connect as the non-bypass `kestrel_app`
+      # role. A superuser connection bypasses every RLS policy regardless of
+      # FORCE. `POSTGRES_APP_PASSWORD` is required above; the runtime migrator
+      # (provisioned with ADMIN_DATABASE_URL) ensures the role exists.
+      DATABASE_URL: postgres://kestrel_app:${POSTGRES_APP_PASSWORD}@db:5432/hamafx
+      # Migrations and app-role provisioning need DDL rights. The bundled
+      # superuser owns the schema; hamafx_admin is NOCREATEROLE. This URL is
+      # used only by the entrypoint's migrator, never by the Next.js process.
+      DIRECT_URL: postgres://hamafx:${POSTGRES_PASSWORD}@db:5432/hamafx
       ADMIN_DATABASE_URL: postgres://hamafx_admin:${POSTGRES_ADMIN_PASSWORD}@db:5432/hamafx
       KESTREL_LOCAL_DOCKER: 'true'
       # The bundled Postgres service is plain TCP. This explicit local-only
@@ -144,7 +144,7 @@ services:
       NODE_ENV: production
       # Deployment environment: multi-user + RLS required
       MULTI_USER_ENABLED: '1'
-      REGISTRATION_MODE: open
+      REGISTRATION_MODE: first_user
       KESTREL_ENABLE_RLS: '1'
       # PERF-06: Tune the postgres-js connection pool. 5 connections per web
       # instance covers concurrent tool calls + budget + telemetry without
@@ -186,16 +186,14 @@ services:
       context: .
       dockerfile: Dockerfile.worker
     environment:
-      # Audit 2026-10-31 (R1): app traffic on the worker uses the same
-      # non-bypass credential as the web app when it is present; cron/admin
-      # work stays on ADMIN_DATABASE_URL (hamafx_admin, BYPASSRLS) either way.
-      # See the app service above for the existing-volume caveat.
-      DATABASE_URL: postgres://${POSTGRES_APP_PASSWORD:+kestrel_app:}${POSTGRES_APP_PASSWORD:-hamafx:${POSTGRES_PASSWORD}}@db:5432/hamafx
+      # Phase 1 (Task 1.4): same non-bypass role as the web app. Cron and
+      # cross-tenant work stays on ADMIN_DATABASE_URL (hamafx_admin, BYPASSRLS).
+      DATABASE_URL: postgres://kestrel_app:${POSTGRES_APP_PASSWORD}@db:5432/hamafx
       ADMIN_DATABASE_URL: postgres://hamafx_admin:${POSTGRES_ADMIN_PASSWORD}@db:5432/hamafx
       NODE_ENV: production
       # Deployment environment: multi-user + RLS required
       MULTI_USER_ENABLED: '1'
-      REGISTRATION_MODE: open
+      REGISTRATION_MODE: first_user
       KESTREL_ENABLE_RLS: '1'
       WORKER_MODE: docker
       KESTREL_LOCAL_DOCKER: 'true'

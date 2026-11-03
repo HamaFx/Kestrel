@@ -39,8 +39,7 @@ export interface BotReply {
 export const COMMAND_DESCRIPTIONS: ReadonlyArray<{ command: string; description: string }> = [
   { command: 'price', description: 'Current price — /price XAUUSD' },
   { command: 'analyze', description: 'AI market check — /analyze XAUUSD quick|full' },
-  { command: 'ask', description: 'Ask a question or an agent — /ask @handle XAUUSD view' },
-  { command: 'agents', description: 'List your custom agents — /agents' },
+  { command: 'ask', description: 'Ask a question — /ask XAUUSD view' },
   { command: 'committee', description: 'Full 4-expert team — /committee XAUUSD' },
   { command: 'news', description: 'Latest market headlines — /news [symbol]' },
   { command: 'calendar', description: 'Economic calendar — /calendar [count]' },

@@ -57,7 +57,7 @@ export function SimulatorCanvas({ scenario, simulationStage, isVetoed }: Simulat
             />
           </div>
           <p className="text-fg-muted mt-2 truncate font-sans text-[11px]">
-            FVG Retest & Session Sweep
+            Swing Low Retest & Session Breakout
           </p>
         </div>
 

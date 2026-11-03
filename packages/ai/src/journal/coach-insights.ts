@@ -308,7 +308,7 @@ export async function getCoachInsights(args: CoachInsightsArgs): Promise<CoachIn
       latencyMs,
     };
 
-    // Phase 3 (Jev roadmap) — mirror the quantitative edge and behavioral
+    // Phase 3 — mirror the quantitative edge and behavioral
     // leaks into Mastra's resource-scoped working memory so chat turns are
     // aware of the trader's personal profile. Best-effort: a memory failure is
     // logged and never fails the review response.

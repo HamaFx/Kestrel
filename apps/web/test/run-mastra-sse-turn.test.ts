@@ -15,7 +15,7 @@
  */
 
 // Phase 4 Task 3 — the single Mastra SSE turn lifecycle shared by canonical
-// chat, custom agents, and the XAUUSD conversation stream.
+// chat and the XAUUSD conversation stream.
 
 // @vitest-environment node
 

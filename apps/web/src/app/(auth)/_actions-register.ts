@@ -23,6 +23,7 @@
 import {
   createUserWithSettings,
   createVerificationToken,
+  FirstUserRegistrationClosedError,
   userExistsByEmail,
   withRateLimit,
 } from '@kestrel/db';
@@ -34,8 +35,11 @@ import { z } from 'zod';
 
 import { signIn } from '@/auth';
 import { generateToken } from '@/lib/auth/auth-tokens';
+import {
+  REGISTRATION_CLOSED_REASON,
+  resolveRegistrationPolicy,
+} from '@/lib/auth/registration-policy';
 import { isFailedSignIn } from '@/lib/auth/sign-in-result';
-import { getServerEnv } from '@/lib/env';
 import { logActionError, withServerActionLogging } from '@/lib/http/action-errors';
 import { passwordSchema } from '@/lib/http/validation';
 import { createScopedLoggerWithContext } from '@/lib/logger';
@@ -72,13 +76,10 @@ export async function registerAction(
 
     const { name, email, password } = parsed.data;
     const normalizedEmail = email.trim().toLowerCase();
-    const registrationMode = getServerEnv().REGISTRATION_MODE;
-    if (registrationMode === 'disabled') {
-      return { error: 'Registration is disabled by the instance owner.' };
-    }
 
     // INFRA-08: Rate limit registrations per IP — 5 per minute per IP.
-    // This prevents automated account-creation spam.
+    // This prevents automated account-creation spam, including probes against a
+    // closed instance (the policy check below runs one count query).
     const headersList = await headers();
     const clientIp =
       headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
@@ -93,6 +94,14 @@ export async function registerAction(
       return { error: 'Too many registration attempts. Please try again later.' };
     }
 
+    // Phase 1 (Task 1.2): the default `first_user` mode accepts exactly one
+    // public account and promotes it to admin. Once the instance is claimed,
+    // sign-up stays closed unless the operator sets REGISTRATION_MODE=open.
+    const registration = await resolveRegistrationPolicy();
+    if (!registration.allowed) {
+      return { error: registration.reason };
+    }
+
     const existingUser = await userExistsByEmail(normalizedEmail);
     if (existingUser) {
       return { error: 'An account with this email already exists' };
@@ -102,15 +111,24 @@ export async function registerAction(
     const newUserId = crypto.randomUUID();
 
     // STAB-10: Wrap the users + userSettings insert in a single transaction
-    // so a partial failure (e.g. userSettings FK violation) rolls back the user row.
-    // Open registration means every account is created the same way —
-    // standard user creation with tenant settings.
-    await createUserWithSettings({
-      id: newUserId,
-      email: normalizedEmail,
-      name,
-      hashedPassword,
-    });
+    // so a partial failure (e.g. userSettings FK violation) rolls back the
+    // user row. Phase 1: the first_user promotion is re-checked under an
+    // advisory lock inside the same transaction.
+    try {
+      await createUserWithSettings({
+        id: newUserId,
+        email: normalizedEmail,
+        name,
+        hashedPassword,
+        role: registration.role,
+        requireFirstUser: registration.firstUser,
+      });
+    } catch (err) {
+      if (err instanceof FirstUserRegistrationClosedError) {
+        return { error: REGISTRATION_CLOSED_REASON };
+      }
+      throw err;
+    }
 
     // HIGH-04: Generate email verification token
     try {

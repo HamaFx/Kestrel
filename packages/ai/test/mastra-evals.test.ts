@@ -17,8 +17,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { computeCitationScore } from '../src/eval/citation-oracle';
-import type { PromptResult } from '../src/eval/runner';
-import { buildTrainingRecords } from '../src/eval/training-export';
 import { createCitationScorer } from '../src/mastra-v2/evals/custom';
 import {
   createMastraEvalGate,
@@ -262,85 +260,5 @@ describe('mastra evals — gate', () => {
       requestContext: {},
     });
     expect(fail.score).toBe(0);
-  });
-});
-
-describe('mastra evals — training export join', () => {
-  const baseResult: PromptResult = {
-    id: 'p01',
-    prompt: 'Give me a read on gold.',
-    ttftMs: 100,
-    totalMs: 500,
-    text: 'XAUUSD analysis',
-    toolCalls: [],
-    ok: true,
-    assertions: [],
-    metadata: { totalCostUsd: 0.01 },
-    agentProgress: [],
-    terminalStatus: 'complete',
-  };
-
-  it('joins live score records keyed by case id', () => {
-    const records = new Map([
-      [
-        'p01',
-        [
-          {
-            id: 's1',
-            scorerId: 'faithfulness',
-            runId: 'run-1',
-            entityId: 'e1',
-            score: 0.9,
-            createdAt: new Date(),
-            source: 'LIVE' as const,
-          },
-        ],
-      ],
-    ]);
-    const [record] = buildTrainingRecords([baseResult], {
-      datasetVersion: '2026-08',
-      scoreRecords: records,
-    });
-    expect(record?.liveScores).toEqual({ faithfulness: 0.9 });
-  });
-
-  it('omits liveScores when no records exist for the case', () => {
-    const [record] = buildTrainingRecords([baseResult], {
-      datasetVersion: '2026-08',
-    });
-    expect(record?.liveScores).toBeUndefined();
-  });
-
-  it('last record wins per scorer id', () => {
-    const records = new Map([
-      [
-        'p01',
-        [
-          {
-            id: 's1',
-            scorerId: 'bias',
-            runId: 'run-1',
-            entityId: 'e1',
-            score: 0.2,
-            createdAt: new Date('2026-01-01'),
-            source: 'LIVE' as const,
-          },
-          {
-            id: 's2',
-            scorerId: 'bias',
-            runId: 'run-1',
-            entityId: 'e1',
-            score: 0.4,
-            createdAt: new Date('2026-01-02'),
-            source: 'LIVE' as const,
-          },
-        ],
-      ],
-    ]);
-    const [record] = buildTrainingRecords([baseResult], {
-      datasetVersion: '2026-08',
-      scoreRecords: records,
-    });
-    expect(record?.liveScores).toEqual({ bias: 0.4 });
   });
 });

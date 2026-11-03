@@ -18,6 +18,6 @@
 
 // Single-symbol committee barrel (DEC-05 split of single-workflow.ts).
 // `workflow.ts` dispatches here for ordinary runs: one collect → parallel
-// specialists → critique/debate → verify → fusion graph.
+// specialists → verify → fusion graph.
 
 export { createSingleCommitteeWorkflow } from './workflow';

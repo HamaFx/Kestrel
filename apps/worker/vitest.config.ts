@@ -20,6 +20,14 @@ import { defineConfig } from 'vitest/config';
 
 const maxWorkers = process.env.CI ? 2 : Math.max(2, Math.floor(os.availableParallelism() / 2));
 
+// These files mutate process.env, acquire singleton runner locks, or bind an
+// HTTP server; they are not safe to share a module graph.
+const isolatedInclude = [
+  'test/runner-lock.test.ts',
+  'test/env.test.ts',
+  'test/http-server*.test.ts',
+];
+
 export default defineConfig({
   resolve: {
     conditions: ['source'],
@@ -29,7 +37,7 @@ export default defineConfig({
     // turbo runs every package's suite in parallel, so keep the cache
     // package-local to avoid concurrent-cache races.
     fsModuleCachePath: 'node_modules/.vitest-cache',
-    pool: 'forks',
+    pool: 'threads',
     maxWorkers,
     environment: 'node',
     include: ['test/**/*.test.ts'],
@@ -58,5 +66,25 @@ export default defineConfig({
     alias: {
       'server-only': new URL('./test/empty.ts', import.meta.url).pathname,
     },
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'worker-fast',
+          // Job tests mock shared modules at file scope; keep file isolation.
+          isolate: true,
+          include: ['test/**/*.test.ts'],
+          exclude: isolatedInclude,
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'worker-isolated',
+          isolate: true,
+          include: isolatedInclude,
+        },
+      },
+    ],
   },
 });

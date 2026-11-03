@@ -98,7 +98,7 @@ export function useNewsView({ initialArticles }: { initialArticles: NewsArticle[
   function manualRefresh() {
     startTransition(async () => {
       try {
-        await apiFetch('/api/cron/news');
+        await apiFetch('/api/news/refresh');
         toast.success('News refreshed');
         router.refresh();
         setLastRefreshed(Date.now());

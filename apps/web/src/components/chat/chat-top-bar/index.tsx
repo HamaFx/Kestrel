@@ -43,7 +43,6 @@ export function ChatTopBar({
   onToggleSplitMode,
   viewsOpen = false,
   onToggleViews,
-  activeAgent = null,
 }: ChatTopBarProps) {
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -144,7 +143,6 @@ export function ChatTopBar({
         unpinning={unpinning}
         onOpenDrawer={() => setDrawerOpen(true)}
         onClearPin={() => void clearPin()}
-        activeAgent={activeAgent}
         isStreaming={isStreaming}
       />
 

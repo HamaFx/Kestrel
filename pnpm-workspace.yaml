@@ -55,6 +55,7 @@ minimumReleaseAge: 0
 # their install/postinstall steps (esbuild downloads native binaries,
 # protobufjs runs codegen, sharp ships prebuilds).
 allowBuilds:
+  lefthook: true
   esbuild: true
   protobufjs: true
   sharp: true

@@ -33,13 +33,6 @@ const BodySchema = z.object({
   modelOverride: z.string().min(1).max(120).nullable().optional(),
   // Q2 decision: exactly two analysis modes; anything else fails validation.
   analysisMode: z.enum(['single', 'full']).optional(),
-  /** Explicit standalone agent selection from the composer. */
-  agentSlug: z
-    .string()
-    .min(2)
-    .max(32)
-    .regex(/^[a-z][a-z0-9-]{1,31}$/)
-    .optional(),
   messages: z
     .array(
       z.object({
@@ -55,7 +48,7 @@ const BodySchema = z.object({
 
 type ChatRequestBody = z.infer<typeof BodySchema>;
 type ChatUserMessage = ChatRequestBody['messages'][number];
-export type ChatUserParts = z.infer<typeof UserMessagePartsSchema>;
+type ChatUserParts = z.infer<typeof UserMessagePartsSchema>;
 
 interface ParsedChatRequest extends PresentationPrefs {
   body: ChatRequestBody;
@@ -65,7 +58,8 @@ interface ParsedChatRequest extends PresentationPrefs {
 }
 
 export type ParseChatRequestResult =
-  { ok: true; request: ParsedChatRequest } | { ok: false; response: Response };
+  | { ok: true; request: ParsedChatRequest }
+  | { ok: false; response: Response };
 
 export async function parseChatRequest(req: Request): Promise<ParseChatRequestResult> {
   let body: ChatRequestBody;

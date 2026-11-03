@@ -47,7 +47,7 @@ const plugin = definePlugin({
     version: '0.1.0',
     tagline: 'Agent-authored strategies, tested bar-by-bar without look-ahead.',
     description:
-      'Turn trading playbooks into code. Kestrel agents read SMC/ICT and quant skills, write a getSignal(ctx) strategy, and run it through a deterministic sandboxed simulator with realistic spread, slippage, stops, trailing exits and a full scorecard. Every run is saved with its exact source so you can compare, iterate and audit.',
+      'Turn trading playbooks into code. Kestrel agents read session-level and quant skills, write a getSignal(ctx) strategy, and run it through a deterministic sandboxed simulator with realistic spread, slippage, stops, trailing exits and a full scorecard. Every run is saved with its exact source so you can compare, iterate and audit.',
     category: 'quant-research',
     iconName: 'IconFlask',
     installMode: 'instant',
@@ -56,7 +56,7 @@ const plugin = definePlugin({
     badges: [
       '3 strategy skills',
       'Sandboxed getSignal()',
-      'SMC + 33 TA series',
+      'Session levels + 33 TA series',
       'Equity curves',
       'Adds sidebar tab',
     ],
@@ -64,7 +64,7 @@ const plugin = definePlugin({
   },
   skills: [
     resolveSkillDir('strategy-architect'),
-    resolveSkillDir('smc-ict-playbooks'),
+    resolveSkillDir('session-level-playbooks'),
     resolveSkillDir('quant-playbooks'),
   ],
   tools: backtestingTools,

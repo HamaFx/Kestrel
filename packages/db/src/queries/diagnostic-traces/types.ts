@@ -29,7 +29,7 @@ export interface TraceExplorerFilters {
   limit?: number | undefined;
 }
 
-type TraceExplorerSource = 'trace' | 'turn' | 'tool' | 'agent' | 'budget' | 'outbox';
+type TraceExplorerSource = 'trace' | 'turn' | 'tool' | 'agent' | 'budget';
 
 export interface TraceExplorerEvent {
   id: string;

@@ -17,7 +17,7 @@
 /**
  * Shared best-effort thread-title orchestration.
  *
- * Web chat services and the durable full-analysis worker both call this after
+ * Web chat services call this after
  * persisting the first assistant message of an untitled thread. It never
  * throws: model failures fall back to a deterministic title, and the untitled
  * check is race-safe so a concurrent writer wins.
@@ -54,8 +54,7 @@ export interface MaybeGenerateThreadTitleArgs {
   ledgerId?: string;
   /**
    * Bound the title LLM call (P2-06). Required by web paths that await this
-   * call before settling the turn budget; the durable worker bills the exact
-   * spend and therefore leaves it unbounded.
+   * call before settling the turn budget.
    */
   timeoutMs?: number;
 }

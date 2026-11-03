@@ -46,11 +46,11 @@ describe('Phase 2 execution plan', () => {
       userMessage: message('Analyze EURUSD deeply'),
       symbol: 'EURUSD',
       mode: 'full',
-      settings,
-      env,
+      settings: { aiApiKeys: null, chatModel: 'google:gemini-2.5-flash' } as never,
+      env: { GOOGLE_GENERATIVE_AI_API_KEY: 'test-key' } as never,
     });
 
-    expect(plan.route).toBe('full-analysis');
+    expect(plan.route).toBe('symbol-research');
     expect(plan.capabilityId).toBe('symbol-research');
     expect(plan.evidencePolicy.required).toBe(true);
     expect(plan.streaming).toBe(false);

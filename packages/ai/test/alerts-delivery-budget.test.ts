@@ -26,6 +26,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { alertChannelRegistry } from '../src/alerts/channel-registry';
 import { deliverAlert } from '../src/alerts/delivery';
 import { markFiredForAlert } from '../src/alerts/persistence';
+import type * as NoiseControl from '../src/notifications/noise-control';
 import { getNoiseConfig } from '../src/notifications/noise-state';
 
 const noiseMocks = vi.hoisted(() => ({
@@ -44,13 +45,20 @@ vi.mock('../src/push/persistence', () => ({
 }));
 
 vi.mock('../src/notifications/noise-state', () => ({
-  DbNoiseState: class DbNoiseState {
-    hasSeen = noiseMocks.hasSeen;
-    inCooldown = noiseMocks.inCooldown;
-    record = noiseMocks.record;
-  },
   getNoiseConfig: vi.fn(async (): Promise<NoiseConfig> => ({ ...DEFAULT_NOISE_CONFIG })),
 }));
+
+vi.mock('../src/notifications/noise-control', async () => {
+  const actual = await vi.importActual<typeof NoiseControl>('../src/notifications/noise-control');
+  return {
+    ...actual,
+    InMemoryNoiseState: class InMemoryNoiseState {
+      hasSeen = noiseMocks.hasSeen;
+      inCooldown = noiseMocks.inCooldown;
+      record = noiseMocks.record;
+    },
+  };
+});
 
 function makeAlert(id: string, channels: Alert['channels']): Alert {
   return {

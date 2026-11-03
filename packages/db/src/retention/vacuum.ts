@@ -29,7 +29,6 @@ export async function runVacuumAnalyze(signal?: AbortSignal): Promise<void> {
     'rate_limits',
     'provider_daily_quota',
     'diagnostic_traces',
-    'persistence_outbox',
     'ai_budget_reservations',
     'chat_messages',
   ];

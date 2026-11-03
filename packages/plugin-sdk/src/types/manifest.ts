@@ -19,7 +19,6 @@
 
 import type { z } from 'zod';
 
-import type { PluginUserAgentCatalog } from './agents';
 import type { PluginAlertChannelRegistration } from './alert-channels';
 import type { PluginApiRouteHandler, PluginPublicApiRouteHandler } from './api-routes';
 import type { PluginCategory, PluginExecutionContext, PluginId, PluginInstallMode } from './core';
@@ -82,12 +81,6 @@ export interface KestrelPlugin {
   /** Mastra skills: inline objects or paths to `SKILL.md` directories. */
   skills?: readonly PluginSkillInput[];
   tools?: readonly PluginToolRegistration[];
-  /**
-   * Per-user standalone agent catalogs. The core exposes these agents in the
-   * chat agent selector / `@mention` router and optionally as Mastra
-   * subagents of the canonical chat agent.
-   */
-  agentCatalogs?: readonly PluginUserAgentCatalog[];
   jobs?: readonly PluginJobRegistration[];
   tickSubscribers?: readonly PluginTickSubscriber[];
   alertChannels?: readonly PluginAlertChannelRegistration[];

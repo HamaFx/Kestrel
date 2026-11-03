@@ -23,7 +23,7 @@
 import type { PluginStorage } from '@kestrel/plugin-sdk';
 
 import { saveSettingsForInstall } from '../settings';
-import { agentsReply, analyzeReply, askReply, committeeReply } from './ai-commands';
+import { analyzeReply, askReply, committeeReply } from './ai-commands';
 import { dispatchDataCommand } from './commands';
 import { consumeLinkToken, linkChat } from './link';
 import { answerTelegramCallback, sendTelegramText, sendTelegramTyping } from './telegram-api';
@@ -108,8 +108,6 @@ async function dispatchTelegramCommand(
       const question = args.join(' ').trim();
       return askReply(question, ctx);
     }
-    case 'agents':
-      return agentsReply(ctx);
     default:
       return {
         text: `Unknown command: /${command}\n\nType /help to see everything I can do.`,

@@ -51,10 +51,9 @@ describe('telemetry startup health', () => {
     expect(result.exporters.mastra).toBe('disabled');
   });
 
-  it('reports metrics configured when only the Prometheus remote-write transport is configured', () => {
+  it('reports metrics configured when the OTLP transport is configured', () => {
     const result = validateTelemetryStartup({
-      GRAFANA_CLOUD_RW_ENDPOINT: 'https://metrics.example/api/prom/push',
-      GRAFANA_CLOUD_METRICS_INSTANCE_ID: '3508468',
+      GRAFANA_CLOUD_OTLP_ENDPOINT: 'https://otlp.example/otlp',
       GRAFANA_CLOUD_API_KEY: 'glc_x',
     });
     expect(result.exporters.metrics).toBe('configured');

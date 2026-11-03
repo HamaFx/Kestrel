@@ -72,7 +72,7 @@ function pinnedModelFor(purpose: MastraModelPurpose): string | null {
 /**
  * Resolve every Mastra model through one contract.
  *
- * `snapshot` is authoritative for durable worker jobs. Otherwise the caller's
+ * `snapshot` is authoritative when present. Otherwise the caller's
  * explicit override wins, then the purpose-specific operator pin, then the
  * user's normal chat selection/default.
  */

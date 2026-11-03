@@ -1,45 +1,34 @@
 'use client';
 
-/**
- * Copyright 2026 Kestrel
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// SPDX-License-Identifier: Apache-2.0
+
+// Per-provider BYOK card: status, masked preview, write-only input, test, and
+// explicit remove. The stored secret never reaches this component.
+
 import type { ProviderMeta } from '@kestrel/shared';
-import { IconCircleCheck, IconLoader2 } from '@tabler/icons-react';
+import { IconCircleCheck } from '@tabler/icons-react';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
-import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-drawer';
 import { ProviderInfoDot } from '@/components/ui/provider-info-dot';
 import { apiMutate } from '@/lib/http/api-client';
 
+import { ApiKeyActions } from './api-key-actions';
 import { StatusPill, UsageBadge, type TestState } from './api-key-badges';
 import type { ApiKeyHealth } from './api-key-health';
 import { ApiKeyInput } from './api-key-input';
 import { KeyRotationWarning, RateLimitPanel } from './api-key-meta-panels';
-import { BYOK_KEY_KEEP } from './byok-key-sentinel';
+import { BYOK_KEY_REMOVE } from './byok-key-sentinel';
 import { ProviderLogo } from './provider-logo';
 import { ProviderSetupDetails } from './provider-setup-details';
 
 interface ApiKeyCardProps {
   provider: ProviderMeta;
-  /**
-   * Whether a key is already stored for this provider. Audit 2026-10-31 (R5):
-   * the card receives a boolean, never the decrypted key.
-   */
+  /** Whether a key is already stored for this provider. */
   isConfigured: boolean;
+  /** Display-only mask of the stored key, e.g. `sk-p••••1a2b`. */
+  maskedPreview?: string | undefined;
   keyUpdatedAt?: string | undefined;
   health?: ApiKeyHealth | undefined;
   usage?:
@@ -53,24 +42,25 @@ interface ApiKeyCardProps {
 export function ApiKeyCard({
   provider,
   isConfigured,
+  maskedPreview,
   health,
   usage,
   keyUpdatedAt,
 }: ApiKeyCardProps) {
   const [revealed, setRevealed] = useState(false);
-  // A stored key prefills the KEEP sentinel so an untouched field can never
-  // blank the stored value on save, and so no plaintext reaches the client.
-  const [value, setValue] = useState(isConfigured ? BYOK_KEY_KEEP : '');
+  // Phase 1 (Task 1.1): the field starts empty. Empty means "keep whatever is
+  // stored"; removal is an explicit action that submits BYOK_KEY_REMOVE.
+  const [value, setValue] = useState('');
   const [test, setTest] = useState<TestState>({ kind: 'idle' });
   const [, startTransition] = useTransition();
   const [confirmNode, confirm] = useConfirm();
 
   const trimmed = value.trim();
-  const pristineStoredKey = isConfigured && trimmed === BYOK_KEY_KEEP;
-  const reusedSentinel = !isConfigured && trimmed === BYOK_KEY_KEEP;
-  const dirty = value !== (isConfigured ? BYOK_KEY_KEEP : '');
-  const typedValue = dirty && !reusedSentinel ? trimmed : '';
-  const isSet = pristineStoredKey || typedValue.length > 0;
+  const pendingRemoval = value === BYOK_KEY_REMOVE;
+  const typedValue = pendingRemoval ? '' : trimmed;
+  const pristineStoredKey = isConfigured && value.length === 0;
+  const dirty = value.length > 0 && !pendingRemoval;
+  const isSet = !pendingRemoval && (isConfigured || typedValue.length > 0);
 
   let keyAgeDays: number | null = null;
   if (keyUpdatedAt && isSet) {
@@ -82,12 +72,12 @@ export function ApiKeyCard({
   }
 
   function handleTest() {
-    if (!isSet) return;
+    if (!isSet || pendingRemoval) return;
     setTest({ kind: 'pending' });
     startTransition(async () => {
       try {
-        // A pristine stored key has no plaintext to send; the route falls back
-        // to the stored (server-side) value for that provider.
+        // A stored key has no plaintext to send; the route falls back to the
+        // stored (server-side) value for that provider.
         const body =
           typedValue.length > 0
             ? { provider: provider.id, apiKey: typedValue }
@@ -112,6 +102,21 @@ export function ApiKeyCard({
         });
       }
     });
+  }
+
+  async function handleRemove() {
+    const ok = await confirm({
+      title: `Remove ${provider.displayName} key?`,
+      description:
+        'The stored key is deleted when you save. Requests that rely on it will fail until you add a new key.',
+      confirmLabel: 'Remove key',
+      cancelLabel: 'Keep key',
+      tone: 'danger',
+    });
+    if (ok) {
+      setValue(BYOK_KEY_REMOVE);
+      setTest({ kind: 'idle' });
+    }
   }
 
   async function handleCopy() {
@@ -201,6 +206,8 @@ export function ApiKeyCard({
         dirty={dirty}
         canCopy={typedValue.length > 0}
         testState={test}
+        maskedPreview={maskedPreview}
+        pendingRemoval={pendingRemoval}
         onValueChange={(next) => {
           setValue(next);
           if (test.kind !== 'idle') setTest({ kind: 'idle' });
@@ -212,33 +219,15 @@ export function ApiKeyCard({
       {/* Expandable setup instructions details. */}
       <ProviderSetupDetails provider={provider} />
 
-      {/* Action row: test button. */}
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-caption text-fg-subtle">
-          Key is encrypted at rest with AES-256-GCM. Press{' '}
-          <kbd className="bg-bg-elev-2 border-border rounded-sm border px-1.5 py-0.5 text-xs">
-            T
-          </kbd>{' '}
-          to test.
-        </span>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={handleTest}
-          disabled={!isSet || test.kind === 'pending'}
-          loading={test.kind === 'pending'}
-        >
-          {test.kind === 'pending' ? (
-            <>
-              <IconLoader2 className="size-3 animate-spin" />
-              Testing…
-            </>
-          ) : (
-            'Test connection'
-          )}
-        </Button>
-      </div>
+      <ApiKeyActions
+        isConfigured={isConfigured}
+        isSet={isSet}
+        pendingRemoval={pendingRemoval}
+        testState={test}
+        onTest={handleTest}
+        onRequestRemove={handleRemove}
+        onUndoRemove={() => setValue('')}
+      />
       {confirmNode}
     </div>
   );

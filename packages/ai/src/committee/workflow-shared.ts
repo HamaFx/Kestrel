@@ -19,7 +19,7 @@
 /**
  * Committee workflow shared contract (audit 2026-10-18, Phase 4 — workflow
  * split). The god workflow was split into `single-workflow.ts` (one
- * collect → parallel specialists → critique/debate → verify → fusion graph)
+ * collect → parallel specialists → verify → fusion graph)
  * and `comparison-workflow.ts` (per-symbol packets → per-symbol desk passes →
  * verify → cross-symbol fusion). This module owns everything both graphs
  * share: the workflow input/output schemas, the injected dependency contract,
@@ -40,14 +40,12 @@ import type { InputProcessorOrWorkflow } from '@mastra/core/processors';
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
 
-import type { JevEnv, JevSettings } from '../jev/types';
 import { SymbolResearchPacketSchema } from '../mastra-v2/packets/packet-cache';
 import type { GenerationLedger } from '../persistence/generation-ledger';
 import type { ToolContext } from '../runtime/tool-context';
 import { combineRunSignal, deadlineSignalFor, type DeadlineSignals } from '../utils/timeout';
 import type { SpecialistRunnerDeps } from './specialist-runner';
 import {
-  CommitteeCritiqueSchema,
   MastraAnalysisModeSchema,
   MastraModeOpinionSchema,
   MastraSpecialistNameSchema,
@@ -74,8 +72,6 @@ export const CommitteeWorkflowOutputSchema = z.object({
   blockedText: z.string().optional(),
   finalText: z.string().optional(),
   opinions: z.array(MastraModeOpinionSchema),
-  /** §3.2 cross-critique records (Q6: ON by default for full). */
-  critiques: z.array(CommitteeCritiqueSchema),
   packet: SymbolResearchPacketSchema,
   /** A-01: per-symbol packets for comparison runs. */
   packets: z.record(z.string(), SymbolResearchPacketSchema).optional(),
@@ -165,19 +161,11 @@ export interface CommitteeWorkflowDeps {
   /**
    * Committee deadline (audit plan §1.7, Q3). When set, a deadline abort is
    * converted into an explicit failure marker / strict error instead of an
-   * opaque route abort. Sync web runs pass 45s; durable worker runs omit it.
+   * opaque route abort. Web runs pass 45s.
    */
   deadlineMs?: number;
   toolContext?: ToolContext;
   disabledTools?: readonly string[] | null;
-  /**
-   * Phase 2 (Jev System One) — BYOK settings/env for the pre-specialist packet
-   * calibration and the committee consensus gate. When absent (or no Jev
-   * provider key is configured) every Jev integration degrades to the
-   * uncalibrated LLM-only flow.
-   */
-  jevSettings?: JevSettings | null | undefined;
-  jevEnv?: JevEnv | null | undefined;
 }
 
 /** Progress stage id accepted by `CommitteeWorkflowDeps.onProgress`. */
@@ -211,14 +199,13 @@ export function runSignalsFor(deps: CommitteeWorkflowDeps): {
 
 /**
  * The one copy point from workflow deps to specialist-runner deps. Both
- * graphs — and the critique/debate factories — call this instead of repeating
- * the 12-field object per step (the copy previously lived inline in the
- * specialist, critique, debate, and comparison steps).
+ * graphs call this instead of repeating the 12-field object per step (the
+ * copy previously lived inline in the specialist and comparison steps).
  *
  * The declared return keeps the wider `CommitteeAgentId` resolver signature
  * from the workflow deps, so the same object serves the specialist runner
- * (desk names only) and the critique/debate runners (which also resolve the
- * fusion agent).
+ * (desk names only) and the former peer-review runners (which also resolved
+ * the fusion agent).
  */
 export type CommitteeRunnerDeps = Omit<SpecialistRunnerDeps, 'resolveModelForAgent'> &
   Pick<CommitteeWorkflowDeps, 'resolveModelForAgent'>;
@@ -244,10 +231,6 @@ export function specialistRunnerDepsFor(
     maxSteps,
     ...(deps.toolContext ? { toolContext: deps.toolContext } : {}),
     ...(deps.disabledTools ? { disabledTools: deps.disabledTools } : {}),
-    // Phase 2 (Jev) — semantic disclosure verification keys travel with the
-    // specialist deps so the runner never re-resolves them per desk.
-    ...(deps.jevSettings ? { jevSettings: deps.jevSettings } : {}),
-    ...(deps.jevEnv ? { jevEnv: deps.jevEnv } : {}),
   };
 }
 

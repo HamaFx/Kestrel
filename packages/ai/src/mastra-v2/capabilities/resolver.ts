@@ -139,6 +139,7 @@ export function evaluateMastraCapability(
  * The legacy tool-name union is intentionally not used for Mastra tool IDs.
  */
 export type MastraCapabilityToolName =
-  ToolName | (typeof MASTRA_CAPABILITIES)[MastraCapabilityId]['tools'][number];
+  | ToolName
+  | (typeof MASTRA_CAPABILITIES)[MastraCapabilityId]['tools'][number];
 
 export type { MastraCapabilityDecision, MastraCapabilityRequest };

@@ -23,10 +23,17 @@ Kestrel is a private self-hosted multi-user platform: every deployment uses Post
 ```dotenv
 MULTI_USER_ENABLED=1
 KESTREL_ENABLE_RLS=1
-REGISTRATION_MODE=open        # or 'disabled' for invite-only
+REGISTRATION_MODE=first_user  # first_user (default), open, or disabled
 ```
 
 Tenant isolation is enforced via Postgres RLS on every user-data table with explicit admin roles.
+
+`REGISTRATION_MODE` accepts `first_user` (default), `open`, and `disabled`:
+`first_user` lets exactly one public sign-up through and promotes it to
+`role='admin'`; public registration then closes. `open` accepts regular accounts
+on an explicitly public instance, and `disabled` accepts no public sign-ups.
+The operator's provider keys are never inherited by non-admin accounts unless
+`ALLOW_SHARED_OPERATOR_KEYS=1`.
 
 ## Secrets and database
 
@@ -64,8 +71,11 @@ sequences, and future objects. Provisioning supplies the missing deployment half
 - **Fresh volumes** — `docker/postgres/init-admin-role.sh` creates `kestrel_app` and
   `hamafx_admin` from `POSTGRES_APP_PASSWORD` and `POSTGRES_ADMIN_PASSWORD` when the
   volume is first created. `./docker/init-secrets.sh` generates both.
-- **Existing volumes** — the init script never re-runs. Provision once with a direct
-  connection whose role can create and alter roles:
+- **Existing volumes** — the init script never re-runs. The web container's runtime
+  migrator re-applies the role, password, and grants on every boot using
+  `ADMIN_DATABASE_URL`, so an upgraded Docker volume starts as `kestrel_app` without
+  a manual step. External (non-Compose) deployments can run the same provisioning
+  explicitly:
 
   ```bash
   POSTGRES_APP_PASSWORD=<16+ character secret> \
@@ -77,18 +87,18 @@ sequences, and future objects. Provisioning supplies the missing deployment half
   `ADMIN_DATABASE_URL`, and `DATABASE_URL`. It creates the role when absent and
   otherwise re-applies the exact same attributes, grants, and default privileges, so
   it is safe to re-run. It never prints the password and refuses a password shorter
-  than 16 characters. Add the same value to `.env` so Compose keeps passing it.
+  than 16 characters.
 
-> **Compose selects the app role automatically when the credential exists.**
-> `DATABASE_URL` is
-> `postgres://${POSTGRES_APP_PASSWORD:+kestrel_app:}${POSTGRES_APP_PASSWORD:-hamafx:${POSTGRES_PASSWORD}}@db:5432/hamafx`,
-> so a fresh install (where `./docker/init-secrets.sh` generated
-> `POSTGRES_APP_PASSWORD`) connects as `kestrel_app` and RLS is enforced. An existing
-> volume that has not run the provisioning step above has no such credential and
-> therefore still connects as `hamafx` — a Postgres superuser — which bypasses every
-> policy even with `FORCE ROW LEVEL SECURITY`. Provision the role, add
-> `POSTGRES_APP_PASSWORD` to `.env`, and restart to close that gap. To verify a running
-> deployment, check that `current_user` is `kestrel_app` with `rolbypassrls = false`.
+> **Compose always connects as the non-bypass role.**
+> `DATABASE_URL` is `postgres://kestrel_app:${POSTGRES_APP_PASSWORD}@db:5432/hamafx`,
+> and `POSTGRES_APP_PASSWORD` is required by `docker-compose.yml`. A superuser
+> connection would bypass every policy even with `FORCE ROW LEVEL SECURITY`, so the
+> stack no longer falls back to `hamafx`. Runtime migrations and the app-role
+> provisioning use `DIRECT_URL` (the bundled `hamafx` superuser, which owns the
+> schema and has DDL rights); `ADMIN_DATABASE_URL` (`hamafx_admin`, `BYPASSRLS`)
+> is reserved for tenant lookups and cross-tenant application work. To verify a
+> running deployment, check that `current_user` is `kestrel_app` with
+> `rolbypassrls = false`.
 
 ## Application and runtime
 
@@ -106,7 +116,6 @@ sequences, and future objects. Provisioning supplies the missing deployment half
 | `ALERT_WINDOW_HOURS`          | `1`                       | Health-alert evaluation window                                    |
 | `PHASE2_PACKET_CACHE`         | `1`                       | 30s fresh-only research packet cache (§2.1)                       |
 | `PHASE3_MODEL_DIVERSITY`      | `0`                       | Per-committee-agent models from user overrides (§3.1)             |
-| `ENABLE_COMMITTEE_CRITIQUE`   | `1`                       | Cross-critique round for Full mode (Q6; `0` disables)             |
 | `PHASE3_STRUCTURED_FUSION`    | `0`                       | Structured fusion output for Full mode (§3.3)                     |
 | `ENABLE_GENERIC_MACRO`        | `1`                       | Generic macro packet for non-XAUUSD symbols (M-02; `0` rollback)  |
 | `ENABLE_COMPARISON_RISK_DESK` | `1`                       | Technical + risk desks per symbol in comparisons (P1-04)          |
@@ -127,6 +136,12 @@ Kestrel supports per-user BYOK through the application. Server-level AI credenti
 | `AI_EMBEDDING_MODEL`           | Embedding model                          |
 
 Users configure provider keys under **Settings → API Keys**. Never log or commit credentials.
+
+Server-level provider keys are an explicitly shared operator pool: an account
+without its own BYOK key can use them. They are separate from the primary
+admin's stored vault, which non-admin accounts do not inherit unless
+`ALLOW_SHARED_OPERATOR_KEYS=1`. On a multi-user instance, leave the server-level
+provider keys empty and let each account bring its own.
 
 ## Market-data and research providers
 
@@ -192,6 +207,7 @@ The overlay starts ClickHouse, Redis, MinIO (S3), Langfuse, and its worker. The 
 | `TELEMETRY_RETENTION_DAYS`     | `90`    | Telemetry retention                   |
 | `TRACE_RETENTION_DAYS`         | `30`    | Diagnostic trace retention            |
 | `CRON_RUN_RETENTION_DAYS`      | `30`    | Cron history retention                |
+| `CANDLES_1M_RETENTION_DAYS`    | `14`    | Trailing `candles_1m` window          |
 | `CREDIT_LEDGER_RETENTION_DAYS` | `730`   | Billing ledger/audit retention        |
 
 Review privacy, retention, and provider terms before enabling telemetry or prompt/output capture.
@@ -201,11 +217,12 @@ Review privacy, retention, and provider terms before enabling telemetry or promp
 Kestrel has no subscriptions, credit wallets, or payment gateways. Users bring
 their own provider keys (BYOK), and spend is tracked locally in USD.
 
-| Variable                            | Default | Description                                                        |
-| ----------------------------------- | ------- | ------------------------------------------------------------------ |
-| `MAX_DAILY_USD`                     | `5`     | Default per-user daily AI ceiling (USD)                            |
-| `ENFORCE_BUDGET`                    | `false` | `true` blocks over-cap turns with HTTP 429; default is ledger-only |
-| `BUDGET_RESERVATION_RETENTION_DAYS` | `90`    | Retention for terminal `ai_budget_reservations` rows               |
+| Variable                            | Default | Description                                                   |
+| ----------------------------------- | ------- | ------------------------------------------------------------- |
+| `MAX_DAILY_USD`                     | `5`     | Default per-user daily AI ceiling (USD)                       |
+| `ENFORCE_BUDGET`                    | `1`     | `1` blocks over-cap turns with HTTP 429; `0` is ledger-only   |
+| `ALLOW_SHARED_OPERATOR_KEYS`        | `0`     | `1` lets non-admin accounts use the admin's stored BYOK vault |
+| `BUDGET_RESERVATION_RETENTION_DAYS` | `90`    | Retention for terminal `ai_budget_reservations` rows          |
 
 - `packages/ai/src/budget.ts` is the only admission path; it writes
   `daily_ai_spend` and `ai_budget_reservations` atomically.
@@ -225,13 +242,11 @@ their own provider keys (BYOK), and spend is tracked locally in USD.
 | `BINANCE_CRYPTO_SYMBOLS`    | Catalog default                                               | Comma-separated crypto symbols                                                                                                                                   |
 | `BINANCE_WS_URL`            | Optional                                                      | Binance WebSocket base URL                                                                                                                                       |
 | `WORKER_DB_POOL_MAX`        | Code default                                                  | Worker PostgreSQL pool size                                                                                                                                      |
-| `DATASETS_DIR`              | Worker default                                                | Dataset export directory                                                                                                                                         |
-| `EVAL_REPORTS_DIR`          | Derived default                                               | Evaluation report directory                                                                                                                                      |
 | `DEPLOYED_SHA`              | `unknown`                                                     | Deployment revision label                                                                                                                                        |
 
 The worker exposes `/health/live` and `/health/ready` on port `8081`, and the optional `/biquote` proxy on port `8082` (when `BIQUOTE_PROXY_TOKEN` is set). Both bind privately by default; if either must be reachable by an orchestrator, use a private network or loopback binding and pass the matching bearer token. Production worker startup requires `WORKER_HEALTH_TOKEN` (and `BIQUOTE_PROXY_TOKEN` when `WORKER_ENABLE_TICK_STREAM=1`). Never expose either port directly to the public internet.
 
-Every registered scheduler job has a healthchecks.io signal. Set the matching `HC_JOB_*_UUID` to turn a ping on; an unset UUID is a no-op, so a job can stop running silently until it is configured. The vars are `HC_JOB_ALERTS_UUID`, `HC_JOB_BRIEFINGS_UUID`, `HC_JOB_SNAPSHOTS_UUID`, `HC_JOB_COT_UUID`, `HC_JOB_FRED_ACTUALS_UUID`, `HC_JOB_WEEKLY_REVIEW_UUID`, `HC_JOB_RESONANCE_SYNC_UUID`, `HC_JOB_EMBEDDING_BACKFILL_UUID`, `HC_JOB_OPINION_CALIBRATION_UUID`, `HC_JOB_BUDGET_RECOVERY_UUID`, `HC_JOB_PERSISTENCE_RECOVERY_UUID`, `HC_JOB_RETENTION_UUID`, `HC_JOB_METRICS_FLUSH_UUID`, `HC_JOB_DATASET_EXPORT_UUID`, and `HC_JOB_MULTI_AGENT_ANALYSIS_UUID`.
+Every registered scheduler job has a healthchecks.io signal. Set the matching `HC_JOB_*_UUID` to turn a ping on; an unset UUID is a no-op, so a job can stop running silently until it is configured. The vars are `HC_JOB_ALERTS_UUID`, `HC_JOB_BRIEFINGS_UUID`, `HC_JOB_COT_UUID`, `HC_JOB_FRED_ACTUALS_UUID`, `HC_JOB_RESONANCE_SYNC_UUID`, `HC_JOB_EMBEDDING_BACKFILL_UUID`, and `HC_JOB_RETENTION_UUID`.
 
 Three job-oriented endpoints sit alongside them:
 
@@ -240,21 +255,6 @@ Three job-oriented endpoints sit alongside them:
 - `/health/dependencies` reports the redacted capability report.
 
 A pg-boss job that exhausts its retries is copied to a dead-letter queue (`backtest-run-dlq`, `backtest-sweep-dlq`, `candle-flush-dlq`) and kept for 30 days instead of being deleted silently. It appears in `queueHealth` and is logged once as `background job dead-lettered`; redrive it with pg-boss `redrive()` when the cause is fixed. A long backtest or sweep job is heartbeated every 60s while a worker holds it, so a dead worker's claim is retried in about two minutes; the hard per-attempt ceiling stays 600s for a single run and 7,200s for a sweep (the engine's worst case is 200 combinations x 2 sandbox slices x 5s, plus fetch and simulator time).
-
-## Custom Agents and MCP
-
-The Custom Agents plugin can connect a user-authored agent to a remote Model
-Context Protocol server. URLs are user input, so the bridge is an SSRF
-boundary:
-
-| Variable                  | Default | Description                                                                                                         |
-| ------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------- |
-| `MCP_ALLOW_PRIVATE_HOSTS` | `0`     | Allow loopback/private/link-local/CGNAT MCP hosts (including `http://localhost`). Enable only on a trusted network. |
-| `MCP_ALLOW_INSECURE_URLS` | `0`     | Allow plain `http://` for non-loopback hosts. HTTPS is required otherwise.                                          |
-
-TLS is always required for public endpoints. Credentials embedded in a URL are
-rejected; use the encrypted authorization field instead. MCP tool discovery has
-a 15-second timeout and fails open (the agent keeps its other tools).
 
 ## Docker-only settings
 

@@ -19,7 +19,6 @@
 export * from './schema/index';
 export { getTenantIdForUser, requireTenantIdForUser } from './tenant';
 export * from './schema/ai/memory-backfill';
-export * from './schema/ai/memory-projection';
 // PF-15 — Export `getDbRO` so consumers can route read queries to
 // read replicas. `withTenantDbRO` also uses `getDbRO` internally.
 export {
@@ -115,57 +114,12 @@ export {
 } from './queries/mutation-executions';
 export type { AdminAuditLogRow, AdminAuditLogInsert } from './schema/ops/admin-audit';
 export type {
-  FullAnalysisQueueRow,
-  FullAnalysisQueueInsert,
-  FullAnalysisQueueStatus,
-} from './schema/ai/full-analysis-queue';
-export {
-  enqueueFullAnalysisQueue,
-  claimNextFullAnalysisQueue,
-  heartbeatFullAnalysisQueue,
-  updateFullAnalysisQueueProgress,
-  cancelFullAnalysisQueue,
-  completeFullAnalysisQueue,
-  failFullAnalysisQueue,
-  requeueFullAnalysisQueue,
-  recoverStaleFullAnalysisQueue,
-  purgeOldFullAnalysisQueue,
-  purgeOldFullAnalysisQueueWithIds,
-  getFullAnalysisQueueRow,
-  getFullAnalysisQueueStats,
-  listFullAnalysisQueueRows,
-  FullAnalysisQueueOwnershipError,
-  FullAnalysisQueueCancelledError,
-  FullAnalysisQueuePayloadError,
-  type FullAnalysisQueueStats,
-  type EnqueueFullAnalysisQueueInput,
-  type ClaimFullAnalysisQueueOptions,
-  type FullAnalysisLeaseInput,
-} from './queries/full-analysis-queue';
-export type {
   AiMessageFeedbackRow,
   AiMessageFeedbackInsert,
   FeedbackRating,
   FeedbackReviewStatus,
   FeedbackLabel,
 } from './schema/ai/ai-feedback';
-export {
-  registerEvalDataset,
-  getEvalDataset,
-  listEvalDatasets,
-  approveEvalDataset,
-  type RegisterEvalDatasetInput,
-} from './queries/eval-datasets';
-export {
-  listReviewedTrainingPairs,
-  type ReviewedTrainingPair,
-  type ListReviewedTrainingPairsOptions,
-} from './queries/training-dataset';
-export type {
-  EvalDatasetRow,
-  EvalDatasetInsert,
-  EvalDatasetStatus,
-} from './schema/ai/eval-datasets';
 export {
   getWatchlistWithCatalog,
   isSymbolInCatalog,
@@ -197,6 +151,7 @@ export {
   getUserByEmail,
   userExistsByEmail,
   createUserWithSettings,
+  FirstUserRegistrationClosedError,
   incrementFailedLogins,
   resetLoginLockout,
   updateUserPassword,
@@ -238,25 +193,12 @@ export {
   type ReviewMessageFeedbackInput,
 } from './queries/ai-feedback';
 export {
-  listAiRegressionCases,
-  syncAiRegressionCase,
-  updateAiRegressionCaseStatus,
-  type AiRegressionCaseRow,
-  type ListAiRegressionCasesOptions,
-} from './queries/ai-regression-cases';
-export {
   claimMemoryBackfill,
   completeMemoryBackfill,
   failMemoryBackfill,
   getMemoryBackfillState,
   type MemoryBackfillClaim,
 } from './queries/memory-backfill';
-export {
-  markMemoryProjectionPending,
-  markMemoryProjectionProjected,
-  markMemoryProjectionFailed,
-  getMemoryProjectionState,
-} from './queries/memory-projection';
 // Plugin platform — per-user installation + zero-migration storage
 export {
   listInstalledPlugins,

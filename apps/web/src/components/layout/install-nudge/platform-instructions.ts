@@ -20,7 +20,11 @@ import {
 import { isAndroid, isChromium, isDesktopSafari, isIOS } from '@/lib/pwa/platform-detect';
 
 export type InstallPlatform =
-  'ios' | 'macos-safari' | 'chromium-desktop' | 'chromium-android' | 'other';
+  | 'ios'
+  | 'macos-safari'
+  | 'chromium-desktop'
+  | 'chromium-android'
+  | 'other';
 
 interface InstallStep {
   /** Short imperative label, e.g. "Tap Share". */

@@ -23,10 +23,8 @@ import type { MastraModelConfig } from '@mastra/core/llm';
 import { RequestContext } from '@mastra/core/request-context';
 
 import { estimateCostUsd } from '@ai/budget/cost';
-import { pruneToolsWithJev } from '@ai/jev/tool-pruner';
 import { createGenerationLedger } from '@ai/persistence/generation-ledger';
 import {
-  buildCustomAgentSubagents,
   buildPluginMastraTools,
   getInstalledPluginRuntime,
   mergePluginTools,
@@ -143,23 +141,6 @@ export async function setupCanonicalChat(
         !disabledTools.has(name),
     ),
   );
-  // Phase 1 (Jev System One) — per-turn fine-grained tool pruning
-  // ("When2Call"). The request starts here and is awaited after the memory
-  // and plugin promises, so it overlaps them and adds zero serial latency.
-  // Pruning can only remove tools and is bounded by the turn's allowlist; with
-  // no Jev provider configured it is a no-op.
-  const prunedToolsPromise = pruneToolsWithJev({
-    userText,
-    domain: routing.domain,
-    candidateTools: registeredTools,
-    allowedToolNames,
-    disabledTools: args.settings.disabledTools ?? [],
-    settings: { aiApiKeys: args.settings.aiApiKeys },
-    env: args.env,
-    signal: args.signal ?? null,
-    ledger: generationLedger,
-    ledgerEntryId: `${runId}:tool-prune`,
-  });
 
   // §2.4: the memory promise started alongside routeTurn; await it now.
   const memoryOutcome = await memoryPromise;
@@ -175,9 +156,6 @@ export async function setupCanonicalChat(
   metrics.observe('mastra_setup_latency_ms', Date.now() - setupStartedAt, {
     tags: { phase: 'plugins' },
   });
-  // Phase 1 (Jev) — the pruned tool subset (or the unchanged candidate set
-  // when Jev is unconfigured). Overlapped with the memory/plugin awaits above.
-  const prunedTools = await prunedToolsPromise;
 
   const toolPartsBuffer: MastraToolInvocationPart[] = [];
   const contextEntries: Array<[string, unknown]> = [
@@ -206,19 +184,8 @@ export async function setupCanonicalChat(
     ...(args.signal ? { signal: args.signal } : {}),
     requestContext,
   });
-  const agentTools = mergePluginTools(prunedTools, pluginTools);
+  const agentTools = mergePluginTools(registeredTools, pluginTools);
   const pluginSkills = resolvePluginSkills(pluginRuntime);
-  // Optional user-authored agents (custom-agents plugin). Only delegatable
-  // agents are built, read-only, and without remote MCP connections so the
-  // hot chat path never pays a network round-trip. No catalogs = no work.
-  const customAgentSubagents = await buildCustomAgentSubagents({
-    runtime: pluginRuntime,
-    settings: args.settings,
-    env: args.env,
-    userId: args.userId,
-    threadId: args.threadId,
-    ...(args.signal ? { signal: args.signal } : {}),
-  });
   // External retrieval is enabled by the canonical allowlist, so detector
   // unavailability must fail closed rather than silently exposing raw external
   // content to an unguarded agent. The mode now derives from the capability
@@ -261,9 +228,6 @@ export async function setupCanonicalChat(
     ),
     tools: agentTools as never,
     ...(pluginSkills.length > 0 ? { skills: pluginSkills as never } : {}),
-    ...(Object.keys(customAgentSubagents).length > 0
-      ? { agents: customAgentSubagents as never }
-      : {}),
     inputProcessors,
     ...(memory ? { memory } : {}),
   });

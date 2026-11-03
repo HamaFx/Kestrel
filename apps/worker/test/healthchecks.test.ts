@@ -58,7 +58,8 @@ describe('ping', () => {
   it('POSTs when a body is provided', async () => {
     await ping('abc12345', 'success', 'duration=42ms');
     const init = (globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as
-      RequestInit | undefined;
+      | RequestInit
+      | undefined;
     expect(init?.method).toBe('POST');
     expect(init?.body).toBe('duration=42ms');
   });

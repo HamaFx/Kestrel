@@ -17,7 +17,10 @@ echo "Kestrel — AI trading copilot"
 # the DATABASE_URL fallback explicitly because its `db:5432` URL is direct.
 MIGRATION_DATABASE_URL=${DIRECT_URL:-${POSTGRES_URL_NON_POOLING:-}}
 if [ -z "$MIGRATION_DATABASE_URL" ] && [ "${KESTREL_LOCAL_DOCKER:-}" = "true" ]; then
-  MIGRATION_DATABASE_URL=${DATABASE_URL:-}
+  # Phase 1 (Task 1.4): DATABASE_URL is the non-bypass kestrel_app role, which
+  # cannot run DDL. Local Compose migrations therefore use the BYPASSRLS admin
+  # connection and fall back to DATABASE_URL only when it is not configured.
+  MIGRATION_DATABASE_URL=${ADMIN_DATABASE_URL:-${DATABASE_URL:-}}
 fi
 if [ -z "$MIGRATION_DATABASE_URL" ]; then
   echo "[security] DIRECT_URL or POSTGRES_URL_NON_POOLING is required for runtime migrations." >&2

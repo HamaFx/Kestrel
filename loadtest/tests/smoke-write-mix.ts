@@ -54,14 +54,7 @@ export function setup() {
     expectOk(getJson('/api/health', 'warmup'));
 
     // 2. Create a seed thread (will be used by GET/PATCH/POST/fork in VU iterations)
-    const threadRes = postJson('/api/chat/threads', 'warmup', { pinnedSymbol: 'XAUUSD' });
-    let threadId: string | null = null;
-    try {
-      const body = JSON.parse(threadRes.body as string);
-      threadId = body.thread?.id ?? null;
-    } catch {
-      // ignore parse failures
-    }
+    postJson('/api/chat/threads', 'warmup', { pinnedSymbol: 'XAUUSD' });
 
     // 3. Warm the compute-heavy POST endpoints.
     expectOk(

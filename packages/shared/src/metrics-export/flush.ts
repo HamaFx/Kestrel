@@ -14,41 +14,29 @@
  * limitations under the License.
  */
 
-// Fail-closed flush of the process-wide registry over every configured transport.
+// Fail-closed flush of the process-wide registry over the OTLP transport.
 
 import { metrics } from '../observability/metrics';
-import { grafanaOtlpConfigFromEnv, grafanaRemoteWriteConfigFromEnv } from './config';
+import { grafanaOtlpConfigFromEnv } from './config';
 import { exportMetricsToOtlp } from './otlp';
-import { exportMetricsToRemoteWrite } from './remote-write';
 
 /**
- * Push the process-wide registry to Grafana Cloud over every configured
- * transport (OTLP JSON + Prometheus remote write). Never throws and no-ops
- * when no credentials are present — safe to call at stream end, on a timer,
- * or in a shutdown hook.
+ * Push the process-wide registry to Grafana Cloud over OTLP JSON. Never
+ * throws and no-ops when no credentials are present — safe to call at stream
+ * end, on a timer, or in a shutdown hook.
  */
 export async function flushMetrics(
   env: Readonly<Record<string, string | undefined>> = process.env,
   fetchFn: typeof fetch = fetch,
 ): Promise<void> {
   const otlp = grafanaOtlpConfigFromEnv(env);
-  const remoteWrite = grafanaRemoteWriteConfigFromEnv(env);
-  if (!otlp && !remoteWrite) return;
+  if (!otlp) return;
   const snapshot = metrics.snapshot();
-  if (otlp) {
-    try {
-      await exportMetricsToOtlp(snapshot, otlp, fetchFn);
-    } catch {
-      // Fail-closed: an observability outage must never fail the request —
-      // but count it so the flush-failure SLI can surface the outage.
-      metrics.increment('metrics_flush_failed_total');
-    }
-  }
-  if (remoteWrite) {
-    try {
-      await exportMetricsToRemoteWrite(snapshot, remoteWrite, fetchFn);
-    } catch {
-      metrics.increment('metrics_flush_failed_total');
-    }
+  try {
+    await exportMetricsToOtlp(snapshot, otlp, fetchFn);
+  } catch {
+    // Fail-closed: an observability outage must never fail the request — but
+    // count it so the flush-failure SLI can surface the outage.
+    metrics.increment('metrics_flush_failed_total');
   }
 }

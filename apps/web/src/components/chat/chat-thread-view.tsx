@@ -58,9 +58,6 @@ export function ChatThreadView({
   onRegenerate,
   onEdit,
   placeholder,
-  customAgents,
-  selectedAgentSlug,
-  onAgentChange,
 }: ChatThreadViewProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollToMessageIndexRef = useRef<((index: number) => void) | null>(null);
@@ -208,9 +205,6 @@ export function ChatThreadView({
         isStreaming={isStreaming}
         modelSelectionPending={modelSelectionPending}
         placeholder={placeholder}
-        customAgents={customAgents}
-        selectedAgentSlug={selectedAgentSlug}
-        onAgentChange={onAgentChange}
       />
     </div>
   );

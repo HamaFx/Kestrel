@@ -38,7 +38,6 @@ export function startScheduler(log: Logger, env?: WorkerEnv): () => void {
   // Keep references to all scheduled tasks so we can stop
   // them on shutdown. Previously these were fire-and-forget.
   const tasks: ReturnType<typeof cron.schedule>[] = [];
-  let multiAgentTimer: NodeJS.Timeout | null = null;
   let stopPluginJobs: (() => void) | null = null;
 
   log.info('Starting node-cron scheduler for Docker mode');
@@ -56,7 +55,7 @@ export function startScheduler(log: Logger, env?: WorkerEnv): () => void {
 
   // PF-04 — Schedule all jobs from the JOBS registry.
   // Iterates the registry and sets up cron for every entry with a
-  // non-null schedule. Multi-agent-analysis uses setTimeout below.
+  // non-null schedule.
   const jobEntries = Object.entries(JOBS) as Array<
     [keyof typeof JOBS, (typeof JOBS)[keyof typeof JOBS]]
   >;
@@ -91,20 +90,6 @@ export function startScheduler(log: Logger, env?: WorkerEnv): () => void {
     });
   }
 
-  // U2 — Multi-agent analysis: poll every 3 seconds for pending jobs.
-  // PERF-7: Self-rescheduling setTimeout avoids pile-up when a poll
-  // exceeds 3s. The next tick is scheduled only after the current one
-  // settles (including DB transit + claim time).
-  const tick = () => {
-    void runJobSafely('multi-agent-analysis', log, env).finally(() => {
-      multiAgentTimer = setTimeout(tick, 3_000);
-      multiAgentTimer.unref();
-    });
-  };
-  // Kick off the first tick at the configured interval (3s), not immediately.
-  multiAgentTimer = setTimeout(tick, 3_000);
-  multiAgentTimer.unref();
-
   // Periodic cleanup — scan for stuck jobs that exceed 2× the
   // timeout. If a run throws synchronously between _runningJobs.add() and
   // the try block's finally, the entry remains forever. This timer prunes
@@ -114,16 +99,12 @@ export function startScheduler(log: Logger, env?: WorkerEnv): () => void {
   }, 30_000);
   stuckCleanupTimer.unref();
 
-  // Return a stop function that tears down all cron tasks,
-  // the multi-agent poll timer, and the stuck-job cleanup timer.
-  // In-flight jobs are aborted and allowed a bounded drain window.
+  // Return a stop function that tears down all cron tasks and the stuck-job
+  // cleanup timer. In-flight jobs are aborted and allowed a bounded drain
+  // window.
   return () => {
     log.info('scheduler: stopping all tasks');
     clearInterval(stuckCleanupTimer);
-    if (multiAgentTimer) {
-      clearTimeout(multiAgentTimer);
-      multiAgentTimer = null;
-    }
     for (const t of tasks) t.stop();
     stopPluginJobs?.();
     // Abort every in-flight job so they stop work before the database

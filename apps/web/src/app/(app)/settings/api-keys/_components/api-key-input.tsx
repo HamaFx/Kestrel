@@ -2,12 +2,12 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Masked key input with copy/reveal affordances and the inline test feedback.
+// Masked key input with copy/reveal affordances and inline test feedback.
 //
-// Audit 2026-10-31 (R5): the field is write-only for a stored key — it holds
-// the KEEP sentinel until the user types a replacement, so no plaintext ever
-// arrives from the server. Copy/reveal therefore only apply to a value the
-// user has just typed in this session.
+// Phase 1 (Task 1.1): the field is empty for a stored key and shows a
+// server-built mask in the placeholder. It never contains plaintext that came
+// from the server, so copy/reveal only apply to a value typed this session.
+
 import type { ProviderMeta } from '@kestrel/shared';
 import { IconCircleCheck, IconCircleX, IconCopy, IconEye, IconEyeOff } from '@tabler/icons-react';
 
@@ -23,10 +23,14 @@ interface ApiKeyInputProps {
   isSet: boolean;
   /** A stored key exists and the field has not been edited yet. */
   isPristineStoredKey: boolean;
-  /** The user has edited the field in this session. */
+  /** The user has typed a replacement value in this session. */
   dirty: boolean;
   canCopy: boolean;
   testState: TestState;
+  /** Masked preview of the stored key, e.g. `sk-p••••1a2b`. */
+  maskedPreview?: string | undefined;
+  /** The explicit Remove action has been queued for the next save. */
+  pendingRemoval: boolean;
   onValueChange: (value: string) => void;
   onToggleReveal: () => void;
   onCopy: () => void;
@@ -41,10 +45,21 @@ export function ApiKeyInput({
   dirty,
   canCopy,
   testState,
+  maskedPreview,
+  pendingRemoval,
   onValueChange,
   onToggleReveal,
   onCopy,
 }: ApiKeyInputProps) {
+  let placeholder = provider.keyHint;
+  if (pendingRemoval) {
+    placeholder = 'Key will be removed when you save';
+  } else if (isPristineStoredKey && maskedPreview) {
+    placeholder = `Stored: ${maskedPreview}. Type a new key to replace it.`;
+  } else if (isPristineStoredKey) {
+    placeholder = 'Stored key. Leave empty to keep it, or type a new key.';
+  }
+
   return (
     <>
       {/* Input area */}
@@ -53,21 +68,18 @@ export function ApiKeyInput({
           id={`key-${provider.id}`}
           name={provider.id}
           type={revealed ? 'text' : 'password'}
-          value={value}
+          value={pendingRemoval ? '' : value}
           onChange={(e) => {
             onValueChange(e.target.value);
           }}
-          placeholder={
-            isPristineStoredKey
-              ? 'Stored — type a new key to replace it, or clear the field to remove it'
-              : provider.keyHint
-          }
+          placeholder={placeholder}
           autoComplete="off"
           spellCheck={false}
+          disabled={pendingRemoval}
           className="pr-24 font-mono"
         />
         <div className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-0.5">
-          {canCopy && (
+          {canCopy && !pendingRemoval && (
             <button
               type="button"
               onClick={onCopy}
@@ -80,7 +92,8 @@ export function ApiKeyInput({
           <button
             type="button"
             onClick={onToggleReveal}
-            className="text-fg-muted hover:text-fg inline-flex h-7 w-7 items-center justify-center rounded-sm transition-colors"
+            disabled={pendingRemoval}
+            className="text-fg-muted hover:text-fg inline-flex h-7 w-7 items-center justify-center rounded-sm transition-colors disabled:opacity-40"
             aria-label={revealed ? 'Hide key' : 'Show key'}
           >
             {revealed ? <IconEyeOff className="size-3.5" /> : <IconEye className="size-3.5" />}
@@ -103,7 +116,7 @@ export function ApiKeyInput({
       ) : null}
       {isSet && isPristineStoredKey ? (
         <p className="text-caption text-fg-subtle">
-          Stored key is hidden. Leave the field untouched to keep it.
+          The stored key is hidden. Leave the field empty to keep it.
         </p>
       ) : null}
     </>

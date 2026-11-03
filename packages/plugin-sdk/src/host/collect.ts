@@ -15,8 +15,8 @@
  */
 
 // Capability collection for one plugin: validates every declared tool, skill,
-// catalog, job, tick subscriber, alert channel, indicator and packet
-// enricher, then returns the stamped records the host will store.
+// job, tick subscriber, alert channel, indicator and packet enricher, then
+// returns the stamped records the host will store.
 //
 // Validation order and error messages are part of the contract — keep them
 // byte-identical when editing.
@@ -30,7 +30,6 @@ import type {
   RegisteredPluginPacketEnricher,
   RegisteredPluginTickSubscriber,
   RegisteredPluginTool,
-  RegisteredPluginUserAgentCatalog,
 } from '../types';
 import {
   assert,
@@ -56,7 +55,6 @@ export interface ExistingRegistrations {
 export interface CollectedCapabilities {
   tools: RegisteredPluginTool[];
   skills: PluginSkillInput[];
-  agentCatalogs: RegisteredPluginUserAgentCatalog[];
   jobs: RegisteredPluginJob[];
   tickSubscribers: RegisteredPluginTickSubscriber[];
   alertChannels: RegisteredPluginAlertChannel[];
@@ -117,26 +115,6 @@ export function collectCapabilities(
       );
     }
     skills.push(skill);
-  }
-
-  const agentCatalogs: RegisteredPluginUserAgentCatalog[] = [];
-  const seenCatalogs = new Set<string>();
-  for (const catalog of plugin.agentCatalogs ?? []) {
-    assert(
-      catalog && typeof catalog === 'object',
-      `plugin "${manifest.id}" has an invalid agent catalog`,
-    );
-    assertKebabId(catalog.id, `agent catalog id in plugin "${manifest.id}"`);
-    assertUniqueId(seenCatalogs, catalog.id, `agent catalog in plugin "${manifest.id}"`);
-    assert(
-      typeof catalog.listAgents === 'function',
-      `agent catalog "${catalog.id}" requires listAgents()`,
-    );
-    assert(
-      typeof catalog.getAgent === 'function',
-      `agent catalog "${catalog.id}" requires getAgent()`,
-    );
-    agentCatalogs.push({ ...catalog, pluginId: manifest.id });
   }
 
   const jobs: RegisteredPluginJob[] = [];
@@ -209,7 +187,6 @@ export function collectCapabilities(
   return {
     tools,
     skills,
-    agentCatalogs,
     jobs,
     tickSubscribers,
     alertChannels,

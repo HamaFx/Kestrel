@@ -27,7 +27,7 @@
 //
 // R16 (audit 2026-10-31) — ownership and partitioning:
 //   * The worker's own `alerts` job (`JOBS.alerts`, every minute) is the
-//     owner under the Docker/Botkeep profiles; the external schedulers that
+//     owner under the Docker Compose profile; the external schedulers that
 //     used to also poke this route every 5 minutes were removed so a profile
 //     has exactly one alerts scheduler. Keep it that way: if this route is
 //     poked by a deployment profile, that profile must disable the worker job

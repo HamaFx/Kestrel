@@ -22,6 +22,5 @@
 //
 // This barrel keeps the previous `bot/ai-commands` import path working.
 
-export { agentsReply } from './agents';
 export { analyzeReply, committeeReply } from './analyze';
 export { askReply } from './ask';

@@ -23,11 +23,18 @@
 // The signIn callback becomes thin glue: validate inputs, delegate to
 // provisionUserOnSignIn, return its decision.
 
-import { getDb, schema, withTenantDb } from '@kestrel/db';
-import { DEFAULT_WATCHLIST_SYMBOLS } from '@kestrel/shared';
+import {
+  createUserWithSettings,
+  FirstUserRegistrationClosedError,
+  getDb,
+  schema,
+} from '@kestrel/db';
 import { and, eq, isNull } from 'drizzle-orm';
 
-import { getServerEnv } from '@/lib/env';
+import {
+  REGISTRATION_CLOSED_REASON,
+  resolveRegistrationPolicy,
+} from '@/lib/auth/registration-policy';
 
 // ── Typed inputs ──────────────────────────────────────────────────────
 
@@ -85,8 +92,6 @@ export async function provisionUserOnSignIn(input: SignInInput): Promise<SignInD
   // the signIn callback is a no-op for them.
   if (account?.provider !== 'google') return { allow: true };
 
-  const registrationMode = getServerEnv().REGISTRATION_MODE;
-
   if (!profile?.email || profile.email_verified === false) {
     return { allow: false, reason: 'Google account email not verified' };
   }
@@ -103,37 +108,36 @@ export async function provisionUserOnSignIn(input: SignInInput): Promise<SignInD
 
   let userId = existing?.id;
 
-  // Registration-disabled means no new accounts. Existing users may still
-  // sign in and link their OAuth account.
-  if (!userId && registrationMode === 'disabled') {
-    return { allow: false, reason: 'Registration is disabled by the instance owner' };
-  }
-
   if (!userId) {
-    // Create new OAuth user
+    // Phase 1 (Task 1.2): OAuth must obey the same registration policy as the
+    // credentials form, otherwise Google sign-in is a bypass around
+    // first_user / disabled registration.
+    const registration = await resolveRegistrationPolicy();
+    if (!registration.allowed) {
+      return { allow: false, reason: registration.reason };
+    }
+
     userId = crypto.randomUUID();
-    const newUserId = userId; // narrow to string for the transaction closure
-    // Audit 2026-10-31 (R1): the `user` insert trigger provisions the personal
-    // organization with id = user id, and `user_settings` is RLS-protected.
-    // Run both inserts inside that tenant scope; an unscoped settings INSERT
-    // is rejected under the non-bypass application role.
-    await withTenantDb(newUserId, async (tx) => {
-      await tx.insert(schema.users).values({
+    const newUserId = userId; // narrow to string for the closure
+    try {
+      await createUserWithSettings({
         id: newUserId,
         email,
-        name: (profile.name ?? email) as string,
+        name: String(profile.name ?? email),
+        hashedPassword: null,
         image:
           (profile.picture as string) ??
           `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(String(profile.name ?? email))}`,
         emailVerified: new Date(),
-        hashedPassword: null,
+        role: registration.role,
+        requireFirstUser: registration.firstUser,
       });
-      await tx.insert(schema.userSettings).values({
-        userId: newUserId,
-        onboardingCompleted: false,
-        defaultSymbol: DEFAULT_WATCHLIST_SYMBOLS[0],
-      });
-    });
+    } catch (err) {
+      if (err instanceof FirstUserRegistrationClosedError) {
+        return { allow: false, reason: REGISTRATION_CLOSED_REASON };
+      }
+      throw err;
+    }
   } else {
     // Ensure emailVerified is set for linked accounts
     await db

@@ -394,9 +394,9 @@ describe('feature matrix', () => {
       expect(prefixMatrix.series[name]).toEqual(fullMatrix.series[name].slice(0, 200));
     }
 
-    const smcKeys = Object.keys(prefixMatrix.smc) as (keyof typeof prefixMatrix.smc)[];
-    for (const key of smcKeys) {
-      expect(prefixMatrix.smc[key]).toEqual(fullMatrix.smc[key].slice(0, 200));
+    const levelKeys = Object.keys(prefixMatrix.levels) as (keyof typeof prefixMatrix.levels)[];
+    for (const key of levelKeys) {
+      expect(prefixMatrix.levels[key]).toEqual(fullMatrix.levels[key].slice(0, 200));
     }
     expect(prefixMatrix.bars.t).toEqual(fullMatrix.bars.t.slice(0, 200));
     expect(prefixMatrix.bars.o).toEqual(fullMatrix.bars.o.slice(0, 200));
@@ -409,44 +409,38 @@ describe('feature matrix', () => {
     const candles = waveCandles(60, 60 * 60 * 1000);
     const matrix = buildFeatureMatrix({ symbol: 'XAUUSD', timeframe: '1h', candles });
 
-    expect(matrix.smc.pdh[0]).toBe(0);
-    expect(matrix.smc.pdl[0]).toBe(0);
-    expect(matrix.smc.pdh[59]).toBeGreaterThan(0);
-    expect(matrix.smc.pdl[59]).toBeGreaterThan(0);
+    expect(matrix.levels.pdh[0]).toBe(0);
+    expect(matrix.levels.pdl[0]).toBe(0);
+    expect(matrix.levels.pdh[59]).toBeGreaterThan(0);
+    expect(matrix.levels.pdl[59]).toBeGreaterThan(0);
   });
 
-  it('keeps order blocks causal when more than 10 order blocks form across the series', () => {
-    // Construct 400 alternating impulse candles producing > 25 bullish and bearish OBs.
-    const bars: { o: number; h: number; l: number; c: number }[] = [];
-    let price = 2000;
-    for (let i = 0; i < 400; i += 1) {
-      const mod = i % 6;
-      if (mod === 0) {
-        bars.push({ o: price + 2, h: price + 3, l: price - 2, c: price - 1 });
-      } else if (mod === 1 || mod === 2) {
-        price += 3;
-        bars.push({ o: price - 3, h: price + 1, l: price - 3, c: price });
-      } else if (mod === 3) {
-        bars.push({ o: price - 2, h: price + 2, l: price - 3, c: price + 1 });
-      } else {
-        price -= 2.5;
-        bars.push({ o: price + 2.5, h: price + 3, l: price - 1, c: price });
-      }
-    }
-    const full = makeCandles(bars);
-    const prefix = full.slice(0, 180);
-
-    const fullMatrix = buildFeatureMatrix({ symbol: 'XAUUSD', timeframe: '1h', candles: full });
-    const prefixMatrix = buildFeatureMatrix({
+  it('publishes a swing level only after its confirmation bars close', () => {
+    const bars = [
+      { o: 10, h: 10.5, l: 9.5, c: 10 },
+      { o: 10.5, h: 11.5, l: 10.4, c: 11 },
+      { o: 11, h: 12.5, l: 11, c: 12 },
+      { o: 12, h: 13.5, l: 12, c: 13 },
+      { o: 13, h: 14.5, l: 13, c: 14 },
+      { o: 14, h: 15.5, l: 14, c: 15 }, // swing high, confirmed at index 8
+      { o: 15, h: 15, l: 14.4, c: 14.5 },
+      { o: 14.4, h: 14.5, l: 13.4, c: 13.5 },
+      { o: 13.4, h: 13.5, l: 12.4, c: 12.5 },
+      { o: 12.4, h: 12.5, l: 11.4, c: 11.5 },
+      { o: 11.4, h: 11.5, l: 10.4, c: 10.5 },
+    ];
+    const matrix = buildFeatureMatrix({
       symbol: 'XAUUSD',
       timeframe: '1h',
-      candles: prefix,
+      candles: makeCandles(bars),
     });
 
-    expect(prefixMatrix.smc.obBullTop).toEqual(fullMatrix.smc.obBullTop.slice(0, 180));
-    expect(prefixMatrix.smc.obBearTop).toEqual(fullMatrix.smc.obBearTop.slice(0, 180));
-    expect(fullMatrix.smc.obBullStrength.some((s) => s > 0)).toBe(true);
-    expect(fullMatrix.smc.obBearStrength.some((s) => s > 0)).toBe(true);
+    // The bar with the peak cannot know it is a pivot yet.
+    expect(matrix.levels.swingHigh[5]).toBe(0);
+    expect(matrix.levels.swingHigh[7]).toBe(0);
+    // Three confirmation bars later the level carries forward.
+    expect(matrix.levels.swingHigh[8]).toBe(15.5);
+    expect(matrix.levels.swingHigh[10]).toBe(15.5);
   });
 
   it('resets VWAP at the UTC day boundary so later days do not depend on earlier start bars', () => {

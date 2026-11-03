@@ -173,9 +173,7 @@ async function main() {
   fs.writeFileSync(manifestPath, JSON.stringify(users_, null, 2) + '\n');
 
   const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-  console.log(
-    `Seeded ${userCount} users in ${elapsed}s. Manifest written to ${manifestPath}`,
-  );
+  console.log(`Seeded ${userCount} users in ${elapsed}s. Manifest written to ${manifestPath}`);
 }
 
 main().catch((err) => {

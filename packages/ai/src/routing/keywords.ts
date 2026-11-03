@@ -70,8 +70,8 @@ export const TECHNICAL_PATTERNS: RoutingKeywordPattern[] = [
     weight: 3,
   },
   {
-    re: /\b(bos|choch|fvg|fair value gap|order block|order\s*flow|liquidity|sweep|smc|ict|imbalance|mitigation)\b/,
-    weight: 3,
+    re: /\b(liquidity|swing high|swing low|swings|pdh|pdl|asian range|session high|session low|key level)\b/,
+    weight: 2,
   },
   {
     re: /\b(timeframe|tf|1m|5m|15m|30m|1h|4h|1d|1w|daily|weekly|hourly|intraday|swing)\b/,

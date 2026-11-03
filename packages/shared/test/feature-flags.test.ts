@@ -35,10 +35,7 @@ describe('readFeatureFlag — ENABLE_GENERIC_MACRO rollout gate', () => {
 describe('readFeatureFlag — static defaults', () => {
   it('keeps the pre-existing flag defaults unchanged', () => {
     delete process.env.PHASE2_PACKET_CACHE;
-    delete process.env.ENABLE_COMMITTEE_CRITIQUE;
     expect(readFeatureFlag('PHASE2_PACKET_CACHE')).toBe(true);
-    expect(readFeatureFlag('ENABLE_COMMITTEE_CRITIQUE')).toBe(true);
-    expect(readFeatureFlag('ENABLE_COMMITTEE_DEBATE')).toBe(false);
   });
 
   it('defaults the comparison risk desk on with an explicit opt-out', () => {

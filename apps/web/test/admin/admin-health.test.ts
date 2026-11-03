@@ -35,7 +35,6 @@ function createMockDb(
     | 'stale-tick'
     | 'silent'
     | 'spend-over-threshold'
-    | 'stale-analysis'
     | 'missing-daily-spend' = 'healthy',
 ) {
   let callIndex = 0;
@@ -77,22 +76,9 @@ function createMockDb(
       }
 
       if (callIndex === 6) {
-        if (scenario === 'stale-analysis') {
-          return { rows: [{ stale: '2', stuck: '1' }] };
-        }
-        return { rows: [{ stale: '0', stuck: '0' }] };
-      }
-
-      if (callIndex === 7) {
         return {
           rows: [
             {
-              full_total: '10',
-              full_completed: '10',
-              full_failed: '0',
-              outbox_terminal: '10',
-              outbox_completed: '10',
-              outbox_dead: '0',
               budget_terminal: '10',
               budget_errors: '0',
               trace_total: '10',
@@ -103,7 +89,7 @@ function createMockDb(
         };
       }
 
-      if (callIndex === 8) {
+      if (callIndex === 7) {
         if (scenario === 'missing-daily-spend') {
           throw new Error('relation "daily_ai_spend" does not exist');
         }
@@ -136,7 +122,6 @@ describe('computeHealthSloService', () => {
     expect(tickSli).toBeDefined();
     expect(tickSli?.details).toBe('Oldest symbol tick 30s old across 2 symbols');
     expect(tickSli?.success).toBe(1);
-    expect(result.slis.find((s) => s.key === 'full_mode_completion')?.current).toBe(1);
     expect(result.slis.find((s) => s.key === 'sentiment_health')).toBeUndefined();
   });
 
@@ -194,10 +179,9 @@ describe('computeHealthSloService', () => {
     };
     const result = await computeHealthSloService(db, { hours: 24 });
 
-    expect(result.slis.find((s) => s.key === 'full_mode_completion')?.current).toBe(1);
     expect(result.slis.find((s) => s.key === 'sentiment_health')).toBeUndefined();
     expect(result.anomalies).not.toContain(
-      'Recovery telemetry is unavailable — outbox, budget, trace, and Full-mode health cannot be verified',
+      'Recovery telemetry is unavailable — budget and trace health cannot be verified',
     );
   });
 
@@ -207,21 +191,6 @@ describe('computeHealthSloService', () => {
 
     expect(result.anomalies.some((a) => a.includes('stale'))).toBe(true);
     expect(result.overall).toBe('degraded');
-  });
-
-  it('flags stalled Full-mode queue rows, not just Mastra snapshots', async () => {
-    const db = createMockDb('stale-analysis');
-    const result = await computeHealthSloService(db, { hours: 24 });
-
-    // The 2026-10-28 outage: a job sat `pending` in full_analysis_queue with
-    // no Mastra snapshot, so the snapshot-based probe reported zero and no
-    // alert fired. The queue-based probe now catches exactly that shape.
-    expect(result.anomalies).toContain(
-      '2 analysis job(s) pending > 10 minutes — worker may be down',
-    );
-    expect(result.anomalies).toContain(
-      '1 analysis job(s) running with an expired lease — worker may be wedged',
-    );
   });
 
   it('flags silent AI telemetry instead of reporting an unverified healthy window', async () => {
@@ -357,12 +326,6 @@ describe('computeHealthSloService', () => {
         chatTurns: 15,
       },
       {
-        fullTotal: 4,
-        fullCompleted: 4,
-        fullFailed: 0,
-        outboxTerminal: 2,
-        outboxCompleted: 2,
-        outboxDead: 0,
         budgetTerminal: 15,
         budgetErrors: 0,
         traceTotal: 15,

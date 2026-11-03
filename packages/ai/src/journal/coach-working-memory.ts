@@ -17,7 +17,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Phase 3 (Jev roadmap) — bridge from the journal coach review into Mastra's
+ * Phase 3 — bridge from the journal coach review into Mastra's
  * resource-scoped working memory.
  *
  * The coach review already produces the quantitative edge (win rate, average

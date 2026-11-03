@@ -17,9 +17,6 @@ const overlayTemplate = JSON.parse(read('scripts/setup/secret-template.json')).o
 const exampleKeys = new Set(
   [...example.matchAll(/^\s*([A-Z][A-Z0-9_]*)\s*=/gm)].map((match) => match[1]),
 );
-const canonicalKeys = new Set(
-  [...`${shared}\n${worker}`.matchAll(/\b([A-Z][A-Z0-9_]{2,})\s*:/g)].map((match) => match[1]),
-);
 const templateKeys = new Set(Object.keys(template.defaults ?? {}));
 const composeKeys = new Set(
   [...compose.matchAll(/\$\{([A-Z][A-Z0-9_]*)(?::[-?][^}]*)?\}/g)].map((match) => match[1]),
@@ -78,8 +75,8 @@ if (!/MULTI_USER_ENABLED\s*:\s*["']?1/.test(compose))
   failures.push('Compose must force MULTI_USER_ENABLED=1');
 if (!/KESTREL_ENABLE_RLS\s*:\s*["']?1/.test(compose))
   failures.push('Compose must force KESTREL_ENABLE_RLS=1');
-if (!/REGISTRATION_MODE\s*:\s*open/.test(compose))
-  failures.push('Compose must force REGISTRATION_MODE=open');
+if (!/REGISTRATION_MODE\s*:\s*first_user/.test(compose))
+  failures.push('Compose must default REGISTRATION_MODE=first_user');
 if (compose.includes('OSS_SINGLE_USER_MODE'))
   failures.push('Compose contains stale single-user flag OSS_SINGLE_USER_MODE');
 if (example.includes('OSS_SINGLE_USER_MODE'))

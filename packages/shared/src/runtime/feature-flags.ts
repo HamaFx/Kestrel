@@ -16,10 +16,9 @@
 export type FeatureFlagName =
   | 'PHASE2_PACKET_CACHE'
   | 'PHASE3_MODEL_DIVERSITY'
-  | 'ENABLE_COMMITTEE_CRITIQUE'
   | 'PHASE3_STRUCTURED_FUSION'
-  | 'ENABLE_COMMITTEE_DEBATE'
   | 'ENFORCE_BUDGET'
+  | 'ALLOW_SHARED_OPERATOR_KEYS'
   | 'ENABLE_GENERIC_MACRO'
   | 'ENABLE_COMPARISON_RISK_DESK';
 
@@ -27,13 +26,15 @@ export type FeatureFlagName =
 const FLAG_DEFAULTS: Record<FeatureFlagName, boolean> = {
   PHASE2_PACKET_CACHE: true,
   PHASE3_MODEL_DIVERSITY: false,
-  ENABLE_COMMITTEE_CRITIQUE: true,
   PHASE3_STRUCTURED_FUSION: true,
-  ENABLE_COMMITTEE_DEBATE: false,
   // Audit 2026-10-31 (R3): the daily budget cap now blocks by default. With
   // open registration and operator-inherited provider keys, ledger-only
   // metering let any self-registered account spend without limit.
   ENFORCE_BUDGET: true,
+  // Phase 1 (Task 1.2): non-admin accounts must bring their own provider key.
+  // Enabling this shares the administrator's stored BYOK vault with every
+  // account on the instance.
+  ALLOW_SHARED_OPERATOR_KEYS: false,
   ENABLE_GENERIC_MACRO: true,
   ENABLE_COMPARISON_RISK_DESK: true,
 };

@@ -28,7 +28,7 @@ import { testProviderKey, validateProviderConfig } from '@kestrel/ai';
 import { readUserByokState, recordProviderTestResult } from '@kestrel/db';
 import type { ProviderId } from '@kestrel/shared';
 
-export { BYOK_PROVIDERS, computeUsage, resolveProviderMode } from '@kestrel/ai';
+export { BYOK_PROVIDERS, computeUsage } from '@kestrel/ai';
 export { getUserApiKeys } from '@kestrel/db';
 
 export type ProviderTestOutcome = { ok: true } | { ok: false; error: string; statusCode: number };

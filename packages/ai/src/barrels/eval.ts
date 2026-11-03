@@ -14,48 +14,10 @@
  * limitations under the License.
  */
 
-// Eval sub-barrel: training exports, dataset assembly, annotation resolution,
-// offline eval runners and metrics, Langfuse publishing, and the UI
+// Eval sub-barrel: offline eval runners and metrics plus the UI
 // message-stream parser. Re-exported by `src/index.ts`.
 
-export {
-  buildTrainingRecords,
-  buildJevRlcdTrainingRecords,
-  buildDatasetManifest,
-  writeTrainingExport,
-  isRlcdStateSafe,
-  TRAINING_RECORD_SCHEMA,
-  DATASET_MANIFEST_SCHEMA,
-  JEV_RLCD_RECORD_SCHEMA,
-  type EvaluationAnnotation,
-  type EvaluationLabel,
-  type JevRlcdTrainingRecord,
-  type TrainingExportOptions,
-  type TrainingExportRecord,
-  type DatasetManifest,
-} from '../eval/training-export';
-export {
-  assembleTrainingDataset,
-  writeAssembledDataset,
-  type AssembleDatasetInput,
-  type AssembledDataset,
-} from '../eval/assemble-dataset';
-export {
-  resolveEvaluationAnnotations,
-  type ResolveAnnotationsInput,
-  type FeedbackAnnotationInput,
-} from '../eval/annotation-resolver';
 export type { PromptResult, PromptDef, RunEvalsResult, EvaluationScore } from '../eval/runner';
 export { computeDrift, type DriftReport, type DriftBucket } from '../eval/drift';
 export { emitEvalMetrics, isEvalCaseOk } from '../eval/eval-metrics';
-export {
-  publishTrainingDatasetToLangfuse,
-  createLangfuseClientFromEnv,
-  LangfuseSdkClient,
-  recordToDatasetItem,
-  stableDatasetItemId,
-  type LangfuseDatasetClient,
-  type LangfusePublishOptions,
-  type LangfusePublishResult,
-} from '../eval/langfuse-publisher';
 export { consumeUIMessageStream, type ParsedStreamResult } from '../eval/parse-stream';

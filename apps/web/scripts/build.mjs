@@ -16,7 +16,6 @@ import { fileURLToPath } from 'node:url';
 
 const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const BUILD_ID_FILE = resolve(WEB_ROOT, '.build-id');
-const ENV_FILE = resolve(WEB_ROOT, '.env.production.local');
 
 const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 
@@ -45,9 +44,7 @@ const buildEnv = {
   // Next/Webpack can exceed the default V8 heap in this monorepo because
   // the standalone build traces all workspace packages. Keep the release
   // build reliable on CI and modest self-hosted machines.
-  NODE_OPTIONS: [process.env.NODE_OPTIONS, '--max-old-space-size=6144']
-    .filter(Boolean)
-    .join(' '),
+  NODE_OPTIONS: [process.env.NODE_OPTIONS, '--max-old-space-size=6144'].filter(Boolean).join(' '),
 };
 
 // The build-id file is only a build-time handoff mechanism. Leaving it in

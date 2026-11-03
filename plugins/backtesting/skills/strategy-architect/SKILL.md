@@ -11,12 +11,12 @@ result. You never pretend a backtest is a promise.
 
 ## Workflow
 
-1. **Clarify the thesis.** What edge is being tested (liquidity sweep, trend
+1. **Clarify the thesis.** What edge is being tested (session breakout, trend
    continuation, volatility breakout, mean reversion)? Which symbol and
    timeframe? Which session?
 2. **Read the user's knowledge first.** Call `backtest_knowledge_list`; if a
    document matches the request, call `backtest_knowledge_read` and follow it
-   exactly. Then consult the relevant playbook (`smc-ict-playbooks` or
+   exactly. Then consult the relevant playbook (`session-level-playbooks` or
    `quant-playbooks`) via `skill_read`.
 3. **Check the library.** `backtest_list_strategies` may already contain a
    strategy the user wants to fork. `backtest_read_strategy` returns its source.
@@ -79,20 +79,15 @@ Rules:
 | `ctx.series(name, offset)`       | Indicator value at `i+offset`, or `null` during warm-up |
 | `ctx.atr(offset)`                | Shorthand for `series('atr14', offset)`                 |
 | `ctx.params`                     | The run's `params` object (parameter sweeps)            |
-| `ctx.smc`                        | Point-in-time SMC snapshot (see below)                  |
+| `ctx.levels`                     | Point-in-time level snapshot (see below)                |
 | `ctx.session`                    | UTC session flags (see below)                           |
 
-SMC snapshot:
+Level snapshot:
 
 ```js
-ctx.smc.fvg.bullish; // { top, bottom, age } | null — nearest unmitigated
-ctx.smc.fvg.bearish;
-ctx.smc.orderBlock.bullish; // { top, bottom, age, strength } | null
-ctx.smc.orderBlock.bearish;
-ctx.smc.sweep; // { side:'high'|'low', level, wick, magnitude, age } | null
-ctx.smc.structure; // { direction, kind:'bos'|'choch', level, age } | null
-ctx.smc.swingHigh / swingLow;
-ctx.smc.pdh / pdl / asianHigh / asianLow;
+ctx.levels.swingHigh / swingLow; // most recent confirmed pivot, 0 until confirmed
+ctx.levels.pdh / pdl; // previous UTC day high / low, 0 until a day closes
+ctx.levels.asianHigh / asianLow; // latest 00:00–07:00 UTC session range
 ```
 
 Session snapshot:
@@ -113,11 +108,11 @@ volumeSma20, atrPercent`.
 
 ## Style rules
 
-- Use `ctx.params` for tunables (`params: { sweepLookback: 20 }`) instead of
+- Use `ctx.params` for tunables (`params: { swingLookback: 20 }`) instead of
   magic numbers scattered through the code.
 - Guard warm-up: `const rsi = ctx.series('rsi14'); if (rsi === null) return null;`
-- Compute stops from structure (sweep wick, order-block edge, ATR), never from a
-  fixed dollar amount that ignores volatility.
+- Compute stops from structure (swing high/low, session extreme, ATR), never
+  from a fixed dollar amount that ignores volatility.
 - Require a minimum reward:risk (usually 1.5R–3R) before taking a signal.
 - Do not average down, martingale, or remove the stop to make a backtest look
   better. Those are disqualifying behaviours.

@@ -31,8 +31,7 @@
 // actually installed. Real-money execution stays blocked: any explicit
 // live-broker vocabulary disqualifies the paper-trading match.
 
-export type InstalledPluginIntentId =
-  'paper-trading' | 'backtesting' | 'custom-agents' | 'telegram-bot';
+export type InstalledPluginIntentId = 'paper-trading' | 'backtesting' | 'telegram-bot';
 
 export interface PluginIntentMatch {
   pluginId: InstalledPluginIntentId;
@@ -55,9 +54,6 @@ const PAPER_EXPLICIT_RE =
 const PAPER_TRADE_ACTION_RE =
   /\b(buy|sell|long|short|place\s+(?:a\s+|an\s+)?(?:market|limit|stop)\s+order|close\s+(?:my\s+|the\s+)?(?:[a-z0-9/_-]+\s+)?(?:open\s+)?(?:position|trade)|modify\s+(?:my\s+|the\s+)?(?:[a-z0-9/_-]+\s+)?position|cancel\s+(?:my\s+|the\s+)?(?:pending\s+)?order|reset\s+(?:my\s+)?(?:paper\s+|sandbox\s+)?account|my\s+open\s+positions|my\s+pending\s+orders|my\s+paper\s+positions|(?:move|trail|tighten|update)\s+(?:my\s+|the\s+)?(?:[a-z0-9/_-]+\s+)?stop(?:\s+loss)?|breakeven|(?:trim|flatten|exit)\s+(?:(?:my|the|half|of|all)\s+)*(?:[a-z0-9/_-]+\s+){0,3}(?:position|positions|trade|trades)|(?:pause|resume|stop)\s+(?:my\s+|the\s+)?(?:deployed\s+|paper\s+)?strategy)\b/i;
 
-const CUSTOM_AGENTS_INTENT_RE =
-  /\b(custom\s+agent(?:s)?|subagent(?:s)?|delegate\s+to\s+agent|agent\s+studio|run\s+script\s+tool)\b|^\/agents\b/i;
-
 const TELEGRAM_INTENT_RE =
   /\b(telegram(?:\s+bot|\s+briefing|\s+recap|\s+alert|\s+digest|\s+notification)?)\b|^\/telegram\b/i;
 
@@ -65,8 +61,8 @@ const TELEGRAM_INTENT_RE =
  * Match a prompt against the installed plugins' advertised capabilities.
  *
  * Returns the first matching plugin (checked in priority order: backtesting,
- * paper-trading, custom-agents, telegram-bot) or null when the prompt does not
- * explicitly target an installed plugin.
+ * paper-trading, telegram-bot) or null when the prompt does not explicitly
+ * target an installed plugin.
  */
 export function detectInstalledPluginIntent(
   prompt: string,
@@ -88,10 +84,6 @@ export function detectInstalledPluginIntent(
     if (PAPER_TRADE_ACTION_RE.test(text)) {
       return { pluginId: 'paper-trading', reason: 'paper-trade-action' };
     }
-  }
-
-  if (installed.has('custom-agents') && CUSTOM_AGENTS_INTENT_RE.test(text)) {
-    return { pluginId: 'custom-agents', reason: 'custom-agents-keyword' };
   }
 
   if (installed.has('telegram-bot') && TELEGRAM_INTENT_RE.test(text)) {

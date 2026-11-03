@@ -122,11 +122,15 @@ const common = {
   format: 'esm',
   platform: 'node',
   target: 'node22',
+  // Resolve workspace packages through their `source` export condition. The
+  // worker bundles them inline anyway, so this removes the need for a full
+  // `pnpm build:packages` pass before a worker build.
+  conditions: ['source'],
   // Sourcemaps are opt-in: production images shipped ~100 MB of .map files
   // for a ~25 MB bundle. Set WORKER_SOURCEMAPS=1 for a debuggable local build.
   sourcemap: process.env.WORKER_SOURCEMAPS === '1',
   // The bundle only ever runs in production-shaped contexts (Docker, VM,
-  // Botkeep); pin NODE_ENV so inlined libraries drop development branches.
+  // small VMs); pin NODE_ENV so inlined libraries drop development branches.
   define: { 'process.env.NODE_ENV': '"production"' },
   legalComments: 'none',
   external,

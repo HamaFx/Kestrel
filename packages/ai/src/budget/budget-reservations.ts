@@ -285,15 +285,6 @@ export async function recoverStaleBudgetReservations(
       SELECT r.id
       FROM ai_budget_reservations r
       WHERE r.status = 'reserved' AND r.created_at < ${cutoff.toISOString()}
-        AND NOT EXISTS (
-          SELECT 1
-          FROM full_analysis_queue q
-          WHERE q.run_id = r.run_id
-            AND (
-              q.status = 'pending'
-              OR (q.status = 'running' AND q.lease_expires_at > now())
-            )
-        )
       ORDER BY r.created_at ASC
       LIMIT ${boundedLimit}
     `,

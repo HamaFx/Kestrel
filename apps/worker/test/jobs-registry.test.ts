@@ -19,8 +19,16 @@ import { describe, expect, it } from 'vitest';
 import { JOBS } from '../src/jobs';
 
 describe('JOBS registry', () => {
-  it('exposes the embedding-backfill job', () => {
-    expect(JOBS['embedding-backfill']).toBeDefined();
+  it('exposes the six core trader jobs plus optional embedding backfill', () => {
+    expect(Object.keys(JOBS).sort()).toEqual([
+      'alerts',
+      'briefings',
+      'cot',
+      'embedding-backfill',
+      'fred-actuals',
+      'resonance-sync',
+      'retention',
+    ]);
     expect(JOBS['embedding-backfill']?.run).toBeTypeOf('function');
     expect(JOBS['embedding-backfill']?.description).toContain('Embed');
   });
@@ -32,12 +40,10 @@ describe('JOBS registry', () => {
     }
   });
 
-  it('gives the durable Full-analysis job its own long budget, others the default', () => {
-    // Committee runs take minutes; the 120s default would abort them mid-call.
-    expect(JOBS['multi-agent-analysis']?.timeoutMs).toBe(15 * 60_000);
+  it('keeps every registered job on the default budget', () => {
     // Minute-cadence jobs stay on the tight default so a wedge is detected fast.
     expect(JOBS.alerts?.timeoutMs).toBeUndefined();
-    expect(JOBS['persistence-recovery']?.timeoutMs).toBeUndefined();
+    expect(JOBS.briefings?.timeoutMs).toBeUndefined();
   });
 
   it('wires a healthchecks.io UUID to every job (R16)', () => {
@@ -49,12 +55,9 @@ describe('JOBS registry', () => {
     }
   });
 
-  it('wires the six previously-silent jobs to their documented env vars (R16)', () => {
-    expect(JOBS['budget-recovery']?.hcUuidEnvVar).toBe('HC_JOB_BUDGET_RECOVERY_UUID');
-    expect(JOBS['persistence-recovery']?.hcUuidEnvVar).toBe('HC_JOB_PERSISTENCE_RECOVERY_UUID');
+  it('wires the core trader jobs to their documented env vars (R16)', () => {
     expect(JOBS.retention?.hcUuidEnvVar).toBe('HC_JOB_RETENTION_UUID');
-    expect(JOBS['metrics-flush']?.hcUuidEnvVar).toBe('HC_JOB_METRICS_FLUSH_UUID');
-    expect(JOBS['dataset-export']?.hcUuidEnvVar).toBe('HC_JOB_DATASET_EXPORT_UUID');
-    expect(JOBS['multi-agent-analysis']?.hcUuidEnvVar).toBe('HC_JOB_MULTI_AGENT_ANALYSIS_UUID');
+    expect(JOBS.cot?.hcUuidEnvVar).toBe('HC_JOB_COT_UUID');
+    expect(JOBS['fred-actuals']?.hcUuidEnvVar).toBe('HC_JOB_FRED_ACTUALS_UUID');
   });
 });

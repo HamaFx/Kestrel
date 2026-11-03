@@ -57,7 +57,8 @@ export interface BacktestPageState {
 }
 
 export type BacktestPageAction =
-  { type: 'patch'; patch: Partial<BacktestPageState> } | { type: 'resetForm' };
+  | { type: 'patch'; patch: Partial<BacktestPageState> }
+  | { type: 'resetForm' };
 
 export function createInitialState(): BacktestPageState {
   return {

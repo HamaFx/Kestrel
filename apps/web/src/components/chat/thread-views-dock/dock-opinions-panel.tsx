@@ -77,7 +77,7 @@ export function DockOpinionsPanel({
               }
               confidenceTone={avgConfidence > 75 ? 'bg-bull' : 'bg-warn'}
             />
-            <SyndicateClashStrip critiques={latest.critiques} opinions={opinions} />
+            <SyndicateClashStrip opinions={opinions} />
           </div>
         )
       ) : (

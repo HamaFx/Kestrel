@@ -31,7 +31,7 @@ beautiful, useless curve is to tweak parameters until the past looks good.
 
 ## A good iteration note
 
-> Base version: London sweep + FVG, 812 trades, PF 1.18, maxDD 22%. Removing the
+> Base version: London session breakout, 812 trades, PF 1.18, maxDD 22%. Removing the
 > Asian-session filter improved PF to 1.31 but doubled drawdown to 31%; I kept
 > the filter. Raising the target from 2R to 2.5R reduced trades by 18% and
 > improved expectancy from 0.08R to 0.14R. This is still a small edge and the

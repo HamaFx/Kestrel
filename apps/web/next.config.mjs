@@ -37,7 +37,6 @@ const nextConfig = {
     '@kestrel/indicators',
     '@kestrel/ai',
     '@kestrel/plugin-backtesting',
-    '@kestrel/plugin-custom-agents',
     '@kestrel/plugin-paper-trading',
     '@kestrel/plugin-sdk',
     '@kestrel/plugin-telegram-bot',

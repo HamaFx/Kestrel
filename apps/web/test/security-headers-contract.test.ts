@@ -30,13 +30,10 @@ describe('security header and deployment contracts', () => {
 
   it('keeps the worker health listener private and authenticated in deployment config', () => {
     const compose = read('docker-compose.yml');
-    const vmCompose = read('infra/cron-vm/docker-compose.vm.yml');
     const workerDockerfile = read('Dockerfile.worker');
 
     expect(compose).toContain('port is intentionally not published by default');
     expect(compose).toContain('Authorization: Bearer $${WORKER_HEALTH_TOKEN}');
-    expect(vmCompose).toContain('127.0.0.1:8081:8081');
-    expect(vmCompose).not.toContain('0.0.0.0:8081');
     // Two different expansion rules: docker-compose interpolates `${...}` itself,
     // so it needs the escaped `$${...}` form; the worker image's HEALTHCHECK runs
     // `sh -c` inside the container, where a single `$` is the runtime form and

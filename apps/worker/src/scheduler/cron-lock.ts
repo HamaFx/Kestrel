@@ -30,7 +30,7 @@
 // The lock is acquired by attempting to INSERT into `cron_runs`. If a row
 // for (jobName, today UTC) already exists the INSERT conflicts and returns
 // null, signalling the caller to skip.  This ensures at-most-once
-// execution per calendar day even when systemd timers and Vercel cron fire
+// execution per calendar day even when an external scheduler and Vercel cron fire
 // concurrently.
 //
 // M-8: Lock TTL — if a job crashes mid-execution, the stale 'started' row

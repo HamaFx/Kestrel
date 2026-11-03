@@ -73,6 +73,18 @@ export async function resetLoginLockout(userId: string): Promise<void> {
 }
 
 /**
+ * Raised when `createUserWithSettings({ requireFirstUser: true })` loses the
+ * race for the first account. Callers surface the normal "registration is
+ * closed" message instead of a generic insert failure.
+ */
+export class FirstUserRegistrationClosedError extends Error {
+  constructor() {
+    super('Registration is closed: the instance already has an account.');
+    this.name = 'FirstUserRegistrationClosedError';
+  }
+}
+
+/**
  * Create a new user, userSettings, and email verification token in a single transaction.
  * Returns the raw verification token (for constructing the verify URL) and the user.
  *
@@ -81,15 +93,30 @@ export async function resetLoginLockout(userId: string): Promise<void> {
  * inserts therefore run in a scope keyed on the new user id — the GUC exists
  * before the organization row does, which is fine (nothing validates the GUC
  * against `organization`) and the settings row's tenant matches the policy.
+ *
+ * Phase 1 (Task 1.2): `requireFirstUser` makes the "first account becomes
+ * admin" promotion race-free. The advisory lock is transaction-scoped, so a
+ * crashed request cannot leave the registration path locked.
  */
 export async function createUserWithSettings(input: CreateUserInput): Promise<void> {
   await withTenantDb(input.id, async (tx) => {
+    if (input.requireFirstUser) {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('kestrel:first-user'))`);
+      const [existing] = await tx.select({ id: schema.users.id }).from(schema.users).limit(1);
+      if (existing) throw new FirstUserRegistrationClosedError();
+    }
+
     await tx.insert(schema.users).values({
       id: input.id,
       email: input.email,
       name: input.name,
+      image:
+        input.image !== undefined
+          ? input.image
+          : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(input.name)}`,
+      ...(input.emailVerified !== undefined ? { emailVerified: input.emailVerified } : {}),
       hashedPassword: input.hashedPassword,
-      image: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(input.name)}`,
+      ...(input.role ? { role: input.role } : {}),
     });
     await tx.insert(schema.userSettings).values({
       userId: input.id,

@@ -104,22 +104,6 @@ describe('GET /api/admin/diagnostics/explorer', () => {
         error: null,
         metadata: { outputChars: 12 },
       },
-      {
-        id: 'outbox:1',
-        source: 'outbox',
-        timestamp: new Date('2026-07-24T10:01:00.000Z'),
-        name: 'telemetry.tool',
-        status: 'dead',
-        traceId: 'trace-1',
-        runId: 'run-1',
-        jobId: 'job-1',
-        threadId: 'thread-1',
-        messageId: 'message-1',
-        userId: 'user-1',
-        durationMs: null,
-        error: 'database unavailable',
-        metadata: { attemptCount: 8 },
-      },
     ]);
   });
 
@@ -138,9 +122,9 @@ describe('GET /api/admin/diagnostics/explorer', () => {
     });
     expect(body.events[0].timestamp).toBe('2026-07-24T10:00:00.000Z');
     expect(body.stats).toEqual({
-      total: 2,
-      bySource: { tool: 1, outbox: 1 },
-      failures: 1,
+      total: 1,
+      bySource: { tool: 1 },
+      failures: 0,
     });
   });
 });

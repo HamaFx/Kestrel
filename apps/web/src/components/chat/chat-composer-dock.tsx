@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { CustomAgentSummary } from '@/hooks/use-custom-agents';
 import { cn } from '@/lib/formatters/cn';
 
 import type { AnalysisMode } from './chat-top-bar';
@@ -32,9 +31,6 @@ export function ChatComposerDock({
   isStreaming,
   modelSelectionPending,
   placeholder,
-  customAgents,
-  selectedAgentSlug,
-  onAgentChange,
 }: {
   splitMode: boolean;
   analysisMode: AnalysisMode;
@@ -46,9 +42,6 @@ export function ChatComposerDock({
   isStreaming: boolean;
   modelSelectionPending: boolean;
   placeholder: string;
-  customAgents: readonly CustomAgentSummary[];
-  selectedAgentSlug: string | null;
-  onAgentChange: (slug: string | null) => void;
 }) {
   return (
     <div
@@ -69,9 +62,6 @@ export function ChatComposerDock({
         isStreaming={isStreaming}
         disabled={isStreaming || modelSelectionPending}
         placeholder={placeholder}
-        customAgents={customAgents}
-        selectedAgentSlug={selectedAgentSlug}
-        onAgentChange={onAgentChange}
       />
     </div>
   );

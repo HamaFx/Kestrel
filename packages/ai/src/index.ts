@@ -23,7 +23,6 @@ export * from './barrels/tools';
 export * from './barrels/runtime';
 export * from './barrels/data';
 export * from './barrels/eval';
-export * from './barrels/jev';
 export {
   syncIntermarketResonance,
   type ResonanceSyncStatus,

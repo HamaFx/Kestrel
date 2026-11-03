@@ -3,6 +3,7 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "customConditions": ["source"],
     "moduleDetection": "force",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["node"],
@@ -24,7 +25,8 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "incremental": true
+    "incremental": true,
+    "tsBuildInfoFile": "${configDir}/node_modules/.cache/tsbuildinfo.typecheck.json"
   },
   "exclude": ["node_modules", ".turbo", ".next", "dist", "coverage"]
 }

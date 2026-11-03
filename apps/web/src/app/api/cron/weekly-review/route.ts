@@ -18,8 +18,7 @@
 
 // GET /api/cron/weekly-review — Sunday 18:00 UTC.
 //
-// Manual-fallback path for the scheduled worker `weekly-review` job; both call
-// the same shared `runWeeklyReviewFanout` runner. Idempotent within an ISO week
+// Calls the shared `runWeeklyReviewFanout` runner. Idempotent within an ISO week
 // via the `briefings_emitted` primary key.
 
 import { withCronAuth } from '@/lib/http/cron';

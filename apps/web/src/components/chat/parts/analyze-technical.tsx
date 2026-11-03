@@ -148,12 +148,16 @@ function TfCard({
           </>
         ) : null}
 
-        {reading.structure.latestStructureEvent ? (
+        {reading.levels.pdh !== null ? (
           <>
-            <dt className="text-fg-subtle">struct</dt>
-            <dd className="text-fg text-caption text-right">
-              {reading.structure.latestStructureEvent}
-            </dd>
+            <dt className="text-fg-subtle">PDH</dt>
+            <dd className="text-fg text-right">{reading.levels.pdh.toFixed(2)}</dd>
+          </>
+        ) : null}
+        {reading.levels.pdl !== null ? (
+          <>
+            <dt className="text-fg-subtle">PDL</dt>
+            <dd className="text-fg text-right">{reading.levels.pdl.toFixed(2)}</dd>
           </>
         ) : null}
       </dl>

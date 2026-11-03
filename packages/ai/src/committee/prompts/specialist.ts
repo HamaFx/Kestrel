@@ -25,14 +25,13 @@
 import type { RequestContext } from '@mastra/core/request-context';
 
 import type { SymbolResearchPacket } from '../../mastra-v2/packets/symbol-research';
-import { jevCalibrationBlock, type JevPacketCalibration } from '../jev-packet-scorer';
 import type { MastraSpecialistName, ModeRequestContext } from '../types';
 import { optionalContextBlock, serializedPacket } from './packet-context';
 
 /** Per-specialist core goal (Audit v3 Q8). */
 export const SPECIALIST_GOALS: Record<MastraSpecialistName, string> = {
   technical:
-    'Identify the market regime, multi-timeframe trend alignment (1D, 4H, 1H, 15M), institutional liquidity zones (swing highs/lows and Asian/London/NY session levels), indicator confluence, and exact price invalidation levels.',
+    'Identify the market regime, multi-timeframe trend alignment (1D, 4H, 1H, 15M) using EMA20/EMA50/EMA200, momentum and volatility confluence (RSI14, MACD, ATR14, Bollinger), objective support and resistance from swing highs/lows, session levels (PDH/PDL, Asian/London/NY ranges), and exact price invalidation levels.',
   fundamental:
     'Evaluate central bank policy divergence, real and nominal bond yields (DFII10, DGS10), USD strength (DTWEXBGS), upcoming high-impact economic calendar releases (CPI, NFP, FOMC, ECB, BoE), and macro news catalysts.',
   risk: 'Quantify the volatility regime, ATR-based stop-loss distances, event-blackout windows (upcoming high-impact releases), cross-asset correlation exposure, and strict trade invalidation criteria.',
@@ -82,9 +81,9 @@ export const SPECIALIST_DESK_TOOL_NAMES: Record<MastraSpecialistName, readonly s
 /** Per-specialist analytical skill playbook (Audit v3 Q8). */
 export const SPECIALIST_SKILL_PLAYBOOKS: Record<MastraSpecialistName, string> = {
   technical: `Skill Playbook — Technical Structure & Liquidity Protocol:
-1. Higher-Timeframe Regime (1D / 4H): Determine whether price is trending (EMA20 vs EMA50 alignment, higher highs/higher lows) or mean-reverting inside a range.
-2. Intraday Liquidity & Session Levels (1H / 15M): Locate recent swing highs/lows and Asian/London/NY session highs/lows where stop-hunts or breakouts occur.
-3. Momentum & Volatility Confluence: Check RSI14 for momentum/divergence, MACD histogram for impulse direction, and ATR14 for expected bar range.
+1. Higher-Timeframe Regime (1D / 4H): Determine whether price is trending (EMA20/EMA50/EMA200 stack alignment) or mean-reverting inside a range.
+2. Intraday Levels (1H / 15M): Locate recent swing highs/lows and the Asian/London/NY session highs/lows where reactions and stop runs cluster.
+3. Momentum & Volatility Confluence: Check RSI14 for momentum/divergence, MACD histogram for impulse direction, ATR14 for expected bar range, and Bollinger bands for compression or extension.
 4. Key Levels & Invalidation: Populate details.keyLevels with exact support, resistance, trigger, and invalidation prices grounded in the packet or tool outputs.`,
   fundamental: `Skill Playbook — Macro Catalyst & Yield-Spread Protocol:
 1. Yield & Dollar Transmission: Assess how US real yields (DFII10), nominal yields, and the Dollar Index (DXY/DTWEXBGS) are pressuring or supporting the instrument.
@@ -97,7 +96,7 @@ export const SPECIALIST_SKILL_PLAYBOOKS: Record<MastraSpecialistName, string> = 
 3. Correlation & Tail-Risk Check: Evaluate whether cross-asset correlations or degraded data quality make directional conviction unsafe.
 4. Asymmetric R:R & Hard Invalidation: Define the exact price condition or volatility event that invalidates the setup and protects capital.`,
   sentiment: `Skill Playbook — COT Positioning & Contrarian Crowd Protocol:
-1. Institutional COT Flows: Evaluate Commitment of Traders (COT) non-commercial net positioning and extremes to see where smart money is leaning.
+1. Institutional COT Flows: Evaluate Commitment of Traders (COT) non-commercial net positioning and extremes to see where institutional positioning is leaning.
 2. Retail vs. Institutional Divergence: Check social/crowd sentiment skew and identify whether one side of the boat is overcrowded (squeeze risk).
 3. News Tone & Seasonality Alignment: Compare headline sentiment tone and historical seasonality against current price action.
 4. Contrarian Risk & Invalidation: Highlight where a positioning unwind or stop-sweep could trap late trend followers.`,
@@ -187,8 +186,6 @@ ${COMMITTEE_HARD_RULES}`;
 /**
  * Instructions function for a specialist agent: reads the packet from the
  * request context (injected once per run) and appends its compact view.
- * Phase 2 (Jev): when the collect step published a calibrated packet anchor,
- * it is appended as a statistical reference the desk must reason against.
  */
 export function specialistInstructionsForRequest({
   name,
@@ -200,12 +197,10 @@ export function specialistInstructionsForRequest({
   const packet = requestContext.get('packet') as SymbolResearchPacket | undefined;
   if (!packet) return specialistInstructions(name);
   const macroBlock = deskUsesGenericMacro(name) ? genericMacroBlock(packet) : '';
-  const calibration = requestContext.get('jevCalibration') as JevPacketCalibration | undefined;
-  const calibrationBlock = calibration ? `\n\n${jevCalibrationBlock(calibration)}` : '';
   return `${specialistInstructions(name)}
 
 PACKET:
 ${serializedPacket(packet)}
 
-${optionalContextBlock(packet)}${macroBlock}${calibrationBlock}`;
+${optionalContextBlock(packet)}${macroBlock}`;
 }

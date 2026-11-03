@@ -90,7 +90,9 @@ export async function startMutationDraft(
     kind === 'run_system_action' ? (await getUserRole(userId)) === 'admin' : undefined;
   const { settings } = await getUserWithSettings(userId);
   const settingsRow = settings as unknown as
-    Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'> | null | undefined;
+    | Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>
+    | null
+    | undefined;
   const env = getServerEnv();
   let model: LanguageModel;
   try {

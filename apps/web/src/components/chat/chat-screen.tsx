@@ -41,7 +41,6 @@ interface ChatScreenProps {
   initialShowAgentOpinions?: boolean;
   initialCustomInstructions?: string | null;
   autoSubmitPrompt?: string | null;
-  initialAgentSlug?: string | null;
 }
 
 export function ChatScreen({
@@ -55,7 +54,6 @@ export function ChatScreen({
   initialShowAgentOpinions = true,
   initialCustomInstructions,
   autoSubmitPrompt,
-  initialAgentSlug = null,
 }: ChatScreenProps) {
   const toolbar = useChatToolbar({
     threadId,
@@ -67,7 +65,6 @@ export function ChatScreen({
     threadId,
     initialTitle,
     initialMessages,
-    initialAgentSlug,
     autoSubmitPrompt,
     customInstructions: initialCustomInstructions ?? '',
     responseStyle: 'default',
@@ -107,13 +104,9 @@ export function ChatScreen({
 
   const warRoomOpen = splitMode && dockTab === 'opinions';
 
-  const composerPlaceholder = session.selectedAgentSlug
-    ? `Ask @${session.selectedAgentSlug}…`
-    : session.customAgents.length > 0
-      ? 'Ask about XAU… or type @ to pick an agent'
-      : pinnedSymbol
-        ? `Ask about ${pinnedSymbol}…`
-        : 'Ask about XAU, EUR, GBP…';
+  const composerPlaceholder = pinnedSymbol
+    ? `Ask about ${pinnedSymbol}…`
+    : 'Ask about XAU, EUR, GBP…';
 
   return (
     <div className="bg-bg paint-isolated relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
@@ -132,7 +125,6 @@ export function ChatScreen({
         onToggleViews={() => setSplitMode((v) => !v)}
         splitMode={splitMode}
         onToggleSplitMode={() => setSplitMode((v) => !v)}
-        activeAgent={session.selectedAgent}
       />
 
       <div className="flex min-h-0 w-full flex-1 overflow-hidden">
@@ -162,9 +154,6 @@ export function ChatScreen({
           onRegenerate={session.handleRegenerate}
           onEdit={session.handleEdit}
           placeholder={composerPlaceholder}
-          customAgents={session.customAgents}
-          selectedAgentSlug={session.selectedAgentSlug}
-          onAgentChange={session.setSelectedAgentSlug}
         />
 
         <AnimatePresence>

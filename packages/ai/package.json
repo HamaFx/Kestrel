@@ -1,12 +1,13 @@
 {
   "name": "@kestrel/ai",
   "version": "0.0.0",
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "license": "Apache-2.0",
   "files": [
     "dist"
   ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "source": "./src/index.ts",
@@ -45,10 +46,10 @@
     }
   },
   "scripts": {
-    "lint": "eslint .",
+    "lint": "oxlint .",
     "typecheck": "tsrs --noEmit",
     "test": "vitest run",
-    "build": "rm -rf dist && tsrs -p tsconfig.build.json && node ../../scripts/rewrite-dist-imports.mjs dist",
+    "build": "tsrs -p tsconfig.build.json && node ../../scripts/rewrite-dist-imports.mjs dist",
     "prepublishOnly": "pnpm build",
     "eval": "tsx src/eval/runner.ts --cases",
     "eval:gate": "tsx --conditions=react-server scripts/eval-gate.ts",
@@ -57,7 +58,8 @@
     "mastra:build": "mastra build",
     "mastra:start": "mastra start",
     "mastra:migrate": "mastra migrate",
-    "clean": "rm -rf node_modules .turbo"
+    "clean": "rm -rf node_modules .turbo dist",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.82",
@@ -70,7 +72,6 @@
     "@kestrel/indicators": "workspace:*",
     "@kestrel/plugin-sdk": "workspace:*",
     "@kestrel/shared": "workspace:*",
-    "@langfuse/client": "^6.0.0",
     "@langfuse/otel": "^6.0.0",
     "@mastra/core": "^1.78.0",
     "@mastra/deployer": "^1.78.0",
@@ -90,18 +91,17 @@
   },
   "devDependencies": {
     "@kestrel/config": "workspace:*",
+    "@kestrel/test-utils": "workspace:*",
     "@types/node": "^22.20.5",
     "@types/react": "^19.3.0",
     "@types/web-push": "^3.6.4",
-    "eslint": "^10.13.0",
     "mastra": "^1.34.2",
     "msw": "^3.0.3",
+    "tsrs": "0.20.1-ts7.1.0-beta",
     "tsx": "^4.23.15",
-    "tsrs": "0.20.0-ts7.1.0-beta",
     "typescript": "^7.0.2",
     "vitest": "^5.0.5"
   },
-  "license": "Apache-2.0",
   "optionalDependencies": {
     "ioredis": "^5.11.1"
   }

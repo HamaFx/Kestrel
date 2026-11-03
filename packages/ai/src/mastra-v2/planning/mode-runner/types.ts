@@ -21,7 +21,7 @@
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
 
-import type { CommitteeCritique, MastraAnalysisMode, MastraModeOpinion } from '@ai/committee/types';
+import type { MastraAnalysisMode, MastraModeOpinion } from '@ai/committee/types';
 import type { ResolveModelEnv } from '@ai/models/env-factory';
 import type { GenerationLedger } from '@ai/persistence/generation-ledger';
 
@@ -57,11 +57,10 @@ export interface RunMastraModeArgs {
   signal?: AbortSignal;
   /** Idempotency key of the current user message already stored in Drizzle. */
   backfillExcludeMessageIdempotencyKey?: string;
-  telemetryKind?: 'mastra_mode' | 'mastra_full_job';
+  telemetryKind?: 'mastra_mode';
   /**
    * Storage key for the run record. Defaults to the workflow's own id
-   * (`symbol-research`); the durable Full-mode queue passes `full-analysis`
-   * so the worker's run continues the record the web enqueued (Phase 3).
+   * (`symbol-research` or `multi-symbol-research`).
    */
   workflowId?: string;
   /** Restart an existing persisted workflow run instead of duplicating its steps. */
@@ -75,8 +74,6 @@ export interface RunMastraModeArgs {
 export interface MastraModeResult {
   finalText: string;
   agentOpinions: MastraModeOpinion[];
-  /** §3.2: cross-critique peer reviews (full mode, Q6 ON by default). */
-  committeeCritiques: CommitteeCritique[];
   mode: MastraAnalysisMode;
   symbol: string;
   packet: SymbolResearchPacket;

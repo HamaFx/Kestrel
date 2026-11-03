@@ -70,19 +70,11 @@ type JobFn = (ctx: JobCancellableContext) => Promise<JobResult>;
 export type JobName =
   | 'embedding-backfill'
   | 'briefings'
-  | 'snapshots'
   | 'cot'
   | 'fred-actuals'
-  | 'weekly-review'
   | 'resonance-sync'
   | 'alerts'
-  | 'multi-agent-analysis'
-  | 'budget-recovery'
-  | 'persistence-recovery'
-  | 'retention'
-  | 'metrics-flush'
-  | 'dataset-export'
-  | 'opinion-calibration';
+  | 'retention';
 
 /**
  * PF-04 — Registered job with schedule and healthchecks.io metadata.
@@ -92,7 +84,7 @@ export type JobName =
  *   - `description`: one-line explanation for healthchecks.io ping bodies.
  *   - `run`: the async function that executes the job.
  *   - `schedule`: optional cron expression. `null` means the job is not
- *     scheduled on a timer (e.g., multi-agent-analysis uses setTimeout).
+ *     scheduled by cron.
  *   - `hcUuidEnvVar`: optional key in the WorkerEnv that holds the
  *     healthchecks.io UUID for this job's heartbeats.
  */
@@ -104,9 +96,9 @@ export interface JobRegistration {
   schedule: string | null;
   /**
    * Wall-clock budget for one invocation, overriding the global
-   * `JOB_TIMEOUT_MS`. Only long-lived durable jobs (e.g. the Full-analysis
-   * committee) should need this; the default stays tight so a wedged job
-   * cannot hold its in-flight guard for long.
+   * `JOB_TIMEOUT_MS`. Only genuinely long-lived jobs should need this; the
+   * default stays tight so a wedged job cannot hold its in-flight guard for
+   * long.
    */
   timeoutMs?: number;
   /**

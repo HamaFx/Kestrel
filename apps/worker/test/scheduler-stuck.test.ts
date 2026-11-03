@@ -27,38 +27,32 @@ import {
   summarizeStuckJobs,
 } from '../src/scheduler/job-runtime';
 
-const FULL_ANALYSIS_TIMEOUT_MS = 15 * 60_000;
 const GRACE_MS = 5 * 60_000;
 
 describe('effectiveJobTimeoutMs', () => {
-  it('uses the registered per-job timeout for the durable Full-analysis job', () => {
-    expect(effectiveJobTimeoutMs('multi-agent-analysis')).toBe(FULL_ANALYSIS_TIMEOUT_MS);
-  });
-
   it('falls back to the global budget for jobs without an override', () => {
     expect(effectiveJobTimeoutMs('alerts')).toBe(JOB_TIMEOUT_MS);
-    expect(effectiveJobTimeoutMs('metrics-flush')).toBe(JOB_TIMEOUT_MS);
+    expect(effectiveJobTimeoutMs('briefings')).toBe(JOB_TIMEOUT_MS);
   });
 });
 
 describe('summarizeJobHealth (R16 busy versus wedged)', () => {
   const now = 1_800_000_000_000;
-  const timeoutFor = (name: string) =>
-    name === 'multi-agent-analysis' ? FULL_ANALYSIS_TIMEOUT_MS : JOB_TIMEOUT_MS;
+  const timeoutFor = () => JOB_TIMEOUT_MS;
 
-  it('classifies a long run inside its budget as busy, not wedged', () => {
+  it('classifies a run inside its budget as busy, not wedged', () => {
     const summary = summarizeJobHealth(
       [
-        ['multi-agent-analysis', now - (FULL_ANALYSIS_TIMEOUT_MS - 60_000)],
         ['alerts', now - 30_000],
+        ['briefings', now - 60_000],
       ],
       now,
       timeoutFor,
     );
 
     expect(summary.stuck).toEqual([]);
-    expect(summary.running.map((job) => job.name)).toEqual(['multi-agent-analysis', 'alerts']);
-    expect(summary.running[0]?.runningForMs).toBe(FULL_ANALYSIS_TIMEOUT_MS - 60_000);
+    expect(summary.running.map((job) => job.name)).toEqual(['briefings', 'alerts']);
+    expect(summary.running[1]?.runningForMs).toBe(30_000);
   });
 
   it('classifies a job past its budget plus grace as wedged', () => {
@@ -77,45 +71,32 @@ describe('summarizeJobHealth (R16 busy versus wedged)', () => {
     const summary = summarizeJobHealth(
       [
         ['alerts', now - 5_000],
-        ['metrics-flush', now - (JOB_TIMEOUT_MS + GRACE_MS + 30_000)],
+        ['briefings', now - (JOB_TIMEOUT_MS + GRACE_MS + 30_000)],
       ],
       now,
       timeoutFor,
     );
 
     expect(summary.running.map((job) => job.name)).toEqual(['alerts']);
-    expect(summary.stuck.map((job) => job.name)).toEqual(['metrics-flush']);
+    expect(summary.stuck.map((job) => job.name)).toEqual(['briefings']);
   });
 });
 
 describe('summarizeStuckJobs', () => {
   const now = 1_800_000_000_000;
-  const timeoutFor = (name: string) =>
-    name === 'multi-agent-analysis' ? FULL_ANALYSIS_TIMEOUT_MS : JOB_TIMEOUT_MS;
+  const timeoutFor = () => JOB_TIMEOUT_MS;
 
   it('flags jobs past their own timeout plus the grace period, worst first', () => {
     const entries: Array<[string, number]> = [
       ['alerts', now - (JOB_TIMEOUT_MS + GRACE_MS + 1)],
-      ['multi-agent-analysis', now - (FULL_ANALYSIS_TIMEOUT_MS + GRACE_MS + 10_000)],
-      ['metrics-flush', now - 30_000],
+      ['briefings', now - (JOB_TIMEOUT_MS + GRACE_MS + 10_000)],
+      ['cot', now - 30_000],
     ];
 
     const summary = summarizeStuckJobs(entries, now, timeoutFor);
 
-    expect(summary.stuck.map((job) => job.name)).toEqual(['multi-agent-analysis', 'alerts']);
-    expect(summary.oldestStuckMs).toBe(FULL_ANALYSIS_TIMEOUT_MS + GRACE_MS + 10_000);
-  });
-
-  it('does not flag a long Full-analysis run that is still inside its budget', () => {
-    const summary = summarizeStuckJobs(
-      [['multi-agent-analysis', now - (FULL_ANALYSIS_TIMEOUT_MS - 60_000)]],
-      now,
-      timeoutFor,
-    );
-
-    // A 14-minute committee run is normal; the 120s default would call it stuck.
-    expect(summary.stuck).toEqual([]);
-    expect(summary.oldestStuckMs).toBeNull();
+    expect(summary.stuck.map((job) => job.name)).toEqual(['briefings', 'alerts']);
+    expect(summary.oldestStuckMs).toBe(JOB_TIMEOUT_MS + GRACE_MS + 10_000);
   });
 
   it('returns an empty summary when nothing is running', () => {

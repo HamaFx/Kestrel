@@ -19,7 +19,6 @@
 // Settings operations are lightweight reads with occasional config writes.
 import { sleep } from 'k6';
 
-import { env } from '../config/environments.js';
 import { averageLoad } from '../config/load-profiles.js';
 import { CONFIG_MIX, CONFIG_MIX_TAGGED_RELAXED } from '../config/thresholds.js';
 import { applyAuth, bootstrapAuth, pickUser } from '../lib/auth.js';

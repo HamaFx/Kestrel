@@ -59,7 +59,7 @@ function buildInputProcessors(
   try {
     return buildGuardrailInputProcessors({
       // The runner resolves the model itself; the builder must not resolve a
-      // second one (P2-03) and has no BYOK settings to resolve Jev from.
+      // second one (P2-03) and has no BYOK settings to resolve a judge from.
       settings: { aiApiKeys: null, chatModel: null },
       env: {},
       model,

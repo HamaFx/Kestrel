@@ -205,7 +205,7 @@ const ROOT_SCAN = [
   ['plugins/*/src', 'plugins'],
 ];
 for (const [pattern] of ROOT_SCAN) {
-  const [base, wildcard, tail] = pattern.split('/');
+  const [base, , tail] = pattern.split('/');
   const parent = join(ROOT, base);
   let children = [];
   try {

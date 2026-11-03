@@ -10,7 +10,6 @@ import { resolve } from 'node:path';
 const root = resolve(import.meta.dirname, '..');
 const compose = readFileSync(resolve(root, 'docker-compose.yml'), 'utf8');
 const appEntrypoint = readFileSync(resolve(root, 'apps/web/docker-entrypoint.sh'), 'utf8');
-const vmCompose = readFileSync(resolve(root, 'infra/cron-vm/docker-compose.vm.yml'), 'utf8');
 const migrator = readFileSync(resolve(root, 'apps/web/scripts/migrate-runtime.mjs'), 'utf8');
 const failures = [];
 
@@ -60,14 +59,18 @@ requireText(
 requireText(compose, /MULTI_USER_ENABLED:\s*["']?1/, 'Compose must default to multi-user mode.');
 requireText(
   compose,
-  /REGISTRATION_MODE:\s*["']?open/,
-  'Compose must default to open registration.',
+  /REGISTRATION_MODE:\s*["']?first_user/,
+  'Compose must default to first-user registration.',
 );
 requireText(
   compose,
-  /KESTREL_ENABLE_RLS:\s*["']?1/,
-  'Compose must enable RLS mode.',
+  /DATABASE_URL:\s*postgres:\/\/kestrel_app:\$\{POSTGRES_APP_PASSWORD/,
+  'Compose app traffic must connect as the non-bypass kestrel_app role.',
 );
+if (/DATABASE_URL:\s*postgres:\/\/\$\{POSTGRES_APP_PASSWORD:\+/.test(compose)) {
+  failures.push('Compose must not fall back to the Postgres superuser for DATABASE_URL.');
+}
+requireText(compose, /KESTREL_ENABLE_RLS:\s*["']?1/, 'Compose must enable RLS mode.');
 requireText(
   `${compose}\n${appEntrypoint}\n${migrator}`,
   /backup|restore/i,
@@ -83,11 +86,6 @@ requireText(
   compose,
   /Health port is intentionally not published by default/,
   'Worker health exposure must remain explicitly private by default.',
-);
-requireText(
-  vmCompose,
-  /127\.0\.0\.1:8082:8082/,
-  'Worker proxy listener must bind privately in the VM deployment.',
 );
 if (/OSS_SINGLE_USER_MODE/.test(compose)) {
   failures.push('Compose must not contain removed OSS_SINGLE_USER_MODE.');

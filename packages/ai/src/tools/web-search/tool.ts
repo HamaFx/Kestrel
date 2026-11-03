@@ -27,7 +27,7 @@ import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { tool, type Tool } from 'ai';
 
 import { completeStep, recordStep } from '../../diagnostics';
-import { quarantineAndRerankSnippets } from '../../jev/rag-quarantine';
+import { screenSnippets } from '../../mastra-v2/packets/snippet-screen';
 import { maybeGetToolContext } from '../../runtime/tool-context';
 import { buildSearchCacheKey, readCache, writeCache } from './cache';
 import { orderedConfiguredProviders, readSearchConfig } from './config';
@@ -171,14 +171,11 @@ export const webSearchTool: Tool<SearchInput, WebSearchOutput> = tool({
       try {
         const items = await searchProvider(provider, query, effectiveInput, config, parentSignal);
         const normalized = normalizeWebSearchResults(provider, items, effectiveInput.maxResults);
-        // Audit R15 — Check Point indirect-injection quarantine & rerank:
-        // every snippet is deterministically screened, then model-screened for
-        // embedded instructions and relevance before it can reach the model
-        // (or the cache). The posture comes from `WEB_SEARCH_SCREEN_MODE`
-        // (default strict): when the screen cannot run, nothing is served
-        // rather than unscreened external content.
-        const screened = await quarantineAndRerankSnippets({
-          query,
+        // Audit R15 — Check Point indirect-injection quarantine: every snippet
+        // is deterministically screened for embedded instructions before it can
+        // reach the model (or the cache). Instruction-like sources are withheld
+        // rather than served.
+        const screened = screenSnippets({
           items: normalized.map((source) => ({
             id: source.id,
             text: [source.title, source.snippet, source.content ?? '']
@@ -186,11 +183,6 @@ export const webSearchTool: Tool<SearchInput, WebSearchOutput> = tool({
               .join('\n'),
           })),
           mode: config.screenMode,
-          env: ctx?.env ?? null,
-          ...(ctx?.userSettings ? { settings: { aiApiKeys: ctx.userSettings.aiApiKeys } } : {}),
-          signal: parentSignal ?? null,
-          ...(ctx?.ledger ? { ledger: ctx.ledger } : {}),
-          ledgerEntryId: `web-search:${provider}`,
           reportPath: 'web-search',
           reportSink: null,
         });
@@ -247,7 +239,6 @@ export const webSearchTool: Tool<SearchInput, WebSearchOutput> = tool({
             // Audit R15 — screening outcome is part of the run's step record.
             screeningMode: config.screenMode,
             screeningFailedClosed: screened.failedClosed,
-            screeningDegraded: screened.degraded,
             screeningQuarantined: quarantinedCount,
             screeningWithheld: withheldCount,
             screeningUnscreened: unscreenedCount,

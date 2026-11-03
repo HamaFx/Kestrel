@@ -29,7 +29,7 @@
  * `docker/init-secrets.sh`, so the Docker path and the wizard path can
  * never drift apart.
  */
-import { chmodSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 

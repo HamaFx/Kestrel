@@ -29,8 +29,8 @@
 // admin connection, scoped to the day folders being swept; its bound is what
 // the `journalDeferredUsers` count in the response reports.
 //
-// Triggered by a daily systemd timer on the GCE VM (see
-// infra/cron-vm/units/kestrel-light-cleanup-uploads.{service,timer}).
+// Triggered by an external daily scheduler (Vercel Cron or operator cron)
+// that pokes this route with CRON_SECRET.
 
 import { getServerEnv } from '@/lib/env';
 import { withCronAuth } from '@/lib/http/cron';

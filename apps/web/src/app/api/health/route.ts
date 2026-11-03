@@ -43,7 +43,6 @@ import {
   isMastraTelemetryDegraded,
   validateTelemetryStartup,
 } from '@/lib/services/admin';
-import { getFullAnalysisQueueHealth } from '@/lib/services/chat-ai';
 import {
   checkCronRunsHealth,
   checkDatabaseConnectivity,
@@ -54,26 +53,6 @@ import { withRateLimit } from '@/lib/services/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-async function checkAnalysisJobs(): Promise<
-  HealthCheckResult & { pending?: number; stuckRunning?: number; stalePending?: number }
-> {
-  try {
-    const health = await getFullAnalysisQueueHealth();
-    if (health.unavailable) {
-      return { ok: true, message: 'full-analysis queue unavailable (workflows domain not ready)' };
-    }
-    return {
-      ok: true,
-      pending: health.pending,
-      stuckRunning: health.stuckRunning,
-      stalePending: health.stalePending,
-    };
-  } catch {
-    // Workflow storage may not be ready yet (first boot). Non-fatal.
-    return { ok: true, message: 'full-analysis queue unavailable (workflows domain not ready)' };
-  }
-}
 
 function checkEnv(): HealthCheckResult {
   const required = REQUIRED_HEALTH_ENV_VARS as readonly string[];
@@ -102,10 +81,9 @@ export const GET = withAuth<void>(async (req, { user }) => {
       { status: 429 },
     );
   }
-  const [dbCheck, cronCheck, analysisCheck] = await Promise.all([
+  const [dbCheck, cronCheck] = await Promise.all([
     checkDatabaseConnectivity(),
     checkCronRunsHealth(),
-    checkAnalysisJobs(),
   ]);
   const envCheck = checkEnv();
   const pgvectorCheck = await checkPgvectorExtension();
@@ -116,13 +94,9 @@ export const GET = withAuth<void>(async (req, { user }) => {
   // Now: a missing pgvector extension or stuck cron runs cause a 503
   // (degraded state), so uptime monitors correctly detect the issue.
   const cronOk = cronCheck.ok && (cronCheck.stuckRuns ?? 0) === 0;
-  // CH-1: analysis jobs with stale pending rows (>10 min unclaimed) indicate
-  // the worker is not processing the queue — treat as degraded.
-  const analysisOk = analysisCheck.ok && (analysisCheck.stalePending ?? 0) === 0;
   const telemetryDegraded = isMastraTelemetryDegraded();
   const telemetryStartup = validateTelemetryStartup();
-  const allOk =
-    dbCheck.ok && envCheck.ok && pgvectorCheck.ok && cronOk && analysisOk && !telemetryDegraded;
+  const allOk = dbCheck.ok && envCheck.ok && pgvectorCheck.ok && cronOk && !telemetryDegraded;
   const status = allOk ? 'ok' : 'error';
   const httpStatus = allOk ? 200 : 503;
 
@@ -136,7 +110,6 @@ export const GET = withAuth<void>(async (req, { user }) => {
         env: envCheck,
         cron: cronCheck,
         pgvector: pgvectorCheck,
-        analysisJobs: analysisCheck,
         telemetry: {
           ok: !telemetryDegraded,
           degraded: telemetryDegraded,

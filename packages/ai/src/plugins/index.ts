@@ -33,8 +33,8 @@ export {
   type BuildPluginMastraToolsArgs,
 } from './mastra-tools';
 export { syncPluginIndicators } from './indicators';
-// R14 mid-turn failover metadata is part of `CustomAgentStreamResult`, so the
-// payload type must be nameable through this public barrel as well.
+// R14 mid-turn failover metadata must stay nameable through this public
+// barrel.
 export type { FallbackPartPayload } from '../models/model-fallback';
 export {
   detectInstalledPluginIntent,
@@ -42,26 +42,3 @@ export {
   type PluginIntentMatch,
 } from './intent';
 export { enrichPacketForUser, type EnrichablePacket } from './enrichers';
-export { buildPluginCoreToolCatalog, syncPluginCoreTools } from './core-tools';
-export {
-  buildCustomAgent,
-  buildCustomAgentSubagents,
-  hasUserAgentCatalogs,
-  listUserCustomAgents,
-  parseCustomAgentMention,
-  recordCustomAgentRun,
-  resolveUserCustomAgent,
-  runCustomAgentStream,
-  runCustomAgentText,
-  stripCustomAgentMention,
-  type BuildCustomAgentArgs,
-  type BuiltCustomAgent,
-  type CustomAgentDescriptor,
-  type CustomAgentEnv,
-  type CustomAgentMention,
-  type CustomAgentPreferences,
-  type CustomAgentStreamArgs,
-  type CustomAgentStreamResult,
-  type CustomAgentTextArgs,
-  type CustomAgentTextResult,
-} from './agents';

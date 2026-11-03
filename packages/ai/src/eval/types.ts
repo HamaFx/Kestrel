@@ -95,7 +95,7 @@ export interface AssertionFailure {
     | 'ttft_exceeded'
     | 'latency_exceeded'
     | 'cost_exceeded'
-    /** Phase 4 (Jev roadmap) — a Jev rubric dimension fell below its floor. */
+    /** A rubric dimension fell below its floor. */
     | 'rubric_failure';
   detail: string;
 }

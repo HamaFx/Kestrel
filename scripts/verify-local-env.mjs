@@ -40,7 +40,6 @@ const env = {
 const failures = [];
 const warnings = [];
 
-
 if (
   (env.NODE_TLS_REJECT_UNAUTHORIZED === '0' || env.DB_DISABLE_SSL === 'true') &&
   env.ALLOW_INSECURE_LOCAL_TLS !== '1'

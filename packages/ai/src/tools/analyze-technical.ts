@@ -27,7 +27,14 @@
 // `partial` flag flips so the chat part can surface a warning.
 
 import { getCandlesUnchecked } from '@kestrel/data';
-import { computeIndicator, computeStructure } from '@kestrel/indicators';
+import {
+  computeAsianRange,
+  computeIndicator,
+  computePdhPdl,
+  computeStructure,
+  type AsianRange,
+  type PdhPdl,
+} from '@kestrel/indicators';
 import {
   AnalyzeTechnicalInputSchema,
   priceDecimals,
@@ -65,7 +72,7 @@ declare module '@kestrel/shared' {
 export const analyzeTechnicalTool: Tool<z.infer<typeof InputSchema>, AnalyzeTechnicalOutput> = tool(
   {
     description:
-      'Multi-timeframe technical readout (trend, bias, momentum, structure, levels) for a symbol. Use for any "top-down" / "what does this look like across timeframes" prompt — replaces 8+ atomic tool calls with one deterministic projection. Returns per-timeframe readings plus a templated one-paragraph summary; sets `partial: true` if a fetch failed for any requested timeframe.',
+      'Multi-timeframe technical readout (trend, bias, momentum, swing structure, pivots, PDH/PDL, Asian range) for a symbol. Use for any "top-down" / "what does this look like across timeframes" prompt — replaces 8+ atomic tool calls with one deterministic projection. Returns per-timeframe readings plus a templated one-paragraph summary; sets `partial: true` if a fetch failed for any requested timeframe.',
     inputSchema: InputSchema,
     execute: async (
       { symbol, timeframes },
@@ -123,7 +130,6 @@ function computeTechnicalReading({
     symbol,
     tf,
     candles,
-    kinds: ['swings', 'bos_choch'],
     swings: { lookback: 3 },
   });
 
@@ -138,6 +144,8 @@ function computeTechnicalReading({
     atr,
     pivots,
     structure,
+    pdhPdl: computePdhPdl(candles),
+    asianRange: computeAsianRange(candles),
   });
 }
 
@@ -174,6 +182,8 @@ interface ProjectArgs {
   atr: IndicatorResult;
   pivots: IndicatorResult;
   structure: StructureResult;
+  pdhPdl: PdhPdl | null;
+  asianRange: AsianRange | null;
 }
 
 function projectReading(args: ProjectArgs): PerTimeframeReading {
@@ -214,20 +224,9 @@ function projectReading(args: ProjectArgs): PerTimeframeReading {
           ? 'bearish'
           : 'neutral';
 
-  const swings = args.structure.swings ?? [];
+  const swings = args.structure.swings;
   const recentHigh = [...swings].reverse().find((s) => s.type === 'high')?.price ?? null;
   const recentLow = [...swings].reverse().find((s) => s.type === 'low')?.price ?? null;
-
-  const lastEvent = args.structure.events?.at(-1);
-  const latestStructureEvent: PerTimeframeReading['structure']['latestStructureEvent'] = lastEvent
-    ? lastEvent.kind === 'bos'
-      ? lastEvent.direction === 'bullish'
-        ? 'BOS_up'
-        : 'BOS_down'
-      : lastEvent.direction === 'bullish'
-        ? 'CHoCH_up'
-        : 'CHoCH_down'
-    : null;
 
   return {
     tf: args.tf,
@@ -237,9 +236,17 @@ function projectReading(args: ProjectArgs): PerTimeframeReading {
     structure: {
       swingHigh: recentHigh,
       swingLow: recentLow,
-      latestStructureEvent,
     },
-    levels: { pivot: pv, r1, s1, atr14 },
+    levels: {
+      pivot: pv,
+      r1,
+      s1,
+      atr14,
+      pdh: args.pdhPdl?.high ?? null,
+      pdl: args.pdhPdl?.low ?? null,
+      asianHigh: args.asianRange?.high ?? null,
+      asianLow: args.asianRange?.low ?? null,
+    },
   };
 }
 
@@ -281,12 +288,6 @@ function deterministicSummary(args: {
 
   const decimals = priceDecimals(args.symbol);
   const head = args.perTimeframe.map((r) => `${r.tf}=${r.trend}/${r.bias}`).join(' · ');
-  const lastEvent = [...args.perTimeframe]
-    .reverse()
-    .find((r) => r.structure.latestStructureEvent !== null);
-  const evt = lastEvent
-    ? ` Latest structure: ${lastEvent.structure.latestStructureEvent} on ${lastEvent.tf}.`
-    : '';
 
   const atrLine = args.perTimeframe
     .filter((r) => r.levels.atr14 !== null)
@@ -294,5 +295,5 @@ function deterministicSummary(args: {
     .join(', ');
 
   const partialNote = args.partial ? ' (partial — some timeframes were unavailable).' : '';
-  return `${args.symbol}: ${head}.${evt}${atrLine ? ` Volatility: ${atrLine}.` : ''}${partialNote}`;
+  return `${args.symbol}: ${head}.${atrLine ? ` Volatility: ${atrLine}.` : ''}${partialNote}`;
 }

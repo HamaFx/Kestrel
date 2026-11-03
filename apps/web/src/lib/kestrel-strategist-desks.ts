@@ -107,14 +107,14 @@ const TECHNICAL_DESK: StrategistDeskConfig = {
   chipLabel: 'TECH',
   epithet: 'The Mathematical Compass',
   description:
-    'Multi-timeframe liquidity sweeps, institutional order blocks, fair value gaps, and displacement footprints.',
+    'Multi-timeframe trend alignment, swing structure, session levels, and momentum confluence across 1D, 4H, 1H, and 15M.',
   domainMetrics:
-    '4H/1H/15m SMC Structure · Order Blocks · Fair Value Gaps (FVG) · Liquidity Sweeps',
+    'EMA20/50/200 Alignment · Swing Highs & Lows · PDH/PDL & Session Ranges · RSI/MACD/ATR',
   artworkPath: '/landing/simulator-astrolabe.webp',
   accentColor: 'var(--color-bull)',
   analysisMode: 'single',
   defaultPrompt:
-    'Map institutional order blocks, Fair Value Gaps (FVG), and session liquidity sweeps on XAUUSD 4H/15m.',
+    'Map multi-timeframe trend alignment, swing highs/lows, and PDH/PDL session levels on XAUUSD 4H/15m.',
   roleTag: 'Price Action',
   motto: 'Price structure and liquidity levels define the execution frame.',
   aliases: ['quant', 'technician'],

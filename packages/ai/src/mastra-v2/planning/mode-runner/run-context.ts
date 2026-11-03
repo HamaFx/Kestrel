@@ -22,10 +22,6 @@
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import { RequestContext } from '@mastra/core/request-context';
 
-import {
-  hasDeskReliabilitySamples,
-  loadDeskReliabilityWeights,
-} from '@ai/committee/calibration-weights';
 import { REQUEST_CONTEXT_SCHEMA } from '@ai/committee/types';
 import type { GenerationLedger } from '@ai/persistence/generation-ledger';
 import { getInstalledPluginRuntime } from '@ai/plugins';
@@ -51,20 +47,6 @@ export async function contextForRun(args: RunMastraModeArgs): Promise<RequestCon
     ['symbol', args.symbol],
     ['installedPlugins', pluginRuntime.installedPluginIds],
   ];
-  // Phase 3 (Jev roadmap) — full-mode fusion weighs each desk by its graded
-  // historical accuracy (Brier-calibrated `agent_opinions`). Best-effort: a
-  // missing DB or an empty graded history keeps the neutral equal-prior
-  // synthesis instead of failing the run.
-  if (args.mode === 'full') {
-    try {
-      const deskReliability = await loadDeskReliabilityWeights({ userId: args.userId });
-      if (hasDeskReliabilitySamples(deskReliability)) {
-        entries.push(['deskReliability', deskReliability]);
-      }
-    } catch {
-      // Calibration history unavailable — fusion runs unweighted.
-    }
-  }
   return new RequestContext(entries);
 }
 

@@ -17,11 +17,6 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  esbuild: {
-    // TypeScript keeps the ES2024 type-check target; Vitest/esbuild uses the
-    // latest target it understands for test transforms.
-    target: 'esnext',
-  },
   test: {
     // Vitest 4 replaced `vitest.workspace.ts` with `test.projects`.
     projects: [
@@ -29,7 +24,6 @@ export default defineConfig({
       'packages/data/vitest.config.ts',
       'packages/plugin-sdk/vitest.config.ts',
       'plugins/backtesting/vitest.config.ts',
-      'plugins/custom-agents/vitest.config.ts',
       'plugins/paper-trading/vitest.config.ts',
       'plugins/telegram-bot/vitest.config.ts',
       'packages/db/vitest.config.ts',

@@ -137,9 +137,7 @@ export { readFeatureFlag, type FeatureFlagName } from './runtime/feature-flags';
 // the client bundle).
 export {
   PROVIDER_IDS,
-  JEV_PROVIDER_IDS,
   type ByokPayload,
-  type JevByokProviderId,
   type ProviderId,
   type ProviderMeta,
   type ProviderPricingTier,

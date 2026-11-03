@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Phase 3 (Jev roadmap) — trader journal edge, stats, and behavioral leaks
+// Phase 3 — trader journal edge, stats, and behavioral leaks
 // synced into Mastra's resource-scoped working memory.
 
 import { describe, expect, it, vi } from 'vitest';
@@ -38,7 +38,7 @@ describe('Mastra Working Memory Trader Edge & Risk Profile sync', () => {
       avgR: 1.85,
       strengths: ['72% win rate on XAUUSD during London session'],
       leaks: ['Oversized losses on Fridays after 2 consecutive wins'],
-      actionRules: ['Cap risk at 0.5% on Fridays', 'Require 1h BOS before entry'],
+      actionRules: ['Cap risk at 0.5% on Fridays', 'Require a 1h swing high before entry'],
     });
 
     expect(merged).toContain('- **Default symbol**: XAUUSD');

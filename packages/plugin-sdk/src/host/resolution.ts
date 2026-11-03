@@ -20,12 +20,7 @@
 // keep its state private: every resolver is fail-closed — nothing is returned
 // for a plugin the caller did not pass in `installedPluginIds`.
 
-import type {
-  PluginId,
-  RegisteredPluginSkill,
-  RegisteredPluginTool,
-  RegisteredPluginUserAgentCatalog,
-} from '../types';
+import type { PluginId, RegisteredPluginSkill, RegisteredPluginTool } from '../types';
 import type { RegisteredPlugin, ResolveToolsOptions } from './plugin-host';
 
 /** Installed manifests in the order supplied, ignoring unknown ids. */
@@ -78,19 +73,4 @@ export function resolveSkills(
     }
   }
   return result;
-}
-
-/**
- * Per-user agent catalogs belonging to installed plugins.
- *
- * The core asks each catalog for its user's agents; a catalog from an
- * uninstalled plugin is never returned.
- */
-export function resolveAgentCatalogs(
-  agentCatalogs: ReadonlyMap<string, RegisteredPluginUserAgentCatalog>,
-  installedPluginIds: readonly string[],
-): readonly RegisteredPluginUserAgentCatalog[] {
-  const installed = new Set(installedPluginIds);
-  if (installed.size === 0) return [];
-  return [...agentCatalogs.values()].filter((catalog) => installed.has(catalog.pluginId));
 }

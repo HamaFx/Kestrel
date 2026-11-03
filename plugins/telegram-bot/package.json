@@ -2,13 +2,15 @@
   "name": "@kestrel/plugin-telegram-bot",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "description": "Run Kestrel from Telegram: commands, alerts, and scheduled briefings.",
+  "license": "Apache-2.0",
   "files": [
     "dist",
     "skills"
   ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "source": "./src/index.ts",
@@ -22,11 +24,12 @@
     }
   },
   "scripts": {
-    "lint": "eslint .",
+    "lint": "oxlint .",
     "typecheck": "tsrs --noEmit",
     "test": "vitest run",
-    "build": "rm -rf dist && tsrs -p tsconfig.build.json && node ../../scripts/rewrite-dist-imports.mjs dist",
-    "clean": "rm -rf node_modules .turbo dist"
+    "build": "tsrs -p tsconfig.build.json && node ../../scripts/rewrite-dist-imports.mjs dist",
+    "clean": "rm -rf node_modules .turbo dist",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@kestrel/ai": "workspace:*",
@@ -44,14 +47,12 @@
   },
   "devDependencies": {
     "@kestrel/config": "workspace:*",
+    "@kestrel/test-utils": "workspace:*",
     "@types/node": "^22.20.5",
     "@types/react": "^19.3.0",
-    "eslint": "^10.13.0",
     "next": "16.4.2",
-    "tsrs": "0.20.0-ts7.1.0-beta",
+    "tsrs": "0.20.1-ts7.1.0-beta",
     "typescript": "^7.0.2",
     "vitest": "^5.0.5"
-  },
-  "description": "Run Kestrel from Telegram: commands, alerts, and scheduled briefings.",
-  "license": "Apache-2.0"
+  }
 }

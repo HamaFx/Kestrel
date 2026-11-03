@@ -17,16 +17,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Fusion (synthesizer) prompts: the request-context instructions function that
- * reads the typed opinions and peer reviews instead of build-time JSON joins
- * (audit plan §2.2).
+ * Fusion (synthesizer) prompt: reads the packet and the four independent
+ * verified desk opinions from the request context and instructs the synthesizer
+ * to resolve cross-desk conflicts explicitly instead of averaging them away.
  */
 
 import type { RequestContext } from '@mastra/core/request-context';
 
 import type { SymbolResearchPacket } from '../../mastra-v2/packets/symbol-research';
-import { deskReliabilityBlock, type DeskReliabilityWeights } from '../calibration-weights';
-import type { CommitteeCritique, MastraModeOpinion, ModeRequestContext } from '../types';
+import type { MastraModeOpinion, ModeRequestContext } from '../types';
 import { optionalContextBlock, serializedPacket } from './packet-context';
 
 /**
@@ -41,12 +40,6 @@ export function fusionInstructionsForRequest({
 }): string {
   const packet = requestContext.get('packet') as SymbolResearchPacket | undefined;
   const opinions = (requestContext.get('opinions') as MastraModeOpinion[] | undefined) ?? [];
-  const critiques = (requestContext.get('critiques') as CommitteeCritique[] | undefined) ?? [];
-  // Phase 3 — empirical desk reliability from graded historical calls. Present
-  // only when the run context loaded it (full mode with enough Brier samples).
-  const deskReliability = requestContext.get('deskReliability') as
-    DeskReliabilityWeights | undefined;
-  const reliabilityBlock = deskReliability ? `\n\n${deskReliabilityBlock(deskReliability)}` : '';
   const opinionBlock = opinions
     .map((opinion) =>
       [
@@ -58,21 +51,21 @@ export function fusionInstructionsForRequest({
       ].join('\n'),
     )
     .join('\n\n');
-  const critiqueBlock = critiques
-    .map((critique) =>
-      [
-        `### ${critique.agentName} peer review`,
-        `confirms own view: ${critique.confirms}`,
-        `revised confidence: ${critique.revisedConfidence}`,
-        `critique: ${critique.critique}`,
-      ].join('\n'),
-    )
-    .join('\n\n');
 
   return `You are Kestrel's lead market synthesizer${packet ? ` for ${packet.symbol}` : ''}.
 
-Use only the trusted packet and specialist opinions below. Write in clear, simple, everyday trader language that is easy for non-technical traders to scan. State where the experts agree and where they disagree, and when peer reviews are present, explain how the experts responded to each other's arguments (e.g. "3 of 4 experts lean bullish after peer review"). Disclose missing or degraded data, and use scenario language. Do not promise outcomes or invent numbers. Do not place trades. Return a concise user-facing answer with a clear bottom line, why the team agrees or disagrees, bull/base/bear scenarios, key risks, and the price level where this idea is wrong (invalidation).
+Use only the trusted packet and the four independent specialist opinions below. The desks ran separately and did not read each other's work, so disagreement is information, not noise.
+
+Write in clear, simple, everyday trader language that is easy for non-technical traders to scan. Your synthesis must:
+
+1. State the bottom line first, and note how many of the four desks support it.
+2. Highlight where the desks align, citing the shared evidence.
+3. Explicitly surface every material disagreement between desks (for example, technical structure is bullish while fundamental or risk flags rising real yields or an upcoming high-impact release). Name the desks, give each side's strongest evidence, and adjudicate the conflict. Weigh each desk equally: do not invent confidence multipliers, rank desks, or let one desk override another without evidence from the packet.
+4. Include bull/base/bear scenarios, key risks, and the price level where the idea is wrong (invalidation).
+5. Disclose missing or degraded packet data.
+
+Do not promise outcomes, invent numbers, or place trades. Because the packet data may be stale, missing, or degraded, state that clearly whenever the packet says so. Return a concise user-facing answer.
 
 ${packet ? `PACKET:\n${serializedPacket(packet)}\n\n${optionalContextBlock(packet)}\n\n` : ''}SPECIALIST OPINIONS:
-${opinionBlock}${critiqueBlock ? `\n\nSPECIALIST PEER REVIEWS:\n${critiqueBlock}` : ''}${reliabilityBlock}`;
+${opinionBlock}`;
 }

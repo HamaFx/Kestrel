@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Phase 3 (Jev roadmap) — the canonical message window must keep the thread's
+// Phase 3 — the canonical message window must keep the thread's
 // opening setup/thesis (message 0) no matter how large the middle tool dumps
 // grow, and must compact those dumps instead of dropping the anchor.
 

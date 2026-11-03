@@ -25,7 +25,6 @@ import type { ResolveModelEnv } from '@ai/models/env-factory';
 
 import type { ExecutionPlan } from '../../planning/execution-plan';
 import { createCitationScorer } from '../custom';
-import { buildJevRubricScorers } from './jev-scorers';
 import { buildPrebuiltScorers } from './prebuilt';
 import type { AgentScorerProfile, BuiltScorers, ScorerSampling } from './types';
 
@@ -68,13 +67,6 @@ function buildAgentScorers(
   profileName: 'conversation' | 'research',
   samplingOverride?: ScorerSampling,
 ): BuiltScorers {
-  // Phase 2 (Jev System One) — when a Jev endpoint resolves, the fast
-  // non-generative rubric scorer runs on 100% of turns at ~$0 and replaces
-  // the 5%/10% sampled generative LLM judges. No Jev provider → unchanged
-  // sampled prebuilt behavior below.
-  const jevScorers = buildJevRubricScorers(profileName, env, settings);
-  if (jevScorers) return mergeScorers(jevScorers, buildCitationScorers());
-
   const profile = AGENT_SCORER_PROFILES[profileName];
   const prebuilt = buildPrebuiltScorers({
     settings,
@@ -127,8 +119,7 @@ export function buildScorersForExecutionPlan(
 
 /**
  * Convenience — conversation-capable scorer set at the default 5% sampling,
- * plus the always-on deterministic custom scorers. With a Jev endpoint the
- * Jev rubric replaces the sampled prebuilt judges at 100% coverage.
+ * plus the always-on deterministic custom scorers.
  */
 export function buildConversationScorers(
   settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>,
@@ -140,8 +131,7 @@ export function buildConversationScorers(
 
 /**
  * Convenience — research/report scorer set at the default 10% sampling, plus
- * the always-on deterministic custom scorers. With a Jev endpoint the Jev
- * rubric replaces the sampled prebuilt judges at 100% coverage.
+ * the always-on deterministic custom scorers.
  */
 export function buildResearchScorers(
   settings: Pick<UserSettingsRow, 'aiApiKeys' | 'chatModel'>,

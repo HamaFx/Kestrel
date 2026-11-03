@@ -98,13 +98,6 @@ vi.mock('@mastra/core/agent', () => ({
           steps: [{}],
         };
       }
-      if (this.id.includes('-critique')) {
-        return {
-          object: { confirms: true, revisedConfidence: 0.6, critique: `${this.id} agrees` },
-          usage: { inputTokens: 8, outputTokens: 4 },
-          steps: [{}],
-        };
-      }
       return {
         object: {
           bias: 'neutral',
@@ -186,8 +179,9 @@ describe('generalized Mastra symbol routing', () => {
 });
 
 describe('Mastra mode execution-plan routes', () => {
-  it('accepts full-analysis plans for durable full mode', () => {
-    expect(expectedModeExecutionPlanRoute('full', false)).toBe('full-analysis');
+  it('runs full mode over the streaming symbol-research route', () => {
+    expect(expectedModeExecutionPlanRoute('full', false)).toBe('symbol-research');
+    expect(expectedModeExecutionPlanRoute('full', true)).toBe('multi-symbol-research');
   });
 
   it('keeps symbol-research routes for single mode', () => {

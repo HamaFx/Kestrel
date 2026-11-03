@@ -55,17 +55,31 @@ describe('Mastra execution decision facade', () => {
     });
   });
 
-  it('selects the durable route for Full mode', async () => {
+  it('routes Full mode through the streaming symbol-research committee', async () => {
     const decision = await decideMastraExecution({
       userMessage: message('Analyze XAUUSD deeply'),
       symbol: 'XAUUSD',
       mode: 'full',
-      settings,
-      env,
+      settings: { aiApiKeys: null, chatModel: 'google:gemini-2.5-flash' } as never,
+      env: { GOOGLE_GENERATIVE_AI_API_KEY: 'test-key' } as never,
     });
 
-    expect(decision.route).toBe('full-analysis-queue');
-    expect(decision.modelPurpose).toBe('worker');
+    expect(decision.route).toBe('symbol-research');
+    expect(decision.modelPurpose).toBe('mode');
+  });
+
+  it('keeps a pinned symbol in Full mode even when the prompt does not name it', async () => {
+    const decision = await decideMastraExecution({
+      userMessage: message('What is the outlook here?'),
+      symbol: 'XAUUSD',
+      mode: 'full',
+      settings: { aiApiKeys: null, chatModel: 'google:gemini-2.5-flash' } as never,
+      env: { GOOGLE_GENERATIVE_AI_API_KEY: 'test-key' } as never,
+    });
+
+    expect(decision.route).toBe('symbol-research');
+    expect(decision.symbol).toBe('XAUUSD');
+    expect(decision.symbolCandidate).toBe(false);
   });
 
   it('routes user-data reads to the sensitive-user-read capability', async () => {

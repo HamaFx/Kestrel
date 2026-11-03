@@ -18,12 +18,10 @@
 
 // Bespoke renderer for the `get_market_structure` tool part.
 //
-// SMC structure outputs are sparse events (swings, BOS / CHoCH, FVGs, OBs,
-// liquidity sweeps) rather than per-bar series. The mobile card surfaces
-// the model's prose `summary` verbatim, then a compact "what we found"
-// counts row, plus the latest 3 directional events (BOS / CHoCH) coloured
-// with `text-bull` / `text-bear` and the latest 2 swing pivots with prices
-// in `.tabular-nums`.
+// Structure output is an objective list of swing pivots plus the band between
+// the strongest recent swing high and the deepest recent swing low. The card
+// surfaces the model's prose `summary` verbatim, then the range band, then the
+// latest swing pivots with prices in `.tabular-nums`.
 //
 // Server component on purpose — no state, no events, no browser-only APIs.
 
@@ -31,7 +29,6 @@ import {
   isKnownSymbol,
   priceDecimals,
   type GetMarketStructureOutput,
-  type StructureEvent,
   type SwingPoint,
 } from '@kestrel/shared';
 
@@ -55,16 +52,11 @@ export function GetMarketStructurePart({
   }
 
   const decimals = isKnownSymbol(output.symbol) ? priceDecimals(output.symbol) : 5;
+  const fmt = (value: number | null) => (value === null ? 'n/a' : value.toFixed(decimals));
 
-  const swings: readonly SwingPoint[] = output.swings ?? [];
-  const events: readonly StructureEvent[] = output.events ?? [];
-  const fvgs = output.fvg ?? [];
-  const obs = output.orderBlocks ?? [];
-  const sweeps = output.liquidity ?? [];
-
+  const swings: readonly SwingPoint[] = output.swings;
   // Last-N slices — we want the most recent context, so take from the tail.
-  const lastEvents = events.slice(-3).reverse();
-  const lastSwings = swings.slice(-2).reverse();
+  const lastSwings = swings.slice(-4).reverse();
 
   return (
     <div className="border-border bg-bg-elev-1 rounded-sm border p-3">
@@ -77,37 +69,11 @@ export function GetMarketStructurePart({
         <p className="text-fg-muted mb-2 text-sm whitespace-pre-line">{output.summary}</p>
       ) : null}
 
-      <div className="text-fg-subtle text-body-sm mb-2 tabular-nums">
-        {swings.length} swings · {events.length} events · {fvgs.length} FVG · {obs.length} OB ·{' '}
-        {sweeps.length} sweeps
+      <div className="mb-2 grid grid-cols-3 gap-2">
+        <RangeCell label="recent high" value={fmt(output.recentSwingHigh)} tone="text-bull" />
+        <RangeCell label="recent low" value={fmt(output.recentSwingLow)} tone="text-bear" />
+        <RangeCell label="range" value={fmt(output.rangeSize)} tone="text-fg" />
       </div>
-
-      {lastEvents.length > 0 ? (
-        <ul className="mb-2 space-y-1">
-          {lastEvents.map((e) => (
-            <li
-              key={`${e.kind}-${e.brokenAt}-${e.swingIndex}`}
-              className="flex min-h-[44px] items-center justify-between gap-2 text-sm"
-            >
-              <span className="text-fg-muted">
-                {e.kind.toUpperCase()} @ bar <span className="tabular-nums">{e.brokenAt}</span>
-              </span>
-              <span className="flex items-baseline gap-2">
-                <span
-                  className={
-                    e.direction === 'bullish'
-                      ? 'bg-bull/15 text-bull rounded-sm px-1.5 py-0.5 text-xs font-medium'
-                      : 'bg-bear/15 text-bear rounded-sm px-1.5 py-0.5 text-xs font-medium'
-                  }
-                >
-                  {e.direction}
-                </span>
-                <span className="text-fg tabular-nums">{e.level.toFixed(decimals)}</span>
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
 
       {lastSwings.length > 0 ? (
         <ul className="space-y-1">
@@ -127,7 +93,18 @@ export function GetMarketStructurePart({
             </li>
           ))}
         </ul>
-      ) : null}
+      ) : (
+        <p className="text-fg-subtle text-body-sm">No swing pivots qualified in this window.</p>
+      )}
+    </div>
+  );
+}
+
+function RangeCell({ label, value, tone }: { label: string; value: string; tone: string }) {
+  return (
+    <div className="border-border bg-bg-elev-2 rounded-sm border px-2 py-1.5">
+      <span className="text-fg-subtle text-caption block">{label}</span>
+      <span className={`block text-sm font-medium tabular-nums ${tone}`}>{value}</span>
     </div>
   );
 }

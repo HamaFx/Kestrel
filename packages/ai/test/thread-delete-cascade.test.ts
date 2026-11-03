@@ -44,7 +44,6 @@ vi.mock('@kestrel/db', () => {
   const schema = {
     chatThreads: table('chat_threads', ['id', 'userId', 'tenantId']),
     memoryBackfillState: table('memory_backfill_state', ['userId', 'tenantId', 'threadId']),
-    memoryProjectionState: table('memory_projection_state', ['userId', 'tenantId', 'threadId']),
     memoryEmbeddings: table('memory_embeddings', [
       'userId',
       'tenantId',
@@ -137,13 +136,12 @@ describe('deleteThread — P1-7 memory state cleanup', () => {
     state.failMastra = false;
   });
 
-  it('deletes the thread plus backfill, projection, and synopsis rows in one transaction', async () => {
+  it('deletes the thread plus backfill and synopsis rows in one transaction', async () => {
     await deleteThread('user-1', 'thread-1');
 
     expect(state.deleteCalls.map((call) => call.table)).toEqual([
       'chat_threads',
       'memory_backfill_state',
-      'memory_projection_state',
       'memory_embeddings',
     ]);
     // The business delete stays ownership-scoped.
@@ -154,8 +152,6 @@ describe('deleteThread — P1-7 memory state cleanup', () => {
     const backfill = state.deleteCalls.find((c) => c.table === 'memory_backfill_state')!;
     expect(backfill.eqs).toContainEqual({ column: 'userId', value: 'user-1' });
     expect(backfill.eqs).toContainEqual({ column: 'threadId', value: 'thread-1' });
-    const projection = state.deleteCalls.find((c) => c.table === 'memory_projection_state')!;
-    expect(projection.eqs).toContainEqual({ column: 'threadId', value: 'thread-1' });
     const synopsis = state.deleteCalls.find((c) => c.table === 'memory_embeddings')!;
     expect(synopsis.eqs).toContainEqual({ column: 'kind', value: 'thread_synopsis' });
     expect(synopsis.eqs).toContainEqual({ column: 'sourceId', value: 'thread-1' });
@@ -203,10 +199,9 @@ describe('deleteAllThreads — P1-7 memory state cleanup', () => {
     expect(state.deleteCalls.map((c) => c.table)).toEqual([
       'chat_threads',
       'memory_backfill_state',
-      'memory_projection_state',
       'memory_embeddings',
     ]);
-    // Backfill/projection cleanup is user-wide (no thread_id bound).
+    // Backfill cleanup is user-wide (no thread_id bound).
     const backfill = state.deleteCalls.find((c) => c.table === 'memory_backfill_state')!;
     expect(backfill.eqs).toContainEqual({ column: 'userId', value: 'user-1' });
     expect(backfill.eqs).not.toContainEqual({ column: 'threadId', value: 'thread-a' });

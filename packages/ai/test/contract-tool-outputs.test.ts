@@ -136,8 +136,17 @@ describe('AnalyzeTechnicalOutputSchema', () => {
     trend: 'up',
     bias: 'bullish',
     momentum: { rsi14: 62, macdHist: 0.00012 },
-    structure: { swingHigh: 1.095, swingLow: 1.078, latestStructureEvent: 'BOS_up' },
-    levels: { pivot: 1.085, r1: 1.092, s1: 1.078, atr14: 0.005 },
+    structure: { swingHigh: 1.095, swingLow: 1.078 },
+    levels: {
+      pivot: 1.085,
+      r1: 1.092,
+      s1: 1.078,
+      atr14: 0.005,
+      pdh: 1.094,
+      pdl: 1.079,
+      asianHigh: 1.091,
+      asianLow: 1.081,
+    },
   });
 
   const valid = {
@@ -493,11 +502,7 @@ describe('remaining output schemas', () => {
         ],
         countsByKind: {
           swings: 2,
-          bos_choch: 1,
-          fvg: 0,
-          order_blocks: 0,
-          liquidity: 0,
-          pdh_pdl: 0,
+          pdh_pdl: 2,
           asian_range: 0,
         },
       },
@@ -528,17 +533,10 @@ describe('remaining output schemas', () => {
         tf: '1h',
         bars: 200,
         swings: [{ type: 'high', price: 1.085, time: 1_700_000_000_000, lookback: 3, index: 100 }],
-        events: [
-          {
-            kind: 'bos',
-            direction: 'bullish',
-            brokenAt: 1_700_000_000_000,
-            time: 1_699_000_000_000,
-            level: 1.082,
-            swingIndex: 5,
-          },
-        ],
-        summary: 'BOS detected.',
+        recentSwingHigh: 1.085,
+        recentSwingLow: 1.078,
+        rangeSize: 0.007,
+        summary: '1 swing · recent high 1.08500 · recent low 1.07800',
       },
     },
     {

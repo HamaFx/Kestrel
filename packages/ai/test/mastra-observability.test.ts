@@ -229,8 +229,6 @@ describe('mastra observability — telemetry helpers', () => {
   it('maps telemetry kinds to workflow ids', () => {
     expect(workflowIdForKind('mastra_mode')).toBe('symbol-research');
     expect(workflowIdForKind('mastra_mode_failed')).toBe('symbol-research');
-    expect(workflowIdForKind('mastra_full_job')).toBe('full-analysis');
-    expect(workflowIdForKind('mastra_full_job_failed')).toBe('full-analysis');
     // P-03: both the neutral name and the one-release legacy alias resolve.
     expect(workflowIdForKind('mastra_xauusd_research')).toBe('xauusd-report');
     expect(workflowIdForKind('mastra_xauusd_research_failed')).toBe('xauusd-report');

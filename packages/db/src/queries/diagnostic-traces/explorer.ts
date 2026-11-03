@@ -12,8 +12,8 @@
  * limitations under the License.
  */
 
-// Admin correlation timeline: merge traces, turns, tools, agent opinions,
-// budget reservations and outbox rows into one bounded event list.
+// Admin correlation timeline: merge traces, turns, tools, agent opinions and
+// budget reservations into one bounded event list.
 //
 // Audit 2026-10-31 (R1): this is an admin-only view over every tenant's
 // telemetry. The optional `userId` filter narrows an admin investigation, it
@@ -53,7 +53,7 @@ export async function listTraceExplorerEvents(
   const limit = boundedLimit(filters.limit);
   const client = db ?? getAdminDb();
 
-  const [traces, turns, tools, budgets, outbox] = await Promise.all([
+  const [traces, turns, tools, budgets] = await Promise.all([
     filters.messageId || filters.runId || filters.jobId
       ? Promise.resolve([] as DiagnosticTraceRow[])
       : client
@@ -115,21 +115,6 @@ export async function listTraceExplorerEvents(
         ]),
       )
       .orderBy(desc(schema.aiBudgetReservations.createdAt))
-      .limit(limit),
-    client
-      .select()
-      .from(schema.persistenceOutbox)
-      .where(
-        allMatch([
-          ...(filters.userId ? [eq(schema.persistenceOutbox.userId, filters.userId)] : []),
-          ...(filters.traceId ? [eq(schema.persistenceOutbox.traceId, filters.traceId)] : []),
-          ...(filters.runId ? [eq(schema.persistenceOutbox.runId, filters.runId)] : []),
-          ...(filters.jobId ? [eq(schema.persistenceOutbox.jobId, filters.jobId)] : []),
-          ...(filters.threadId ? [eq(schema.persistenceOutbox.threadId, filters.threadId)] : []),
-          ...(filters.messageId ? [eq(schema.persistenceOutbox.messageId, filters.messageId)] : []),
-        ]),
-      )
-      .orderBy(desc(schema.persistenceOutbox.updatedAt))
       .limit(limit),
   ]);
 
@@ -267,26 +252,6 @@ export async function listTraceExplorerEvents(
         reservedUsdCents: row.reservedUsdCents,
         actualUsdCents: row.actualUsdCents,
         day: row.day,
-      },
-    })),
-    ...outbox.map((row) => ({
-      id: `outbox:${row.id}`,
-      source: 'outbox' as const,
-      timestamp: row.completedAt ?? row.updatedAt,
-      name: row.operation,
-      status: row.status,
-      traceId: row.traceId,
-      runId: row.runId,
-      jobId: row.jobId,
-      threadId: row.threadId,
-      messageId: row.messageId,
-      userId: row.userId,
-      durationMs: null,
-      error: row.lastError,
-      metadata: {
-        attemptCount: row.attemptCount,
-        maxAttempts: row.maxAttempts,
-        dedupeKey: row.dedupeKey,
       },
     })),
   ];

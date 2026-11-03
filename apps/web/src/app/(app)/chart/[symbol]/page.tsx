@@ -45,7 +45,14 @@ export default async function ChartPage({ params, searchParams }: PageProps) {
 
   const sp = await searchParams;
   const tf = (sp.tf ?? DEFAULT_TIMEFRAME) as
-    '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '1w';
+    | '1m'
+    | '5m'
+    | '15m'
+    | '30m'
+    | '1h'
+    | '4h'
+    | '1d'
+    | '1w';
 
   return <ProChartView symbol={symbol} tf={tf} />;
 }

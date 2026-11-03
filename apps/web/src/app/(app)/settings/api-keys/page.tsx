@@ -25,7 +25,6 @@ import { updateApiKeysAction } from '../actions';
 import { ApiKeysEmptyState } from './_components/api-keys-empty-state';
 import { ApiKeysLandingBanner } from './_components/api-keys-landing-banner';
 import { ExportImportKeys } from './_components/export-import-keys';
-import { JevDecisionKeysCard } from './_components/jev-decision-keys-card';
 import { MarketDataConfig } from './_components/market-data-config';
 import { ProviderCapabilityMatrix } from './_components/provider-capability-matrix';
 import { ProviderHealthPanel } from './_components/provider-health-panel';
@@ -63,6 +62,7 @@ export default async function ApiKeysSettingsPage({
     effSettings,
     ownSettings,
     configuredKeyIds,
+    maskedPreviewByProvider,
     healthByProvider,
     usageByProvider,
     configured,
@@ -113,20 +113,12 @@ export default async function ApiKeysSettingsPage({
           configured={configured}
           available={available}
           configuredIds={configuredKeyIds}
+          keyPreviews={maskedPreviewByProvider}
           keyUpdatedAtByProvider={ownSettings?.aiApiKeysUpdatedAt ?? undefined}
           healthByProvider={healthByProvider}
           usageByProvider={usageByProvider}
         />
       </SaveBar>
-
-      {/* Decision 4A — Jev System One decision-model keys. */}
-      <JevDecisionKeysCard
-        initialKeys={{
-          opencode: configuredKeyIds.includes('opencode'),
-          liquid: configuredKeyIds.includes('liquid'),
-          typesafe: configuredKeyIds.includes('typesafe'),
-        }}
-      />
 
       {/* Market Data Provider Configuration */}
       <MarketDataConfig

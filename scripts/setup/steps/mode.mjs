@@ -16,7 +16,7 @@
 
 import { getDockerInfo, waitForDocker } from '../lib/prereqs.mjs';
 import { confirm, select } from '../lib/prompts.mjs';
-import { box, info, note, paint, renderComparison, startSpinner, warn } from '../lib/ui.mjs';
+import { box, info, note, paint, renderComparison, startSpinner } from '../lib/ui.mjs';
 
 export const title = 'Choose your setup mode';
 

@@ -22,9 +22,9 @@ import { defineConfig } from 'vitest/config';
 
 const maxWorkers = process.env.CI ? 2 : Math.max(2, Math.floor(os.availableParallelism() / 2));
 
-// Vitest 4 removed `environmentMatchGlobs`; the node/jsdom split is now
-// expressed as two inline projects that share the root Vite config.
-const jsdomInclude = [
+// Vitest 4 removed `environmentMatchGlobs`; the node/DOM split is expressed
+// as two inline projects that inherit this root config via `extends: true`.
+const domInclude = [
   '**/*.test.tsx',
   '**/hooks-*.test.ts',
   '**/csrf.test.ts',
@@ -37,15 +37,14 @@ const jsdomInclude = [
 
 export default defineConfig({
   plugins: [react()],
-  esbuild: { target: 'esnext' },
   resolve: {
     conditions: ['source'],
     alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@scripts': path.resolve(__dirname, '../../scripts'),
-      '@tools': path.resolve(__dirname, '../../tools'),
-      '@loadtest': path.resolve(__dirname, '../../loadtest'),
-      'server-only': path.resolve(__dirname, './test/empty.ts'),
+      '@': path.resolve(import.meta.dirname, './src'),
+      '@scripts': path.resolve(import.meta.dirname, '../../scripts'),
+      '@tools': path.resolve(import.meta.dirname, '../../tools'),
+      '@loadtest': path.resolve(import.meta.dirname, '../../loadtest'),
+      'server-only': path.resolve(import.meta.dirname, './test/empty.ts'),
     },
   },
   test: {
@@ -53,13 +52,18 @@ export default defineConfig({
     // turbo runs every package's suite in parallel, so keep the cache
     // package-local to avoid concurrent-cache races.
     fsModuleCachePath: 'node_modules/.vitest-cache',
-    pool: 'forks',
+    pool: 'threads',
     maxWorkers,
-    setupFiles: ['./test/vitest.setup.ts'],
     deps: {
       optimizer: {
-        ssr: { enabled: true },
-        client: { enabled: true },
+        ssr: {
+          enabled: true,
+          include: ['@tabler/icons-react'],
+        },
+        client: {
+          enabled: true,
+          include: ['@tabler/icons-react', '@testing-library/react', '@testing-library/jest-dom'],
+        },
       },
     },
     coverage: {
@@ -90,18 +94,22 @@ export default defineConfig({
     },
     projects: [
       {
+        extends: true,
         test: {
           name: 'web-node',
           environment: 'node',
+          setupFiles: ['./test/vitest.node-setup.ts'],
           include: ['test/**/*.test.{ts,tsx}', 'src/**/__tests__/**/*.test.{ts,tsx}'],
-          exclude: jsdomInclude,
+          exclude: domInclude,
         },
       },
       {
+        extends: true,
         test: {
-          name: 'web-jsdom',
-          environment: 'jsdom',
-          include: jsdomInclude,
+          name: 'web-dom',
+          environment: 'happy-dom',
+          setupFiles: ['./test/vitest.setup.ts'],
+          include: domInclude,
         },
       },
     ],

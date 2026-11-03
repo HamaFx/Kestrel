@@ -30,6 +30,8 @@
 
 import { and, asc, eq } from 'drizzle-orm';
 
+import { readFeatureFlag } from '@kestrel/shared';
+
 import { getAdminDb, getDb, schema, type DbClient } from '../client';
 import { requireTenantIdForUser } from '../tenant';
 
@@ -140,13 +142,26 @@ export async function getUserWithSettings(userId: string): Promise<UserWithSetti
   }
 
   // If this user is not an admin (or has not configured personal overrides),
-  // inherit platform-level AI keys, model routing, market feed adapter, and
-  // disabled tool controls from the primary Admin settings row.
+  // inherit platform-level model routing, market feed adapter, and disabled
+  // tool controls from the primary Admin settings row.
+  //
+  // Phase 1 (Task 1.2): the admin's stored BYOK vault is intentionally NOT
+  // inherited by default. Sharing it silently let any self-registered account
+  // spend the operator's provider quota. Non-admins must add their own key on
+  // /settings/api-keys; an operator who genuinely wants a shared pool can set
+  // ALLOW_SHARED_OPERATOR_KEYS=1. The per-user daily cap (maxDailyUsd) is also
+  // never inherited, so an admin's higher ceiling cannot raise another
+  // account's enforced limit.
   if (adminSettings && userRow?.role !== 'admin') {
+    const inheritOperatorKeys = readFeatureFlag('ALLOW_SHARED_OPERATOR_KEYS');
     const merged: typeof schema.userSettings.$inferSelect = {
       ...settings,
-      aiApiKeys: adminSettings.aiApiKeys ?? settings.aiApiKeys,
-      aiApiKeysUpdatedAt: adminSettings.aiApiKeysUpdatedAt ?? settings.aiApiKeysUpdatedAt,
+      ...(inheritOperatorKeys
+        ? {
+            aiApiKeys: adminSettings.aiApiKeys ?? settings.aiApiKeys,
+            aiApiKeysUpdatedAt: adminSettings.aiApiKeysUpdatedAt ?? settings.aiApiKeysUpdatedAt,
+          }
+        : {}),
       chatModel: adminSettings.chatModel ?? settings.chatModel,
       visionModel: adminSettings.visionModel ?? settings.visionModel,
       embeddingModel: adminSettings.embeddingModel ?? settings.embeddingModel,
@@ -163,7 +178,6 @@ export async function getUserWithSettings(userId: string): Promise<UserWithSetti
       marketDataProvider: adminSettings.marketDataProvider ?? settings.marketDataProvider,
       defaultAnalysisMode: adminSettings.defaultAnalysisMode ?? settings.defaultAnalysisMode,
       showAgentOpinions: adminSettings.showAgentOpinions ?? settings.showAgentOpinions,
-      maxDailyUsd: adminSettings.maxDailyUsd ?? settings.maxDailyUsd,
     };
     return { settings: merged, user: userRow };
   }

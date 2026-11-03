@@ -38,17 +38,7 @@ import type { CommitteeSynthesisArgs, CommitteeSynthesisResult } from './types';
 export async function synthesizeCommitteeAnswer(
   args: CommitteeSynthesisArgs,
 ): Promise<CommitteeSynthesisResult> {
-  const {
-    mode,
-    prompt,
-    packet,
-    opinions,
-    critiques,
-    executionStats,
-    requestContext,
-    signal,
-    deps,
-  } = args;
+  const { mode, prompt, packet, opinions, executionStats, requestContext, signal, deps } = args;
 
   if (mode === 'single') {
     const finalText = opinions[0]
@@ -94,7 +84,7 @@ export async function synthesizeCommitteeAnswer(
     // The synthesizer owns the user-visible assistant message; it writes to
     // the thread with the caller's fusion call options.
     const baseOptions = {
-      requestContext: contextWithPacket(requestContext, packet, opinions, critiques),
+      requestContext: contextWithPacket(requestContext, packet, opinions),
       ...(deps.fusionCallOptions ? { memory: deps.fusionCallOptions } : {}),
       toolChoice: 'none' as const,
       maxSteps: deps.maxSteps,

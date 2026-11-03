@@ -71,16 +71,16 @@ describe('worker CLI runner cron locks & timeouts (F-12)', () => {
   it('skips execution when acquireCronLock returns null (already ran today)', async () => {
     const acquireSpy = vi.spyOn(cronLockModule, 'acquireCronLock').mockResolvedValue(null);
     const mockRun = vi.fn();
-    const originalRun = JOBS.snapshots.run;
-    JOBS.snapshots.run = mockRun;
+    const originalRun = JOBS.cot.run;
+    JOBS.cot.run = mockRun;
 
     try {
-      const exitCode = await runJob('snapshots');
+      const exitCode = await runJob('cot');
       expect(exitCode).toBe(0);
-      expect(acquireSpy).toHaveBeenCalledWith('snapshots', expect.anything());
+      expect(acquireSpy).toHaveBeenCalledWith('cot', expect.anything());
       expect(mockRun).not.toHaveBeenCalled();
     } finally {
-      JOBS.snapshots.run = originalRun;
+      JOBS.cot.run = originalRun;
     }
   });
 
@@ -93,18 +93,18 @@ describe('worker CLI runner cron locks & timeouts (F-12)', () => {
     });
 
     const mockRun = vi.fn().mockResolvedValue({ processed: 5, note: 'ok' });
-    const originalRun = JOBS.snapshots.run;
-    JOBS.snapshots.run = mockRun;
+    const originalRun = JOBS.cot.run;
+    JOBS.cot.run = mockRun;
 
     try {
-      const exitCode = await runJob('snapshots');
+      const exitCode = await runJob('cot');
       expect(exitCode).toBe(0);
-      expect(acquireSpy).toHaveBeenCalledWith('snapshots', expect.anything());
+      expect(acquireSpy).toHaveBeenCalledWith('cot', expect.anything());
       expect(mockRun).toHaveBeenCalledTimes(1);
       expect(doneMock).toHaveBeenCalledWith('ok');
       expect(failMock).not.toHaveBeenCalled();
     } finally {
-      JOBS.snapshots.run = originalRun;
+      JOBS.cot.run = originalRun;
     }
   });
 
@@ -117,16 +117,16 @@ describe('worker CLI runner cron locks & timeouts (F-12)', () => {
     });
 
     const mockRun = vi.fn().mockRejectedValue(new Error('Job crash'));
-    const originalRun = JOBS.snapshots.run;
-    JOBS.snapshots.run = mockRun;
+    const originalRun = JOBS.cot.run;
+    JOBS.cot.run = mockRun;
 
     try {
-      const exitCode = await runJob('snapshots');
+      const exitCode = await runJob('cot');
       expect(exitCode).toBe(2);
       expect(failMock).toHaveBeenCalledWith(expect.any(Error));
       expect(doneMock).not.toHaveBeenCalled();
     } finally {
-      JOBS.snapshots.run = originalRun;
+      JOBS.cot.run = originalRun;
     }
   });
 

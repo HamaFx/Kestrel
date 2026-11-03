@@ -24,13 +24,12 @@ import type { ExecutionPlan } from '../execution-plan';
 
 /**
  * Map the requested analysis mode to the execution-plan route the runner is
- * allowed to consume. Durable Full jobs are enqueued with `full-analysis`,
- * while mode/symbol runs use the symbol-research routes.
+ * allowed to consume. Both modes stream over SSE through the symbol-research
+ * routes; comparisons use the multi-symbol variant.
  */
 export function expectedModeExecutionPlanRoute(
-  mode: MastraAnalysisMode,
+  _mode: MastraAnalysisMode,
   comparison: boolean,
 ): ExecutionPlan['route'] {
-  if (mode === 'full') return 'full-analysis';
   return comparison ? 'multi-symbol-research' : 'symbol-research';
 }

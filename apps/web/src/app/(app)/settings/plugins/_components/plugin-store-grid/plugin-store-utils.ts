@@ -18,7 +18,6 @@ export function capabilityLine(entry: PluginStoreEntry): string {
   if (c.tools > 0) parts.push(`${c.tools} tool${c.tools === 1 ? '' : 's'}`);
   if (c.skills > 0) parts.push(`${c.skills} skill${c.skills === 1 ? '' : 's'}`);
   if (c.jobs > 0) parts.push(`${c.jobs} job${c.jobs === 1 ? '' : 's'}`);
-  if (c.agents > 0) parts.push(`${c.agents} agent${c.agents === 1 ? '' : 's'}`);
   if (c.alertChannels > 0)
     parts.push(`${c.alertChannels} channel${c.alertChannels === 1 ? '' : 's'}`);
   if (c.indicators > 0) parts.push(`${c.indicators} indicator${c.indicators === 1 ? '' : 's'}`);

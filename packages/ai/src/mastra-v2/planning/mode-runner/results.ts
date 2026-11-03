@@ -21,7 +21,6 @@
 
 import {
   SPECIALISTS_BY_MODE,
-  type CommitteeCritique,
   type MastraAnalysisMode,
   type MastraModeOpinion,
   type MastraSpecialistName,
@@ -38,7 +37,6 @@ export type ModeWorkflowOutput = {
   blockedText?: string;
   finalText?: string;
   opinions: MastraModeOpinion[];
-  critiques?: CommitteeCritique[];
   packet: SymbolResearchPacket;
   packets?: Record<string, SymbolResearchPacket>;
   stats: MastraGenerationStats;
@@ -96,7 +94,6 @@ export function mapBlockedResult(args: {
   return {
     finalText: text,
     agentOpinions: [],
-    committeeCritiques: [],
     mode: args.mode,
     symbol: args.output.packet.symbol,
     packet: args.output.packet,
@@ -131,7 +128,6 @@ export function mapReadyResult(args: {
   return {
     finalText: args.output.finalText,
     agentOpinions: args.output.opinions,
-    committeeCritiques: args.output.critiques ?? [],
     mode: args.mode,
     symbol: args.output.packet.symbol,
     packet: args.output.packet,

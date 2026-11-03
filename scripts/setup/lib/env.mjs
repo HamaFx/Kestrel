@@ -27,7 +27,6 @@
  */
 
 import { chmodSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 
 const ENV_FILE_MODE = 0o600;
 

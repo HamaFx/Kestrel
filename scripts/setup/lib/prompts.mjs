@@ -263,7 +263,9 @@ export async function select(io, opts) {
           const rows = options.map((option, i) => {
             const active = i === index;
             const cursor = active ? paint('›', 'brand') : ' ';
-            const label = active ? paint(optionLabel(option), 'brand', 'bold') : optionLabel(option);
+            const label = active
+              ? paint(optionLabel(option), 'brand', 'bold')
+              : optionLabel(option);
             const desc = option.description ? paint(`  ${option.description}`, 'dim') : '';
             return `  ${cursor} ${label}${desc}`;
           });

@@ -58,13 +58,6 @@ vi.mock('@mastra/core/agent', () => ({
           steps: [{}],
         };
       }
-      if (this.id.includes('-critique')) {
-        return {
-          object: { confirms: true, revisedConfidence: 0.6, critique: `${this.id} agrees` },
-          usage: { inputTokens: 8, outputTokens: 4 },
-          steps: [{}],
-        };
-      }
       return {
         object: { bias: 'neutral', confidence: 0.6, reasoning: `${this.id} opinion`, details: {} },
         usage: { inputTokens: 10, outputTokens: 5 },

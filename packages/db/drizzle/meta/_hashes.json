@@ -487,6 +487,14 @@
     {
       "tag": "0122_audit_phase4_cleanup",
       "hash": "6b63f3a92a66a9782bd578bba737250f76f9acc3f4da0bf610735b70ad9ae490"
+    },
+    {
+      "tag": "0123_drop_full_analysis_queue",
+      "hash": "0067c39f48af30b466462532a625dfd8317e9b8198e0516b09cc97988bd36be0"
+    },
+    {
+      "tag": "0124_drop_bloat_tables",
+      "hash": "61b81f9af6dfe0d94d8dcee0de4bafad2d3a61850648d29ec0232f2e08af01d9"
     }
   ]
 }

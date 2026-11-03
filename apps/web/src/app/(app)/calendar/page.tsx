@@ -60,7 +60,7 @@ export default async function CalendarPage() {
           icon={<IconCalendarEvent className="size-7" strokeWidth={1.75} />}
           title="No events scheduled"
           description="Events refresh automatically every 15 minutes. Tap below to refresh now."
-          action={<RefreshButton endpoint="/api/cron/calendar" />}
+          action={<RefreshButton endpoint="/api/calendar/refresh" />}
         />
       ) : (
         <>

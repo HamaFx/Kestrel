@@ -21,20 +21,12 @@
 
 import { runAlerts } from './alerts.js';
 import { runBriefings } from './briefings.js';
-import { runBudgetRecovery } from './budget-recovery.js';
 import { runCoT } from './cot.js';
-import { runDatasetExport } from './dataset-export.js';
 import { runEmbeddingBackfill } from './embedding-backfill.js';
 import { runFredActuals } from './fred-actuals.js';
-import { runMetricsFlush } from './metrics-flush.js';
-import { runDurableResearchJob } from './multi-agent-analysis/index.js';
-import { runOpinionCalibration } from './opinion-calibration.js';
-import { runPersistenceRecovery } from './persistence-recovery.js';
 import { runResonanceSync } from './resonance-sync.js';
 import { runRetention } from './retention.js';
-import { runSnapshots } from './snapshots.js';
 import type { JobName, JobRegistration } from './types.js';
-import { runWeeklyReview } from './weekly-review.js';
 
 /**
  * PF-04 — Job command registry.
@@ -45,10 +37,9 @@ import { runWeeklyReview } from './weekly-review.js';
  * Adding a new job means adding an entry here — no other files change.
  *
  * Schedule notes:
- *   - `null` means no cron schedule. Currently only multi-agent-analysis
- *     uses setTimeout-based scheduling instead of cron.
- *   - Minute-level jobs (alerts, briefings, multi-agent-analysis) are
- *     inherently idempotent and skip the daily lock.
+ *   - `null` means no cron schedule.
+ *   - Minute-level jobs (alerts, briefings) are inherently idempotent and
+ *     skip the daily lock.
  *   - Daily+ cadence jobs use acquireCronLock for idempotency.
  */
 export const JOBS: Record<JobName, JobRegistration> = {
@@ -74,13 +65,6 @@ export const JOBS: Record<JobName, JobRegistration> = {
     schedule: '*/5 * * * *',
     hcUuidEnvVar: 'HC_JOB_BRIEFINGS_UUID',
   },
-  snapshots: {
-    name: 'snapshots',
-    run: runSnapshots,
-    description: 'Daily HLOC + pivots + ATR per symbol; tail-prunes candles_1m to 14 days.',
-    schedule: '5 0 * * *',
-    hcUuidEnvVar: 'HC_JOB_SNAPSHOTS_UUID',
-  },
   cot: {
     name: 'cot',
     run: runCoT,
@@ -96,13 +80,6 @@ export const JOBS: Record<JobName, JobRegistration> = {
     schedule: '30 1 * * *',
     hcUuidEnvVar: 'HC_JOB_FRED_ACTUALS_UUID',
   },
-  'weekly-review': {
-    name: 'weekly-review',
-    run: runWeeklyReview,
-    description: 'Sunday weekly review — emits a single agent-authored journal review.',
-    schedule: '0 18 * * 0',
-    hcUuidEnvVar: 'HC_JOB_WEEKLY_REVIEW_UUID',
-  },
   'resonance-sync': {
     name: 'resonance-sync',
     run: runResonanceSync,
@@ -111,67 +88,13 @@ export const JOBS: Record<JobName, JobRegistration> = {
     schedule: '0 23 * * *',
     hcUuidEnvVar: 'HC_JOB_RESONANCE_SYNC_UUID',
   },
-  'multi-agent-analysis': {
-    name: 'multi-agent-analysis',
-    run: runDurableResearchJob,
-    description:
-      'U2 — Claims Mastra durable full-analysis workflow runs (replacing analysis_jobs), executes the Full committee, writes terminal results back into the run records.',
-    // Uses setTimeout-based scheduling, not cron.
-    schedule: null,
-    // R16 — the durable committee job is one of the slowest on the box and
-    // was previously invisible to healthchecks.io when it stopped running.
-    hcUuidEnvVar: 'HC_JOB_MULTI_AGENT_ANALYSIS_UUID',
-    // Durable committee runs take minutes, and one invocation may process up
-    // to MAX_JOBS_PER_RUN claimed runs; the default 120s budget aborts a run
-    // mid-LLM-call (losing the lease and burning a retry). Give this job its
-    // own long budget instead of raising the global timeout for every job.
-    timeoutMs: 15 * 60_000,
-  },
-  'budget-recovery': {
-    name: 'budget-recovery',
-    run: runBudgetRecovery,
-    description: 'Releases stale AI budget reservations left open by interrupted runs.',
-    schedule: '*/10 * * * *',
-    hcUuidEnvVar: 'HC_JOB_BUDGET_RECOVERY_UUID',
-  },
-  'persistence-recovery': {
-    name: 'persistence-recovery',
-    run: runPersistenceRecovery,
-    description: 'Replays failed AI messages, opinions, telemetry, and diagnostic traces.',
-    schedule: '* * * * *',
-    hcUuidEnvVar: 'HC_JOB_PERSISTENCE_RECOVERY_UUID',
-  },
   retention: {
     name: 'retention',
     run: runRetention,
     description:
-      'DB-1 — Daily retention cleanup of telemetry, traces, rate_limits, and provider_daily_quota.',
+      'Daily retention: telemetry, traces, quota, shared snapshots, stale AI budget reservations, and candle pruning.',
     schedule: '15 3 * * *',
     hcUuidEnvVar: 'HC_JOB_RETENTION_UUID',
-  },
-  'metrics-flush': {
-    name: 'metrics-flush',
-    run: runMetricsFlush,
-    description:
-      'Pushes the in-process metrics registry to Grafana Cloud every minute with live-tick freshness.',
-    schedule: '* * * * *',
-    hcUuidEnvVar: 'HC_JOB_METRICS_FLUSH_UUID',
-  },
-  'dataset-export': {
-    name: 'dataset-export',
-    run: runDatasetExport,
-    description:
-      'Nightly governed training-dataset export (eval reports + reviewed feedback → JSONL + manifest → B2).',
-    schedule: '30 3 * * *',
-    hcUuidEnvVar: 'HC_JOB_DATASET_EXPORT_UUID',
-  },
-  'opinion-calibration': {
-    name: 'opinion-calibration',
-    run: runOpinionCalibration,
-    description:
-      'Grades agent opinions older than 4h against realized candles_1m outcomes (Brier calibration for committee fusion weights).',
-    schedule: '40 * * * *',
-    hcUuidEnvVar: 'HC_JOB_OPINION_CALIBRATION_UUID',
   },
 };
 

@@ -28,7 +28,10 @@ function loadDotEnv(path) {
     const match = trimmed.match(/^([A-Z][A-Z0-9_]*)\s*=\s*(.*)$/);
     if (!match) continue;
     let value = match[2] ?? '';
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
       value = value.slice(1, -1);
     }
     result[match[1]] = value;
@@ -58,10 +61,7 @@ function resolveDatabaseUrl() {
 
 function resolveSslOptions() {
   if (process.env.DB_DISABLE_SSL === 'true') {
-    if (
-      process.env.NODE_ENV !== 'production' ||
-      process.env.KESTREL_LOCAL_DOCKER === 'true'
-    ) {
+    if (process.env.NODE_ENV !== 'production' || process.env.KESTREL_LOCAL_DOCKER === 'true') {
       return false;
     }
     throw new Error('DB_DISABLE_SSL=true is only permitted with KESTREL_LOCAL_DOCKER=true.');
@@ -83,7 +83,9 @@ function printHuman(report) {
   console.log(`Connection: ${report.connection}`);
   console.log(`PostgreSQL: ${report.server.postgresVersion}`);
   console.log(`Role: ${report.security.currentRole ?? 'unavailable'}`);
-  console.log(`RLS: ${report.security.rlsEnabledTables}/${report.security.publicTables} tables enabled`);
+  console.log(
+    `RLS: ${report.security.rlsEnabledTables}/${report.security.publicTables} tables enabled`,
+  );
   console.log(`Policies: ${report.security.policyCount}`);
   console.log(`Extensions: ${report.server.extensions.join(', ') || 'none'}`);
   console.log(`Applied Drizzle migrations: ${report.migrations.applied}`);
@@ -161,7 +163,8 @@ try {
   );
   const roleRows = await safe(
     'role',
-    () => sql`SELECT current_user AS current_role, r.rolbypassrls FROM pg_roles r WHERE r.rolname = current_user`,
+    () =>
+      sql`SELECT current_user AS current_role, r.rolbypassrls FROM pg_roles r WHERE r.rolname = current_user`,
     [],
   );
   const extensionRows = await safe(
@@ -215,8 +218,6 @@ try {
     'payments',
     'subscriptions',
     'billing_webhook_dlq',
-    'persistence_outbox',
-    'full_analysis_queue',
   ];
   const knownRowCounts = {};
   for (const table of knownTables) {
@@ -247,11 +248,14 @@ try {
       LEFT JOIN public.organization o ON o.id = m.org_id
       WHERE o.id IS NULL
     `,
-    tenantNullUserSettings: () => sql`SELECT count(*)::int AS count FROM public.user_settings WHERE tenant_id IS NULL`,
-    tenantNullThreads: () => sql`SELECT count(*)::int AS count FROM public.chat_threads WHERE tenant_id IS NULL`,
-    tenantNullMessages: () => sql`SELECT count(*)::int AS count FROM public.chat_messages WHERE tenant_id IS NULL`,
-    pendingOutbox: () => sql`SELECT count(*)::int AS count FROM public.persistence_outbox WHERE status NOT IN ('completed', 'failed')`,
-    pendingBillingDlq: () => sql`SELECT count(*)::int AS count FROM public.billing_webhook_dlq WHERE status = 'pending'`,
+    tenantNullUserSettings: () =>
+      sql`SELECT count(*)::int AS count FROM public.user_settings WHERE tenant_id IS NULL`,
+    tenantNullThreads: () =>
+      sql`SELECT count(*)::int AS count FROM public.chat_threads WHERE tenant_id IS NULL`,
+    tenantNullMessages: () =>
+      sql`SELECT count(*)::int AS count FROM public.chat_messages WHERE tenant_id IS NULL`,
+    pendingBillingDlq: () =>
+      sql`SELECT count(*)::int AS count FROM public.billing_webhook_dlq WHERE status = 'pending'`,
   };
   const integrity = {};
   for (const [name, query] of Object.entries(integrityQueries)) {

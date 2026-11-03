@@ -15,7 +15,7 @@
  */
 
 // Output envelope returned by the `analyze_technical` AI tool. The tool
-// orchestrates `get_candles` + indicator computation + structure detection
+// orchestrates `get_candles` + indicator computation + swing/session levels
 // across a list of timeframes and returns a typed per-timeframe reading
 // plus a deterministic summary string.
 //
@@ -39,12 +39,6 @@ export const BiasSchema = z.union([
   z.literal('bearish'),
   z.literal('neutral'),
 ]);
-export const StructureEventTagSchema = z.union([
-  z.literal('BOS_up'),
-  z.literal('BOS_down'),
-  z.literal('CHoCH_up'),
-  z.literal('CHoCH_down'),
-]);
 
 export const PerTimeframeReadingSchema = z.object({
   tf: TimeframeSchema,
@@ -57,13 +51,18 @@ export const PerTimeframeReadingSchema = z.object({
   structure: z.object({
     swingHigh: z.number().nullable(),
     swingLow: z.number().nullable(),
-    latestStructureEvent: StructureEventTagSchema.nullable(),
   }),
   levels: z.object({
     pivot: z.number().nullable(),
     r1: z.number().nullable(),
     s1: z.number().nullable(),
     atr14: z.number().nullable(),
+    /** Previous UTC day high/low, or null when the window has no prior day. */
+    pdh: z.number().nullable(),
+    pdl: z.number().nullable(),
+    /** Latest Asian session (00:00–07:00 UTC) high/low. */
+    asianHigh: z.number().nullable(),
+    asianLow: z.number().nullable(),
   }),
 });
 export type PerTimeframeReading = z.infer<typeof PerTimeframeReadingSchema>;

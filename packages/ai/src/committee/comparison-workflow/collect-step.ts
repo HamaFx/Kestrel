@@ -24,7 +24,6 @@ import { createStep } from '@mastra/core/workflows';
 
 import type { SymbolResearchPacket } from '../../mastra-v2/packets/symbol-research';
 import { enrichPacketForUser } from '../../plugins/enrichers';
-import { scorePacketWithJev, type JevPacketCalibration } from '../jev-packet-scorer';
 import { recordCommitteeStepSpan } from '../step-spans';
 import { CollectPacketOutputSchema, zeroStats } from '../types';
 import { CommitteeWorkflowInputSchema } from '../workflow-shared';
@@ -37,7 +36,6 @@ export function createComparisonCollectStep(ctx: ComparisonStepContext) {
     symbols: comparisonSymbols,
     runSignal,
     progressStages,
-    generationLedger,
   } = ctx;
 
   return createStep({
@@ -51,9 +49,9 @@ export function createComparisonCollectStep(ctx: ComparisonStepContext) {
       // list needs no cast at the collector boundary.
       const symbols: readonly Symbol[] = inputData.symbols ?? comparisonSymbols;
       const packets = await collectComparisonPackets(symbols, signal);
-      // Phase 3 (Jev roadmap) — apply installed-plugin packet enrichers per
-      // user before calibration and prompting, mirroring the single-symbol
-      // collect step. Enrichment is fail-open and never mutates the cache.
+      // Phase 3 — apply installed-plugin packet enrichers per user before
+      // prompting, mirroring the single-symbol collect step. Enrichment is
+      // fail-open and never mutates the cache.
       const userId = requestContext.get('userId') as string | undefined;
       const entries: Array<[string, SymbolResearchPacket]> = [];
       for (const [entrySymbol, rawPacket] of packets.entries()) {
@@ -87,7 +85,6 @@ export function createComparisonCollectStep(ctx: ComparisonStepContext) {
           status: 'blocked' as const,
           blockedText: text,
           opinions: [],
-          critiques: [],
           packet: primary,
           packets: Object.fromEntries(entries),
           blockedSymbols: blocked.map(([entrySymbol]) => entrySymbol),
@@ -96,39 +93,6 @@ export function createComparisonCollectStep(ctx: ComparisonStepContext) {
           totalCostUsd: 0,
         });
       }
-      // Phase 2/3 (Jev) — "Jev Scores, LLM Explains" for every compared
-      // symbol: calibrate each healthy packet in parallel and publish the
-      // per-symbol anchors so each desk pass blends its own calibrated Jev
-      // confidence. Best-effort: no Jev provider / timeout leaves a symbol
-      // uncalibrated and the run continues on the LLM-only flow.
-      const runId = (requestContext.get('runId') as string | undefined) ?? 'run';
-      const calibrations = await Promise.all(
-        healthy.map(async ([entrySymbol, packet]) => {
-          const calibration = await scorePacketWithJev(packet, {
-            settings: deps.jevSettings ?? null,
-            env: deps.jevEnv ?? null,
-            signal,
-            ledger: generationLedger,
-            ledgerEntryId: `${runId}:packet-calibration:${entrySymbol}`,
-          });
-          return [entrySymbol, calibration] as const;
-        }),
-      );
-      const calibrationsBySymbol: Record<string, JevPacketCalibration> = {};
-      for (const [entrySymbol, calibration] of calibrations) {
-        if (calibration) calibrationsBySymbol[entrySymbol] = calibration;
-      }
-      const contextWithSet = requestContext as unknown as {
-        set?: (k: string, v: unknown) => void;
-      };
-      if (Object.keys(calibrationsBySymbol).length > 0) {
-        contextWithSet.set?.('jevCalibrationsBySymbol', calibrationsBySymbol);
-      }
-      // The primary symbol's anchor stays published under the original
-      // single-symbol key for backward compatibility.
-      const primaryCalibration = calibrationsBySymbol[primary.symbol];
-      if (primaryCalibration) contextWithSet.set?.('jevCalibration', primaryCalibration);
-
       return {
         packet: primary,
         packets: Object.fromEntries(healthy),
@@ -139,8 +103,8 @@ export function createComparisonCollectStep(ctx: ComparisonStepContext) {
             }
           : {}),
         prompt: inputData.prompt,
-        // Comparison v1 always runs the one-desk read per symbol; the
-        // durable full-committee queue never carries a comparison.
+        // Comparison v1 always runs the per-symbol desk pass; a comparison
+        // never runs the full four-desk committee.
         mode: 'single' as const,
       };
     },

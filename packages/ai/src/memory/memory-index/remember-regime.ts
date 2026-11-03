@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Phase 3 (Jev roadmap) — JEPA-inspired market regime memory.
+// Phase 3 — JEPA-inspired market regime memory.
 //
 // A JEPA-style world model learns by predicting the *representation* of future
 // states rather than raw prices. Kestrel's analogue is a deterministic latent

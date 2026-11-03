@@ -26,7 +26,6 @@ import { sql } from 'drizzle-orm';
 import type { HealthSloResponse } from './admin-dtos';
 import { buildHealthAssessment } from './health/anomaly-builder';
 import {
-  queryAnalysisAggregate,
   queryChatAggregate,
   queryCronAggregate,
   queryDailySpendRows,
@@ -68,23 +67,15 @@ export async function computeHealthSloService(
     void error;
   }
 
-  const [
-    ticksResult,
-    cronResult,
-    toolResult,
-    chatResult,
-    analysisResult,
-    operationalResult,
-    dailySpendResult,
-  ] = await Promise.allSettled([
-    queryTickAggregate(db),
-    queryCronAggregate(db, since),
-    queryToolAggregate(db, since),
-    queryChatAggregate(db, since),
-    queryAnalysisAggregate(db, since),
-    queryOperationalAggregate(db, since),
-    queryDailySpendRows(db),
-  ]);
+  const [ticksResult, cronResult, toolResult, chatResult, operationalResult, dailySpendResult] =
+    await Promise.allSettled([
+      queryTickAggregate(db),
+      queryCronAggregate(db, since),
+      queryToolAggregate(db, since),
+      queryChatAggregate(db, since),
+      queryOperationalAggregate(db, since),
+      queryDailySpendRows(db),
+    ]);
 
   const operational = operationalResult.status === 'fulfilled' ? operationalResult.value : null;
   const assessment = buildHealthAssessment({
@@ -92,7 +83,6 @@ export async function computeHealthSloService(
     cron: cronResult.status === 'fulfilled' ? cronResult.value : null,
     tools: toolResult.status === 'fulfilled' ? toolResult.value : null,
     chat: chatResult.status === 'fulfilled' ? chatResult.value : null,
-    analysis: analysisResult.status === 'fulfilled' ? analysisResult.value : null,
     operational,
     dailySpend: dailySpendResult.status === 'fulfilled' ? dailySpendResult.value : null,
     spendThresholdUsd: spendAlertThresholdUsd ?? resolveAdminSpendAlertThresholdUsd(),

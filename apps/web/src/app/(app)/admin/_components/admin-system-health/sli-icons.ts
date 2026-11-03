@@ -5,11 +5,9 @@
 import {
   IconActivity,
   IconClock,
-  IconDatabaseCog,
   IconMessage,
   IconRoute,
   IconShieldCheck,
-  IconSparkles,
   IconTool,
   IconWallet,
 } from '@tabler/icons-react';
@@ -20,8 +18,6 @@ export const SLI_ICONS: Record<string, typeof IconActivity> = {
   cron_jobs: IconClock,
   ai_gateway: IconTool,
   chat_api: IconMessage,
-  full_mode_completion: IconSparkles,
-  persistence_outbox: IconDatabaseCog,
   budget_recovery: IconWallet,
   trace_sink: IconShieldCheck,
   provider_fallback_free: IconRoute,

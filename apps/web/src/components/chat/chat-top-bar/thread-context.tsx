@@ -2,15 +2,14 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Left cluster of the top bar: thread title trigger, pinned symbol, active
-// agent chip, and the streaming indicator.
+// Left cluster of the top bar: thread title trigger, pinned symbol, and the
+// streaming indicator.
 import type { Symbol } from '@kestrel/shared';
 import { IconHistory } from '@tabler/icons-react';
 
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
 import { NavTrigger } from '@/components/layout/nav-trigger';
 import { SymbolChip } from '@/components/ui/symbol-chip';
-import type { CustomAgentSummary } from '@/hooks/use-custom-agents';
 
 interface ThreadContextProps {
   title: string;
@@ -18,7 +17,6 @@ interface ThreadContextProps {
   unpinning: boolean;
   onOpenDrawer: () => void;
   onClearPin: () => void;
-  activeAgent: CustomAgentSummary | null;
   isStreaming: boolean;
 }
 
@@ -28,7 +26,6 @@ export function ThreadContext({
   unpinning,
   onOpenDrawer,
   onClearPin,
-  activeAgent,
   isStreaming,
 }: ThreadContextProps) {
   return (
@@ -48,15 +45,6 @@ export function ThreadContext({
 
       {pinnedSymbol ? (
         <SymbolChip symbol={pinnedSymbol} clearing={unpinning} onClear={onClearPin} />
-      ) : null}
-
-      {activeAgent ? (
-        <span
-          className="border-brand/30 bg-brand/10 text-brand hidden items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[10px] font-semibold sm:inline-flex"
-          title={`Standalone agent: ${activeAgent.name}`}
-        >
-          @{activeAgent.slug}
-        </span>
       ) : null}
 
       {isStreaming ? (

@@ -54,7 +54,7 @@ export default async function NewsPage() {
           icon={<IconNews className="size-7" strokeWidth={1.75} />}
           title="No headlines loaded yet"
           description="Market headlines update automatically every few minutes. Tap below to refresh now."
-          action={<RefreshButton endpoint="/api/cron/news" />}
+          action={<RefreshButton endpoint="/api/news/refresh" />}
         />
       ) : (
         <BookmarksProvider>

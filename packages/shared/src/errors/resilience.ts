@@ -31,7 +31,8 @@
 import type { AppError } from './index';
 
 export type Result<T, E = AppError> =
-  { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: E };
+  | { readonly ok: true; readonly value: T }
+  | { readonly ok: false; readonly error: E };
 
 /** Wrap a successful domain value. */
 export function ok<T>(value: T): Result<T, never> {

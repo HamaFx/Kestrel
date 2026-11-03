@@ -55,15 +55,14 @@ describe('retention cleanup', () => {
       rateLimitRetentionHours: 1,
       providerDailyQuotaRetentionDays: 1,
       cronRunRetentionDays: 1,
-      outboxRetentionDays: 1,
-      analysisJobRetentionDays: 1,
+      candles1mRetentionDays: 1,
       budgetReservationRetentionDays: 1,
       observationalMemoryRetentionDays: 1,
     });
 
-    // 11 batched deletes + the observational-memory existence check (the
+    // 9 batched deletes + the observational-memory existence check (the
     // mocked driver result has no rows, so the delete is skipped).
-    expect(execute).toHaveBeenCalledTimes(12);
+    expect(execute).toHaveBeenCalledTimes(10);
     expect(result).toMatchObject({
       telemetryDeleted: 2,
       toolTelemetryDeleted: 2,
@@ -71,14 +70,11 @@ describe('retention cleanup', () => {
       rateLimitsDeleted: 2,
       providerDailyQuotaDeleted: 2,
       cronRunsDeleted: 2,
-      outboxDeleted: 2,
-      fullAnalysisQueueDeleted: 2,
+      candles1mDeleted: 2,
       budgetReservationsDeleted: 2,
       sharedSnapshotsDeleted: 2,
-      notificationNoiseStateDeleted: 2,
       mastraObservationalMemoryDeleted: 0,
     });
-    expect(result.note).toContain('fullAnalysisQueueDeleted=2');
     // Decision 1A — the dropped shadow/quality tables are no longer pruned.
     expect(result.note).not.toContain('aiShadowComparisonsDeleted');
     expect(result.note).not.toContain('aiQualityResultsDeleted');
@@ -89,7 +85,7 @@ describe('retention cleanup', () => {
 
     await runRetentionCleanup({ telemetryRetentionDays: 1 });
 
-    expect(execute).toHaveBeenCalledTimes(12);
+    expect(execute).toHaveBeenCalledTimes(10);
   });
 
   it('prunes dormant Mastra observational-memory rows when the table exists (audit v2 §4.4)', async () => {
@@ -162,6 +158,6 @@ describe('retention cleanup', () => {
   it('vacuum analyzes only the bounded operational table list', async () => {
     await runVacuumAnalyze();
 
-    expect(execute).toHaveBeenCalledTimes(8);
+    expect(execute).toHaveBeenCalledTimes(7);
   });
 });

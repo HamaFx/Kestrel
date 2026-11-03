@@ -58,7 +58,7 @@ const settledMetaMessage = {
             agentName: 'technical',
             bias: 'bullish',
             confidence: 0.94,
-            reasoning: '15m FVG sweep reclaimed.',
+            reasoning: '15m swing low reclaimed.',
             model: 'claude-4-sonnet',
             latencyMs: 2400,
           },
@@ -81,21 +81,13 @@ const settledMetaMessage = {
             reasoning: 'COT net long but not crowded.',
           },
         ],
-        committeeCritiques: [
-          {
-            agentName: 'risk',
-            confirms: false,
-            revisedConfidence: 0.92,
-            critique: 'Tight 2,852 stop is inside 1H ATR noise.',
-          },
-        ],
       },
     },
   ],
 } as unknown as UIMessage;
 
 describe('DockOpinionsPanel — Syndicate War Room', () => {
-  it('hydrates the 4 desks and clashes from persisted meta when agentProgress is null', () => {
+  it('hydrates the 4 desks and alignment from persisted meta when agentProgress is null', () => {
     render(<DockOpinionsPanel agentProgress={null} messages={[settledMetaMessage]} />);
 
     // Never the empty placeholder on a thread that already ran the council.
@@ -110,16 +102,15 @@ describe('DockOpinionsPanel — Syndicate War Room', () => {
     expect(grid.getByText('DESK-III // AEGIS')).toBeTruthy();
     expect(grid.getByText('DESK-IV // SENTINEL')).toBeTruthy();
 
-    // Cross-examination ledger from `committeeCritiques`.
-    expect(screen.getByText(/Adversarial Cross-Examination/i)).toBeTruthy();
-    expect(screen.getByText('⚔️ CHALLENGED')).toBeTruthy();
-    expect(screen.getByText(/Tight 2,852 stop is inside 1H ATR noise/i)).toBeTruthy();
+    // Desk alignment derived from the four independent opinions.
+    expect(screen.getByText(/Desk Alignment/i)).toBeTruthy();
+    expect(screen.getByText(/All reporting desks agree on direction/i)).toBeTruthy();
   });
 
   it('renders the live Circuit Spine while a council run is in flight', () => {
     const live: AgentProgress = {
       mode: 'full',
-      stage: 'critique',
+      stage: 'verify',
       agents: [
         { agentName: 'technical', status: 'done' },
         { agentName: 'fundamental', status: 'done' },
@@ -130,7 +121,7 @@ describe('DockOpinionsPanel — Syndicate War Room', () => {
     render(<DockOpinionsPanel agentProgress={live} messages={[]} />);
 
     expect(screen.getByText('LIVE COUNCIL TELEMETRY')).toBeTruthy();
-    expect(screen.getByText(/Cross-Examination/)).toBeTruthy();
+    expect(screen.getByText(/Risk Audit/)).toBeTruthy();
     expect(screen.getByText(/2\/4 DESKS/)).toBeTruthy();
   });
 

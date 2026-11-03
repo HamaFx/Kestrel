@@ -95,7 +95,10 @@ export async function run(ctx) {
       io.line(
         `  ${paint("Run 'unlock' or delete pnpm-lock.yaml, fix it, then re-run setup.", 'dim')}`,
       );
-      fail(io, 'pnpm install failed and the lockfile fallback is disabled in non-interactive mode.');
+      fail(
+        io,
+        'pnpm install failed and the lockfile fallback is disabled in non-interactive mode.',
+      );
       return 'abort';
     }
     const retry = await confirm(io, {

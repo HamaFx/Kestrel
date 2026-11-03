@@ -31,7 +31,12 @@
 // Weekend: Friday 22:00 UTC → Sunday 22:00 UTC (market closed).
 
 export type ForexSession =
-  'sydney' | 'tokyo' | 'london' | 'newyork' | 'london_ny_overlap' | 'closed';
+  | 'sydney'
+  | 'tokyo'
+  | 'london'
+  | 'newyork'
+  | 'london_ny_overlap'
+  | 'closed';
 
 export type LiquidityLevel = 'high' | 'medium' | 'low';
 
@@ -196,21 +201,6 @@ function getNextSessionChangeOnWeekend(now: Date): { session: ForexSession; inMi
   // Fallback — shouldn't reach here on weekends.
   return { session: 'sydney', inMinutes: 24 * 60 };
 }
-
-/**
- * Liquidity levels per session.
- * London/NY Overlap = highest liquidity (most active for XAUUSD).
- * London and NY standalone = high.
- * Tokyo = medium.
- * Sydney = low.
- */
-const _SESSION_LIQUIDITY: Partial<Record<ForexSession, LiquidityLevel>> = {
-  london_ny_overlap: 'high',
-  london: 'high',
-  newyork: 'high',
-  tokyo: 'medium',
-  sydney: 'low',
-};
 
 /**
  * Detect the current market phase from a Date.

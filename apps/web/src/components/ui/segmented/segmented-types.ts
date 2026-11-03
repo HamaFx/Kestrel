@@ -49,4 +49,5 @@ export type SegmentedSize = NonNullable<SegmentedBaseProps<string>['size']>;
 
 /** How a single segment commits its value: navigate (link) or call back (button). */
 export type SegmentedItemMode<T extends string> =
-  { as: 'link'; hrefFor: (value: T) => string } | { as?: 'button'; onChange: (next: T) => void };
+  | { as: 'link'; hrefFor: (value: T) => string }
+  | { as?: 'button'; onChange: (next: T) => void };

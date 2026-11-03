@@ -182,7 +182,7 @@ describe('Milestone 5 Empirical Verification: LandingStepper Continuous SVG Pipe
       fireEvent.click(tabs[1]!);
     });
 
-    expect(await screen.findByText(/step-02-committee-debate/i)).not.toBeNull();
+    expect(await screen.findByText(/step-02-committee-deliberation/i)).not.toBeNull();
     expect(await screen.findByText(/4 Independent Analysts/i)).not.toBeNull();
     expect(await screen.findByText(/STAGE 02 VERIFIED/i)).not.toBeNull();
 

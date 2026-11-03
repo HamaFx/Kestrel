@@ -10,6 +10,9 @@ concurrency:
   group: ci-fast-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  NODE_COMPILE_CACHE: ${{ github.workspace }}/node_modules/.cache/node-compile-cache
+
 jobs:
   lint-and-typecheck:
     name: Lint & Typecheck
@@ -30,33 +33,28 @@ jobs:
           node-version: 22.23.3
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Cache Turborepo and Next.js build cache
+      - name: Cache Turborepo, Next.js, and Node compile cache
         uses: actions/cache@v4
         with:
           path: |
             .turbo
             apps/web/.next/cache
+            node_modules/.cache
           key: ${{ runner.os }}-turbo-build-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-turbo-build-
-            ${{ runner.os }}-turbo-
-      - run: pnpm check:route-security
-      - run: pnpm check:env-contract
-      - run: pnpm check:compose-images
-      - run: pnpm check:maintainability
-      - run: pnpm turbo run lint
-      - run: pnpm turbo run typecheck
-      # Audit v2 §4.2 — knip is blocking: the workspace is at zero unused
-      # exports/deps; new dead code must fail CI instead of accumulating.
-      # The guard first rejects entry-glob gaming in knip.json, then Knip runs.
-      - run: pnpm check:knip-config
+      - name: Static Architecture & Security Guards
+        run: pnpm check:guards
+      - name: Lint (Oxlint)
+        run: pnpm lint
+      - name: Format check (Oxfmt)
+        run: pnpm format:check
+      - name: Typecheck (tsrs parallel)
+        run: pnpm turbo run typecheck
       - name: Knip
         run: pnpm knip --no-progress
-      # Audit dependencies for critical security vulnerabilities.
       - run: pnpm audit --audit-level=critical
-      # Build all packages and applications.
       - run: pnpm turbo run build
-      # Enforce JS chunk size budgets.
       - name: Bundle Size Guard
         run: pnpm --filter @kestrel/web bundle-size:check
 
@@ -84,15 +82,13 @@ jobs:
       - name: Cache Turborepo cache (test results)
         uses: actions/cache@v4
         with:
-          # The unit-tests job never runs Next, so it only needs .turbo; the
-          # build job above owns apps/web/.next/cache (identical immutable
-          # cache keys across jobs made one of them a write-only no-op).
-          path: .turbo
+          path: |
+            .turbo
+            node_modules/.cache
           key: ${{ runner.os }}-turbo-test-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-turbo-test-
-            ${{ runner.os }}-turbo-
-      - run: pnpm turbo run test -- --coverage
+      - run: pnpm turbo run test:coverage
         env:
           # The unit-tests job provisions the pgvector service container, so
           # the Postgres-gated suites (RLS isolation, query-layer integration,
@@ -101,8 +97,6 @@ jobs:
           RUN_POSTGRES_RLS_TESTS: '1'
           TEST_POSTGRES_ADMIN_URL: postgres://hamafx:test@localhost:5432/hamafx
           RUN_AI_QUEUE_POSTGRES_TESTS: '1'
-      - name: Test File Guard
-        run: pnpm test:empty-guard
       # The report action hard-requires coverage/coverage-summary.json at the
       # repo root; derive it from the per-workspace istanbul output.
       - name: Merge coverage summaries
@@ -120,7 +114,7 @@ jobs:
   unit-tests-postgres-storage:
     name: Unit Tests (MASTRA_STORAGE=postgres)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     services:
       postgres:
         image: pgvector/pgvector:pg16

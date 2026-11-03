@@ -25,7 +25,7 @@ export function CommandReference() {
           ['/price XAUUSD', 'Live bid / ask'],
           ['/analyze XAUUSD full', '4-desk AI analysis'],
           ['/ask <question>', 'Free-form market question'],
-          ['/committee XAUUSD', 'Full team debate'],
+          ['/committee XAUUSD', '4-desk AI committee'],
           ['/news', 'Latest headlines'],
           ['/calendar', 'Upcoming events'],
           ['/positions', 'Open positions & P&L'],

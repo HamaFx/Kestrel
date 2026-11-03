@@ -21,10 +21,11 @@
  * policy (Phase 6).
  *
  * The committee is a bounded multi-agent workflow: deterministic packet
- * collection, parallel read-only specialists, verification, then a single
- * synthesizer. Q2 decision (docs/plans/decisions.log.md): exactly two modes
- * exist — `single` (one technical desk) and `full` (the 4-desk committee).
- * Q3 decision: both are strict all-or-nothing.
+ * collection, four parallel independent read-only desks, a strict 4-of-4
+ * verification gate, then one conflict-aware synthesizer. Q2 decision
+ * (docs/plans/decisions.log.md): exactly two modes exist — `single` (one
+ * technical desk) and `full` (the 4-desk committee). Q3 decision: both are
+ * strict all-or-nothing.
  */
 
 import { z } from 'zod';
@@ -55,15 +56,11 @@ export const SPECIALISTS_BY_MODE: Record<MastraAnalysisMode, readonly MastraSpec
 export { COMMITTEE_DEADLINE_MS } from '../../mastra-v2/shared/constants';
 
 /** One logical workflow stage, emitted as progress exactly once per run. */
-export type CommitteeStepId =
-  MastraSpecialistName | 'collect-packet' | 'critique' | 'debate' | 'verify' | 'fusion';
+export type CommitteeStepId = MastraSpecialistName | 'collect-packet' | 'verify' | 'fusion';
 
 /** Ordered progress stages for a mode (stable across runs and snapshots). */
 export function committeeProgressStages(mode: MastraAnalysisMode): readonly CommitteeStepId[] {
-  // Full mode runs one cross-critique round after the specialists (Q6 ON by
-  // default); single is a one-desk read with nothing to critique.
-  const critique: CommitteeStepId[] = mode === 'full' ? ['critique'] : [];
-  return ['collect-packet', ...SPECIALISTS_BY_MODE[mode], ...critique, 'verify', 'fusion'];
+  return ['collect-packet', ...SPECIALISTS_BY_MODE[mode], 'verify', 'fusion'];
 }
 
 export interface CommitteeModePolicy {

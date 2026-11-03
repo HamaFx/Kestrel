@@ -29,7 +29,7 @@ export const STEPS: Step[] = [
     telemetry: [
       { label: 'TIMEFRAMES SCANNED', value: '15m / 1H / 4H / Daily' },
       { label: 'CORRELATIONS', value: 'US10Y · US02Y · DXY' },
-      { label: 'ACTIVE SESSIONS', value: 'London Fix · NY Killzone' },
+      { label: 'ACTIVE SESSIONS', value: 'Asian Range · London Open' },
     ],
     codeHighlighted: (
       <>
@@ -58,12 +58,12 @@ export const STEPS: Step[] = [
     tag: '4-DESK DELIBERATION',
     title: '4 Specialist AI Desks Weigh In',
     description:
-      'Four specialized AI desks evaluate the setup in parallel: Technicals maps Fair Value Gaps and structure, Macro reviews central bank catalysts, Risk calculates ATR stop distance, and Sentiment checks COT positioning.',
-    fileName: 'step-02-committee-debate',
+      'Four specialized AI desks evaluate the setup in parallel: Technicals maps trend alignment, swing structure and session levels, Macro reviews central bank catalysts, Risk calculates ATR stop distance, and Sentiment checks COT positioning.',
+    fileName: 'step-02-committee-deliberation',
     latency: 'Step 2 of 4',
     telemetry: [
       { label: 'SPECIALIST DESKS', value: '4 Independent Analysts' },
-      { label: 'TECHNICAL BIAS', value: 'Bullish FVG + Sweep (94%)' },
+      { label: 'TECHNICAL BIAS', value: 'Bullish EMA Stack + Swing Low (94%)' },
       { label: 'COT POSITIONING', value: 'Commercials Net Long' },
     ],
     codeHighlighted: (
@@ -71,7 +71,8 @@ export const STEPS: Step[] = [
         <span className="text-[#6c7086]">─── INDEPENDENT 4-DESK DELIBERATION SUMMARY ───</span>
         {'\n'}
         <span className="text-[#a6e3a1]">[TECHNICAL DESK]</span>{' '}
-        <span className="text-[#f9e2af]">BULLISH (94%)</span> · Asia low swept into 15m FVG
+        <span className="text-[#f9e2af]">BULLISH (94%)</span> · Asia high reclaimed at the London
+        open
         {'\n'}
         <span className="text-[#89b4fa]">[MACRO DESK]</span>{' '}
         <span className="text-[#f9e2af]">BULLISH (88%)</span> · Real yields compressing ahead of Fed

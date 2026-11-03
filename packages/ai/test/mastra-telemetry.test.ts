@@ -365,9 +365,7 @@ describe('Mastra telemetry boundaries', () => {
       'kestrel-mastra-canonical-chat',
     );
     expect(agentLabelForTelemetryKind('mastra_mode')).toBe('kestrel-committee-mode');
-    expect(agentLabelForTelemetryKind('mastra_full_job')).toBe('kestrel-committee-full-job');
     expect(agentLabelForTelemetryKind('mastra_worker_task')).toBe('kestrel-worker-task');
-    expect(agentLabelForTelemetryKind('mastra_custom_agent')).toBe('kestrel-custom-agent');
     expect(agentLabelForTelemetryKind('mastra_xauusd_research')).toBe(
       'kestrel-xauusd-research-poc',
     );
@@ -464,7 +462,6 @@ describe('telemetry vocabulary (audit v2 §4.5)', () => {
       'mastra_xauusd_research',
       'mastra_xauusd_poc',
       'mastra_mode',
-      'mastra_full_job',
       'mastra_worker_task',
       'mastra_canonical_chat',
     ] as const;

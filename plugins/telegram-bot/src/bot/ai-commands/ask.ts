@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// /ask — free-form chat and standalone custom-agent (@handle) dispatch.
+// /ask — free-form chat over verified market context.
 
 import { randomUUID } from 'node:crypto';
 
@@ -48,69 +48,6 @@ export async function askReply(question: string, ctx: TelegramBotContext): Promi
     } = await import('@kestrel/ai/mastra-v2');
     const { settings } = await getUserWithSettings(ctx.userId);
     if (!settings) return { text: 'Your Kestrel settings are unavailable right now.' };
-
-    // ── Standalone custom agent (`@handle`) ──────────────────────────────
-    const {
-      getInstalledPluginRuntime,
-      hasUserAgentCatalogs,
-      parseCustomAgentMention,
-      resolveUserCustomAgent,
-      runCustomAgentText,
-    } = await import('@kestrel/ai/plugins');
-    const mention = parseCustomAgentMention(question);
-    if (mention) {
-      const runtime = await getInstalledPluginRuntime(ctx.userId);
-      if (hasUserAgentCatalogs(runtime)) {
-        const descriptor = await resolveUserCustomAgent(runtime, mention.slug);
-        if (!descriptor) {
-          return {
-            text: `No custom agent @${mention.slug} was found. Open the Agent Studio in Kestrel to create it.`,
-          };
-        }
-        if (!mention.prompt) {
-          return { text: `Add a question after @${mention.slug}.` };
-        }
-
-        let contextPrefix: string | undefined;
-        const mentionSymbol = extractSymbolFromPrompt(mention.prompt);
-        if (mentionSymbol) {
-          const packet = await collectSymbolResearchPacket(mentionSymbol);
-          if (packet.status !== 'ready') {
-            return {
-              text: `Market data for ${mentionSymbol} is unavailable right now. I cannot answer without verified prices.`,
-            };
-          }
-          contextPrefix = [
-            'Live market snapshot (use only these verified numbers):',
-            serializeSymbolResearchPacket(packet),
-          ].join('\n');
-        }
-
-        const result = await runCustomAgentText({
-          runtime,
-          descriptor,
-          settings,
-          env: modelEnv(),
-          userId: ctx.userId,
-          threadId,
-          prompt: mention.prompt,
-          ...(contextPrefix ? { contextPrefix } : {}),
-          signal: analysisTimeout(ctx),
-        });
-        if (!result.text.trim()) {
-          return { text: `@${mention.slug} could not answer right now. Please retry.` };
-        }
-
-        const { appendAssistantMessage, appendUserMessage } = await import('@kestrel/ai');
-        await appendUserMessage(ctx.userId, threadId, userMessage);
-        await appendAssistantMessage(ctx.userId, threadId, {
-          id: randomUUID(),
-          role: 'assistant',
-          parts: [{ type: 'text', text: result.text }],
-        });
-        return { text: result.text };
-      }
-    }
 
     let prompt = question;
     const symbol = extractSymbolFromPrompt(question);

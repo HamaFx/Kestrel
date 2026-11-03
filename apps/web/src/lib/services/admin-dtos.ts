@@ -167,8 +167,7 @@ export interface DiagnosticTraceDetail extends DiagnosticTraceSummary {
   metadata?: Record<string, unknown> | null;
 }
 
-type TraceExplorerSource =
-  'trace' | 'turn' | 'tool' | 'agent' | 'analysis-job' | 'budget' | 'outbox';
+type TraceExplorerSource = 'trace' | 'turn' | 'tool' | 'agent' | 'analysis-job' | 'budget';
 
 export interface TraceExplorerEvent {
   id: string;
