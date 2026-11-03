@@ -39,6 +39,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 loadE2eEnv(__dirname);
+
 // E2E must exercise the protected application path. Never inherit a local
 // AUTH_MODE=legacy setting from a developer's .env.local file.
 process.env.AUTH_MODE = 'normal';
@@ -67,7 +68,9 @@ function buildWebServerCommand(): string {
   // Next.js 16 uses Turbopack by default; no bundler flag is needed. The
   // security-critical values are supplied through webServer.env below so
   // they do not appear in the child process command line.
-  return isCI ? 'pnpm build && pnpm start' : 'pnpm dev';
+  // Local runs use `next dev` directly: the web's own `dev` script pins a
+  // different port, which would fight the `--port` appended below.
+  return isCI ? 'pnpm build && pnpm start' : 'pnpm exec next dev';
 }
 
 export default defineConfig({

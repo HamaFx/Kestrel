@@ -59,7 +59,7 @@ export default function globalSetup() {
   }
 
   try {
-    execSync('pnpm --filter @kestrel/db exec drizzle-kit migrate', {
+    execSync('pnpm --filter @kestrel/db migrate:apply', {
       cwd: resolve(__dirname, '../../../..'),
       stdio: 'pipe',
       timeout: 120_000,

@@ -7,7 +7,7 @@ test.describe('Trading Journal CRUD Flow', () => {
     const page = authedPage;
     await page.goto('/journal');
 
-    await expect(page.getByRole('heading', { name: 'Journal', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Trade Journal', exact: true })).toBeVisible();
     await page.getByRole('button', { name: /log trade/i }).click();
 
     await page.locator('#entry').fill('2650');
@@ -15,7 +15,8 @@ test.describe('Trading Journal CRUD Flow', () => {
     await page.locator('#target').fill('2750');
     await page.getByRole('button', { name: 'Disciplined', exact: true }).click();
 
-    await page.getByRole('button', { name: /save entry/i }).click();
+    // The submit control requires a deliberate 1.2s press-and-hold.
+    await page.getByRole('button', { name: /hold to log trade/i }).click({ delay: 1500 });
     await expect(page.getByText(/trade logged/i).first()).toBeVisible({ timeout: 10_000 });
   });
 });

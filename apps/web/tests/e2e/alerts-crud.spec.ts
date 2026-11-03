@@ -12,14 +12,17 @@ test.describe('Alerts CRUD Flow', () => {
     const openBtn = page.getByRole('button', { name: /create alert|new alert/i }).first();
     await openBtn.click();
 
-    await expect(page.getByRole('dialog')).toBeVisible();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
     await page.locator('#alert-level').fill('2850');
     await page.locator('#alert-note').fill('E2E resistance level');
 
-    await page
-      .getByRole('dialog')
-      .getByRole('button', { name: /^create alert$/i })
-      .click();
+    // The 400ms-debounced historical preview inserts a status callout above the
+    // submit button; wait for it so the button is stable before clicking.
+    await expect(dialog.getByRole('status')).toBeVisible({ timeout: 20_000 });
+    const createButton = dialog.getByRole('button', { name: /^create alert$/i });
+    await createButton.scrollIntoViewIfNeeded();
+    await createButton.click();
 
     await expect(page.getByText(/XAUUSD price above 2850/i).first()).toBeVisible({
       timeout: 15_000,

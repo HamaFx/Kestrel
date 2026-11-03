@@ -104,7 +104,7 @@ jobs:
       - name: Replay cached build (FULL TURBO)
         run: pnpm turbo run build --filter=@kestrel/web...
       - name: Run Playwright E2E shard
-        run: pnpm --filter @kestrel/web exec playwright test --project=setup --project=chromium --shard=${{ matrix.shard }}
+        run: pnpm --filter @kestrel/web test:e2e -- --project=setup --project=chromium --shard=${{ matrix.shard }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:

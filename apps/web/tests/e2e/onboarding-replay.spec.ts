@@ -30,7 +30,9 @@ test.describe('Onboarding replay', () => {
     await expect(page).toHaveURL('/settings');
 
     // Onboarding reset card is visible
-    await expect(page.getByText('Reset and replay the onboarding wizard.')).toBeVisible();
+    await expect(
+      page.getByText('Reset and replay the initial workspace setup walkthrough.'),
+    ).toBeVisible();
 
     // The reset uses the app's ConfirmDrawer, not a native dialog. Open it and
     // confirm via its "Reset" button.

@@ -26,7 +26,6 @@ import { appendUserMessage, createThread, deleteThread } from '@kestrel/ai/persi
 import type { UIMessage } from 'ai';
 
 import { expect, test } from './fixtures';
-import { ensureTestUser } from './test-utils';
 
 test.describe('Chat Flows', () => {
   test('can create a new thread and send a message', async ({ authedPage, mockChatApi }) => {
@@ -77,7 +76,7 @@ test.describe('Chat Flows', () => {
     await expect(page.getByRole('textbox')).toBeVisible({ timeout: 15_000 });
   });
 
-  test('can navigate between threads via URL', async ({ authedPage, mockChatApi }) => {
+  test('can navigate between threads via URL', async ({ authedPage, mockChatApi, workerUser }) => {
     const page = authedPage;
 
     await mockChatApi(page);
@@ -94,8 +93,7 @@ test.describe('Chat Flows', () => {
     // The mocked stream bypasses the real route persistence, so seed the
     // message explicitly — this verifies reload/navigation persistence rather
     // than mock side effects.
-    const user = await ensureTestUser('test@example.com', 'password123');
-    await appendUserMessage(user.id, threadAId, {
+    await appendUserMessage(workerUser.id, threadAId, {
       id: `e2e-navigation-a-${Date.now()}`,
       role: 'user',
       parts: [{ type: 'text', text: 'Test message for thread navigation' }],
@@ -105,8 +103,8 @@ test.describe('Chat Flows', () => {
     // between two DIFFERENT thread URLs avoids the same-URL navigation race
     // (a goto to the current URL can be aborted by the client router's own
     // refresh under parallel workers).
-    const threadB = await createThread(user.id, { pinnedSymbol: null });
-    await appendUserMessage(user.id, threadB.id, {
+    const threadB = await createThread(workerUser.id, { pinnedSymbol: null });
+    await appendUserMessage(workerUser.id, threadB.id, {
       id: `e2e-navigation-b-${Date.now()}`,
       role: 'user',
       parts: [{ type: 'text', text: 'Second thread message' }],
@@ -123,7 +121,7 @@ test.describe('Chat Flows', () => {
       timeout: 15_000,
     });
 
-    await deleteThread(user.id, threadB.id).catch(() => undefined);
+    await deleteThread(workerUser.id, threadB.id).catch(() => undefined);
   });
 
   test('chat handles API error gracefully', async ({ authedPage }) => {

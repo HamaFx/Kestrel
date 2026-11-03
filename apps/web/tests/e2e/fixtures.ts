@@ -164,7 +164,9 @@ export const SINGLE_MODE_SSE = [
 
 export const test = base.extend<Fixtures, { workerUser: WorkerUserFixture }>({
   workerUser: [
-    async (_fixtures, provideFixture, workerInfo) => {
+    // Playwright requires a destructuring pattern even when nothing is needed.
+    // eslint-disable-next-line no-empty-pattern
+    async ({}, provideFixture, workerInfo) => {
       const email = workerUserEmail(workerInfo.parallelIndex, 'user');
       const user = await ensureTestUser(email, 'password123', 'user', { resetWatchlist: true });
       const cookie = await createSessionForUser(user);
@@ -198,7 +200,8 @@ export const test = base.extend<Fixtures, { workerUser: WorkerUserFixture }>({
     await deleteThread(workerUser.id, thread.id).catch(() => undefined);
   },
 
-  mockChatApi: async (_fixtures, provideFixture) => {
+  // eslint-disable-next-line no-empty-pattern
+  mockChatApi: async ({}, provideFixture) => {
     await provideFixture(mockChatApi);
   },
 });
