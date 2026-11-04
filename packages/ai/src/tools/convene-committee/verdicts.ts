@@ -14,41 +14,12 @@
  * limitations under the License.
  */
 
-// Verdict synthesis for the convene_committee tool: LLM opinion → verdict
-// mapping and the deterministic packet-grounded fallback committee.
+// Verdict synthesis for the convene_committee tool: the deterministic,
+// packet-grounded 4-desk scorecard.
 
 import { priceDecimals, type CommitteeVerdict, type ConveneCommitteeOutput } from '@kestrel/shared';
 
-import type { MastraModeOpinion } from '../../committee/types';
 import type { SymbolResearchPacket } from '../../mastra-v2/packets/symbol-research';
-
-export function opinionToVerdict(
-  persona: CommitteeVerdict['persona'],
-  opinion: MastraModeOpinion | undefined,
-  fallback: CommitteeVerdict,
-): CommitteeVerdict {
-  if (!opinion) return fallback;
-  const sentences = opinion.reasoning
-    .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-  const keyPoints = sentences.slice(0, 3);
-  const missingEvidence = Array.isArray(opinion.rawData?.missingEvidence)
-    ? (opinion.rawData.missingEvidence as string[])
-    : [];
-  const assumptions = Array.isArray(opinion.rawData?.assumptions)
-    ? (opinion.rawData.assumptions as string[])
-    : [];
-
-  return {
-    persona,
-    verdict: opinion.bias,
-    confidence: Math.max(1, Math.min(10, Math.round(opinion.confidence * 10))),
-    keyPoints: keyPoints.length > 0 ? keyPoints : [opinion.reasoning.slice(0, 200)],
-    risk: missingEvidence[0] ?? assumptions[0] ?? fallback.risk,
-    recommendation: sentences[sentences.length - 1] ?? fallback.recommendation,
-  };
-}
 
 export function buildPacketGroundedFallbackVerdicts(args: {
   symbol: ConveneCommitteeOutput['symbol'];
