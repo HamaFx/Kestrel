@@ -29,6 +29,7 @@
     "check:maintainability": "node scripts/check-maintainability.mjs",
     "check:knip-config": "node scripts/check-knip-config.mjs",
     "check:env-contract": "node scripts/check-env-contract.mjs",
+    "check:figures": "node scripts/check-doc-figures.mjs",
     "test:postgres-rls": "node scripts/run-postgres-rls-test.mjs",
     "docker:prune": "node scripts/docker-prune-safe.mjs",
     "build:packages": "turbo run build --filter=@kestrel/shared --filter=@kestrel/plugin-sdk --filter=@kestrel/plugins --filter=@kestrel/indicators --filter=@kestrel/db --filter=@kestrel/data --filter=@kestrel/ai --filter=@kestrel/test-utils --filter=@kestrel/loadtest",

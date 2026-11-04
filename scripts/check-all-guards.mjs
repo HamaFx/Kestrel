@@ -26,6 +26,7 @@ const root = resolve(import.meta.dirname, '..');
 const guards = [
   'scripts/check-route-security.mjs',
   'scripts/check-env-contract.mjs',
+  'scripts/check-doc-figures.mjs',
   'scripts/check-compose-images.mjs',
   'scripts/check-compose-reproducibility.mjs',
   'scripts/check-maintainability.mjs',

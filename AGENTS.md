@@ -37,6 +37,13 @@ Self-hosted multi-user BYOK AI trading research platform (Next.js 16, React 19, 
   - Never modify `scripts/check-*.mjs`, `scripts/maintainability-baseline.json`, `knip.json`, or `packages/config/eslint/index.js` to silence a failure. Fix the underlying code.
   - Never create pass-through re-export shims for moved files; update callers directly and delete the old file.
 
+## Documentation Figures
+
+- **Docs, PRs and audits use plain-text figures, not images or Mermaid.** The dialect is mdxcn: a fenced block with `+` corners, `[ TITLE ]` on the top edge, and the sanctioned glyph set.
+- Templates, the chooser and the grammar live in `docs/figures.md`. The trigger rules live in `.claude/skills/mdxcn/SKILL.md`.
+- `pnpm check:figures` fails on drifted padding or an unsanctioned glyph. It runs as part of `pnpm check:guards`.
+- The mdxcn React registry is **not** installed. Do not add it, and do not add an MDX pipeline, for the sake of a figure.
+
 ## Testing Architecture & Anti-Bloat Rules
 
 - **Hard Cap on Test Sprawl (~100 Test Files Total Across Monorepo):**
