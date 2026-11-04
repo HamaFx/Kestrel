@@ -26,6 +26,11 @@
       "@kestrel/source": "./src/db/tables.ts",
       "types": "./dist/db/tables.d.ts",
       "import": "./dist/db/tables.js"
+    },
+    "./db/queries": {
+      "@kestrel/source": "./src/db/queries/index.ts",
+      "types": "./dist/db/queries/index.d.ts",
+      "import": "./dist/db/queries/index.js"
     }
   },
   "scripts": {

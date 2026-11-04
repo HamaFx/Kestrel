@@ -16,9 +16,7 @@
 
 // Shared helpers for the deterministic Telegram data commands.
 
-import { withTenantDb } from '@kestrel/db';
-import { paperPositions } from '@kestrel/plugin-paper-trading/db/tables';
-import { and, desc, eq } from 'drizzle-orm';
+import { listOpenPositions } from '@kestrel/plugin-paper-trading/db/queries';
 
 import type { TelegramBotContext } from '../types';
 
@@ -51,28 +49,19 @@ export interface TelegramPaperPosition {
 }
 
 /**
- * DEC-03 — the Telegram plugin reads open positions from the canonical
- * Paper Trading plugin tables inside a tenant-scoped transaction. Kestrel's
- * legacy core portfolio no longer exists.
+ * DEC-03 — the Telegram plugin reads open positions through the Paper Trading
+ * plugin's canonical query API. The webhook route already holds the install's
+ * tenant scope, and the query filters by user and `status = 'open'`.
  */
 export async function listOpenPaperPositions(
   ctx: TelegramBotContext,
 ): Promise<TelegramPaperPosition[]> {
-  return withTenantDb(
-    ctx.tenantId,
-    async (db) =>
-      db
-        .select({
-          symbol: paperPositions.symbol,
-          side: paperPositions.side,
-          quantity: paperPositions.quantity,
-          entryPrice: paperPositions.entryPrice,
-          unrealizedPnl: paperPositions.unrealizedPnl,
-        })
-        .from(paperPositions)
-        .where(and(eq(paperPositions.userId, ctx.userId), eq(paperPositions.status, 'open')))
-        .orderBy(desc(paperPositions.entryTime))
-        .limit(20),
-    { userId: ctx.userId },
-  );
+  const rows = await listOpenPositions(ctx.userId);
+  return rows.slice(0, 20).map((position) => ({
+    symbol: position.symbol,
+    side: position.side,
+    quantity: position.quantity,
+    entryPrice: position.entryPrice,
+    unrealizedPnl: position.unrealizedPnl,
+  }));
 }
