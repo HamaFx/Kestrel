@@ -29,6 +29,28 @@ import type { DbThread } from '../../persistence';
 import { getDb } from '../../runtime/db';
 
 /**
+ * Read-only lookup for the singleton `Briefings_Thread`. Dashboard reads must
+ * never create the thread: they run inside a read-only tenant transaction and
+ * an INSERT would abort the whole transaction for a new user.
+ */
+export async function findBriefingsThread(userId: string): Promise<DbThread | null> {
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const [found] = await db
+    .select()
+    .from(schema.chatThreads)
+    .where(
+      and(
+        eq(schema.chatThreads.isBriefings, true),
+        eq(schema.chatThreads.userId, userId),
+        eq(schema.chatThreads.tenantId, tenantId),
+      ),
+    )
+    .limit(1);
+  return found ? rowToBriefingsThread(found) : null;
+}
+
+/**
  * Returns the singleton `Briefings_Thread`, creating one if absent. Cron
  * handlers call this once per invocation; on a fresh DB it inserts the
  * first row, on subsequent invocations it returns the same row.
@@ -40,20 +62,8 @@ import { getDb } from '../../runtime/db';
 export async function getOrCreateBriefingsThread(userId: string): Promise<DbThread> {
   const db = getDb();
   const tenantId = await requireTenantIdForUser(userId, db);
-  const existing = await db
-    .select()
-    .from(schema.chatThreads)
-    .where(
-      and(
-        eq(schema.chatThreads.isBriefings, true),
-        eq(schema.chatThreads.userId, userId),
-        eq(schema.chatThreads.tenantId, tenantId),
-      ),
-    )
-    .limit(1);
-
-  const found = existing[0];
-  if (found) return rowToBriefingsThread(found);
+  const found = await findBriefingsThread(userId);
+  if (found) return found;
 
   // The partial unique index on (user_id) for briefing rows is the
   // concurrency boundary. If another cron runner wins the insert, this
@@ -75,20 +85,9 @@ export async function getOrCreateBriefingsThread(userId: string): Promise<DbThre
   const created = inserted[0];
   if (created) return rowToBriefingsThread(created);
 
-  const raced = await db
-    .select()
-    .from(schema.chatThreads)
-    .where(
-      and(
-        eq(schema.chatThreads.isBriefings, true),
-        eq(schema.chatThreads.userId, userId),
-        eq(schema.chatThreads.tenantId, tenantId),
-      ),
-    )
-    .limit(1);
-  const winner = raced[0];
-  if (!winner) throw new Error(`failed to create or find briefings thread for user ${userId}`);
-  return rowToBriefingsThread(winner);
+  const raced = await findBriefingsThread(userId);
+  if (!raced) throw new Error(`failed to create or find briefings thread for user ${userId}`);
+  return raced;
 }
 
 function rowToBriefingsThread(row: typeof schema.chatThreads.$inferSelect): DbThread {

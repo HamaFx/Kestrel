@@ -37,7 +37,7 @@ import type { Symbol } from '@kestrel/shared';
 import { and, desc, eq } from 'drizzle-orm';
 
 import { getDb } from '../../runtime/db';
-import { getOrCreateBriefingsThread } from './thread';
+import { findBriefingsThread } from './thread';
 
 /** Shape returned by `getLatestBriefing` for the dashboard widget. */
 export interface LatestBriefing {
@@ -79,13 +79,10 @@ export interface LatestBriefing {
  *     `Briefings_Thread` first — there's exactly one per user.
  */
 export async function getLatestBriefing(userId: string): Promise<LatestBriefing | null> {
-  // 1. Locate the user's briefings thread.
-  let thread: Awaited<ReturnType<typeof getOrCreateBriefingsThread>>;
-  try {
-    thread = await getOrCreateBriefingsThread(userId);
-  } catch {
-    return null;
-  }
+  // 1. Locate the user's briefings thread without creating it. Dashboard
+  //    reads run inside a read-only tenant transaction; the write path
+  //    (cron) owns thread creation.
+  const thread = await findBriefingsThread(userId);
   if (!thread) return null;
 
   // 2. Fetch the most recent 50 assistant messages on that thread. 50 is a
