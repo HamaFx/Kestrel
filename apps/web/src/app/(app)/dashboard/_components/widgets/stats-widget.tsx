@@ -71,6 +71,20 @@ export function StatsWidget({ entries }: StatsWidgetProps) {
         value: closed.length > 0 ? `${winRate.toFixed(0)}%` : '—',
         tone: winRate >= 50 ? 'bull' : winRate > 0 ? 'muted' : 'bear',
         icon: <IconPercentage />,
+        ...(closed.length > 0
+          ? {
+              meter: {
+                value: winRate,
+                max: 100,
+                tone:
+                  winRate >= 50
+                    ? ('bull' as const)
+                    : winRate > 0
+                      ? ('muted' as const)
+                      : ('bear' as const),
+              },
+            }
+          : {}),
       },
       {
         label: 'Avg R',
@@ -99,6 +113,7 @@ export function StatsWidget({ entries }: StatsWidgetProps) {
           tone={m.tone ?? 'fg'}
           icon={m.icon}
           {...(m.sparkline && m.sparkline.length >= 2 ? { sparkline: m.sparkline } : {})}
+          {...(m.meter ? { meter: m.meter } : {})}
         />
       ))}
     </section>

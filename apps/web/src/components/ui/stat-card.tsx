@@ -16,18 +16,8 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Premium stat card with solid surface and optional sparkline. Used by
-// journal stats and any future numeric summary surface.
-//
-// Mobile-first: p-4 (16px) for comfortable thumb tap if/when the cards
-// become interactive, gap-2 (8px) vertical rhythm on the 8-pt grid.
-//
-// Cards without a sparkline simply end after the value — no placeholder void
-// (rows still align because every consumer lays StatCards out in a CSS grid).
-//
-// Per PLAN.md §2.4 + §2.5 — solid bg-elev-1 surface (no surface-panel),
-// R1 numeric scale for the value, R1 type tokens throughout.
-
+// KPI tile used across the journal and dashboard. The number is the anchor;
+// the recessed sparkline and optional meter carry the trend and target context.
 import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/formatters/cn';
@@ -37,13 +27,17 @@ import { Sparkline } from './sparkline';
 export type StatTone = 'fg' | 'bull' | 'bear' | 'muted' | 'warn';
 
 export interface StatCardProps {
-  /** Lucide icon (or any 14–16px ReactNode). */
   icon?: ReactNode;
   label: string;
   value: string | number;
   tone?: StatTone;
-  /** Sparkline values (most-recent last). Hidden when < 2 points. */
+  /** Sparkline values (most recent last). Hidden when < 2 points. */
   sparkline?: readonly number[];
+  /** Short context line under the value. */
+  hint?: string;
+  /** Optional progress meter under the tile. */
+  meter?: { value: number; max: number; tone?: StatTone };
+  className?: string;
 }
 
 const TONE_CLASS: Record<StatTone, string> = {
@@ -54,47 +48,97 @@ const TONE_CLASS: Record<StatTone, string> = {
   warn: 'text-warn',
 };
 
-const TONE_TINT: Record<StatTone, string> = {
-  fg: '',
-  bull: 'border-l-bull/40',
-  bear: 'border-l-bear/40',
-  muted: '',
-  warn: 'border-l-warn/40',
+const TONE_BAR: Record<StatTone, string> = {
+  fg: 'bg-fg',
+  bull: 'bg-bull',
+  bear: 'bg-bear',
+  muted: 'bg-fg-muted',
+  warn: 'bg-warn',
 };
 
-export function StatCard({ icon, label, value, tone = 'fg', sparkline }: StatCardProps) {
+const TONE_DOT: Record<StatTone, string> = {
+  fg: 'bg-fg-subtle',
+  bull: 'bg-bull',
+  bear: 'bg-bear',
+  muted: 'bg-fg-subtle',
+  warn: 'bg-warn',
+};
+
+export function StatCard({
+  icon,
+  label,
+  value,
+  tone = 'fg',
+  sparkline,
+  hint,
+  meter,
+  className,
+}: StatCardProps) {
+  const meterPct = meter
+    ? Math.min(100, Math.max(0, (meter.value / Math.max(meter.max, 1)) * 100))
+    : 0;
+
   return (
     <div
       role="group"
-      aria-label={`${label}: ${value}`}
+      aria-label={`${label}: ${value}${hint ? `. ${hint}` : ''}`}
       className={cn(
-        'surface-chip relative flex flex-col gap-2 overflow-hidden rounded-xl',
-        'border-border bg-bg-elev-1 border border-l-2 p-3 shadow-[var(--shadow-chip)] sm:p-4',
-        TONE_TINT[tone],
+        'surface-card group relative flex flex-col overflow-hidden rounded-xl border border-white/[0.06] p-3.5 shadow-sm transition-colors hover:border-white/10',
+        className,
       )}
     >
-      <div className="text-fg-subtle relative flex items-center gap-1.5 font-sans text-xs font-medium tracking-wider uppercase">
-        {icon ? (
-          <span className={cn('inline-flex h-4 w-4 items-center justify-center', TONE_CLASS[tone])}>
-            {icon}
-          </span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-fg-subtle flex min-w-0 items-center gap-1.5 font-sans text-[10px] font-medium tracking-wider uppercase">
+          <span
+            className={cn('size-1.5 shrink-0 rounded-full', TONE_DOT[tone])}
+            aria-hidden="true"
+          />
+          {icon ? (
+            <span className={cn('inline-flex shrink-0', TONE_CLASS[tone])}>{icon}</span>
+          ) : null}
+          <span className="truncate">{label}</span>
+        </div>
+        {hint ? (
+          <span className="text-fg-subtle shrink-0 font-mono text-[9px] tracking-wide">{hint}</span>
         ) : null}
-        <span>{label}</span>
       </div>
+
       <div
         className={cn(
-          'text-numeric-lg sm:text-numeric-xl font-mono leading-none font-bold tracking-tight tabular-nums',
+          'text-numeric-lg sm:text-numeric-xl mt-2 truncate font-mono leading-none font-bold tracking-tight tabular-nums',
           TONE_CLASS[tone],
         )}
       >
         {value}
       </div>
+
       {sparkline && sparkline.length >= 2 ? (
-        <Sparkline
-          values={sparkline}
-          label={label}
-          className={cn('h-6 w-full opacity-70', TONE_CLASS[tone])}
-        />
+        <div className="surface-well mt-3 h-11 overflow-hidden rounded-lg">
+          <Sparkline
+            values={sparkline}
+            label={label}
+            variant="area"
+            tone={tone === 'bull' ? 'bull' : tone === 'bear' ? 'bear' : 'neutral'}
+            className={cn('h-full w-full', TONE_CLASS[tone])}
+          />
+        </div>
+      ) : null}
+
+      {meter ? (
+        <div className="mt-3 flex items-center gap-2">
+          <div className="bg-bg-elev-3 h-1 flex-1 overflow-hidden rounded-full">
+            <div
+              className={cn(
+                'h-full rounded-full transition-all duration-500',
+                TONE_BAR[meter.tone ?? tone],
+              )}
+              style={{ width: `${meterPct}%` }}
+            />
+          </div>
+          <span className="text-fg-subtle font-mono text-[9px] tabular-nums">
+            {Math.round(meterPct)}%
+          </span>
+        </div>
       ) : null}
     </div>
   );

@@ -105,9 +105,11 @@ export function PerformanceChart({ entries, height = 220, bare = false }: Perfor
       labels={labels}
       height={height}
       formatValue={(value) => `${value >= 0 ? '+' : ''}${value.toFixed(2)}R`}
+      formatAxis={(value) => `${value >= 0 ? '+' : ''}${value.toFixed(1)}R`}
       ariaLabel={`Cumulative R-multiple equity curve, net ${totalR.toFixed(2)}R`}
       measure
       measureUnit="trades"
+      seriesLabel="Equity"
     />
   );
 

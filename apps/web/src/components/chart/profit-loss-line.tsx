@@ -18,33 +18,31 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Sign-coloured profit/loss line with a zero baseline, in-place hover readout,
-// and click-and-drag range measurement. Drawn as one stretched SVG path and
-// clipped above/below the baseline, so the line changes colour exactly where
-// it crosses zero. No chart library and no floating tooltip over neighbours.
+// Sign-coloured profit/loss curve with real axes, layered grid, a smoothed
+// line, an area gradient and a hover card. The zero baseline is the colour
+// boundary; drag to measure remains available for range analysis.
 import { useId, useMemo, useRef, useState } from 'react';
 
 import { cn } from '@/lib/formatters/cn';
 
-const Y_TOP = 8;
-const Y_BOTTOM = 92;
+import { buildProfitLossGeometry, formatAxisValue } from './chart-geometry';
+import { ChartLegend, ChartTooltip, ChartYAxis } from './chart-ui';
+import { ProfitLossSvg } from './profit-loss-svg';
 
 interface ProfitLossLineProps {
   values: readonly number[];
-  /** Optional secondary series (e.g. the running equity peak) shaded behind. */
   ceilingValues?: readonly number[];
-  /** X-axis labels; the first, middle and last are shown. */
   labels?: readonly string[];
   height?: number;
-  /** Zero line, defaults to 0. */
   baseline?: number;
   formatValue?: (value: number) => string;
+  formatAxis?: (value: number) => string;
   ariaLabel: string;
   className?: string;
-  /** Enable click-and-drag range measurement. */
   measure?: boolean;
-  /** Unit shown in the measurement HUD, e.g. "trades". */
   measureUnit?: string;
+  seriesLabel?: string;
+  ceilingLabel?: string;
 }
 
 function clampIndex(index: number, length: number): number {
@@ -58,53 +56,25 @@ export function ProfitLossLine({
   height = 200,
   baseline = 0,
   formatValue = (value) => value.toFixed(2),
+  formatAxis = formatAxisValue,
   ariaLabel,
   className,
   measure = false,
   measureUnit = 'points',
+  seriesLabel = 'Equity',
+  ceilingLabel,
 }: ProfitLossLineProps) {
   const rawId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
-  const aboveId = `pl-above-${rawId}`;
-  const belowId = `pl-below-${rawId}`;
   const plotRef = useRef<HTMLDivElement | null>(null);
   const draggingRef = useRef(false);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [selection, setSelection] = useState<{ start: number; end: number } | null>(null);
   const [dragging, setDragging] = useState(false);
 
-  const geometry = useMemo(() => {
-    const ceiling = ceilingValues?.length === values.length ? ceilingValues : null;
-    const all = [...values, ...(ceiling ?? []), baseline];
-    const low = Math.min(...all);
-    const high = Math.max(...all);
-    const pad = (high - low) * 0.08 || Math.abs(high || 1) * 0.1 || 1;
-    const min = low - pad;
-    const max = high + pad;
-    const span = max - min || 1;
-    const yFor = (value: number) => Y_TOP + (1 - (value - min) / span) * (Y_BOTTOM - Y_TOP);
-    const xFor = (index: number) => (index / Math.max(values.length - 1, 1)) * 100;
-
-    const line = values
-      .map(
-        (value, index) =>
-          `${index === 0 ? 'M' : 'L'} ${xFor(index).toFixed(2)} ${yFor(value).toFixed(2)}`,
-      )
-      .join(' ');
-    const baselineY = yFor(baseline);
-    const area = `${line} L 100 ${baselineY.toFixed(2)} L 0 ${baselineY.toFixed(2)} Z`;
-
-    let shade: string | null = null;
-    if (ceiling) {
-      const ceilingPoints = ceiling
-        .map((value, index) => `${xFor(index).toFixed(2)} ${yFor(value).toFixed(2)}`)
-        .reverse()
-        .map((point) => `L ${point}`)
-        .join(' ');
-      shade = `${line} ${ceilingPoints} Z`;
-    }
-
-    return { yFor, xFor, line, area, shade, baselineY };
-  }, [values, ceilingValues, baseline]);
+  const geometry = useMemo(
+    () => buildProfitLossGeometry(values, ceilingValues, baseline),
+    [values, ceilingValues, baseline],
+  );
 
   if (values.length < 2) {
     return (
@@ -156,6 +126,7 @@ export function ProfitLossLine({
     hoverIndex !== null && hoverIndex >= 0 && hoverIndex < values.length ? hoverIndex : null;
   const displayIndex = safeHover ?? values.length - 1;
   const displayValue = values[displayIndex] ?? baseline;
+  const previousValue = displayIndex > 0 ? (values[displayIndex - 1] ?? baseline) : null;
   const displayTone =
     displayValue > baseline ? 'text-bull' : displayValue < baseline ? 'text-bear' : 'text-fg';
 
@@ -173,222 +144,150 @@ export function ProfitLossLine({
     selectionStart !== null && selectionEnd !== null
       ? geometry.xFor(selectionEnd) - geometry.xFor(selectionStart)
       : 0;
-
   const midLabel = labels?.[Math.floor((labels.length - 1) / 2)];
+  const legendItems = [
+    { label: seriesLabel, tone: 'brand' as const },
+    ...(ceilingLabel ? [{ label: ceilingLabel, tone: 'muted' as const, dashed: true }] : []),
+  ];
 
   return (
     <div className={cn('flex flex-col', className)}>
-      <div className="mb-1 flex items-center justify-between gap-2 font-mono text-[10px]">
-        <span className="text-fg-subtle">
-          {safeHover !== null
-            ? `Point ${safeHover + 1} of ${values.length}`
-            : measure
-              ? 'Drag to measure · click to clear'
-              : 'Hover to inspect'}
-        </span>
-        <span className={cn('font-semibold tabular-nums', displayTone)} aria-live="polite">
-          {formatValue(displayValue)}
-        </span>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <ChartLegend items={legendItems} />
+        <div className="flex items-center gap-2 font-mono text-[10px]">
+          {safeHover !== null ? (
+            <span className="text-fg-subtle">
+              {labels?.[safeHover] ?? `Point ${safeHover + 1}`}
+            </span>
+          ) : null}
+          <span className={cn('font-semibold tabular-nums', displayTone)}>
+            {formatValue(displayValue)}
+          </span>
+        </div>
       </div>
 
-      <div
-        ref={plotRef}
-        role="img"
-        tabIndex={0}
-        aria-label={`${ariaLabel}. Use arrow keys to inspect values.`}
-        className={cn(
-          'surface-well relative touch-pan-y overflow-hidden rounded-xl outline-none select-none focus-visible:ring-2 focus-visible:ring-brand/40',
-          dragging ? 'cursor-col-resize' : measure ? 'cursor-crosshair' : 'cursor-default',
-        )}
-        style={{ height }}
-        onPointerDown={(event) => {
-          const index = indexFromClientX(event.clientX);
-          setHoverIndex(index);
-          if (measure) {
-            event.preventDefault();
-            event.currentTarget.setPointerCapture(event.pointerId);
-            startMeasure(event.clientX);
-          }
-        }}
-        onPointerMove={(event) => {
-          const index = indexFromClientX(event.clientX);
-          setHoverIndex(index);
-          updateMeasure(event.clientX);
-        }}
-        onPointerUp={() => endMeasure()}
-        onPointerCancel={() => endMeasure()}
-        onPointerLeave={() => {
-          if (!draggingRef.current) setHoverIndex(null);
-        }}
-        onDoubleClick={() => setSelection(null)}
-        onKeyDown={(event) => {
-          if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-            event.preventDefault();
-            setHoverIndex((previous) => {
-              const current = previous ?? values.length - 1;
-              return clampIndex(current + (event.key === 'ArrowLeft' ? -1 : 1), values.length);
-            });
-          } else if (event.key === 'Home') {
-            event.preventDefault();
-            setHoverIndex(0);
-          } else if (event.key === 'End') {
-            event.preventDefault();
-            setHoverIndex(values.length - 1);
-          } else if (event.key === 'Escape') {
-            setHoverIndex(null);
-            setSelection(null);
-          }
-        }}
-      >
-        <svg
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-          className="absolute inset-0 h-full w-full"
-          aria-hidden="true"
+      <div className="relative" style={{ height }}>
+        <div
+          ref={plotRef}
+          role="img"
+          tabIndex={0}
+          aria-label={`${ariaLabel}. Use arrow keys to inspect values.`}
+          className={cn(
+            'surface-well absolute inset-y-0 right-12 left-0 touch-pan-y rounded-xl outline-none select-none focus-visible:ring-2 focus-visible:ring-brand/40',
+            dragging ? 'cursor-col-resize' : measure ? 'cursor-crosshair' : 'cursor-default',
+          )}
+          onPointerDown={(event) => {
+            const index = indexFromClientX(event.clientX);
+            setHoverIndex(index);
+            if (measure) {
+              event.preventDefault();
+              event.currentTarget.setPointerCapture(event.pointerId);
+              startMeasure(event.clientX);
+            }
+          }}
+          onPointerMove={(event) => {
+            const index = indexFromClientX(event.clientX);
+            setHoverIndex(index);
+            updateMeasure(event.clientX);
+          }}
+          onPointerUp={() => endMeasure()}
+          onPointerCancel={() => endMeasure()}
+          onPointerLeave={() => {
+            if (!draggingRef.current) setHoverIndex(null);
+          }}
+          onDoubleClick={() => setSelection(null)}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+              event.preventDefault();
+              setHoverIndex((previous) => {
+                const current = previous ?? values.length - 1;
+                return clampIndex(current + (event.key === 'ArrowLeft' ? -1 : 1), values.length);
+              });
+            } else if (event.key === 'Home') {
+              event.preventDefault();
+              setHoverIndex(0);
+            } else if (event.key === 'End') {
+              event.preventDefault();
+              setHoverIndex(values.length - 1);
+            } else if (event.key === 'Escape') {
+              setHoverIndex(null);
+              setSelection(null);
+            }
+          }}
         >
-          <defs>
-            <clipPath id={aboveId}>
-              <rect x="0" y="0" width="100" height={geometry.baselineY} />
-            </clipPath>
-            <clipPath id={belowId}>
-              <rect x="0" y={geometry.baselineY} width="100" height={100 - geometry.baselineY} />
-            </clipPath>
-          </defs>
-
-          {[Y_TOP, geometry.baselineY, Y_BOTTOM].map((y, index) => (
-            <line
-              key={`grid-${index}`}
-              x1="0"
-              x2="100"
-              y1={y}
-              y2={y}
-              stroke="var(--chart-grid)"
-              strokeWidth="1"
-              vectorEffect="non-scaling-stroke"
-            />
-          ))}
-
-          {geometry.shade ? (
-            <path
-              d={geometry.shade}
-              fill="var(--chart-negative)"
-              fillOpacity={0.14}
-              stroke="none"
-            />
-          ) : null}
-
-          <path
-            d={geometry.area}
-            fill="var(--chart-positive)"
-            fillOpacity={0.14}
-            clipPath={`url(#${aboveId})`}
+          <ProfitLossSvg
+            rawId={rawId}
+            geometry={geometry}
+            values={values}
+            ceilingValues={ceilingValues}
+            selectionStart={selectionStart}
+            selectionEnd={selectionEnd}
+            selectionWidth={selectionWidth}
+            safeHover={safeHover}
           />
-          <path
-            d={geometry.area}
-            fill="var(--chart-negative)"
-            fillOpacity={0.14}
-            clipPath={`url(#${belowId})`}
-          />
-
-          <line
-            x1="0"
-            x2="100"
-            y1={geometry.baselineY}
-            y2={geometry.baselineY}
-            stroke="var(--color-fg-subtle)"
-            strokeOpacity={0.4}
-            strokeDasharray="2 4"
-            strokeWidth="1"
-            vectorEffect="non-scaling-stroke"
-          />
-
-          <path
-            d={geometry.line}
-            fill="none"
-            stroke="var(--chart-positive)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            vectorEffect="non-scaling-stroke"
-            clipPath={`url(#${aboveId})`}
-          />
-          <path
-            d={geometry.line}
-            fill="none"
-            stroke="var(--chart-negative)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            vectorEffect="non-scaling-stroke"
-            clipPath={`url(#${belowId})`}
-          />
-
-          {selectionStart !== null && selectionEnd !== null ? (
-            <>
-              <rect
-                x={geometry.xFor(selectionStart)}
-                y="0"
-                width={selectionWidth}
-                height="100"
-                fill="var(--chart-line-primary)"
-                fillOpacity={0.08}
-              />
-              {[selectionStart, selectionEnd].map((index) => (
-                <line
-                  key={`selection-${index}`}
-                  x1={geometry.xFor(index)}
-                  x2={geometry.xFor(index)}
-                  y1="0"
-                  y2="100"
-                  stroke="var(--chart-line-primary)"
-                  strokeOpacity={0.55}
-                  strokeWidth="1"
-                  vectorEffect="non-scaling-stroke"
-                />
-              ))}
-            </>
-          ) : null}
 
           {safeHover !== null ? (
-            <line
-              x1={geometry.xFor(safeHover)}
-              x2={geometry.xFor(safeHover)}
-              y1="0"
-              y2="100"
-              stroke="var(--color-fg-subtle)"
-              strokeOpacity={0.55}
-              strokeWidth="1"
-              strokeDasharray="2 2"
-              vectorEffect="non-scaling-stroke"
+            <ChartTooltip
+              x={geometry.xFor(safeHover)}
+              y={geometry.yFor(values[safeHover] ?? baseline)}
+              title={labels?.[safeHover] ?? `Point ${safeHover + 1}`}
+              rows={[
+                {
+                  label: seriesLabel,
+                  value: formatValue(values[safeHover] ?? baseline),
+                  tone: displayValue >= baseline ? 'bull' : 'bear',
+                },
+                ...(previousValue !== null
+                  ? [
+                      {
+                        label: 'Change',
+                        value: formatValue((values[safeHover] ?? baseline) - previousValue),
+                        tone:
+                          (values[safeHover] ?? baseline) >= previousValue
+                            ? ('bull' as const)
+                            : ('bear' as const),
+                      },
+                    ]
+                  : []),
+                ...(ceilingValues?.[safeHover] !== undefined
+                  ? [
+                      {
+                        label: ceilingLabel ?? 'Peak',
+                        value: formatValue(ceilingValues[safeHover]!),
+                        tone: 'muted' as const,
+                      },
+                    ]
+                  : []),
+              ]}
             />
           ) : null}
-        </svg>
 
-        {selectionStart !== null && selectionEnd !== null ? (
-          <span
-            className="surface-chip text-fg absolute top-1.5 z-10 rounded-md px-1.5 py-0.5 font-mono text-[10px] whitespace-nowrap tabular-nums"
-            style={{ left: `${Math.min(88, Math.max(12, selectionX))}%`, translate: '-50% 0' }}
-            aria-hidden="true"
-          >
-            Δ {formatValue(selectionDelta)} · {Math.abs(selectionEnd - selectionStart)}{' '}
-            {measureUnit}
-          </span>
-        ) : null}
-
-        {safeHover !== null ? (
           <span
             className="bg-brand absolute size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
             style={{
-              left: `${geometry.xFor(safeHover)}%`,
-              top: `${geometry.yFor(values[safeHover] ?? baseline)}%`,
+              left: `${geometry.xFor(values.length - 1)}%`,
+              top: `${geometry.yFor(values[values.length - 1] ?? baseline)}%`,
             }}
             aria-hidden="true"
           />
-        ) : null}
+
+          {selectionStart !== null && selectionEnd !== null ? (
+            <span
+              className="surface-panel text-fg absolute top-2 z-20 rounded-md border border-white/10 px-2 py-1 font-mono text-[9px] whitespace-nowrap tabular-nums shadow-xl"
+              style={{ left: `${Math.min(84, Math.max(16, selectionX))}%`, translate: '-50% 0' }}
+            >
+              <span className="text-fg-subtle mr-1 tracking-wider uppercase">Measure</span>
+              {formatValue(selectionDelta)} · {Math.abs(selectionEnd - selectionStart)}{' '}
+              {measureUnit}
+            </span>
+          ) : null}
+        </div>
+
+        <ChartYAxis ticks={geometry.ticks} yFor={geometry.yFor} format={formatAxis} />
       </div>
 
       {labels && labels.length >= 2 ? (
-        <div className="text-fg-subtle mt-1 flex justify-between font-mono text-[9px]">
+        <div className="text-fg-subtle mt-1.5 flex justify-between pl-1 font-mono text-[9px]">
           <span>{labels[0]}</span>
           <span>{midLabel}</span>
           <span>{labels[labels.length - 1]}</span>

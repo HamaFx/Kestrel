@@ -60,6 +60,15 @@ export function CoreStatCards({
         value={winRatePct}
         tone={winTone}
         sparkline={sparks.winRate}
+        {...(stats.winRate !== null
+          ? {
+              meter: {
+                value: stats.winRate * 100,
+                max: 100,
+                tone: winTone,
+              },
+            }
+          : {})}
       />
       <StatCard
         icon={<IconTrendingUp className="size-3.5" strokeWidth={2} />}

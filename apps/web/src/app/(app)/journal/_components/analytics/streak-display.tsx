@@ -1,24 +1,11 @@
 'use client';
 
-/**
- * Copyright 2026 Kestrel
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// SPDX-License-Identifier: Apache-2.0
 
-// Current and max win/loss streak pills.
+// Current and maximum win/loss streaks, using the shared KPI tile.
 import type { JournalStatsWithNulls } from '@kestrel/shared';
 
+import { StatCard } from '@/components/ui/stat-card';
 import { cn } from '@/lib/formatters/cn';
 
 interface StreakDisplayProps {
@@ -30,38 +17,31 @@ export function StreakDisplay({ stats, className }: StreakDisplayProps) {
   const current = stats.currentStreak ?? { type: 'none', count: 0 };
   const maxWin = stats.maxWinStreak ?? 0;
   const maxLoss = stats.maxLossStreak ?? 0;
-
   const currentLabel = current.type === 'win' ? 'W' : current.type === 'loss' ? 'L' : '—';
-  const currentClass =
-    current.type === 'win'
-      ? 'bg-bull/10 text-bull'
-      : current.type === 'loss'
-        ? 'bg-bear/10 text-bear'
-        : 'bg-bg-elev-2 text-fg-muted';
+  const currentTone = current.type === 'win' ? 'bull' : current.type === 'loss' ? 'bear' : 'muted';
 
   return (
-    <div className={cn('grid grid-cols-3 gap-3', className)}>
-      <div className={cn('border-border flex flex-col gap-1 rounded-sm border p-3', currentClass)}>
-        <span className="text-caption font-bold tracking-wider uppercase opacity-80">Current</span>
-        <span className="text-lg font-bold tabular-nums">
-          {current.count}
-          {currentLabel}
-        </span>
-      </div>
-
-      <div className="border-border bg-bg-elev-1 text-bull flex flex-col gap-1 rounded-sm border p-3">
-        <span className="text-caption text-fg-subtle font-bold tracking-wider uppercase">
-          Best Win
-        </span>
-        <span className="text-lg font-bold tabular-nums">{maxWin}</span>
-      </div>
-
-      <div className="border-border bg-bg-elev-1 text-bear flex flex-col gap-1 rounded-sm border p-3">
-        <span className="text-caption text-fg-subtle font-bold tracking-wider uppercase">
-          Worst Loss
-        </span>
-        <span className="text-lg font-bold tabular-nums">{maxLoss}</span>
-      </div>
+    <div className={cn('grid grid-cols-1 gap-3 sm:grid-cols-3', className)}>
+      <StatCard
+        label="Current streak"
+        value={`${current.count}${currentLabel}`}
+        tone={currentTone}
+        hint={current.type === 'none' ? 'no active run' : `${current.type} run`}
+      />
+      <StatCard
+        label="Best win streak"
+        value={`${maxWin}W`}
+        tone="bull"
+        hint="consecutive"
+        meter={{ value: maxWin, max: Math.max(maxWin, maxLoss, 1), tone: 'bull' }}
+      />
+      <StatCard
+        label="Worst loss streak"
+        value={`${maxLoss}L`}
+        tone="bear"
+        hint="consecutive"
+        meter={{ value: maxLoss, max: Math.max(maxWin, maxLoss, 1), tone: 'bear' }}
+      />
     </div>
   );
 }

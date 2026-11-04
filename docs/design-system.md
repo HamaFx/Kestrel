@@ -73,6 +73,10 @@ same tokens, and primitives that cannot resolve CSS variables in a paint call
 (the candle sparkline SVG and the replay canvas) mirror the series hexes in
 `apps/web/src/components/chart/chart-colors.ts`.
 
+Analytical charts share one frame grammar: value ticks in the side gutter,
+layered grid lines, a legend row, a hover card, a soft data-area gradient and a
+reduced-motion-safe entrance.
+
 ### Surface CSS Utility Classes
 
 ```css

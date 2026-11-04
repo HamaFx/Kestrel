@@ -116,11 +116,14 @@ export function DrawdownChart({ entries, stats: _stats, className }: DrawdownCha
         values={curve}
         ceilingValues={peaks}
         labels={labels}
-        height={160}
+        height={180}
         formatValue={(value) => `${value >= 0 ? '+' : ''}${value.toFixed(2)}R`}
+        formatAxis={(value) => `${value >= 0 ? '+' : ''}${value.toFixed(1)}R`}
         ariaLabel={`Drawdown chart: max drawdown ${maxDrawdown.toFixed(2)}R, recovery factor ${recoveryFactor.toFixed(2)}`}
         measure
         measureUnit="trades"
+        seriesLabel="Equity"
+        ceilingLabel="Peak"
       />
     </Card>
   );

@@ -16,20 +16,15 @@
  * limitations under the License.
  */
 
-// Phase 1.9 — "Today at a glance" hero.
-//
-// 2×2 (mobile) / 1×4 (desktop) strip above the dashboard fold. Each cell
-// is a self-contained micro-summary: next event countdown, current
-// trading session, open risk, and an AI nudge link to chat.
-//
-// Uses the shared `TimeProvider` so the countdown ticks without each
-// cell starting its own interval. All numerals are `tabular-nums`.
+// "Today at a glance" hero: next catalyst, live session, open exposure and the
+// latest AI nudge. One shared tile shell keeps the four cells aligned.
 import type { EconomicEvent, JournalEntry, Symbol } from '@kestrel/shared';
 import { IconAlertTriangle, IconBolt, IconClock, IconCompass } from '@tabler/icons-react';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 
-import { useTime } from '@/components/providers/time-provider';
 import { SessionDial } from '@/components/layout/session-dial';
+import { useTime } from '@/components/providers/time-provider';
 import { StatusIndicator } from '@/components/ui/status-indicator';
 import { getSessionInfo } from '@/lib/auth/session';
 import { cn } from '@/lib/formatters/cn';
@@ -64,46 +59,81 @@ export function TodayGlanceWidget({
   );
 }
 
-// -----------------------------------------------------------------------
-// Cell 1 — Next high-impact event countdown
-// -----------------------------------------------------------------------
-
-function CellNextEvent({ events }: { events: EconomicEvent[] }) {
-  const { now } = useTime();
-  const upcoming = events.filter((e) => e.date > now).sort((a, b) => a.date - b.date)[0];
-
+function GlanceCell({
+  icon,
+  label,
+  tone,
+  right,
+  footer,
+  children,
+}: {
+  icon: ReactNode;
+  label: string;
+  tone?: string;
+  right?: ReactNode;
+  footer?: ReactNode;
+  children: ReactNode;
+}) {
   return (
-    <div className="surface-chip flex flex-col justify-between gap-2.5 rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)] transition-all hover:border-white/20">
-      <div className="text-fg-subtle flex items-center justify-between text-xs font-semibold tracking-wider uppercase">
-        <div className="flex items-center gap-1.5">
-          <IconClock className="text-warn size-4" />
-          <span>Next event</span>
+    <div className="surface-card group flex min-h-[126px] flex-col gap-3 rounded-xl border border-white/[0.06] p-4 shadow-sm transition-colors hover:border-white/15">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-fg-subtle flex min-w-0 items-center gap-1.5 font-mono text-[10px] font-semibold tracking-wider uppercase">
+          <span className={cn('shrink-0', tone ?? 'text-fg-subtle')}>{icon}</span>
+          <span className="truncate">{label}</span>
         </div>
-        {upcoming?.currency && (
-          <span className="bg-warn/10 text-warn border-warn/30 rounded-2xs border px-1.5 py-0.5 font-mono text-xs font-bold">
-            {upcoming.currency}
-          </span>
-        )}
+        {right}
       </div>
-      {upcoming ? (
-        <div className="flex flex-col gap-0.5">
-          <span className="text-fg line-clamp-1 text-sm font-semibold" title={upcoming.title}>
-            {upcoming.title}
-          </span>
-          <span className="text-warn font-mono text-xs font-medium tabular-nums">
-            {formatCountdown(upcoming.date - now)}
-          </span>
-        </div>
-      ) : (
-        <span className="text-fg-muted text-xs">No high-impact events today</span>
-      )}
+      <div className="flex flex-1 flex-col justify-end gap-1.5">{children}</div>
+      {footer}
     </div>
   );
 }
 
-// -----------------------------------------------------------------------
-// Cell 2 — Current trading session (UTC-anchored via session helper)
-// -----------------------------------------------------------------------
+function CellNextEvent({ events }: { events: EconomicEvent[] }) {
+  const { now } = useTime();
+  const upcoming = events.filter((event) => event.date > now).sort((a, b) => a.date - b.date)[0];
+
+  return (
+    <GlanceCell
+      icon={<IconClock className="size-3.5" strokeWidth={1.9} />}
+      label="Next event"
+      tone="text-warn"
+      right={
+        upcoming?.currency ? (
+          <span className="bg-warn/10 text-warn border-warn/30 rounded-full border px-1.5 py-0.5 font-mono text-[9px] font-bold">
+            {upcoming.currency}
+          </span>
+        ) : null
+      }
+      footer={
+        upcoming ? (
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-fg-subtle font-mono text-[9px] uppercase">Impact window</span>
+            <span className="text-warn font-mono text-[10px] font-semibold tabular-nums">
+              {formatCountdown(upcoming.date - now)}
+            </span>
+          </div>
+        ) : null
+      }
+    >
+      {upcoming ? (
+        <>
+          <span
+            className="text-fg line-clamp-2 text-sm leading-snug font-semibold"
+            title={upcoming.title}
+          >
+            {upcoming.title}
+          </span>
+          <span className="text-fg-subtle text-[10px]">
+            {new Date(upcoming.date).toISOString().slice(11, 16)} UTC
+          </span>
+        </>
+      ) : (
+        <span className="text-fg-muted text-xs">No high-impact events today</span>
+      )}
+    </GlanceCell>
+  );
+}
 
 function CellSession() {
   const { now } = useTime();
@@ -111,80 +141,103 @@ function CellSession() {
   const active = sessionInfo.session !== 'closed' && sessionInfo.session !== 'weekend';
 
   return (
-    <div className="surface-chip flex flex-col justify-between gap-2.5 rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)] transition-all hover:border-white/20">
-      <div className="text-fg-subtle flex items-center justify-between text-xs font-semibold tracking-wider uppercase">
-        <div className="flex items-center gap-1.5">
-          <IconCompass className="text-fg size-4" />
-          <span>Session</span>
+    <GlanceCell
+      icon={<IconCompass className="size-3.5" strokeWidth={1.9} />}
+      label="Session"
+      right={active ? <StatusIndicator tone="online" label="Session live" /> : null}
+      footer={
+        <div className="text-fg-subtle flex items-center gap-2.5 font-mono text-[8px] tracking-wider uppercase">
+          <span className="inline-flex items-center gap-1">
+            <span className="bg-info size-1 rounded-full" /> Asia
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="bg-brand size-1 rounded-full" /> Lon
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="bg-bull size-1 rounded-full" /> NY
+          </span>
         </div>
-        {active ? <StatusIndicator tone="online" label="Session live" /> : null}
-      </div>
+      }
+    >
       <div className="flex items-center justify-between gap-2">
-        <div className="flex min-w-0 flex-col gap-1">
+        <div className="flex min-w-0 flex-col gap-1.5">
           <span className="text-fg text-sm font-semibold">{sessionInfo.label}</span>
           <span
             className={cn(
-              'rounded-2xs inline-flex w-fit items-center px-1.5 py-0.5 font-mono text-xs font-semibold uppercase',
+              'inline-flex w-fit items-center rounded-full border px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase',
               active
-                ? 'bg-bull/10 text-bull border-bull/30 border'
-                : 'bg-bg-elev-2 text-fg-muted border-border border',
+                ? 'bg-bull/10 text-bull border-bull/30'
+                : 'bg-bg-elev-2 text-fg-muted border-border',
             )}
           >
             {active ? 'Live' : 'Closed'}
           </span>
         </div>
-        <SessionDial now={now} label={sessionInfo.label} active={active} size={56} />
+        <SessionDial now={now} label={sessionInfo.label} active={active} size={60} />
       </div>
-    </div>
+    </GlanceCell>
   );
 }
 
-// -----------------------------------------------------------------------
-// Cell 3 — Open risk
-// -----------------------------------------------------------------------
-
 function CellOpenRisk({ entries }: { entries: JournalEntry[] }) {
-  const open = entries.filter((e) => e.outcome === 'open');
-  // Real R-at-risk needs a stop per position; `open.length * 1R` pretended
-  // every open trade was exactly 1R. Surface the position count + symbols
-  // instead, and flag positions that have no invalidation stop at all.
-  const withoutStop = open.filter((e) => e.stop === null).length;
-  const symbols = Array.from(new Set(open.map((e) => e.symbol)))
+  const open = entries.filter((entry) => entry.outcome === 'open');
+  const withoutStop = open.filter((entry) => entry.stop === null).length;
+  const protectedCount = open.length - withoutStop;
+  const protectedPct = open.length > 0 ? (protectedCount / open.length) * 100 : 0;
+  const symbols = Array.from(new Set(open.map((entry) => entry.symbol)))
     .slice(0, 3)
     .join(', ');
 
   return (
-    <div className="surface-chip flex flex-col justify-between gap-2.5 rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)] transition-all hover:border-white/20">
-      <div className="text-fg-subtle flex items-center justify-between gap-1.5 text-xs font-semibold tracking-wider uppercase">
-        <div className="flex items-center gap-1.5">
-          <IconAlertTriangle className="text-danger size-4" />
-          <span>Open risk</span>
-        </div>
-        {withoutStop > 0 ? (
-          <span className="bg-danger/10 text-danger border-danger/30 rounded-2xs border px-1.5 py-0.5 font-mono text-xs font-bold tabular-nums">
+    <GlanceCell
+      icon={<IconAlertTriangle className="size-3.5" strokeWidth={1.9} />}
+      label="Open risk"
+      tone="text-danger"
+      right={
+        withoutStop > 0 ? (
+          <span className="bg-danger/10 text-danger border-danger/30 rounded-full border px-1.5 py-0.5 font-mono text-[9px] font-bold tabular-nums">
             {withoutStop} no stop
           </span>
-        ) : null}
-      </div>
+        ) : null
+      }
+      footer={
+        open.length > 0 ? (
+          <div className="flex flex-col gap-1">
+            <div className="flex h-1 gap-0.5 overflow-hidden rounded-full bg-black/30">
+              <div
+                className="bg-bull/70 h-full rounded-full"
+                style={{ width: `${protectedPct}%` }}
+              />
+              <div
+                className="bg-danger h-full rounded-full"
+                style={{ width: `${100 - protectedPct}%` }}
+              />
+            </div>
+            <div className="text-fg-subtle flex justify-between font-mono text-[8px] uppercase">
+              <span>{protectedCount} protected</span>
+              <span className={withoutStop > 0 ? 'text-danger' : undefined}>
+                {withoutStop} exposed
+              </span>
+            </div>
+          </div>
+        ) : null
+      }
+    >
       {open.length === 0 ? (
         <span className="text-fg-muted text-xs">No open risk</span>
       ) : (
-        <div className="flex items-baseline justify-between gap-2">
+        <>
           <span className="text-fg text-sm font-semibold">
             {open.length} {open.length === 1 ? 'position' : 'positions'}
           </span>
-          <span className="text-fg-subtle truncate font-mono text-xs" title={symbols}>
+          <span className="text-fg-subtle truncate font-mono text-[10px]" title={symbols}>
             {symbols}
           </span>
-        </div>
+        </>
       )}
-    </div>
+    </GlanceCell>
   );
 }
-
-// -----------------------------------------------------------------------
-// Cell 4 — AI nudge
-// -----------------------------------------------------------------------
 
 function CellAiNudge({
   briefingNudge,
@@ -194,18 +247,29 @@ function CellAiNudge({
   defaultSymbol: Symbol;
 }) {
   const nudge = briefingNudge ?? `Ask AI about today's bias for ${defaultSymbol}`;
+
   return (
-    <div className="surface-chip flex flex-col justify-between gap-2.5 rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)] transition-all hover:border-white/20">
-      <div className="text-fg-subtle flex items-center justify-between text-xs font-semibold tracking-wider uppercase">
-        <div className="flex items-center gap-1.5">
-          <IconBolt className="text-brand size-4" />
-          <span>AI Insight</span>
-        </div>
-        <Link href="/chat" className="text-brand font-mono text-xs font-semibold hover:underline">
+    <GlanceCell
+      icon={<IconBolt className="size-3.5" strokeWidth={1.9} />}
+      label="AI insight"
+      tone="text-brand"
+      right={
+        <Link
+          href="/chat"
+          className="text-brand font-mono text-[9px] font-semibold hover:underline"
+        >
           Ask AI →
         </Link>
-      </div>
-      <p className="text-fg line-clamp-1 text-sm leading-snug">{nudge}</p>
-    </div>
+      }
+      footer={
+        <span className="text-fg-subtle font-mono text-[8px] tracking-wider uppercase">
+          {briefingNudge ? 'Latest briefing' : 'Start a conversation'}
+        </span>
+      }
+    >
+      <p className="text-fg line-clamp-2 border-l-2 border-brand/40 pl-2 text-xs leading-snug">
+        {nudge}
+      </p>
+    </GlanceCell>
   );
 }

@@ -2,93 +2,89 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Segmented outcome distribution bar (wins / open / breakeven / losses).
+// Segmented outcome distribution with a prominent win-rate readout and
+// labelled legend chips.
 import type { JournalEntry } from '@kestrel/shared';
 import { useMemo } from 'react';
 
+import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/formatters/cn';
+
+interface Slice {
+  key: string;
+  label: string;
+  count: number;
+  pct: number;
+  tone: string;
+}
+
 export function OutcomeDistribution({ entries }: { entries: readonly JournalEntry[] }) {
-  const distribution = useMemo(() => {
+  const { slices, total, winRate } = useMemo(() => {
     const total = entries.length;
-    if (total === 0) {
-      return {
-        win: 0,
-        loss: 0,
-        be: 0,
-        open: 0,
-        raw: { win: 0, loss: 0, be: 0, open: 0 },
-      };
-    }
-
-    const win = entries.filter((e) => e.outcome === 'win').length;
-    const loss = entries.filter((e) => e.outcome === 'loss').length;
-    const be = entries.filter((e) => e.outcome === 'breakeven').length;
-    const open = entries.filter((e) => e.outcome === 'open').length;
-
+    const win = entries.filter((entry) => entry.outcome === 'win').length;
+    const loss = entries.filter((entry) => entry.outcome === 'loss').length;
+    const breakeven = entries.filter((entry) => entry.outcome === 'breakeven').length;
+    const open = entries.filter((entry) => entry.outcome === 'open').length;
+    const pct = (count: number) => (total > 0 ? (count / total) * 100 : 0);
     return {
-      win: (win / total) * 100,
-      loss: (loss / total) * 100,
-      be: (be / total) * 100,
-      open: (open / total) * 100,
-      raw: { win, loss, be, open },
+      total,
+      winRate: total > 0 ? Math.round((win / total) * 100) : 0,
+      slices: [
+        { key: 'win', label: 'Wins', count: win, pct: pct(win), tone: 'bg-bull' },
+        { key: 'open', label: 'Open', count: open, pct: pct(open), tone: 'bg-fg' },
+        {
+          key: 'be',
+          label: 'Breakeven',
+          count: breakeven,
+          pct: pct(breakeven),
+          tone: 'bg-fg-muted/65',
+        },
+        { key: 'loss', label: 'Losses', count: loss, pct: pct(loss), tone: 'bg-bear' },
+      ] satisfies Slice[],
     };
   }, [entries]);
 
   return (
-    <div className="border-border bg-bg-elev-1 flex flex-col gap-2.5 rounded-sm border p-4">
-      <div className="text-fg-subtle flex items-center justify-between text-xs font-semibold">
-        <span className="tracking-wider uppercase">Outcome Distribution</span>
-        <span className="text-fg-muted tabular-nums">{entries.length} Total Trades logged</span>
+    <Card as="section" aria-label="Outcome distribution" className="gap-3.5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <span className="text-fg-subtle font-mono text-[10px] font-semibold tracking-wider uppercase">
+            Outcome mix
+          </span>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-fg font-mono text-2xl font-bold tracking-tight tabular-nums">
+              {winRate}%
+            </span>
+            <span className="text-fg-subtle text-[10px]">win rate</span>
+          </div>
+        </div>
+        <span className="text-fg-subtle font-mono text-[10px] tabular-nums">
+          {total} {total === 1 ? 'trade' : 'trades'}
+        </span>
       </div>
 
-      <div className="bg-bg-elev-3 flex h-3 w-full overflow-hidden rounded-sm">
-        {distribution.win > 0 && (
-          <div
-            style={{ width: `${distribution.win}%` }}
-            className="bg-bull h-full transition-all duration-300"
-            title={`Wins: ${distribution.raw.win}`}
-          />
-        )}
-        {distribution.open > 0 && (
-          <div
-            style={{ width: `${distribution.open}%` }}
-            className="bg-fg h-full animate-pulse transition-all duration-300"
-            title={`Open: ${distribution.raw.open}`}
-          />
-        )}
-        {distribution.be > 0 && (
-          <div
-            style={{ width: `${distribution.be}%` }}
-            className="bg-fg-muted/65 h-full transition-all duration-300"
-            title={`Breakeven: ${distribution.raw.be}`}
-          />
-        )}
-        {distribution.loss > 0 && (
-          <div
-            style={{ width: `${distribution.loss}%` }}
-            className="bg-bear h-full transition-all duration-300"
-            title={`Losses: ${distribution.raw.loss}`}
-          />
+      <div className="flex h-2.5 w-full gap-0.5 overflow-hidden rounded-full bg-black/30">
+        {slices.map((slice) =>
+          slice.count > 0 ? (
+            <div
+              key={slice.key}
+              className={cn('h-full rounded-full transition-all duration-500', slice.tone)}
+              style={{ width: `${slice.pct}%` }}
+              title={`${slice.label}: ${slice.count} (${Math.round(slice.pct)}%)`}
+            />
+          ) : null,
         )}
       </div>
 
-      <div className="text-caption text-fg-subtle mt-0.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 font-semibold">
-        <div className="flex items-center gap-1.5">
-          <span className="bg-bull size-2 rounded-sm" />
-          <span>Wins ({distribution.raw.win})</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="bg-fg size-2 rounded-sm" />
-          <span>Open ({distribution.raw.open})</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="bg-fg-muted/65 size-2 rounded-sm" />
-          <span>Breakeven ({distribution.raw.be})</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="bg-bear size-2 rounded-sm" />
-          <span>Losses ({distribution.raw.loss})</span>
-        </div>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+        {slices.map((slice) => (
+          <span key={slice.key} className="text-fg-subtle flex items-center gap-1.5 text-[10px]">
+            <span className={cn('size-1.5 rounded-full', slice.tone)} aria-hidden="true" />
+            <span>{slice.label}</span>
+            <span className="text-fg-muted font-mono tabular-nums">{slice.count}</span>
+          </span>
+        ))}
       </div>
-    </div>
+    </Card>
   );
 }

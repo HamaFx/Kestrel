@@ -117,6 +117,7 @@ export function SessionDial({
           strokeWidth="2"
           strokeLinecap="round"
         />
+        <circle cx={handX} cy={handY} r="2.4" fill="var(--chart-line-primary)" />
         <circle
           cx="50"
           cy="50"

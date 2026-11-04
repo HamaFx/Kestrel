@@ -27,8 +27,8 @@
  * market sessions are global, not local):
  *   00:00 – 07:00 UTC  Asian
  *   07:00 – 12:00 UTC  London
- *   12:00 – 17:00 UTC  NY
- *   17:00 – 24:00 UTC  Closed (after-hours)
+ *   12:00 – 21:00 UTC  NY
+ *   21:00 – 24:00 UTC  Closed (after-hours)
  *
  * Weekend window: Friday 22:00 UTC (inclusive) – Sunday 22:00 UTC
  * (exclusive). During the weekend, market microstructure is
@@ -41,7 +41,7 @@
  * (e.g. "London open at 16:00 your time"), but that is the
  * job of a different helper.
  *
- * Pure function: no I/O. Tested in apps/web/test/session.test.ts.
+ * Pure function: no I/O.
  */
 
 type TradingSession = 'asian' | 'london' | 'ny' | 'closed' | 'weekend';
@@ -71,6 +71,6 @@ export function getSessionInfo(d: Date): SessionInfo {
 
   if (hour >= 0 && hour < 7) return { session: 'asian', label: 'Asian', weekday };
   if (hour >= 7 && hour < 12) return { session: 'london', label: 'London', weekday };
-  if (hour >= 12 && hour < 17) return { session: 'ny', label: 'NY', weekday };
+  if (hour >= 12 && hour < 21) return { session: 'ny', label: 'NY', weekday };
   return { session: 'closed', label: 'Closed', weekday };
 }
