@@ -17,6 +17,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { readSpecialistStepResult } from '../src/committee/specialist-runner';
+import { comparisonDeskNamesForMode } from '../src/committee/comparison-workflow/workflow';
 import {
   committeeModelMetadata,
   committeeModePolicy,
@@ -119,5 +120,27 @@ describe('committee mode policy (Q2: single + full, Q3: strict everywhere)', () 
     expect(result?.opinion?.bias).toBe('bullish');
     // Unrelated step ids resolve to nothing instead of throwing.
     expect(readSpecialistStepResult(getStepResult, 'risk')).toBeUndefined();
+  });
+});
+
+describe('comparison desk roster', () => {
+  it('runs every mode specialist for a full comparison', () => {
+    expect(comparisonDeskNamesForMode('full', false)).toEqual([
+      'technical',
+      'fundamental',
+      'risk',
+      'sentiment',
+    ]);
+    expect(comparisonDeskNamesForMode('full', true)).toEqual([
+      'technical',
+      'fundamental',
+      'risk',
+      'sentiment',
+    ]);
+  });
+
+  it('keeps single comparisons lean, with risk behind the rollout flag', () => {
+    expect(comparisonDeskNamesForMode('single', false)).toEqual(['technical']);
+    expect(comparisonDeskNamesForMode('single', true)).toEqual(['technical', 'risk']);
   });
 });

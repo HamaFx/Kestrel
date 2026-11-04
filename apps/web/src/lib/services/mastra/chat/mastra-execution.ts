@@ -88,10 +88,9 @@ export async function runResearchWorkflow(input: ResearchWorkflowInput): Promise
   }
 
   // A-01 (B-01/B-08): a bounded cross-symbol comparison executes the
-  // comparison graph — one cached packet and per-symbol desk passes
-  // (technical + risk by default, P1-04; `ENABLE_COMPARISON_RISK_DESK=0`
-  // keeps technical only) — then a cross-symbol fusion. The durable queue
-  // never carries a comparison, so `mode` is pinned to `single` here.
+  // comparison graph — one cached packet and per-symbol desk passes, then a
+  // cross-symbol fusion. Full mode runs all four desks per symbol; single mode
+  // runs the lean technical pass (risk behind `ENABLE_COMPARISON_RISK_DESK`).
   if (input.plan.route === 'multi-symbol-research') {
     const symbols = input.plan.symbols.length >= 2 ? input.plan.symbols : (input.symbols ?? []);
     if (symbols.length < 2) {
@@ -105,7 +104,7 @@ export async function runResearchWorkflow(input: ResearchWorkflowInput): Promise
       prompt: input.prompt,
       symbol: symbols[0]!,
       symbols,
-      mode: 'single',
+      mode: input.plan.mode,
       ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
       ...withSignal(input.signal),
       ...(input.backfillExcludeMessageIdempotencyKey

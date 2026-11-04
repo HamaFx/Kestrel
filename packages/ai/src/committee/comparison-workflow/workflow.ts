@@ -31,6 +31,7 @@ import { createGenerationLedger } from '../../persistence/generation-ledger';
 import {
   committeeProgressStages,
   REQUEST_CONTEXT_SCHEMA,
+  SPECIALISTS_BY_MODE,
   type CollectComparisonPacketsFn,
   type MastraAnalysisMode,
   type MastraSpecialistName,
@@ -49,6 +50,21 @@ import { createComparisonFusionStep } from './fusion-step';
 import { createComparisonSpecialistSteps } from './specialist-steps';
 import { createComparisonVerifyStep } from './verify-step';
 
+/**
+ * Specialist desks for a comparison run.
+ *
+ * Full mode runs the same four desks as the single-symbol committee. Single
+ * mode keeps the lean technical pass; the risk desk rides behind the
+ * `ENABLE_COMPARISON_RISK_DESK` rollout flag.
+ */
+export function comparisonDeskNamesForMode(
+  mode: MastraAnalysisMode,
+  riskDeskEnabled: boolean,
+): readonly MastraSpecialistName[] {
+  if (mode === 'full') return SPECIALISTS_BY_MODE.full;
+  return riskDeskEnabled ? ['technical', 'risk'] : ['technical'];
+}
+
 export function createComparisonCommitteeWorkflow(
   deps: CommitteeWorkflowDeps,
   comparisonSymbols: readonly Symbol[],
@@ -62,11 +78,10 @@ export function createComparisonCommitteeWorkflow(
 
   const collectComparisonPackets: CollectComparisonPacketsFn =
     deps.collectComparisonPackets ?? collectMultiSymbolPackets;
-  const comparisonDeskNames: readonly MastraSpecialistName[] = readFeatureFlag(
-    'ENABLE_COMPARISON_RISK_DESK',
-  )
-    ? ['technical', 'risk']
-    : ['technical'];
+  const comparisonDeskNames: readonly MastraSpecialistName[] = comparisonDeskNamesForMode(
+    mode,
+    readFeatureFlag('ENABLE_COMPARISON_RISK_DESK'),
+  );
   const comparisonStepId = (desk: MastraSpecialistName, symbol: string) =>
     `${desk}-${symbol.toLowerCase()}`;
 
