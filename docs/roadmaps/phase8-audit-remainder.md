@@ -1,6 +1,6 @@
 # Phase 8: Audit Remainder Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Close the audit findings that Phases 5–7 intentionally did not schedule, validate the migrations against real PostgreSQL, and leave the repository in clean, committed state.
 
@@ -9,6 +9,8 @@
 **Tech Stack:** Next.js 16, Mastra, Drizzle/PostgreSQL, Vitest, pnpm 12, oxlint/oxfmt.
 
 **Spec:** `docs/audit/kestrel-full-architecture-and-product-audit-2026-11-04.md` (§3.1.A defect 2, §3.1.B defect 3, §3.2 P2 coupling, §3.5 dead ESLint packages).
+
+> **Status:** Complete (2026-11-04). Tasks 0–4 implemented and committed individually; Task 5 verified with a real-Postgres migration run. Final evidence: `check:guards` 7/7, `knip` 0 findings, full `turbo run typecheck test` 29/29, `format:check` clean, `build:packages` 12/12, `test:postgres-rls` 24/24 against a fresh pgvector database (migrations `0125` + `0126` applied). E2E was not run: this sandbox has no app database wired into `.env`; an operator with a configured DB should run `pnpm test:e2e:local -- --shards=1`.
 
 ## Global Constraints
 
@@ -32,17 +34,17 @@
 
 **Files:** all currently modified/untracked files.
 
-- [ ] **Step 1: Review the working tree**
+- [x] **Step 1: Review the working tree**
 
 Run: `git status --short`
 Expected: only files from Phases 5–7 plus the four roadmap/audit documents.
 
-- [ ] **Step 2: Run the gate trio**
+- [x] **Step 2: Run the gate trio**
 
 Run: `pnpm check:guards && pnpm knip && pnpm check:fast`
 Expected: 7/7 guards, no knip findings, all turbo tasks successful.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add -A
@@ -64,7 +66,7 @@ git commit -m "feat: execute phases 5-7 of the 2026-11-04 audit remediation"
 - Produces: `comparisonDeskNamesForMode(mode: MastraAnalysisMode, riskDeskEnabled: boolean): readonly MastraSpecialistName[]` exported from `packages/ai/src/committee/comparison-workflow/workflow.ts`.
 - Consumes: `SPECIALISTS_BY_MODE` from `../types`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `packages/ai/test/committee.test.ts`:
 
@@ -94,12 +96,12 @@ describe('comparison desk roster', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `pnpm --filter @kestrel/ai test -- committee`
 Expected: FAIL with `comparisonDeskNamesForMode is not a function` / missing export.
 
-- [ ] **Step 3: Implement the roster helper**
+- [x] **Step 3: Implement the roster helper**
 
 In `workflow.ts`, export:
 
@@ -122,16 +124,16 @@ const comparisonDeskNames = comparisonDeskNamesForMode(
 );
 ```
 
-- [ ] **Step 4: Pass the planned mode from the web runner**
+- [x] **Step 4: Pass the planned mode from the web runner**
 
 In `mastra-execution.ts`, change the comparison branch's `mode: 'single'` to `mode: input.plan.mode` and update the comment to say full comparisons keep the selected mode.
 
-- [ ] **Step 5: Run the tests and the gate trio**
+- [x] **Step 5: Run the tests and the gate trio**
 
 Run: `pnpm --filter @kestrel/ai test -- committee && pnpm check:guards && pnpm knip && pnpm check:fast`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/web/src/lib/services/mastra/chat/mastra-execution.ts packages/ai/src/committee/comparison-workflow/workflow.ts packages/ai/test/committee.test.ts
@@ -154,7 +156,7 @@ git commit -m "fix(ai): honour full mode in multi-symbol comparisons"
 - `conveneCommitteeTool` keeps its input/output schema and `ToolIOMap` declaration.
 - `buildPacketGroundedFallbackVerdicts(args)` remains the only verdict builder.
 
-- [ ] **Step 1: Remove the nested run from the tool**
+- [x] **Step 1: Remove the nested run from the tool**
 
 In `index.ts`:
 
@@ -168,21 +170,21 @@ In `verdicts.ts`:
 
 - Delete `opinionToVerdict` and the `MastraModeOpinion` import; update the header comment.
 
-- [ ] **Step 2: Delete the dead module**
+- [x] **Step 2: Delete the dead module**
 
 Run: `git rm packages/ai/src/tools/convene-committee/committee-run.ts`
 
-- [ ] **Step 3: Verify no references remain**
+- [x] **Step 3: Verify no references remain**
 
 Run: `rg "runLlmCommittee|opinionToVerdict" packages apps`
 Expected: no matches.
 
-- [ ] **Step 4: Run the gate trio**
+- [x] **Step 4: Run the gate trio**
 
 Run: `pnpm check:guards && pnpm knip && pnpm check:fast`
 Expected: PASS. Knip must not report the removed module or its exports.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/ai/src/tools/convene-committee
@@ -202,7 +204,7 @@ git commit -m "refactor(ai): make convene_committee a deterministic packet-groun
 
 - Consumes: `listOpenPositions(userId: string): Promise<PaperPositionRow[]>` from `@kestrel/plugin-paper-trading/db/queries`.
 
-- [ ] **Step 1: Export the query barrel**
+- [x] **Step 1: Export the query barrel**
 
 Add to `plugins/paper-trading/package.json` exports:
 
@@ -214,7 +216,7 @@ Add to `plugins/paper-trading/package.json` exports:
 }
 ```
 
-- [ ] **Step 2: Replace the raw table read**
+- [x] **Step 2: Replace the raw table read**
 
 In `plugins/telegram-bot/src/bot/commands/shared.ts`:
 
@@ -223,12 +225,12 @@ In `plugins/telegram-bot/src/bot/commands/shared.ts`:
 - Remove now-unused `withTenantDb`, `paperPositions`, and `and/desc/eq` imports.
 - Keep the `TelegramPaperPosition` shape and map `quantity`, `entryPrice`, `unrealizedPnl` with `Number(...)` if the row types are strings.
 
-- [ ] **Step 3: Run the plugin tests and gate trio**
+- [x] **Step 3: Run the plugin tests and gate trio**
 
 Run: `pnpm --filter @kestrel/plugin-telegram-bot test && pnpm check:guards && pnpm knip && pnpm check:fast`
 Expected: PASS, and the Telegram bundle no longer imports drizzle or plugin tables.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add plugins/paper-trading/package.json plugins/telegram-bot/src/bot/commands/shared.ts pnpm-lock.yaml
@@ -246,7 +248,7 @@ git commit -m "refactor(telegram): read paper positions through the plugin query
 - Modify: `packages/config/package.json`
 - Modify: `knip.json` (remove the `packages/config` workspace override)
 
-- [ ] **Step 1: Delete the configs**
+- [x] **Step 1: Delete the configs**
 
 ```bash
 git rm apps/web/eslint.config.js apps/worker/eslint.config.js \
@@ -258,20 +260,20 @@ git rm apps/web/eslint.config.js apps/worker/eslint.config.js \
 git rm -r packages/config/eslint
 ```
 
-- [ ] **Step 2: Prune `packages/config/package.json`**
+- [x] **Step 2: Prune `packages/config/package.json`**
 
 Remove `"eslint"` from `files`, the `"./eslint"` export, and the dependencies `@eslint/js`, `eslint`, `eslint-plugin-react-hooks`, `globals`, `typescript-eslint`.
 
-- [ ] **Step 3: Update knip**
+- [x] **Step 3: Update knip**
 
 Remove the entire `"packages/config": { ... }` workspace block from `knip.json`.
 
-- [ ] **Step 4: Reinstall and verify**
+- [x] **Step 4: Reinstall and verify**
 
 Run: `pnpm install && pnpm check:guards && pnpm knip && pnpm check:fast`
 Expected: PASS. If knip reports `@kestrel/config` as unused, add it to the root `ignoreDependencies` only after confirming every workspace still extends its tsconfig (that is the legitimate use).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -284,21 +286,21 @@ git commit -m "chore: remove dead ESLint configuration and dependencies"
 
 **Files:** none (verification only).
 
-- [ ] **Step 1: Run the real-Postgres RLS suite**
+- [x] **Step 1: Run the real-Postgres RLS suite**
 
 Run: `pnpm test:postgres-rls`
 Expected: PASS. This spins a fresh pgvector container and applies the full migration set including `0125` and `0126`.
 
-- [ ] **Step 2: Run every gate one final time**
+- [x] **Step 2: Run every gate one final time**
 
 Run: `pnpm format:check && pnpm check:guards && pnpm knip && pnpm check:fast && pnpm build:packages`
 Expected: all pass.
 
-- [ ] **Step 3: Record E2E status**
+- [x] **Step 3: Record E2E status**
 
 Run: `pnpm test:e2e:local -- --shards=1` only when a configured app database and dev server are available. Otherwise record in the final report that E2E was not run in this sandbox (no app DB), with the exact command an operator should run.
 
-- [ ] **Step 4: Commit any formatting fallout**
+- [x] **Step 4: Commit any formatting fallout**
 
 ```bash
 git add -A
