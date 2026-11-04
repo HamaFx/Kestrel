@@ -29,6 +29,8 @@ import { IconAlertTriangle, IconBolt, IconClock, IconCompass } from '@tabler/ico
 import Link from 'next/link';
 
 import { useTime } from '@/components/providers/time-provider';
+import { SessionDial } from '@/components/layout/session-dial';
+import { StatusIndicator } from '@/components/ui/status-indicator';
 import { getSessionInfo } from '@/lib/auth/session';
 import { cn } from '@/lib/formatters/cn';
 import { formatCountdown } from '@/lib/formatters/datetime';
@@ -115,20 +117,23 @@ function CellSession() {
           <IconCompass className="text-fg size-4" />
           <span>Session</span>
         </div>
-        {active && <span className="bg-bull flex size-2 animate-pulse rounded-full" />}
+        {active ? <StatusIndicator tone="online" label="Session live" /> : null}
       </div>
-      <div className="flex items-center justify-between gap-1">
-        <span className="text-fg text-sm font-semibold">{sessionInfo.label}</span>
-        <span
-          className={cn(
-            'rounded-2xs inline-flex items-center px-1.5 py-0.5 font-mono text-xs font-semibold uppercase',
-            active
-              ? 'bg-bull/10 text-bull border-bull/30 border'
-              : 'bg-bg-elev-2 text-fg-muted border-border border',
-          )}
-        >
-          {active ? 'Live' : 'Closed'}
-        </span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-col gap-1">
+          <span className="text-fg text-sm font-semibold">{sessionInfo.label}</span>
+          <span
+            className={cn(
+              'rounded-2xs inline-flex w-fit items-center px-1.5 py-0.5 font-mono text-xs font-semibold uppercase',
+              active
+                ? 'bg-bull/10 text-bull border-bull/30 border'
+                : 'bg-bg-elev-2 text-fg-muted border-border border',
+            )}
+          >
+            {active ? 'Live' : 'Closed'}
+          </span>
+        </div>
+        <SessionDial now={now} label={sessionInfo.label} active={active} size={56} />
       </div>
     </div>
   );

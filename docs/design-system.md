@@ -49,12 +49,29 @@ Located in `apps/web/src/app/globals.css`, the Kestrel surface token system repl
 
 ### Color Palette
 
-- **Deep Ground:** `#101112` (Obsidian canvas)
-- **Panel Elevation:** `#141516` (Primary container surface)
-- **Elevated Chip:** `#161718` (Chamfered interactive tiles)
-- **Recessed Well:** `#08090a` (Instrument data reading groove)
-- **The Brand Ember:** `#FF3616` (Primary flame / active state)
-- **Semantics:** Bullish/Mint (`#3F9E3D`), Bearish/Crimson (`#E02C10`), Yields/Info (`#89B4FA`), Risk/Warn (`#FAB387`)
+- **Deep Ground:** `#121212` (`--color-bg`, Obsidian canvas)
+- **Panel Elevation:** `#161616` (`--color-bg-elev-1`, Primary container surface)
+- **Elevated Chip:** `#1d1d1d` (`--color-bg-elev-2`, Chamfered interactive tiles)
+- **Recessed Well:** `#0d0e10` (`surface-well`, Instrument data reading groove)
+- **The Brand Ember:** `#FF3616` (`--color-brand`, Primary flame / active state)
+- **Semantics:** Bullish/Mint (`#3F9E3D`), Bearish/Crimson (`#F03E3E`), Yields/Info (`#4FA3B5`), Risk/Warn (`#D98F00`)
+
+### Chart Contract
+
+Every chart surface reads one token layer instead of hard-coding series colours:
+
+- `--chart-positive` → `--color-bull` for reward / bullish series
+- `--chart-negative` → `--color-bear` for risk / bearish series
+- `--chart-line-primary` → `--color-brand` for the primary projection or entry line
+- `--chart-grid` for grid lines and `--chart-band` for shaded bands
+
+New SVG charts use these variables directly. The shared
+`ProfitLossLine` primitive (`apps/web/src/components/chart/profit-loss-line.tsx`)
+owns the zero baseline, sign clipping, hover readout and drag-to-measure HUD for
+the performance and drawdown charts. The session dial and ring gauges read the
+same tokens, and primitives that cannot resolve CSS variables in a paint call
+(the candle sparkline SVG and the replay canvas) mirror the series hexes in
+`apps/web/src/components/chart/chart-colors.ts`.
 
 ### Surface CSS Utility Classes
 
@@ -113,11 +130,6 @@ The root `/` route serves as an institutional marketing showcase for unauthentic
 │  • Market Event Injector & Live 4-Desk Voting Animation     │
 │  • Interactive Risk Ceiling Slider & Live Veto Enforcement  │
 │  • Certified Cryptographic Order Ticket & FIX Bridge Test   │
-├─────────────────────────────────────────────────────────────┤
-│                 LANDING CASE STUDIES (#cases)               │
-│  • Horizontal Audited Trade Execution Slideshow             │
-│  • 4 Real Syndicate Trades (XAU, EUR, GBP, BTC)             │
-│  • Step-by-Step Transaction Lifecycle & Autoplay Progress   │
 ├─────────────────────────────────────────────────────────────┤
 │                    LANDING STEPPER (#stepper)               │
 │  • Vertical Illuminated Fiber-Optic Circuit Timeline        │

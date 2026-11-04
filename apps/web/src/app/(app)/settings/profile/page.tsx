@@ -23,6 +23,7 @@ import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
 
+import { AccountSubNav } from '../_components/ai-subnav';
 import { ProfileForm } from '../_components/profile/profile-form';
 import { ChangePasswordCard } from '../_components/security/change-password-card';
 import { LinkedAccountsCard } from '../_components/security/linked-accounts-card';
@@ -64,12 +65,14 @@ export default async function ProfileSettingsPage() {
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h2 className="text-fg text-lg font-semibold tracking-tight">Profile & Security</h2>
+        <h2 className="text-fg text-lg font-semibold tracking-tight">Account & System</h2>
         <p className="text-fg-subtle text-sm">
           Manage your display name, password, two-factor authentication, connected accounts, and
           active devices.
         </p>
       </div>
+
+      <AccountSubNav />
 
       <div className="flex flex-col gap-4">
         <ProfileForm initialName={session?.user?.name || ''} email={session?.user?.email || ''} />

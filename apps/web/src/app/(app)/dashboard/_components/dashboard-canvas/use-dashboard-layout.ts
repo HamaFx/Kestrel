@@ -14,6 +14,7 @@ import {
   DEFAULT_LAYOUT,
   isPluginWidgetType,
   LAYOUT_STORAGE_KEY,
+  LEGACY_DEFAULT_LAYOUT,
   makePluginWidgetType,
   WIDGET_LABELS,
   type WidgetConfig,
@@ -57,11 +58,26 @@ export function useDashboardLayout(installedPluginIds?: readonly string[]) {
   );
 
   // After hydration, prune any widget types that no longer exist in the
-  // catalogue (core widget removed, or plugin uninstalled).
+  // catalogue (core widget removed, or plugin uninstalled). A stored layout
+  // that is exactly the pre-2026-11-04 default is upgraded once to the new
+  // first-fold layout; a customised layout is left untouched.
   const safeLayout = useMemo(() => {
     if (!hydrated) return DEFAULT_LAYOUT;
+    const isLegacyDefault =
+      layout.length === LEGACY_DEFAULT_LAYOUT.length &&
+      layout.every((widget, index) => {
+        const legacy = LEGACY_DEFAULT_LAYOUT[index];
+        return (
+          legacy !== undefined &&
+          widget.id === legacy.id &&
+          widget.type === legacy.type &&
+          widget.span === legacy.span &&
+          widget.order === legacy.order
+        );
+      });
+    const source = isLegacyDefault ? DEFAULT_LAYOUT : layout;
     const known = new Set<string>([...CORE_WIDGET_TYPES, ...pluginWidgetByType.keys()]);
-    return layout.filter((w) => known.has(w.type)).map((w, i) => ({ ...w, order: i }));
+    return source.filter((w) => known.has(w.type)).map((w, i) => ({ ...w, order: i }));
   }, [hydrated, layout, pluginWidgetByType]);
 
   const persistLayout = useCallback(

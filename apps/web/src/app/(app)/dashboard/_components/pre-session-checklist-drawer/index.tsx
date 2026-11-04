@@ -18,8 +18,10 @@
 
 // Pre-session gameplan drawer shell: trigger button, header, the four ritual
 // steps, and the lock-in action.
-import type { SessionGameplan } from '@kestrel/shared';
+import type { JournalEntry, SessionGameplan } from '@kestrel/shared';
 import { IconListCheck, IconShieldCheck } from '@tabler/icons-react';
+import { m } from 'motion/react';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -42,9 +44,29 @@ import { useSessionGameplan } from './use-session-gameplan';
 
 export function PreSessionChecklistDrawer({
   initialPlan = null,
+  entries = [],
 }: {
   initialPlan?: SessionGameplan | null;
+  entries?: readonly JournalEntry[];
 }) {
+  const [usedDailyR, setUsedDailyR] = useState(0);
+
+  useEffect(() => {
+    const start = new Date();
+    start.setUTCHours(0, 0, 0, 0);
+    const startMs = start.getTime();
+    const used = entries
+      .filter(
+        (entry) =>
+          entry.outcome !== 'open' &&
+          entry.rMultiple !== null &&
+          entry.closedAt !== null &&
+          entry.closedAt >= startMs,
+      )
+      .reduce((sum, entry) => sum + (entry.rMultiple ?? 0), 0);
+    setUsedDailyR(used);
+  }, [entries]);
+
   const {
     open,
     setOpen,
@@ -108,10 +130,19 @@ export function PreSessionChecklistDrawer({
           </div>
         </DrawerHeader>
 
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 pb-6">
+        <m.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
+          className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 pb-6"
+        >
           <MindsetSection mindset={mindset} onSelect={setMindset} />
 
-          <RiskBudgetSection maxDailyR={maxDailyR} onSelect={setMaxDailyR} />
+          <RiskBudgetSection
+            maxDailyR={maxDailyR}
+            usedDailyR={usedDailyR}
+            onSelect={setMaxDailyR}
+          />
 
           <SessionRuleSection
             primaryRule={primaryRule}
@@ -146,7 +177,7 @@ export function PreSessionChecklistDrawer({
               Lock In Daily Gameplan
             </Button>
           </div>
-        </div>
+        </m.div>
       </DrawerContent>
     </Drawer>
   );

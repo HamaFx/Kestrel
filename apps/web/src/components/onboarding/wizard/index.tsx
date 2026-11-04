@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 import type { SymbolCatalogRow } from '@kestrel/db';
+import { AnimatePresence, m } from 'motion/react';
 
 import { WizardStepper } from '../_components/wizard-stepper';
 import { useOnboardingPersistence } from './use-onboarding-persistence';
@@ -45,7 +46,11 @@ export function OnboardingWizard({
   });
 
   return (
-    <div className="surface-panel rounded-2xl border border-white/10 p-6 shadow-[var(--shadow-chip)] sm:p-8">
+    <m.div
+      layout
+      transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+      className="surface-panel rounded-2xl border border-white/10 p-6 shadow-[var(--shadow-chip)] sm:p-8"
+    >
       <WizardStepper step={wizard.step} />
 
       <div className="mb-4 flex justify-end">
@@ -59,26 +64,36 @@ export function OnboardingWizard({
         </button>
       </div>
 
-      <WizardPanels
-        step={wizard.step}
-        name={wizard.name}
-        setName={wizard.handleNameChange}
-        nameError={wizard.nameError}
-        timezone={wizard.timezone}
-        setTimezone={wizard.setTimezone}
-        tradingStyle={wizard.tradingStyle}
-        setTradingStyle={wizard.setTradingStyle}
-        symbolsCatalog={symbolsCatalog}
-        selectedSymbols={wizard.selectedSymbols}
-        setSelectedSymbols={wizard.setSelectedSymbols}
-        defaultSymbol={wizard.defaultSymbol}
-        setDefaultSymbol={wizard.setDefaultSymbol}
-        symbolsError={wizard.symbolsError}
-        isSubmitting={wizard.isSubmitting}
-        onNext={wizard.handleNext}
-        onBack={wizard.handleBack}
-        onSubmit={wizard.handleSubmit}
-      />
-    </div>
+      <AnimatePresence mode="wait" initial={false}>
+        <m.div
+          key={wizard.step}
+          initial={{ opacity: 0, x: 12 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -12 }}
+          transition={{ duration: 0.18, ease: [0.32, 0.72, 0, 1] }}
+        >
+          <WizardPanels
+            step={wizard.step}
+            name={wizard.name}
+            setName={wizard.handleNameChange}
+            nameError={wizard.nameError}
+            timezone={wizard.timezone}
+            setTimezone={wizard.setTimezone}
+            tradingStyle={wizard.tradingStyle}
+            setTradingStyle={wizard.setTradingStyle}
+            symbolsCatalog={symbolsCatalog}
+            selectedSymbols={wizard.selectedSymbols}
+            setSelectedSymbols={wizard.setSelectedSymbols}
+            defaultSymbol={wizard.defaultSymbol}
+            setDefaultSymbol={wizard.setDefaultSymbol}
+            symbolsError={wizard.symbolsError}
+            isSubmitting={wizard.isSubmitting}
+            onNext={wizard.handleNext}
+            onBack={wizard.handleBack}
+            onSubmit={wizard.handleSubmit}
+          />
+        </m.div>
+      </AnimatePresence>
+    </m.div>
   );
 }

@@ -19,6 +19,7 @@
  */
 import { IconArrowRight, IconChartLine, IconInfoCircle, IconTerminal2 } from '@tabler/icons-react';
 
+import { Kbd } from '@/components/ui/kbd';
 import type { CommandItem } from '@/lib/commands';
 
 interface CommandPreviewProps {
@@ -118,10 +119,10 @@ export function CommandPreview({ command }: CommandPreviewProps) {
           <IconArrowRight className="text-brand size-3.5" />
           <span>Execute command</span>
         </span>
-        <kbd className="bg-bg-elev-3 text-fg inline-flex items-center gap-1 rounded border border-white/[0.08] px-2 py-0.5 text-[10px] shadow-sm">
+        <Kbd className="gap-1">
           <span>↵</span>
           <span>ENTER</span>
-        </kbd>
+        </Kbd>
       </div>
     </div>
   );

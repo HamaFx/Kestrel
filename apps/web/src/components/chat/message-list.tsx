@@ -26,7 +26,7 @@ import type { AgentProgress } from '@/lib/chat-transport';
 
 import { Message } from './message';
 import { AgentDeliberation } from './parts/agent-deliberation';
-import { PixelDeskThinking } from './parts/pixel-desk/pixel-desk';
+import { SyndicateCircuitLive } from './parts/syndicate-dossier/syndicate-circuit-live';
 import { WarRoomOpenProvider } from './war-room-context';
 
 function StreamingLiveRegion({ text }: { text: string }) {
@@ -189,7 +189,10 @@ export const MessageList = memo(function MessageList({
                       />
                     </div>
                   ) : (
-                    <PixelDeskThinking agentProgress={agentProgress} fallbackMode={analysisMode} />
+                    <SyndicateCircuitLive
+                      agentProgress={agentProgress}
+                      fallbackMode={analysisMode}
+                    />
                   )}
                 </div>
               </div>

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { fmtMoneyPlain } from '../format';
 import {
   type Account,
   type OrderFormState,
@@ -49,13 +50,24 @@ function Field({
 
 export function OrderFields({
   accounts,
+  selected,
   state,
   setField,
 }: {
   accounts: readonly Account[];
+  selected?: Account | undefined;
   state: OrderFormState;
   setField: (patch: Partial<OrderFormValues>) => void;
 }) {
+  const enteredRisk = state.riskPct.trim() === '' ? null : Number(state.riskPct);
+  const effectiveRisk =
+    enteredRisk !== null && Number.isFinite(enteredRisk) && enteredRisk > 0
+      ? enteredRisk
+      : (selected?.riskPerTradePct ?? 1);
+  const riskDollars =
+    selected && Number.isFinite(effectiveRisk) ? (selected.equity * effectiveRisk) / 100 : null;
+  const sliderValue = Math.min(2, Math.max(0.1, effectiveRisk || 1));
+
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
       <Field label="Account">
@@ -131,6 +143,28 @@ export function OrderFields({
           placeholder="Auto"
           className={inputClass}
         />
+        <input
+          type="range"
+          min={0.1}
+          max={2}
+          step={0.05}
+          value={sliderValue}
+          aria-label="Risk percentage slider"
+          onChange={(event) => setField({ riskPct: event.target.value })}
+          className="accent-brand mt-1 w-full cursor-pointer"
+        />
+        <span
+          className={
+            effectiveRisk > 1
+              ? 'text-warn text-[10px] leading-snug'
+              : 'text-fg-subtle text-[10px] leading-snug'
+          }
+        >
+          {riskDollars !== null
+            ? `≈ ${fmtMoneyPlain(riskDollars)} at risk on ${fmtMoneyPlain(selected?.equity ?? 0)} equity`
+            : 'Exact risk is calculated on submit.'}
+          {effectiveRisk > 1 ? ' · Above the 1.0% Aegis default' : ''}
+        </span>
       </Field>
       <Field label={state.type === 'market' ? 'Trigger (n/a)' : 'Trigger price'}>
         <input

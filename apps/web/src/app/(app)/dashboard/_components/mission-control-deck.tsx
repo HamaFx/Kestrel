@@ -34,7 +34,7 @@ import { StrategistDeskCard } from './strategist-desk-card';
 const DECK_COLLAPSED_KEY = 'kestrel:mission-control-collapsed:v1';
 
 export function MissionControlDeck() {
-  const [collapsed, setCollapsed] = useLocalStorage<boolean>(DECK_COLLAPSED_KEY, false);
+  const [collapsed, setCollapsed] = useLocalStorage<boolean>(DECK_COLLAPSED_KEY, true);
 
   if (collapsed) {
     return (

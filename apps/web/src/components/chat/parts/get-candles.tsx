@@ -56,7 +56,7 @@ export function GetCandlesPart({ output, state, errorMessage }: GetCandlesPartPr
   }
   if (output.candles.length === 0) {
     return (
-      <div className="border-border bg-bg-elev-1 text-fg-muted rounded-sm border p-3 text-xs">
+      <div className="surface-well text-fg-muted rounded-xl p-3.5 text-xs">
         {output.symbol} · {output.tf} · no bars returned
       </div>
     );
@@ -77,7 +77,7 @@ export function GetCandlesPart({ output, state, errorMessage }: GetCandlesPartPr
   const tail = output.candles.slice(-5);
 
   return (
-    <div className="border-border bg-bg-elev-1 rounded-sm border p-3">
+    <div className="surface-well rounded-xl p-3.5">
       <div className="text-fg-muted mb-2 flex items-baseline justify-between text-xs">
         <span>
           <span className="text-fg font-medium">{output.symbol}</span> · {output.tf} · last{' '}

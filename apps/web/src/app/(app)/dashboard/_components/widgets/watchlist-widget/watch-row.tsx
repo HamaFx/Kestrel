@@ -9,7 +9,7 @@ import { IconBolt, IconChartLine, IconX } from '@tabler/icons-react';
 import Link from 'next/link';
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 
-import { SparklineCanvas } from '@/components/ui/sparkline-canvas';
+import { Sparkline } from '@/components/ui/sparkline';
 import { cn } from '@/lib/formatters/cn';
 
 const FLASH_MS = 600;
@@ -39,6 +39,9 @@ export function WatchRow({
 
   // Live-tick flash: brief green/red tint behind the price when it moves.
   const [flash, setFlash] = useState<FlashTone>(null);
+  // Scrubbing the sparkline replaces the price in place, so the readout never
+  // needs a floating tooltip over neighbouring rows.
+  const [scrubPrice, setScrubPrice] = useState<number | null>(null);
   const prevMidRef = useRef<number | null>(null);
   useEffect(() => {
     const prev = prevMidRef.current;
@@ -48,6 +51,8 @@ export function WatchRow({
     const timer = setTimeout(() => setFlash(null), FLASH_MS);
     return () => clearTimeout(timer);
   }, [last, isClosed]);
+
+  const displayPrice = scrubPrice ?? last;
 
   const aiPrompt = encodeURIComponent(
     `Analyze market structure, key liquidity levels, and intraday trading bias for ${tick.symbol}`,
@@ -83,22 +88,27 @@ export function WatchRow({
               flash === 'bear' &&
                 'bg-bear/15 text-bear ring-bear/40 shadow-[0_0_10px_rgba(224,44,16,0.2)] ring-1',
               flash === null && 'text-fg-subtle ring-1 ring-transparent',
+              scrubPrice !== null && 'text-brand ring-brand/40 bg-brand/5 ring-1',
             )}
           >
-            {last.toFixed(decimals)}
+            {displayPrice.toFixed(decimals)}
           </span>
         </div>
       </div>
 
       <div className="flex items-center gap-2">
         {buf.length >= 2 && !isClosed ? (
-          <SparklineCanvas
+          <Sparkline
             values={buf}
             tone={isBull ? 'bull' : 'bear'}
+            variant="area"
+            interactive
+            onHoverChange={(index) => setScrubPrice(index === null ? null : (buf[index] ?? null))}
             label={`${tick.symbol} trend`}
+            className="h-6 w-16"
           />
         ) : (
-          <div className="h-6 w-14" aria-hidden />
+          <div className="h-6 w-16" aria-hidden />
         )}
 
         {isClosed ? (

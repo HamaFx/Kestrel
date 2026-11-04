@@ -15,10 +15,10 @@
  */
 
 import {
-  IconBell,
   IconBook,
+  IconChartCandle,
+  IconCommand,
   IconLayoutDashboard,
-  IconMessageCircle,
   IconNews,
   IconSettings,
   IconShield,
@@ -49,9 +49,16 @@ export const PRIMARY_NAV_ITEMS: readonly NavItem[] = [
   {
     href: '/chat',
     label: 'Research',
-    icon: IconMessageCircle,
+    icon: IconCommand,
     match: ['/chat'],
     description: '4-desk AI committee',
+  },
+  {
+    href: '/chart/XAUUSD',
+    label: 'Chart',
+    icon: IconChartCandle,
+    match: ['/chart'],
+    description: 'Live market charts',
   },
   {
     href: '/dashboard',
@@ -71,15 +78,8 @@ export const PRIMARY_NAV_ITEMS: readonly NavItem[] = [
     href: '/news',
     label: 'Market',
     icon: IconNews,
-    match: ['/news', '/calendar', '/chart'],
-    description: 'News, calendar & charts',
-  },
-  {
-    href: '/alerts',
-    label: 'Alerts',
-    icon: IconBell,
-    match: ['/alerts'],
-    description: 'Price & indicator triggers',
+    match: ['/news', '/calendar', '/alerts'],
+    description: 'News, calendar & alerts',
   },
 ];
 

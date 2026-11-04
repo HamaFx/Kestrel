@@ -17,10 +17,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { JournalEntry } from '@kestrel/shared';
-import type { UTCTimestamp } from 'lightweight-charts';
 
 interface EquityPoint {
-  time: UTCTimestamp;
+  /** Epoch seconds (the chart only needs a strictly increasing x value). */
+  time: number;
   value: number;
 }
 
@@ -33,7 +33,7 @@ export interface EquityCurve {
  * Build a cumulative R-multiple equity curve from closed journal entries.
  * Points are ordered chronologically by trade open time. Duplicate timestamps
  * are de-duplicated by incrementing the later point's time by one second so
- * lightweight-charts receives strictly increasing times.
+ * the x-axis is strictly increasing.
  */
 export function buildEquityCurve(entries: readonly JournalEntry[]): EquityCurve {
   const closed = [...entries]
@@ -51,11 +51,7 @@ export function buildEquityCurve(entries: readonly JournalEntry[]): EquityCurve 
     sum += e.rMultiple;
     const t = Math.floor(e.closedAt / 1000);
     const last = data[data.length - 1];
-    const lastTime = last ? Number(last.time) : undefined;
-    const time: UTCTimestamp =
-      lastTime !== undefined && t <= lastTime
-        ? ((lastTime + 1) as UTCTimestamp)
-        : (t as UTCTimestamp);
+    const time = last && t <= last.time ? last.time + 1 : t;
 
     data.push({ time, value: sum });
   }

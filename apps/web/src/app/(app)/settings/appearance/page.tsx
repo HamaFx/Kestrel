@@ -23,6 +23,7 @@ import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
 
+import { AccountSubNav } from '../_components/ai-subnav';
 import { AppearanceCard } from '../_components/appearance/appearance-card';
 import { DataCard } from '../_components/data/data-card';
 import { PreferencesCard } from '../_components/data/preferences-card';
@@ -63,11 +64,13 @@ export default async function AppearancePage() {
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h2 className="text-fg text-lg font-semibold tracking-tight">Appearance & Data</h2>
+        <h2 className="text-fg text-lg font-semibold tracking-tight">Account & System</h2>
         <p className="text-fg-subtle text-sm">
           Theme styling, default chart symbol, time formatting, and trade journal exports.
         </p>
       </div>
+
+      <AccountSubNav />
 
       <AppearanceCard />
       <PreferencesCard watchlist={watchlist} initialPrefs={uiPrefs} />

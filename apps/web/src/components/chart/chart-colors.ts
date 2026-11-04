@@ -16,19 +16,10 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Shared color constants for chart-related UI. Mirror the design tokens in
-// apps/web/src/app/globals.css under --color-bull / --color-bear.
-// Hex literals because canvas-based rendering can be flaky with oklch
-// literals on older iOS Safari.
+// Shared series hexes for chart primitives that cannot resolve CSS variables
+// in a paint call (the candle sparkline SVG and the replay canvas). They
+// mirror the design tokens in apps/web/src/app/globals.css under
+// --color-bull / --color-bear.
 
 export const SERIES_BULL_HEX = '#3f9e3d'; // mirrors --color-bull
 export const SERIES_BEAR_HEX = '#f03e3e'; // mirrors --color-bear
-
-// Area-chart chrome (lightweight-charts canvas options are not styleable via
-// CSS, so the axis text + grid lines live here next to the series colors).
-export const CHART_AXIS_TEXT_HEX = '#8a8a8a'; // mirrors --color-neutral
-export const CHART_GRID_HEX = '#1f1f1f'; // mirrors --color-divider
-
-// Translucent fills for area-series gradients over the dark canvas.
-export const SERIES_BULL_FILL = 'rgba(63, 158, 61, 0.22)';
-export const SERIES_BEAR_FILL = 'rgba(240, 62, 62, 0.22)';

@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Copyright 2026 Kestrel
  *
@@ -16,13 +18,26 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Minimal SVG sparkline. No chart library needed — just a path through
-// normalized values. Used inside StatCard for the journal stats.
+// Shared sparkline primitive. A single `<path>` through normalized values,
+// stretched to its container, with optional pointer scrubbing. The scrub
+// readout belongs to the parent card (the existing monospace number), so no
+// floating tooltip ever covers a neighbouring row.
 //
-// Renders nothing when fewer than 2 points are available (a flat line is
-// not useful information).
+// Renders nothing when fewer than 2 points are available (a flat line is not
+// useful information).
 
 import { cn } from '@/lib/formatters/cn';
+
+import { useSparklineHover } from './use-sparkline-hover';
+
+type SparklineTone = 'bull' | 'bear' | 'neutral';
+type SparklineVariant = 'line' | 'area';
+
+const TONE_TEXT: Record<SparklineTone, string> = {
+  bull: 'text-bull',
+  bear: 'text-bear',
+  neutral: 'text-fg-subtle',
+};
 
 interface SparklineProps {
   values: readonly number[];
@@ -31,46 +46,103 @@ interface SparklineProps {
   stroke?: string;
   /** Optional label for accessibility. */
   label?: string;
+  /** Signal tone for the line and area fill. Defaults to neutral. */
+  tone?: SparklineTone;
+  /** Line only, or a line with a faint fill underneath. */
+  variant?: SparklineVariant;
+  /** Enable pointer scrubbing and the crosshair. */
+  interactive?: boolean;
+  /** Called with the hovered point index, or null when the pointer leaves. */
+  onHoverChange?: (index: number | null) => void;
 }
 
-export function Sparkline({ values, className, stroke, label }: SparklineProps) {
-  if (values.length < 2) {
-    return <div className={cn('h-4 w-full', className)} aria-hidden="true" />;
-  }
-
+function buildPaths(values: readonly number[]): { line: string; area: string } {
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;
 
-  // Build path. preserveAspectRatio="none" stretches to the container.
-  const path = values
-    .map((v, i) => {
-      const x = (i / (values.length - 1)) * 100;
-      const y = 100 - ((v - min) / range) * 100;
-      return `${i === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
-    })
-    .join(' ');
+  const points = values.map((value, index) => {
+    const x = (index / (values.length - 1)) * 100;
+    const y = 100 - ((value - min) / range) * 100;
+    return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
+  });
 
+  const line = points.join(' ');
+  return { line, area: `${line} L 100 100 L 0 100 Z` };
+}
+
+export function Sparkline({
+  values,
+  className,
+  stroke,
+  label,
+  tone = 'neutral',
+  variant = 'line',
+  interactive = false,
+  onHoverChange,
+}: SparklineProps) {
+  const hover = useSparklineHover(values.length, interactive ? onHoverChange : undefined);
+
+  if (values.length < 2) {
+    return <div className={cn('h-4 w-full', className)} aria-hidden="true" />;
+  }
+
+  const { line, area } = buildPaths(values);
   const start = values[0];
   const end = values[values.length - 1];
+  const hoverX = hover.hoverIndex === null ? null : (hover.hoverIndex / (values.length - 1)) * 100;
 
   return (
-    <svg
-      viewBox="0 0 100 100"
-      preserveAspectRatio="none"
-      className={cn('h-4 w-full', className)}
-      role="img"
-      aria-label={label ? `${label} trend: ${start} to ${end}` : `Trend: ${start} to ${end}`}
+    <div
+      ref={interactive ? hover.containerRef : undefined}
+      className={cn(
+        'relative overflow-hidden',
+        TONE_TEXT[tone],
+        interactive && 'cursor-crosshair touch-pan-y',
+        className,
+      )}
+      {...(interactive ? hover.handlers : {})}
     >
-      <path
-        d={path}
-        fill="none"
-        stroke={stroke ?? 'currentColor'}
-        strokeWidth="1"
-        strokeLinecap="square"
-        strokeLinejoin="miter"
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
+      <svg
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        className="h-full w-full"
+        role="img"
+        aria-label={label ? `${label} trend: ${start} to ${end}` : `Trend: ${start} to ${end}`}
+      >
+        {variant === 'area' ? (
+          <path
+            d={area}
+            fill={stroke ?? 'currentColor'}
+            fillOpacity={0.14}
+            stroke="none"
+            aria-hidden="true"
+          />
+        ) : null}
+        <path
+          d={line}
+          fill="none"
+          stroke={stroke ?? 'currentColor'}
+          strokeWidth="1"
+          strokeLinecap="square"
+          strokeLinejoin="miter"
+          vectorEffect="non-scaling-stroke"
+        />
+        {hoverX !== null ? (
+          <line
+            x1={hoverX}
+            x2={hoverX}
+            y1="0"
+            y2="100"
+            stroke="currentColor"
+            strokeOpacity={0.45}
+            strokeWidth="1"
+            strokeDasharray="2 2"
+            vectorEffect="non-scaling-stroke"
+            aria-hidden="true"
+          />
+        ) : null}
+      </svg>
+    </div>
   );
 }

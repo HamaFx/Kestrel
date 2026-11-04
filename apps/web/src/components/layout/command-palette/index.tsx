@@ -22,6 +22,7 @@ import { IconCommand, IconSearch, IconX } from '@tabler/icons-react';
 import { AnimatePresence, m } from 'motion/react';
 
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
+import { Kbd } from '@/components/ui/kbd';
 import { MOTION_PRESETS } from '@/components/ui/motion-config';
 
 import '@/lib/plugins/register-ui';
@@ -188,7 +189,7 @@ export function CommandPalette({ onNewChat, installedPluginIds = [] }: CommandPa
                     className="text-fg placeholder:text-fg-subtle w-full bg-transparent text-base focus:outline-none"
                   />
                   <div className="flex shrink-0 items-center gap-1.5">
-                    <kbd className="kbd-keycap">ESC</kbd>
+                    <Kbd>ESC</Kbd>
                     <button
                       type="button"
                       onClick={() => setOpen(false)}
@@ -223,12 +224,12 @@ export function CommandPalette({ onNewChat, installedPluginIds = [] }: CommandPa
                 <div className="bg-bg-elev-1/60 text-fg-subtle flex items-center justify-between border-t border-white/[0.06] px-4 py-2 font-mono text-[11px]">
                   <div className="flex items-center gap-3">
                     <span className="flex items-center gap-1">
-                      <kbd className="kbd-keycap">↑</kbd>
-                      <kbd className="kbd-keycap">↓</kbd>
+                      <Kbd>↑</Kbd>
+                      <Kbd>↓</Kbd>
                       <span>Navigate</span>
                     </span>
                     <span className="flex items-center gap-1">
-                      <kbd className="kbd-keycap">↵</kbd>
+                      <Kbd>↵</Kbd>
                       <span>Select</span>
                     </span>
                   </div>

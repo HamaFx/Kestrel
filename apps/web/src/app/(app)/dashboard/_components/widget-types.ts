@@ -76,11 +76,30 @@ export interface WidgetConfig {
 }
 
 /**
- * Curated 6-widget default layout so new and returning traders get immediate
- * high-signal market context without empty-state overload. Additional widgets
- * (Performance Curve, P&L Heatmap, Open Positions, etc.) can be added in 1 click.
+ * Curated default layout: the first fold answers “what is moving, what is on
+ * the calendar, and how is my equity doing?” before the secondary briefing,
+ * news and alert surfaces. Additional widgets remain one click away in the
+ * “Add widget” menu.
  */
 export const DEFAULT_LAYOUT: WidgetConfig[] = [
+  { id: 'w1', type: 'today-glance', span: 3, order: 0 },
+  { id: 'w6', type: 'watchlist', span: 1, order: 1 },
+  { id: 'w-eq', type: 'equity-curve', span: 2, order: 2 },
+  { id: 'w2', type: 'briefing', span: 2, order: 3 },
+  { id: 'w9', type: 'calendar', span: 1, order: 4 },
+  { id: 'w10', type: 'news-pulse', span: 1, order: 5 },
+  { id: 'w8', type: 'alerts', span: 1, order: 6 },
+  { id: 'w-stats', type: 'stats', span: 1, order: 7 },
+];
+
+export const LAYOUT_STORAGE_KEY = 'kestrel:dashboard-layout:v1';
+
+/**
+ * The pre-2026-11-04 default. Used once after hydration to upgrade users who
+ * never customised the old six-widget layout to the current first-fold set.
+ * A custom order, span or added widget is left untouched.
+ */
+export const LEGACY_DEFAULT_LAYOUT: WidgetConfig[] = [
   { id: 'w1', type: 'today-glance', span: 3, order: 0 },
   { id: 'w2', type: 'briefing', span: 2, order: 1 },
   { id: 'w6', type: 'watchlist', span: 1, order: 2 },
@@ -88,8 +107,6 @@ export const DEFAULT_LAYOUT: WidgetConfig[] = [
   { id: 'w10', type: 'news-pulse', span: 1, order: 4 },
   { id: 'w8', type: 'alerts', span: 1, order: 5 },
 ];
-
-export const LAYOUT_STORAGE_KEY = 'kestrel:dashboard-layout:v1';
 
 /** Human-readable label rendered on the edit-mode toolbar. */
 export const WIDGET_LABELS: Record<CoreWidgetType, string> = {

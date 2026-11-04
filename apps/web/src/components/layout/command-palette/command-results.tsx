@@ -5,6 +5,7 @@
 // Palette result list: grouped sections, keyboard-active rows and match
 // highlighting. Presentation only — ranking lives in use-command-registry.
 import type { CommandGroup, CommandItem } from '@/lib/commands';
+import { Kbd } from '@/components/ui/kbd';
 import { cn } from '@/lib/formatters/cn';
 
 import { GROUP_LABELS, GROUP_ORDER, type CommandRow } from './command-groups';
@@ -85,11 +86,7 @@ export function CommandResults({
                         <span className="min-w-0 flex-1 truncate">
                           <HighlightedLabel label={command.label} indices={labelIndices} />
                         </span>
-                        {command.shortcut ? (
-                          <kbd className="bg-bg-elev-2 ring-divider text-caption rounded-sm border px-1.5 font-mono ring-1">
-                            {command.shortcut}
-                          </kbd>
-                        ) : null}
+                        {command.shortcut ? <Kbd>{command.shortcut}</Kbd> : null}
                       </button>
                     </li>
                   );

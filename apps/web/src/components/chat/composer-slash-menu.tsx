@@ -18,6 +18,7 @@
 import { IconPuzzle } from '@tabler/icons-react';
 import type { ReactNode } from 'react';
 
+import { Kbd } from '@/components/ui/kbd';
 import { cn } from '@/lib/formatters/cn';
 
 export interface SlashMenuCommand {
@@ -98,14 +99,11 @@ export function ComposerSlashMenu({
               <span className="font-mono text-xs font-semibold">{cmd.command}</span>
               <span className="text-caption truncate opacity-70">{cmd.description}</span>
             </div>
-            <kbd
-              className={cn(
-                'text-caption hidden rounded-sm border px-1.5 font-mono sm:inline',
-                isActive ? 'border-brand-fg/30' : 'border-border',
-              )}
+            <Kbd
+              className={cn('text-caption hidden sm:inline-flex', isActive && 'border-brand-fg/30')}
             >
               ⏎
-            </kbd>
+            </Kbd>
           </button>
         );
       })}

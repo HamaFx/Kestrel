@@ -30,16 +30,13 @@ export function SettingsNav() {
   const allItems = groups.flatMap((g) => g.items);
   const currentItem = allItems.find((item) => isNavItemActive(item, pathname));
 
-  const activeGroup =
-    groups.find((g) => g.items.some((item) => isNavItemActive(item, pathname))) ?? groups[0]!;
-
   return (
     <div className="flex shrink-0 flex-col gap-3 md:w-60 lg:w-64">
       {/* Breadcrumb for subpages on desktop & mobile */}
       <SettingsBreadcrumb isSubPage={isSubPage} currentItem={currentItem} />
 
-      {/* MOBILE NAVIGATION: Two-tier grouped navigation (< md) */}
-      <SettingsMobileNav groups={groups} activeGroup={activeGroup} pathname={pathname} />
+      {/* MOBILE NAVIGATION: one adaptive bar (< md) */}
+      <SettingsMobileNav groups={groups} pathname={pathname} />
 
       {/* DESKTOP NAVIGATION: Grouped sidebar (>= md) */}
       <SettingsDesktopNav groups={groups} pathname={pathname} />

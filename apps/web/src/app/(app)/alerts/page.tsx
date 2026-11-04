@@ -18,6 +18,7 @@
 
 import type { Metadata } from 'next';
 
+import { MarketSubNav } from '@/components/layout/market-subnav';
 import { PageHeader } from '@/components/layout/page-header';
 
 import { AlertList } from './_components/alert-list';
@@ -33,7 +34,9 @@ export default function AlertsPage() {
       <PageHeader
         title="Alerts"
         description="Get notified instantly via email, browser push, or Telegram when price levels, candle closes, or technical indicators trigger."
-      />
+      >
+        <MarketSubNav />
+      </PageHeader>
       <AlertList />
     </div>
   );

@@ -68,3 +68,19 @@ export function modelLabelFromSelection(selection: string | null | undefined): s
     separator >= 0 ? selection.slice(separator + 1) : selection.split('/').slice(1).join('/');
   return modelId || 'Model';
 }
+
+export function providerLabelFromSelection(selection: string | null | undefined): string | null {
+  if (!selection) return null;
+  const separator = selection.indexOf(':');
+  const provider = separator >= 0 ? selection.slice(0, separator) : selection.split('/')[0];
+  return provider ? provider.toUpperCase() : null;
+}
+
+export function formatContextTokens(tokens: number | undefined): string | null {
+  if (!tokens || tokens <= 0) return null;
+  if (tokens >= 1_000_000) {
+    const millions = tokens / 1_000_000;
+    return `${Number.isInteger(millions) ? millions : millions.toFixed(1)}M`;
+  }
+  return `${Math.round(tokens / 1_000)}K`;
+}

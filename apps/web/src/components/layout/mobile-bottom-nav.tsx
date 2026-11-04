@@ -33,7 +33,7 @@ import { isNavItemActive, PRIMARY_NAV_ITEMS } from './nav-items';
 import { useShellRoute } from './shell-route-context';
 
 const BOTTOM_ITEMS = PRIMARY_NAV_ITEMS.filter((item) =>
-  ['/chat', '/dashboard', '/journal', '/alerts'].includes(item.href),
+  ['/chat', '/chart/XAUUSD', '/dashboard', '/journal'].includes(item.href),
 );
 
 export function MobileBottomNav() {

@@ -20,11 +20,15 @@
 
 import type { ReactNode } from 'react';
 
+import { cn } from '@/lib/formatters/cn';
+
 interface SettingsSectionProps {
   icon?: ReactNode;
   iconColor?: string;
   title: string;
   description?: string;
+  /** Put the description on the left and the controls on the right at `md`. */
+  layout?: 'stacked' | 'split';
   children: ReactNode;
 }
 
@@ -33,14 +37,25 @@ export function SettingsSection({
   iconColor = 'var(--color-bg-elev-3)',
   title,
   description,
+  layout = 'stacked',
   children,
 }: SettingsSectionProps) {
+  const split = layout === 'split';
+
   return (
     <section
       aria-labelledby={`section-${title.toLowerCase().replace(/\s+/g, '-')}`}
-      className="flex flex-col gap-3"
+      className={cn(
+        'flex flex-col gap-3',
+        split && 'md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:items-start md:gap-8',
+      )}
     >
-      <header className="flex items-center gap-3 px-0.5">
+      <header
+        className={cn(
+          'flex items-center gap-3 px-0.5',
+          split && 'md:flex-col md:items-start md:gap-2 md:pt-1',
+        )}
+      >
         {icon ? (
           <span
             className="text-fg inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-sm"
@@ -63,7 +78,7 @@ export function SettingsSection({
           ) : null}
         </div>
       </header>
-      <div className="flex flex-col gap-3">{children}</div>
+      <div className={cn('flex flex-col gap-3', split && 'min-w-0')}>{children}</div>
     </section>
   );
 }

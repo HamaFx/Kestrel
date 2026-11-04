@@ -21,6 +21,8 @@ export function SimulatorControls({
   onRiskChange,
   onRestoreLimit,
 }: SimulatorControlsProps) {
+  const riskDollars = Math.round(100_000 * (riskSlider / 100));
+
   return (
     <div
       className={cn(
@@ -41,7 +43,10 @@ export function SimulatorControls({
             trade.
           </span>
         </div>
-        <div className="shrink-0 font-mono text-xs font-bold">
+        <div className="shrink-0 text-right font-mono text-xs font-bold">
+          <span className="text-fg-subtle block text-[9px] font-medium tracking-wider uppercase">
+            On a $100k account
+          </span>
           RISK PER TRADE:{' '}
           <span
             className={cn(
@@ -50,6 +55,9 @@ export function SimulatorControls({
             )}
           >
             {riskSlider.toFixed(1)}%
+          </span>{' '}
+          <span className={cn('tabular-nums', isVetoed ? 'text-bear' : 'text-fg-muted')}>
+            · ${riskDollars.toLocaleString('en-US')}
           </span>
         </div>
       </div>

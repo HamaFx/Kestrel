@@ -20,6 +20,7 @@
 import { IconClock, IconFlame } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 
+import { StatusIndicator } from '@/components/ui/status-indicator';
 import { cn } from '@/lib/formatters/cn';
 
 interface MarketSession {
@@ -45,7 +46,12 @@ function isSessionActive(s: MarketSession, utcHour: number): boolean {
 
 export function MarketSessionBar() {
   const [mounted, setMounted] = useState(false);
-  const [utcTime, setUtcTime] = useState({ hour: 0, minute: 0, str: '--:-- UTC' });
+  const [utcTime, setUtcTime] = useState({
+    hour: 0,
+    minute: 0,
+    weekday: 0,
+    str: '--:-- UTC',
+  });
 
   useEffect(() => {
     setMounted(true);
@@ -57,16 +63,26 @@ export function MarketSessionBar() {
       // Minute resolution is all this bar conveys. The previous 1s tick
       // re-rendered the entire app shell ~86,400 times a day for a seconds
       // digit nobody reads; 30s keeps the clock within a half-minute.
-      setUtcTime({ hour: h, minute: m, str: `${pad(h)}:${pad(m)} UTC` });
+      setUtcTime({
+        hour: h,
+        minute: m,
+        weekday: d.getUTCDay(),
+        str: `${pad(h)}:${pad(m)} UTC`,
+      });
     }
     update();
     const interval = setInterval(update, 30_000);
     return () => clearInterval(interval);
   }, []);
 
-  const isLondonNyOverlap = mounted && utcTime.hour >= 12 && utcTime.hour < 16;
-  const isNyOpenKillzone = mounted && utcTime.hour >= 12 && utcTime.hour < 15;
-  const isLondonOpenKillzone = mounted && utcTime.hour >= 7 && utcTime.hour < 10;
+  const isWeekend =
+    mounted &&
+    ((utcTime.weekday === 5 && utcTime.hour >= 22) ||
+      utcTime.weekday === 6 ||
+      (utcTime.weekday === 0 && utcTime.hour < 22));
+  const isLondonNyOverlap = mounted && !isWeekend && utcTime.hour >= 12 && utcTime.hour < 16;
+  const isNyOpenKillzone = mounted && !isWeekend && utcTime.hour >= 12 && utcTime.hour < 15;
+  const isLondonOpenKillzone = mounted && !isWeekend && utcTime.hour >= 7 && utcTime.hour < 10;
   const isKillzoneActive = isLondonNyOverlap || isNyOpenKillzone || isLondonOpenKillzone;
 
   return (
@@ -84,7 +100,7 @@ export function MarketSessionBar() {
 
         <div className="flex shrink-0 items-center gap-1.5">
           {SESSIONS.map((s) => {
-            const active = mounted && isSessionActive(s, utcTime.hour);
+            const active = mounted && !isWeekend && isSessionActive(s, utcTime.hour);
             return (
               <span
                 key={s.id}
@@ -96,11 +112,9 @@ export function MarketSessionBar() {
                 )}
                 title={`${s.name} Session (${s.startHourUtc}:00 - ${s.endHourUtc}:00 UTC)`}
               >
-                <span
-                  className={cn(
-                    'size-1.5 rounded-full',
-                    active ? 'bg-bull animate-pulse' : 'bg-fg-subtle/40',
-                  )}
+                <StatusIndicator
+                  tone={active ? 'online' : 'offline'}
+                  label={`${s.name} ${active ? 'open' : 'closed'}`}
                 />
                 {s.shortName}
               </span>

@@ -4,11 +4,7 @@
 
 export function CandlesCardSkeleton() {
   return (
-    <div
-      className="border-border bg-bg-elev-1 rounded-sm border p-3"
-      aria-busy="true"
-      aria-label="Loading candles"
-    >
+    <div className="surface-well rounded-xl p-3.5" aria-busy="true" aria-label="Loading candles">
       <div className="bg-bg-elev-2 mb-2 h-3 w-40 animate-pulse rounded-sm" />
       <div className="grid grid-cols-4 gap-2">
         {[0, 1, 2, 3].map((i) => (
@@ -26,7 +22,7 @@ export function CandlesCardError({ message }: { message?: string }) {
   return (
     <div
       role="alert"
-      className="border-danger/30 bg-bg-elev-1 text-danger rounded-sm border p-3 text-sm"
+      className="border-danger/30 surface-well text-danger rounded-xl p-3.5 text-sm"
     >
       Candles unavailable{message ? ` · ${message}` : ''}
     </div>

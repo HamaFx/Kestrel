@@ -63,18 +63,22 @@ export function GetIndicatorsPart({ output, state, errorMessage }: GetIndicators
   const decimals = priceDecimalsForSymbol(output.symbol);
 
   return (
-    <div className="border-border bg-bg-elev-1 rounded-sm border p-3">
-      <div className="text-fg-muted mb-2 text-xs">
-        {output.symbol} · {output.tf} · {output.results.length}{' '}
-        {output.results.length === 1 ? 'indicator' : 'indicators'}
+    <div className="surface-well rounded-xl p-3.5">
+      <div className="border-border/40 mb-1 flex items-center justify-between gap-2 border-b pb-2">
+        <span className="text-fg text-xs font-semibold">
+          {output.symbol} · {output.tf}
+        </span>
+        <span className="text-fg-subtle font-mono text-[10px] uppercase">
+          {output.results.length} {output.results.length === 1 ? 'indicator' : 'indicators'}
+        </span>
       </div>
-      <ul className="space-y-1.5">
+      <ul className="flex flex-col">
         {output.results.map((r, i) => (
           <li
             key={`${r.kind}-${i}`}
-            className="flex min-h-[44px] items-start justify-between gap-3"
+            className="border-border/30 flex items-start justify-between gap-3 border-b py-2 last:border-0"
           >
-            <span className="text-fg pt-0.5 font-medium">{labelFor(r)}</span>
+            <span className="text-fg pt-0.5 text-sm font-medium">{labelFor(r)}</span>
             <span className="flex flex-wrap items-baseline justify-end gap-x-2 gap-y-0.5 tabular-nums">
               <IndicatorValue result={r} decimals={decimals} />
             </span>

@@ -41,7 +41,7 @@ export function PlaceOrderForm({
         onSideChange={(side) => setField({ side })}
       />
 
-      <OrderFields accounts={accounts} state={state} setField={setField} />
+      <OrderFields accounts={accounts} selected={selected} state={state} setField={setField} />
 
       {state.error ? (
         <div className="border-danger/30 bg-danger/5 text-danger flex items-start gap-2 rounded-lg border p-3 text-xs">

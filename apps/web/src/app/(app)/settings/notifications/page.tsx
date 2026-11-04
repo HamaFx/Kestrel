@@ -28,6 +28,7 @@ import { auth } from '@/auth';
 import { getServerEnv } from '@/lib/env';
 import { cn } from '@/lib/formatters/cn';
 
+import { TradingSubNav } from '../_components/ai-subnav';
 import { EnableWebPushButton } from '../_components/notifications/enable-web-push-button';
 import { NoiseControlCard } from '../_components/notifications/noise-control-card';
 import { NotificationPrefsCard } from '../_components/notifications/notification-prefs-card';
@@ -84,11 +85,13 @@ export default async function NotificationsPage() {
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h2 className="text-fg text-lg font-semibold tracking-tight">Notifications & Telegram</h2>
+        <h2 className="text-fg text-lg font-semibold tracking-tight">Trading & Alerts</h2>
         <p className="text-fg-subtle text-sm">
           Manage email, browser push, Telegram bot linking, and quiet hours for your market alerts.
         </p>
       </div>
+
+      <TradingSubNav />
 
       {/* Channel Test Buttons */}
       <section className="surface-panel flex flex-col gap-1 rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]">

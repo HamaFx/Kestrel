@@ -5,7 +5,7 @@
 // Error budget gauge — how much error budget remains.
 import { IconMinus } from '@tabler/icons-react';
 
-import { cn } from '@/lib/formatters/cn';
+import { RingGauge } from '@/components/ui/ring-gauge';
 
 /**
  * Error budget gauge — shows how much error budget remains.
@@ -21,18 +21,7 @@ export function ErrorBudgetGauge({ budget }: { budget: number | null }) {
   }
 
   const pct = Math.round(budget * 100);
-  const color = pct > 50 ? 'text-success' : pct > 10 ? 'text-warn' : 'text-danger';
-  const barColor = pct > 50 ? 'bg-success' : pct > 10 ? 'bg-warn' : 'bg-danger';
+  const tone = pct > 50 ? 'success' : pct > 10 ? 'warn' : 'danger';
 
-  return (
-    <div className="flex items-center gap-2" aria-label={`Error budget: ${pct}% remaining`}>
-      <div className="bg-bg-elev-3 h-2 w-16 overflow-hidden rounded-full">
-        <div
-          className={cn('h-full rounded-full transition-all duration-500', barColor)}
-          style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}
-        />
-      </div>
-      <span className={cn('font-mono text-xs font-bold', color)}>{pct}%</span>
-    </div>
-  );
+  return <RingGauge value={pct} tone={tone} size={56} label="error budget" showLabel={false} />;
 }

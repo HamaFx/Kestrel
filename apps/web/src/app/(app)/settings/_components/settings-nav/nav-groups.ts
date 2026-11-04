@@ -1,20 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Settings navigation groups + item types.
+//
+// Consolidated from 11 sidebar links into 4 clean, self-contained workspace
+// pillars. Sub-sections within AI & Intelligence, Trading & Alerts, and
+// Account & System switch via their in-page <AISubNav />, <TradingSubNav />,
+// and <AccountSubNav /> controls.
 
-import {
-  IconActivity,
-  IconBell,
-  IconCpu,
-  IconDeviceMobilePlus,
-  IconKey,
-  IconList,
-  IconPalette,
-  IconPuzzle,
-  IconRobot,
-  IconSettings,
-  IconShield,
-} from '@tabler/icons-react';
+import { IconCpu, IconList, IconPuzzle, IconSettings, IconShield } from '@tabler/icons-react';
 
 export interface NavItem {
   href: string;
@@ -22,6 +15,8 @@ export interface NavItem {
   shortLabel?: string;
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
+  /** Additional path prefixes that keep this pillar highlighted. */
+  match?: readonly string[];
 }
 
 export interface NavGroup {
@@ -33,110 +28,62 @@ export interface NavGroup {
 
 export const BASE_NAV_GROUPS: NavGroup[] = [
   {
-    id: 'overview',
-    label: 'Overview',
-    shortLabel: 'Overview',
+    id: 'workspace',
+    label: 'Workspace',
+    shortLabel: 'Workspace',
     items: [
       {
         href: '/settings',
-        label: 'General',
+        label: 'Overview',
         shortLabel: 'Overview',
         icon: IconSettings,
         exact: true,
+      },
+      {
+        href: '/settings/api-keys',
+        label: 'AI & Intelligence',
+        shortLabel: 'AI & Keys',
+        icon: IconCpu,
+        match: ['/settings/api-keys', '/settings/models', '/settings/agent'],
+      },
+      {
+        href: '/settings/symbols',
+        label: 'Trading & Alerts',
+        shortLabel: 'Trading',
+        icon: IconList,
+        match: ['/settings/symbols', '/settings/notifications', '/settings/telegram'],
       },
       {
         href: '/settings/plugins',
         label: 'Plugins',
         shortLabel: 'Plugins',
         icon: IconPuzzle,
+        match: ['/settings/plugins'],
       },
-    ],
-  },
-  {
-    id: 'ai',
-    label: 'AI & Intelligence',
-    shortLabel: 'AI',
-    items: [
-      {
-        href: '/settings/api-keys',
-        label: 'API Keys & Vault',
-        shortLabel: 'API Keys',
-        icon: IconKey,
-      },
-      {
-        href: '/settings/models',
-        label: 'Models & Routing',
-        shortLabel: 'Models',
-        icon: IconCpu,
-      },
-      {
-        href: '/settings/agent',
-        label: 'Agent Preferences',
-        shortLabel: 'Agent',
-        icon: IconRobot,
-      },
-    ],
-  },
-  {
-    id: 'trading',
-    label: 'Trading & Risk',
-    shortLabel: 'Trading',
-    items: [
-      {
-        href: '/settings/symbols',
-        label: 'Watchlist Symbols',
-        shortLabel: 'Symbols',
-        icon: IconList,
-      },
-    ],
-  },
-  {
-    id: 'notifications',
-    label: 'Alerts & Delivery',
-    shortLabel: 'Alerts',
-    items: [
-      {
-        href: '/settings/notifications',
-        label: 'Notifications & Telegram',
-        shortLabel: 'Channels',
-        icon: IconBell,
-      },
-    ],
-  },
-  {
-    id: 'account',
-    label: 'Account & Workspace',
-    shortLabel: 'Account',
-    items: [
       {
         href: '/settings/profile',
-        label: 'Profile & Security',
-        shortLabel: 'Profile',
+        label: 'Account & System',
+        shortLabel: 'Account',
         icon: IconShield,
-      },
-      {
-        href: '/settings/appearance',
-        label: 'Appearance & Data',
-        shortLabel: 'Display',
-        icon: IconPalette,
-      },
-      {
-        href: '/settings/install',
-        label: 'Install app',
-        shortLabel: 'Install',
-        icon: IconDeviceMobilePlus,
-      },
-      {
-        href: '/settings/usage',
-        label: 'Activity & Quota',
-        shortLabel: 'Activity',
-        icon: IconActivity,
+        match: [
+          '/settings/profile',
+          '/settings/security',
+          '/settings/appearance',
+          '/settings/data',
+          '/settings/usage',
+          '/settings/install',
+        ],
       },
     ],
   },
 ];
 
-/** Whether a nav item matches the current pathname (exact or prefix). */
+/** Whether a nav item matches the current pathname (exact, match prefixes, or prefix). */
 export function isNavItemActive(item: NavItem, pathname: string | null): boolean {
-  return item.exact ? pathname === item.href : Boolean(pathname?.startsWith(item.href));
+  if (!pathname) return false;
+  if (item.exact) return pathname === item.href;
+  if (item.match && item.match.length > 0) {
+    return item.match.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  }
+  return pathname.startsWith(item.href);
 }

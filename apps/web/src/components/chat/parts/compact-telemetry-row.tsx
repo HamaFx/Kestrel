@@ -31,6 +31,7 @@ import {
 import { AnimatePresence, m } from 'motion/react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
+import { EmberLedMatrix } from '@/components/ui/ember-led-matrix';
 import { cn } from '@/lib/formatters/cn';
 
 export interface CompactTelemetryRowProps {
@@ -89,7 +90,7 @@ function getToolIcon(name: string) {
   return IconCpu;
 }
 
-function formatTarget(name: string, input: unknown): string {
+function formatTarget(_name: string, input: unknown): string {
   if (!input || typeof input !== 'object') return '';
   const obj = input as Record<string, unknown>;
   const parts: string[] = [];
@@ -106,6 +107,61 @@ function formatTarget(name: string, input: unknown): string {
   return '';
 }
 
+/**
+ * Extract a concise, high-signal inline summary badge from a completed tool
+ * payload so collapsed ledger headers can surface key numbers without forcing
+ * the operator to expand every drawer.
+ */
+export function formatToolOutputSummary(rawName: string, output: unknown): string | null {
+  if (!output || typeof output !== 'object') return null;
+  const name = rawName.replace(/^tool-/, '');
+  const obj = output as Record<string, unknown>;
+
+  if (name === 'get_price' && Array.isArray(obj.ticks) && obj.ticks.length > 0) {
+    const first = obj.ticks[0] as Record<string, unknown> | undefined;
+    if (first && typeof first.symbol === 'string' && typeof first.mid === 'number') {
+      const decimals = first.mid >= 100 ? 2 : 4;
+      const extra = obj.ticks.length > 1 ? ` +${obj.ticks.length - 1}` : '';
+      return `${first.symbol} ${first.mid.toFixed(decimals)}${extra}`;
+    }
+  }
+
+  if (name === 'get_candles' && Array.isArray(obj.candles)) {
+    const sym = typeof obj.symbol === 'string' ? obj.symbol : '';
+    const tf = typeof obj.tf === 'string' ? ` ${obj.tf}` : '';
+    return `${sym}${tf} · ${obj.candles.length} bars`.trim();
+  }
+
+  if (name === 'get_indicators' && Array.isArray(obj.results)) {
+    const sym = typeof obj.symbol === 'string' ? `${obj.symbol} · ` : '';
+    return `${sym}${obj.results.length} ${obj.results.length === 1 ? 'ind' : 'inds'}`;
+  }
+
+  if (name === 'get_market_structure') {
+    const sym = typeof obj.symbol === 'string' ? obj.symbol : '';
+    const trend = typeof obj.trend === 'string' ? obj.trend.toUpperCase() : '';
+    if (sym && trend) return `${sym} · ${trend}`;
+  }
+
+  if (name === 'get_news' && Array.isArray(obj.items)) {
+    return `${obj.items.length} ${obj.items.length === 1 ? 'headline' : 'headlines'}`;
+  }
+
+  if (name === 'get_calendar' && Array.isArray(obj.events)) {
+    return `${obj.events.length} ${obj.events.length === 1 ? 'event' : 'events'}`;
+  }
+
+  if (typeof obj.symbol === 'string' && typeof obj.bias === 'string') {
+    return `${obj.symbol} · ${obj.bias.toUpperCase()}`;
+  }
+
+  if (typeof obj.symbol === 'string') {
+    return obj.symbol;
+  }
+
+  return null;
+}
+
 export function CompactTelemetryRow({
   name,
   state,
@@ -117,11 +173,31 @@ export function CompactTelemetryRow({
 }: CompactTelemetryRowProps) {
   const [open, setOpen] = useState(defaultOpen);
   const [celebrate, setCelebrate] = useState(false);
+  const [elapsedMs, setElapsedMs] = useState(0);
   const prevStatusRef = useRef(state);
+  const startTimeRef = useRef<number | null>(null);
 
   const isRunning = state === 'input-streaming' || state === 'input-available';
   const isError = state === 'output-error';
   const isDone = state === 'output-available';
+
+  useEffect(() => {
+    if (isRunning) {
+      if (startTimeRef.current === null) {
+        startTimeRef.current = Date.now();
+      }
+      const timer = window.setInterval(() => {
+        if (startTimeRef.current !== null) {
+          setElapsedMs(Date.now() - startTimeRef.current);
+        }
+      }, 100);
+      return () => window.clearInterval(timer);
+    }
+    if (startTimeRef.current !== null) {
+      setElapsedMs(Date.now() - startTimeRef.current);
+      startTimeRef.current = null;
+    }
+  }, [isRunning]);
 
   useEffect(() => {
     const wasRunning =
@@ -137,6 +213,7 @@ export function CompactTelemetryRow({
   const Icon = getToolIcon(name);
   const verb = TOOL_VERBS[name] ?? name.replace(/^tool-/, '').replace(/_/g, ' ');
   const target = formatTarget(name, input);
+  const summaryBadge = isDone ? formatToolOutputSummary(name, output) : null;
   const statusClass = isError ? 'text-danger' : isRunning ? 'text-brand' : 'text-bull';
   const statusLabel = isError ? 'FAILED' : isRunning ? 'RUNNING' : 'VERIFIED';
 
@@ -154,15 +231,7 @@ export function CompactTelemetryRow({
       >
         {/* Left Status Glyph */}
         <span className="relative grid size-4 shrink-0 place-items-center">
-          {isRunning && (
-            <>
-              <span
-                aria-hidden="true"
-                className="border-brand/30 border-t-brand absolute inset-0 animate-spin rounded-full border-[1.5px]"
-              />
-              <Icon className="text-brand size-2.5" />
-            </>
-          )}
+          {isRunning && <EmberLedMatrix />}
           {isError && <IconAlertCircle className="text-danger size-4 shrink-0" />}
           {isDone && (
             <>
@@ -204,6 +273,20 @@ export function CompactTelemetryRow({
           </span>
         ) : (
           <span className="flex-1" />
+        )}
+
+        {/* Inline Output Summary Pill */}
+        {summaryBadge ? (
+          <span className="surface-chip text-fg-muted shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] tabular-nums">
+            {summaryBadge}
+          </span>
+        ) : null}
+
+        {/* Elapsed Duration */}
+        {(isRunning || elapsedMs > 0) && (
+          <span className="text-fg-subtle shrink-0 font-mono text-[10px] tabular-nums">
+            {(elapsedMs / 1000).toFixed(1)}s
+          </span>
         )}
 
         {/* Chevron Indicator */}

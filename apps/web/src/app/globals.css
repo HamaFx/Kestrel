@@ -244,6 +244,16 @@ html {
  * ------------------------------------------------------------------------- */
 :root {
   color-scheme: dark;
+
+  /* Chart contract — one token layer for every SVG / chart surface. Declared
+     outside `@theme` so the variables are always emitted, including when the
+     only reference is an SVG paint attribute. */
+  --chart-positive: var(--color-bull);
+  --chart-negative: var(--color-bear);
+  --chart-line-primary: var(--color-brand);
+  --chart-grid: rgba(255, 255, 255, 0.06);
+  --chart-band: rgba(255, 54, 22, 0.1);
+
   --topbar-h: 48px;
   /* Height of the phone bottom bar. Zero from `lg` up, where the bar itself is
      hidden (`lg:hidden` in mobile-bottom-nav.tsx), so every consumer collapses

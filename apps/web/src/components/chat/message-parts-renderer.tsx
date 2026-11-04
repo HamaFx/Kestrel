@@ -35,6 +35,7 @@ import {
 } from './message-parts';
 import { ActivityRollup } from './parts/activity-rollup';
 import { CitationWarningPartView } from './parts/citation-warning';
+import { formatToolOutputSummary } from './parts/compact-telemetry-row';
 import { FallbackPartView } from './parts/fallback';
 import { MastraReportPart } from './parts/mastra-report';
 import { MemoryDegradedPartView } from './parts/memory-degraded';
@@ -65,12 +66,17 @@ export function renderMessageParts(
     const first = tools[0];
     if (!first) return;
     const isAnyLoading = tools.some((t) => t.state === 'loading');
+    const summaries = tools
+      .filter((t) => t.state === 'done')
+      .map((t) => formatToolOutputSummary(t.name, t.output))
+      .filter((s): s is string => Boolean(s));
     elements.push(
       <ActivityRollup
         key={`tools-group-${first.key}`}
         toolCount={tools.length}
         isRunning={isAnyLoading}
         defaultOpen={isAnyLoading}
+        summaries={summaries}
       >
         {tools.map((t) => (
           <MemoizedToolPart

@@ -37,6 +37,8 @@ import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/formatters/cn';
 
+import { Kbd } from './kbd';
+
 interface TooltipProps {
   /** Bubble text. Always provide an `aria-label` on the trigger to match. */
   label: string;
@@ -71,7 +73,7 @@ export function Tooltip({ label, side = 'top', shortcut, children, className }: 
       >
         <span className="flex items-center gap-1.5">
           <span>{label}</span>
-          {shortcut && <kbd className="kbd-keycap">{shortcut}</kbd>}
+          {shortcut && <Kbd>{shortcut}</Kbd>}
         </span>
       </span>
     </span>

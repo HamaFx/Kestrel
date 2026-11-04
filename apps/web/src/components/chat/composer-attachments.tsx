@@ -19,6 +19,12 @@ import Image from 'next/image';
 
 import type { ComposerController } from './use-composer';
 
+function formatFileSize(size: number | undefined): string | null {
+  if (!size || size <= 0) return null;
+  if (size < 1024 * 1024) return `${Math.max(1, Math.round(size / 1024))} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function ComposerAttachments({ composer }: { composer: ComposerController }) {
   const { voice, images, removeImage, error } = composer;
   return (
@@ -36,26 +42,34 @@ export function ComposerAttachments({ composer }: { composer: ComposerController
 
       {images.length > 0 ? (
         <ul className="flex flex-wrap gap-2 px-2 pt-1 pb-1" aria-label="Attached images">
-          {images.map((img, idx) => (
-            <li key={img.id} className="relative">
-              <Image
-                src={img.url}
-                alt={`Attached image ${idx + 1} of ${images.length}`}
-                width={56}
-                height={56}
-                unoptimized
-                className="border-border size-14 rounded-lg border object-cover"
-              />
-              <button
-                type="button"
-                aria-label={`Remove ${img.name}`}
-                onClick={() => removeImage(img.id)}
-                className="bg-bg-elev-3 text-fg border-border focus-visible:ring-fg absolute -top-1.5 -right-1.5 inline-flex size-5 items-center justify-center rounded-full border text-xs leading-none focus:outline-none focus-visible:ring-2"
-              >
-                ×
-              </button>
-            </li>
-          ))}
+          {images.map((img, idx) => {
+            const sizeLabel = formatFileSize(img.size);
+            return (
+              <li key={img.id} className="relative" title={img.name}>
+                <Image
+                  src={img.url}
+                  alt={`Attached image ${idx + 1} of ${images.length}`}
+                  width={56}
+                  height={56}
+                  unoptimized
+                  className="border-border size-14 rounded-lg border object-cover"
+                />
+                {sizeLabel ? (
+                  <span className="bg-bg/80 text-fg-muted border-border absolute inset-x-0 bottom-0 rounded-b-lg border-t px-1 py-0.5 text-center font-mono text-[8px] tabular-nums">
+                    {sizeLabel}
+                  </span>
+                ) : null}
+                <button
+                  type="button"
+                  aria-label={`Remove ${img.name}`}
+                  onClick={() => removeImage(img.id)}
+                  className="bg-bg-elev-3 text-fg border-border focus-visible:ring-fg absolute -top-1.5 -right-1.5 inline-flex size-5 items-center justify-center rounded-full border text-xs leading-none focus:outline-none focus-visible:ring-2"
+                >
+                  ×
+                </button>
+              </li>
+            );
+          })}
         </ul>
       ) : null}
 

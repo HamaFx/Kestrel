@@ -29,10 +29,12 @@
 // Mirrors the visual contract of the settings <AISubNav />: a recessed
 // `surface-well` rail of chips where the active route lifts onto a
 // `surface-chip` with the brand accent.
-import { IconCalendarEvent, IconChartCandle, IconNews } from '@tabler/icons-react';
+import { IconBell, IconCalendarEvent, IconChartCandle, IconNews } from '@tabler/icons-react';
+import { m } from 'motion/react';
 import { Link } from 'next-view-transitions';
 import { usePathname } from 'next/navigation';
 
+import { MOTION_PRESETS } from '@/components/ui/motion-config';
 import { cn } from '@/lib/formatters/cn';
 
 interface MarketTab {
@@ -58,6 +60,13 @@ const MARKET_TABS: readonly MarketTab[] = [
     shortLabel: 'Calendar',
     icon: IconCalendarEvent,
     match: ['/calendar'],
+  },
+  {
+    href: '/alerts',
+    label: 'Price Alerts',
+    shortLabel: 'Alerts',
+    icon: IconBell,
+    match: ['/alerts'],
   },
   {
     href: '/chart/XAUUSD',
@@ -92,12 +101,18 @@ export function MarketSubNav() {
             href={tab.href}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'tactile-press flex min-h-9 flex-1 items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all active:translate-y-[0.5px]',
-              active
-                ? 'surface-chip bg-bg-elev-2 text-brand font-semibold shadow-xs'
-                : 'text-fg-subtle hover:text-fg hover:bg-bg-elev-1/50',
+              'tactile-press relative flex min-h-9 flex-1 items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all active:translate-y-[0.5px]',
+              active ? 'text-brand font-semibold' : 'text-fg-subtle hover:text-fg',
             )}
           >
+            {active ? (
+              <m.span
+                layoutId="market-subnav-active-pill"
+                aria-hidden="true"
+                className="surface-chip bg-bg-elev-2 border-brand/30 absolute inset-0 -z-10 rounded-lg border shadow-xs"
+                transition={MOTION_PRESETS.layout}
+              />
+            ) : null}
             <Icon className={cn('size-4 shrink-0', active ? 'text-brand' : 'text-fg-subtle')} />
             <span className="hidden sm:inline">{tab.label}</span>
             <span className="sm:hidden">{tab.shortLabel}</span>

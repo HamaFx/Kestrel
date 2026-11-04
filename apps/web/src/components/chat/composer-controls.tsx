@@ -61,7 +61,7 @@ export function ComposerControls({
 
   return (
     <div className="flex items-center justify-between gap-2 pt-1">
-      <div className="flex min-w-0 flex-1 [scrollbar-width:none] flex-nowrap items-center gap-1.5 overflow-x-auto">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
         <button
           type="button"
           aria-label="Attach image"
@@ -123,7 +123,7 @@ export function ComposerControls({
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
-        {typeof contextUsagePercent === 'number' && (
+        {typeof contextUsagePercent === 'number' && contextUsagePercent >= 60 && (
           <div
             title={`Context Window: ${contextUsagePercent}% used`}
             className="text-fg-subtle flex items-center gap-1.5 font-mono text-[11px] tabular-nums select-none"

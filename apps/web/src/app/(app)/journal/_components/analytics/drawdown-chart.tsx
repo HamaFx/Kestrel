@@ -16,10 +16,14 @@
  * limitations under the License.
  */
 
-// Mini equity-curve chart with drawdown periods shaded below the running peak.
+// Equity curve with the running peak shaded behind it. The peak-to-trough
+// band is the drawdown; the shared ProfitLossLine supplies the sign-coloured
+// curve, zero baseline, and drag-to-measure range HUD.
 import type { JournalEntry, JournalStatsWithNulls } from '@kestrel/shared';
 import { useMemo } from 'react';
 
+import { ProfitLossLine } from '@/components/chart/profit-loss-line';
+import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/formatters/cn';
 
 interface DrawdownChartProps {
@@ -28,10 +32,14 @@ interface DrawdownChartProps {
   className?: string;
 }
 
+function formatDay(timestamp: number): string {
+  return new Date(timestamp).toISOString().slice(5, 10);
+}
+
 export function DrawdownChart({ entries, stats: _stats, className }: DrawdownChartProps) {
-  const { curve, peaks, maxDrawdown, recoveryFactor } = useMemo(() => {
+  const { curve, peaks, labels, maxDrawdown, recoveryFactor } = useMemo(() => {
     const closed = [...entries]
-      .filter((e) => e.outcome !== 'open' && e.rMultiple !== null)
+      .filter((entry) => entry.outcome !== 'open' && entry.rMultiple !== null)
       .sort((a, b) => a.openedAt - b.openedAt);
 
     const curve: number[] = [];
@@ -40,94 +48,80 @@ export function DrawdownChart({ entries, stats: _stats, className }: DrawdownCha
     let peak = 0;
     let maxDD = 0;
 
-    for (const e of closed) {
-      cumulative += e.rMultiple ?? 0;
+    for (const entry of closed) {
+      cumulative += entry.rMultiple ?? 0;
       if (cumulative > peak) peak = cumulative;
-      const dd = peak - cumulative;
-      if (dd > maxDD) maxDD = dd;
+      const drawdown = peak - cumulative;
+      if (drawdown > maxDD) maxDD = drawdown;
       curve.push(cumulative);
       peaks.push(peak);
     }
 
-    const recovery = maxDD === 0 ? 0 : cumulative / maxDD;
-    return { curve, peaks, maxDrawdown: maxDD, recoveryFactor: recovery };
+    return {
+      curve,
+      peaks,
+      labels: closed.map((entry) => formatDay(entry.openedAt)),
+      maxDrawdown: maxDD,
+      recoveryFactor: maxDD === 0 ? 0 : cumulative / maxDD,
+    };
   }, [entries]);
 
   if (curve.length < 2) {
     return (
-      <div
-        className={cn(
-          'border-border bg-bg-elev-1 flex flex-col gap-2 rounded-sm border p-4',
-          className,
-        )}
-      >
-        <span className="text-caption text-fg-subtle font-bold tracking-wider uppercase">
-          Drawdown
-        </span>
-        <p className="text-fg-muted text-sm">Not enough closed trades to show drawdown.</p>
-      </div>
+      <Card as="section" aria-label="Drawdown chart" className={cn('gap-3', className)}>
+        <header className="flex items-center justify-between gap-2">
+          <span className="text-fg-subtle font-mono text-[11px] font-semibold tracking-wider uppercase">
+            Drawdown
+          </span>
+        </header>
+        <div className="surface-well relative h-24 overflow-hidden rounded-xl">
+          <svg
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            className="absolute inset-0 h-full w-full opacity-30"
+            aria-hidden="true"
+          >
+            <path
+              d="M0 78 C 14 70, 24 84, 40 58 S 70 48, 100 30"
+              fill="none"
+              stroke="var(--chart-negative)"
+              strokeWidth="1.5"
+              strokeDasharray="4 3"
+              vectorEffect="non-scaling-stroke"
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-4 text-center">
+            <p className="text-fg text-xs font-medium">No drawdown path yet</p>
+            <p className="text-fg-subtle max-w-xs text-[11px] leading-relaxed">
+              Close two trades to plot the peak-to-trough curve.
+            </p>
+          </div>
+        </div>
+      </Card>
     );
   }
 
-  const min = Math.min(...curve, 0);
-  const max = Math.max(...curve, 1);
-  const range = max - min || 1;
-  const width = curve.length - 1;
-
-  const linePath = curve
-    .map((v, i) => {
-      const x = (i / width) * 100;
-      const y = 100 - ((v - min) / range) * 100;
-      return `${i === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
-    })
-    .join(' ');
-
-  const areaPath = `${linePath} L 100 100 L 0 100 Z`;
-
-  const peakPath = peaks
-    .map((v, i) => {
-      const x = (i / width) * 100;
-      const y = 100 - ((v - min) / range) * 100;
-      return `${i === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
-    })
-    .join(' ');
-
   return (
-    <div
-      className={cn(
-        'border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-4',
-        className,
-      )}
-      role="img"
-      aria-label={`Drawdown chart: max drawdown ${maxDrawdown.toFixed(2)}R`}
-    >
-      <div className="flex items-center justify-between">
-        <span className="text-caption text-fg-subtle font-bold tracking-wider uppercase">
+    <Card as="section" aria-label="Drawdown chart" className={cn('gap-3', className)}>
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-fg-subtle font-mono text-[11px] font-semibold tracking-wider uppercase">
           Drawdown
         </span>
-        <span className="text-caption text-fg-muted tabular-nums">
+        <span className="text-fg-muted font-mono text-[10px] tabular-nums">
           Max DD: -{maxDrawdown.toFixed(2)}R · Recovery: {recoveryFactor.toFixed(2)}
         </span>
-      </div>
+      </header>
 
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-20 w-full">
-        {/* Drawdown shade: area between the peak line and the equity curve. */}
-        <defs>
-          <clipPath id="drawdown-clip">
-            <path d={peakPath} />
-          </clipPath>
-        </defs>
-        <path d={areaPath} className="fill-bear/20" clipPath="url(#drawdown-clip)" />
-        <path
-          d={linePath}
-          fill="none"
-          className="stroke-bull"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          vectorEffect="non-scaling-stroke"
-        />
-      </svg>
-    </div>
+      <ProfitLossLine
+        values={curve}
+        ceilingValues={peaks}
+        labels={labels}
+        height={160}
+        formatValue={(value) => `${value >= 0 ? '+' : ''}${value.toFixed(2)}R`}
+        ariaLabel={`Drawdown chart: max drawdown ${maxDrawdown.toFixed(2)}R, recovery factor ${recoveryFactor.toFixed(2)}`}
+        measure
+        measureUnit="trades"
+      />
+    </Card>
   );
 }

@@ -26,6 +26,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { EmptyState } from '@/components/ui/empty-state';
 
+import { AccountSubNav } from '../_components/ai-subnav';
 import { ActivitySummaryCard } from './_components/activity-summary-card';
 import { AgentUsageCard } from './_components/agent-usage-card';
 import { DailyActivityChart } from './_components/daily-activity-chart';
@@ -61,11 +62,13 @@ export default async function UsagePage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h2 className="text-fg text-lg font-semibold tracking-tight">Activity & Quota</h2>
+        <h2 className="text-fg text-lg font-semibold tracking-tight">Account & System</h2>
         <p className="text-fg-subtle text-sm">
           Track your AI research sessions, 4-desk committee runs, and recent analyses.
         </p>
       </div>
+
+      <AccountSubNav />
 
       <ActivitySummaryCard stats={stats} />
 

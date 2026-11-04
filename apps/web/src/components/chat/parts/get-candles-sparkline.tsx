@@ -37,7 +37,7 @@ export function CandleSparkline({
     <svg
       viewBox={`0 0 ${W} ${H}`}
       preserveAspectRatio="none"
-      className="mt-2 h-15 w-full"
+      className="mt-2 h-12 w-full"
       role="img"
       aria-label={`Candle sparkline: last ${candles.length} bars, closing at ${lastClose}`}
     >

@@ -15,32 +15,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { IconCpu, IconKey, IconRobot } from '@tabler/icons-react';
+import { m } from 'motion/react';
 import { Link } from 'next-view-transitions';
 import { usePathname } from 'next/navigation';
 
+import { MOTION_PRESETS } from '@/components/ui/motion-config';
 import { cn } from '@/lib/formatters/cn';
 
-const AI_TABS = [
-  { href: '/settings/api-keys', label: 'API Keys & Health', shortLabel: 'API Keys', icon: IconKey },
-  { href: '/settings/models', label: 'Models & Routing', shortLabel: 'Models', icon: IconCpu },
-  {
-    href: '/settings/agent',
-    label: 'Agent Tools & Overrides',
-    shortLabel: 'Agent Tools',
-    icon: IconRobot,
-  },
-];
+import { ACCOUNT_TABS, AI_TABS, TRADING_TABS, type SubNavTab } from './settings-subnav-tabs';
 
-export function AISubNav() {
+function PillarSubNav({
+  ariaLabel,
+  layoutId,
+  tabs,
+}: {
+  ariaLabel: string;
+  layoutId: string;
+  tabs: readonly SubNavTab[];
+}) {
   const pathname = usePathname();
 
   return (
     <nav
-      aria-label="AI & Intelligence Sections"
-      className="surface-well flex scrollbar-none flex-row gap-1 overflow-x-auto rounded-xl border border-white/5 p-1"
+      aria-label={ariaLabel}
+      className="surface-well scrollbar-none flex flex-row gap-1 overflow-x-auto rounded-xl border border-white/5 p-1 max-md:hidden"
     >
-      {AI_TABS.map((tab) => {
+      {tabs.map((tab) => {
         const active = pathname === tab.href;
         const Icon = tab.icon;
 
@@ -50,12 +50,18 @@ export function AISubNav() {
             href={tab.href}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'tactile-press flex min-h-9 flex-1 items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all active:translate-y-[0.5px]',
-              active
-                ? 'surface-chip bg-bg-elev-2 text-fg font-semibold shadow-xs'
-                : 'text-fg-subtle hover:text-fg hover:bg-bg-elev-1/50',
+              'tactile-press relative flex min-h-9 flex-1 items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all active:translate-y-[0.5px]',
+              active ? 'text-brand font-semibold' : 'text-fg-subtle hover:text-fg',
             )}
           >
+            {active ? (
+              <m.span
+                layoutId={layoutId}
+                aria-hidden="true"
+                className="surface-chip bg-bg-elev-2 border-brand/30 absolute inset-0 -z-10 rounded-lg border shadow-xs"
+                transition={MOTION_PRESETS.layout}
+              />
+            ) : null}
             <Icon className={cn('size-4 shrink-0', active ? 'text-brand' : 'text-fg-subtle')} />
             <span className="hidden sm:inline">{tab.label}</span>
             <span className="sm:hidden">{tab.shortLabel}</span>
@@ -63,5 +69,35 @@ export function AISubNav() {
         );
       })}
     </nav>
+  );
+}
+
+export function AISubNav() {
+  return (
+    <PillarSubNav
+      ariaLabel="AI & Intelligence Sections"
+      layoutId="settings-ai-subnav-pill"
+      tabs={AI_TABS}
+    />
+  );
+}
+
+export function TradingSubNav() {
+  return (
+    <PillarSubNav
+      ariaLabel="Trading & Alerts Sections"
+      layoutId="settings-trading-subnav-pill"
+      tabs={TRADING_TABS}
+    />
+  );
+}
+
+export function AccountSubNav() {
+  return (
+    <PillarSubNav
+      ariaLabel="Account & System Sections"
+      layoutId="settings-account-subnav-pill"
+      tabs={ACCOUNT_TABS}
+    />
   );
 }

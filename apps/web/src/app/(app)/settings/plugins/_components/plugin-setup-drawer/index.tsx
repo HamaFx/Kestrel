@@ -28,6 +28,7 @@
 // merged into the form state (e.g. an auto-generated link token) and `url`
 // is rendered as the primary call to action.
 import { IconArrowLeft, IconArrowRight, IconCheck } from '@tabler/icons-react';
+import { AnimatePresence, m } from 'motion/react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -82,7 +83,18 @@ export function PluginSetupDrawer({
         </DrawerHeader>
 
         <div className="scrollbar-hide flex-1 overflow-y-auto px-4 pb-2">
-          <WizardStepBody entry={entry} controller={controller} />
+          <AnimatePresence mode="wait" initial={false}>
+            <m.div
+              key={showWizard ? `setup-step-${stepIndex}` : 'setup-settings'}
+              layout
+              initial={{ opacity: 0, x: 12 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -12 }}
+              transition={{ duration: 0.18, ease: [0.32, 0.72, 0, 1] }}
+            >
+              <WizardStepBody entry={entry} controller={controller} />
+            </m.div>
+          </AnimatePresence>
         </div>
 
         <DrawerFooter>

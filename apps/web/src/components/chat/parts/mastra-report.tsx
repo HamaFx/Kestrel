@@ -22,6 +22,7 @@ import { type AgentProgress } from './agent-deliberation/agent-meta';
 import { ReportBody } from './mastra-report-body';
 import { MastraReportMetaSchema, type MastraReportMetaView } from './mastra-report-schema';
 import type { SyndicateTradeOpinion } from './syndicate-dossier/extract-trade-levels';
+import { opinionsFromMastraMeta } from './syndicate-dossier/opinions-from-meta';
 import { SyndicateDossierCard } from './syndicate-dossier/syndicate-dossier-card';
 
 export function MastraReportPart({ data }: { data: unknown }) {
@@ -89,17 +90,7 @@ function MastraReportCard({
 
   // The briefing is a single-symbol read: its synthetic desk opinion mirrors
   // the report bias and the ticket wells come from the scenario rows.
-  const tradeOpinions: SyndicateTradeOpinion[] = report
-    ? [
-        {
-          agentName: 'technical',
-          bias: report.bias === 'unclear' ? 'neutral' : report.bias,
-          confidence: report.confidence,
-          reasoning: report.bottomLine,
-          rawData: { scenarios: report.scenarios },
-        },
-      ]
-    : [];
+  const tradeOpinions = opinionsFromMastraMeta(meta);
 
   return (
     <div data-mastra-agent="mastra-xauusd" data-packet-id={meta.packetId}>

@@ -9,6 +9,7 @@ import { m } from 'motion/react';
 import { cn } from '@/lib/formatters/cn';
 
 import type { Scenario, SimulationStage } from './scenarios';
+import { SimulatorSetupChart } from './simulator-setup-chart';
 
 interface SimulatorCanvasProps {
   scenario: Scenario;
@@ -138,6 +139,8 @@ export function SimulatorCanvas({ scenario, simulationStage, isVetoed }: Simulat
           </p>
         </div>
       </div>
+
+      <SimulatorSetupChart scenario={scenario} stage={simulationStage} isVetoed={isVetoed} />
 
       {/* Dynamic Tug-of-War Directional Probability Bar */}
       {simulationStage !== 'idle' && (

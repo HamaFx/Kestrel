@@ -9,6 +9,7 @@ import { AiCoachCard } from '../ai-coach-card';
 import { AiReviewPanel } from '../ai-review-panel';
 import { BreakdownTable } from '../analytics/breakdown-table';
 import { DrawdownChart } from '../analytics/drawdown-chart';
+import { JournalComposedChart } from '../analytics/journal-composed-chart';
 import { RDistribution } from '../analytics/r-distribution';
 import { StreakDisplay } from '../analytics/streak-display';
 
@@ -23,6 +24,7 @@ export function JournalAnalyticsTab({
     <div className="flex flex-col gap-4">
       <AiCoachCard stats={stats} />
       <AiReviewPanel entries={entries} />
+      <JournalComposedChart entries={entries} />
       <DrawdownChart entries={entries} stats={stats} />
       <RDistribution stats={stats} />
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

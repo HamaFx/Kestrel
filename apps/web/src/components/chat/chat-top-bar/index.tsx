@@ -15,7 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { IconLayoutSidebarRight, IconLoader2, IconPlus } from '@tabler/icons-react';
+import {
+  IconChartCandle,
+  IconLayoutSidebarRight,
+  IconLoader2,
+  IconNotebook,
+  IconPlus,
+} from '@tabler/icons-react';
+import { Link } from 'next-view-transitions';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
@@ -146,8 +153,28 @@ export function ChatTopBar({
         isStreaming={isStreaming}
       />
 
-      {/* Right: Workspace Sidecar Toggle + New Chat + Overflow Menu */}
+      {/* Right: Quick Mobile Chart/Journal Links + Workspace Sidecar Toggle + New Chat + Overflow Menu */}
       <div className="flex shrink-0 items-center gap-1.5">
+        <Tooltip label="Open live chart" side="bottom">
+          <Link
+            href={`/chart/${pinnedSymbol ?? 'XAUUSD'}`}
+            aria-label="Open live chart"
+            className="tactile-press surface-chip text-fg-muted hover:text-fg hover:border-brand/40 inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors lg:hidden"
+          >
+            <IconChartCandle className="size-4" strokeWidth={1.85} />
+          </Link>
+        </Tooltip>
+
+        <Tooltip label="Open journal" side="bottom">
+          <Link
+            href="/journal"
+            aria-label="Open journal"
+            className="tactile-press surface-chip text-fg-muted hover:text-fg hover:border-brand/40 inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors lg:hidden"
+          >
+            <IconNotebook className="size-4" strokeWidth={1.85} />
+          </Link>
+        </Tooltip>
+
         {(onToggleViews || onToggleSplitMode) && (
           <Tooltip
             label={

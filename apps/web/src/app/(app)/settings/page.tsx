@@ -17,14 +17,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {
-  IconBell,
   IconChevronRight,
   IconCpu,
   IconInfoCircle,
-  IconKey,
-  IconPalette,
   IconPuzzle,
-  IconRobot,
   IconShield,
   IconTrendingUp,
 } from '@tabler/icons-react';
@@ -59,59 +55,35 @@ export default async function SettingsPage() {
     <div className="flex flex-col gap-6">
       <UsageGlance userId={userId} />
 
-      {/* Grouped Quick Links */}
+      {/* Grouped Quick Links — 4 Clean Pillars */}
       <div className="flex flex-col gap-2">
         <h2 className="text-fg-subtle px-0.5 text-[11px] font-semibold tracking-wider uppercase">
-          Settings Categories
+          Workspace Pillars
         </h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <QuickLink
-            href="/settings/plugins"
-            icon={<IconPuzzle className="size-4.5" />}
-            title="Plugins"
-            description="Install backtesting, paper trading, and Telegram in one click"
+            href="/settings/api-keys"
+            icon={<IconCpu className="size-4.5" />}
+            title="AI & Intelligence"
+            description="BYOK provider keys, model routing, fallback chains, and 4-desk committee preferences"
           />
           <QuickLink
             href="/settings/symbols"
             icon={<IconTrendingUp className="size-4.5" />}
-            title="Watchlist Symbols"
-            description="Customize the Gold, Forex, and Crypto pairs on your watchlist"
+            title="Trading & Alerts"
+            description="Watchlist symbols, email/push/Telegram alert delivery, and quiet hours"
           />
           <QuickLink
-            href="/settings/notifications"
-            icon={<IconBell className="size-4.5" />}
-            title="Notifications & Telegram"
-            description="Email, browser push, Telegram bot linking, and quiet hours"
+            href="/settings/plugins"
+            icon={<IconPuzzle className="size-4.5" />}
+            title="Plugins"
+            description="Install and configure Backtesting, Paper Trading, and Telegram Copilot"
           />
           <QuickLink
             href="/settings/profile"
             icon={<IconShield className="size-4.5" />}
-            title="Profile & Security"
-            description="Display name, password, two-factor auth, and active sessions"
-          />
-          <QuickLink
-            href="/settings/appearance"
-            icon={<IconPalette className="size-4.5" />}
-            title="Appearance & Data"
-            description="Theme styling, default chart symbol, and trade journal exports"
-          />
-          <QuickLink
-            href="/settings/api-keys"
-            icon={<IconKey className="size-4.5" />}
-            title="API Keys & Vault"
-            description="Connect your personal AI provider keys — encrypted at rest with AES-256-GCM"
-          />
-          <QuickLink
-            href="/settings/models"
-            icon={<IconCpu className="size-4.5" />}
-            title="Model Routing & Fallbacks"
-            description="Default chat, vision, and embedding models plus your fallback chain"
-          />
-          <QuickLink
-            href="/settings/agent"
-            icon={<IconRobot className="size-4.5" />}
-            title="Agent Preferences"
-            description="Committee analysis mode, custom instructions, and per-desk model overrides"
+            title="Account & System"
+            description="Profile security, 2FA, theme appearance, data export, PWA install, and quota"
           />
         </div>
       </div>
@@ -120,6 +92,7 @@ export default async function SettingsPage() {
         icon={<IconInfoCircle className="size-4" />}
         title="Account Session"
         description="Sign out and platform information"
+        layout="split"
       >
         <AboutCard />
       </SettingsSection>
@@ -129,6 +102,7 @@ export default async function SettingsPage() {
           icon={<IconShield className="size-4" />}
           title="Admin & Platform Controls"
           description="Operator-only configuration for market feeds, system diagnostics, and the platform admin console"
+          layout="split"
         >
           <div className="flex flex-col gap-3">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

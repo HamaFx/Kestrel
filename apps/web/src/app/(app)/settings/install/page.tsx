@@ -18,6 +18,7 @@
 
 import type { Metadata } from 'next';
 
+import { AccountSubNav } from '../_components/ai-subnav';
 import { InstallAppCard } from '../_components/install/install-app-card';
 
 export const metadata: Metadata = {
@@ -29,11 +30,13 @@ export default function InstallSettingsPage() {
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h2 className="text-fg text-lg font-semibold tracking-tight">Install app</h2>
+        <h2 className="text-fg text-lg font-semibold tracking-tight">Account & System</h2>
         <p className="text-fg-subtle text-sm">
           Run Kestrel as an app on this device: full screen, one tap away, offline shell included.
         </p>
       </div>
+
+      <AccountSubNav />
 
       <InstallAppCard />
 

@@ -2,7 +2,8 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// One-click confirmation card for plugin write tools (P0-6).
+// Confirmation card for plugin write tools (P0-6), unified under the shared
+// Aegis Human-in-the-Loop Execution Gate (`<AegisConfirmGate>`).
 //
 // The chat adapter returns a `plugin-tool-confirm` envelope instead of running
 // a `requiresConfirmation` tool. This card re-executes the tool through the
@@ -10,11 +11,10 @@
 // plugin's own chat card (or the automatic formatter).
 import { pluginUiRegistry } from '@kestrel/plugin-sdk/ui';
 import type { PluginToolConfirmUi } from '@kestrel/shared';
-import { IconCheck, IconShieldLock, IconX } from '@tabler/icons-react';
+import { IconShieldLock } from '@tabler/icons-react';
 import { useState, type ReactElement } from 'react';
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { AegisConfirmGate, AegisGateDeclinedCard } from '@/components/ui/aegis-confirm-gate';
 import { getCsrfToken } from '@/lib/auth/csrf';
 
 import { PluginOutput } from './auto-plugin-tool-blocks';
@@ -85,63 +85,38 @@ export function PluginToolConfirmCard({ payload }: { payload: PluginToolConfirmU
 
   if (state === 'dismissed') {
     return (
-      <div className="border-divider text-fg-subtle flex items-center gap-2 rounded-xl border border-dashed px-3.5 py-2.5 text-xs">
-        <IconX className="size-3.5 shrink-0" aria-hidden="true" />
-        <span>{title} cancelled — nothing was executed.</span>
-      </div>
+      <AegisGateDeclinedCard
+        ariaLabel={`${title} cancelled`}
+        summary={`${title} cancelled — nothing was executed.`}
+      />
     );
   }
 
   return (
-    <section
-      aria-label={`${title} confirmation`}
-      className="surface-panel flex flex-col gap-3 rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)]"
+    <AegisConfirmGate
+      ariaLabel={`${title} confirmation`}
+      subtitle={`Plugin Directive · ${payload.pluginId}`}
+      title={
+        payload.description
+          ? `${title} — ${payload.description}`
+          : `${title} — This action modifies plugin state.`
+      }
+      badgeLabel="PLUGIN WRITE"
+      icon={<IconShieldLock className="size-5" strokeWidth={1.85} aria-hidden="true" />}
+      confirmLabel={`Hold to Confirm ${title}`}
+      cancelLabel="Cancel"
+      isConfirming={state === 'confirming'}
+      errorMessage={state === 'error' ? (error ?? 'Confirmation failed.') : null}
+      onConfirm={confirm}
+      onCancel={() => setState('dismissed')}
     >
-      <header className="flex items-start gap-2.5">
-        <span className="bg-warn/10 text-warn flex size-9 shrink-0 items-center justify-center rounded-md">
-          <IconShieldLock className="size-4" aria-hidden="true" />
-        </span>
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <h3 className="text-fg flex flex-wrap items-center gap-2 text-sm font-semibold">
-            {title}
-            <Badge tone="warn">needs confirmation</Badge>
-          </h3>
-          <p className="text-fg-muted line-clamp-3 text-xs">
-            {payload.description || 'This action changes your plugin data.'} Nothing runs until you
-            confirm.
-          </p>
-        </div>
-      </header>
-
-      <div className="bg-bg-elev-2/50 min-w-0 rounded-lg border border-white/[0.06] px-3 py-2.5">
+      <div className="border-border/40 bg-bg-elev-3 text-brand flex items-center justify-between border-b px-3 py-1.5 text-[11px] font-semibold uppercase">
+        <span>Proposed Tool Input</span>
+        <span className="text-fg-subtle font-mono text-[10px]">{payload.toolId}</span>
+      </div>
+      <div className="p-3">
         <PluginOutput output={payload.proposedInput} />
       </div>
-
-      {state === 'error' ? (
-        <p role="alert" className="text-danger text-xs">
-          {error ?? 'Confirmation failed.'}
-        </p>
-      ) : null}
-
-      <div className="flex items-center gap-2">
-        <Button
-          variant="primary"
-          size="sm"
-          loading={state === 'confirming'}
-          onClick={() => void confirm()}
-        >
-          <IconCheck className="size-4" aria-hidden="true" />
-          Confirm
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={state === 'confirming'}
-          onClick={() => setState('dismissed')}
-        >
-          Cancel
-        </Button>
-      </div>
-    </section>
+    </AegisConfirmGate>
   );
 }

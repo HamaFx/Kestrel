@@ -19,12 +19,13 @@
  */
 
 // Right-hand views dock shell: tab navigation over the chart, 4-desk, plan,
-// and context panels. Each panel is its own component.
+// and context panels. Features a desktop drag-resize divider with persisted
+// width (`kestrel:war-room-width:v1`) and keyboard arrow accessibility.
 import type { Symbol, Timeframe } from '@kestrel/shared';
 import { IconChartCandle, IconListCheck, IconUsers, IconX } from '@tabler/icons-react';
 import type { UIMessage } from 'ai';
 import { m } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useTimeframe } from '@/hooks/use-tf';
 import type { AgentProgress } from '@/lib/chat-transport';
@@ -37,6 +38,15 @@ import { useLatestPlan } from './use-latest-plan';
 import { useLatestSyndicateMeta } from './use-latest-syndicate-meta';
 
 export type DockTab = 'chart' | 'opinions' | 'plan';
+
+const DOCK_WIDTH_STORAGE_KEY = 'kestrel:war-room-width:v1';
+const DEFAULT_DOCK_WIDTH = 480;
+const MIN_DOCK_WIDTH = 360;
+const MAX_DOCK_WIDTH = 760;
+
+function clampDockWidth(width: number): number {
+  return Math.max(MIN_DOCK_WIDTH, Math.min(MAX_DOCK_WIDTH, Math.round(width)));
+}
 
 /**
  * Track the `lg` breakpoint so the dock behaves as a docked sidecar on
@@ -94,6 +104,62 @@ export function ThreadViewsDock({
     : undefined;
 
   const isDesktop = useIsDesktop();
+  const [dockWidth, setDockWidth] = useState<number>(DEFAULT_DOCK_WIDTH);
+  const [isResizing, setIsResizing] = useState(false);
+  const dragStartRef = useRef<{ startX: number; startWidth: number } | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(DOCK_WIDTH_STORAGE_KEY);
+      if (saved) {
+        const parsed = Number(saved);
+        if (Number.isFinite(parsed)) {
+          setDockWidth(clampDockWidth(parsed));
+        }
+      }
+    } catch {
+      // Ignore storage access errors in restricted privacy contexts
+    }
+  }, []);
+
+  const persistWidth = useCallback((nextWidth: number) => {
+    const clamped = clampDockWidth(nextWidth);
+    setDockWidth(clamped);
+    try {
+      window.localStorage.setItem(DOCK_WIDTH_STORAGE_KEY, String(clamped));
+    } catch {
+      // Ignore storage write errors
+    }
+  }, []);
+
+  const startResize = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (!isDesktop) return;
+      event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
+      dragStartRef.current = { startX: event.clientX, startWidth: dockWidth };
+      setIsResizing(true);
+    },
+    [dockWidth, isDesktop],
+  );
+
+  const moveResize = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragStartRef.current) return;
+    const delta = dragStartRef.current.startX - event.clientX;
+    setDockWidth(clampDockWidth(dragStartRef.current.startWidth + delta));
+  }, []);
+
+  const endResize = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (!dragStartRef.current) return;
+      const delta = dragStartRef.current.startX - event.clientX;
+      const finalWidth = clampDockWidth(dragStartRef.current.startWidth + delta);
+      dragStartRef.current = null;
+      setIsResizing(false);
+      persistWidth(finalWidth);
+    },
+    [persistWidth],
+  );
 
   // Mobile sheet: Escape dismisses the slide-over, matching the backdrop tap.
   useEffect(() => {
@@ -119,7 +185,7 @@ export function ThreadViewsDock({
   const motionProps = isDesktop
     ? {
         initial: { width: 0, opacity: 0 },
-        animate: { width: '100%', opacity: 1 },
+        animate: { width: dockWidth, opacity: 1 },
         exit: { width: 0, opacity: 0 },
       }
     : {
@@ -146,9 +212,51 @@ export function ThreadViewsDock({
       <m.aside
         key="thread-views-dock"
         {...motionProps}
-        transition={{ duration: 0.24, ease: [0.32, 0.72, 0, 1] }}
-        className="border-border/40 bg-bg-elev-1 fixed inset-y-0 right-0 z-40 flex h-full w-full max-w-md shrink-0 flex-col overflow-hidden border-l shadow-[0_0_50px_rgba(0,0,0,0.6)] lg:static lg:z-auto lg:w-[420px] lg:max-w-none lg:shadow-none xl:w-[480px] 2xl:w-[540px]"
+        transition={isResizing ? { duration: 0 } : { duration: 0.24, ease: [0.32, 0.72, 0, 1] }}
+        style={isDesktop ? { width: dockWidth } : undefined}
+        className="border-border/40 bg-bg-elev-1 fixed inset-y-0 right-0 z-40 flex h-full w-full max-w-md shrink-0 flex-col overflow-hidden border-l shadow-[0_0_50px_rgba(0,0,0,0.6)] lg:relative lg:z-auto lg:max-w-none lg:shadow-none"
       >
+        {/* Machined Desktop Resize Handle (left edge) */}
+        <div
+          role="separator"
+          tabIndex={0}
+          aria-orientation="vertical"
+          aria-label="Resize War Room dock"
+          aria-valuemin={MIN_DOCK_WIDTH}
+          aria-valuemax={MAX_DOCK_WIDTH}
+          aria-valuenow={dockWidth}
+          title="Drag to resize War Room (double-click to reset)"
+          onPointerDown={startResize}
+          onPointerMove={moveResize}
+          onPointerUp={endResize}
+          onPointerCancel={endResize}
+          onDoubleClick={() => persistWidth(DEFAULT_DOCK_WIDTH)}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowLeft') {
+              e.preventDefault();
+              persistWidth(dockWidth + 24);
+            } else if (e.key === 'ArrowRight') {
+              e.preventDefault();
+              persistWidth(dockWidth - 24);
+            } else if (e.key === 'Home') {
+              e.preventDefault();
+              persistWidth(DEFAULT_DOCK_WIDTH);
+            }
+          }}
+          className={cn(
+            'group absolute inset-y-0 left-0 z-30 hidden w-2 cursor-col-resize items-center justify-center transition-colors lg:flex',
+            isResizing ? 'bg-brand/25' : 'hover:bg-brand/15',
+          )}
+        >
+          <span
+            aria-hidden="true"
+            className={cn(
+              'h-10 w-[2px] rounded-full transition-colors',
+              isResizing ? 'bg-brand' : 'bg-white/15 group-hover:bg-brand/70',
+            )}
+          />
+        </div>
+
         {/* Dock Header & Navigation Tabs */}
         <div className="border-border/40 bg-bg-elev-2/80 relative flex h-12 shrink-0 items-center justify-between overflow-hidden border-b px-3">
           <span

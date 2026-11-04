@@ -22,6 +22,7 @@ import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
 
+import { TradingSubNav } from '../_components/ai-subnav';
 import { SymbolsForm } from '../_components/symbols/symbols-form';
 
 export default async function SymbolsSettingsPage() {
@@ -63,11 +64,13 @@ export default async function SymbolsSettingsPage() {
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h2 className="text-fg text-lg font-semibold tracking-tight">Symbols & Watchlist</h2>
+        <h2 className="text-fg text-lg font-semibold tracking-tight">Trading & Alerts</h2>
         <p className="text-fg-subtle text-sm">
           Customize active instruments, live ticker order, and market catalog subscriptions.
         </p>
       </div>
+
+      <TradingSubNav />
 
       <SymbolsForm initialSymbols={symbols} catalog={catalog} />
     </div>

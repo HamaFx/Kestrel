@@ -34,6 +34,8 @@ export interface ComposerImage {
   url: string;
   mediaType: string;
   name: string;
+  /** Original file size in bytes, used by the attachment chip. */
+  size?: number;
 }
 
 const DEFAULT_LANG = 'en-US';
@@ -189,6 +191,7 @@ export function useComposer(args: {
         url,
         mediaType: json.mediaType ?? file.type,
         name: file.name,
+        size: file.size,
       };
     });
 

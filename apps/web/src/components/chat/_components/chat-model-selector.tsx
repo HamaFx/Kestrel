@@ -22,7 +22,7 @@ import { IconChevronDown, IconCpu } from '@tabler/icons-react';
 import { usePopupMenu } from '@/hooks/use-popup-menu';
 import { cn } from '@/lib/formatters/cn';
 
-import { modelLabelFromSelection } from './model-picker-utils';
+import { modelLabelFromSelection, providerLabelFromSelection } from './model-picker-utils';
 import { RegenModelPicker } from './regen-model-picker';
 
 interface ChatModelSelectorProps {
@@ -44,6 +44,7 @@ export function ChatModelSelector({
 }: ChatModelSelectorProps) {
   const menu = usePopupMenu({ focusFirstOnOpen: false });
   const label = modelLabelFromSelection(activeModelId);
+  const provider = providerLabelFromSelection(activeModelId);
 
   return (
     <div className="relative shrink-0" ref={menu.menuRef}>
@@ -55,22 +56,40 @@ export function ChatModelSelector({
         aria-label="Chat model"
         title={activeModelId ? `Chat model: ${label}` : 'Chat model: use configured default'}
         {...menu.triggerProps}
-        className="text-fg-muted hover:text-fg hover:bg-bg-elev-2 active:bg-bg-elev-3 text-caption inline-flex min-h-9 items-center gap-1 rounded-sm px-2 font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+        className={cn(
+          'surface-chip tactile-press text-fg-muted hover:text-fg hover:border-brand/40 inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 font-mono text-[11px] font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50',
+          menu.open && 'border-brand/50 text-fg',
+        )}
       >
-        <IconCpu className="size-3.5 shrink-0" aria-hidden="true" />
-        <span className="hidden max-w-28 truncate sm:inline">{label}</span>
-        <IconChevronDown className="size-3 shrink-0" aria-hidden="true" />
+        <IconCpu
+          className={cn('size-3.5 shrink-0', activeModelId ? 'text-brand' : 'text-fg-subtle')}
+          aria-hidden="true"
+        />
+        {provider ? (
+          <span className="text-fg-subtle hidden text-[10px] uppercase md:inline">{provider}</span>
+        ) : null}
+        <span className="hidden max-w-32 truncate sm:inline">{label}</span>
+        <IconChevronDown
+          className={cn(
+            'size-3 shrink-0 transition-transform duration-150',
+            menu.open && 'text-brand rotate-180',
+          )}
+          aria-hidden="true"
+        />
       </button>
 
       {menu.open ? (
         <div
           {...menu.menuProps}
           className={cn(
-            'bg-bg-elev-1 border-border absolute top-full right-0 z-50 mt-2 rounded-sm border p-2 shadow-xl',
+            'surface-panel absolute bottom-full left-0 z-50 mb-2 rounded-xl border border-white/10 bg-[#141516]/95 p-2 shadow-2xl backdrop-blur-xl',
             'max-w-[calc(100vw-1.5rem)]',
           )}
         >
-          <div className="text-caption text-fg-subtle px-2 pb-1">Applies to future chat turns</div>
+          <div className="border-border/40 text-fg-subtle mb-1 flex items-center justify-between border-b px-2 pb-1.5 font-mono text-[10px] tracking-wider uppercase">
+            <span>Intelligence Engine</span>
+            <span className="text-brand">Next Turn</span>
+          </div>
           <RegenModelPicker
             popoverId={menu.menuId}
             activeModelId={activeModelId}
