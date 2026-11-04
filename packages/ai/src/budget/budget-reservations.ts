@@ -185,7 +185,10 @@ export async function reconcileBudgetReservation(
   now = new Date(),
 ): Promise<boolean> {
   if (!Number.isFinite(actualUsd)) throw new Error('actual budget cost must be finite');
-  const actualCents = Math.max(0, Math.round(actualUsd * 100));
+  // A paid turn that costs less than half a cent still consumed budget.
+  // Rounding it to 0 released the whole 1-cent reservation and left
+  // `daily_ai_spend` at zero for flash-model traffic.
+  const actualCents = actualUsd > 0 ? Math.max(1, Math.round(actualUsd * 100)) : 0;
   // postgres-js rejects Date instances in this raw Drizzle SQL path.
   const resolvedAt = now.toISOString();
   return getDb().transaction(async (tx) => {

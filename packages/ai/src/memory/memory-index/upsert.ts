@@ -18,11 +18,38 @@
 
 import { requireTenantIdForUser, schema } from '@kestrel/db';
 import type { Symbol } from '@kestrel/shared';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
+import { eq } from 'drizzle-orm';
 
 import { dailySpendUsd } from '../../budget/cost';
 import { embedTexts } from '../../models/embeddings';
 import { getDb } from '../../runtime/db';
 import type { EmbedEnv, EmbedUserSettings, MemoryKind } from './types';
+
+const mlog = createCategorizedLogger('ai', { component: 'memory-upsert' });
+
+/**
+ * Resolve the BYOK key slice for embedding. `rememberJournalEntry` and
+ * `rememberBriefing` only know the user id, so without this lookup a BYOK
+ * user's embeddings silently fall back to operator env keys and fail with
+ * `embed_failed`.
+ */
+async function loadEmbedSettings(userId: string): Promise<EmbedUserSettings | undefined> {
+  try {
+    const [row] = await getDb()
+      .select({
+        aiApiKeys: schema.userSettings.aiApiKeys,
+        embeddingModel: schema.userSettings.embeddingModel,
+      })
+      .from(schema.userSettings)
+      .where(eq(schema.userSettings.userId, userId))
+      .limit(1);
+    return row ?? undefined;
+  } catch (err) {
+    mlog.warn('memory user settings lookup failed', { userId, err: String(err) });
+    return undefined;
+  }
+}
 
 /**
  * Embed `text` and upsert into `memory_embeddings`. Skips silently when
@@ -68,9 +95,10 @@ export async function upsertMemory(args: {
   let embedding: number[];
   let model: string;
   try {
+    const userSettings = args.userSettings ?? (await loadEmbedSettings(args.userId));
     const result = await embedTexts({
       texts: [text],
-      ...(args.userSettings ? { userSettings: args.userSettings } : {}),
+      ...(userSettings ? { userSettings } : {}),
       ...(env.AI_EMBEDDING_MODEL ? { env: { AI_EMBEDDING_MODEL: env.AI_EMBEDDING_MODEL } } : {}),
       ...(args.signal ? { signal: args.signal } : {}),
     });

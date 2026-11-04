@@ -51,7 +51,6 @@ export const PatchSchema = z.discriminatedUnion('action', [
   }),
   z.object({
     action: z.literal('update_budget'),
-    monthlyBudgetLimit: z.number().nullable().optional(),
     maxDailyUsd: z.number().nullable().optional(),
   }),
 ]);

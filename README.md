@@ -14,7 +14,7 @@
   <a href="https://github.com/HamaFx/Kestrel/actions/workflows/ci-fast.yml"><img src="https://img.shields.io/github/actions/workflow/status/HamaFx/Kestrel/ci-fast.yml?branch=main&style=for-the-badge&label=CI%20Build" alt="CI status"></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-22.22%2B-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js version"></a>
   <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16.0%20(React%2019)-black?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js"></a>
-  <a href="https://pnpm.io/"><img src="https://img.shields.io/badge/pnpm-9.15%2B-F69220?style=for-the-badge&logo=pnpm&logoColor=white" alt="pnpm"></a>
+  <a href="https://pnpm.io/"><img src="https://img.shields.io/badge/pnpm-12%2B-F69220?style=for-the-badge&logo=pnpm&logoColor=white" alt="pnpm"></a>
   <a href="https://www.docker.com/"><img src="https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker Ready"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue?style=for-the-badge" alt="Apache 2.0 License"></a>
 </p>
@@ -280,7 +280,7 @@ ENCRYPTION_SECRET=<openssl rand -hex 32>
 CRON_SECRET=<openssl rand -hex 16>
 
 # Database (Bundled Docker default; PostgreSQL is required)
-DATABASE_URL=postgres://hamafx:your_postgres_password@db:5432/hamafx
+DATABASE_URL=postgres://kestrel_app:your_app_password@db:5432/hamafx
 POSTGRES_PASSWORD=your_postgres_password
 
 # Deployment environment (multi-user + RLS required)

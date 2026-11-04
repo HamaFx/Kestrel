@@ -16,7 +16,6 @@ packages:
 # The eventsource-parser patch strips the `source` export condition that
 # breaks bundlers resolving the published TypeScript sources.
 patchedDependencies:
-  eventsource-parser@3.1.1: patches/eventsource-parser@3.1.1.patch
   typescript-paths@1.5.2: patches/typescript-paths@1.5.2.patch
 
 # Overrides (applied by pnpm >= 10; they were silent no-ops on the old pnpm 9

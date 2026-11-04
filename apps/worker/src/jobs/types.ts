@@ -19,7 +19,7 @@
 
 import type { WorkerEnv } from '../env.js';
 import type { Logger } from '../log.js';
-import type { TenantRouter } from '../runtime/tenant-router.js';
+import type { TenantRouter } from '@kestrel/shared/tenant-partition';
 
 // -----------------------------------------------------------------------
 // PF-09 — ISP-compliant job context split.
@@ -74,6 +74,7 @@ export type JobName =
   | 'fred-actuals'
   | 'resonance-sync'
   | 'alerts'
+  | 'news'
   | 'retention';
 
 /**

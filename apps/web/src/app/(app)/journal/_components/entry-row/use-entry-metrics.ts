@@ -23,12 +23,12 @@ export function useEntryMetrics(entry: JournalEntry, livePrice: number | undefin
     const pips = diff * pipMultiplier;
 
     // USD Cash calculations (size = lots)
-    // Contract sizes: Gold = 100, Forex = 100000
+    // Contract size comes from the symbol catalog: gold 100, FX 100,000,
+    // crypto 1 (1 lot = 1 coin). A hardcoded 100,000 inflated crypto PnL
+    // by 100,000x.
     let cashPnl = 0;
     if (entry.size !== null) {
-      const def = getSymbolDefinition(entry.symbol);
-      const isCommodity = def?.currencies?.includes('XAU') ?? false;
-      const contractSize = isCommodity ? 100 : 100000;
+      const contractSize = getSymbolDefinition(entry.symbol).capabilities.contractSize;
       cashPnl = entry.size * contractSize * diff;
     }
 

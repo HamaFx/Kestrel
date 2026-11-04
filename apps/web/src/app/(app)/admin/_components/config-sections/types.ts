@@ -60,7 +60,6 @@ export interface PlatformConfigDTO {
     allTools: string[];
   };
   budget: {
-    monthlyBudgetLimit: number | null;
     maxDailyUsd: number | null;
     todayTurns: number;
     todayUsd: number;
@@ -80,7 +79,6 @@ export interface PlatformConfigForm {
   customInstructions: string;
   marketProvider: 'biquote' | 'finnhub' | 'live-ticks';
   maxDailyUsd: string;
-  monthlyBudgetLimit: string;
   disabledTools: string[];
 }
 
@@ -139,7 +137,6 @@ export const EMPTY_FORM: PlatformConfigForm = {
   customInstructions: '',
   marketProvider: 'biquote',
   maxDailyUsd: '',
-  monthlyBudgetLimit: '',
   disabledTools: [],
 };
 

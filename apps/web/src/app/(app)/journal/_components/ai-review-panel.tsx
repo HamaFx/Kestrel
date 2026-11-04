@@ -22,13 +22,14 @@
 // /api/journal/review.
 import type { JournalEntry } from '@kestrel/shared';
 import { IconAlertCircle, IconBolt, IconRefresh } from '@tabler/icons-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { Button } from '@/components/ui/button';
-import { fetchCsrf } from '@/lib/auth/csrf';
 import { cn } from '@/lib/formatters/cn';
+import { apiMutate } from '@/lib/http/api-client';
 
 interface TradeReviewResponse {
   review: {
@@ -41,17 +42,21 @@ interface TradeReviewResponse {
   };
 }
 
+interface TradeReview {
+  text: string;
+  modelId: string;
+}
+
+const reviewKey = (entryId: string) => ['journal-trade-review', entryId] as const;
+
 interface AiReviewPanelProps {
   /** All journal entries — the panel reviews any closed one. */
   entries: readonly JournalEntry[];
 }
 
 export function AiReviewPanel({ entries }: AiReviewPanelProps) {
+  const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  // `text` + `modelId` ride in one state slot (the file's useState budget).
-  const [review, setReview] = useState<{ text: string; modelId: string } | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const closed = useMemo(() => entries.filter((e) => e.outcome !== 'open'), [entries]);
   // Fall back to the newest closed trade until the user picks one (entries can
@@ -59,37 +64,35 @@ export function AiReviewPanel({ entries }: AiReviewPanelProps) {
   const activeId = selectedId ?? closed[0]?.id ?? null;
   const entry = closed.find((e) => e.id === activeId) ?? null;
 
-  // Reset review state when the selection changes so stale reviews aren't
-  // shown for a different trade.
-  useEffect(() => {
-    setReview(null);
-    setError(null);
-  }, [activeId]);
+  // One cache entry per trade: switching trades or journal tabs keeps every
+  // generated review instead of dropping it with the unmounted component.
+  const review =
+    useQuery<TradeReview | null>({
+      queryKey: reviewKey(activeId ?? 'none'),
+      queryFn: async () => null,
+      enabled: false,
+      initialData: null,
+      staleTime: Infinity,
+      gcTime: Infinity,
+    }).data ?? null;
 
-  async function generateReview() {
-    if (!entry) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetchCsrf('/api/journal/review', {
+  const generate = useMutation({
+    mutationFn: (entryId: string) =>
+      apiMutate<TradeReviewResponse>('/api/journal/review', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ id: entry.id }),
-      });
-      const body = (await res.json()) as { error?: { message: string } } | TradeReviewResponse;
-      if (!res.ok) {
-        throw new Error(
-          'error' in body && body.error?.message ? body.error.message : `HTTP ${res.status}`,
-        );
-      }
-      const data = body as TradeReviewResponse;
-      setReview({ text: data.review.review, modelId: data.review.modelId });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Review failed');
-    } finally {
-      setLoading(false);
-    }
-  }
+        body: JSON.stringify({ id: entryId }),
+      }),
+    onSuccess: (body, entryId) => {
+      queryClient.setQueryData(reviewKey(entryId), {
+        text: body.review.review,
+        modelId: body.review.modelId,
+      } satisfies TradeReview);
+    },
+  });
+
+  const loading = generate.isPending;
+  const error = generate.error?.message ?? null;
 
   if (!entry) {
     return (
@@ -114,7 +117,10 @@ export function AiReviewPanel({ entries }: AiReviewPanelProps) {
           <select
             id="ai-review-trade"
             value={entry.id}
-            onChange={(e) => setSelectedId(e.target.value)}
+            onChange={(e) => {
+              generate.reset();
+              setSelectedId(e.target.value);
+            }}
             className="bg-bg-elev-2 text-fg border-border focus:border-brand/50 focus:ring-brand/20 max-w-[16rem] rounded-md border px-2 py-1 font-mono text-xs focus:ring-2 focus:outline-none"
           >
             {closed.map((candidate) => (
@@ -130,7 +136,7 @@ export function AiReviewPanel({ entries }: AiReviewPanelProps) {
           <Button
             size="sm"
             variant="secondary"
-            onClick={generateReview}
+            onClick={() => entry && generate.mutate(entry.id)}
             loading={loading}
             disabled={loading}
             className="shrink-0"

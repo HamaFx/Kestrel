@@ -25,48 +25,50 @@ import {
   IconShieldCheck,
   IconSparkles,
 } from '@tabler/icons-react';
-import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Button } from '@/components/ui/button';
-import { fetchCsrf } from '@/lib/auth/csrf';
 import { cn } from '@/lib/formatters/cn';
+import { apiMutate } from '@/lib/http/api-client';
 
 interface AiCoachCardProps {
   stats: JournalStatsWithNulls;
 }
 
+const COACH_INSIGHTS_KEY = ['journal-coach-insights'] as const;
+
+interface CoachInsightsBody {
+  insights?: CoachInsightsResult;
+}
+
 export function AiCoachCard({ stats }: AiCoachCardProps) {
-  const [insights, setInsights] = useState<CoachInsightsResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  // The report lives in the React Query cache: the journal swaps tabs by
+  // unmounting this card, and a local `useState` discarded the generated
+  // review every time.
+  const insights =
+    useQuery<CoachInsightsResult | null>({
+      queryKey: COACH_INSIGHTS_KEY,
+      queryFn: async () => null,
+      enabled: false,
+      initialData: null,
+      staleTime: Infinity,
+      gcTime: Infinity,
+    }).data ?? null;
 
-  async function generateCoachReport() {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetchCsrf('/api/journal/coach-insights', {
+  const coach = useMutation({
+    mutationFn: () =>
+      apiMutate<CoachInsightsBody>('/api/journal/coach-insights', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-      });
+      }),
+    onSuccess: (body) => {
+      if (body.insights) queryClient.setQueryData(COACH_INSIGHTS_KEY, body.insights);
+    },
+  });
 
-      const body = (await res.json()) as {
-        error?: { message: string };
-        insights?: CoachInsightsResult;
-      };
-      if (!res.ok) {
-        throw new Error(body.error?.message ?? `HTTP ${res.status}`);
-      }
-
-      if (body.insights) {
-        setInsights(body.insights);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate coach insights');
-    } finally {
-      setLoading(false);
-    }
-  }
+  const loading = coach.isPending;
+  const error = coach.error?.message ?? null;
 
   const gradeColors: Record<string, string> = {
     'A+': 'bg-bull/10 text-bull border-bull/20',
@@ -101,7 +103,7 @@ export function AiCoachCard({ stats }: AiCoachCardProps) {
         </div>
 
         <Button
-          onClick={generateCoachReport}
+          onClick={() => coach.mutate()}
           disabled={loading || stats.count === 0}
           size="sm"
           variant="tactical"

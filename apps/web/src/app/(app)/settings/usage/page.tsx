@@ -16,8 +16,8 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { BYOK_PROVIDERS_LIST, computeUsage, listTelemetry } from '@kestrel/ai';
-import { getUserWithSettings, listMtdAgentOpinions, withUserTenantRO } from '@kestrel/db';
+import { computeUsage, listTelemetry } from '@kestrel/ai';
+import { listMtdAgentOpinions, withUserTenantRO } from '@kestrel/db';
 import { IconChartBar } from '@tabler/icons-react';
 import type { Metadata } from 'next';
 import { Link } from 'next-view-transitions';
@@ -30,7 +30,6 @@ import { ActivitySummaryCard } from './_components/activity-summary-card';
 import { AgentUsageCard } from './_components/agent-usage-card';
 import { DailyActivityChart } from './_components/daily-activity-chart';
 import { RecentTurnsCard } from './_components/recent-turns-card';
-import { UsageLimitsForm } from './_components/usage-limits-form';
 
 export const metadata: Metadata = {
   title: 'Activity & Quota · Settings',
@@ -47,37 +46,17 @@ export default async function UsagePage() {
   const startOfMonth = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
 
   // Audit 2026-10-31 (R1): this RSC starts outside the API boundary, so every
-  // tenant read below — chat_telemetry, daily_ai_spend, agent_opinions, and
-  // the user's own user_settings — must run in the user's tenant scope. A
-  // single `withUserTenantRO` covers all of them; RO is safe because every
-  // call below is a SELECT, and it lets a `DATABASE_URL_REPLICA` deployment
-  // serve these reads from the replica.
-  const [[stats, recent, agentOpinionRows], { settings }] = await withUserTenantRO(userId, () =>
+  // tenant read below — chat_telemetry, daily_ai_spend, and agent_opinions —
+  // must run in the user's tenant scope. A single `withUserTenantRO` covers
+  // all of them; RO is safe because every call below is a SELECT, and it lets
+  // a `DATABASE_URL_REPLICA` deployment serve these reads from the replica.
+  const [stats, recent, agentOpinionRows] = await withUserTenantRO(userId, () =>
     Promise.all([
-      Promise.all([
-        computeUsage(userId),
-        listTelemetry(userId, 20),
-        listMtdAgentOpinions(userId, startOfMonth),
-      ]),
-      getUserWithSettings(userId),
+      computeUsage(userId),
+      listTelemetry(userId, 20),
+      listMtdAgentOpinions(userId, startOfMonth),
     ]),
   );
-
-  // Budget guardrails are personal (never inherited from the platform admin),
-  // so the form is pre-populated from the user's own settings row.
-  const thresholds = settings?.providerSpendingThresholds ?? {};
-  const spendByProvider = new Map<string, number>();
-  for (const p of stats.byProvider) {
-    if (p.byokProviderId) spendByProvider.set(p.byokProviderId, p.costUsd);
-  }
-  const providerSpend = Array.from(new Set([...spendByProvider.keys(), ...Object.keys(thresholds)]))
-    .map((id) => ({
-      id,
-      displayName: BYOK_PROVIDERS_LIST.find((p) => p.id === id)?.displayName ?? id,
-      currentSpend: spendByProvider.get(id) ?? 0,
-      threshold: thresholds[id] ?? null,
-    }))
-    .sort((a, b) => b.currentSpend - a.currentSpend);
 
   return (
     <div className="flex flex-col gap-6">
@@ -89,12 +68,6 @@ export default async function UsagePage() {
       </div>
 
       <ActivitySummaryCard stats={stats} />
-
-      <UsageLimitsForm
-        initialMonthlyLimit={settings?.monthlyBudgetLimit ?? null}
-        initialAlertConfig={settings?.spendAlertsConfig ?? {}}
-        providers={providerSpend}
-      />
 
       {stats.thirtyDayTurns === 0 ? (
         <EmptyState

@@ -41,14 +41,19 @@ export const paperMarketWatchJob: PluginJobRegistration = {
     const users = await ctx.getInstalledUsers();
     let processed = 0;
     let skipped = 0;
+    // The cap bounds *active* users (open positions or pending orders), not
+    // installations. Slicing first starved every trader past index 100.
+    let processedActiveUsers = 0;
 
-    for (const user of users.slice(0, MAX_USERS_PER_RUN)) {
+    for (const user of users) {
       if (ctx.signal.aborted) break;
+      if (processedActiveUsers >= MAX_USERS_PER_RUN) break;
       try {
         const symbols = await withTenantDb(user.tenantId, () => listWatchedSymbols(user.userId), {
           userId: user.userId,
         });
         if (symbols.length === 0) continue;
+        processedActiveUsers += 1;
 
         const settings = normaliseSettings(user.settings);
         const ticks = await loadTicks(symbols, ctx.signal);
@@ -86,8 +91,8 @@ export const paperMarketWatchJob: PluginJobRegistration = {
     return {
       processed,
       note:
-        users.length > MAX_USERS_PER_RUN
-          ? `Processed ${processed}/${users.length} users (cap ${MAX_USERS_PER_RUN}); skipped ${skipped}.`
+        processedActiveUsers >= MAX_USERS_PER_RUN
+          ? `Processed ${processed} active users (cap ${MAX_USERS_PER_RUN}) from ${users.length} installed; skipped ${skipped}.`
           : `Processed ${processed}; skipped ${skipped}.`,
     };
   },

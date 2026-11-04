@@ -81,8 +81,6 @@ function reducer(state: State, action: Action): State {
           customInstructions: routing.customInstructions ?? '',
           marketProvider: marketData.marketDataProvider,
           maxDailyUsd: budget.maxDailyUsd != null ? String(budget.maxDailyUsd) : '',
-          monthlyBudgetLimit:
-            budget.monthlyBudgetLimit != null ? String(budget.monthlyBudgetLimit) : '',
           disabledTools: tools.disabledTools ?? [],
         },
         ui: state.ui,
@@ -283,13 +281,9 @@ export function usePlatformConfig() {
     setUi({ savingBudget: true });
     try {
       const daily = form.maxDailyUsd.trim() ? Number.parseFloat(form.maxDailyUsd.trim()) : null;
-      const monthly = form.monthlyBudgetLimit.trim()
-        ? Number.parseInt(form.monthlyBudgetLimit.trim(), 10)
-        : null;
       await patchConfig({
         action: 'update_budget',
         maxDailyUsd: daily != null && !Number.isNaN(daily) ? daily : null,
-        monthlyBudgetLimit: monthly != null && !Number.isNaN(monthly) ? monthly : null,
       });
       toast.success('Platform spend guardrails updated');
       await loadConfig();

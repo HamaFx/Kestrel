@@ -29,6 +29,7 @@ import {
   deterministicThreadId,
   formatAnalysis,
   modelEnv,
+  persistTelegramTurnBestEffort,
 } from './shared';
 
 export async function analyzeReply(
@@ -101,21 +102,27 @@ export async function analyzeReply(
       opinions: result.agentOpinions,
     });
 
-    const { appendAssistantMessage, appendUserMessage } = await import('@kestrel/ai');
-    await appendUserMessage(ctx.userId, threadId, userMessage);
-    await appendAssistantMessage(ctx.userId, threadId, {
-      id: randomUUID(),
-      role: 'assistant',
-      parts: [{ type: 'text', text }],
-    });
-
-    return {
+    const reply: BotReply = {
       text,
       keyboard: new InlineKeyboard().text(
         mode === 'single' ? '🧠 Run full team' : '⚡ Run quick check',
         `analyze:${mode === 'single' ? 'full' : 'quick'}:${symbol}`,
       ),
     };
+    reply.afterSend = () =>
+      persistTelegramTurnBestEffort({
+        userId: ctx.userId,
+        threadId,
+        title: mode === 'full' ? `Full team — ${symbol}` : `Quick check — ${symbol}`,
+        symbol,
+        userMessage,
+        assistantMessage: {
+          id: randomUUID(),
+          role: 'assistant',
+          parts: [{ type: 'text', text }],
+        },
+      });
+    return reply;
   } catch (err) {
     return {
       text: `Analysis could not be completed right now: ${

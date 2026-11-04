@@ -123,18 +123,18 @@ function packageJson({ id, description }) {
       files: ['dist', 'skills'],
       exports: {
         '.': {
-          source: './src/index.ts',
+          '@kestrel/source': './src/index.ts',
           types: './dist/index.d.ts',
           import: './dist/index.js',
         },
         './ui': {
-          source: './src/ui/index.tsx',
+          '@kestrel/source': './src/ui/index.tsx',
           types: './dist/ui/index.d.ts',
           import: './dist/ui/index.js',
         },
       },
       scripts: {
-        lint: 'eslint .',
+        lint: 'oxlint .',
         typecheck: 'tsrs --noEmit',
         test: 'vitest run',
         build: 'tsrs -p tsconfig.build.json && node ../../scripts/rewrite-dist-imports.mjs dist',
@@ -149,7 +149,6 @@ function packageJson({ id, description }) {
         '@kestrel/config': 'workspace:*',
         '@types/node': '^22.20.5',
         '@types/react': '^19.3.0',
-        eslint: '^10.13.0',
         tsrs: '0.20.0-ts7.1.0-beta',
         typescript: '^7.0.2',
         vitest: '^5.0.5',
@@ -192,10 +191,6 @@ function buildTsconfig() {
   )}\n`;
 }
 
-function eslintConfig() {
-  return `${LICENSE_HEADER}\nimport config from '@kestrel/config/eslint';\n\nexport default config;\n`;
-}
-
 function vitestConfig() {
   return `${LICENSE_HEADER}
 import os from 'node:os';
@@ -206,10 +201,10 @@ const maxWorkers = process.env.CI ? 2 : Math.max(2, Math.floor(os.availableParal
 
 export default defineConfig({
   esbuild: { target: 'es2022' },
-  resolve: { conditions: ['source'] },
+  resolve: { conditions: ['@kestrel/source'] },
   test: {
     fsModuleCachePath: 'node_modules/.vitest-cache',
-    pool: 'forks',
+    pool: 'threads',
     maxWorkers,
     environment: 'node',
     include: ['test/**/*.test.ts'],
@@ -455,7 +450,6 @@ Categories: ${[...CATEGORIES].join(', ')}
   writeFile(join(pluginDir, 'package.json'), packageJson({ id, name, description }));
   writeFile(join(pluginDir, 'tsconfig.json'), tsconfig());
   writeFile(join(pluginDir, 'tsconfig.build.json'), buildTsconfig());
-  writeFile(join(pluginDir, 'eslint.config.js'), eslintConfig());
   writeFile(join(pluginDir, 'vitest.config.ts'), vitestConfig());
   writeFile(join(pluginDir, 'src', 'index.ts'), pluginEntry({ id, name, description, category }));
   writeFile(join(pluginDir, 'src', 'ui', 'index.tsx'), pluginUi());

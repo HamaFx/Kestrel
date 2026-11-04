@@ -12,12 +12,12 @@
   "types": "./dist/registry.d.ts",
   "exports": {
     ".": {
-      "source": "./registry.ts",
+      "@kestrel/source": "./registry.ts",
       "types": "./dist/registry.d.ts",
       "import": "./dist/registry.js"
     },
     "./ui": {
-      "source": "./ui-registry.ts",
+      "@kestrel/source": "./ui-registry.ts",
       "types": "./dist/ui-registry.d.ts",
       "import": "./dist/ui-registry.js"
     }

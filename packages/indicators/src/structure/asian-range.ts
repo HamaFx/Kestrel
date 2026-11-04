@@ -16,8 +16,8 @@
 
 // Asian-session range extraction.
 //
-// The Asian session is conventionally 00:00–07:00 UTC. We extract the
-// high/low of the bars whose bar-start time falls in that window for the
+// The Asian session is 00:00–07:00 UTC (`SESSION_WINDOWS.asia`). We extract
+// the high/low of the bars whose bar-start time falls in that window for the
 // current UTC day relative to the latest bar. If the latest bar is itself
 // before 07:00 UTC, the range is "still forming" and we use bars seen so
 // far. If the window for today has no bars at all (weekend), we fall back
@@ -25,8 +25,9 @@
 
 import type { Candle } from '@kestrel/shared';
 
-const ASIAN_START_HOUR_UTC = 0;
-const ASIAN_END_HOUR_UTC = 7;
+import { SESSION_WINDOWS } from './sessions';
+
+const ASIAN_WINDOW = SESSION_WINDOWS[0]!;
 
 export interface AsianRange {
   /** YYYY-MM-DD UTC. */
@@ -81,7 +82,7 @@ function utcDayKey(ms: number): string {
 
 function inAsianWindow(ms: number): boolean {
   const h = new Date(ms).getUTCHours();
-  return h >= ASIAN_START_HOUR_UTC && h < ASIAN_END_HOUR_UTC;
+  return h >= ASIAN_WINDOW.startHour && h < ASIAN_WINDOW.endHour;
 }
 
 function collectDistinctDays(candles: Candle[]): string[] {

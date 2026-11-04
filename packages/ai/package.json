@@ -10,37 +10,37 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "source": "./src/index.ts",
+      "@kestrel/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
     "./cost": {
-      "source": "./src/budget/cost.ts",
+      "@kestrel/source": "./src/budget/cost.ts",
       "types": "./dist/budget/cost.d.ts",
       "import": "./dist/budget/cost.js"
     },
     "./persistence": {
-      "source": "./src/persistence/index.ts",
+      "@kestrel/source": "./src/persistence/index.ts",
       "types": "./dist/persistence/index.d.ts",
       "import": "./dist/persistence/index.js"
     },
     "./cron": {
-      "source": "./src/cron/index.ts",
+      "@kestrel/source": "./src/cron/index.ts",
       "types": "./dist/cron/index.d.ts",
       "import": "./dist/cron/index.js"
     },
     "./mastra-v2": {
-      "source": "./src/mastra-v2/index.ts",
+      "@kestrel/source": "./src/mastra-v2/index.ts",
       "types": "./dist/mastra-v2/index.d.ts",
       "import": "./dist/mastra-v2/index.js"
     },
     "./plugins": {
-      "source": "./src/plugins/index.ts",
+      "@kestrel/source": "./src/plugins/index.ts",
       "types": "./dist/plugins/index.d.ts",
       "import": "./dist/plugins/index.js"
     },
     "./instrumentation": {
-      "source": "./src/runtime/instrumentation.ts",
+      "@kestrel/source": "./src/runtime/instrumentation.ts",
       "types": "./dist/runtime/instrumentation.d.ts",
       "import": "./dist/runtime/instrumentation.js"
     }

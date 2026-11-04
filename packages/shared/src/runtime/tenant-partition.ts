@@ -14,34 +14,26 @@
  * limitations under the License.
  */
 
-// PF-23 — Worker tenant partitioning.
+// PF-23 — deterministic tenant partitioning.
 //
-// In single-worker deployments, all tenants are processed by one VM.
-// When scaling horizontally, each worker instance can claim a subset
-// of tenants to avoid duplicated work. A worker's partition is
-// determined by `WORKER_PARTITION` and `WORKER_PARTITIONS_TOTAL` env
-// vars — e.g. `WORKER_PARTITION=2 WORKER_PARTITIONS_TOTAL=4` means
-// "I am partition 2 of 4, processing tenants whose ID hash mod 4 == 2."
+// In single-worker deployments, all tenants are processed by one VM. When
+// scaling horizontally, each worker claims a subset of tenants to avoid
+// duplicated work. A worker's partition is determined by `WORKER_PARTITION`
+// and `WORKER_PARTITIONS_TOTAL` — e.g. `WORKER_PARTITION=2
+// WORKER_PARTITIONS_TOTAL=4` means "I am partition 2 of 4, processing tenants
+// whose ID hash mod 4 == 2".
 //
-// Usage:
-//   if (tenantRouter.isMyTenant(userId)) {
-//     await processTenant(userId);
-//   }
+// Assignment is deterministic (`md5(tenantId) mod totalPartitions`), so any
+// process — worker jobs, the web `/api/cron/*` fallbacks, plugin jobs — can
+// independently decide whether it owns a tenant without coordination.
 //
-// When no partitioning is configured (single-worker), isMyTenant()
-// always returns true (backward-compatible default).
+// Node-only (`node:crypto`) and intentionally NOT re-exported from the
+// `@kestrel/shared` barrel: import it from `@kestrel/shared/tenant-partition`.
 
 import { createHash } from 'node:crypto';
 
-/**
- * PF-23 — Route tenant work across worker instances.
- *
- * Tenant assignment is deterministic: `hash(tenantId) % totalPartitions`.
- * This lets any worker independently decide whether it owns a tenant
- * without coordination (no Redis, no database lock needed).
- */
 export class TenantRouter {
-  /** 0-based partition index for THIS worker (e.g. 0, 1, 2, 3). */
+  /** 0-based partition index for THIS process (e.g. 0, 1, 2, 3). */
   readonly partition: number;
   /** Total number of partitions configured (e.g. 4). */
   readonly totalPartitions: number;
@@ -72,21 +64,13 @@ export class TenantRouter {
     }
   }
 
-  /**
-   * Returns true when this worker is responsible for the given tenant.
-   * Always returns true in single-worker mode.
-   */
+  /** Returns true when this process is responsible for the given tenant. */
   isMyTenant(tenantId: string): boolean {
     if (this.isSingleWorker) return true;
-    const hash = createHash('md5').update(tenantId).digest();
-    const bucket = hash.readUInt32BE(0) % this.totalPartitions;
-    return bucket === this.partition;
+    return this.tenantBucket(tenantId) === this.partition;
   }
 
-  /**
-   * Returns the partition bucket for a tenant (0 to totalPartitions-1).
-   * Useful for telemetry and debugging.
-   */
+  /** Partition bucket for a tenant (0 to totalPartitions - 1). */
   tenantBucket(tenantId: string): number {
     if (this.isSingleWorker) return 0;
     const hash = createHash('md5').update(tenantId).digest();
@@ -94,21 +78,23 @@ export class TenantRouter {
   }
 }
 
-/** Global singleton — import this in job files to check partition ownership. */
-export const tenantRouter = new TenantRouter();
+/** Read the partition config from the environment for this process. */
+export function createTenantRouterFromEnv(): TenantRouter {
+  return new TenantRouter();
+}
 
 /**
  * R16 (audit 2026-10-31) — filter rows carrying a `tenantId` down to this
- * worker's partition.
+ * process's partition.
  *
  * Core jobs call `isMyTenant` inline while scanning, but plugin jobs and the
- * plugin tick bus enumerate users through `listEnabledPluginUsers` across all
- * tenants; without this filter every replica on a multi-worker deployment
- * would run every tenant's paper-trading strategies and briefings.
+ * plugin tick bus enumerate users across all tenants; without this filter every
+ * replica on a multi-worker deployment would run every tenant's paper-trading
+ * strategies and briefings.
  */
 export function filterMyTenants<T extends { tenantId: string }>(
   rows: readonly T[],
-  router: TenantRouter = tenantRouter,
+  router: TenantRouter,
 ): T[] {
   return rows.filter((row) => router.isMyTenant(row.tenantId));
 }

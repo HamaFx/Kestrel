@@ -29,6 +29,8 @@ import {
   timestamp,
 } from 'drizzle-orm/pg-core';
 
+import type { SessionGameplan } from '@kestrel/shared';
+
 // ── Users ────────────────────────────────────────────────────────────────
 
 export const users = pgTable('user', {
@@ -238,20 +240,6 @@ export const userSettings = pgTable('user_settings', {
   aiFallbackChain: jsonb('ai_fallback_chain').$type<string[]>(),
   /** Max daily USD spend for this user. Overrides global MAX_DAILY_USD. */
   maxDailyUsd: integer('max_daily_usd'),
-  /** Max monthly USD spend for this user. */
-  monthlyBudgetLimit: integer('monthly_budget_limit'),
-  /** Per-provider spending thresholds in USD. */
-  providerSpendingThresholds: jsonb('provider_spending_thresholds').$type<Record<string, number>>(),
-  /** Spend alerts channel configuration. */
-  spendAlertsConfig: jsonb('spend_alerts_config').$type<{ email?: boolean; telegram?: boolean }>(),
-  /** Spend alert state to prevent duplicate alerts within the same month. */
-  spendAlertsState: jsonb('spend_alerts_state').$type<{
-    monthKey?: string;
-    alerted50?: boolean;
-    alerted80?: boolean;
-    alerted100?: boolean;
-    providerAlerted?: string[];
-  }>(),
   /** Map of providerId to last update ISO timestamp string. */
   aiApiKeysUpdatedAt: jsonb('ai_api_keys_updated_at').$type<Record<string, string>>(),
   /** Selected market data provider. */
@@ -260,6 +248,12 @@ export const userSettings = pgTable('user_settings', {
   theme: text('theme'),
   /** Notification preferences matrix. */
   notificationPreferences: jsonb('notification_preferences'),
+  /**
+   * The trader's pre-session gameplan for the current UTC day (daily R cap,
+   * mindset, execution rule). Read by the AI risk context; ignored by
+   * consumers once `date` is in the past.
+   */
+  sessionGameplan: jsonb('session_gameplan').$type<SessionGameplan | null>(),
   /** Free-form custom instructions appended to the AI's system prompt. */
   customInstructions: text('custom_instructions'),
   /** Display time format: '12h' or '24h'. */

@@ -22,7 +22,7 @@ const maxWorkers = process.env.CI ? 2 : Math.max(2, Math.floor(os.availableParal
 
 export default defineConfig({
   resolve: {
-    conditions: ['source'],
+    conditions: ['@kestrel/source'],
   },
   test: {
     // Vitest 5 shares one filesystem module cache per workspace by default;
@@ -43,7 +43,7 @@ export default defineConfig({
     },
     server: {
       deps: {
-        inline: [/eventsource-parser/],
+        inline: [],
       },
     },
     alias: {

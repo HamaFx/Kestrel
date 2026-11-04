@@ -28,6 +28,13 @@ import { findSwings, type FindSwingsOptions } from './swings';
 
 export { findSwings } from './swings';
 export { defaultSwingLookback } from './defaults';
+export {
+  SESSION_WINDOWS,
+  computeSessionRanges,
+  sliceSessionRange,
+  startOfUtcDayMs,
+  type SessionWindow,
+} from './sessions';
 
 export interface ComputeStructureArgs {
   symbol: Symbol;

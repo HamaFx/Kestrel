@@ -51,6 +51,25 @@ export interface PluginSetupStep {
   link?: PluginSetupStepLink;
 }
 
+/**
+ * Deterministic chat-intent hints (P0-3/P0-4).
+ *
+ * The AI router matches a prompt against the installed plugins' declared
+ * patterns instead of hardcoding plugin regexes in `@kestrel/ai`. First match
+ * in priority order wins; `exclusions` disqualify a prompt (for example
+ * live-broker vocabulary must never be rescued into a paper-trading route).
+ */
+export interface PluginChatIntent {
+  /** Stable reason label recorded in routing telemetry. */
+  reason: string;
+  /** Prompt patterns that target this plugin. */
+  patterns: readonly RegExp[];
+  /** Patterns that disqualify a match even when a `patterns` entry matches. */
+  exclusions?: readonly RegExp[];
+  /** Higher priority wins when several plugins match; defaults to 0. */
+  priority?: number;
+}
+
 export interface KestrelPluginManifest {
   /** Unique kebab-case id, e.g. `backtesting`, `paper-trading`. */
   id: PluginId;
@@ -70,6 +89,8 @@ export interface KestrelPluginManifest {
   setupSteps?: readonly PluginSetupStep[];
   /** Feature badges shown in the store, e.g. `Adds 3 AI tools`. */
   badges?: readonly string[];
+  /** Chat-routing hints used by the AI planner for installed plugins. */
+  chatIntent?: readonly PluginChatIntent[];
 }
 
 export interface PluginUserLifecycleContext extends PluginExecutionContext {

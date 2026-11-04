@@ -42,6 +42,7 @@ export * from './schemas/chat';
 export * from './schemas/ai-preferences';
 export * from './schemas/alerts';
 export * from './schemas/journal';
+export * from './schemas/session-gameplan';
 // F2 — Portfolio Management
 // F3 — Social Sentiment Integration
 export * from './schemas/sentiment';

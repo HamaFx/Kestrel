@@ -10,57 +10,62 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "source": "./src/index.ts",
+      "@kestrel/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
     "./schemas/*": {
-      "source": "./src/schemas/*.ts",
+      "@kestrel/source": "./src/schemas/*.ts",
       "types": "./dist/schemas/*.d.ts",
       "import": "./dist/schemas/*.js"
     },
     "./ai/*": {
-      "source": "./src/ai/*.ts",
+      "@kestrel/source": "./src/ai/*.ts",
       "types": "./dist/ai/*.d.ts",
       "import": "./dist/ai/*.js"
     },
     "./byok": {
-      "source": "./src/crypto/byok.ts",
+      "@kestrel/source": "./src/crypto/byok.ts",
       "types": "./dist/crypto/byok.d.ts",
       "import": "./dist/crypto/byok.js"
     },
     "./env": {
-      "source": "./src/env/index.ts",
+      "@kestrel/source": "./src/env/index.ts",
       "types": "./dist/env/index.d.ts",
       "import": "./dist/env/index.js"
     },
     "./env-secrets": {
-      "source": "./src/env/secrets.ts",
+      "@kestrel/source": "./src/env/secrets.ts",
       "types": "./dist/env/secrets.d.ts",
       "import": "./dist/env/secrets.js"
     },
     "./vault": {
-      "source": "./src/crypto/vault.ts",
+      "@kestrel/source": "./src/crypto/vault.ts",
       "types": "./dist/crypto/vault.d.ts",
       "import": "./dist/crypto/vault.js"
     },
     "./errors": {
-      "source": "./src/errors/index.ts",
+      "@kestrel/source": "./src/errors/index.ts",
       "types": "./dist/errors/index.d.ts",
       "import": "./dist/errors/index.js"
     },
     "./encryption": {
-      "source": "./src/crypto/encryption.ts",
+      "@kestrel/source": "./src/crypto/encryption.ts",
       "types": "./dist/crypto/encryption.d.ts",
       "import": "./dist/crypto/encryption.js"
     },
     "./logger": {
-      "source": "./src/logger/index.ts",
+      "@kestrel/source": "./src/logger/index.ts",
       "types": "./dist/logger/index.d.ts",
       "import": "./dist/logger/index.js"
     },
+    "./tenant-partition": {
+      "@kestrel/source": "./src/runtime/tenant-partition.ts",
+      "types": "./dist/runtime/tenant-partition.d.ts",
+      "import": "./dist/runtime/tenant-partition.js"
+    },
     "./metrics-export": {
-      "source": "./src/metrics-export/index.ts",
+      "@kestrel/source": "./src/metrics-export/index.ts",
       "types": "./dist/metrics-export/index.d.ts",
       "import": "./dist/metrics-export/index.js"
     }

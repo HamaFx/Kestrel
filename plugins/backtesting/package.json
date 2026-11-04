@@ -13,22 +13,22 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "source": "./src/index.ts",
+      "@kestrel/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
     "./engine": {
-      "source": "./src/engine/public.ts",
+      "@kestrel/source": "./src/engine/public.ts",
       "types": "./dist/engine/public.d.ts",
       "import": "./dist/engine/public.js"
     },
     "./ui": {
-      "source": "./src/ui/index.tsx",
+      "@kestrel/source": "./src/ui/index.tsx",
       "types": "./dist/ui/index.d.ts",
       "import": "./dist/ui/index.js"
     },
     "./server": {
-      "source": "./src/server.ts",
+      "@kestrel/source": "./src/server.ts",
       "types": "./dist/server.d.ts",
       "import": "./dist/server.js"
     }

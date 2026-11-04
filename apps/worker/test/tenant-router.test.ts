@@ -15,13 +15,13 @@
  */
 
 // R16 (audit 2026-10-31) — worker tenant partitioning. The bucket contract is
-// pinned with fixture values so the identical copy in
-// `apps/web/src/lib/services/worker-partition.ts` (used by the web cron
-// alerts route) cannot drift without failing a test on one side.
+// pinned with fixture values; the worker jobs and the web cron fallbacks
+// share one implementation (@kestrel/shared/tenant-partition), so a hash
+// change fails here before it can split production work across replicas.
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { filterMyTenants, TenantRouter } from '../src/runtime/tenant-router';
+import { filterMyTenants, TenantRouter } from '@kestrel/shared/tenant-partition';
 
 describe('TenantRouter bucket contract', () => {
   // md5(tenantId) read as a big-endian uint32, modulo the partition count.

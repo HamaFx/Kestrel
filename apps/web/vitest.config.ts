@@ -30,7 +30,7 @@ const domInclude = ['test/**/*.test.tsx', 'test/csrf.test.ts', 'test/shiki-sanit
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    conditions: ['source'],
+    conditions: ['@kestrel/source'],
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),
       '@scripts': path.resolve(import.meta.dirname, '../../scripts'),
@@ -72,7 +72,7 @@ export default defineConfig({
     },
     server: {
       deps: {
-        inline: ['next-auth', '@auth/drizzle-adapter', /eventsource-parser/],
+        inline: ['next-auth', '@auth/drizzle-adapter'],
       },
     },
     projects: [

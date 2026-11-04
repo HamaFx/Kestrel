@@ -114,9 +114,6 @@ export async function updateBudgetAction(
 ): Promise<Response> {
   const { db, targetUserId, tenantId } = ctx;
   const updatePayload: Partial<typeof schema.userSettings.$inferInsert> = {};
-  if (body.monthlyBudgetLimit !== undefined) {
-    updatePayload.monthlyBudgetLimit = body.monthlyBudgetLimit;
-  }
   if (body.maxDailyUsd !== undefined) {
     updatePayload.maxDailyUsd = body.maxDailyUsd;
   }

@@ -34,6 +34,25 @@ describe('safe outbound URLs', () => {
     expect(isSafeOutboundUrl('https://[::]/')).toBe(false);
   });
 
+  it('blocks IPv4-mapped IPv6 literals that hide private IPv4 addresses', () => {
+    for (const host of [
+      '[::ffff:127.0.0.1]',
+      '[::ffff:169.254.169.254]',
+      '[::ffff:10.0.0.1]',
+      '[::ffff:192.168.1.1]',
+      '[0:0:0:0:0:ffff:7f00:1]',
+    ]) {
+      expect(isSafeOutboundUrl(`https://${host}/`)).toBe(false);
+    }
+    // A mapped public address stays allowed.
+    expect(isSafeOutboundUrl('https://[::ffff:8.8.8.8]/')).toBe(true);
+  });
+
+  it('blocks the NAT64 translation prefix', () => {
+    expect(isSafeOutboundUrl('https://[64:ff9b::7f00:1]/')).toBe(false);
+    expect(isSafeOutboundUrl('https://[64:ff9b::808:808]/')).toBe(false);
+  });
+
   it('supports an explicit host allowlist', () => {
     expect(isSafeOutboundUrl('https://api.example.com', { hosts: ['api.example.com'] })).toBe(true);
     expect(isSafeOutboundUrl('https://other.example.com', { hosts: ['api.example.com'] })).toBe(

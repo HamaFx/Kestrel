@@ -21,9 +21,8 @@
 // platform defaults to all subscribers.
 //
 // Audit 2026-10-31 (R1): the inheritance source is another tenant's row, so
-// `getPlatformAdminSettings` and the all-users sweep in `listAllUserSettings`
-// read on the admin (BYPASSRLS) connection when `ADMIN_DATABASE_URL` is
-// configured. Without it they skip the cross-tenant read — platform-owner
+// `getPlatformAdminSettings` reads on the admin (BYPASSRLS) connection when
+// `ADMIN_DATABASE_URL` is configured. Without it they skip the cross-tenant read — platform-owner
 // inheritance degrades to "own settings only" — and warn once per process,
 // because these helpers run on nearly every page via `getUserWithSettings`
 // and must not take those pages down.
@@ -183,29 +182,6 @@ export async function getUserWithSettings(userId: string): Promise<UserWithSetti
   }
 
   return { settings, user: userRow };
-}
-
-/**
- * List all user settings rows. Used by the background job that checks
- * spending alerts across every user.
- *
- * Cross-tenant by design: runs on the admin (BYPASSRLS) connection when
- * `ADMIN_DATABASE_URL` is configured. Without it the sweep is skipped and an
- * empty list is returned (a tenant-scoped read would only see one tenant),
- * with a one-time warning naming the missing variable.
- *
- * @param db Optional client the caller already holds. Pass the admin client
- *   (e.g. the handle from `withAdminDb`), never a tenant-scoped one.
- */
-export async function listAllUserSettings(
-  db?: DbClient,
-): Promise<(typeof schema.userSettings.$inferSelect)[]> {
-  if (!db && !process.env.ADMIN_DATABASE_URL) {
-    warnMissingAdminDbOnce('listAllUserSettings');
-    return [];
-  }
-  const client = db ?? getAdminDb();
-  return client.select().from(schema.userSettings);
 }
 
 /**

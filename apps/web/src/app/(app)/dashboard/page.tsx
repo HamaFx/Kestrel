@@ -21,7 +21,8 @@ import {
   listRecentArticles,
   listUpcomingEvents,
 } from '@kestrel/ai';
-import { withUserTenantRO } from '@kestrel/db';
+import { getOwnUserSettings, listUserSymbols, withUserTenantRO } from '@kestrel/db';
+import { isKnownSymbol, type Symbol } from '@kestrel/shared';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
@@ -60,12 +61,14 @@ export default async function DashboardPage() {
         listAlerts(userId, { limit: 20 }),
         listEntries(userId, { limit: 50 }),
         getLatestBriefing(userId),
+        listUserSymbols(userId),
+        getOwnUserSettings(userId),
       ]),
     ),
     Promise.allSettled([listUpcomingEvents({ limit: 12 }), listRecentArticles(30)]),
   ]);
 
-  const [alertsR, entriesR, briefingR] = tenantSettled;
+  const [alertsR, entriesR, briefingR, watchlistR, ownSettingsR] = tenantSettled;
   const [eventsR, newsR] = feedSettled;
 
   // Narrow helpers — never throw on a single failed source.
@@ -77,6 +80,12 @@ export default async function DashboardPage() {
   const entries = unwrap(entriesR, []);
   const news = unwrap(newsR, []);
   const briefing = unwrap(briefingR, null);
+  // The watchlist widget and the pre-session gameplan are database state: the
+  // settings page, the AI risk context, and this canvas must read one source.
+  const watchlistSymbols = unwrap(watchlistR, [])
+    .map((row) => row.symbol)
+    .filter(isKnownSymbol) as Symbol[];
+  const sessionGameplan = unwrap(ownSettingsR, null)?.sessionGameplan ?? null;
   // Phase 5.6 — per-source error flags for widget error states.
   // Extract a useful error message from rejected promises (reason
   // may be an Error instance, a string, or an arbitrary value).
@@ -112,6 +121,8 @@ export default async function DashboardPage() {
       hasAnyError={hasAnyError}
       installedPluginIds={pluginShell.installedPluginIds}
       pluginSettings={pluginShell.pluginSettings}
+      initialWatchlistSymbols={watchlistSymbols}
+      initialSessionGameplan={sessionGameplan}
     />
   );
 }

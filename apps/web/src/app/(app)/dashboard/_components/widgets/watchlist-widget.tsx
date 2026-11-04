@@ -20,42 +20,43 @@
 
 // Phase 1.6 — Watchlist widget.
 //
-// Live tickers for a curated list of symbols, with mid-price + a small
-// sparkline of the most recent mids. Uses the existing `usePrices` hook
-// so updates pool through the shared 3s cache (no per-widget polls).
-import { SYMBOLS, type Symbol } from '@kestrel/shared';
+// Live tickers for the user's database-backed watchlist (`user_symbols`, the
+// same list `/settings/symbols` edits). Adds and removes persist through the
+// settings symbols API with an optimistic list, so the widget and the settings
+// page can never disagree again.
+//
+// Prices come from `useWatchlistTicks`, which pools through the shared 3s cache
+// (no per-widget polls).
+import { DEFAULT_WATCHLIST_SYMBOLS, SYMBOLS, type Symbol } from '@kestrel/shared';
 import { IconAlertTriangle, IconEye, IconPlus, IconRefresh } from '@tabler/icons-react';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useLocalStorage } from '@/hooks/use-local-storage';
+import { apiMutate } from '@/lib/http/api-client';
 
 import { useWatchlistTicks } from './watchlist-widget/use-watchlist-ticks';
 import { WatchRow } from './watchlist-widget/watch-row';
 
-const DEFAULT_WATCHLIST: Symbol[] = ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'BTCUSDT', 'ETHUSDT'];
-
-const WATCHLIST_STORAGE_KEY = 'kestrel:watchlist-symbols:v1';
+const DEFAULT_WATCHLIST: readonly Symbol[] = DEFAULT_WATCHLIST_SYMBOLS;
 
 interface WatchlistWidgetProps {
-  symbols?: Symbol[];
+  /** Database watchlist from the dashboard RSC; defaults apply when empty. */
+  initialSymbols?: readonly Symbol[];
 }
 
-export function WatchlistWidget({ symbols }: WatchlistWidgetProps) {
-  const [persistedSymbols, setPersistedSymbols, hydrated] = useLocalStorage<Symbol[]>(
-    WATCHLIST_STORAGE_KEY,
-    symbols ?? DEFAULT_WATCHLIST,
+export function WatchlistWidget({ initialSymbols = [] }: WatchlistWidgetProps) {
+  const [symbols, setSymbols] = useState<Symbol[]>(() =>
+    initialSymbols.length > 0 ? [...initialSymbols] : [...DEFAULT_WATCHLIST],
   );
-
-  const list: Symbol[] = hydrated ? persistedSymbols : (symbols ?? DEFAULT_WATCHLIST);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const addMenuRef = useRef<HTMLDivElement>(null);
 
   const { data, isLoading, isError, error, refetch, buffersRef, tickVersion } =
-    useWatchlistTicks(list);
+    useWatchlistTicks(symbols);
 
   // Close add menu on outside click
   useEffect(() => {
@@ -70,20 +71,42 @@ export function WatchlistWidget({ symbols }: WatchlistWidgetProps) {
     }
   }, [showAddMenu]);
 
-  function addSymbol(sym: Symbol) {
-    if (!list.includes(sym)) {
-      setPersistedSymbols([...list, sym]);
-    }
+  async function addSymbol(sym: Symbol) {
     setShowAddMenu(false);
-  }
+    if (symbols.includes(sym)) return;
 
-  function removeSymbol(sym: Symbol) {
-    if (list.length > 1) {
-      setPersistedSymbols(list.filter((s) => s !== sym));
+    const previous = symbols;
+    setSymbols([...symbols, sym]);
+    try {
+      await apiMutate('/api/settings/symbols', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ symbol: sym }),
+      });
+    } catch (err) {
+      setSymbols(previous);
+      toast.error(`Could not add ${sym} to your watchlist`, {
+        description: err instanceof Error ? err.message : undefined,
+      });
     }
   }
 
-  const availableToAdd = (SYMBOLS as readonly Symbol[]).filter((s) => !list.includes(s));
+  async function removeSymbol(sym: Symbol) {
+    if (symbols.length <= 1) return;
+
+    const previous = symbols;
+    setSymbols(symbols.filter((s) => s !== sym));
+    try {
+      await apiMutate(`/api/settings/symbols/${encodeURIComponent(sym)}`, { method: 'DELETE' });
+    } catch (err) {
+      setSymbols(previous);
+      toast.error(`Could not remove ${sym} from your watchlist`, {
+        description: err instanceof Error ? err.message : undefined,
+      });
+    }
+  }
+
+  const availableToAdd = (SYMBOLS as readonly Symbol[]).filter((s) => !symbols.includes(s));
 
   return (
     <Card as="section" aria-label="Market overview">
@@ -114,7 +137,7 @@ export function WatchlistWidget({ symbols }: WatchlistWidgetProps) {
                 <button
                   key={sym}
                   type="button"
-                  onClick={() => addSymbol(sym)}
+                  onClick={() => void addSymbol(sym)}
                   className="text-fg-muted hover:text-fg w-full rounded-lg px-2.5 py-1.5 text-left font-mono text-xs font-medium transition-colors hover:bg-white/5 active:translate-y-[0.5px]"
                 >
                   {sym}
@@ -124,7 +147,7 @@ export function WatchlistWidget({ symbols }: WatchlistWidgetProps) {
           )}
 
           <Link
-            href={`/chart/${list[0] ?? 'XAUUSD'}`}
+            href={`/chart/${symbols[0] ?? 'XAUUSD'}`}
             className="text-fg-subtle hover:text-fg ml-1 text-xs font-medium"
           >
             Open chart
@@ -153,7 +176,7 @@ export function WatchlistWidget({ symbols }: WatchlistWidgetProps) {
             );
           }
           if (isLoading && (!data || data.length === 0)) {
-            return Array.from({ length: list.length }).map((_, i) => (
+            return Array.from({ length: symbols.length }).map((_, i) => (
               <li
                 key={i}
                 className="border-divider flex items-center justify-between border-b py-2 last:border-0"
@@ -169,8 +192,8 @@ export function WatchlistWidget({ symbols }: WatchlistWidgetProps) {
               tick={t}
               tickVersion={tickVersion}
               buffersRef={buffersRef}
-              canRemove={list.length > 1}
-              onRemove={() => removeSymbol(t.symbol)}
+              canRemove={symbols.length > 1}
+              onRemove={() => void removeSymbol(t.symbol)}
             />
           ));
         })()}

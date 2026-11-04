@@ -18,6 +18,7 @@ import type { Candle } from '@kestrel/shared';
 import { describe, expect, it } from 'vitest';
 
 import { computeAsianRange } from '../src/structure/asian-range';
+import { computeSessionRanges } from '../src/structure/sessions';
 
 // Asian session is 00:00-07:00 UTC. Use timestamps that fall in this window.
 // 2025-01-15 03:00 UTC = 1736905200000
@@ -107,5 +108,42 @@ describe('computeAsianRange', () => {
     const candles = [makeCandle(2010, 2000, ASIAN_CANDLE_TS)];
     const result = computeAsianRange(candles);
     expect(result!.date).toBe('2025-01-15');
+  });
+});
+
+describe('computeSessionRanges', () => {
+  const DAY_START = Date.UTC(2026, 0, 5); // Monday
+  const HOUR = 3600000;
+
+  it('slices Asia, London and NY out of a 1H window', () => {
+    const candles = [
+      makeCandle(2005, 2000, DAY_START + 1 * HOUR),
+      makeCandle(2010, 2004, DAY_START + 8 * HOUR),
+      makeCandle(2020, 2012, DAY_START + 13 * HOUR),
+    ];
+
+    const { today, prior } = computeSessionRanges(candles, DAY_START + 22 * HOUR, {
+      includePrior: true,
+    });
+
+    expect(today.map((range) => range.session)).toEqual(['asia', 'london', 'ny']);
+    expect(today[0]).toMatchObject({ open: 2002.5, high: 2005, low: 2000, forming: false });
+    expect(today[1]).toMatchObject({ high: 2010, low: 2004, forming: false });
+    expect(today[2]).toMatchObject({ high: 2020, low: 2012, forming: false });
+    expect(prior).toHaveLength(3);
+  });
+
+  it('withholds the close of a still-forming session', () => {
+    const candles = [
+      makeCandle(2005, 2000, DAY_START + 1 * HOUR),
+      makeCandle(2010, 2004, DAY_START + 8 * HOUR),
+    ];
+
+    const { today, prior } = computeSessionRanges(candles, DAY_START + 9 * HOUR);
+
+    expect(today[0]).toMatchObject({ forming: false });
+    expect(today[0]!.close).toBe(2002.5);
+    expect(today[1]).toMatchObject({ forming: true, close: null });
+    expect(prior).toBeNull();
   });
 });

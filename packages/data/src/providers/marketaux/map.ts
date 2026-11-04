@@ -17,10 +17,16 @@
 // Marketaux entity ↔ internal symbol/currency tagging.
 //
 // Marketaux's entity model is stock-centric, but it does surface forex via
-// `type=currency`. We also detect XAU/gold via keywords because gold isn't
-// modelled as a currency entity by all sources.
+// `type=currency`. Symbol detection uses the shared 18-instrument catalog
+// extractor so news coverage is not limited to three hardcoded pairs.
 
-import type { CurrencyTag, Symbol, SymbolOrCurrencyTag } from '@kestrel/shared';
+import {
+  extractSymbolsFromText,
+  isKnownSymbol,
+  type CurrencyTag,
+  type Symbol,
+  type SymbolOrCurrencyTag,
+} from '@kestrel/shared';
 
 interface MarketauxEntity {
   symbol?: string | undefined;
@@ -40,21 +46,15 @@ const FX_CURRENCY_TAGS: Record<string, CurrencyTag> = {
 };
 
 const GOLD_RE = /\b(gold|xau)\b/i;
-const PAIR_RE: Array<[RegExp, Symbol]> = [
-  [/\bxau[\s/-]?usd\b/i, 'XAUUSD'],
-  [/\beur[\s/-]?usd\b/i, 'EURUSD'],
-  [/\bgbp[\s/-]?usd\b/i, 'GBPUSD'],
-];
 
 /**
  * Derive symbol tags from a Marketaux article. We union:
  *   - explicit currency entities ($USD, $EUR, $GBP)
- *   - pair patterns in title/snippet ("EUR/USD", "EURUSD")
- *   - gold keywords ("gold", "XAU")
+ *   - every catalog symbol mentioned in title/snippet (gold, FX, crypto)
+ *   - the currency-style "XAU" tag for the currency filter
  *
- * Result is deduped + filtered to the 4 currency tags + 3 symbols we care
- * about; anything else falls out so the news_articles.symbols column stays
- * a tight, indexable set.
+ * Result is deduped; stocks and other non-catalog tickers fall out so the
+ * news_articles.symbols column stays a tight, indexable set.
  */
 export function extractSymbols(args: {
   entities: MarketauxEntity[];
@@ -72,18 +72,13 @@ export function extractSymbols(args: {
 
   const text = `${args.title} ${args.snippet ?? ''}`;
 
-  // 2) Pair patterns → instrument symbols.
-  for (const [re, sym] of PAIR_RE) {
-    if (re.test(text)) out.add(sym);
+  // 2) Every catalog symbol mentioned in the article (all 18 instruments).
+  for (const symbol of extractSymbolsFromText(text)) {
+    if (isKnownSymbol(symbol)) out.add(symbol as Symbol);
   }
 
-  // 3) Gold detection. We tag both the currency-style "XAU" and (when paired
-  //    with USD context) the instrument "XAUUSD".
-  if (GOLD_RE.test(text)) {
-    out.add('XAU');
-    // If there's USD context elsewhere in the article, bump to XAUUSD too.
-    if (/\busd\b|\bdollar\b|\bfed\b/i.test(text)) out.add('XAUUSD');
-  }
+  // 3) Currency-style gold tag, so the currency filter also reaches gold news.
+  if (GOLD_RE.test(text)) out.add('XAU');
 
   return [...out];
 }

@@ -68,38 +68,43 @@ function recordOperatorKeyFallback(provider: ProviderId | keyof ByokPayload): vo
  * user hasn't gone through onboarding yet, this gives single-tenant
  * deployments a working chat out of the box.
  *
- * Currently surfaces Google (direct Gemini API). AI Gateway
- * paths are handled by `resolveModel()` (the env-only resolver) — that
- * is a different code path and doesn't use BYOK.
+ * Every supported provider's operator key is surfaced. Values come from the
+ * caller's `env` bag first and `process.env` second, so a worker or bot that
+ * resolves a subset of ServerEnv keeps working. AI Gateway paths are handled by
+ * `resolveModel()` (the env-only resolver) — that is a different code path and
+ * doesn't use BYOK.
  */
 export function envFallbackKeys(env: ResolveModelEnv): ByokPayload {
   const out: ByokPayload = {};
-  if (env.GOOGLE_GENERATIVE_AI_API_KEY) {
-    out.google = env.GOOGLE_GENERATIVE_AI_API_KEY;
-    recordOperatorKeyFallback('google');
-  }
-  // Optional operator env keys (common self-host names). Only populate
-  // when present so we never invent empty credentials.
   const processEnv = typeof process !== 'undefined' ? process.env : undefined;
-  if (processEnv) {
-    const map: Array<[keyof ByokPayload, string]> = [
-      ['anthropic', 'ANTHROPIC_API_KEY'],
-      ['openai', 'OPENAI_API_KEY'],
-      ['groq', 'GROQ_API_KEY'],
-      ['mistral', 'MISTRAL_API_KEY'],
-      ['openrouter', 'OPENROUTER_API_KEY'],
-      ['xai', 'XAI_API_KEY'],
-      ['deepseek', 'DEEPSEEK_API_KEY'],
-      ['dphn', 'DPHN_API_KEY'],
-      ['iamhc', 'IAMHC_API_KEY'],
-      ['hcnsec', 'HCNSEC_API_KEY'],
-    ];
-    for (const [field, envName] of map) {
-      const val = processEnv[envName];
-      if (typeof val === 'string' && val.length > 0) {
-        out[field] = val;
-        recordOperatorKeyFallback(field);
-      }
+  const envBag = env as unknown as Record<string, string | undefined>;
+  // Honor the caller-supplied env bag first (it may be a resolved ServerEnv or
+  // a worker-provided subset), then the process environment. Reading only
+  // `process.env` silently ignored every provider except Google.
+  const fromEnv = (name: string): string | undefined => {
+    const supplied = envBag[name];
+    if (typeof supplied === 'string' && supplied.length > 0) return supplied;
+    const fromProcess = processEnv?.[name];
+    return typeof fromProcess === 'string' && fromProcess.length > 0 ? fromProcess : undefined;
+  };
+  const map: Array<[keyof ByokPayload, string]> = [
+    ['google', 'GOOGLE_GENERATIVE_AI_API_KEY'],
+    ['anthropic', 'ANTHROPIC_API_KEY'],
+    ['openai', 'OPENAI_API_KEY'],
+    ['groq', 'GROQ_API_KEY'],
+    ['mistral', 'MISTRAL_API_KEY'],
+    ['openrouter', 'OPENROUTER_API_KEY'],
+    ['xai', 'XAI_API_KEY'],
+    ['deepseek', 'DEEPSEEK_API_KEY'],
+    ['dphn', 'DPHN_API_KEY'],
+    ['iamhc', 'IAMHC_API_KEY'],
+    ['hcnsec', 'HCNSEC_API_KEY'],
+  ];
+  for (const [field, envName] of map) {
+    const val = fromEnv(envName);
+    if (val) {
+      out[field] = val;
+      recordOperatorKeyFallback(field);
     }
   }
   return out;

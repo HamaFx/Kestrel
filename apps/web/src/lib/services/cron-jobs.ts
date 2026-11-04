@@ -25,6 +25,7 @@
 
 import 'server-only';
 
+import { recoverStaleBudgetReservations } from '@kestrel/ai';
 import {
   runBriefingsFanout,
   runCotIngestion,
@@ -32,22 +33,75 @@ import {
   runSnapshotRefresh,
   runWeeklyReviewFanout,
 } from '@kestrel/ai/cron';
+import { pruneMastraStorage } from '@kestrel/ai/mastra-v2';
+import { withAdminDb } from '@kestrel/db';
+import { createTenantRouterFromEnv } from '@kestrel/shared/tenant-partition';
 
 import { getServerEnv } from '@/lib/env';
 import { createScopedLoggerWithContext } from '@/lib/logger';
+import { runRetentionCleanupAcrossTenants } from '@/lib/services/admin';
 
 export interface CronJobResult {
   processed: number;
   note?: string;
 }
 
+/** Reservations older than this are considered abandoned by their turn. */
+const RESERVATION_STALE_MS = 15 * 60 * 1000;
+const RECOVERY_BATCH_SIZE = 100;
+
 function loggerFor(job: string) {
   return createScopedLoggerWithContext({ component: 'cron', job });
 }
 
 export async function runBriefingsCronService(): Promise<CronJobResult> {
-  const result = await runBriefingsFanout({ log: loggerFor('briefings') });
+  // Parity with the worker: on a partitioned deployment, the web fallback must
+  // not brief another worker partition's tenants a second time.
+  const router = createTenantRouterFromEnv();
+  const result = await runBriefingsFanout({
+    log: loggerFor('briefings'),
+    filterUserIds: (userIds) => userIds.filter((userId) => router.isMyTenant(userId)),
+  });
   return { processed: result.processed, note: result.note };
+}
+
+/**
+ * Daily cleanup fallback. Mirrors the worker `retention` job: telemetry and
+ * operational retention, stale AI budget reservations, and Mastra storage
+ * pruning. VACUUM stays worker-only because serverless requests cannot hold
+ * its statement for long enough.
+ */
+export async function runCleanupTelemetryCronService(): Promise<CronJobResult> {
+  const log = loggerFor('cleanup-telemetry');
+  const cutoff = new Date(Date.now() - RESERVATION_STALE_MS);
+  const { result, budgetRecovery, mastraRetention } = await withAdminDb(async () => {
+    const budgetRecovery = await recoverStaleBudgetReservations(cutoff, RECOVERY_BATCH_SIZE);
+    const result = await runRetentionCleanupAcrossTenants();
+    const mastraRetention = await pruneMastraStorage();
+    return { result, budgetRecovery, mastraRetention };
+  });
+
+  log.info('retention cleanup completed', {
+    telemetryDeleted: result.telemetryDeleted,
+    toolTelemetryDeleted: result.toolTelemetryDeleted,
+    tracesDeleted: result.tracesDeleted,
+    rateLimitsDeleted: result.rateLimitsDeleted,
+    providerDailyQuotaDeleted: result.providerDailyQuotaDeleted,
+    cronRunsDeleted: result.cronRunsDeleted,
+    verificationTokensDeleted: result.verificationTokensDeleted,
+    budgetReservationsDeleted: result.budgetReservationsDeleted,
+    sharedSnapshotsDeleted: result.sharedSnapshotsDeleted,
+    budgetReleased: budgetRecovery.released,
+    mastraPruned: mastraRetention.pruned,
+  });
+
+  const cleanupProcessed = Object.values(result)
+    .filter((value): value is number => typeof value === 'number')
+    .reduce((sum, value) => sum + value, 0);
+  return {
+    processed: cleanupProcessed + budgetRecovery.released,
+    note: `${result.note}, budgetReleased=${budgetRecovery.released}, mastraPruned=${mastraRetention.pruned}`,
+  };
 }
 
 export async function runCotCronService(): Promise<CronJobResult> {

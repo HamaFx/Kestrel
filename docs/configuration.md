@@ -116,7 +116,7 @@ sequences, and future objects. Provisioning supplies the missing deployment half
 | `ALERT_WINDOW_HOURS`          | `1`                       | Health-alert evaluation window                                    |
 | `PHASE2_PACKET_CACHE`         | `1`                       | 30s fresh-only research packet cache (§2.1)                       |
 | `PHASE3_MODEL_DIVERSITY`      | `0`                       | Per-committee-agent models from user overrides (§3.1)             |
-| `PHASE3_STRUCTURED_FUSION`    | `0`                       | Structured fusion output for Full mode (§3.3)                     |
+| `PHASE3_STRUCTURED_FUSION`    | `1`                       | Structured fusion output for Full mode (§3.3)                     |
 | `ENABLE_GENERIC_MACRO`        | `1`                       | Generic macro packet for non-XAUUSD symbols (M-02; `0` rollback)  |
 | `ENABLE_COMPARISON_RISK_DESK` | `1`                       | Technical + risk desks per symbol in comparisons (P1-04)          |
 | `REDIS_URL`                   | _(unset)_                 | Optional shared Redis for the packet cache (§2.1)                 |
@@ -208,7 +208,6 @@ The overlay starts ClickHouse, Redis, MinIO (S3), Langfuse, and its worker. The 
 | `TRACE_RETENTION_DAYS`         | `30`    | Diagnostic trace retention            |
 | `CRON_RUN_RETENTION_DAYS`      | `30`    | Cron history retention                |
 | `CANDLES_1M_RETENTION_DAYS`    | `14`    | Trailing `candles_1m` window          |
-| `CREDIT_LEDGER_RETENTION_DAYS` | `730`   | Billing ledger/audit retention        |
 
 Review privacy, retention, and provider terms before enabling telemetry or prompt/output capture.
 

@@ -127,16 +127,20 @@ export async function sendTelegramTyping(botToken: string, chatId: string | numb
   }
 }
 
-/** Dismiss a callback button, bounded — Telegram shows a spinner until this lands. */
+/**
+ * Dismiss a callback button, bounded — Telegram shows a spinner until this
+ * lands. `text` becomes the toast shown above the chat.
+ */
 export async function answerTelegramCallback(
   botToken: string,
   callbackQueryId: string,
   signal?: AbortSignal | undefined,
+  text?: string,
 ): Promise<void> {
   try {
     await telegramApi(botToken, TELEGRAM_TYPING_TIMEOUT_MS).answerCallbackQuery(
       callbackQueryId,
-      {},
+      text ? { text } : {},
       asGrammySignal(telegramSendSignal(signal, TELEGRAM_TYPING_TIMEOUT_MS)),
     );
   } catch {

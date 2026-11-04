@@ -18,6 +18,7 @@
 
 // Pre-session gameplan drawer shell: trigger button, header, the four ritual
 // steps, and the lock-in action.
+import type { SessionGameplan } from '@kestrel/shared';
 import { IconListCheck, IconShieldCheck } from '@tabler/icons-react';
 
 import { Button } from '@/components/ui/button';
@@ -39,11 +40,16 @@ import { RiskBudgetSection } from './risk-budget-section';
 import { SessionRuleSection } from './session-rule-section';
 import { useSessionGameplan } from './use-session-gameplan';
 
-export function PreSessionChecklistDrawer() {
+export function PreSessionChecklistDrawer({
+  initialPlan = null,
+}: {
+  initialPlan?: SessionGameplan | null;
+}) {
   const {
     open,
     setOpen,
     plan,
+    saving,
     newsReviewed,
     setNewsReviewed,
     strategyAligned,
@@ -56,7 +62,7 @@ export function PreSessionChecklistDrawer() {
     customRule,
     selectPresetRule,
     handleSavePlan,
-  } = useSessionGameplan();
+  } = useSessionGameplan(initialPlan);
 
   const isCompleted = !!plan;
 
@@ -132,6 +138,8 @@ export function PreSessionChecklistDrawer() {
               variant="primary"
               size="md"
               onClick={handleSavePlan}
+              loading={saving}
+              disabled={saving}
               className="gap-2 font-semibold"
             >
               <IconShieldCheck className="size-4" strokeWidth={1.85} />

@@ -32,7 +32,6 @@
 // compute entry points.
 
 import {
-  IndicatorKindSchema,
   type Candle,
   type IndicatorKind,
   type IndicatorResult,
@@ -262,10 +261,15 @@ export function parseIndicatorParams(
  * P0-3: Delegates to `indicatorRegistry.get(kind).compute()` instead of
  * a switch statement. Adding a new indicator now means registering it —
  * no existing code changes (OCP).
+ *
+ * Plugin indicators register dynamically, so `kind` is resolved against the
+ * registry rather than the closed core `IndicatorKindSchema` enum; otherwise
+ * a plugin indicator was rejected here even though every other alert/analysis
+ * path could address it.
  */
 export function computeIndicator(args: ComputeArgs): IndicatorResult {
   const { symbol, tf, kind, candles } = args;
-  const params = parseIndicatorParams(IndicatorKindSchema.parse(kind), args.params);
+  const params = parseIndicatorParams(kind, args.params);
   const fetchedAt = Date.now();
 
   const plugin = indicatorRegistry.get(kind);

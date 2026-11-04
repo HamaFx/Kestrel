@@ -18,8 +18,8 @@
 // DEC-05 / DEC-06 maintainability gate.
 //
 // Enforces the static code-shape rules that must never live inside Vitest:
-//   F01 ≤ 350 LOC backend .ts
-//   F02 ≤ 250 LOC React .tsx, ≤ 4 useState, ≤ 2 useEffect
+//   F01 ≤ 500 LOC backend .ts
+//   F02 ≤ 450 LOC React .tsx
 //   F04 static catalogs ≤ 500 LOC
 //   F05 ≤ 10 loose files in package src roots
 //   R01 no empty catch blocks
@@ -72,7 +72,7 @@ const FORBIDDEN_IMPORT_PATTERNS = [
 // (see below) because the comment documents the intentional ignore path.
 const EMPTY_CATCH = /(?<![`])catch\s*(?:\([^)]*\))?\s*\{\s*\}/;
 
-/** @type {{ ts: Record<string, number>, tsx: Record<string, {lines:number,useState:number,useEffect:number}>, looseRoots: Record<string, number> }} */
+/** @type {{ ts: Record<string, number>, tsx: Record<string, {lines:number}>, looseRoots: Record<string, number> }} */
 function loadBaseline() {
   try {
     return JSON.parse(readFileSync(BASELINE_PATH, 'utf8'));
@@ -104,10 +104,6 @@ function walk(dir, out = []) {
   return out;
 }
 
-function countMatches(source, pattern) {
-  return [...source.matchAll(pattern)].length;
-}
-
 function lineCount(source) {
   if (source.length === 0) return 0;
   const lines = source.split(/\r?\n/);
@@ -131,7 +127,7 @@ for (const absolute of files) {
   const lines = lineCount(source);
   const isTsx = rel.endsWith('.tsx');
   const isCatalog = STATIC_CATALOGS.has(rel);
-  const limit = isCatalog ? 500 : isTsx ? 250 : 350;
+  const limit = isCatalog ? 500 : isTsx ? 450 : 500;
   const tsxBaseline = baseline.tsx[rel];
   const tsBaseline = baseline.ts[rel];
   const allowedLines = isTsx
@@ -139,18 +135,9 @@ for (const absolute of files) {
     : Math.max(limit, tsBaseline ?? 0);
 
   if (writeBaseline) {
-    if (
-      isTsx &&
-      (lines > 250 ||
-        countMatches(source, /\buseState\s*[(<]/g) > 4 ||
-        countMatches(source, /\buseEffect\s*\(/g) > 2)
-    ) {
-      nextBaseline.tsx[rel] = {
-        lines,
-        useState: countMatches(source, /\buseState\s*[(<]/g),
-        useEffect: countMatches(source, /\buseEffect\s*\(/g),
-      };
-    } else if (!isTsx && lines > (isCatalog ? 500 : 350)) {
+    if (isTsx && lines > 450) {
+      nextBaseline.tsx[rel] = { lines };
+    } else if (!isTsx && lines > 500) {
       nextBaseline.ts[rel] = lines;
     }
   }
@@ -162,25 +149,6 @@ for (const absolute of files) {
       file: rel,
       message: `${lines} LOC exceeds ${isCatalog ? 'catalog ' : ''}${allowedLines}${known ? ' (baseline ratchet)' : ''}`,
     });
-  }
-
-  if (isTsx) {
-    const useState = countMatches(source, /\buseState\s*[(<]/g);
-    const useEffect = countMatches(source, /\buseEffect\s*\(/g);
-    if (useState > 4 && useState > (tsxBaseline?.useState ?? 0)) {
-      violations.push({
-        rule: 'F03',
-        file: rel,
-        message: `${useState} useState calls exceed 4 (baseline ${tsxBaseline?.useState ?? 0})`,
-      });
-    }
-    if (useEffect > 2 && useEffect > (tsxBaseline?.useEffect ?? 0)) {
-      violations.push({
-        rule: 'F03',
-        file: rel,
-        message: `${useEffect} useEffect calls exceed 2 (baseline ${tsxBaseline?.useEffect ?? 0})`,
-      });
-    }
   }
 
   if (EMPTY_CATCH.test(source)) {

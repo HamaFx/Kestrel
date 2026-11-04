@@ -141,7 +141,7 @@ export const RuntimeEnv = z.object({
   /** Phase 3.3 — structured fusion output for Full mode. */
   PHASE3_STRUCTURED_FUSION: z
     .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('0')
+    .default('1')
     .transform((v) => v === '1' || v === 'true'),
   /**
    * Daily spend ceiling. Audit 2026-10-31 (R3) — enforcement is now ON by
@@ -180,6 +180,4 @@ export const RuntimeEnv = z.object({
    * Informational only — the daily ledger is never capped per Q4.
    */
   ADMIN_SPEND_ALERT_USD: z.coerce.number().positive().prefault(25),
-  /** Optional Redis URL for the shared packet cache (Phase 2.1). */
-  REDIS_URL: z.url().optional(),
 });

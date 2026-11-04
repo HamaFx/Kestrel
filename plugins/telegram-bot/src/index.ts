@@ -25,6 +25,7 @@ import { definePlugin } from '@kestrel/plugin-sdk';
 import { resolvePluginSkillDir } from '@kestrel/plugin-sdk/skill-dir';
 
 import { telegramAlertChannel } from './alerts';
+import { telegramBotChatIntent } from './intent';
 import { dailyBriefingJob } from './jobs/daily-briefing';
 import { onTelegramInstall, onTelegramUninstall } from './lifecycle';
 import {
@@ -67,6 +68,7 @@ const plugin = definePlugin({
       'Adds 4 AI tools',
       'Adds sidebar tab',
     ],
+    chatIntent: telegramBotChatIntent,
     setupSteps: [
       {
         id: 'create-bot',

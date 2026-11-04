@@ -118,7 +118,6 @@ export async function handleGetPlatformConfig(user: AdminUser): Promise<Response
         allTools: TOOL_NAMES,
       },
       budget: {
-        monthlyBudgetLimit: settings?.monthlyBudgetLimit ?? null,
         maxDailyUsd: settings?.maxDailyUsd ?? null,
         todayTurns: usage.daily7[usage.daily7.length - 1]?.turns ?? 0,
         todayUsd: usage.todayUsd,

@@ -111,7 +111,11 @@ const summary = {
 const mergedFinal = {};
 let fileCount = 0;
 
-for (const workspace of [...workspaceDirs('apps'), ...workspaceDirs('packages')]) {
+for (const workspace of [
+  ...workspaceDirs('apps'),
+  ...workspaceDirs('packages'),
+  ...workspaceDirs('plugins'),
+]) {
   const finalPath = path.join(workspace, 'coverage', 'coverage-final.json');
   let raw;
   try {

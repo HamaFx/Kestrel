@@ -10,7 +10,9 @@ const violations = [];
 function exportSources(pkg) {
   const sources = [];
   for (const target of Object.values(pkg.exports ?? {})) {
-    const source = typeof target === 'string' ? target : target?.source;
+    // Kestrel's workspace source condition is scoped to avoid colliding with
+    // third-party packages that publish their own `"source"` condition.
+    const source = typeof target === 'string' ? target : target?.['@kestrel/source'];
     if (typeof source === 'string') sources.push(source.replace(/^\.\//, ''));
   }
   return sources;

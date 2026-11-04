@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
+import type { IndicatorKind } from '@kestrel/shared';
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 
 import { ema, sma } from '../src/moving-averages';
+import { computeIndicator, indicatorRegistry } from '../src/registry';
 import { makeCandles } from './fixtures';
 
 describe('sma', () => {
@@ -60,5 +63,31 @@ describe('ema', () => {
     // k = 2/(3+1) = 0.5
     // ema[3] = (13 - 11) * 0.5 + 11 = 12
     expect(ema(makeCandles([10, 11, 12, 13]), 3)[3]).toBe(12);
+  });
+});
+
+describe('computeIndicator registry lookup', () => {
+  it('computes a dynamically registered plugin indicator instead of rejecting its kind', () => {
+    // A plugin kind is not part of the closed core enum, so this pins the
+    // registry lookup path that plugin indicators rely on.
+    const pluginKind = 'test_plugin_sma' as unknown as IndicatorKind;
+    indicatorRegistry.register({
+      kind: pluginKind,
+      paramsSchema: z.object({}),
+      compute: (candles) => sma(candles, 2),
+      description: 'Test-only plugin indicator',
+    });
+
+    const candles = makeCandles([1, 2, 3, 4]);
+    const result = computeIndicator({
+      symbol: 'XAUUSD',
+      tf: '1h',
+      kind: pluginKind,
+      params: {},
+      candles,
+    });
+
+    expect(result.kind).toBe(pluginKind);
+    expect(result.values).toEqual(sma(candles, 2));
   });
 });

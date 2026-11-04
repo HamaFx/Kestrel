@@ -27,67 +27,50 @@
 //   * `decideMastraExecution` routes the turn to `canonical-chat`, where every
 //     `main-chat` plugin tool and its UI card is mounted.
 //
-// The classifier only ever *adds* plugin awareness for plugins the user has
-// actually installed. Real-money execution stays blocked: any explicit
-// live-broker vocabulary disqualifies the paper-trading match.
+// Patterns are declared by each plugin manifest (`chatIntent`), not hardcoded
+// here, so a bundled or third-party plugin can become chat-addressable without
+// editing core AI. The classifier only ever adds plugin awareness for plugins
+// the user has actually installed.
 
-export type InstalledPluginIntentId = 'paper-trading' | 'backtesting' | 'telegram-bot';
+import { pluginHost, type RegisteredPlugin } from '@kestrel/plugin-sdk';
+
+export type InstalledPluginIntentId = string;
 
 export interface PluginIntentMatch {
   pluginId: InstalledPluginIntentId;
   reason: string;
 }
 
-/**
- * Live-broker vocabulary that must never be rescued into a plugin route: a
- * prompt asking for real-money execution still hits the read-only boundary.
- */
-const LIVE_BROKER_EXCLUSION_RE =
-  /\b(real\s+money|live\s+account|live\s+broker|mt4|mt5|metatrader|interactive\s+brokers|ibkr|binance\s+live|coinbase\s+live|wire\s+transfer|withdraw\s+funds)\b/i;
-
-const BACKTEST_INTENT_RE =
-  /\b(backtest(?:s|ing)?|parameter\s+sweep|grid\s+sweep|run\s+a\s+sweep|walk[-\s]?forward|strategy\s+template|equity\s+curve|sharpe\s+ratio\s+of\s+my\s+strategy|save\s+(?:this\s+)?strategy|list\s+(?:my\s+)?strategies|test\s+(?:a\s+|this\s+|my\s+)?strategy|simulate\s+(?:a\s+|this\s+)?strategy|getSignal|expectancy\s*r|profit\s+factor)\b|^\/backtest\b/i;
-
-const PAPER_EXPLICIT_RE =
-  /\b(paper\s+(?:trade|trading|account|accounts|order|orders|position|positions|balance|equity|portfolio|sandbox|fill|fills|strategy|runner)|agent\s+sandbox|sandbox\s+account|virtual\s+(?:account|balance|trade|position|order)|simulated\s+(?:account|trade|position|order)|deploy\s+(?:[a-z0-9/_-]+\s+){0,4}?to\s+paper)\b|^\/paper\b/i;
-
-const PAPER_TRADE_ACTION_RE =
-  /\b(buy|sell|long|short|place\s+(?:a\s+|an\s+)?(?:market|limit|stop)\s+order|close\s+(?:my\s+|the\s+)?(?:[a-z0-9/_-]+\s+)?(?:open\s+)?(?:position|trade)|modify\s+(?:my\s+|the\s+)?(?:[a-z0-9/_-]+\s+)?position|cancel\s+(?:my\s+|the\s+)?(?:pending\s+)?order|reset\s+(?:my\s+)?(?:paper\s+|sandbox\s+)?account|my\s+open\s+positions|my\s+pending\s+orders|my\s+paper\s+positions|(?:move|trail|tighten|update)\s+(?:my\s+|the\s+)?(?:[a-z0-9/_-]+\s+)?stop(?:\s+loss)?|breakeven|(?:trim|flatten|exit)\s+(?:(?:my|the|half|of|all)\s+)*(?:[a-z0-9/_-]+\s+){0,3}(?:position|positions|trade|trades)|(?:pause|resume|stop)\s+(?:my\s+|the\s+)?(?:deployed\s+|paper\s+)?strategy)\b/i;
-
-const TELEGRAM_INTENT_RE =
-  /\b(telegram(?:\s+bot|\s+briefing|\s+recap|\s+alert|\s+digest|\s+notification)?)\b|^\/telegram\b/i;
+function intentPriority(plugin: RegisteredPlugin): number {
+  return Math.max(0, ...(plugin.manifest.chatIntent ?? []).map((intent) => intent.priority ?? 0));
+}
 
 /**
- * Match a prompt against the installed plugins' advertised capabilities.
+ * Match a prompt against the installed plugins' declared chat intents.
  *
- * Returns the first matching plugin (checked in priority order: backtesting,
- * paper-trading, telegram-bot) or null when the prompt does not explicitly
- * target an installed plugin.
+ * Returns the first matching plugin in priority order (backtesting, then
+ * paper-trading, then telegram-bot by their declared priorities) or null when
+ * the prompt does not explicitly target an installed plugin.
  */
 export function detectInstalledPluginIntent(
   prompt: string,
   installedPluginIds: readonly string[],
 ): PluginIntentMatch | null {
   const text = prompt.trim();
-  if (!text) return null;
+  if (!text || installedPluginIds.length === 0) return null;
 
-  const installed = new Set(installedPluginIds);
+  const candidates = pluginHost
+    .getInstalledPlugins(installedPluginIds)
+    .filter((plugin) => (plugin.manifest.chatIntent?.length ?? 0) > 0)
+    .sort((a, b) => intentPriority(b) - intentPriority(a));
 
-  if (installed.has('backtesting') && BACKTEST_INTENT_RE.test(text)) {
-    return { pluginId: 'backtesting', reason: 'backtesting-keyword' };
-  }
-
-  if (installed.has('paper-trading') && !LIVE_BROKER_EXCLUSION_RE.test(text)) {
-    if (PAPER_EXPLICIT_RE.test(text)) {
-      return { pluginId: 'paper-trading', reason: 'paper-explicit' };
+  for (const plugin of candidates) {
+    for (const intent of plugin.manifest.chatIntent ?? []) {
+      if (intent.exclusions?.some((pattern) => pattern.test(text))) continue;
+      if (intent.patterns.some((pattern) => pattern.test(text))) {
+        return { pluginId: plugin.manifest.id, reason: intent.reason };
+      }
     }
-    if (PAPER_TRADE_ACTION_RE.test(text)) {
-      return { pluginId: 'paper-trading', reason: 'paper-trade-action' };
-    }
-  }
-
-  if (installed.has('telegram-bot') && TELEGRAM_INTENT_RE.test(text)) {
-    return { pluginId: 'telegram-bot', reason: 'telegram-keyword' };
   }
 
   return null;

@@ -20,11 +20,16 @@ services:
       POSTGRES_DB: kestrel
       POSTGRES_USER: kestrel
       POSTGRES_PASSWORD: loadtest
+      # Provision the same non-bypass app role (kestrel_app) and BYPASSRLS
+      # maintenance role as production, so the loadtest exercises real RLS.
+      POSTGRES_ADMIN_PASSWORD: loadtest
+      POSTGRES_APP_PASSWORD: loadtest
     # S1: Bind to localhost only — even throwaway DBs should not be public.
     ports:
       - '127.0.0.1:5432:5432'
     volumes:
       - pgdata-loadtest:/var/lib/postgresql/data
+      - ../docker/postgres/init-admin-role.sh:/docker-entrypoint-initdb.d/init-admin-role.sh
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U kestrel -d kestrel']
       interval: 5s
@@ -42,8 +47,8 @@ services:
     ports:
       - '3000:3000'
     environment:
-      DATABASE_URL: postgres://kestrel:loadtest@db:5432/kestrel
-      ADMIN_DATABASE_URL: postgres://kestrel:loadtest@db:5432/kestrel
+      DATABASE_URL: postgres://kestrel_app:loadtest@db:5432/kestrel
+      ADMIN_DATABASE_URL: postgres://hamafx_admin:loadtest@db:5432/kestrel
       NODE_ENV: development
       DB_DISABLE_SSL: 'true'
       LIVE_TICKS_MAX_AGE_MS: '86400000'
@@ -102,8 +107,8 @@ services:
       - '8081:8081'
       - '8082:8082'
     environment:
-      DATABASE_URL: postgres://kestrel:loadtest@db:5432/kestrel
-      ADMIN_DATABASE_URL: postgres://kestrel:loadtest@db:5432/kestrel
+      DATABASE_URL: postgres://kestrel_app:loadtest@db:5432/kestrel
+      ADMIN_DATABASE_URL: postgres://hamafx_admin:loadtest@db:5432/kestrel
       NODE_ENV: production
       MULTI_USER_ENABLED: '1'
       REGISTRATION_MODE: open

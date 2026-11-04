@@ -2,50 +2,46 @@
 
 // Checklist state for the pre-session gameplan drawer: drawer visibility,
 // today's persisted plan, the ritual form fields, and the lock-in mutation.
-import { useEffect, useState } from 'react';
+//
+// The plan is persisted to `user_settings.session_gameplan` through a server
+// action; the server render seeds `initialPlan` so the drawer works before any
+// client fetch.
+import type { SessionGameplan } from '@kestrel/shared';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
-import { getTodayKey, PRESET_RULES, type SessionPlan } from './session-plan';
+import { saveSessionGameplanAction } from '../../_actions/session-gameplan';
+import { PRESET_RULES } from './session-plan';
 
-export function useSessionGameplan() {
+function isToday(plan: SessionGameplan | null): boolean {
+  return plan?.date === new Date().toISOString().slice(0, 10);
+}
+
+export function useSessionGameplan(initialPlan: SessionGameplan | null = null) {
+  const stored = isToday(initialPlan) ? initialPlan : null;
   const [open, setOpen] = useState(false);
-  const [plan, setPlan] = useState<SessionPlan | null>(null);
+  const [plan, setPlan] = useState<SessionGameplan | null>(stored);
+  const [saving, setSaving] = useState(false);
 
-  // Form states
-  const [newsReviewed, setNewsReviewed] = useState(false);
-  const [strategyAligned, setStrategyAligned] = useState(false);
-  const [maxDailyR, setMaxDailyR] = useState(2.0);
-  const [mindset, setMindset] = useState('focused');
+  // Form states (seeded from the active plan so a reload keeps today's inputs)
+  const [newsReviewed, setNewsReviewed] = useState(stored?.newsReviewed ?? false);
+  const [strategyAligned, setStrategyAligned] = useState(stored?.strategyAligned ?? false);
+  const [maxDailyR, setMaxDailyR] = useState(stored?.maxDailyR ?? 2.0);
+  const [mindset, setMindset] = useState(stored?.mindset ?? 'focused');
   const [primaryRule, setPrimaryRule] = useState<string>(
-    PRESET_RULES[0] ?? 'Strict 1:2 minimum Risk-to-Reward on every execution',
+    stored?.primaryRule ??
+      PRESET_RULES[0] ??
+      'Strict 1:2 minimum Risk-to-Reward on every execution',
   );
   const [customRule, setCustomRule] = useState('');
 
-  // Load today's plan on mount
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(getTodayKey());
-      if (raw) {
-        const parsed = JSON.parse(raw) as SessionPlan;
-        setPlan(parsed);
-        setNewsReviewed(parsed.newsReviewed);
-        setStrategyAligned(parsed.strategyAligned);
-        setMaxDailyR(parsed.maxDailyR);
-        setMindset(parsed.mindset);
-        setPrimaryRule(parsed.primaryRule || PRESET_RULES[0] || '');
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  function handleSavePlan() {
+  async function handleSavePlan() {
     if (!newsReviewed || !strategyAligned) {
       toast.error('Please acknowledge the news clearance and strategy commitment checks.');
       return;
     }
 
-    const newPlan: SessionPlan = {
+    const newPlan: SessionGameplan = {
       date: new Date().toISOString().slice(0, 10),
       maxDailyR,
       mindset,
@@ -56,13 +52,19 @@ export function useSessionGameplan() {
       completedAt: Date.now(),
     };
 
+    setSaving(true);
     try {
-      localStorage.setItem(getTodayKey(), JSON.stringify(newPlan));
-      setPlan(newPlan);
+      const result = await saveSessionGameplanAction(newPlan);
+      if (!result.ok) throw new Error(result.error);
+      setPlan(result.plan);
       setOpen(false);
       toast.success('Pre-session gameplan locked in! Trade with discipline today.');
-    } catch {
-      toast.error('Failed to save session plan.');
+    } catch (err) {
+      toast.error('Failed to save session plan', {
+        description: err instanceof Error ? err.message : undefined,
+      });
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -75,6 +77,7 @@ export function useSessionGameplan() {
     open,
     setOpen,
     plan,
+    saving,
     newsReviewed,
     setNewsReviewed,
     strategyAligned,

@@ -22,7 +22,13 @@ import { getUserWithSettings } from '@kestrel/db';
 import type { UIMessage } from 'ai';
 
 import type { BotReply, TelegramBotContext } from '../types';
-import { analysisTimeout, checkRate, deterministicThreadId, modelEnv } from './shared';
+import {
+  analysisTimeout,
+  checkRate,
+  deterministicThreadId,
+  modelEnv,
+  persistTelegramTurnBestEffort,
+} from './shared';
 
 export async function askReply(question: string, ctx: TelegramBotContext): Promise<BotReply> {
   if (!question.trim()) {
@@ -76,19 +82,26 @@ export async function askReply(question: string, ctx: TelegramBotContext): Promi
       settings,
       env: modelEnv(),
       signal: analysisTimeout(ctx),
+      readOnlyTools: true,
     });
 
     if (!result.text.trim()) return { text: 'I could not answer that right now. Please retry.' };
 
-    const { appendAssistantMessage, appendUserMessage } = await import('@kestrel/ai');
-    await appendUserMessage(ctx.userId, threadId, userMessage);
-    await appendAssistantMessage(ctx.userId, threadId, {
-      id: randomUUID(),
-      role: 'assistant',
-      parts: [{ type: 'text', text: result.text }],
-    });
-
-    return { text: result.text };
+    const reply: BotReply = { text: result.text };
+    reply.afterSend = () =>
+      persistTelegramTurnBestEffort({
+        userId: ctx.userId,
+        threadId,
+        title: question.slice(0, 80),
+        symbol,
+        userMessage,
+        assistantMessage: {
+          id: randomUUID(),
+          role: 'assistant',
+          parts: [{ type: 'text', text: result.text }],
+        },
+      });
+    return reply;
   } catch (err) {
     return {
       text: `Your question could not be processed right now: ${

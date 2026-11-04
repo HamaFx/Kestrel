@@ -100,6 +100,15 @@ export async function runRetentionCleanup(
   );
   const cronRunsDeleted = await deleteBatched(db, 'cron_runs', 'started_at', cronCutoff);
   const candles1mDeleted = await deleteBatched(db, 'candles_1m', 't', candlesCutoff);
+  // Expired email-verification tokens can never validate again. This used to
+  // run only in the `/api/cron/cleanup-tokens` fallback, so Docker deployments
+  // that rely on the worker kept expired rows forever.
+  const verificationTokensDeleted = await deleteBatched(
+    db,
+    'verificationToken',
+    'expires',
+    now.toISOString(),
+  );
   const budgetReservationsDeleted = await deleteBatchedWhere(
     db,
     'ai_budget_reservations',
@@ -140,6 +149,7 @@ export async function runRetentionCleanup(
     providerDailyQuotaDeleted,
     cronRunsDeleted,
     candles1mDeleted,
+    verificationTokensDeleted,
     budgetReservationsDeleted,
     sharedSnapshotsDeleted,
     mastraObservationalMemoryDeleted,

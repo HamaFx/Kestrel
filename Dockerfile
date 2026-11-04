@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 # Kestrel Docker image
 # Multi-stage build: deps → build → runtime
 # Uses Next.js standalone output for minimal final image.

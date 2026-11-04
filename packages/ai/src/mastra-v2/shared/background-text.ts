@@ -24,7 +24,9 @@ import { DEFAULT_MAX_DAILY_USD, DEFAULT_TURN_ESTIMATE_USD, estimateCostUsd } fro
 import type { ResolveModelEnv } from '@ai/models/env-factory';
 import { resolveMastraExecutionModel, type ChatModelResolution } from '@ai/models/model';
 import { createGenerationLedger, type GenerationLedger } from '@ai/persistence/generation-ledger';
+import { getDb } from '@ai/runtime/db';
 import { telemetryConfig } from '@ai/runtime/telemetry';
+import { createToolContext, type ToolEnv, withToolContext } from '@ai/runtime/tool-context';
 
 import { manifestForCapability } from '../capabilities';
 import { buildGuardrailInputProcessors } from '../guardrails';
@@ -34,6 +36,9 @@ import {
   getMastraGenerationStats,
   mastraOutcomeForError,
 } from './telemetry';
+
+/** Bound a tool-enabled background turn; each extra step is another LLM call. */
+const BACKGROUND_TOOL_MAX_STEPS = 4;
 
 export interface RunMastraBackgroundTextArgs {
   userId: string;
@@ -49,6 +54,12 @@ export interface RunMastraBackgroundTextArgs {
   estimateUsd?: number;
   ledger?: GenerationLedger;
   ledgerId?: string;
+  /**
+   * Register the public read-only canonical tool belt. Bot free-form
+   * questions ("what is on the calendar?", "how are my positions?") need
+   * live data; briefings, titles, and reviews stay tool-free.
+   */
+  readOnlyTools?: boolean;
 }
 
 export interface MastraBackgroundTextResult {
@@ -74,6 +85,28 @@ function resolveBackgroundModel(
   });
 }
 
+/** Public read-only tools only; the sensitive user-read set stays in chat. */
+async function readOnlyToolBelt(): Promise<Record<string, unknown>> {
+  const [{ nativeCanonicalTools }, { CANONICAL_PUBLIC_READ_ONLY_SET }] = await Promise.all([
+    import('../tools/canonical'),
+    import('../agents/canonical/allowlist'),
+  ]);
+  return Object.fromEntries(
+    Object.entries(nativeCanonicalTools()).filter(([name]) =>
+      CANONICAL_PUBLIC_READ_ONLY_SET.has(name),
+    ),
+  );
+}
+
+function optionalDb(): ReturnType<typeof getDb> | undefined {
+  try {
+    return getDb();
+  } catch {
+    // Unit tests without database env config run tools that do not need it.
+    return undefined;
+  }
+}
+
 /**
  * Execute one bounded, read-only background generation. Persistence and
  * idempotency remain owned by the caller; this helper only owns model
@@ -94,12 +127,13 @@ export async function runMastraBackgroundText(
       maxDailyUsd: args.settings.maxDailyUsd ?? DEFAULT_MAX_DAILY_USD,
       correlation: { threadId: args.threadId, runId },
     });
-    resolution = resolveBackgroundModel(args.settings, args.env);
+    const model = resolveBackgroundModel(args.settings, args.env);
+    resolution = model;
     beginMastraRun({
       runId,
       threadId: args.threadId,
-      model: resolution.modelId,
-      providerId: resolution.providerId,
+      model: model.modelId,
+      providerId: model.providerId,
     });
 
     const guardrails = args.skipInputGuardrails
@@ -111,13 +145,16 @@ export async function runMastraBackgroundText(
           mode: 'availability',
         }).processors;
 
+    const toolBelt = args.readOnlyTools ? await readOnlyToolBelt() : {};
+    const hasTools = Object.keys(toolBelt).length > 0;
     const agent = new Agent({
       id: `kestrel-mastra-worker-${args.task}`,
       name: `Kestrel Mastra ${args.task}`,
       description: 'Bounded read-only background generation for Kestrel.',
-      model: resolution.model as unknown as MastraModelConfig,
+      model: model.model as unknown as MastraModelConfig,
       instructions: args.instructions,
       ...(guardrails.length > 0 ? { inputProcessors: guardrails } : {}),
+      ...(hasTools ? { tools: toolBelt as never } : {}),
     });
     const requestContext = new RequestContext([
       ['userId', args.userId],
@@ -125,27 +162,49 @@ export async function runMastraBackgroundText(
       ['runId', runId],
       ['backgroundTask', args.task],
     ]);
-    const result = await agent.generate(args.prompt, {
-      requestContext,
-      toolChoice: 'none',
-      maxSteps: manifestForCapability('canonical-chat').maxSteps > 0 ? 1 : 0,
-      ...(args.task === 'title' ? { maxOutputTokens: 80 } : { maxOutputTokens: 2_000 }),
-      ...telemetryConfig({
-        functionId: `mastra.worker.${args.task}`,
-        metadata: { task: args.task, provider: resolution.providerId },
-      }),
-      ...(args.signal ? { abortSignal: args.signal } : {}),
-    });
+    const generate = () =>
+      agent.generate(args.prompt, {
+        requestContext,
+        toolChoice: hasTools ? 'auto' : 'none',
+        maxSteps: hasTools
+          ? BACKGROUND_TOOL_MAX_STEPS
+          : manifestForCapability('canonical-chat').maxSteps > 0
+            ? 1
+            : 0,
+        ...(args.task === 'title' ? { maxOutputTokens: 80 } : { maxOutputTokens: 2_000 }),
+        ...telemetryConfig({
+          functionId: `mastra.worker.${args.task}`,
+          metadata: { task: args.task, provider: model.providerId },
+        }),
+        ...(args.signal ? { abortSignal: args.signal } : {}),
+      });
+    // Tools resolve their tenant scope and settings from the async tool
+    // context; without it every tool call throws outside `runChat()`.
+    const result = hasTools
+      ? await withToolContext(
+          createToolContext({
+            threadId: args.threadId,
+            userId: args.userId,
+            latestUserMessageText: args.prompt,
+            env: args.env as Partial<ToolEnv>,
+            signal: args.signal ?? null,
+            budget: { spent: 0, max: args.settings.maxDailyUsd ?? DEFAULT_MAX_DAILY_USD },
+            userSettings: args.settings as UserSettingsRow,
+            db: optionalDb(),
+          }),
+          generate,
+        )
+      : await generate();
     const stats = getMastraGenerationStats(result);
-    const costUsd = estimateCostUsd(resolution.modelId, stats.inputTokens, stats.outputTokens);
+    const costUsd = estimateCostUsd(model.modelId, stats.inputTokens, stats.outputTokens);
     const ledger = args.ledger ?? createGenerationLedger();
     ledger.recordCost(args.ledgerId ?? `background:${runId}`, 'auxiliary', costUsd);
     await finishMastraRun({
       userId: args.userId,
       threadId: args.threadId,
       runId,
-      model: resolution.modelId,
-      providerId: resolution.providerId,
+      model: model.modelId,
+      providerId: model.providerId,
       startedAt,
       ...stats,
       outcome: 'success',
@@ -159,8 +218,8 @@ export async function runMastraBackgroundText(
     return {
       text: result.text.trim(),
       runId,
-      modelId: resolution.modelId,
-      providerId: resolution.providerId,
+      modelId: model.modelId,
+      providerId: model.providerId,
       inputTokens: stats.inputTokens,
       outputTokens: stats.outputTokens,
       costUsd,

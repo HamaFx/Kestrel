@@ -46,6 +46,7 @@ import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 import type { RuleReading } from '../spec';
 import { lastClosedBar } from './bars';
+import { indicatorScalar } from './indicator-value';
 import { parseIndicatorSpec } from './indicator-spec';
 
 const rlog = createCategorizedLogger('ai', { component: 'alerts-readings' });
@@ -204,26 +205,13 @@ export async function readReadingsBatch(
 
         let found: RuleReading | null = null;
         for (let i = result2.values.length - 1; i >= 0; i -= 1) {
-          const v = result2.values[i];
-          if (v == null) continue;
-          if (typeof v === 'number') {
-            found = { value: v, source: `${parsed.kind}@${rule.tf}` };
-            break;
-          }
-          if (typeof v === 'object') {
-            if ('macd' in v && typeof v.macd === 'number') {
-              found = { value: v.macd, source: `macd@${rule.tf}` };
-              break;
-            }
-            if ('middle' in v && typeof v.middle === 'number') {
-              found = { value: v.middle, source: `bollinger.middle@${rule.tf}` };
-              break;
-            }
-            if ('pp' in v && typeof v.pp === 'number') {
-              found = { value: v.pp, source: `pivots.pp@${rule.tf}` };
-              break;
-            }
-          }
+          const scalar = indicatorScalar(result2.values[i]);
+          if (!scalar) continue;
+          found = {
+            value: scalar.value,
+            source: `${scalar.field ?? parsed.kind}@${rule.tf}`,
+          };
+          break;
         }
         results.set(a.id, found);
       }

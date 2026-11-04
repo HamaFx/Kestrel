@@ -47,9 +47,8 @@ export function toBiquoteSymbol(symbol: Symbol): string {
 }
 
 /**
- * BiQuote's `/api/{symbol}/ohlc` endpoint accepts M1..D1. There is no W1.
- * We reject 1w at the adapter boundary — the caller falls back to a
- * different provider for weekly bars (Twelve Data / Alpha Vantage).
+ * BiQuote's `/api/{symbol}/ohlc` endpoint accepts M1..D1. There is no W1;
+ * the adapter synthesizes weekly bars from daily ones (`synth1WFrom1D`).
  */
 const TO_BIQUOTE_TIMEFRAME: Record<Exclude<Timeframe, '1w'>, BiquoteTimeframe> = {
   '1m': '1m',
@@ -64,9 +63,9 @@ const TO_BIQUOTE_TIMEFRAME: Record<Exclude<Timeframe, '1w'>, BiquoteTimeframe> =
 // (toBiquoteSymbol is defined above)
 
 /**
- * Map an internal timeframe to BiQuote's notation. Returns `null` for
- * timeframes BiQuote doesn't support (currently just `1w`); callers should
- * check the result and fall through to another provider for weekly bars.
+ * Map an internal timeframe to BiQuote's wire notation. Returns `null` for
+ * `1w`: BiQuote has no weekly interval, so callers must request daily bars and
+ * aggregate them with `synth1WFrom1D`.
  */
 export function toBiquoteTimeframe(tf: Timeframe): BiquoteTimeframe | null {
   if (tf === '1w') return null;

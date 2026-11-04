@@ -126,18 +126,72 @@ describe('simulateAlert — candleClose', () => {
 });
 
 describe('simulateAlert — indicatorCross', () => {
-  it('returns null (not supported in v1)', () => {
-    const candles: SimCandle[] = [c(1, 100, 105, 99, 102)];
+  // Close-to-close SMA(2) is easy to reason about:
+  //   closes 10, 10, 10, 100, 10 → 10, 10, 55, 55
+  function smaCandles(closes: readonly number[]): SimCandle[] {
+    return closes.map((close, i) => c(i + 1, close, close, close, close));
+  }
+
+  it('fires when the indicator crosses above the level', () => {
     const r = simulateAlert(
       {
         type: 'indicatorCross',
         symbol: 'XAUUSD',
         tf: '1h',
-        indicator: 'rsi:14',
-        level: 70,
+        indicator: 'sma:2',
+        level: 50,
         direction: 'above',
       },
-      candles,
+      smaCandles([10, 10, 10, 100, 10]),
+    );
+    expect(r).not.toBeNull();
+    expect(r!.fires).toEqual([{ at: 4, price: 55 }]);
+  });
+
+  it('fires when the indicator crosses below the level', () => {
+    const r = simulateAlert(
+      {
+        type: 'indicatorCross',
+        symbol: 'XAUUSD',
+        tf: '1h',
+        indicator: 'sma:2',
+        level: 50,
+        direction: 'below',
+      },
+      smaCandles([100, 100, 10, 10]),
+    );
+    expect(r).not.toBeNull();
+    expect(r!.fires).toEqual([{ at: 4, price: 10 }]);
+  });
+
+  it('reports the cross count and average hold between fires', () => {
+    // 10 → 55 (cross up at t=3), 55 → 10, 10 → 55 (cross up at t=6).
+    const r = simulateAlert(
+      {
+        type: 'indicatorCross',
+        symbol: 'XAUUSD',
+        tf: '1h',
+        indicator: 'sma:2',
+        level: 50,
+        direction: 'above',
+      },
+      smaCandles([10, 10, 100, 10, 10, 100]),
+    );
+    expect(r!.fires.map((f) => f.at)).toEqual([3, 6]);
+    expect(r!.avgHoldMs).toBe(3);
+  });
+
+  it('returns null for an unparseable indicator spec', () => {
+    const r = simulateAlert(
+      {
+        type: 'indicatorCross',
+        symbol: 'XAUUSD',
+        tf: '1h',
+        indicator: 'not_an_indicator:2',
+        level: 50,
+        direction: 'above',
+      },
+      smaCandles([10, 10, 10]),
     );
     expect(r).toBeNull();
   });

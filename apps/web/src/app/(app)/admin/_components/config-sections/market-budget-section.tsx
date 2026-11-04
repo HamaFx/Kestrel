@@ -117,7 +117,7 @@ export function MarketBudgetSection({ controller }: { controller: PlatformConfig
 
       <SettingsSection
         title="4. Platform Spend Guardrails"
-        description="Set daily and monthly wholesale LLM spend thresholds for operator alerts and cost governance."
+        description="Set the daily wholesale LLM spend ceiling that caps platform-funded turns."
       >
         <div className="border-border bg-bg-elev-1 flex flex-col gap-4 rounded-lg border p-5">
           <div className="flex flex-col gap-1.5">
@@ -133,22 +133,6 @@ export function MarketBudgetSection({ controller }: { controller: PlatformConfig
             />
             <span className="text-caption text-fg-subtle">
               Current today spend: ${data.budget.todayUsd.toFixed(4)}
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="text-fg text-xs font-semibold">
-              Monthly Spend Alert Threshold (USD / month)
-            </label>
-            <Input
-              type="number"
-              step="5"
-              placeholder="e.g. 500"
-              value={form.monthlyBudgetLimit}
-              onChange={(e) => setForm({ monthlyBudgetLimit: e.target.value })}
-            />
-            <span className="text-caption text-fg-subtle">
-              Current 30-day spend: ${data.budget.thirtyDayUsd.toFixed(2)}
             </span>
           </div>
 

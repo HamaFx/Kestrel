@@ -15,11 +15,18 @@
  */
 
 // Shared helpers for the AI-backed Telegram commands: rate limiting,
-// deterministic thread ids, model env and analysis formatting.
+// deterministic thread ids, model env, analysis formatting, and best-effort
+// chat-history persistence.
 
 import { createHash } from 'node:crypto';
 
+import { type Symbol as MarketSymbol } from '@kestrel/shared';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
+import type { UIMessage } from 'ai';
+
 import type { TelegramBotContext } from '../types';
+
+const log = createCategorizedLogger('telegram', { pluginId: 'telegram-bot' });
 
 const AI_TIMEOUT_MS = 90_000;
 
@@ -66,6 +73,43 @@ export function modelEnv() {
 export function analysisTimeout(ctx: TelegramBotContext): AbortSignal {
   const timeout = AbortSignal.timeout(AI_TIMEOUT_MS);
   return ctx.signal ? AbortSignal.any([ctx.signal, timeout]) : timeout;
+}
+
+export interface TelegramTurnPersistence {
+  userId: string;
+  threadId: string;
+  title: string;
+  symbol?: string | null;
+  userMessage: UIMessage;
+  assistantMessage: UIMessage;
+}
+
+/**
+ * Mirror one Telegram turn into the web chat history under a deterministic
+ * thread id.
+ *
+ * Best-effort by contract: the reply has already been generated (and, via
+ * `afterSend`, usually sent), so a history write must never turn into an
+ * error message that replaces it. The thread row is created first because
+ * `chat_messages` carries an FK to `chat_threads`.
+ */
+export async function persistTelegramTurnBestEffort(turn: TelegramTurnPersistence): Promise<void> {
+  try {
+    const { appendAssistantMessage, appendUserMessage, createThread } = await import('@kestrel/ai');
+    await createThread(turn.userId, {
+      id: turn.threadId,
+      title: turn.title,
+      pinnedSymbol: (turn.symbol ?? null) as MarketSymbol | null,
+    });
+    await appendUserMessage(turn.userId, turn.threadId, turn.userMessage);
+    await appendAssistantMessage(turn.userId, turn.threadId, turn.assistantMessage);
+  } catch (err) {
+    log.warn('Telegram turn persistence failed', {
+      userId: turn.userId,
+      threadId: turn.threadId,
+      err: err instanceof Error ? err.message : String(err),
+    });
+  }
 }
 
 const DESK_LABELS: Record<string, string> = {

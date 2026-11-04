@@ -16,6 +16,7 @@ import {
 import { detectInstalledPluginIntent } from '../../plugins/intent';
 import { resolveSemanticRoutingConfig, routeTurn, type RoutingDecision } from '../../routing';
 import { isUserDataReadIntent } from '../../routing/keywords';
+import type { SemanticRoutingAccounting } from '../../routing/semantic';
 import {
   evaluateMastraCapability,
   getMastraCapability,
@@ -62,6 +63,11 @@ export interface MastraExecutionDecisionInput {
    * `xauusd-*` / `symbol-research`.
    */
   installedPluginIds?: readonly string[];
+  /**
+   * Accounting sink for the semantic-routing classifier call. Only consumed
+   * when the turn actually uses semantic routing (canonical chat).
+   */
+  accounting?: SemanticRoutingAccounting;
 }
 
 export interface MastraExecutionDecision {
@@ -89,13 +95,10 @@ export interface MastraExecutionDecision {
 export async function decideMastraExecution(
   input: MastraExecutionDecisionInput,
 ): Promise<MastraExecutionDecision> {
-  const semanticRouting = resolveSemanticRoutingConfig(input.settings, input.env, input.signal);
-  const baseRouting = await routeTurn({
-    userMessage: input.userMessage,
-    ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
-    ...(semanticRouting ? { semanticRouting } : {}),
-  });
-  const routing: RoutingDecision = baseRouting;
+  // Deterministic classification first: the route decides whether semantic
+  // routing is worth an LLM call at all. Research and mutation runs ignore the
+  // semantic domain, so paying for it there was pure waste (and the call was
+  // never written to the generation ledger).
   const promptText = messageText(input.userMessage);
   const priorReportAvailable = input.priorReportAvailable === true;
   const reportFollowup = priorReportAvailable && isMastraXauusdFollowupCandidate(promptText);
@@ -155,6 +158,27 @@ export async function decideMastraExecution(
   ) {
     throw new Error(`Mastra capability rejected: ${capability.reason}.`);
   }
+
+  // Only canonical chat consumes the semantic domain (plan-then-act + model
+  // tier). Other routes use the zero-cost keyword classifier, and the ledger
+  // sink rides along when the caller supplied one.
+  const semanticRouting =
+    route === 'canonical-chat'
+      ? resolveSemanticRoutingConfig(input.settings, input.env, input.signal)
+      : null;
+  const routing: RoutingDecision = await routeTurn({
+    userMessage: input.userMessage,
+    ...(input.modelOverride !== undefined ? { modelOverride: input.modelOverride } : {}),
+    ...(semanticRouting
+      ? {
+          semanticRouting: {
+            ...semanticRouting,
+            ...(input.accounting ? { accounting: input.accounting } : {}),
+          },
+        }
+      : {}),
+  });
+
   const purpose = purposeFor(route);
   // Model resolution is part of the decision contract, but a policy-only
   // decision remains useful when no provider is configured (for example,

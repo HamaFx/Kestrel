@@ -22,7 +22,7 @@ const maxWorkers = process.env.CI ? 2 : Math.max(2, Math.floor(os.availableParal
 
 export default defineConfig({
   resolve: {
-    conditions: ['source'],
+    conditions: ['@kestrel/source'],
     alias: {
       '@data': new URL('./src', import.meta.url).pathname,
     },

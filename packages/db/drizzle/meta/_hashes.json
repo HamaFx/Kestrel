@@ -495,6 +495,14 @@
     {
       "tag": "0124_drop_bloat_tables",
       "hash": "61b81f9af6dfe0d94d8dcee0de4bafad2d3a61850648d29ec0232f2e08af01d9"
+    },
+    {
+      "tag": "0125_add_session_gameplan",
+      "hash": "2e92a9a53ee97f202bfc0a6317325acba2d3bc1008ce6753dce95826b42da956"
+    },
+    {
+      "tag": "0126_drop_dead_columns",
+      "hash": "e5b6144ebe5b838cd73b3ccb2d41989d8527c63441cfe4bfde18e87bbc00a0ab"
     }
   ]
 }

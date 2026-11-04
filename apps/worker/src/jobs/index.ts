@@ -24,6 +24,7 @@ import { runBriefings } from './briefings.js';
 import { runCoT } from './cot.js';
 import { runEmbeddingBackfill } from './embedding-backfill.js';
 import { runFredActuals } from './fred-actuals.js';
+import { runNews } from './news.js';
 import { runResonanceSync } from './resonance-sync.js';
 import { runRetention } from './retention.js';
 import type { JobName, JobRegistration } from './types.js';
@@ -79,6 +80,14 @@ export const JOBS: Record<JobName, JobRegistration> = {
       'Daily FRED actuals backfill — patches economic_events.actual where it was null at ingestion.',
     schedule: '30 1 * * *',
     hcUuidEnvVar: 'HC_JOB_FRED_ACTUALS_UUID',
+  },
+  news: {
+    name: 'news',
+    run: runNews,
+    description:
+      'News ingestion — fetches new Marketaux/Finnhub articles since the high-water mark.',
+    schedule: '*/10 * * * *',
+    hcUuidEnvVar: 'HC_JOB_NEWS_UUID',
   },
   'resonance-sync': {
     name: 'resonance-sync',

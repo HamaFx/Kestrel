@@ -16,9 +16,8 @@
 
 // Budget/cost facade. The implementation lives in focused modules:
 //   pricing-catalog.ts    — static + catalog rates, token-cost estimation
-//   budget-spend.ts       — daily/monthly counters and cap enforcement
+//   budget-spend.ts       — daily counters and cap enforcement
 //   budget-reservations.ts— durable per-turn reservation lifecycle
-//   budget-alerts.ts      — monthly/provider threshold notifications
 //
 // Public exports are unchanged so `@kestrel/ai/cost`, the budget facade, and
 // worker jobs keep one stable import path.
@@ -26,4 +25,3 @@
 export * from './pricing-catalog';
 export * from './budget-spend';
 export * from './budget-reservations';
-export * from './budget-alerts';

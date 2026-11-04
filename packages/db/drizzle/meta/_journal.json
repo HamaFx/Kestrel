@@ -869,6 +869,20 @@
       "when": 1793746000000,
       "tag": "0124_drop_bloat_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 124,
+      "version": "7",
+      "when": 1793832000000,
+      "tag": "0125_add_session_gameplan",
+      "breakpoints": true
+    },
+    {
+      "idx": 125,
+      "version": "7",
+      "when": 1793918400000,
+      "tag": "0126_drop_dead_columns",
+      "breakpoints": true
     }
   ]
 }

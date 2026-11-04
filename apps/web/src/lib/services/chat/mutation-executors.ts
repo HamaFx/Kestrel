@@ -31,6 +31,7 @@
 // copy-pasted switch in each executor was the source of their drift.
 
 import { requireTenantIdForUser, schema, withUserTenant, type DbClient } from '@kestrel/db';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { eq } from 'drizzle-orm';
 import type { z } from 'zod';
 
@@ -38,6 +39,7 @@ import {
   assertRegisteredSystemAction,
   assertSystemActionAuthorized,
   executeMutationOnce,
+  rememberJournalEntry,
   syncIntermarketResonance,
   type MutationExecutor,
   type MutationExecutorResult,
@@ -46,6 +48,21 @@ import {
 
 type MutationKind = z.infer<typeof MutationKindSchema>;
 type MutationInput = Parameters<MutationExecutor>[0];
+
+const mlog = createCategorizedLogger('ai', { component: 'chat-mutation-executor' });
+
+/**
+ * Chat-confirmed journal entries must be recallable through
+ * `search_knowledge`, exactly like entries created in the Journal UI.
+ * Runs after the business write commits and never blocks the response.
+ */
+function indexJournalEntryBestEffort(userId: string, entryId: string): void {
+  void withUserTenant(userId, async () => rememberJournalEntry({ entryId, userId })).catch(
+    (err) => {
+      mlog.warn('chat journal memory write failed', { userId, entryId, err: String(err) });
+    },
+  );
+}
 
 /**
  * Execute one registered system action. `resonance_sync` runs the shared
@@ -146,10 +163,12 @@ async function executeMutationWrite(
 export function executorFor(kind: MutationKind, userId: string): MutationExecutor {
   return async (input) => {
     if (input.kind !== kind) throw new Error('mutation kind mismatch');
-    return withUserTenant(userId, async (db) => {
+    const result = await withUserTenant(userId, async (db) => {
       const tenantId = await requireTenantIdForUser(userId, db);
       return executeMutationWrite(db, userId, tenantId, input);
     });
+    if (kind === 'log_journal') indexJournalEntryBestEffort(userId, result.id);
+    return result;
   };
 }
 
@@ -192,5 +211,8 @@ export function atomicExecutorFor(kind: MutationKind, userId: string) {
         if (input.kind !== kind) throw new Error('mutation kind mismatch');
         return executeMutationWrite(tx, userId, tenantId, input);
       },
-    }).then(({ result }) => result);
+    }).then(({ result }) => {
+      if (kind === 'log_journal') indexJournalEntryBestEffort(userId, result.id);
+      return result;
+    });
 }

@@ -26,14 +26,16 @@
 //   2  — job threw (already pinged fail)
 
 import { closeDb } from '@kestrel/db';
+import { createTenantRouterFromEnv } from '@kestrel/shared/tenant-partition';
 
 import { loadEnv } from '../env.js';
 import { JOBS, type JobName } from '../jobs/index.js';
 import { createLogger } from '../log.js';
 import { withHeartbeat } from '../runtime/healthchecks.js';
-import { tenantRouter } from '../runtime/tenant-router.js';
 import { acquireCronLock, type CronLock } from '../scheduler/cron-lock.js';
 import { SKIP_DAILY_LOCK } from '../scheduler/index.js';
+
+const tenantRouter = createTenantRouterFromEnv();
 
 function isKnownJob(name: string): name is JobName {
   return name in JOBS;

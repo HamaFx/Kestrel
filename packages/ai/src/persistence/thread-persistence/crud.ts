@@ -91,25 +91,34 @@ export async function getThread(userId: string, id: string): Promise<DbThread | 
 
 export async function createThread(
   userId: string,
-  opts: { pinnedSymbol?: Symbol | null } = {},
+  opts: { pinnedSymbol?: Symbol | null; id?: string; title?: string | null } = {},
 ): Promise<DbThread> {
   const db = getDb();
   const tenantId = await requireTenantIdForUser(userId, db);
   const inserted = await db
     .insert(schema.chatThreads)
     .values({
+      ...(opts.id ? { id: opts.id } : {}),
       userId,
       tenantId,
-      title: null,
+      title: opts.title ?? null,
       pinnedSymbol: opts.pinnedSymbol ?? null,
       modelOverride: null,
       // Null means use the user's saved default mode. Existing rows with
       // `single` retain their legacy behavior until explicitly changed.
       analysisMode: null,
     })
+    // An explicit id is an idempotency key (Telegram uses deterministic
+    // threads), so a concurrent first turn must not crash the caller.
+    .onConflictDoNothing({ target: schema.chatThreads.id })
     .returning();
-  const row = inserted[0]!;
-  return rowToThread(row);
+  const row = inserted[0];
+  if (row) return rowToThread(row);
+  if (opts.id) {
+    const existing = await getThread(userId, opts.id);
+    if (existing) return existing;
+  }
+  throw new Error(`Could not create chat thread${opts.id ? `: ${opts.id}` : ''}`);
 }
 
 export async function updateThreadTitle(

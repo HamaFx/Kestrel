@@ -29,6 +29,7 @@ import { resolvePluginSkillDir } from '@kestrel/plugin-sdk/skill-dir';
 
 import { paperTradingApiRoutes } from './api/routes';
 import { deleteAllPaperData } from './db/queries';
+import { paperTradingChatIntent } from './intent';
 import { paperMarketWatchJob } from './jobs/market-watch';
 import { paperStrategyRunnerJob } from './jobs/strategy-runner';
 import { paperPositionEnricher } from './packet-enricher';
@@ -63,6 +64,7 @@ const plugin = definePlugin({
       'Adds sidebar tab',
     ],
     setupSteps: [],
+    chatIntent: paperTradingChatIntent,
   },
   skills: [resolveSkillDir('paper-trading-desk')],
   tools: paperTradingTools,

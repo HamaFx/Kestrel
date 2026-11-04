@@ -215,10 +215,6 @@ export async function previewAlertRuleService(
     );
   }
 
-  if (input.rule.type === 'indicatorCross') {
-    return { count: 0, avgHoldMs: 0, recentFires: [], unsupported: true };
-  }
-
   const candles = await fetchCandles(input.rule, input.lookbackDays);
   const sim = simulateAlert(input.rule, candles, { maxFires: 50 });
 

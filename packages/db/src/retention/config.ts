@@ -60,6 +60,7 @@ export interface RetentionResult {
   providerDailyQuotaDeleted: number;
   cronRunsDeleted: number;
   candles1mDeleted: number;
+  verificationTokensDeleted: number;
   budgetReservationsDeleted: number;
   sharedSnapshotsDeleted: number;
   mastraObservationalMemoryDeleted: number;

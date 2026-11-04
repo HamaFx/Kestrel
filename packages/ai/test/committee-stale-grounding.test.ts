@@ -23,7 +23,11 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { extractNumbersFromToolOutput, isSupportedByEvidence } from '../src/committee/grounding';
+import {
+  extractNumbersFromToolOutput,
+  isSupportedByEvidence,
+  ungroundedNarrativeNumbers,
+} from '../src/committee/grounding';
 import { verifyMastraOpinion } from '../src/committee/verifier';
 
 function priceOutput(stale: boolean, ageSeconds: number, warnings: string[] = []) {
@@ -153,5 +157,30 @@ describe('committee grounding — stale tool outputs (R8)', () => {
     expect(extractNumbersFromToolOutput({ symbol: 'XAUUSD', price: 2650.4 })).toContain(2650.4);
     // Packet-style `freshness: 'fresh'` strings are provenance labels, not envelopes.
     expect(extractNumbersFromToolOutput({ freshness: 'fresh', mid: 2650.4 })).toContain(2650.4);
+  });
+});
+
+describe('committee grounding — timeframe words never exempt prices', () => {
+  // The scenario-projection window is 24 characters wide. Timeframe metadata
+  // ("1-hour", "15-min", "1h") sat inside that window and used to exempt an
+  // invented price from numeric grounding.
+  it.each([
+    'On the 1-hour chart price is 3912.45.',
+    'The 15-min close is 3912.45.',
+    'On the 1h chart price is 3912.45.',
+  ])('reports an ungrounded price next to timeframe wording: %s', (text) => {
+    expect(ungroundedNarrativeNumbers(text, [])).toContain(3912.45);
+  });
+
+  it('still exempts genuinely forward-looking scenario numbers', () => {
+    expect(ungroundedNarrativeNumbers('Target 3912.45 with invalidation below 3900.', [])).toEqual(
+      [],
+    );
+  });
+
+  it('grounds a timeframe-adjacent price when packet evidence supports it', () => {
+    expect(ungroundedNarrativeNumbers('On the 1-hour chart price is 3912.45.', [3912.45])).toEqual(
+      [],
+    );
   });
 });

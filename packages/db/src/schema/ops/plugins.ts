@@ -31,14 +31,9 @@ import {
   primaryKey,
   text,
   timestamp,
-  uuid,
-  type PgColumnBuilderBase,
 } from 'drizzle-orm/pg-core';
 
 import { organization, users } from '../core/auth';
-
-const PLUGIN_ID_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
-const PLUGIN_TABLE_PART_PATTERN = /^[a-z][a-z0-9_]*$/;
 
 function tenantIsolation() {
   return pgPolicy('tenant_isolation', {
@@ -128,51 +123,3 @@ export const pluginStorage = pgTable(
 
 export type PluginStorageRow = typeof pluginStorage.$inferSelect;
 export type PluginStorageInsert = typeof pluginStorage.$inferInsert;
-
-// ── High-volume plugin tables ────────────────────────────────────────────
-
-/**
- * Build a tenant-isolated table for a plugin that needs relational storage
- * (backtest runs, paper orders, …).
- *
- * The physical name is automatically prefixed `plg_<pluginId>_<tableName>`
- * and the table receives `tenant_id`, `user_id`, timestamps, an index and the
- * standard RLS policy. High-volume plugins still ship one SQL migration; this
- * helper guarantees the security-critical columns cannot be forgotten.
- */
-export function createPluginTable(
-  pluginId: string,
-  tableName: string,
-  columns: Record<string, PgColumnBuilderBase>,
-) {
-  if (!PLUGIN_ID_PATTERN.test(pluginId)) {
-    throw new Error(`[db] createPluginTable: invalid plugin id "${pluginId}"`);
-  }
-  if (!PLUGIN_TABLE_PART_PATTERN.test(tableName)) {
-    throw new Error(`[db] createPluginTable: invalid table name "${tableName}"`);
-  }
-  const physicalName = `plg_${pluginId.replaceAll('-', '_')}_${tableName}`;
-  if (physicalName.length > 63) {
-    throw new Error(
-      `[db] createPluginTable: physical table name "${physicalName}" exceeds PostgreSQL's 63-character limit`,
-    );
-  }
-  const table = pgTable(
-    physicalName,
-    {
-      id: uuid('id').primaryKey().defaultRandom(),
-      tenantId: tenantColumn(),
-      userId: text('user_id')
-        .notNull()
-        .references(() => users.id, { onDelete: 'cascade' }),
-      createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-      updatedAt: timestamp('updated_at', { withTimezone: true })
-        .defaultNow()
-        .notNull()
-        .$onUpdate(() => new Date()),
-      ...columns,
-    },
-    (t) => [index(`${physicalName}_tenant_user_idx`).on(t.tenantId, t.userId), tenantIsolation()],
-  );
-  return table.enableRLS();
-}

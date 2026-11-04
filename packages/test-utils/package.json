@@ -10,12 +10,12 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "source": "./src/index.ts",
+      "@kestrel/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
     "./factories/*": {
-      "source": "./src/factories/*.ts",
+      "@kestrel/source": "./src/factories/*.ts",
       "types": "./dist/factories/*.d.ts",
       "import": "./dist/factories/*.js"
     }

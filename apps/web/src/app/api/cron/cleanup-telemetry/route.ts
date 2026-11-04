@@ -19,10 +19,10 @@
 // DB-1: GET /api/cron/cleanup-telemetry — purges stale operational rows.
 //
 // Targets: rate_limits, chat_telemetry, tool_telemetry, diagnostic_traces,
-// provider_daily_quota, Telegram deduplication IDs, expired share snapshots,
-// and recovery ledgers. Uses shared retention logic
-// from @kestrel/db so both the web cron route and the worker job call the
-// same function.
+// provider_daily_quota, expired verification tokens, expired share snapshots,
+// recovery ledgers, stale AI budget reservations, and Mastra storage. The
+// runner lives in `@/lib/services/cron-jobs` and mirrors the worker
+// `retention` job exactly (VACUUM excepted: it is worker-only).
 //
 // Schedule: daily via Vercel cron or an external scheduler.
 //
@@ -31,33 +31,11 @@
 // connection is required — the worker runs the same cleanup on admin.
 
 import { withCronAuth } from '@/lib/http/cron';
-import { createScopedLoggerWithContext } from '@/lib/logger';
-import { runRetentionCleanupAcrossTenants } from '@/lib/services/admin';
+import { runCleanupTelemetryCronService } from '@/lib/services/cron-jobs';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request): Promise<Response> {
-  const log = createScopedLoggerWithContext({ component: 'cron', job: 'cleanup-telemetry' });
-  return withCronAuth(req, async () => {
-    const result = await runRetentionCleanupAcrossTenants();
-
-    log.info('retention cleanup completed', {
-      telemetryDeleted: result.telemetryDeleted,
-      toolTelemetryDeleted: result.toolTelemetryDeleted,
-      tracesDeleted: result.tracesDeleted,
-      rateLimitsDeleted: result.rateLimitsDeleted,
-      providerDailyQuotaDeleted: result.providerDailyQuotaDeleted,
-      cronRunsDeleted: result.cronRunsDeleted,
-      budgetReservationsDeleted: result.budgetReservationsDeleted,
-      sharedSnapshotsDeleted: result.sharedSnapshotsDeleted,
-    });
-
-    return {
-      processed: Object.values(result)
-        .filter((value): value is number => typeof value === 'number')
-        .reduce((sum, value) => sum + value, 0),
-      note: result.note,
-    };
-  });
+  return withCronAuth(req, async () => runCleanupTelemetryCronService());
 }

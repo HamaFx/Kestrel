@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import { isKnownSymbol } from '@kestrel/shared';
-import { IconDownload, IconFileSpreadsheet, IconUpload, IconX } from '@tabler/icons-react';
+import { IconFileSpreadsheet, IconUpload } from '@tabler/icons-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -37,8 +37,11 @@ interface ParsedTrade {
   notes: string | null;
 }
 
+/**
+ * CSV import body. Rendered directly inside the journal import `Drawer`; the
+ * drawer owns the title, close button, and dismissal.
+ */
 export function ImportTrades({ onImported }: { onImported?: () => void }) {
-  const [open, setOpen] = useState(false);
   const [parsed, setParsed] = useState<ParsedTrade[] | null>(null);
   const [importing, setImporting] = useState(false);
 
@@ -112,7 +115,6 @@ export function ImportTrades({ onImported }: { onImported?: () => void }) {
       });
       toast.success(`Imported ${count} trades`);
       setParsed(null);
-      setOpen(false);
       onImported?.();
     } catch (err) {
       toast.error('Import failed', {
@@ -123,115 +125,72 @@ export function ImportTrades({ onImported }: { onImported?: () => void }) {
     }
   }
 
+  if (!parsed) {
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="text-fg-subtle text-sm">
+          Upload a CSV file with columns:{' '}
+          <code className="text-fg text-xs">
+            symbol, side, entry, date, exit, stop, target, size, closedDate?, notes?
+          </code>
+        </p>
+        <label className="border-border text-fg-subtle hover:border-border hover:text-fg flex cursor-pointer items-center justify-center gap-2 rounded-sm border border-dashed p-6 text-sm transition-colors">
+          <IconUpload className="size-5" />
+          Choose CSV file
+          <input type="file" accept=".csv,text/csv" onChange={handleFile} className="sr-only" />
+        </label>
+      </div>
+    );
+  }
+
   return (
-    <>
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        onClick={() => setOpen(true)}
-        className="self-start"
-      >
-        <IconDownload className="mr-1 size-4" />
-        Import trades
-      </Button>
-
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center">
-          <div className="bg-bg-elev-1 border-border flex max-h-[80vh] w-full flex-col gap-4 overflow-y-auto rounded-sm border p-6 sm:max-w-lg">
-            <div className="flex items-center justify-between">
-              <h3 className="text-fg text-base font-semibold">Import trades</h3>
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  setParsed(null);
-                }}
-                className="text-fg-muted hover:text-fg"
-              >
-                <IconX className="size-5" />
-              </button>
-            </div>
-
-            {!parsed ? (
-              <div className="flex flex-col gap-3">
-                <p className="text-fg-subtle text-sm">
-                  Upload a CSV file with columns:{' '}
-                  <code className="text-fg text-xs">
-                    symbol, side, entry, date, exit, stop, target, size, closedDate?, notes?
-                  </code>
-                </p>
-                <label className="border-border text-fg-subtle hover:border-border hover:text-fg flex cursor-pointer items-center justify-center gap-2 rounded-sm border border-dashed p-6 text-sm transition-colors">
-                  <IconUpload className="size-5" />
-                  Choose CSV file
-                  <input
-                    type="file"
-                    accept=".csv,.xlsx,.html"
-                    onChange={handleFile}
-                    className="sr-only"
-                  />
-                </label>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                <div className="text-fg flex items-center gap-2 text-sm">
-                  <IconFileSpreadsheet className="text-fg size-4" />
-                  <span className="font-medium">{parsed.length} trades parsed</span>
-                </div>
-                <div className="border-border max-h-[40svh] overflow-y-auto rounded-sm border md:max-h-48">
-                  <table className="table-stack w-full text-xs tabular-nums">
-                    <thead>
-                      <tr className="bg-bg-elev-2 text-fg-subtle">
-                        <th className="p-2 text-left">Symbol</th>
-                        <th className="p-2 text-left">Side</th>
-                        <th className="p-2 text-right">Entry</th>
-                        <th className="p-2 text-right">Exit</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {parsed.slice(0, 20).map((t, i) => (
-                        <tr key={i} className="row-primary border-border border-t">
-                          <td className="text-fg p-2">{t.symbol}</td>
-                          <td
-                            data-label="Side"
-                            className={cn('p-2', t.side === 'long' ? 'text-bull' : 'text-bear')}
-                          >
-                            {t.side}
-                          </td>
-                          <td data-label="Entry" className="text-fg p-2 text-right">
-                            {t.entry}
-                          </td>
-                          <td data-label="Exit" className="text-fg p-2 text-right">
-                            {t.exit ?? '—'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {parsed.length > 20 && (
-                    <p className="text-fg-subtle p-2 text-center text-xs">
-                      … and {parsed.length - 20} more
-                    </p>
-                  )}
-                </div>
-                <div className="flex gap-3">
-                  <Button variant="secondary" className="flex-1" onClick={() => setParsed(null)}>
-                    Choose different file
-                  </Button>
-                  <Button
-                    className="flex-1"
-                    onClick={handleImport}
-                    loading={importing}
-                    disabled={importing}
-                  >
-                    Import {parsed.length} trades
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </>
+    <div className="flex flex-col gap-3">
+      <div className="text-fg flex items-center gap-2 text-sm">
+        <IconFileSpreadsheet className="text-fg size-4" />
+        <span className="font-medium">{parsed.length} trades parsed</span>
+      </div>
+      <div className="border-border max-h-[40svh] overflow-y-auto rounded-sm border md:max-h-48">
+        <table className="table-stack w-full text-xs tabular-nums">
+          <thead>
+            <tr className="bg-bg-elev-2 text-fg-subtle">
+              <th className="p-2 text-left">Symbol</th>
+              <th className="p-2 text-left">Side</th>
+              <th className="p-2 text-right">Entry</th>
+              <th className="p-2 text-right">Exit</th>
+            </tr>
+          </thead>
+          <tbody>
+            {parsed.slice(0, 20).map((t, i) => (
+              <tr key={i} className="row-primary border-border border-t">
+                <td className="text-fg p-2">{t.symbol}</td>
+                <td
+                  data-label="Side"
+                  className={cn('p-2', t.side === 'long' ? 'text-bull' : 'text-bear')}
+                >
+                  {t.side}
+                </td>
+                <td data-label="Entry" className="text-fg p-2 text-right">
+                  {t.entry}
+                </td>
+                <td data-label="Exit" className="text-fg p-2 text-right">
+                  {t.exit ?? '—'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {parsed.length > 20 && (
+          <p className="text-fg-subtle p-2 text-center text-xs">… and {parsed.length - 20} more</p>
+        )}
+      </div>
+      <div className="flex gap-3">
+        <Button variant="secondary" className="flex-1" onClick={() => setParsed(null)}>
+          Choose different file
+        </Button>
+        <Button className="flex-1" onClick={handleImport} loading={importing} disabled={importing}>
+          Import {parsed.length} trades
+        </Button>
+      </div>
+    </div>
   );
 }

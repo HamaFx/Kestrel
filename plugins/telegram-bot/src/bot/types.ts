@@ -34,6 +34,12 @@ export interface BotReply {
   text: string;
   parseMode?: 'HTML' | 'MarkdownV2';
   keyboard?: InlineKeyboard;
+  /**
+   * Best-effort follow-up that runs after the transport has sent `text`.
+   * Chat-history persistence goes here so it can never delay or replace the
+   * reply the trader already received.
+   */
+  afterSend?: () => Promise<void>;
 }
 
 export const COMMAND_DESCRIPTIONS: ReadonlyArray<{ command: string; description: string }> = [

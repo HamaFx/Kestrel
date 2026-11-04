@@ -27,12 +27,11 @@
 // presented as current.
 
 import { getCandles } from '@kestrel/data';
+import { computeSessionRanges } from '@kestrel/indicators';
 import {
   GetSessionLevelsInputSchema,
   type Candle,
   type GetSessionLevelsOutput,
-  type SessionRange,
-  type SessionTag,
 } from '@kestrel/shared';
 import { tool, type Tool } from 'ai';
 import type { z } from 'zod';
@@ -46,21 +45,6 @@ declare module '@kestrel/shared' {
     get_session_levels: { input: z.infer<typeof InputSchema> };
   }
 }
-
-const HOUR_MS = 60 * 60 * 1000;
-const DAY_MS = 24 * HOUR_MS;
-
-interface SessionWindow {
-  session: SessionTag;
-  startHour: number;
-  endHour: number;
-}
-
-const SESSIONS: readonly SessionWindow[] = [
-  { session: 'asia', startHour: 0, endHour: 7 },
-  { session: 'london', startHour: 7, endHour: 12 },
-  { session: 'ny', startHour: 12, endHour: 21 },
-];
 
 interface SessionLevelsComputationArgs {
   symbol: GetSessionLevelsOutput['symbol'];
@@ -83,8 +67,6 @@ function computeSessionLevels({
   nowMs = Date.now(),
   stale = false,
 }: SessionLevelsComputationArgs): GetSessionLevelsOutput {
-  const startOfToday = startOfUtcDay(nowMs);
-
   if (candles.length === 0) {
     return {
       symbol,
@@ -97,10 +79,9 @@ function computeSessionLevels({
     };
   }
 
-  const today = SESSIONS.map((w) => sliceSession(candles, startOfToday, nowMs, w));
-  const prior = includePrior
-    ? SESSIONS.map((w) => sliceSession(candles, startOfToday - DAY_MS, nowMs, w))
-    : null;
+  // Session boundaries live in @kestrel/indicators so the Asian-range helper,
+  // the backtester, and this tool cannot disagree about them.
+  const { today, prior } = computeSessionRanges(candles, nowMs, { includePrior });
 
   return {
     symbol,
@@ -142,51 +123,3 @@ export const getSessionLevelsTool: Tool<z.infer<typeof InputSchema>, GetSessionL
     },
   },
 );
-
-function sliceSession(
-  candles: Candle[],
-  dayStartMs: number,
-  nowMs: number,
-  win: SessionWindow,
-): SessionRange {
-  const fromMs = dayStartMs + win.startHour * HOUR_MS;
-  const toMs = dayStartMs + win.endHour * HOUR_MS;
-  const inWindow = candles.filter((c) => c.t >= fromMs && c.t < toMs);
-
-  if (inWindow.length === 0) {
-    return {
-      session: win.session,
-      fromMs,
-      toMs,
-      open: null,
-      high: null,
-      low: null,
-      close: null,
-      forming: nowMs < toMs,
-    };
-  }
-
-  let high = Number.NEGATIVE_INFINITY;
-  let low = Number.POSITIVE_INFINITY;
-  for (const c of inWindow) {
-    if (c.h > high) high = c.h;
-    if (c.l < low) low = c.l;
-  }
-
-  const sessionEnded = nowMs >= toMs;
-  return {
-    session: win.session,
-    fromMs,
-    toMs,
-    open: inWindow[0]!.o,
-    high: Number.isFinite(high) ? high : null,
-    low: Number.isFinite(low) ? low : null,
-    close: sessionEnded ? inWindow[inWindow.length - 1]!.c : null,
-    forming: !sessionEnded,
-  };
-}
-
-function startOfUtcDay(ms: number): number {
-  const d = new Date(ms);
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-}

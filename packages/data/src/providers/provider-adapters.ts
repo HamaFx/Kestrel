@@ -158,13 +158,15 @@ const biquoteProvider: MarketDataProvider = {
     count: number,
     opts?: ProviderFetchOptions,
   ): Promise<Candle[] | null> {
-    // BiQuote doesn't support weekly bars.
-    if (tf === '1w') return null;
     const baseUrl = opts?.baseUrl ?? process.env.BIQUOTE_BASE_URL ?? 'https://biquote.io';
+    // BiQuote has no W1 interval: weekly bars are synthesized from daily
+    // bars, so requesting `1w` no longer requires a Finnhub key.
+    const requestTf: Timeframe = tf === '1w' ? '1d' : tf;
+    const requestCount = tf === '1w' ? Math.min(count * 7 + 7, 5_000) : count;
     const raw = await biquote.fetchOhlc({
       symbol,
-      tf,
-      count,
+      tf: requestTf,
+      count: requestCount,
       baseUrl,
       ...(opts?.from ? { from: opts.from } : {}),
       ...(opts?.to ? { to: opts.to } : {}),
@@ -172,11 +174,13 @@ const biquoteProvider: MarketDataProvider = {
       ...(opts?.signal ? { signal: opts.signal } : {}),
     });
     const fetchedAt = Date.now();
-    return raw.map((bar) => toCandleFromBiquote(bar, { symbol, tf, fetchedAt }));
+    const daily = raw.map((bar) => toCandleFromBiquote(bar, { symbol, tf: requestTf, fetchedAt }));
+    if (tf !== '1w') return daily;
+    return biquote.synth1WFrom1D(daily).slice(-count);
   },
-  supports(symbol: Symbol, tf?: Timeframe): boolean {
+  supports(symbol: Symbol, _tf?: Timeframe): boolean {
     const def = getSymbolDefinition(symbol);
-    return Boolean(def?.biquote) && (!tf || tf !== '1w');
+    return Boolean(def?.biquote);
   },
   async testConnection(opts?: ProviderFetchOptions): Promise<{ ok: boolean; error?: string }> {
     try {

@@ -24,8 +24,6 @@ import {
   enforceDailyBudget,
   estimateCostUsd,
   estimateKnownCostUsd,
-  getMonthlySpend,
-  getProviderMonthlySpend,
   reconcileBudgetReservation,
   recoverStaleBudgetReservations,
   releaseBudgetReservation,
@@ -99,10 +97,6 @@ vi.mock('@kestrel/db', () => ({
     userSettings: {
       userId: 'userSettings.userId',
       tenantId: 'userSettings.tenantId',
-      monthlyBudgetLimit: 'userSettings.monthlyBudgetLimit',
-      providerSpendingThresholds: 'userSettings.providerSpendingThresholds',
-      spendAlertsConfig: 'userSettings.spendAlertsConfig',
-      spendAlertsState: 'userSettings.spendAlertsState',
     },
   },
 }));
@@ -431,35 +425,5 @@ describe('reservedSpendUsd', () => {
     mockSelectResult = [{ cents: 150 }];
     const result = await reservedSpendUsd('user-1');
     expect(result).toBe(1.5);
-  });
-});
-
-describe('getMonthlySpend', () => {
-  beforeEach(() => {
-    mockSelectResult = [];
-  });
-
-  it('returns 0 when no rows', async () => {
-    mockSelectResult = [{ totalCents: 0 }];
-    const result = await getMonthlySpend('user-1');
-    expect(result).toBe(0);
-  });
-
-  it('returns cents converted to dollars', async () => {
-    mockSelectResult = [{ totalCents: 500 }];
-    const result = await getMonthlySpend('user-1');
-    expect(result).toBe(5.0);
-  });
-});
-
-describe('getProviderMonthlySpend', () => {
-  beforeEach(() => {
-    mockSelectResult = [];
-  });
-
-  it('returns 0 when no telemetry rows', async () => {
-    mockSelectResult = [];
-    const result = await getProviderMonthlySpend('user-1', 'google');
-    expect(result).toBe(0);
   });
 });

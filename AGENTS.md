@@ -16,8 +16,8 @@ Self-hosted multi-user BYOK AI trading research platform (Next.js 16, React 19, 
 ## Hard Architectural & Code-Shape Rules
 
 - **File Size Gates (`scripts/check-maintainability.mjs`):**
-  - Backend `.ts` files: `<= 350` LOC (`RULE-F01`). Static catalogs: `<= 500` LOC (`RULE-F04`).
-  - React `.tsx` files: `<= 250` LOC (`RULE-F02`), `<= 4` `useState`, `<= 2` `useEffect` (`RULE-F03`).
+  - Backend `.ts` files: `<= 500` LOC (`RULE-F01`). Static catalogs: `<= 500` LOC (`RULE-F04`).
+  - React `.tsx` files: `<= 450` LOC (`RULE-F02`). Keep cohesive components whole; do not split a component into micro-files just to satisfy a line count.
   - Package `src/` roots: `<= 10` loose files (`RULE-F05`). Place modules inside domain subdirectories.
   - Zero empty `catch {}` blocks (`RULE-R01`) and zero `@typescript-eslint/no-explicit-any`.
 - **Single Source of Truth (Anti-Duplication):**

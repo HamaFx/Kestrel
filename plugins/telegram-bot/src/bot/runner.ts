@@ -21,6 +21,7 @@
 // free of Next.js lets the same code be exercised in unit tests.
 
 import type { PluginStorage } from '@kestrel/plugin-sdk';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
 
 import { saveSettingsForInstall } from '../settings';
 import { analyzeReply, askReply, committeeReply } from './ai-commands';
@@ -29,11 +30,28 @@ import { consumeLinkToken, linkChat } from './link';
 import { answerTelegramCallback, sendTelegramText, sendTelegramTyping } from './telegram-api';
 import type { BotReply, TelegramBotContext } from './types';
 
+const log = createCategorizedLogger('telegram', { pluginId: 'telegram-bot' });
+
 export interface TelegramInstall {
   userId: string;
   tenantId: string;
   settings: Record<string, unknown>;
   storage: PluginStorage;
+}
+
+/**
+ * Anyone on Telegram can message a bot once they know its `@username`, so
+ * every command that touches the owner's account must prove the originating
+ * chat is the one the owner linked.
+ */
+export const UNAUTHORIZED_CHAT_TEXT =
+  'This Telegram chat is not linked to your Kestrel account. Open Kestrel → Settings → Plugins → Telegram Copilot to generate a 1-tap link.';
+
+export const UNAUTHORIZED_CALLBACK_TEXT = 'Unauthorized chat. Link your account first with /start.';
+
+function linkedChatIdOf(install: TelegramInstall): string {
+  const value = install.settings['linkedChatId'];
+  return typeof value === 'string' ? value.trim() : '';
 }
 
 interface TelegramUpdateLike {
@@ -89,6 +107,28 @@ function installContext(
       return next;
     },
   };
+}
+
+async function deliverReply(
+  ctx: TelegramBotContext,
+  chatId: string | number,
+  reply: BotReply,
+): Promise<void> {
+  await sendTelegramText(ctx.botToken, chatId, reply.text, {
+    ...(reply.keyboard ? { keyboard: reply.keyboard } : {}),
+    ...(ctx.signal ? { signal: ctx.signal } : {}),
+  });
+  if (!reply.afterSend) return;
+  try {
+    await reply.afterSend();
+  } catch (err) {
+    // The reply is already delivered; never turn a follow-up failure into a
+    // webhook 5xx (Telegram would retry and send the answer twice).
+    log.warn('Telegram reply follow-up failed', {
+      userId: ctx.userId,
+      err: err instanceof Error ? err.message : String(err),
+    });
+  }
 }
 
 async function dispatchTelegramCommand(
@@ -203,23 +243,38 @@ export async function handleTelegramUpdate(
   if (!chatId) return null;
   if (update.message?.from?.is_bot || update.callback_query?.from?.is_bot) return null;
 
+  const linkedChatId = linkedChatIdOf(install);
+  const isLinkedChat = linkedChatId.length > 0 && String(chatId) === linkedChatId;
   const ctx = installContext(install, signal);
   ctx.chatId = String(chatId);
 
+  const sendUnauthorized = async (): Promise<BotReply> => {
+    await sendTelegramText(ctx.botToken, chatId, UNAUTHORIZED_CHAT_TEXT, {
+      ...(ctx.signal ? { signal: ctx.signal } : {}),
+    });
+    return { text: UNAUTHORIZED_CHAT_TEXT };
+  };
+
   const callbackData = update.callback_query?.data;
   if (callbackData) {
+    // Button payloads (`cmd:*`, `analyze:*`) read or mutate the owner's
+    // account, so a tap from any other chat is rejected before dispatch.
+    if (!isLinkedChat) {
+      await answerTelegramCallback(
+        ctx.botToken,
+        update.callback_query!.id,
+        ctx.signal,
+        UNAUTHORIZED_CALLBACK_TEXT,
+      );
+      return { text: UNAUTHORIZED_CALLBACK_TEXT };
+    }
     await answerTelegramCallback(ctx.botToken, update.callback_query!.id, ctx.signal);
     const reply = await callbackReply(callbackData, ctx);
     if (!reply) {
-      await sendTelegramText(ctx.botToken, chatId, 'That button is no longer available.', {
-        ...(ctx.signal ? { signal: ctx.signal } : {}),
-      });
+      await deliverReply(ctx, chatId, { text: 'That button is no longer available.' });
       return null;
     }
-    await sendTelegramText(ctx.botToken, chatId, reply.text, {
-      ...(reply.keyboard ? { keyboard: reply.keyboard } : {}),
-      ...(ctx.signal ? { signal: ctx.signal } : {}),
-    });
+    await deliverReply(ctx, chatId, reply);
     return reply;
   }
 
@@ -228,22 +283,23 @@ export async function handleTelegramUpdate(
 
   const startMatch = /^\/start(?:@\w+)?(?:\s+(.+))?$/i.exec(text);
   if (startMatch) {
+    const payload = startMatch[1]?.trim();
+    // A bare /start from a stranger must not take over a bot that is already
+    // linked to someone else's chat. A one-time link token still may relink.
+    if (linkedChatId.length > 0 && !isLinkedChat && !payload) {
+      return sendUnauthorized();
+    }
     await sendTelegramTyping(ctx.botToken, chatId);
-    const reply = await handleStart(ctx, String(chatId), startMatch[1]?.trim());
-    await sendTelegramText(ctx.botToken, chatId, reply.text, {
-      ...(reply.keyboard ? { keyboard: reply.keyboard } : {}),
-      ...(ctx.signal ? { signal: ctx.signal } : {}),
-    });
+    const reply = await handleStart(ctx, String(chatId), payload);
+    await deliverReply(ctx, chatId, reply);
     return reply;
   }
 
   if (!text.startsWith('/')) {
+    if (!isLinkedChat) return sendUnauthorized();
     await sendTelegramTyping(ctx.botToken, chatId);
     const reply = await askReply(text, ctx);
-    await sendTelegramText(ctx.botToken, chatId, reply.text, {
-      ...(reply.keyboard ? { keyboard: reply.keyboard } : {}),
-      ...(ctx.signal ? { signal: ctx.signal } : {}),
-    });
+    await deliverReply(ctx, chatId, reply);
     return reply;
   }
 
@@ -253,11 +309,12 @@ export async function handleTelegramUpdate(
   const rawArgs = parsed[2]?.trim() ?? '';
   const args = rawArgs.length > 0 ? rawArgs.split(/\s+/) : [];
 
+  // /help is a static command list; every other command reads or mutates the
+  // owner's account and requires the linked chat.
+  if (command !== 'help' && !isLinkedChat) return sendUnauthorized();
+
   await sendTelegramTyping(ctx.botToken, chatId);
   const reply = await dispatchTelegramCommand(command, args, ctx);
-  await sendTelegramText(ctx.botToken, chatId, reply.text, {
-    ...(reply.keyboard ? { keyboard: reply.keyboard } : {}),
-    ...(ctx.signal ? { signal: ctx.signal } : {}),
-  });
+  await deliverReply(ctx, chatId, reply);
   return reply;
 }

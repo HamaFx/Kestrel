@@ -30,16 +30,19 @@
  *     <= level. This matches the live evaluator's behavior in
  *     packages/ai/src/alerts/evaluator/evaluate.ts.
  *   - candleClose: a candle fires if its close satisfies the rule.
- *   - indicatorCross: not supported. The plan marks this as
- *     "best-effort" — the live evaluator needs a baseline value
- *     across time, which requires re-computing the indicator on
- *     every historical candle. We return null and the UI surfaces
- *     a "Preview unavailable for this rule" message.
+ *   - indicatorCross: the indicator series is recomputed over the
+ *     window and a candle fires when the value crosses the level
+ *     (previous < level <= current for "above"), matching
+ *     `CrossingSpec` in the live evaluator.
  *
  * Tested in packages/ai/test/alert-simulate.test.ts.
  */
 
-import type { AlertRule } from '@kestrel/shared';
+import { computeIndicator } from '@kestrel/indicators';
+import type { AlertRule, Candle } from '@kestrel/shared';
+
+import { indicatorScalar } from './evaluator/indicator-value';
+import { parseIndicatorSpec } from './evaluator/indicator-spec';
 
 export interface SimCandle {
   /** Candle open time, ms since epoch. */
@@ -93,11 +96,43 @@ export function simulateAlert(
       }
     }
   } else {
-    // indicatorCross — not supported in v1. The live evaluator
-    // requires a rolling baseline that this module does not
-    // recompute. Returning null lets the UI show a friendly
-    // "Preview unavailable" message.
-    return null;
+    const parsed = parseIndicatorSpec(rule.indicator);
+    if (!parsed) return null;
+    const indicatorCandles: Candle[] = candles.map((c) => ({
+      symbol: rule.symbol,
+      tf: rule.tf,
+      t: c.t,
+      o: c.o,
+      h: c.h,
+      l: c.l,
+      c: c.c,
+      v: null,
+      source: 'simulation',
+      fetchedAt: Date.now(),
+    }));
+    const series = computeIndicator({
+      symbol: rule.symbol,
+      tf: rule.tf,
+      kind: parsed.kind,
+      params: parsed.params,
+      candles: indicatorCandles,
+    }).values;
+
+    let previous: number | null = null;
+    for (let i = 0; i < series.length; i += 1) {
+      const current = indicatorScalar(series[i])?.value ?? null;
+      if (previous !== null && current !== null) {
+        const crossed =
+          rule.direction === 'above'
+            ? previous < rule.level && current >= rule.level
+            : previous > rule.level && current <= rule.level;
+        if (crossed) {
+          fires.push({ at: candles[i]!.t, price: current });
+          if (fires.length >= maxFires) break;
+        }
+      }
+      if (current !== null) previous = current;
+    }
   }
 
   let avgHoldMs = 0;

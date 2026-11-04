@@ -13,17 +13,17 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "source": "./src/index.ts",
+      "@kestrel/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
     "./ui": {
-      "source": "./src/ui/index.tsx",
+      "@kestrel/source": "./src/ui/index.tsx",
       "types": "./dist/ui/index.d.ts",
       "import": "./dist/ui/index.js"
     },
     "./db/tables": {
-      "source": "./src/db/tables.ts",
+      "@kestrel/source": "./src/db/tables.ts",
       "types": "./dist/db/tables.d.ts",
       "import": "./dist/db/tables.js"
     }

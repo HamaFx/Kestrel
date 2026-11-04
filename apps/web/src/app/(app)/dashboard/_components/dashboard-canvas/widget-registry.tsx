@@ -91,7 +91,7 @@ export function renderWidget(
     case 'stats':
       return <MemoStats entries={entries} />;
     case 'watchlist':
-      return <MemoWatchlist />;
+      return <MemoWatchlist initialSymbols={data.initialWatchlistSymbols ?? []} />;
     case 'open-positions':
       return <MemoOpenPositions entries={entries} />;
     case 'alerts':

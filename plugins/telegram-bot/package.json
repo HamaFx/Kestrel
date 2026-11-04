@@ -13,12 +13,12 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "source": "./src/index.ts",
+      "@kestrel/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
     "./ui": {
-      "source": "./src/ui/index.tsx",
+      "@kestrel/source": "./src/ui/index.tsx",
       "types": "./dist/ui/index.d.ts",
       "import": "./dist/ui/index.js"
     }

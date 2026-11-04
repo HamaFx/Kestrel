@@ -39,7 +39,7 @@ const fastPureInclude = [
 
 export default defineConfig({
   resolve: {
-    conditions: ['source'],
+    conditions: ['@kestrel/source'],
     alias: {
       'server-only': new URL('./test/__mocks__/server-only.ts', import.meta.url).pathname,
       '@ai': new URL('./src', import.meta.url).pathname,

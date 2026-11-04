@@ -54,6 +54,7 @@
  * Env vars
  *   DIRECT_URL                 preferred — explicit direct/session connection
  *   POSTGRES_URL_NON_POOLING   compatibility fallback — direct connection
+ *   MIGRATION_DATABASE_URL     documented DEPLOY.md alias — direct connection
  *   DATABASE_URL               legacy fallback
  *
  * Wired into vercel.json buildCommand:
@@ -103,10 +104,12 @@ const envVars = isProductionDeploy
   ? [
       { name: 'DIRECT_URL', val: process.env.DIRECT_URL },
       { name: 'POSTGRES_URL_NON_POOLING', val: process.env.POSTGRES_URL_NON_POOLING },
+      { name: 'MIGRATION_DATABASE_URL', val: process.env.MIGRATION_DATABASE_URL },
     ]
   : [
       { name: 'DIRECT_URL', val: process.env.DIRECT_URL },
       { name: 'POSTGRES_URL_NON_POOLING', val: process.env.POSTGRES_URL_NON_POOLING },
+      { name: 'MIGRATION_DATABASE_URL', val: process.env.MIGRATION_DATABASE_URL },
       { name: 'DATABASE_URL', val: process.env.DATABASE_URL },
       { name: 'POSTGRES_URL', val: process.env.POSTGRES_URL },
     ];
@@ -127,7 +130,7 @@ if (!url) {
     '[predeploy-migrate] No migration-safe DB connection string found. Available env vars: ' +
       (found.length > 0 ? found.join(', ') : 'none') +
       (isProductionDeploy
-        ? '. Production Vercel deploys require DIRECT_URL or POSTGRES_URL_NON_POOLING.'
+        ? '. Production Vercel deploys require DIRECT_URL, POSTGRES_URL_NON_POOLING, or MIGRATION_DATABASE_URL.'
         : '. Set DIRECT_URL or POSTGRES_URL_NON_POOLING before deploying to ensure DDL works.'),
   );
   process.exit(1);

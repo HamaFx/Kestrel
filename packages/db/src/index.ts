@@ -61,7 +61,6 @@ export {
   getOwnUserSettings,
   getUserWithSettings,
   updateUserSettingsField,
-  listAllUserSettings,
   type UserWithSettings,
 } from './queries/user-settings';
 export { batchDeleteThreads } from './queries/threads';

@@ -106,6 +106,7 @@ const WorkerEnvSchema = z.object({
   HC_JOB_COT_UUID: optionalNonEmpty,
   HC_JOB_FRED_ACTUALS_UUID: optionalNonEmpty,
   HC_JOB_RESONANCE_SYNC_UUID: optionalNonEmpty,
+  HC_JOB_NEWS_UUID: optionalNonEmpty,
   HC_JOB_ALERTS_UUID: optionalNonEmpty,
   HC_JOB_RETENTION_UUID: optionalNonEmpty,
   HC_DISK_CHECK_UUID: optionalNonEmpty,

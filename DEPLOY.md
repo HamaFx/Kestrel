@@ -75,7 +75,9 @@ Create a project on the free tier. Two connection strings are needed:
 
 - **Pooled URL** (`:6543`) → `DATABASE_URL` for the web app.
 - **Direct URL** (`:5432`) → `MIGRATION_DATABASE_URL` / `KESTREL_DIRECT_URL` for
-  migrations and the post-deploy smoke check.
+  migrations and the post-deploy smoke check. `DIRECT_URL` and
+  `POSTGRES_URL_NON_POOLING` are accepted aliases; point at least one at the
+  direct connection or `predeploy-migrate` refuses to run.
 
 `pgvector` is enabled by the migration set; no manual extension install is
 needed.
@@ -144,8 +146,7 @@ No payment gateway or subscription is required. Users provide their own model
 keys from **Settings → Models**; spend is tracked locally in USD.
 
 - `MAX_DAILY_USD` sets the default per-user daily ceiling.
-- Budget enforcement is off by default (ledger-only). Set `ENFORCE_BUDGET=true`
-  to reject over-cap turns with HTTP 429.
+- Budget enforcement is on by default: over-cap turns are rejected with HTTP 429. Set `ENFORCE_BUDGET=0` only for ledger-only metering in local research.
 - `ai_budget_reservations` and `daily_ai_spend` are swept by the retention job;
   no billing cron or webhook is needed.
 

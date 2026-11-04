@@ -2,7 +2,14 @@
 
 // Props shared by the dashboard canvas shell, its sortable widget chrome, and
 // the widget registry.
-import type { Alert, EconomicEvent, JournalEntry, NewsArticle } from '@kestrel/shared';
+import type {
+  Alert,
+  EconomicEvent,
+  JournalEntry,
+  NewsArticle,
+  SessionGameplan,
+  Symbol,
+} from '@kestrel/shared';
 
 type BriefingData = {
   messageId: string;
@@ -36,4 +43,8 @@ export interface DashboardCanvasProps {
   installedPluginIds?: readonly string[];
   /** Masked plugin settings, keyed by plugin id (secrets never reach the browser). */
   pluginSettings?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+  /** Database watchlist (`user_symbols`) so the widget hydrates from settings. */
+  initialWatchlistSymbols?: readonly Symbol[];
+  /** Today's persisted pre-session gameplan, if one was locked in. */
+  initialSessionGameplan?: SessionGameplan | null;
 }

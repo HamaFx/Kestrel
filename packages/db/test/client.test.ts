@@ -264,6 +264,12 @@ describe('withTenantDbFresh and tenant short-circuit', () => {
         const otherUserTenant = await getTenantIdForUser('user-other', txDb);
         expect(otherUserTenant).toBe('other-tenant');
         expect(mockTx.select).toHaveBeenCalledTimes(1);
+
+        // The membership is cached for this process, so a second cold lookup
+        // (every `withUserTenant` call) does not pay another DB round-trip.
+        const cachedTenant = await getTenantIdForUser('user-other', txDb);
+        expect(cachedTenant).toBe('other-tenant');
+        expect(mockTx.select).toHaveBeenCalledTimes(1);
       },
       { userId: 'user-abc' },
     );

@@ -67,7 +67,8 @@ const MAX_OHLC_BARS = 5000;
  * deduplicated by `openTime` (bounded by `MAX_OHLC_PAGES`).
  *
  * Throws ProviderError on:
- *   - Unsupported timeframe (W1) — BiQuote doesn't expose weekly.
+ *   - Unsupported timeframe (W1) — callers must synthesize weekly bars from
+ *     daily ones (`synth1WFrom1D`); this endpoint has no W1 interval.
  *   - Quota / HTTP failure / parse error.
  *   - Empty array on the first page (treated as "no data" so failover can move on).
  *

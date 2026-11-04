@@ -36,7 +36,12 @@ export {
   computeStructure,
   findSwings,
   defaultSwingLookback,
+  SESSION_WINDOWS,
+  computeSessionRanges,
+  sliceSessionRange,
+  startOfUtcDayMs,
   type ComputeStructureArgs,
+  type SessionWindow,
 } from './structure';
 export { computePdhPdl, type PdhPdl } from './structure/pdh-pdl';
 export { computeAsianRange, type AsianRange } from './structure/asian-range';

@@ -10,6 +10,40 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { getDb, getTenantDbScope, schema, type DbClient } from '../client';
 
 /**
+ * Bounded TTL Cache for resolved memberships.
+ *
+ * Personal organizations use `tenantId === userId` and are immutable, and a
+ * cold `withUserTenant(userId)` otherwise pays an extra `organization_member
+ * ⋈ organization` round-trip before every transaction. The cache is bounded
+ * (5,000 users), expires after five minutes, and is never written for missing
+ * memberships, so a newly invited user is picked up on the next call.
+ */
+const TENANT_CACHE_MAX_ENTRIES = 5_000;
+const TENANT_CACHE_TTL_MS = 5 * 60 * 1000;
+const tenantIdCache = new Map<string, { tenantId: string; expiresAt: number }>();
+
+function cachedTenantId(userId: string): string | null {
+  const entry = tenantIdCache.get(userId);
+  if (!entry) return null;
+  if (entry.expiresAt <= Date.now()) {
+    tenantIdCache.delete(userId);
+    return null;
+  }
+  // Refresh recency so the bounded eviction is LRU, not insert-order.
+  tenantIdCache.delete(userId);
+  tenantIdCache.set(userId, entry);
+  return entry.tenantId;
+}
+
+function cacheTenantId(userId: string, tenantId: string): void {
+  if (tenantIdCache.size >= TENANT_CACHE_MAX_ENTRIES) {
+    const oldest = tenantIdCache.keys().next().value;
+    if (oldest !== undefined) tenantIdCache.delete(oldest);
+  }
+  tenantIdCache.set(userId, { tenantId, expiresAt: Date.now() + TENANT_CACHE_TTL_MS });
+}
+
+/**
  * Resolve the active organization for a user.
  *
  * Short-circuits to the active `AsyncLocalStorage` tenant scope when it was
@@ -31,6 +65,9 @@ export async function getTenantIdForUser(
     return scope.tenantId;
   }
 
+  const cached = cachedTenantId(userId);
+  if (cached) return cached;
+
   const memberships = await db
     .select({ tenantId: schema.organizationMember.orgId })
     .from(schema.organizationMember)
@@ -48,7 +85,9 @@ export async function getTenantIdForUser(
   if (memberships.length > 1) {
     throw new Error(`Multiple active organization memberships found for user ${userId}`);
   }
-  return memberships[0]?.tenantId ?? null;
+  const tenantId = memberships[0]?.tenantId ?? null;
+  if (tenantId) cacheTenantId(userId, tenantId);
+  return tenantId;
 }
 
 /**

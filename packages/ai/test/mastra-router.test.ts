@@ -18,9 +18,44 @@
 // (injection, mutation, symbol, route) resolves in one pass through
 // `routeUnified`, so these fixtures pin the full decision object.
 
-import { describe, expect, it } from 'vitest';
+import { pluginHost } from '@kestrel/plugin-sdk';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import { routeUnified } from '../src/mastra-v2/planning/router';
+
+// The router reads declarative chat intents from installed plugin manifests
+// (`chatIntent`). The real manifest is registered by the app bootstrap from
+// `plugins/paper-trading/src/intent.ts`; register a stub here so the pure
+// router contract can be exercised without loading the plugin runtime.
+beforeAll(() => {
+  if (pluginHost.hasPlugin('paper-trading')) return;
+  pluginHost.register({
+    manifest: {
+      id: 'paper-trading',
+      name: 'Paper Trading',
+      version: '0.0.0-test',
+      tagline: '',
+      description: '',
+      category: 'trading-execution',
+      iconName: 'IconWallet',
+      installMode: 'instant',
+      chatIntent: [
+        {
+          reason: 'paper-explicit',
+          priority: 20,
+          patterns: [/\bpaper\s+(?:trade|trading|account|accounts)\b/i],
+          exclusions: [/\b(?:real\s+money|live\s+account|live\s+broker)\b/i],
+        },
+        {
+          reason: 'paper-trade-action',
+          priority: 20,
+          patterns: [/\bbuy\b/i],
+          exclusions: [/\b(?:real\s+money|live\s+account|live\s+broker)\b/i],
+        },
+      ],
+    },
+  });
+});
 
 const settings = {
   aiApiKeys: null,

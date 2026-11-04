@@ -27,7 +27,6 @@ export const symbolCatalog = pgTable('symbol_catalog', {
   biquoteSymbol: text('biquote_symbol'),
   binanceSymbol: text('binance_symbol'),
   finnhubSymbol: text('finnhub_symbol'),
-  nDataSymbol: text('n_data_symbol'),
   pipSize: real('pip_size'),
   priceDecimals: integer('price_decimals'),
   currencyTags: text('currency_tags').array(),

@@ -28,6 +28,7 @@ import { resolvePluginSkillDir } from '@kestrel/plugin-sdk/skill-dir';
 
 import { backtestingApiRoutes } from './api/routes';
 import { deleteAllBacktestData } from './db/queries';
+import { backtestingChatIntent } from './intent';
 import { DEFAULT_SETTINGS, PLUGIN_ID, settingsSchema } from './settings';
 import { backtestingTools } from './tools';
 
@@ -61,6 +62,7 @@ const plugin = definePlugin({
       'Adds sidebar tab',
     ],
     setupSteps: [],
+    chatIntent: backtestingChatIntent,
   },
   skills: [
     resolveSkillDir('strategy-architect'),

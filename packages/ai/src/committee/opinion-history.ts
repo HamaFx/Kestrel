@@ -37,6 +37,8 @@ export interface SaveOpinionsArgs {
   symbol?: string | undefined;
   opinions: Array<{
     agentName: string;
+    /** A-01 — compared symbol; present when one desk answered for several symbols. */
+    symbol?: string | undefined;
     bias: string;
     confidence: number;
     reasoning: string;
@@ -110,6 +112,17 @@ export async function saveAgentOpinions(args: SaveOpinionsArgs): Promise<void> {
   }
 
   try {
+    // Comparison runs reuse desk names once per symbol, but
+    // `(message_id, agent_name)` is unique. Suffix the desk with its symbol
+    // when the run covers more than one symbol; otherwise the second symbol's
+    // opinion was silently dropped by ON CONFLICT DO NOTHING.
+    const runSymbols = new Set(
+      args.opinions
+        .map((op) => op.symbol)
+        .filter((symbol): symbol is string => typeof symbol === 'string' && symbol.length > 0),
+    );
+    const multiSymbolRun = runSymbols.size > 1;
+
     await withDbRetry(() =>
       db
         .insert(schema.agentOpinions)
@@ -119,11 +132,11 @@ export async function saveAgentOpinions(args: SaveOpinionsArgs): Promise<void> {
             tenantId,
             threadId: args.threadId,
             messageId: args.messageId,
-            agentName: op.agentName,
+            agentName: multiSymbolRun && op.symbol ? `${op.agentName}:${op.symbol}` : op.agentName,
             bias: op.bias,
             confidence: op.confidence,
             reasoning: op.reasoning,
-            rawData: withRunSymbol(op.rawData, args.symbol),
+            rawData: withRunSymbol(op.rawData, op.symbol ?? args.symbol),
             model: op.model,
             costUsd: op.costUsd,
             latencyMs: op.latencyMs,

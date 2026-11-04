@@ -35,4 +35,5 @@ export {
   type FetchBiquoteNewsArgs,
 } from './rest';
 export { toBiquoteSymbol, toBiquoteTimeframe, parseBiquoteDate } from './map';
+export { isoWeekMondayUtcMs, synth1WFrom1D } from './synth';
 export { assertSupportedSymbol } from './filter';

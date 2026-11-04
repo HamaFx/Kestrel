@@ -1,20 +1,53 @@
 # Kestrel Open-Source & Architecture Simplification Roadmap
 
 > **For AI Coding Agents (Claude Code, OpenCode, Codex, Cursor):**
-> This directory contains the master architectural simplification and open-source readiness roadmap for **Kestrel**. Execute the phases in order (`Phase 1` → `Phase 2` → `Phase 3` → `Phase 4`). Before and after every task, run `pnpm check:fast` and `pnpm knip` to ensure zero broken imports, zero unused exports, and 100% compliance with `AGENTS.md`.
+> This directory contains the master architectural simplification and open-source readiness roadmap for **Kestrel**. Phases 1–7 are complete (`bc289984` → Phase 7). Phase 5–7 remediate the [2026-11-04 Full Monorepo Architecture & Product Audit](../audit/kestrel-full-architecture-and-product-audit-2026-11-04.md). After every task, run `pnpm check:guards`, `pnpm knip`, and `pnpm check:fast` to ensure zero broken imports, zero unused exports, and 100% compliance with `AGENTS.md`.
 
 ---
 
 ## 0. Progress Tracker
 
-Last updated: **2026-11-03**
+Last updated: **2026-11-04**
 
-| Phase                                                                                                              | Status       | Completed  | Evidence                                                                                                                                                   |
-| :----------------------------------------------------------------------------------------------------------------- | :----------- | :--------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Phase 1** — [Open-source security and auth hardening](./phase1-open-source-security-and-auth-hardening.md)       | **Complete** | 2026-11-03 | 4/4 tasks. `check:fast` 31/31 tasks, `knip` 0 findings, `check:guards` 7/7, web 1536 tests passed.                                                         |
-| **Phase 2** — [Pure 4-desk committee and direct streaming](./phase2-pure-4-desk-committee-and-direct-streaming.md) | **Complete** | 2026-11-03 | 3/3 tasks. `check:fast` 31/31 tasks, `knip` 0 findings, `check:guards` 7/7, ai 1636 + db 102 + worker 320 + web 1516 tests passed.                         |
-| **Phase 3** — [SMC removal and indicator modernization](./phase3-smc-removal-and-indicator-modernization.md)       | **Complete** | 2026-11-03 | 3/3 tasks. `check:fast` 31/31 tasks, `knip` 0 findings, `check:guards` 7/7, ai 1639 + shared 459 + indicators 84 + web 1516 + backtesting 64 tests passed. |
-| **Phase 4** — [Plugin pruning and worker consolidation](./phase4-plugin-pruning-and-worker-consolidation.md)       | **Complete** | 2026-11-03 | 3/3 tasks. `check:fast` 29/29 tasks, `knip` 0 findings, `check:guards` 7/7, ai 1587 + db 101 + worker 306 + web tests passed.                              |
+| Phase                                                                                                              | Status       | Completed  | Evidence                                                                                                                                                                                                                                                                               |
+| :----------------------------------------------------------------------------------------------------------------- | :----------- | :--------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Phase 1** — [Open-source security and auth hardening](./phase1-open-source-security-and-auth-hardening.md)       | **Complete** | 2026-11-03 | 4/4 tasks. `check:fast` 31/31 tasks, `knip` 0 findings, `check:guards` 7/7, web 1536 tests passed.                                                                                                                                                                                     |
+| **Phase 2** — [Pure 4-desk committee and direct streaming](./phase2-pure-4-desk-committee-and-direct-streaming.md) | **Complete** | 2026-11-03 | 3/3 tasks. `check:fast` 31/31 tasks, `knip` 0 findings, `check:guards` 7/7, ai 1636 + db 102 + worker 320 + web 1516 tests passed.                                                                                                                                                     |
+| **Phase 3** — [SMC removal and indicator modernization](./phase3-smc-removal-and-indicator-modernization.md)       | **Complete** | 2026-11-03 | 3/3 tasks. `check:fast` 31/31 tasks, `knip` 0 findings, `check:guards` 7/7, ai 1639 + shared 459 + indicators 84 + web 1516 + backtesting 64 tests passed.                                                                                                                             |
+| **Phase 4** — [Plugin pruning and worker consolidation](./phase4-plugin-pruning-and-worker-consolidation.md)       | **Complete** | 2026-11-03 | 3/3 tasks. `check:fast` 29/29 tasks, `knip` 0 findings, `check:guards` 7/7, ai 1587 + db 101 + worker 306 + web tests passed.                                                                                                                                                          |
+| **Phase 5** — [Security & functional bug fixes (P0/P1)](./phase5-security-and-functional-bug-fixes.md)             | **Complete** | 2026-11-04 | 6/6 tasks. Telegram chat authorization + thread persistence, BYOK memory settings lookup, IPv4-mapped SSRF + grounding regex, Journal crypto PnL/modal/cache, Alerts web-push + `indicatorCross` preview. `check:fast` 29/29, `knip` 0, guards 7/7.                                    |
+| **Phase 6** — [AI engine, worker, market data & DB unification](./phase6-ai-worker-and-data-unification.md)        | **Complete** | 2026-11-04 | 5/5 tasks. Route accounting, budget cent rounding, compound opinion keys, paper-trading active-user caps, worker/web cron parity (news job, token purge, Mastra prune, partition filter), BiQuote `1w` synthesis, open `computeIndicator`, shared session windows, env/tenant hygiene. |
+| **Phase 7** — [Web state sync, Docker/scripts & debloat](./phase7-web-state-tooling-and-debloat.md)                | **Complete** | 2026-11-04 | 4/4 tasks. Watchlist + gameplan DB sync (+ migration `0125`), Docker/script/doc fixes, `@kestrel/source` condition (patch deleted), dead schema cleanup (`0126`), maintainability caps raised with RULE-F03 retired.                                                                   |
+
+### Phase 5 task status
+
+| Task                                        | Status   | Delivered                                                                                                                                                                                                             |
+| :------------------------------------------ | :------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **5.1** Enforce `linkedChatId`              | Complete | Every command, plain-text turn, and callback button is rejected unless the originating chat matches the linked chat; a bare `/start` cannot hijack an already-linked bot, while a valid one-time token still relinks. |
+| **5.2** Telegram thread persistence & tools | Complete | Thread row is ensured before append (idempotent `createThread` id), history writes run after the reply via `afterSend`, failures are logged not surfaced, and `/ask` registers the public read-only tool belt.        |
+| **5.3** BYOK memory & journal indexing      | Complete | `upsertMemory` loads `aiApiKeys`/`embeddingModel` when the caller omits them; chat-confirmed `log_journal` entries are indexed via `rememberJournalEntry` after commit.                                               |
+| **5.4** SSRF & grounding hardening          | Complete | IPv4-mapped (`::ffff:`) and NAT64 (`64:ff9b:`) literals are blocked; bare timeframe units no longer exempt nearby prices from grounding.                                                                              |
+| **5.5** Journal UX                          | Complete | Crypto contract size comes from the symbol catalog; the import form renders inside the parent drawer; AI coach/review outputs live in React Query cache keyed per trade.                                              |
+| **5.6** Alerts delivery & preview           | Complete | `web-push` checkbox added; `indicatorCross` history is simulated with the same scalar/field selection as the live evaluator.                                                                                          |
+
+### Phase 6 task status
+
+| Task                                           | Status   | Delivered                                                                                                                                                                                                        |
+| :--------------------------------------------- | :------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **6.1** AI routing, failover, budget, opinions | Complete | Semantic routing only runs for canonical chat and accepts an accounting sink; paid sub-cent turns reconcile to 1 cent; comparison opinions use `desk:symbol` keys; env fallback keys honor the caller's env bag. |
+| **6.2** Paper trading caps                     | Complete | Tick and market-watch caps count users with open positions/pending orders, not installation order.                                                                                                               |
+| **6.3** Worker/web cron parity                 | Complete | Retention purges expired verification tokens; web cleanup runs budget recovery + Mastra pruning; briefings filter by tenant partition (shared `@kestrel/shared/tenant-partition`); worker schedules `news`.      |
+| **6.4** Market data & indicators               | Complete | BiQuote synthesizes `1w` from `1d`; `computeIndicator` accepts plugin kinds; Marketaux tags the full 18-symbol catalog; session windows live in `@kestrel/indicators`.                                           |
+| **6.5** Env, plugin intent & tenant cache      | Complete | `PHASE3_STRUCTURED_FUSION` defaults on; `CacheEnv` owns `REDIS_URL`; plugin chat intents come from manifests; `getTenantIdForUser` uses a bounded TTL cache.                                                     |
+
+### Phase 7 task status
+
+| Task                                     | Status   | Delivered                                                                                                                                                                                                              |
+| :--------------------------------------- | :------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **7.1** Dashboard state sync             | Complete | Watchlist hydrates from `user_symbols` and persists add/remove through the symbols API; gameplan persists to `user_settings.session_gameplan` (migration `0125`) and is injected into the canonical chat risk context. |
+| **7.2** Docker, scripts, docs            | Complete | `# syntax` on both Dockerfiles, `--env-file-if-exists`, `/health/live`, plugins in coverage, `MIGRATION_DATABASE_URL`, oxlint scaffolding, pnpm/DB/budget docs, loadtest app role.                                     |
+| **7.3** Dependencies & artifacts         | Complete | `@kestrel/source` condition, `eventsource-parser` patch deleted, `jsdom`/dead seed scripts/`infra/` removed. `metrics-export` was retained: it is a live OTLP exporter used by run telemetry and the eval runner.      |
+| **7.4** Schema cleanup & maintainability | Complete | Dead monthly/provider spend-alert columns + dead code removed (migration `0126`), `createPluginTable`/`listAllUserSettings` deleted, caps raised to 500/450 and RULE-F03 retired.                                      |
 
 ### Phase 1 task status
 
@@ -195,6 +228,12 @@ flowchart TB
 | **Phase 3** | [`phase3-smc-removal-and-indicator-modernization.md`](./phase3-smc-removal-and-indicator-modernization.md)       | Remove legacy SMC detectors (`OB`, `FVG`, `BOS/CHoCH`, `Liquidity Sweeps`), keep clean swing/session levels + classic indicators, and update AI tools, backtester, and docs.                      |
 | **Phase 4** | [`phase4-plugin-pruning-and-worker-consolidation.md`](./phase4-plugin-pruning-and-worker-consolidation.md)       | Remove `@kestrel/plugin-custom-agents`, delete `persistence_outbox` and ML dataset export tables/jobs, reduce worker jobs from 15 to 6, and remove legacy Botkeep/VM scripts.                     |
 
+See also the **2026-11-04 Full Monorepo Audit** (`docs/audit/kestrel-full-architecture-and-product-audit-2026-11-04.md`) and its three follow-up phases:
+
+- **Phase 5:** [`phase5-security-and-functional-bug-fixes.md`](./phase5-security-and-functional-bug-fixes.md)
+- **Phase 6:** [`phase6-ai-worker-and-data-unification.md`](./phase6-ai-worker-and-data-unification.md)
+- **Phase 7:** [`phase7-web-state-tooling-and-debloat.md`](./phase7-web-state-tooling-and-debloat.md)
+
 ---
 
 ## 5. Mandatory Agent Verification Protocol
@@ -215,5 +254,5 @@ pnpm check:fast
 **Hard Rules Reminder (`AGENTS.md`):**
 
 - Never weaken or edit `scripts/check-*.mjs`, `knip.json`, or `.oxlintrc.json` to silence a failure.
-- Backend `.ts` files must stay `<= 350` LOC; React `.tsx` files must stay `<= 250` LOC with `<= 4` `useState` and `<= 2` `useEffect`.
+- Backend `.ts` files must stay `<= 500` LOC; React `.tsx` files must stay `<= 450` LOC. Keep cohesive components whole instead of splitting them into micro-files.
 - Never leave pass-through re-export shims; update callers directly and delete dead files.

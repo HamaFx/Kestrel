@@ -19,15 +19,12 @@
 
 import { z } from 'zod';
 
-// Upstash Redis is intentionally OPTIONAL. Personal-mode caching uses Next.js's
-// built-in Data Cache (`fetch`-cache + `unstable_cache`) which is free, persists
-// across invocations on Vercel, and covers our entire TTL policy. Setting these
-// vars is supported as a future swap-in but no code path requires them today.
-//
-// See docs/04-data-layer.md § "Cache layer" and packages/data/src/cache/.
+// Redis is optional. Personal-mode caching uses Next.js's built-in Data Cache
+// (`fetch`-cache + `unstable_cache`) which is free, persists across invocations
+// on Vercel, and covers our entire TTL policy. Setting `REDIS_URL` switches the
+// packet cache to the shared Redis implementation (`packages/data/src/cache/`).
 export const CacheEnv = z.object({
-  UPSTASH_REDIS_REST_URL: z.url().optional(),
-  UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
+  REDIS_URL: z.url().optional(),
 });
 
 export const ProvidersEnv = z.object({

@@ -19,12 +19,12 @@
 // in `./start-scheduler.ts`; this module owns running one job safely.
 
 import { getDb } from '@kestrel/db';
+import { createTenantRouterFromEnv } from '@kestrel/shared/tenant-partition';
 
 import type { WorkerEnv } from '../env.js';
 import { JOBS } from '../jobs/index.js';
 import type { Logger } from '../log.js';
 import { withHeartbeat } from '../runtime/healthchecks.js';
-import { tenantRouter } from '../runtime/tenant-router.js';
 import { acquireCronLock } from './cron-lock.js';
 import { SKIP_DAILY_LOCK } from './skip-daily-lock.js';
 
@@ -32,6 +32,8 @@ import { SKIP_DAILY_LOCK } from './skip-daily-lock.js';
 // Overridable via JOB_TIMEOUT_MS env var, or per job through
 // `JobRegistration.timeoutMs` for long-lived durable work.
 const JOB_TIMEOUT_MS = Number(process.env.JOB_TIMEOUT_MS) || 120_000;
+
+const tenantRouter = createTenantRouterFromEnv();
 
 // PERF-7: In-flight guard — ensures no two invocations of the same job
 // overlap. Complements the DB-level acquireCronLock for daily-cadence jobs.

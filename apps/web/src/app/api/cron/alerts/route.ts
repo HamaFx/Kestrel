@@ -42,10 +42,11 @@
 // predicates). `withCronAuth` opens no scope, so run it on the admin
 // (BYPASSRLS) connection — the same path the worker uses.
 
+import { createTenantRouterFromEnv } from '@kestrel/shared/tenant-partition';
+
 import { withCronAuth } from '@/lib/http/cron';
 import { createScopedLoggerWithContext } from '@/lib/logger';
 import { evaluateAlertsAcrossTenants } from '@/lib/services/alerts';
-import { ownsTenantInPartition, resolveWorkerPartition } from '@/lib/services/worker-partition';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -54,11 +55,13 @@ export const maxDuration = 60;
 export async function GET(req: Request): Promise<Response> {
   return withCronAuth(req, async () => {
     // Resolve once per request: an invalid WORKER_PARTITION pair fails before
-    // any alert is evaluated rather than mid-pass.
-    const partition = resolveWorkerPartition();
+    // any alert is evaluated rather than mid-pass. Same partitioner as the
+    // worker, so a partitioned deployment never evaluates another worker's
+    // tenants twice.
+    const router = createTenantRouterFromEnv();
     const result = await evaluateAlertsAcrossTenants({
       ...(req.signal ? { signal: req.signal } : {}),
-      ownsTenant: (userId) => ownsTenantInPartition(userId, partition),
+      ownsTenant: (userId) => router.isMyTenant(userId),
     });
 
     // OBS-04 (Phase 5.3): Capture per-alert errors to Sentry + pino logger

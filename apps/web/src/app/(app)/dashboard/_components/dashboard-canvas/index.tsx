@@ -101,7 +101,7 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
         description="Live 4-desk command deck, session catalysts, and portfolio telemetry."
       >
         <div className="flex flex-wrap items-center gap-2">
-          <PreSessionChecklistDrawer />
+          <PreSessionChecklistDrawer initialPlan={props.initialSessionGameplan ?? null} />
           <QuickLogTradeDrawer />
           {editMode && hidden.length > 0 ? (
             <AddWidgetMenu hidden={hidden} onAdd={addWidget} />

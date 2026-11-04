@@ -15,9 +15,17 @@ import type { MastraModeOpinion } from './types';
 /** Evidence tolerance: legitimate integer rounding of indicator readings. */
 export const EVIDENCE_TOLERANCE = 0.5;
 
-/** Scenario-projection and chart metadata wording exempts forward-looking numbers from grounding. */
+/**
+ * Scenario-projection and chart metadata wording exempts forward-looking
+ * numbers from grounding.
+ *
+ * Bare timeframe letters (`h`, `m`, `d`) and time units are deliberately
+ * absent: the context window is 24 characters, so "on the 1h chart price is
+ * 3912.45" would otherwise exempt a hallucinated price. Timeframe literals are
+ * already dropped at the token level by the narrative tokenizer.
+ */
 const SCENARIO_PROJECTION_TERMS =
-  /\b(?:target|entry(?:\s+zone)?|invalidation|trigger|take.?profit|stop.?loss|tp|sl|risk.?reward|timeframe|tf|period|ema|sma|rsi|atr|macd|vwap|bb|fibonacci|pullback|retracement|tier|step|phase|stage|wave|h|m|d|min|hour|day|ratio|rr)\b/i;
+  /\b(?:target|entry(?:\s+zone)?|invalidation|trigger|take.?profit|stop.?loss|tp|sl|risk.?reward|timeframe|tf|period|ema|sma|rsi|atr|macd|vwap|bb|fibonacci|pullback|retracement|tier|step|phase|stage|wave|ratio|rr)\b/i;
 
 /** Characters on either side of a number that may carry its scenario wording. */
 const SCENARIO_CONTEXT_CHARS = 24;

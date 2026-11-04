@@ -40,4 +40,5 @@ export {
   type FredActualsRefreshResult,
   type RunFredActualsRefreshArgs,
 } from '../calendar/actuals';
+export { runNewsRefresh, type NewsRefreshResult } from '../news/refresh';
 export type { CronRunLogger, CronRunOptions } from '../runtime/cron-runner';

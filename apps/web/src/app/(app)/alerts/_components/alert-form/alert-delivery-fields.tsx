@@ -40,6 +40,19 @@ export function AlertDeliveryFields({ controller }: { controller: AlertFormContr
             />
             Email
           </label>
+          <label className="text-fg flex cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="accent-brand size-4 cursor-pointer"
+              checked={channels.includes('web-push')}
+              onChange={(e) => {
+                const c = 'web-push';
+                setChannels(e.target.checked ? [...channels, c] : channels.filter((x) => x !== c));
+              }}
+              onBlur={() => touch('channels')}
+            />
+            Browser push
+          </label>
           {pluginChannels.map((channel) => (
             <label
               key={channel.id}
