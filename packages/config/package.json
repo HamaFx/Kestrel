@@ -3,13 +3,11 @@
   "version": "0.0.0",
   "license": "Apache-2.0",
   "files": [
-    "eslint",
     "tailwind",
     "typescript"
   ],
   "type": "module",
   "exports": {
-    "./eslint": "./eslint/index.js",
     "./tailwind/tokens": "./tailwind/tokens.ts",
     "./typescript/base": "./typescript/base.json",
     "./typescript/nextjs": "./typescript/nextjs.json",
@@ -22,13 +20,7 @@
     "clean": "rm -rf node_modules .turbo",
     "test:coverage": "echo 'no coverage for this package'"
   },
-  "dependencies": {
-    "@eslint/js": "^10.0.1",
-    "eslint": "^10.13.0",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "globals": "^17.13.0",
-    "typescript-eslint": "^8.71.2"
-  },
+  "dependencies": {},
   "devDependencies": {
     "typescript": "^7.0.2"
   }
