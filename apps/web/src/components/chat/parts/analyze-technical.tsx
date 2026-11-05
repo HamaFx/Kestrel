@@ -30,6 +30,8 @@ import { Link } from 'next-view-transitions';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 
+import { priceDecimals } from '@kestrel/shared';
+
 import type { ToolPartProps } from './registry';
 
 export function AnalyzeTechnicalPart({
@@ -95,6 +97,7 @@ function TfCard({
   symbol: AnalyzeTechnicalOutput['symbol'];
   reading: PerTimeframeReading;
 }) {
+  const decimals = priceDecimals(symbol);
   const trendTone =
     reading.trend === 'up' ? 'text-bull' : reading.trend === 'down' ? 'text-bear' : 'text-fg-muted';
   const biasTone =
@@ -138,26 +141,26 @@ function TfCard({
         {reading.levels.pivot !== null ? (
           <>
             <dt className="text-fg-subtle">pivot</dt>
-            <dd className="text-fg text-right">{reading.levels.pivot.toFixed(2)}</dd>
+            <dd className="text-fg text-right">{reading.levels.pivot.toFixed(decimals)}</dd>
           </>
         ) : null}
         {reading.levels.atr14 !== null ? (
           <>
             <dt className="text-fg-subtle">ATR14</dt>
-            <dd className="text-fg text-right">{reading.levels.atr14.toFixed(2)}</dd>
+            <dd className="text-fg text-right">{reading.levels.atr14.toFixed(decimals)}</dd>
           </>
         ) : null}
 
         {reading.levels.pdh !== null ? (
           <>
             <dt className="text-fg-subtle">PDH</dt>
-            <dd className="text-fg text-right">{reading.levels.pdh.toFixed(2)}</dd>
+            <dd className="text-fg text-right">{reading.levels.pdh.toFixed(decimals)}</dd>
           </>
         ) : null}
         {reading.levels.pdl !== null ? (
           <>
             <dt className="text-fg-subtle">PDL</dt>
-            <dd className="text-fg text-right">{reading.levels.pdl.toFixed(2)}</dd>
+            <dd className="text-fg text-right">{reading.levels.pdl.toFixed(decimals)}</dd>
           </>
         ) : null}
       </dl>

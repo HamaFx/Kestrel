@@ -7,12 +7,13 @@ import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { exportKeysAction, importKeysAction } from '@/app/(app)/settings/actions';
+import { useCopied } from '@/hooks/use-copied';
 
 export function useExportImportKeys() {
   const [exportPassword, setExportPassword] = useState('');
   const [showExportPassword, setShowExportPassword] = useState(false);
   const [exportedPayload, setExportedPayload] = useState('');
-  const [copied, setCopied] = useState(false);
+  const [copied, markCopied] = useCopied(2000);
   const [isExportPending, startExportTransition] = useTransition();
 
   const [importPayload, setImportPayload] = useState('');
@@ -45,9 +46,8 @@ export function useExportImportKeys() {
     if (!exportedPayload) return;
     try {
       await navigator.clipboard.writeText(exportedPayload);
-      setCopied(true);
+      markCopied();
       toast.success('Backup payload copied to clipboard');
-      setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error('Failed to copy to clipboard');
     }

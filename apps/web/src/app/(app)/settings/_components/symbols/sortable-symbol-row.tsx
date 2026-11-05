@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { priceDecimals } from '@kestrel/shared';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { IconArrowDown, IconArrowUp, IconGripVertical, IconTrash } from '@tabler/icons-react';
@@ -50,7 +51,7 @@ export function SortableSymbolRow({
   totalItems,
 }: SortableSymbolRowProps) {
   const price = priceMap.get(item.symbol);
-  const decimals = item.symbol === 'XAUUSD' ? 2 : 5;
+  const decimals = priceDecimals(item.symbol);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.symbol,
   });

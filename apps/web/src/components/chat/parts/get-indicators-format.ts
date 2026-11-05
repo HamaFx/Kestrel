@@ -6,7 +6,7 @@
 // Each render branch knows the expected shape, but we still narrow at runtime
 // so a malformed payload renders an em-dash instead of crashing.
 
-import { priceDecimals, type IndicatorResult, type Symbol } from '@kestrel/shared';
+import type { IndicatorResult } from '@kestrel/shared';
 
 export function labelFor(r: IndicatorResult): string {
   const params = r.params;
@@ -60,15 +60,4 @@ export function readRecord(v: unknown): Record<string, unknown> | null {
 
 function readNumberParam(v: unknown): number | null {
   return readNumber(v);
-}
-
-export function priceDecimalsForSymbol(s: string): number {
-  // `output.symbol` is `string` in the envelope (intentionally loose), but
-  // each result carries the canonical `Symbol`. Use the per-result symbol
-  // when it matches one we know about; otherwise default to 2 decimals.
-  try {
-    return priceDecimals(s satisfies Symbol);
-  } catch {
-    return 2;
-  }
 }

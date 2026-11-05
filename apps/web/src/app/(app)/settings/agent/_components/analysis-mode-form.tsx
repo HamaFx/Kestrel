@@ -21,6 +21,7 @@ import { IconCheck, IconCpu, IconLoader2 } from '@tabler/icons-react';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
+import { useCopied } from '@/hooks/use-copied';
 import { cn } from '@/lib/formatters/cn';
 import { apiMutate } from '@/lib/http/api-client';
 
@@ -67,7 +68,7 @@ export function AnalysisModeForm({
 }: AnalysisModeFormProps) {
   const [mode, setMode] = useState<AnalysisMode>(normalizeInitialMode(initialMode));
   const [showOpinions, setShowOpinions] = useState(initialShowOpinions);
-  const [saved, setSaved] = useState(false);
+  const [saved, markSaved] = useCopied(2000);
   const [pending, startTransition] = useTransition();
 
   const hasChanges = mode !== initialMode || showOpinions !== initialShowOpinions;
@@ -85,9 +86,8 @@ export function AnalysisModeForm({
             showAgentOpinions: showOpinions,
           }),
         });
-        setSaved(true);
+        markSaved();
         toast.success('Analysis mode saved');
-        setTimeout(() => setSaved(false), 2000);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Failed to save');
       }

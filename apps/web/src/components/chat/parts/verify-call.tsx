@@ -24,6 +24,7 @@
 //   - agree=false — amber ring (warning, not error), one row per caveat
 //                   with a glyph keyed off `caveat.code`.
 
+import { priceDecimals } from '@kestrel/shared';
 import { IconAlertTriangle, IconCircleCheck } from '@tabler/icons-react';
 
 import type { ToolPartProps } from './registry';
@@ -76,7 +77,7 @@ export function VerifyCallPart({ output, state, errorMessage }: ToolPartProps<'v
           Nearest opposing{' '}
           {output.nearestOpposingLiquidity.kind === 'swing_high' ? 'swing high' : 'swing low'}:{' '}
           <span className="text-fg-muted font-medium">
-            {output.nearestOpposingLiquidity.price.toFixed(output.symbol === 'XAUUSD' ? 2 : 5)}
+            {output.nearestOpposingLiquidity.price.toFixed(priceDecimals(output.symbol))}
           </span>{' '}
           ({output.nearestOpposingLiquidity.barsAgo} bars back)
         </p>

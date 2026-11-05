@@ -7,8 +7,7 @@
 // Guardrail banner, the Bull/Bear Tug-of-War bar, and the four deep
 // `#0a0b0c` execution wells.
 import { IconAlertTriangle, IconCheck, IconCopy, IconShieldX } from '@tabler/icons-react';
-import { useState } from 'react';
-
+import { useCopied } from '@/hooks/use-copied';
 import { cn } from '@/lib/formatters/cn';
 
 import type { ExtractedTradeLevels } from './extract-trade-levels';
@@ -95,7 +94,7 @@ export function SyndicateTicketHeader({
   levels: ExtractedTradeLevels;
   mode: string;
 }) {
-  const [copied, setCopied] = useState(false);
+  const [copied, markCopied] = useCopied();
 
   return (
     <div className="flex flex-col gap-3">
@@ -113,8 +112,7 @@ export function SyndicateTicketHeader({
                 type="button"
                 onClick={() => {
                   void navigator.clipboard?.writeText(`${planId} ${symbol ?? ''}`.trim());
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 1500);
+                  markCopied();
                 }}
                 className="hover:text-fg inline-flex min-h-6 items-center transition-colors"
                 title="Copy plan id"

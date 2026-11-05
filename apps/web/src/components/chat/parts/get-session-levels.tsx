@@ -22,7 +22,7 @@
 // Sessions still forming render with a soft "forming…" tag instead of a
 // closing print.
 
-import type { SessionRange, SessionTag } from '@kestrel/shared';
+import { priceDecimals, type SessionRange, type SessionTag } from '@kestrel/shared';
 
 import type { ToolPartProps } from './registry';
 
@@ -57,15 +57,25 @@ export function GetSessionLevelsPart({
         </span>
       </header>
 
-      <SessionList rows={output.today} title="Today" />
-      {output.prior ? <SessionList rows={output.prior} title="Prior day" /> : null}
+      <SessionList rows={output.today} title="Today" symbol={output.symbol} />
+      {output.prior ? (
+        <SessionList rows={output.prior} title="Prior day" symbol={output.symbol} />
+      ) : null}
 
       {output.notes ? <p className="text-fg-muted text-xs">{output.notes}</p> : null}
     </div>
   );
 }
 
-function SessionList({ rows, title }: { rows: SessionRange[]; title: string }) {
+function SessionList({
+  rows,
+  title,
+  symbol,
+}: {
+  rows: SessionRange[];
+  title: string;
+  symbol: string;
+}) {
   return (
     <section>
       <h4 className="text-fg-subtle text-body-sm mb-1 tracking-wide uppercase">{title}</h4>
@@ -77,8 +87,12 @@ function SessionList({ rows, title }: { rows: SessionRange[]; title: string }) {
           >
             <span className="text-fg w-14 font-semibold">{SESSION_LABEL[r.session]}</span>
             <span className="text-fg-muted flex-1">
-              O {fmt(r.open)} · H {fmt(r.high)} · L {fmt(r.low)} ·{' '}
-              {r.forming ? <em className="text-warn not-italic">forming…</em> : `C ${fmt(r.close)}`}
+              O {fmt(r.open, symbol)} · H {fmt(r.high, symbol)} · L {fmt(r.low, symbol)} ·{' '}
+              {r.forming ? (
+                <em className="text-warn not-italic">forming…</em>
+              ) : (
+                `C ${fmt(r.close, symbol)}`
+              )}
             </span>
           </li>
         ))}
@@ -87,9 +101,9 @@ function SessionList({ rows, title }: { rows: SessionRange[]; title: string }) {
   );
 }
 
-function fmt(n: number | null): string {
+function fmt(n: number | null, symbol: string): string {
   if (n === null || !Number.isFinite(n)) return '—';
-  return n.toFixed(n > 100 ? 2 : 5);
+  return n.toFixed(priceDecimals(symbol));
 }
 
 function SkeletonCard() {

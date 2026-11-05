@@ -21,11 +21,15 @@
 // Headline win-rate + avg R, plus a tight scrollable trade table for the
 // trades that fired in the window. Thin-sample warning when count < 5.
 
+import { priceDecimals } from '@kestrel/shared';
+
 import type { ToolPartProps } from './registry';
 
 export function ReplaySetupPart({ output, state, errorMessage }: ToolPartProps<'replay_setup'>) {
   if (state === 'error') return <ErrorCard message={errorMessage} />;
   if (state === 'loading' || !output) return <SkeletonCard />;
+
+  const decimals = priceDecimals(output.symbol);
 
   return (
     <div className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-3">
@@ -79,8 +83,8 @@ export function ReplaySetupPart({ output, state, errorMessage }: ToolPartProps<'
                 <span className={t.side === 'long' ? 'text-bull' : 'text-bear'}>
                   {t.side === 'long' ? '▲' : '▼'}
                 </span>
-                <span>{t.entry.toFixed(5)}</span>
-                <span>{t.exit.toFixed(5)}</span>
+                <span>{t.entry.toFixed(decimals)}</span>
+                <span>{t.exit.toFixed(decimals)}</span>
                 <span className={metricTone(t.rMultiple, (v) => v >= 0)}>
                   {t.rMultiple === null
                     ? '—'

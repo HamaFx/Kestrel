@@ -19,13 +19,14 @@
  */
 import { MutationConfirmResultSchema, type MutationDraftPayload } from '@kestrel/shared';
 import { IconBell, IconFileText, IconSettings, IconShare } from '@tabler/icons-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import {
   AegisConfirmGate,
   AegisGateConfirmedCard,
   AegisGateDeclinedCard,
 } from '@/components/ui/aegis-confirm-gate';
+import { useTime } from '@/components/providers/time-provider';
 import { apiMutate } from '@/lib/http/api-client';
 
 const KIND_LABELS: Record<MutationDraftPayload['mutation'], string> = {
@@ -97,15 +98,8 @@ export function MutationConfirmationCard({ payload }: { payload: MutationDraftPa
     }
   }, [payload]);
 
-  const expired = payload.expiresAt <= Date.now();
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!expired) {
-      const timer = window.setInterval(() => setNow(Date.now()), 5_000);
-      return () => window.clearInterval(timer);
-    }
-  }, [expired]);
-
+  const { now } = useTime();
+  const expired = payload.expiresAt <= now;
   const remainingMin = Math.max(0, Math.ceil((payload.expiresAt - now) / 60_000));
   const kindLabel = KIND_LABELS[payload.mutation] ?? 'Mutation';
 

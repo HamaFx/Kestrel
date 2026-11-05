@@ -32,11 +32,11 @@
 // `get-candles-format.ts`; the sparkline and placeholder states are their
 // own files.
 
-import { priceDecimals, type GetCandlesOutput } from '@kestrel/shared';
+import { pipSize, priceDecimals, type GetCandlesOutput } from '@kestrel/shared';
 
 import { cn } from '@/lib/formatters/cn';
 
-import { formatBarTime, pipSize } from './get-candles-format';
+import { formatBarTime } from './get-candles-format';
 import { CandleSparkline } from './get-candles-sparkline';
 import { CandlesCardError, CandlesCardSkeleton } from './get-candles-states';
 

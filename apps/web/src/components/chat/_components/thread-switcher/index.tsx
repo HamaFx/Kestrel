@@ -54,7 +54,7 @@ export function ThreadSwitcher({
     now,
     pickThread,
     confirmEl,
-  } = useThreadSwitcher({ open, threadId, threads, onOpenChange });
+  } = useThreadSwitcher({ threadId, threads, onOpenChange });
 
   const showSearch = threads.length >= 2;
   const showSelectToggle = threads.length >= 2;

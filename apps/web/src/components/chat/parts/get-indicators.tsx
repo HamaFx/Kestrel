@@ -39,9 +39,9 @@
 // Value rendering lives in `get-indicators-value.tsx`; narrowing helpers and
 // label formatting in `get-indicators-format.ts`.
 
-import type { GetIndicatorsOutput } from '@kestrel/shared';
+import { priceDecimals, type GetIndicatorsOutput } from '@kestrel/shared';
 
-import { labelFor, priceDecimalsForSymbol } from './get-indicators-format';
+import { labelFor } from './get-indicators-format';
 import { IndicatorsCardError, IndicatorsCardSkeleton } from './get-indicators-states';
 import { IndicatorValue } from './get-indicators-value';
 
@@ -60,7 +60,7 @@ export function GetIndicatorsPart({ output, state, errorMessage }: GetIndicators
     return <IndicatorsCardSkeleton />;
   }
 
-  const decimals = priceDecimalsForSymbol(output.symbol);
+  const decimals = priceDecimals(output.symbol);
 
   return (
     <div className="surface-well rounded-xl p-3.5">

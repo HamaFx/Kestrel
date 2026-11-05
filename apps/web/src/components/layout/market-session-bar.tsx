@@ -20,6 +20,8 @@
 import { IconClock, IconFlame } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 
+import { useTime } from '@/components/providers/time-provider';
+
 import { StatusIndicator } from '@/components/ui/status-indicator';
 import { cn } from '@/lib/formatters/cn';
 
@@ -45,35 +47,21 @@ function isSessionActive(s: MarketSession, utcHour: number): boolean {
 }
 
 export function MarketSessionBar() {
+  const { now } = useTime();
   const [mounted, setMounted] = useState(false);
-  const [utcTime, setUtcTime] = useState({
-    hour: 0,
-    minute: 0,
-    weekday: 0,
-    str: '--:-- UTC',
-  });
+  useEffect(() => setMounted(true), []);
 
-  useEffect(() => {
-    setMounted(true);
-    function update() {
-      const d = new Date();
-      const h = d.getUTCHours();
-      const m = d.getUTCMinutes();
-      const pad = (n: number) => n.toString().padStart(2, '0');
-      // Minute resolution is all this bar conveys. The previous 1s tick
-      // re-rendered the entire app shell ~86,400 times a day for a seconds
-      // digit nobody reads; 30s keeps the clock within a half-minute.
-      setUtcTime({
-        hour: h,
-        minute: m,
-        weekday: d.getUTCDay(),
-        str: `${pad(h)}:${pad(m)} UTC`,
-      });
-    }
-    update();
-    const interval = setInterval(update, 30_000);
-    return () => clearInterval(interval);
-  }, []);
+  // Minute resolution is all this bar conveys; the shared clock ticks every
+  // 30s, so the displayed time stays within half a minute without a private
+  // interval re-rendering the app shell.
+  const d = new Date(now);
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const utcTime = {
+    hour: d.getUTCHours(),
+    minute: d.getUTCMinutes(),
+    weekday: d.getUTCDay(),
+    str: `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`,
+  };
 
   const isWeekend =
     mounted &&

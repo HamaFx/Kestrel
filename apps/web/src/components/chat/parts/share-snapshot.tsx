@@ -20,7 +20,8 @@
 //
 // Client component because we need a copy-to-clipboard action. Layout
 // stays minimal — a one-line title + the copyable URL + an expiry hint.
-import { useEffect, useState } from 'react';
+import { useCopied } from '@/hooks/use-copied';
+import { useTime } from '@/components/providers/time-provider';
 
 import type { ToolPartProps } from './registry';
 
@@ -29,14 +30,8 @@ export function ShareSnapshotPart({
   state,
   errorMessage,
 }: ToolPartProps<'share_snapshot'>) {
-  const [copied, setCopied] = useState(false);
-  // Ticking clock so the expiry hint updates in real time.
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(id);
-  }, []);
+  const [copied, markCopied] = useCopied();
+  const { now } = useTime();
 
   if (state === 'error') {
     return <ErrorCard message={errorMessage} />;
@@ -48,10 +43,9 @@ export function ShareSnapshotPart({
   async function copy(url: string) {
     try {
       await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      setCopied(false);
+      markCopied();
+    } catch (err) {
+      console.warn('clipboard unavailable', err);
     }
   }
 

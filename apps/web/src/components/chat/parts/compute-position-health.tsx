@@ -22,6 +22,7 @@
 // target, and an "about to hit" chip when ≤ 5 pips out. Empty state when
 // no positions are open.
 
+import { priceDecimals } from '@kestrel/shared';
 import { Link } from 'next-view-transitions';
 
 import type { ToolPartProps } from './registry';
@@ -71,8 +72,8 @@ export function ComputePositionHealthPart({
                 </span>
               </div>
               <div className="text-fg-muted flex flex-wrap gap-x-3">
-                <span>entry {r.entry.toFixed(5)}</span>
-                <span>mid {r.currentMid.toFixed(5)}</span>
+                <span>entry {r.entry.toFixed(priceDecimals(r.symbol))}</span>
+                <span>mid {r.currentMid.toFixed(priceDecimals(r.symbol))}</span>
                 {r.distanceToStopPips !== null ? (
                   <span>stop {r.distanceToStopPips.toFixed(1)}p away</span>
                 ) : null}

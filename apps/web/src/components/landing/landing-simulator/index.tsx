@@ -27,6 +27,7 @@ import Image from 'next/image';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { useCopied } from '@/hooks/use-copied';
 import { cn } from '@/lib/formatters/cn';
 
 import { SCENARIOS, type SimulationStage } from './scenarios';
@@ -39,7 +40,7 @@ export function LandingSimulator() {
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>('london-sweep');
   const [simulationStage, setSimulationStage] = useState<SimulationStage>('idle');
   const [riskSlider, setRiskSlider] = useState<number>(1.0);
-  const [copiedHash, setCopiedHash] = useState(false);
+  const [copiedHash, markCopiedHash] = useCopied(2000);
 
   const scenario = SCENARIOS.find((s) => s.id === selectedScenarioId) ?? SCENARIOS[0]!;
   const isVetoed = riskSlider > 1.0;
@@ -61,13 +62,11 @@ export function LandingSimulator() {
 
   const handleReset = () => {
     setSimulationStage('idle');
-    setCopiedHash(false);
   };
 
   const handleCopyHash = (text: string) => {
-    navigator.clipboard?.writeText(text);
-    setCopiedHash(true);
-    setTimeout(() => setCopiedHash(false), 2000);
+    void navigator.clipboard?.writeText(text);
+    markCopiedHash();
   };
 
   const handleRestoreLimit = () => setRiskSlider(1.0);

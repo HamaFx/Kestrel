@@ -8,24 +8,19 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
+import { useTime } from '@/components/providers/time-provider';
 import { useConfirm } from '@/components/ui/confirm-drawer';
 import { apiMutate } from '@/lib/http/api-client';
 
 import type { ThreadSummary } from '../../chat-top-bar';
 
 interface UseThreadSwitcherArgs {
-  open: boolean;
   threadId: string;
   threads: ThreadSummary[];
   onOpenChange: (open: boolean) => void;
 }
 
-export function useThreadSwitcher({
-  open,
-  threadId,
-  threads,
-  onOpenChange,
-}: UseThreadSwitcherArgs) {
+export function useThreadSwitcher({ threadId, threads, onOpenChange }: UseThreadSwitcherArgs) {
   const router = useRouter();
   const [query, setQuery] = useState('');
   // Phase A — UX_UPGRADE_PLAN.md item 5.
@@ -36,17 +31,9 @@ export function useThreadSwitcher({
   const [deleting, setDeleting] = useState(false);
   const [confirmEl, confirm] = useConfirm();
 
-  const [now, setNow] = useState(Date.now());
+  const { now } = useTime();
   // Debounced search term — prevents re-filter on every keystroke.
   const [debouncedQuery, setDebouncedQuery] = useState('');
-
-  useEffect(() => {
-    if (!open) return;
-    const interval = setInterval(() => {
-      setNow(Date.now());
-    }, 60000);
-    return () => clearInterval(interval);
-  }, [open]);
 
   // Debounce search input (300ms)
   useEffect(() => {

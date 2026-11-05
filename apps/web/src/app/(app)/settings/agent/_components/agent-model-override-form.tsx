@@ -21,6 +21,7 @@ import { IconArrowBackUp, IconCheck, IconCpu, IconLoader2 } from '@tabler/icons-
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
+import { useCopied } from '@/hooks/use-copied';
 import { apiMutate } from '@/lib/http/api-client';
 
 type AgentName = 'technical' | 'fundamental' | 'risk' | 'sentiment' | 'decision';
@@ -93,7 +94,7 @@ export function AgentModelOverrideForm({
   providers,
 }: AgentModelOverrideFormProps) {
   const [overrides, setOverrides] = useState<AgentModelOverrides>(initialOverrides);
-  const [saved, setSaved] = useState(false);
+  const [saved, markSaved] = useCopied(2000);
   const [pending, startTransition] = useTransition();
 
   // Build a flat list of provider:model options for the dropdowns.
@@ -135,9 +136,8 @@ export function AgentModelOverrideForm({
           },
           body: JSON.stringify({ agentModelOverrides: overrides }),
         });
-        setSaved(true);
+        markSaved();
         toast.success('Agent model overrides saved');
-        setTimeout(() => setSaved(false), 2000);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Failed to save');
       }

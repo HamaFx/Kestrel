@@ -24,6 +24,7 @@
 // prose (Funnel Sans); the price is a figure (Geist Mono, tabular). No pulsing
 // status dot and no "KILLZONE/ACTIVE" chip: the colour of the price already
 // says which way it moved, and the session line already says it is open.
+import { useTime } from '@/components/providers/time-provider';
 import { IconChartCandle } from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
 import { useEffect, useRef, useState } from 'react';
@@ -41,16 +42,13 @@ function getCurrentSession(utcHour: number): string {
 }
 
 export function SidebarTelemetry({ collapsed }: { collapsed: boolean }) {
-  const [utcHour, setUtcHour] = useState<number | null>(null);
+  const { now } = useTime();
+  const [mounted, setMounted] = useState(false);
   const { tick } = usePrice('XAUUSD');
   const prevMidRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    const updateTime = () => setUtcHour(new Date().getUTCHours());
-    updateTime();
-    const interval = setInterval(updateTime, 60_000);
-    return () => clearInterval(interval);
-  }, []);
+  useEffect(() => setMounted(true), []);
+  const utcHour = mounted ? new Date(now).getUTCHours() : null;
 
   const mid = tick?.mid ?? null;
   const price = mid === null ? null : `$${mid.toFixed(2)}`;
