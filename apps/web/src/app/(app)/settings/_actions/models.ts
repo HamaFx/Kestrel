@@ -22,7 +22,7 @@ import 'server-only';
 // `withUserTenant` — the helper's own getDb() then resolves the scoped client.
 //
 // Phase 3 Task 3 — `updateChatModelAction` now calls the same
-// `validateAndSaveChatModel` service as `PUT /api/settings/chat-model`
+// `validateAndSaveUserModel` service as `PUT /api/settings/chat-model`
 // (API-key ownership + catalog membership + embedding-tier rejection), and
 // `resetOnboardingAction` delegates to the canonical `resetOnboarding` modes
 // instead of re-implementing the reset with inline SQL.
@@ -31,7 +31,7 @@ import type { ProviderId } from '@kestrel/shared/encryption';
 import { revalidatePath } from 'next/cache';
 
 import { auth } from '@/auth';
-import { validateAndSaveChatModel } from '@/lib/services/settings';
+import { validateAndSaveUserModel } from '@/lib/services/settings';
 
 import type { ActionResult } from './shared';
 
@@ -45,11 +45,11 @@ export async function updateChatModelAction(
   }
 
   try {
-    const { chatModel } = await withUserTenant(session.user.id, () =>
-      validateAndSaveChatModel(session.user.id, providerId, modelId),
+    const { model } = await withUserTenant(session.user.id, () =>
+      validateAndSaveUserModel(session.user.id, 'chat', providerId, modelId),
     );
     revalidatePath('/settings');
-    return { ok: true, data: { chatModel } };
+    return { ok: true, data: { chatModel: model } };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Failed to update chat model' };
   }

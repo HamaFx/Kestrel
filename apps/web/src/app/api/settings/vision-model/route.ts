@@ -40,8 +40,11 @@ import { PROVIDER_IDS } from '@kestrel/shared/encryption';
 import { z } from 'zod';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
-import { BYOK_PROVIDERS } from '@/lib/services/providers';
-import { getUserWithSettings, updateUserSettingsField } from '@/lib/services/settings';
+import {
+  getUserWithSettings,
+  updateUserSettingsField,
+  validateAndSaveUserModel,
+} from '@/lib/services/settings';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -68,46 +71,14 @@ export const PUT = withAuth<void>(async (req, { user }) => {
     return errorResponse(err);
   }
 
-  const spec = BYOK_PROVIDERS[body.providerId];
-  if (!spec) {
-    return Response.json(
-      { error: { message: `Unknown provider: ${body.providerId}` } },
-      { status: 400 },
-    );
-  }
-  // Defense in depth — vision tools can only consume vision-capable
-  // models. The picker UI already filters by supports.vision, but
-  // validate again here so a direct API call can't store a non-
-  // vision model in the user's vision column.
-  if (!spec.supports.vision) {
-    return Response.json(
-      {
-        error: {
-          message: `Provider ${body.providerId} does not support vision`,
-        },
-      },
-      { status: 400 },
-    );
-  }
-  const bareModelId = body.modelId.includes('/')
-    ? body.modelId.split('/').slice(1).join('/')
-    : body.modelId;
-  const known = (spec.models ?? []).some((m: { modelId: string }) => m.modelId === bareModelId);
-  if (!known) {
-    return Response.json(
-      {
-        error: {
-          message: `Model ${body.modelId} is not in the ${body.providerId} catalog`,
-        },
-      },
-      { status: 400 },
-    );
-  }
-
-  const value = `${body.providerId}:${bareModelId}`;
   try {
-    await updateUserSettingsField(user.userId, 'visionModel', value);
-    return Response.json({ ok: true, visionModel: value });
+    const { model } = await validateAndSaveUserModel(
+      user.userId,
+      'vision',
+      body.providerId,
+      body.modelId,
+    );
+    return Response.json({ ok: true, visionModel: model });
   } catch (err) {
     return errorResponse(err);
   }

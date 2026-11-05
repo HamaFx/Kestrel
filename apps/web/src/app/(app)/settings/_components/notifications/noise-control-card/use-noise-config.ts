@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Noise-control state: the editable config with its debounced save and the
-// debounced digest preview fetch (quiet hours, severity, cooldown, dedup).
+// digest preview fetch (quiet hours, severity, cooldown, dedup).
 
 import type { NoiseConfig, Severity } from '@kestrel/shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -38,12 +38,46 @@ export function useNoiseConfig(initialConfig?: NoiseConfig | null) {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [preview, setPreview] = useState<DigestPreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Debounced save: fires 300ms after config stops changing.
-  // If a save is already in flight, schedule a trailing save for when it finishes.
-  // performSave and fetchPreview are intentionally not in the dep array — they're
-  // stable (useCallback with correct deps) and we clear the timer on cleanup.
+  const refreshPreview = useCallback(async () => {
+    setPreviewLoading(true);
+    try {
+      setPreview(await apiFetch<DigestPreview | null>('/api/alerts/preview-digest'));
+    } catch {
+      setPreview(null);
+    } finally {
+      setPreviewLoading(false);
+    }
+  }, []);
+
+  const performSave = useCallback(() => {
+    // Queue a trailing save if one is already in flight.
+    if (savingInFlight.current) {
+      saveTimerRef.current = setTimeout(() => performSave(), 100);
+      return;
+    }
+    setSaving(true);
+    savingInFlight.current = true;
+    apiMutate('/api/notifications/noise-config', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(config),
+    })
+      .then(() => {
+        setSaving(false);
+        savingInFlight.current = false;
+        // Refresh only after the save has committed, so the preview can never
+        // describe settings the server has not stored yet.
+        void refreshPreview();
+      })
+      .catch(() => {
+        setSaving(false);
+        savingInFlight.current = false;
+      });
+  }, [config, refreshPreview]);
+
+  // Debounced save: fires 300ms after config stops changing. If a save is
+  // already in flight, performSave schedules a trailing save for when it ends.
   useEffect(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
@@ -52,57 +86,15 @@ export function useNoiseConfig(initialConfig?: NoiseConfig | null) {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config]);
+  }, [config, performSave]);
 
-  const performSave = useCallback(() => {
-    // Queue a trailing save if one is already in flight
-    if (savingInFlight.current) {
-      saveTimerRef.current = setTimeout(() => performSave(), 100);
-      return;
-    }
-    setSaving(true);
-    savingInFlight.current = true;
-    const configToSave = config;
-    apiMutate('/api/notifications/noise-config', {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(configToSave),
-    })
-      .then(() => {
-        setSaving(false);
-        savingInFlight.current = false;
-        // Fetch preview after successful save
-        fetchPreview();
-      })
-      .catch(() => {
-        setSaving(false);
-        savingInFlight.current = false;
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config]);
-
-  // Debounced preview fetch (only after saves, not on every keystroke)
-  const fetchPreview = useCallback(() => {
-    if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
-    previewTimerRef.current = setTimeout(() => {
-      setPreviewLoading(true);
-      apiFetch<DigestPreview | null>('/api/alerts/preview-digest')
-        .then((data) => setPreview(data))
-        .catch(() => setPreview(null))
-        .finally(() => setPreviewLoading(false));
-    }, 500);
-  }, []);
-
-  // Fetch preview once on mount
+  // Fetch the preview once on mount.
   useEffect(() => {
-    fetchPreview();
+    void refreshPreview();
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [refreshPreview]);
 
   const update = useCallback((updates: Partial<NoiseConfig>) => {
     setConfig((prev) => ({ ...prev, ...updates }));

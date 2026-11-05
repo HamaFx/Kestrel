@@ -40,8 +40,11 @@ import { PROVIDER_IDS } from '@kestrel/shared/encryption';
 import { z } from 'zod';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
-import { BYOK_PROVIDERS } from '@/lib/services/providers';
-import { getUserWithSettings, updateUserSettingsField } from '@/lib/services/settings';
+import {
+  getUserWithSettings,
+  updateUserSettingsField,
+  validateAndSaveUserModel,
+} from '@/lib/services/settings';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -68,45 +71,14 @@ export const PUT = withAuth<void>(async (req, { user }) => {
     return errorResponse(err);
   }
 
-  const spec = BYOK_PROVIDERS[body.providerId];
-  if (!spec) {
-    return Response.json(
-      { error: { message: `Unknown provider: ${body.providerId}` } },
-      { status: 400 },
-    );
-  }
-  // Defense in depth — embeddings only work on embedding-capable
-  // providers. (Some providers host embedding models without
-  // exposes them in the spec; this guards against a typo.)
-  if (!spec.supports.embedding) {
-    return Response.json(
-      {
-        error: {
-          message: `Provider ${body.providerId} does not support embedding`,
-        },
-      },
-      { status: 400 },
-    );
-  }
-  const bareModelId = body.modelId.includes('/')
-    ? body.modelId.split('/').slice(1).join('/')
-    : body.modelId;
-  const known = (spec.models ?? []).some((m: { modelId: string }) => m.modelId === bareModelId);
-  if (!known) {
-    return Response.json(
-      {
-        error: {
-          message: `Model ${body.modelId} is not in the ${body.providerId} catalog`,
-        },
-      },
-      { status: 400 },
-    );
-  }
-
-  const value = `${body.providerId}:${bareModelId}`;
   try {
-    await updateUserSettingsField(user.userId, 'embeddingModel', value);
-    return Response.json({ ok: true, embeddingModel: value });
+    const { model } = await validateAndSaveUserModel(
+      user.userId,
+      'embedding',
+      body.providerId,
+      body.modelId,
+    );
+    return Response.json({ ok: true, embeddingModel: model });
   } catch (err) {
     return errorResponse(err);
   }

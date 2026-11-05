@@ -214,33 +214,29 @@ export async function completeOnboardingAction(formData: FormData) {
             );
         }
 
-        // 3. Add default or custom watchlist.
-        try {
-          const watchSymbols = requestedSymbols;
+        // 3. Replace the watchlist with the validated symbol set. Symbols were
+        // checked against the active catalog before this transaction; a failed
+        // statement must abort the transaction instead of being swallowed in
+        // the open PostgreSQL transaction (which left it at 25P02).
+        const watchSymbols = requestedSymbols;
 
-          await tx
-            .delete(schema.userSymbols)
-            .where(
-              and(eq(schema.userSymbols.userId, userId), eq(schema.userSymbols.tenantId, tenantId)),
-            );
+        await tx
+          .delete(schema.userSymbols)
+          .where(
+            and(eq(schema.userSymbols.userId, userId), eq(schema.userSymbols.tenantId, tenantId)),
+          );
 
-          await tx
-            .insert(schema.userSymbols)
-            .values(
-              watchSymbols.map((symbol, i) => ({
-                userId,
-                tenantId,
-                symbol,
-                displayOrder: i,
-              })),
-            )
-            .onConflictDoNothing();
-        } catch (err) {
-          createScopedLoggerWithContext({
-            component: 'onboarding',
-            action: 'seed-watchlist',
-          }).errorContext(err, 'seedWatchlist', { userId });
-        }
+        await tx
+          .insert(schema.userSymbols)
+          .values(
+            watchSymbols.map((symbol, i) => ({
+              userId,
+              tenantId,
+              symbol,
+              displayOrder: i,
+            })),
+          )
+          .onConflictDoNothing();
       });
     });
 

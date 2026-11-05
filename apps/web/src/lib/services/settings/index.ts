@@ -91,7 +91,7 @@ export interface AnalysisModeDTO {
 // Phase 3 Task 4 — route-facing re-exports (settings, onboarding, watchlist).
 export * from './domain';
 
-export { validateAndSaveChatModel } from './chat-model';
+export { validateAndSaveUserModel } from './chat-model';
 
 export async function getAnalysisModeService(userId: string): Promise<AnalysisModeDTO> {
   const { settings } = await getUserWithSettings(userId);

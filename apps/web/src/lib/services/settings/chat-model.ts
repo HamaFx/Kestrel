@@ -16,45 +16,55 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Chat-model picker: the single save path shared by `PUT /api/settings/chat-model`
-// and the Settings server action.
+// User model pickers: the single save path shared by the Settings server
+// actions and `PUT /api/settings/{chat,vision,embedding}-model`.
 //
-// Phase 3 Task 3 — the action used to save the raw `providerId:modelId` string
-// with no checks while the API route enforced API-key ownership, catalog
-// membership, and the embedding-tier rule. Both callers now go through this
-// function so a forged action payload cannot save an unavailable provider or
-// an embedding-only model as the chat model.
+// Every role enforces the same contract: the provider exists in the BYOK
+// catalog, the user owns a key for it (the catalog only exposes keyed
+// providers, so a forged request cannot save an unavailable one), the model id
+// is in the provider's catalog, and the role-specific capability holds. Chat
+// additionally rejects embedding-only models. Model ids keep their exact
+// catalog spelling, including slash-containing OpenRouter ids.
 
 import { BYOK_PROVIDERS } from '@kestrel/ai';
 import { getUserWithSettings, updateUserSettingsField } from '@kestrel/db';
 import { decryptByok, type ProviderId } from '@kestrel/shared/encryption';
+
+type UserModelRole = 'chat' | 'vision' | 'embedding';
+
+const ROLE_SETTINGS = {
+  chat: { field: 'chatModel', label: 'chat model' },
+  vision: { field: 'visionModel', label: 'vision model' },
+  embedding: { field: 'embeddingModel', label: 'embedding model' },
+} as const satisfies Record<UserModelRole, { field: string; label: string }>;
 
 function apiError(message: string, statusCode: number): Error & { statusCode: number } {
   return Object.assign(new Error(message), { statusCode });
 }
 
 /**
- * Validate a chat-model selection and persist it.
- *
- * Enforces, in order:
- *   1. the provider exists in the BYOK catalog,
- *   2. the user owns an API key for it (the catalog only exposes keyed
- *      providers, so a forged request cannot save an unavailable one and
- *      later silently fall back to another model),
- *   3. the model id is in the provider's catalog,
- *   4. the model is not embedding-only (chat turns cannot consume one).
+ * Validate a role-specific model selection and persist it.
  *
  * Returns the persisted `providerId:bareModelId` value. Errors carry a
  * `statusCode` so `errorResponse` maps them to the right HTTP status.
  */
-export async function validateAndSaveChatModel(
+export async function validateAndSaveUserModel(
   userId: string,
+  role: UserModelRole,
   providerId: ProviderId,
   modelId: string,
-): Promise<{ chatModel: string }> {
+): Promise<{ model: string }> {
   const spec = BYOK_PROVIDERS[providerId];
   if (!spec) {
     throw apiError(`Unknown provider: ${providerId}`, 400);
+  }
+
+  const config = ROLE_SETTINGS[role];
+  if (role === 'vision' && !spec.supports.vision) {
+    throw apiError(`Provider ${providerId} does not support vision`, 400);
+  }
+  if (role === 'embedding' && !spec.supports.embedding) {
+    throw apiError(`Provider ${providerId} does not support embedding`, 400);
   }
 
   const { settings } = await getUserWithSettings(userId);
@@ -70,13 +80,11 @@ export async function validateAndSaveChatModel(
     ? modelId.slice(providerId.length + 1)
     : modelId;
 
-  // Phase D2 — defense in depth. The picker UI filters out tier: 'embedding'
-  // models, but a direct API call could still store one.
   const pickedModel = spec.models.find((model) => model.modelId === bareModelId);
   if (!pickedModel) {
     throw apiError(`Model ${modelId} is not in the ${providerId} catalog`, 400);
   }
-  if (pickedModel.tier === 'embedding') {
+  if (role === 'chat' && pickedModel.tier === 'embedding') {
     throw apiError(
       `${modelId} is an embedding-only model and can't be used as a chat model. ` +
         `Pick a chat-capable model (flagship / pro / fast / lite) instead.`,
@@ -85,6 +93,6 @@ export async function validateAndSaveChatModel(
   }
 
   const value = `${providerId}:${bareModelId}`;
-  await updateUserSettingsField(userId, 'chatModel', value);
-  return { chatModel: value };
+  await updateUserSettingsField(userId, config.field, value);
+  return { model: value };
 }

@@ -235,11 +235,11 @@ export async function disableTwoFactorAction(token: string): Promise<ActionResul
           twoFactorLockedUntil: null,
         })
         .where(eq(schema.users.id, session.user.id));
+      // FEAT-03: audit the disable inside the same tenant scope as the write
+      // it describes; `audit_logs` is RLS-protected.
+      await createAuditLog(session.user.id, '2fa_disabled');
     });
     await withUserTenant(session.user.id, () => setTwoFactorEnabled(session.user.id, false));
-
-    // FEAT-03: Audit log for 2FA disabled
-    await createAuditLog(session.user.id, '2fa_disabled');
 
     revalidatePath('/settings');
     return { ok: true };

@@ -38,7 +38,7 @@ import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
 import {
   getUserWithSettings,
   updateUserSettingsField,
-  validateAndSaveChatModel,
+  validateAndSaveUserModel,
 } from '@/lib/services/settings';
 
 export const runtime = 'nodejs';
@@ -66,16 +66,17 @@ export const PUT = withAuth<void>(async (req, { user }) => {
     return errorResponse(err);
   }
 
-  // Phase 3 Task 3 — one validated save path shared with the Settings server
-  // action: provider exists, key ownership, catalog membership, and the
-  // embedding-tier rejection all live in `validateAndSaveChatModel`.
+  // One validated save path shared with the Settings server action: provider
+  // exists, key ownership, catalog membership, and the embedding-tier
+  // rejection all live in `validateAndSaveUserModel`.
   try {
-    const { chatModel } = await validateAndSaveChatModel(
+    const { model } = await validateAndSaveUserModel(
       user.userId,
+      'chat',
       body.providerId,
       body.modelId,
     );
-    return Response.json({ ok: true, chatModel });
+    return Response.json({ ok: true, chatModel: model });
   } catch (err) {
     return errorResponse(err);
   }

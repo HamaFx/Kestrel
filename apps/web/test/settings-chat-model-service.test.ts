@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-// Phase 3 Task 3 — `validateAndSaveChatModel` is the one save path shared by
-// the Settings server action and `PUT /api/settings/chat-model`.
+// `validateAndSaveUserModel` is the one save path shared by the Settings
+// server actions and the chat/vision/embedding model routes.
 //
 // The audit found the action saved any `providerId:modelId` string with none
 // of the route's checks (API-key ownership, catalog membership, embedding-tier
@@ -25,7 +25,7 @@
 import type { ProviderId } from '@kestrel/shared/encryption';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { validateAndSaveChatModel } from '../src/lib/services/settings/chat-model';
+import { validateAndSaveUserModel } from '../src/lib/services/settings/chat-model';
 
 const mocks = vi.hoisted(() => ({
   getUserWithSettings: vi.fn(),
@@ -42,11 +42,16 @@ vi.mock('@kestrel/db', () => ({
 vi.mock('@kestrel/ai', () => ({
   BYOK_PROVIDERS: {
     openai: {
+      supports: { vision: true, embedding: true },
       models: [
         { modelId: 'gpt-chat', tier: 'flagship' },
         { modelId: 'anthropic/claude-sonnet', tier: 'pro' },
         { modelId: 'text-embedding-3', tier: 'embedding' },
       ],
+    },
+    textonly: {
+      supports: { vision: false, embedding: false },
+      models: [{ modelId: 'text-chat', tier: 'fast' }],
     },
   },
 }));
@@ -64,17 +69,19 @@ beforeEach(() => {
   mocks.updateUserSettingsField.mockResolvedValue(undefined);
 });
 
-describe('validateAndSaveChatModel', () => {
+describe('validateAndSaveUserModel', () => {
   it('rejects an unknown provider', async () => {
     await expect(
-      validateAndSaveChatModel(USER_ID, 'nope' as ProviderId, 'gpt-chat'),
+      validateAndSaveUserModel(USER_ID, 'chat', 'nope' as ProviderId, 'gpt-chat'),
     ).rejects.toMatchObject({ statusCode: 400 });
   });
 
   it('rejects a provider with no user API key', async () => {
     mocks.decryptByok.mockReturnValue({});
 
-    await expect(validateAndSaveChatModel(USER_ID, 'openai', 'gpt-chat')).rejects.toMatchObject({
+    await expect(
+      validateAndSaveUserModel(USER_ID, 'chat', 'openai', 'gpt-chat'),
+    ).rejects.toMatchObject({
       statusCode: 403,
       message: 'No API key configured for provider: openai',
     });
@@ -82,7 +89,9 @@ describe('validateAndSaveChatModel', () => {
   });
 
   it('rejects a model outside the provider catalog', async () => {
-    await expect(validateAndSaveChatModel(USER_ID, 'openai', 'gpt-unknown')).rejects.toMatchObject({
+    await expect(
+      validateAndSaveUserModel(USER_ID, 'chat', 'openai', 'gpt-unknown'),
+    ).rejects.toMatchObject({
       statusCode: 400,
     });
     expect(mocks.updateUserSettingsField).not.toHaveBeenCalled();
@@ -90,15 +99,15 @@ describe('validateAndSaveChatModel', () => {
 
   it('rejects an embedding-only model for chat', async () => {
     await expect(
-      validateAndSaveChatModel(USER_ID, 'openai', 'text-embedding-3'),
+      validateAndSaveUserModel(USER_ID, 'chat', 'openai', 'text-embedding-3'),
     ).rejects.toMatchObject({ statusCode: 400 });
     expect(mocks.updateUserSettingsField).not.toHaveBeenCalled();
   });
 
   it('saves provider:bareModelId and strips a provider-prefixed model id', async () => {
-    const result = await validateAndSaveChatModel(USER_ID, 'openai', 'gpt-chat');
+    const result = await validateAndSaveUserModel(USER_ID, 'chat', 'openai', 'gpt-chat');
 
-    expect(result).toEqual({ chatModel: 'openai:gpt-chat' });
+    expect(result).toEqual({ model: 'openai:gpt-chat' });
     expect(mocks.updateUserSettingsField).toHaveBeenCalledWith(
       USER_ID,
       'chatModel',
@@ -107,11 +116,35 @@ describe('validateAndSaveChatModel', () => {
 
     // Slash-containing catalog ids (OpenRouter-style) survive intact.
     mocks.updateUserSettingsField.mockClear();
-    const slash = await validateAndSaveChatModel(
+    const slash = await validateAndSaveUserModel(
       USER_ID,
+      'chat',
       'openai',
       'openai/anthropic/claude-sonnet',
     );
-    expect(slash).toEqual({ chatModel: 'openai:anthropic/claude-sonnet' });
+    expect(slash).toEqual({ model: 'openai:anthropic/claude-sonnet' });
+  });
+
+  it('rejects a vision model on a provider without vision support', async () => {
+    await expect(
+      validateAndSaveUserModel(USER_ID, 'vision', 'textonly' as ProviderId, 'text-chat'),
+    ).rejects.toMatchObject({ statusCode: 400 });
+    expect(mocks.updateUserSettingsField).not.toHaveBeenCalled();
+  });
+
+  it('saves an embedding model to the embedding column', async () => {
+    const result = await validateAndSaveUserModel(
+      USER_ID,
+      'embedding',
+      'openai',
+      'text-embedding-3',
+    );
+
+    expect(result).toEqual({ model: 'openai:text-embedding-3' });
+    expect(mocks.updateUserSettingsField).toHaveBeenCalledWith(
+      USER_ID,
+      'embeddingModel',
+      'openai:text-embedding-3',
+    );
   });
 });
