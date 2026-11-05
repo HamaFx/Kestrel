@@ -23,10 +23,10 @@
 //   - serialize.ts        — trimmed model-facing serialization
 //   - prompt.ts           — read-only prompt guards
 
-// M-02 — the generic macro extension is defined with the macro fetchers (no
+// The unified macro evidence contract is defined with the macro fetchers (no
 // import cycle) and re-exported here alongside the packet type for callers.
-export { GenericMacroExtensionSchema } from '../research-packet-macro';
-export type { GenericMacroExtension } from '../research-packet-macro';
+export { MacroEvidenceSchema } from '../research-packet-macro';
+export type { MacroEvidence } from '../research-packet-macro';
 
 export {
   MarketStructureSummarySchema,
@@ -35,10 +35,8 @@ export {
   SymbolResearchInputSchema,
   SymbolResearchIndicatorRequestSchema,
   SymbolResearchPacketSchema,
-  XauusdExtensionSchema,
   type SymbolResearchEvidence,
   type SymbolResearchPacket,
-  type XauusdExtension,
 } from './schemas';
 export { computeIndicatorMemo } from './indicator-memo';
 export { collectSymbolResearchPacket, type CollectSymbolResearchPacketOptions } from './collect';

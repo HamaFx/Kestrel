@@ -84,7 +84,7 @@ export function buildPacketGroundedFallbackVerdicts(args: {
         : 'bearish'
       : 'neutral';
 
-  const macroEventsCount = packet.xauusdExtension?.events?.length ?? 0;
+  const macroEventsCount = packet.macro?.events?.length ?? 0;
   const econVerdict: CommitteeVerdict['verdict'] = macroEventsCount > 2 ? 'neutral' : techBias;
 
   const candles = primaryEvidence?.candles ?? [];

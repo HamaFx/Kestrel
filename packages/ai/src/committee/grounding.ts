@@ -74,22 +74,28 @@ export function packetEvidenceValues(
       }
     }
   }
-  // §4.2: the XAUUSD macro extension is grounding evidence for macro
-  // numbers (dollar index, real yields, event prints, headline numbers).
+  // Unified macro evidence grounds macro numbers for every symbol: FRED rate
+  // series, event prints, headline numbers, and COT positioning nets.
+  const macro = packet.macro;
   for (const series of [
-    packet.xauusdExtension?.dollarIndex,
-    packet.xauusdExtension?.realYields,
-    packet.xauusdExtension?.breakevenInflation,
+    macro?.fredSeries?.dollarIndex,
+    macro?.fredSeries?.realYields,
+    macro?.fredSeries?.breakevenInflation,
   ]) {
     for (const point of series ?? []) values.push(point.value);
   }
-  for (const event of packet.xauusdExtension?.events ?? []) {
+  for (const event of macro?.events ?? []) {
     for (const print of [event.actual, event.forecast, event.previous]) {
       if (typeof print === 'number' && Number.isFinite(print)) values.push(print);
     }
   }
-  for (const headline of packet.xauusdExtension?.newsHeadlines ?? []) {
+  for (const headline of macro?.news ?? []) {
     values.push(...extractNarrativeNumbers(headline.title));
+  }
+  for (const row of macro?.cot ?? []) {
+    for (const net of [row.dealerNet, row.assetNet, row.leveragedNet, row.otherNet]) {
+      if (typeof net === 'number' && Number.isFinite(net)) values.push(net);
+    }
   }
   // Audit v3 Phase 4 (Q8): merge numbers returned by specialist domain tools.
   for (const opinion of opinions ?? []) {

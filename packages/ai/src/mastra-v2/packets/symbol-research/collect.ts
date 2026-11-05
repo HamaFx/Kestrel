@@ -24,12 +24,9 @@ import { readFeatureFlag, SymbolSchema, type Symbol } from '@kestrel/shared';
 
 import { fetchPacketCandles } from '../candle-fetcher';
 import {
-  assembleGenericMacroExtension,
-  assembleXauusdMacroEvidence,
-  fetchGenericMacroData,
-  fetchXauusdMacroData,
-  type GenericMacroExtension,
-  type GenericMacroFetchResult,
+  assembleMacroEvidence,
+  fetchMacroData,
+  type MacroFetchResult,
 } from '../research-packet-macro';
 import { computeIndicatorMemo } from './indicator-memo';
 import { computeMarketStructureSummary } from './market-structure';
@@ -40,7 +37,6 @@ import {
   SymbolResearchPacketSchema,
   type SymbolResearchEvidence,
   type SymbolResearchPacket,
-  type XauusdExtension,
 } from './schemas';
 
 function abortError(): Error {
@@ -57,54 +53,11 @@ function unique(values: readonly string[]): string[] {
   return [...new Set(values)];
 }
 
-async function collectXauusdExtension(
-  packetId: string,
-  generatedAt: string,
-  signal?: AbortSignal,
-): Promise<XauusdExtension | null> {
-  try {
-    const fetched = await fetchXauusdMacroData(signal);
-    const assembled = assembleXauusdMacroEvidence(packetId, generatedAt, fetched);
-    if (!assembled.evidence) return null;
-    const evidence = assembled.evidence;
-    const data = evidence.data;
-    return {
-      evidenceId: evidence.evidenceId,
-      dollarIndex: data.dollarIndex
-        .slice(-10)
-        .map((item) => ({ asOf: item.date, value: item.value })),
-      realYields: data.realYields
-        .slice(-10)
-        .map((item) => ({ asOf: item.date, value: item.value })),
-      breakevenInflation: data.breakevenInflation
-        .slice(-10)
-        .map((item) => ({ asOf: item.date, value: item.value })),
-      events: data.events.slice(0, 10).map((event) => ({
-        name: event.title,
-        actual: event.actual ?? null,
-        forecast: event.forecast ?? null,
-        previous: event.previous ?? null,
-      })),
-      newsCount: data.news.length,
-      newsHeadlines: data.news.slice(0, 8).map((article) => ({
-        title: article.title,
-        ...(article.source ? { source: article.source } : {}),
-        publishedAt: new Date(article.publishedAt).toISOString(),
-      })),
-      warnings: evidence.warnings,
-    };
-  } catch {
-    return null;
-  }
-}
-
+/**
+ * Request macro context. Gold always attaches it; other symbols additionally
+ * require the `ENABLE_GENERIC_MACRO` rollout flag.
+ */
 export interface CollectSymbolResearchPacketOptions {
-  /**
-   * Request macro context. For XAUUSD this means the verified macro
-   * extension (dollar index, real yields, USD events, news). For other
-   * symbols it requests the M-02 generic extension (news, calendar, COT) and
-   * is additionally gated by `ENABLE_GENERIC_MACRO`.
-   */
   includeMacro?: boolean;
 }
 
@@ -118,21 +71,13 @@ export async function collectSymbolResearchPacket(
 
   const generatedAt = new Date().toISOString();
   const packetId = `symbol-research-${symbol}-${randomUUID()}`;
-  const wantsMacro = symbol === 'XAUUSD' && options?.includeMacro === true;
-  // M-02: non-gold symbols can request the generic macro extension
-  // (news + calendar + COT). Rollout-gated; a failed fetch can never fail the
-  // packet (`fetchGenericMacroData` settles internally).
-  const wantsGenericMacro =
-    symbol !== 'XAUUSD' &&
+  const wantsMacro =
     options?.includeMacro === true &&
-    readFeatureFlag('ENABLE_GENERIC_MACRO');
-  const [priceSettled, candleResults, macroExtension, genericMacroFetched] = await Promise.all([
+    (symbol === 'XAUUSD' || readFeatureFlag('ENABLE_GENERIC_MACRO'));
+  const [priceSettled, candleResults, macroFetched] = await Promise.all([
     Promise.allSettled([getPriceWithMeta(symbol, signal ? { signal } : {})]),
     fetchPacketCandles(symbol, SYMBOL_RESEARCH_TIMEFRAMES, signal),
-    wantsMacro ? collectXauusdExtension(packetId, generatedAt, signal) : null,
-    wantsGenericMacro
-      ? fetchGenericMacroData(symbol, signal).catch((): GenericMacroFetchResult | null => null)
-      : null,
+    wantsMacro ? fetchMacroData(symbol, signal).catch((): MacroFetchResult | null => null) : null,
   ]);
   const priceResult = priceSettled[0];
 
@@ -232,17 +177,15 @@ export async function collectSymbolResearchPacket(
   );
   const status = price !== null && requiredTimeframesReady ? 'ready' : 'blocked';
 
-  // M-02: assemble the generic macro extension after the technical evidence.
-  // A completely unavailable macro fetch adds one packet-level warning (so
-  // the desks and the UI disclose it); a partial fetch keeps its warnings
-  // inside the extension, mirroring the XAUUSD macro contract.
-  const genericMacroResult = genericMacroFetched
-    ? assembleGenericMacroExtension(symbol, genericMacroFetched)
+  // Assemble macro evidence after the technical evidence. A completely
+  // unavailable macro fetch adds one packet-level warning (so the desks and
+  // the UI disclose it); a partial fetch keeps its warnings inside `macro`.
+  const macroResult = macroFetched
+    ? assembleMacroEvidence({ symbol, packetId, generatedAt, fetched: macroFetched })
     : null;
-  const genericMacro: GenericMacroExtension | undefined =
-    genericMacroResult?.extension ?? undefined;
-  if (genericMacroResult && !genericMacroResult.extension) {
-    warnings.push(...genericMacroResult.warnings);
+  const macro = macroResult?.macro ?? undefined;
+  if (macroResult && !macro) {
+    warnings.push(...macroResult.warnings);
   }
 
   const dataQuality =
@@ -254,7 +197,6 @@ export async function collectSymbolResearchPacket(
           ? 'degraded'
           : 'complete';
 
-  const macro = macroExtension;
   const marketStructure = computeMarketStructureSummary(timeframes, symbol);
 
   return SymbolResearchPacketSchema.parse({
@@ -267,23 +209,14 @@ export async function collectSymbolResearchPacket(
     price,
     timeframes,
     ...(marketStructure ? { marketStructure } : {}),
-    ...(macro ? { xauusdExtension: macro } : {}),
-    ...(genericMacro ? { genericMacro } : {}),
+    ...(macro ? { macro } : {}),
     optionalContext: {
-      available: Boolean(macro) || Boolean(genericMacro),
+      available: Boolean(macro),
       reason: macro
-        ? 'XAUUSD macro context (dollar index, real yields, USD events, news) is attached as the packet extension.'
-        : genericMacro
-          ? `Generic ${symbol} macro context (news, economic calendar, COT where available) is attached as the packet extension.`
-          : wantsMacro
-            ? // B-05: the macro extension was requested but could not be collected
-              // for this run — never imply it was checked.
-              'XAUUSD macro context (dollar index, real yields, USD events, news) was requested but could not be collected for this run.'
-            : wantsGenericMacro
-              ? // M-02/B-05: the generic macro extension was requested but every
-                // provider failed — never imply fundamental context was checked.
-                `Generic ${symbol} macro context (news, economic calendar, COT) was requested but could not be collected for this run.`
-              : `Fundamental context is not part of the generalized ${symbol} packet; use the XAUUSD fundamental workflow where applicable.`,
+        ? `${symbol} macro context (news, economic calendar, COT where available, and rate series for USD-quoted instruments) is attached as the packet extension.`
+        : wantsMacro
+          ? `${symbol} macro context was requested but could not be collected for this run.`
+          : `Fundamental context is not part of this ${symbol} packet; request macro context to attach it.`,
     },
     missingData: unique(missingData),
     warnings: unique(warnings),

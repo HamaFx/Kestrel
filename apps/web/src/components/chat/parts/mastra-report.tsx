@@ -95,7 +95,7 @@ function MastraReportCard({
   return (
     <div data-mastra-agent="mastra-xauusd" data-packet-id={meta.packetId}>
       <SyndicateDossierCard
-        regionLabel="Verified XAUUSD report"
+        regionLabel={`Verified ${report?.symbol ?? 'market'} report`}
         testId="mastra-report-card"
         symbol={report?.symbol ?? null}
         mode="single"

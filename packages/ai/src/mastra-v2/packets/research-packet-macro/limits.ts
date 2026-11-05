@@ -19,9 +19,10 @@
 export const MACRO_WINDOW_DAYS = 30;
 export const CALENDAR_WINDOW_DAYS = 7;
 export const EXTERNAL_TITLE_MAX_LENGTH = 240;
-export const EXTERNAL_SUMMARY_MAX_LENGTH = 1_800;
 
+export const MACRO_NEWS_LIMIT = 8;
 export const GENERIC_MACRO_NEWS_LIMIT = 3;
 export const GENERIC_MACRO_EVENT_LIMIT = 5;
+export const MACRO_EVENT_LIMIT = 10;
 export const GENERIC_MACRO_COT_WEEKS = 3;
 export const DAY_MS = 24 * 60 * 60 * 1000;

@@ -14,59 +14,66 @@
  * limitations under the License.
  */
 
-// M-02 — generic macro extension schema for non-XAUUSD symbols.
+// Unified macro evidence schema for every research-packet symbol.
 //
-// Defined here (not in `symbol-research`) so the assembler can parse its own
-// output without an import cycle; the symbol-research barrel re-exports the
-// schema and type alongside `XauusdExtension`.
+// Macro context used to live in two shapes: `xauusdExtension` for gold and
+// `genericMacro` for the other 17 symbols. Downstream consumers only read the
+// gold shape, so non-gold macro numbers were silently ungrounded. One schema
+// keeps every consumer on the same evidence contract.
 
 import { z } from 'zod';
 
+const MacroSeriesPointSchema = z.object({
+  asOf: z.string().min(1),
+  value: z.number(),
+});
+
+const MacroEventSchema = z.object({
+  name: z.string().min(1),
+  currency: z.string().nullable(),
+  importance: z.string().nullable(),
+  date: z.string().min(1),
+  actual: z.number().nullable(),
+  forecast: z.number().nullable(),
+  previous: z.number().nullable(),
+});
+
+const MacroNewsItemSchema = z.object({
+  title: z.string().min(1),
+  source: z.string().optional(),
+  publishedAt: z.string().optional(),
+});
+
+const MacroCotRowSchema = z.object({
+  reportDate: z.string().min(1),
+  dealerNet: z.number().nullable(),
+  assetNet: z.number().nullable(),
+  leveragedNet: z.number().nullable(),
+  otherNet: z.number().nullable(),
+});
+
 /**
- * M-02 (audit 2026-10-18) — generic macro extension for non-XAUUSD symbols.
- * The fundamental/risk/sentiment desks previously saw candles only for
- * forex/crypto; this extension carries the macro evidence they are prompted
- * to reason about: recent headlines, the next high-impact calendar releases
- * for the symbol's currencies, and (when the instrument supports it) the
- * latest CFTC positioning rows.
+ * Optional FRED-backed series. Populated for gold and for instruments whose
+ * quote currency is USD; other symbols omit the field rather than carrying an
+ * empty shape that looks like a checked source.
  */
-export const GenericMacroExtensionSchema = z.object({
+const MacroFredSeriesSchema = z.object({
+  dollarIndex: z.array(MacroSeriesPointSchema).max(10),
+  realYields: z.array(MacroSeriesPointSchema).max(10),
+  breakevenInflation: z.array(MacroSeriesPointSchema).max(10),
+});
+
+export const MacroEvidenceSchema = z.object({
   evidenceId: z.string().min(1),
   source: z.string().min(1),
-  news: z
-    .array(
-      z.object({
-        title: z.string().min(1),
-        source: z.string().optional(),
-        publishedAt: z.string().optional(),
-      }),
-    )
-    .max(3),
-  events: z
-    .array(
-      z.object({
-        name: z.string().min(1),
-        currency: z.string().nullable(),
-        importance: z.string().nullable(),
-        date: z.string().min(1),
-        actual: z.number().nullable(),
-        forecast: z.number().nullable(),
-        previous: z.number().nullable(),
-      }),
-    )
-    .max(5),
-  cot: z
-    .array(
-      z.object({
-        reportDate: z.string().min(1),
-        dealerNet: z.number().nullable(),
-        assetNet: z.number().nullable(),
-        leveragedNet: z.number().nullable(),
-        otherNet: z.number().nullable(),
-      }),
-    )
-    .max(3)
-    .optional(),
+  news: z.array(MacroNewsItemSchema).max(8),
+  events: z.array(MacroEventSchema).max(10),
+  cot: z.array(MacroCotRowSchema).max(3).optional(),
+  fredSeries: MacroFredSeriesSchema.optional(),
   warnings: z.array(z.string()),
 });
-export type GenericMacroExtension = z.infer<typeof GenericMacroExtensionSchema>;
+
+export type MacroEvidence = z.infer<typeof MacroEvidenceSchema>;
+export type MacroEvent = z.infer<typeof MacroEventSchema>;
+export type MacroNewsItem = z.infer<typeof MacroNewsItemSchema>;
+export type MacroCotRow = z.infer<typeof MacroCotRowSchema>;

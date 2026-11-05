@@ -29,7 +29,7 @@ import {
 } from '@kestrel/shared';
 import { z } from 'zod';
 
-import { GenericMacroExtensionSchema } from '../research-packet-macro';
+import { MacroEvidenceSchema } from '../research-packet-macro';
 
 export const SYMBOL_RESEARCH_TIMEFRAMES: readonly { timeframe: Timeframe; count: number }[] = [
   { timeframe: '1d', count: 120 },
@@ -66,35 +66,6 @@ export const MarketStructureSummarySchema = z.object({
   rangeSize: z.number(),
 });
 
-export const XauusdExtensionSchema = z.object({
-  evidenceId: z.string().min(1),
-  dollarIndex: z.array(z.object({ asOf: z.string(), value: z.number() })).max(10),
-  realYields: z.array(z.object({ asOf: z.string(), value: z.number() })).max(10),
-  breakevenInflation: z.array(z.object({ asOf: z.string(), value: z.number() })).max(10),
-  events: z
-    .array(
-      z.object({
-        name: z.string().min(1),
-        actual: z.number().nullable(),
-        forecast: z.number().nullable(),
-        previous: z.number().nullable(),
-      }),
-    )
-    .max(10),
-  newsCount: z.int().nonnegative(),
-  newsHeadlines: z
-    .array(
-      z.object({
-        title: z.string().min(1),
-        source: z.string().optional(),
-        publishedAt: z.string().optional(),
-      }),
-    )
-    .max(8)
-    .optional(),
-  warnings: z.array(z.string()),
-});
-
 export const SymbolResearchPacketSchema = z.object({
   packetId: z.string().min(1),
   kind: z.literal('symbol_research_packet'),
@@ -117,15 +88,13 @@ export const SymbolResearchPacketSchema = z.object({
     .nullable(),
   timeframes: z.array(EvidenceSchema),
   marketStructure: MarketStructureSummarySchema.optional(),
-  xauusdExtension: XauusdExtensionSchema.optional(),
   /**
-   * M-02 (audit 2026-10-18) — generic macro evidence (news, upcoming
-   * calendar releases for the symbol's currencies, CFTC positioning where
-   * supported) attached to non-XAUUSD packets when `ENABLE_GENERIC_MACRO`
-   * is on. Gated by `optionalContext`; never set for XAUUSD (which keeps
-   * `xauusdExtension`).
+   * Unified macro evidence: news, upcoming calendar releases for the symbol's
+   * currencies, CFTC positioning where supported, and FRED rate series for
+   * gold and USD-quoted instruments. One shape for all 18 symbols so numeric
+   * grounding, committee verdicts, and regime memory read the same contract.
    */
-  genericMacro: GenericMacroExtensionSchema.optional(),
+  macro: MacroEvidenceSchema.optional(),
   /**
    * Per-user enrichment contributed by installed plugins (e.g. open paper
    * positions for this symbol). Applied after the cache read, never cached.
@@ -140,7 +109,6 @@ export const SymbolResearchPacketSchema = z.object({
 });
 
 export type SymbolResearchPacket = z.infer<typeof SymbolResearchPacketSchema>;
-export type XauusdExtension = z.infer<typeof XauusdExtensionSchema>;
 export type SymbolResearchEvidence = z.infer<typeof EvidenceSchema>;
 
 export const SymbolResearchInputSchema = z.object({ symbol: SymbolSchema });

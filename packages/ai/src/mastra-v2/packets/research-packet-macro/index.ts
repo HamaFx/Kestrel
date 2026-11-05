@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-// Macro evidence for the research packet: XAUUSD (FRED/Dollar/news/calendar)
-// and the M-02 generic extension for every other symbol.
+// Macro evidence for the research packet: one schema and one assembler for
+// every symbol.
 //
-//   - limits.ts           — shared windows and limits
-//   - schemas.ts          — M-02 generic macro extension schema
-//   - fetch.ts            — best-effort provider collection
-//   - generic-assemble.ts — generic extension assembly (news/calendar/COT)
-//   - xauusd-assemble.ts  — XAUUSD verified macro evidence
+//   - limits.ts  — shared windows and limits
+//   - schemas.ts — unified macro evidence contract
+//   - fetch.ts   — best-effort provider collection
+//   - assemble.ts — macro assembly (news/calendar/COT/FRED)
 
-export { GenericMacroExtensionSchema, type GenericMacroExtension } from './schemas';
-export { fetchGenericMacroData, fetchXauusdMacroData, type GenericMacroFetchResult } from './fetch';
-export { assembleGenericMacroExtension } from './generic-assemble';
-export { assembleXauusdMacroEvidence } from './xauusd-assemble';
+export { MacroEvidenceSchema, type MacroEvidence } from './schemas';
+export { fetchMacroData, type MacroFetchResult } from './fetch';
+export { assembleMacroEvidence } from './assemble';

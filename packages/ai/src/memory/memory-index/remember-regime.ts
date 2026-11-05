@@ -123,15 +123,19 @@ export function composeRegimeStateText(
     if (descriptor) lines.push(`TF ${descriptor}`);
   }
 
-  const macro = packet.xauusdExtension;
+  const macro = packet.macro;
   if (macro) {
     const macroParts: string[] = [];
-    const dxy = latestSeriesValue(macro.dollarIndex);
+    const dxy = latestSeriesValue(macro.fredSeries?.dollarIndex);
     if (dxy !== null) macroParts.push(`DXY=${formatNumber(dxy)}`);
-    const realYield = latestSeriesValue(macro.realYields);
+    const realYield = latestSeriesValue(macro.fredSeries?.realYields);
     if (realYield !== null) macroParts.push(`REALYIELD=${formatNumber(realYield)}`);
-    const breakeven = latestSeriesValue(macro.breakevenInflation);
+    const breakeven = latestSeriesValue(macro.fredSeries?.breakevenInflation);
     if (breakeven !== null) macroParts.push(`BREAKEVEN=${formatNumber(breakeven)}`);
+    const latestCot = macro.cot?.at(-1);
+    if (latestCot?.leveragedNet !== null && latestCot?.leveragedNet !== undefined) {
+      macroParts.push(`COT_LEVERAGED=${formatNumber(latestCot.leveragedNet)}`);
+    }
     if (macroParts.length > 0) lines.push(`MACRO:${macroParts.join(',')}`);
   }
 

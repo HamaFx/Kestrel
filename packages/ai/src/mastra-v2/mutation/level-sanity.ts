@@ -132,7 +132,7 @@ export function marketDistanceTolerance(symbol: Symbol, livePrice: number, tf = 
   const percentageFactor = volFactor * tfScalar;
   // Floor: keep a minimum pip-equivalent window so rounding noise never
   // produces a zero-width tolerance.
-  const pipFloor = symbol === 'XAUUSD' ? 5.0 : pipSize(symbol) * 10;
+  const pipFloor = pipSize(symbol) * 10;
   return Math.max(pipFloor, livePrice * percentageFactor);
 }
 

@@ -118,6 +118,66 @@ describe('Mastra opinion verifier numeric grounding (P0-2 & Audit v3 Phase 4)', 
   });
 });
 
+describe('Mastra opinion verifier macro grounding for non-gold packets', () => {
+  const eurusdPacket = {
+    symbol: 'EURUSD',
+    status: 'ready',
+    dataQuality: 'complete',
+    warnings: [],
+    missingData: [],
+    timeframes: [],
+    price: { tick: { bid: 1.0853, ask: 1.0855, mid: 1.0854 } },
+    macro: {
+      evidenceId: 'macro-EURUSD-test',
+      source: 'test',
+      news: [{ title: 'ECB holds its policy rate at 3.25' }],
+      events: [
+        {
+          name: 'US Nonfarm Payrolls',
+          currency: 'USD',
+          importance: 'high',
+          date: '2026-11-06T13:30:00.000Z',
+          actual: 250_000,
+          forecast: 180_000,
+          previous: 175_000,
+        },
+      ],
+      cot: [
+        {
+          reportDate: '2026-11-01T00:00:00.000Z',
+          dealerNet: -12_000,
+          assetNet: 4_000,
+          leveragedNet: -18_000,
+          otherNet: 26_000,
+        },
+      ],
+      warnings: [],
+    },
+  } as never;
+
+  it('grounds calendar, headline, and COT numbers from packet.macro', () => {
+    expect(
+      verifyMastraOpinion(
+        {
+          ...opinion,
+          reasoning:
+            'Payrolls printed 250000 versus a 180000 forecast, leveraged COT sits at -18000, and the ECB rate is 3.25.',
+        } as never,
+        eurusdPacket,
+      ),
+    ).toEqual({ ok: true, findings: [] });
+  });
+
+  it('rejects an ungrounded macro number on a non-gold packet', () => {
+    const verification = verifyMastraOpinion(
+      { ...opinion, reasoning: 'Payrolls printed 999999 against expectations.' } as never,
+      eurusdPacket,
+    );
+    expect(verification.ok).toBe(false);
+    expect(verification.findings.join(' ')).toContain('999999');
+  });
+});
+
 describe('Mastra opinion verifier temporal disclosure (P1-01)', () => {
   const degradedPacket = {
     symbol: 'XAUUSD',

@@ -19,30 +19,35 @@
 
 import { fetchNews, fetchUpcomingEvents } from '@kestrel/data';
 import { fetchObservations, fetchResonanceInputs } from '@kestrel/data/providers/fred';
-import { tryGetSymbolDefinition, type EconomicEvent, type Symbol } from '@kestrel/shared';
+import {
+  tryGetSymbolDefinition,
+  type CoTSample,
+  type EconomicEvent,
+  type NewsArticle,
+  type Symbol,
+} from '@kestrel/shared';
 
 import { listCoTSamples } from '@ai/cot/persistence';
 
-import { XAUUSD } from '../../shared/types';
 import {
   CALENDAR_WINDOW_DAYS,
   DAY_MS,
   GENERIC_MACRO_COT_WEEKS,
   GENERIC_MACRO_NEWS_LIMIT,
   MACRO_WINDOW_DAYS,
+  MACRO_NEWS_LIMIT,
 } from './limits';
 
-export interface GenericMacroFetchResult {
-  news: PromiseSettledResult<Awaited<ReturnType<typeof fetchNews>>>;
-  events: PromiseSettledResult<Awaited<ReturnType<typeof fetchUpcomingEvents>>>;
-  cot: PromiseSettledResult<Awaited<ReturnType<typeof listCoTSamples>>>;
-}
+type FredObservations = Awaited<ReturnType<typeof fetchObservations>>;
+type FredResonance = Awaited<ReturnType<typeof fetchResonanceInputs>>;
 
-export interface XauusdMacroFetchResult {
-  news: PromiseSettledResult<Awaited<ReturnType<typeof fetchNews>>>;
-  events: PromiseSettledResult<Awaited<ReturnType<typeof fetchUpcomingEvents>>>;
-  dollarIndex: PromiseSettledResult<Awaited<ReturnType<typeof fetchObservations>>>;
-  resonance: PromiseSettledResult<Awaited<ReturnType<typeof fetchResonanceInputs>>>;
+export interface MacroFetchResult {
+  news: PromiseSettledResult<NewsArticle[]>;
+  events: PromiseSettledResult<EconomicEvent[]>;
+  cot: PromiseSettledResult<CoTSample[]>;
+  /** Present only for gold and USD-quoted instruments. */
+  dollarIndex?: PromiseSettledResult<FredObservations>;
+  resonance?: PromiseSettledResult<FredResonance>;
 }
 
 function isoDate(ms: number): string {
@@ -55,55 +60,23 @@ function providerError(message: string): Error {
   return error;
 }
 
-/** Collect optional macro inputs in parallel; missing providers remain typed gaps. */
-export async function fetchXauusdMacroData(signal?: AbortSignal): Promise<XauusdMacroFetchResult> {
-  const now = Date.now();
-  const fredKey = process.env.FRED_API_KEY ?? '';
-  const start = isoDate(now - MACRO_WINDOW_DAYS * 24 * 60 * 60 * 1000);
-  const end = isoDate(now);
-
-  const [news, events, dollarIndex, resonance] = await Promise.allSettled([
-    fetchNews({
-      symbol: XAUUSD,
-      limit: 8,
-      publishedAfter: `${start}T00:00:00.000Z`,
-      ...(signal ? { signal } : {}),
-    }),
-    fetchUpcomingEvents({
-      fromMs: now,
-      toMs: now + CALENDAR_WINDOW_DAYS * 24 * 60 * 60 * 1000,
-      ...(signal ? { signal } : {}),
-    }),
-    fredKey
-      ? fetchObservations({
-          apiKey: fredKey,
-          seriesId: 'DTWEXBGS',
-          start,
-          end,
-          ...(signal ? { signal } : {}),
-        })
-      : Promise.reject(providerError('FRED_API_KEY is not configured')),
-    fredKey
-      ? fetchResonanceInputs({ apiKey: fredKey, start, end, ...(signal ? { signal } : {}) })
-      : Promise.reject(providerError('FRED_API_KEY is not configured')),
-  ]);
-
-  return { news, events, dollarIndex, resonance };
+function wantsFredSeries(symbol: Symbol): boolean {
+  const definition = tryGetSymbolDefinition(symbol);
+  return definition?.category === 'gold' || definition?.quoteCurrency === 'USD';
 }
 
 /**
- * M-02 — collect the generic macro inputs for a non-XAUUSD symbol in
- * parallel. Every source is best-effort: a rejected provider becomes a typed
- * gap in `assembleGenericMacroExtension` and never fails the packet.
- * Instruments without an economic-calendar or CFTC pipeline (crypto) resolve
- * an empty list instead of querying irrelevant providers.
+ * Collect every optional macro input for one symbol in parallel. Calendar,
+ * COT, and FRED are skipped for instruments that do not support them; the
+ * caller treats an omitted series as "not applicable", not as a gap.
  */
-export async function fetchGenericMacroData(
+export async function fetchMacroData(
   symbol: Symbol,
   signal?: AbortSignal,
-): Promise<GenericMacroFetchResult> {
+): Promise<MacroFetchResult> {
   const definition = tryGetSymbolDefinition(symbol);
   const now = Date.now();
+  const newsLimit = symbol === 'XAUUSD' ? MACRO_NEWS_LIMIT : GENERIC_MACRO_NEWS_LIMIT;
 
   const eventsPromise: Promise<EconomicEvent[]> =
     definition && !definition.capabilities.supportsEconomicCalendar
@@ -119,9 +92,30 @@ export async function fetchGenericMacroData(
       : listCoTSamples({ symbol, weeks: GENERIC_MACRO_COT_WEEKS });
 
   const [news, events, cot] = await Promise.allSettled([
-    fetchNews({ symbol, limit: GENERIC_MACRO_NEWS_LIMIT, ...(signal ? { signal } : {}) }),
+    fetchNews({ symbol, limit: newsLimit, ...(signal ? { signal } : {}) }),
     eventsPromise,
     cotPromise,
   ]);
-  return { news, events, cot };
+
+  if (!wantsFredSeries(symbol)) return { news, events, cot };
+
+  const fredKey = process.env.FRED_API_KEY ?? '';
+  const start = isoDate(now - MACRO_WINDOW_DAYS * DAY_MS);
+  const end = isoDate(now);
+  const [dollarIndex, resonance] = await Promise.allSettled([
+    fredKey
+      ? fetchObservations({
+          apiKey: fredKey,
+          seriesId: 'DTWEXBGS',
+          start,
+          end,
+          ...(signal ? { signal } : {}),
+        })
+      : Promise.reject(providerError('FRED_API_KEY is not configured')),
+    fredKey
+      ? fetchResonanceInputs({ apiKey: fredKey, start, end, ...(signal ? { signal } : {}) })
+      : Promise.reject(providerError('FRED_API_KEY is not configured')),
+  ]);
+
+  return { news, events, cot, dollarIndex, resonance };
 }

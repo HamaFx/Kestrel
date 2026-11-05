@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { SymbolSchema } from '@kestrel/shared';
 import { z } from 'zod';
 
 const ScenarioSchema = z.object({
@@ -26,7 +27,7 @@ const ScenarioSchema = z.object({
 });
 
 const ReportSchema = z.object({
-  symbol: z.literal('XAUUSD'),
+  symbol: SymbolSchema,
   asOf: z.iso.datetime(),
   dataQuality: z.enum(['complete', 'partial', 'degraded']),
   bias: z.enum(['bullish', 'bearish', 'neutral', 'unclear']),

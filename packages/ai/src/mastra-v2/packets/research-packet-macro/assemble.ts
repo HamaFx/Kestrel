@@ -14,45 +14,57 @@
  * limitations under the License.
  */
 
-// M-02 — assemble the generic macro extension for non-XAUUSD symbols.
+// Assemble one macro evidence item for any research-packet symbol.
 
 import { tryGetSymbolDefinition, type Symbol } from '@kestrel/shared';
 
 import { createEvidenceId } from '../evidence';
 import { quarantineExternalText } from '../external-content';
-import type { GenericMacroFetchResult } from './fetch';
+import type { MacroFetchResult } from './fetch';
 import {
   EXTERNAL_TITLE_MAX_LENGTH,
   GENERIC_MACRO_COT_WEEKS,
   GENERIC_MACRO_EVENT_LIMIT,
   GENERIC_MACRO_NEWS_LIMIT,
+  MACRO_EVENT_LIMIT,
+  MACRO_NEWS_LIMIT,
 } from './limits';
-import { GenericMacroExtensionSchema, type GenericMacroExtension } from './schemas';
+import {
+  MacroEvidenceSchema,
+  type MacroCotRow,
+  type MacroEvent,
+  type MacroEvidence,
+  type MacroNewsItem,
+} from './schemas';
 
 function netOf(long: number | null, short: number | null): number | null {
   return long === null || short === null ? null : long - short;
 }
 
+function latestSeries(
+  series: { date: string; value: number }[] | undefined,
+): { asOf: string; value: number }[] {
+  return (series ?? []).slice(-10).map((point) => ({ asOf: point.date, value: point.value }));
+}
+
 /**
- * M-02 — turn the generic macro providers into one bounded, quarantined
- * extension. Mirrors the XAUUSD macro assembly rules: external title text is
- * quarantined before parsing (instruction-like items are skipped and surface
- * as warnings), and a completely empty fetch returns a typed gap instead of
- * a fake extension.
- *
- * The returned `warnings` are consumed by the packet only when `extension` is
- * null (the "macro unavailable" disclosure); with an extension present the
- * partial-provider warnings travel inside the extension, exactly like the
- * XAUUSD path.
+ * Turn the best-effort provider settle results into one bounded, quarantined
+ * macro item. External title text is untrusted: instruction-like items are
+ * skipped and surface as warnings. A completely empty fetch returns a typed
+ * gap instead of a fake item.
  */
-export function assembleGenericMacroExtension(
-  symbol: Symbol,
-  fetched: GenericMacroFetchResult,
-): { extension: GenericMacroExtension | null; warnings: string[] } {
-  const warnings: string[] = [];
+export function assembleMacroEvidence(args: {
+  symbol: Symbol;
+  packetId: string;
+  generatedAt: string;
+  fetched: MacroFetchResult;
+}): { macro: MacroEvidence | null; warnings: string[] } {
+  const { symbol, generatedAt, fetched } = args;
   const definition = tryGetSymbolDefinition(symbol);
   const supportsEconomicCalendar = definition?.capabilities.supportsEconomicCalendar !== false;
   const supportsCftc = definition?.capabilities.supportsCftc === true;
+  const isGold = definition?.category === 'gold';
+  const warnings: string[] = [];
 
   const news = fetched.news.status === 'fulfilled' ? fetched.news.value : [];
   const events = fetched.events.status === 'fulfilled' ? fetched.events.value : [];
@@ -66,12 +78,17 @@ export function assembleGenericMacroExtension(
   if (supportsCftc && fetched.cot.status === 'rejected') {
     partialGaps.push(`COT positioning for ${symbol} is unavailable.`);
   }
+  if (fetched.dollarIndex?.status === 'rejected') {
+    partialGaps.push('Dollar-strength data is unavailable.');
+  }
+  if (fetched.resonance?.status === 'rejected') {
+    partialGaps.push('US real-yield and inflation-expectation data is unavailable.');
+  }
 
-  // External news text is untrusted data; quarantine before it can reach the
-  // prompt as evidence (audit plan §1.11 / P1-8 parity with the XAUUSD path).
-  const headlines: GenericMacroExtension['news'] = [];
+  const newsLimit = isGold ? MACRO_NEWS_LIMIT : GENERIC_MACRO_NEWS_LIMIT;
+  const headlines: MacroNewsItem[] = [];
   let quarantinedNewsCount = 0;
-  for (const item of news.slice(0, GENERIC_MACRO_NEWS_LIMIT)) {
+  for (const item of news.slice(0, newsLimit)) {
     const title = quarantineExternalText(item.title, EXTERNAL_TITLE_MAX_LENGTH);
     if (title.quarantined) {
       quarantinedNewsCount += 1;
@@ -91,16 +108,19 @@ export function assembleGenericMacroExtension(
     );
   }
 
-  // The next high-impact releases for the symbol's own currencies — the
-  // fundamental/risk desks reason about this instrument, not the G8 board.
   const currencies = new Set(definition?.currencies ?? []);
-  const now = Date.now();
-  const upcoming: GenericMacroExtension['events'] = [];
+  const now = Date.parse(generatedAt);
+  const eventLimit = isGold ? MACRO_EVENT_LIMIT : GENERIC_MACRO_EVENT_LIMIT;
+  const upcoming: MacroEvent[] = [];
+  let quarantinedEventCount = 0;
   for (const event of [...events].sort((a, b) => a.date - b.date)) {
     if (event.date < now) continue;
-    if (event.currency !== null && !currencies.has(event.currency)) continue;
+    if (event.currency !== null && currencies.size > 0 && !currencies.has(event.currency)) continue;
     const title = quarantineExternalText(event.title, EXTERNAL_TITLE_MAX_LENGTH);
-    if (title.quarantined) continue;
+    if (title.quarantined) {
+      quarantinedEventCount += 1;
+      continue;
+    }
     upcoming.push({
       name: title.text,
       currency: event.currency,
@@ -110,10 +130,15 @@ export function assembleGenericMacroExtension(
       forecast: event.forecast ?? null,
       previous: event.previous ?? null,
     });
-    if (upcoming.length >= GENERIC_MACRO_EVENT_LIMIT) break;
+    if (upcoming.length >= eventLimit) break;
+  }
+  if (quarantinedEventCount > 0) {
+    warnings.push(
+      `${quarantinedEventCount} economic calendar item(s) were skipped because instruction-like text was quarantined from the title.`,
+    );
   }
 
-  const cot: GenericMacroExtension['cot'] = supportsCftc
+  const cot: MacroCotRow[] | undefined = supportsCftc
     ? cotRows.slice(-GENERIC_MACRO_COT_WEEKS).map((row) => ({
         reportDate: new Date(row.reportDate).toISOString(),
         dealerNet: netOf(row.dealerLong, row.dealerShort),
@@ -123,31 +148,52 @@ export function assembleGenericMacroExtension(
       }))
     : undefined;
 
+  const dollarIndex =
+    fetched.dollarIndex?.status === 'fulfilled'
+      ? latestSeries(fetched.dollarIndex.value)
+      : undefined;
+  const resonance = fetched.resonance?.status === 'fulfilled' ? fetched.resonance.value : undefined;
+  const realYields = latestSeries(resonance?.realYields);
+  const breakevenInflation = latestSeries(resonance?.breakevenInflation);
+  const hasFredSeries =
+    (dollarIndex?.length ?? 0) > 0 || realYields.length > 0 || breakevenInflation.length > 0;
+  const fredSeries = hasFredSeries
+    ? { dollarIndex: dollarIndex ?? [], realYields, breakevenInflation }
+    : undefined;
+
   const hasAnyData =
-    headlines.length > 0 || upcoming.length > 0 || (cot !== undefined && cot.length > 0);
+    headlines.length > 0 ||
+    upcoming.length > 0 ||
+    (cot !== undefined && cot.length > 0) ||
+    fredSeries !== undefined;
   if (!hasAnyData) {
     return {
-      extension: null,
+      macro: null,
       warnings: [
-        `Macro unavailable: news, calendar, and COT providers returned no data for ${symbol}.`,
+        `Macro unavailable: news, calendar, COT, and rate data providers returned no data for ${symbol}.`,
         ...partialGaps,
       ],
     };
   }
-  const extensionWarnings = [...warnings, ...partialGaps];
+
+  const macroWarnings = [...warnings, ...partialGaps];
   if (partialGaps.length > 0) {
-    extensionWarnings.push(
-      'Generic macro context is partial because one or more providers were unavailable.',
-    );
+    macroWarnings.push('Macro context is partial because one or more providers were unavailable.');
   }
 
-  const extension = GenericMacroExtensionSchema.parse({
+  const sources = ['finnhub', 'marketaux'];
+  if (supportsEconomicCalendar) sources.push('biquote-calendar');
+  if (supportsCftc) sources.push('cftc');
+  if (fredSeries) sources.push('fred');
+
+  const macro = MacroEvidenceSchema.parse({
     evidenceId: createEvidenceId('macro', symbol),
-    source: 'finnhub/marketaux/biquote/biquote-calendar/cftc',
+    source: sources.join('/'),
     news: headlines,
     events: upcoming,
     ...(cot && cot.length > 0 ? { cot } : {}),
-    warnings: extensionWarnings,
+    ...(fredSeries ? { fredSeries } : {}),
+    warnings: macroWarnings,
   });
-  return { extension, warnings: extensionWarnings };
+  return { macro, warnings: macroWarnings };
 }
