@@ -22,6 +22,7 @@
 
 import { logErrorContext } from '@kestrel/shared/logger';
 
+import { sendResendEmail } from './adapters';
 import { EXTERNAL_DELIVERY_TIMEOUT_MS, TELEGRAM_API } from './context';
 import { escapeMd } from './render';
 
@@ -40,32 +41,14 @@ export async function sendDirectNotification(
   let emailSent = false;
   let telegramSent = false;
 
-  if (
-    channels.includes('email') &&
-    env.RESEND_API_KEY &&
-    env.ALERT_FROM_EMAIL &&
-    env.ALERT_TO_EMAIL
-  ) {
-    try {
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          authorization: `Bearer ${env.RESEND_API_KEY}`,
-        },
-        body: JSON.stringify({
-          from: env.ALERT_FROM_EMAIL,
-          to: [env.ALERT_TO_EMAIL],
-          subject,
-          text: body,
-        }),
-        // R10 — bound both direct sends; this path has no evaluator budget.
-        signal: AbortSignal.timeout(EXTERNAL_DELIVERY_TIMEOUT_MS),
-      });
-      emailSent = res.ok;
-    } catch (err) {
-      logErrorContext(err, 'alerts/direct_email_failed', {}, 'email');
-    }
+  if (channels.includes('email')) {
+    const email = await sendResendEmail({
+      subject,
+      text: body,
+      env,
+      timeoutMs: EXTERNAL_DELIVERY_TIMEOUT_MS,
+    });
+    emailSent = email.ok;
   }
 
   if (channels.includes('telegram') && env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID) {

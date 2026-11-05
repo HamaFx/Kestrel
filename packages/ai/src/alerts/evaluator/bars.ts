@@ -20,7 +20,7 @@
 
 import { msPerTimeframe, type Candle, type Timeframe } from '@kestrel/shared';
 
-export function lastClosedBar(candles: Candle[], tf: Timeframe): Candle | null {
+export function lastClosedBar(candles: readonly Candle[], tf: Timeframe): Candle | null {
   // A bar is closed iff its open time + timeframe duration is in the past
   // (i.e. the next bar has already opened). The previous implementation
   // looked for bars whose OPEN time was ≥ 1 timeframe ago, which returned

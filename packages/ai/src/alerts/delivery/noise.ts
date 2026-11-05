@@ -33,6 +33,27 @@ import { ALERT_NOISE_SEVERITY, alog } from './context';
 import { renderEmailBody } from './render';
 
 /**
+ * Process-local noise state, one bucket per user. A fresh instance per call
+ * (the previous behaviour) reset dedup/cooldown memory on every tick, so an
+ * identical alert could never be suppressed.
+ */
+const noiseStates = new Map<string, InMemoryNoiseState>();
+
+function noiseStateFor(userId: string): InMemoryNoiseState {
+  let state = noiseStates.get(userId);
+  if (!state) {
+    state = new InMemoryNoiseState();
+    noiseStates.set(userId, state);
+  }
+  return state;
+}
+
+/** Clear process-local noise buckets between tests. */
+export function resetAlertNoiseStateForTests(): void {
+  noiseStates.clear();
+}
+
+/**
  * Noise-control gate for one alert delivery (audit plan §1.11 / P1-16).
  *
  * Returns the `evaluateNoise` decision plus a deferred `record()` that
@@ -50,7 +71,7 @@ export async function evaluateAlertNoise(
   const content = renderEmailBody(alert, reading);
   try {
     const config = await getNoiseConfig(alert.userId);
-    const state = new InMemoryNoiseState();
+    const state = noiseStateFor(alert.userId);
     const decision = await evaluateNoise(content, 'alert', ALERT_NOISE_SEVERITY, config, {
       hasSeen: (dedupKey, ttlSeconds) => state.hasSeen(dedupKey, ttlSeconds),
       inCooldown: (cooldownKey, cooldownSeconds) => state.inCooldown(cooldownKey, cooldownSeconds),

@@ -16,9 +16,9 @@
 
 // PF-08 — Specification pattern for alert rule evaluation.
 //
-// Replaces inline condition logic (decideMatch / decideCross) with
-// composable specification objects. Adding a new alert condition type
-// means adding a new spec class — the evaluator code stays unchanged.
+// Composable specification objects replace inline condition logic. Adding a
+// new alert condition type means adding a new spec class — the evaluator code
+// stays unchanged.
 //
 // Usage:
 //   const spec = AlertSpec.fromRule(rule);
@@ -113,8 +113,6 @@ export class CrossingSpec implements AlertSpec {
   }
 }
 
-// ── Composite specs ────────────────────────────────────────────────────────
-
 // ── Factory ────────────────────────────────────────────────────────────────
 
 /**
@@ -132,16 +130,6 @@ export class CrossingSpec implements AlertSpec {
  * }
  * ```
  */
-// ── Backward-compatible re-exports ──────────────────────────────────────────
-
-/**
- * PF-08 — Legacy function. Use `new LevelSpec(direction, level)` instead.
- * Kept for backward compatibility with tests and external consumers.
- */
-export function decideMatch(direction: 'above' | 'below', value: number, level: number): boolean {
-  return new LevelSpec(direction, level).isSatisfiedBy({ value, source: 'compat' });
-}
-
 export function specFromRule(rule: AlertRule): AlertSpec {
   return alertRuleRegistry.get(rule.type).specFactory(rule);
 }

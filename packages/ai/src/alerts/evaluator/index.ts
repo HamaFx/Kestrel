@@ -20,14 +20,10 @@
 // former module surface: the spec-pattern decision helpers, indicator-spec
 // parsing, closed-bar selection, and the cron orchestrator.
 //
-// PF-08 — Alert rule specification evaluation. The decision logic
-// (decideMatch / decideCross) lives in the specification pattern in
-// `../spec`; the `specFromRule()` factory converts a persisted AlertRule
-// into a composable AlertSpec, and the spec decides whether the reading
-// satisfies the trigger. The legacy `decideMatch` and `decideCross`
-// exports are re-exported for backward compatibility.
+// PF-08 — Alert rule specification evaluation: `specFromRule()` converts a
+// persisted AlertRule into a composable AlertSpec, and the spec decides whether
+// the reading satisfies the trigger.
 
-export { decideMatch } from '../spec';
 export type { RuleReading } from '../spec';
 export { describeRule } from '../rule-registry';
 export type { EvaluatorEnv } from './env';

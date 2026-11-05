@@ -15,15 +15,15 @@
  */
 
 // Audit plan §1.11 — alert delivery noise control (P1-16) and channel
-// iteration (P1-17). External providers are mocked; noise state is a
-// controllable in-memory stub standing in for InMemoryNoiseState.
+// iteration (P1-17). External providers are mocked; the noise state is the
+// real process-local implementation, reset between tests.
 
 import { DEFAULT_NOISE_CONFIG, metrics, type Alert, type NoiseConfig } from '@kestrel/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { deliverAlert } from '../src/alerts/delivery';
+import { resetAlertNoiseStateForTests } from '../src/alerts/delivery/noise';
 import { markFiredForAlert } from '../src/alerts/persistence';
-import type * as NoiseControl from '../src/notifications/noise-control';
 import { getNoiseConfig } from '../src/notifications/noise-state';
 
 const pluginMocks = vi.hoisted(() => ({
@@ -31,14 +31,6 @@ const pluginMocks = vi.hoisted(() => ({
   getAlertChannel: vi.fn((id: string) =>
     id === 'telegram-bot' ? { pluginId: 'telegram-bot', deliver: pluginMocks.deliver } : undefined,
   ),
-}));
-
-const noiseMocks = vi.hoisted(() => ({
-  hasSeen: vi.fn(async (_dedupKey: string, _ttlSeconds: number): Promise<boolean> => false),
-  inCooldown: vi.fn(
-    async (_cooldownKey: string, _cooldownSeconds: number): Promise<boolean> => false,
-  ),
-  record: vi.fn(async (_dedupKey: string, _cooldownKey: string): Promise<void> => undefined),
 }));
 
 vi.mock('../src/alerts/persistence', () => ({
@@ -76,18 +68,6 @@ vi.mock('../src/notifications/noise-state', () => ({
   getNoiseConfig: vi.fn(async (): Promise<NoiseConfig> => ({ ...DEFAULT_NOISE_CONFIG })),
 }));
 
-vi.mock('../src/notifications/noise-control', async () => {
-  const actual = await vi.importActual<typeof NoiseControl>('../src/notifications/noise-control');
-  return {
-    ...actual,
-    InMemoryNoiseState: class InMemoryNoiseState {
-      hasSeen = noiseMocks.hasSeen;
-      inCooldown = noiseMocks.inCooldown;
-      record = noiseMocks.record;
-    },
-  };
-});
-
 const fetchMock = vi.fn(async () => new Response('{"id":"resp-1"}', { status: 200 }));
 
 function makeAlert(channels: Alert['channels']): Alert {
@@ -121,12 +101,7 @@ describe('deliverAlert — noise control (audit plan §1.11 / P1-16)', () => {
     vi.stubGlobal('fetch', fetchMock);
     fetchMock.mockClear();
     fetchMock.mockResolvedValue(new Response('{"id":"resp-1"}', { status: 200 }));
-    noiseMocks.hasSeen.mockClear();
-    noiseMocks.hasSeen.mockResolvedValue(false);
-    noiseMocks.inCooldown.mockClear();
-    noiseMocks.inCooldown.mockResolvedValue(false);
-    noiseMocks.record.mockClear();
-    noiseMocks.record.mockResolvedValue(undefined);
+    resetAlertNoiseStateForTests();
     vi.mocked(getNoiseConfig).mockClear();
     vi.mocked(getNoiseConfig).mockResolvedValue({ ...DEFAULT_NOISE_CONFIG });
     vi.mocked(markFiredForAlert).mockClear();
@@ -138,21 +113,26 @@ describe('deliverAlert — noise control (audit plan §1.11 / P1-16)', () => {
     vi.unstubAllGlobals();
   });
 
-  it('suppresses duplicate content before any provider call', async () => {
-    noiseMocks.hasSeen.mockResolvedValue(true);
+  it('suppresses duplicate content before the second provider call', async () => {
+    const first = await deliverAlert({
+      alert: makeAlert(['email']),
+      reading: { value: 2_450, source: 'test' },
+      env: configuredEnv(),
+    });
+    expect(first.ok).toBe(true);
 
-    const result = await deliverAlert({
+    const second = await deliverAlert({
       alert: makeAlert(['email']),
       reading: { value: 2_450, source: 'test' },
       env: configuredEnv(),
     });
 
-    expect(result.ok).toBe(false);
-    expect(result.channel).toBe('noise-control');
-    expect(result.message).toContain('duplicate');
-    // No provider call, no fired transition — the alert stays active.
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(markFiredForAlert).not.toHaveBeenCalled();
+    expect(second.ok).toBe(false);
+    expect(second.channel).toBe('noise-control');
+    expect(second.message).toContain('duplicate');
+    // Only the confirmed delivery touched the provider or markFired.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(markFiredForAlert).toHaveBeenCalledTimes(1);
     expect(metrics.snapshot().counters['alert_noise_suppressed_total{reason=duplicate}']).toBe(1);
   });
 
@@ -176,35 +156,24 @@ describe('deliverAlert — noise control (audit plan §1.11 / P1-16)', () => {
     expect(metrics.snapshot().counters['alert_noise_suppressed_total{reason=quiet_hours}']).toBe(1);
   });
 
-  it('records dedup/cooldown state only after a confirmed delivery', async () => {
-    const result = await deliverAlert({
+  it('does not suppress a retry after a failed delivery', async () => {
+    fetchMock.mockResolvedValueOnce(new Response('boom', { status: 500 }));
+
+    const failed = await deliverAlert({
       alert: makeAlert(['email']),
       reading: { value: 2_450, source: 'test' },
       env: configuredEnv(),
     });
+    expect(failed.ok).toBe(false);
+    expect(failed.message).toContain('resend HTTP 500');
 
-    expect(result.ok).toBe(true);
-    expect(result.channel).toBe('email');
-    expect(markFiredForAlert).toHaveBeenCalledTimes(1);
-    expect(noiseMocks.record).toHaveBeenCalledTimes(1);
-    const [dedupKey, cooldownKey] = noiseMocks.record.mock.calls[0]!;
-    expect(typeof dedupKey).toBe('string');
-    expect(dedupKey.length).toBeGreaterThan(0);
-    expect(cooldownKey).toBe('alert');
-  });
-
-  it('does not record noise state when delivery fails, so retries are not suppressed', async () => {
-    fetchMock.mockResolvedValue(new Response('boom', { status: 500 }));
-
-    const result = await deliverAlert({
+    const retried = await deliverAlert({
       alert: makeAlert(['email']),
       reading: { value: 2_450, source: 'test' },
       env: configuredEnv(),
     });
-
-    expect(result.ok).toBe(false);
-    expect(result.message).toContain('resend HTTP 500');
-    expect(noiseMocks.record).not.toHaveBeenCalled();
+    expect(retried.ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('fails open and delivers when noise state cannot be read', async () => {
@@ -227,12 +196,7 @@ describe('deliverAlert — channel iteration (audit plan §1.11 / P1-17)', () =>
     vi.stubGlobal('fetch', fetchMock);
     fetchMock.mockClear();
     fetchMock.mockResolvedValue(new Response('{"id":"resp-1"}', { status: 200 }));
-    noiseMocks.hasSeen.mockReset();
-    noiseMocks.hasSeen.mockResolvedValue(false);
-    noiseMocks.inCooldown.mockReset();
-    noiseMocks.inCooldown.mockResolvedValue(false);
-    noiseMocks.record.mockReset();
-    noiseMocks.record.mockResolvedValue(undefined);
+    resetAlertNoiseStateForTests();
     vi.mocked(getNoiseConfig).mockClear();
     vi.mocked(getNoiseConfig).mockResolvedValue({ ...DEFAULT_NOISE_CONFIG });
     vi.mocked(markFiredForAlert).mockClear();

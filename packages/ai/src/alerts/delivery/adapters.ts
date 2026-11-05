@@ -42,24 +42,32 @@ import { alog } from './context';
 import { renderEmailBody } from './render';
 import type { DeliverArgs } from './types';
 
-export async function deliverEmail({
-  alert,
-  reading,
-  env,
-  signal,
-}: DeliverArgs): Promise<AlertChannelDeliveryResult> {
+export interface ResendEmailEnv {
+  RESEND_API_KEY?: string | undefined;
+  ALERT_FROM_EMAIL?: string | undefined;
+  ALERT_TO_EMAIL?: string | undefined;
+}
+
+/**
+ * Single Resend HTTP call used by both alert delivery and one-off direct
+ * notifications. Returns `ok: false` on a missing configuration, a network
+ * failure, or a non-2xx status; callers decide whether that is retryable.
+ */
+export async function sendResendEmail(args: {
+  subject: string;
+  text: string;
+  env: ResendEmailEnv;
+  signal?: AbortSignal | undefined;
+  alertId?: string | undefined;
+  timeoutMs?: number | undefined;
+}): Promise<{ ok: boolean; message?: string }> {
+  const { subject, text, env, signal, alertId, timeoutMs } = args;
   if (!env.RESEND_API_KEY || !env.ALERT_FROM_EMAIL || !env.ALERT_TO_EMAIL) {
-    // No Resend call happens, so delivery is not confirmed and the alert
-    // stays active for the next cron tick.
-    alog.warn('email channel not configured (RESEND_*); skipping');
     return {
       ok: false,
       message: 'not configured (RESEND_API_KEY / ALERT_FROM_EMAIL / ALERT_TO_EMAIL missing)',
     };
   }
-
-  const subject = `Kestrel · ${describeRule(alert.rule)}`;
-  const body = renderEmailBody(alert, reading);
 
   let res: Response;
   try {
@@ -73,39 +81,60 @@ export async function deliverEmail({
         from: env.ALERT_FROM_EMAIL,
         to: [env.ALERT_TO_EMAIL],
         subject,
-        text: body,
+        text,
       }),
       // R10 — explicit HTTP timeout (and the run signal when the evaluator
       // supplied one) so a stalled Resend connection fails fast.
-      signal: budgetSignal(DELIVERY_ATTEMPT_TIMEOUT_MS, signal),
+      signal: budgetSignal(timeoutMs ?? DELIVERY_ATTEMPT_TIMEOUT_MS, signal),
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'fetch failed';
-    logErrorContext(err, 'alerts/resend_fetch_failed', { alertId: alert.id }, 'email');
-    return {
-      ok: false,
-      message: msg,
-    };
+    logErrorContext(err, 'alerts/resend_fetch_failed', { alertId }, 'email');
+    return { ok: false, message: msg };
   }
 
   if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    const truncated = text.slice(0, 200);
+    const body = await res.text().catch(() => '');
+    const truncated = body.slice(0, 200);
     // Log here so the failure is visible in Vercel function logs even though
     // the evaluator only surfaces the DeliveryResult upward.
     logErrorContext(
       new Error(`resend HTTP ${res.status}: ${truncated}`),
       'alerts/resend_http_error',
-      { alertId: alert.id, status: res.status },
+      { alertId, status: res.status },
       'email',
     );
-    return {
-      ok: false,
-      message: `resend HTTP ${res.status}: ${truncated}`,
-    };
+    return { ok: false, message: `resend HTTP ${res.status}: ${truncated}` };
   }
 
   return { ok: true };
+}
+
+export async function deliverEmail({
+  alert,
+  reading,
+  env,
+  signal,
+  attemptTimeoutMs,
+}: DeliverArgs): Promise<AlertChannelDeliveryResult> {
+  if (!env.RESEND_API_KEY || !env.ALERT_FROM_EMAIL || !env.ALERT_TO_EMAIL) {
+    // No Resend call happens, so delivery is not confirmed and the alert
+    // stays active for the next cron tick.
+    alog.warn('email channel not configured (RESEND_*); skipping');
+    return {
+      ok: false,
+      message: 'not configured (RESEND_API_KEY / ALERT_FROM_EMAIL / ALERT_TO_EMAIL missing)',
+    };
+  }
+
+  return sendResendEmail({
+    subject: `Kestrel · ${describeRule(alert.rule)}`,
+    text: renderEmailBody(alert, reading),
+    env,
+    ...(signal ? { signal } : {}),
+    ...(attemptTimeoutMs !== undefined ? { timeoutMs: attemptTimeoutMs } : {}),
+    alertId: alert.id,
+  });
 }
 
 // ---------------------------------------------------------------------------

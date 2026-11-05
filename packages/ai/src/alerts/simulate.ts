@@ -43,6 +43,7 @@ import type { AlertRule, Candle } from '@kestrel/shared';
 
 import { indicatorScalar } from './evaluator/indicator-value';
 import { parseIndicatorSpec } from './evaluator/indicator-spec';
+import { specFromRule } from './spec';
 
 export interface SimCandle {
   /** Candle open time, ms since epoch. */
@@ -78,22 +79,16 @@ export function simulateAlert(
 ): SimResult | null {
   const maxFires = opts.maxFires ?? 50;
   const fires: SimFire[] = [];
+  const spec = specFromRule(rule);
 
-  if (rule.type === 'priceCross') {
+  if (rule.type !== 'indicatorCross') {
+    // `priceCross` tests the candle band that straddles the level; candle
+    // close tests the close. Both use the same spec the live evaluator uses.
     for (const c of candles) {
-      const fired = rule.direction === 'above' ? c.h >= rule.level : c.l <= rule.level;
-      if (fired) {
-        fires.push({ at: c.t, price: rule.level });
-        if (fires.length >= maxFires) break;
-      }
-    }
-  } else if (rule.type === 'candleClose') {
-    for (const c of candles) {
-      const fired = rule.direction === 'above' ? c.c >= rule.level : c.c <= rule.level;
-      if (fired) {
-        fires.push({ at: c.t, price: c.c });
-        if (fires.length >= maxFires) break;
-      }
+      const value = rule.type === 'priceCross' ? (rule.direction === 'above' ? c.h : c.l) : c.c;
+      if (!spec.isSatisfiedBy({ value, source: 'simulation' })) continue;
+      fires.push({ at: c.t, price: rule.type === 'priceCross' ? rule.level : c.c });
+      if (fires.length >= maxFires) break;
     }
   } else {
     const parsed = parseIndicatorSpec(rule.indicator);
@@ -121,15 +116,12 @@ export function simulateAlert(
     let previous: number | null = null;
     for (let i = 0; i < series.length; i += 1) {
       const current = indicatorScalar(series[i])?.value ?? null;
-      if (previous !== null && current !== null) {
-        const crossed =
-          rule.direction === 'above'
-            ? previous < rule.level && current >= rule.level
-            : previous > rule.level && current <= rule.level;
-        if (crossed) {
-          fires.push({ at: candles[i]!.t, price: current });
-          if (fires.length >= maxFires) break;
-        }
+      if (
+        current !== null &&
+        spec.isSatisfiedBy({ value: current, source: 'simulation' }, { previousValue: previous })
+      ) {
+        fires.push({ at: candles[i]!.t, price: current });
+        if (fires.length >= maxFires) break;
       }
       if (current !== null) previous = current;
     }

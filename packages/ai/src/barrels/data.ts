@@ -74,7 +74,6 @@ export {
 } from '../alerts/persistence';
 export {
   evaluateAlerts,
-  decideMatch,
   describeRule,
   type EvaluatorEnv,
   type EvaluationResult,

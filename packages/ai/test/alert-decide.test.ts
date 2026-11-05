@@ -20,18 +20,21 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { decideMatch, describeRule } from '../src/alerts/evaluator';
+import { describeRule } from '../src/alerts/evaluator';
+import { LevelSpec } from '../src/alerts/spec';
 
-describe('decideMatch', () => {
+describe('LevelSpec', () => {
   it('above: fires at-or-above level', () => {
-    expect(decideMatch('above', 100, 100)).toBe(true);
-    expect(decideMatch('above', 101, 100)).toBe(true);
-    expect(decideMatch('above', 99.999, 100)).toBe(false);
+    const spec = new LevelSpec('above', 100);
+    expect(spec.isSatisfiedBy({ value: 100, source: 'test' })).toBe(true);
+    expect(spec.isSatisfiedBy({ value: 101, source: 'test' })).toBe(true);
+    expect(spec.isSatisfiedBy({ value: 99.999, source: 'test' })).toBe(false);
   });
   it('below: fires at-or-below level', () => {
-    expect(decideMatch('below', 100, 100)).toBe(true);
-    expect(decideMatch('below', 99, 100)).toBe(true);
-    expect(decideMatch('below', 100.001, 100)).toBe(false);
+    const spec = new LevelSpec('below', 100);
+    expect(spec.isSatisfiedBy({ value: 100, source: 'test' })).toBe(true);
+    expect(spec.isSatisfiedBy({ value: 99, source: 'test' })).toBe(true);
+    expect(spec.isSatisfiedBy({ value: 100.001, source: 'test' })).toBe(false);
   });
 });
 

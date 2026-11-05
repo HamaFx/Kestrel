@@ -42,7 +42,13 @@ interface NotificationPreferencesWithNoise {
   [key: string]: unknown;
 }
 
-export async function getNoiseConfig(userId: string): Promise<NoiseConfig> {
+type NotificationSubKey = 'noiseConfig' | 'routeConfig';
+
+async function readNotificationSubKey<T extends object>(
+  userId: string,
+  key: NotificationSubKey,
+  defaults: T,
+): Promise<T> {
   const db = getDb();
   const tenantId = await requireTenantIdForUser(userId, db);
   const rows = await db
@@ -52,97 +58,62 @@ export async function getNoiseConfig(userId: string): Promise<NoiseConfig> {
     .limit(1);
 
   const prefs = rows[0]?.notificationPreferences as NotificationPreferencesWithNoise | null;
-  if (prefs?.noiseConfig) {
-    return { ...DEFAULT_NOISE_CONFIG, ...prefs.noiseConfig };
-  }
-  return DEFAULT_NOISE_CONFIG;
+  const stored = prefs?.[key] as T | undefined;
+  return stored ? { ...defaults, ...stored } : defaults;
+}
+
+async function writeNotificationSubKey<T extends object>(
+  userId: string,
+  key: NotificationSubKey,
+  defaults: T,
+  config: Partial<T>,
+): Promise<T> {
+  const db = getDb();
+  const tenantId = await requireTenantIdForUser(userId, db);
+  const rows = await db
+    .select({ notificationPreferences: schema.userSettings.notificationPreferences })
+    .from(schema.userSettings)
+    .where(and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)))
+    .limit(1);
+
+  const existing = (rows[0]?.notificationPreferences ?? {}) as NotificationPreferencesWithNoise;
+  const stored = existing[key] as T | undefined;
+  const merged = { ...defaults, ...stored, ...config };
+  const updated: NotificationPreferencesWithNoise = { ...existing, [key]: merged };
+
+  await db
+    .insert(schema.userSettings)
+    .values({
+      userId,
+      tenantId,
+      notificationPreferences: updated,
+    })
+    .onConflictDoUpdate({
+      target: schema.userSettings.userId,
+      set: { tenantId, notificationPreferences: updated },
+    });
+
+  return merged;
+}
+
+export async function getNoiseConfig(userId: string): Promise<NoiseConfig> {
+  return readNotificationSubKey(userId, 'noiseConfig', DEFAULT_NOISE_CONFIG);
 }
 
 export async function saveNoiseConfig(
   userId: string,
   config: Partial<NoiseConfig>,
 ): Promise<NoiseConfig> {
-  const current = await getNoiseConfig(userId);
-  const merged = { ...current, ...config };
-
-  const db = getDb();
-  const tenantId = await requireTenantIdForUser(userId, db);
-  // Fetch current prefs, merge noise config, save back
-  const rows = await db
-    .select({ notificationPreferences: schema.userSettings.notificationPreferences })
-    .from(schema.userSettings)
-    .where(and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)))
-    .limit(1);
-
-  const existing = (rows[0]?.notificationPreferences ?? {}) as NotificationPreferencesWithNoise;
-  const updated: NotificationPreferencesWithNoise = {
-    ...existing,
-    noiseConfig: merged,
-  };
-
-  await db
-    .insert(schema.userSettings)
-    .values({
-      userId,
-      tenantId,
-      notificationPreferences: updated,
-    })
-    .onConflictDoUpdate({
-      target: schema.userSettings.userId,
-      set: { tenantId, notificationPreferences: updated },
-    });
-
-  return merged;
+  return writeNotificationSubKey(userId, 'noiseConfig', DEFAULT_NOISE_CONFIG, config);
 }
 
 export async function getRouteConfig(userId: string): Promise<RouteConfig> {
-  const db = getDb();
-  const tenantId = await requireTenantIdForUser(userId, db);
-  const rows = await db
-    .select({ notificationPreferences: schema.userSettings.notificationPreferences })
-    .from(schema.userSettings)
-    .where(and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)))
-    .limit(1);
-
-  const prefs = rows[0]?.notificationPreferences as NotificationPreferencesWithNoise | null;
-  if (prefs?.routeConfig) {
-    return { ...DEFAULT_ROUTE_CONFIG, ...prefs.routeConfig };
-  }
-  return DEFAULT_ROUTE_CONFIG;
+  return readNotificationSubKey(userId, 'routeConfig', DEFAULT_ROUTE_CONFIG);
 }
 
 export async function saveRouteConfig(
   userId: string,
   config: Partial<RouteConfig>,
 ): Promise<RouteConfig> {
-  const current = await getRouteConfig(userId);
-  const merged = { ...current, ...config };
-
-  const db = getDb();
-  const tenantId = await requireTenantIdForUser(userId, db);
-  const rows = await db
-    .select({ notificationPreferences: schema.userSettings.notificationPreferences })
-    .from(schema.userSettings)
-    .where(and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.tenantId, tenantId)))
-    .limit(1);
-
-  const existing = (rows[0]?.notificationPreferences ?? {}) as NotificationPreferencesWithNoise;
-  const updated: NotificationPreferencesWithNoise = {
-    ...existing,
-    routeConfig: merged,
-  };
-
-  await db
-    .insert(schema.userSettings)
-    .values({
-      userId,
-      tenantId,
-      notificationPreferences: updated,
-    })
-    .onConflictDoUpdate({
-      target: schema.userSettings.userId,
-      set: { tenantId, notificationPreferences: updated },
-    });
-
-  return merged;
+  return writeNotificationSubKey(userId, 'routeConfig', DEFAULT_ROUTE_CONFIG, config);
 }

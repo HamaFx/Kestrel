@@ -25,17 +25,13 @@
  */
 
 import { candlesAgeSeconds, getCandles } from '@kestrel/data';
-import {
-  msPerTimeframe,
-  type Candle,
-  type CandlePeriodSummary,
-  type GetCandlesOutput,
-} from '@kestrel/shared';
+import { msPerTimeframe, type CandlePeriodSummary, type GetCandlesOutput } from '@kestrel/shared';
 import { createTool } from '@mastra/core/tools';
 import { type z } from 'zod';
 
 import { maybeGetToolContext } from '@ai/runtime/tool-context';
 
+import { lastClosedBar as findLastClosedBar } from '../../../alerts/evaluator/bars';
 import { createReadOnlyToolExecute } from '../tool-lifecycle';
 import { CANONICAL_CANDLES_DESCRIPTION } from './descriptions';
 import { CanonicalCandlesInputSchema } from './input-schemas';
@@ -95,14 +91,7 @@ async function executeCanonicalCandles(
 
   const now = Date.now();
   const barMs = msPerTimeframe(tf);
-  let lastClosedBar: Candle | null = null;
-  for (let i = candles.length - 1; i >= 0; i -= 1) {
-    const bar = candles[i]!;
-    if (bar.t + barMs <= now) {
-      lastClosedBar = bar;
-      break;
-    }
-  }
+  const lastClosedBar = findLastClosedBar(candles, tf);
 
   const warnings: string[] = [];
   if (result.stale) {

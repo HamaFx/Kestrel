@@ -252,11 +252,6 @@ function candleWindowIsFresh(
 
 /** Seconds since the newest fully closed bar closed; null when none is closed. */
 function newestClosedBarAgeSeconds(candles: readonly Candle[], tf: Timeframe): number | null {
-  const tfDur = msPerTimeframe(tf);
-  const now = Date.now();
-  for (let i = candles.length - 1; i >= 0; i -= 1) {
-    const bar = candles[i]!;
-    if (bar.t + tfDur <= now) return (now - (bar.t + tfDur)) / 1000;
-  }
-  return null;
+  const bar = lastClosedBar(candles, tf);
+  return bar === null ? null : (Date.now() - (bar.t + msPerTimeframe(tf))) / 1000;
 }
