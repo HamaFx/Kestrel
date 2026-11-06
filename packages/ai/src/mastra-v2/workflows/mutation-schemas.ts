@@ -33,48 +33,56 @@ export const MutationKindSchema = z.enum([
 ]);
 export type MutationKind = z.infer<typeof MutationKindSchema>;
 
+export const SetAlertInputSchema = z.object({
+  kind: z.literal('set_alert'),
+  rule: AlertRuleSchema,
+  channels: z.array(AlertChannelSchema).optional(),
+  note: z.string().nullable().optional(),
+  snoozeHours: z.int().min(0).max(168).optional(),
+});
+
+export const LogJournalInputSchema = z.object({
+  kind: z.literal('log_journal'),
+  symbol: SymbolSchema,
+  side: z.enum(['long', 'short']),
+  openedAt: z.int(),
+  entry: z.number(),
+  stop: z.number().nullable().optional(),
+  target: z.number().nullable().optional(),
+  exit: z.number().nullable().optional(),
+  size: z.number().nullable().optional(),
+  outcome: z.enum(['win', 'loss', 'breakeven', 'open']).optional(),
+  rMultiple: z.number().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  tags: z.array(z.string()).optional(),
+});
+
+export const ShareSnapshotInputSchema = z.object({
+  kind: z.literal('share_snapshot'),
+  title: z.string().min(2).max(200),
+  body: z.string().min(2).max(8000),
+  symbol: SymbolSchema.optional(),
+  tf: z.string().optional(),
+  /** Minutes until the share link expires (5 min .. 30 days). */
+  ttlMinutes: z
+    .int()
+    .min(5)
+    .max(30 * 24 * 60)
+    .optional(),
+});
+
+export const RunSystemActionMutationInputSchema = z.object({
+  kind: z.literal('run_system_action'),
+  action: RunSystemActionInputSchema.shape.action,
+  params: z.record(z.string(), z.unknown()).optional(),
+});
+
 /** Discriminated input by mutation kind — the workflow factory selects the branch. */
 export const MutationInputSchema = z.discriminatedUnion('kind', [
-  z.object({
-    kind: z.literal('set_alert'),
-    rule: AlertRuleSchema,
-    channels: z.array(AlertChannelSchema).optional(),
-    note: z.string().nullable().optional(),
-    snoozeHours: z.int().min(0).max(168).optional(),
-  }),
-  z.object({
-    kind: z.literal('log_journal'),
-    symbol: SymbolSchema,
-    side: z.enum(['long', 'short']),
-    openedAt: z.int(),
-    entry: z.number(),
-    stop: z.number().nullable().optional(),
-    target: z.number().nullable().optional(),
-    exit: z.number().nullable().optional(),
-    size: z.number().nullable().optional(),
-    outcome: z.enum(['win', 'loss', 'breakeven', 'open']).optional(),
-    rMultiple: z.number().nullable().optional(),
-    notes: z.string().nullable().optional(),
-    tags: z.array(z.string()).optional(),
-  }),
-  z.object({
-    kind: z.literal('share_snapshot'),
-    title: z.string().min(2).max(200),
-    body: z.string().min(2).max(8000),
-    symbol: SymbolSchema.optional(),
-    tf: z.string().optional(),
-    /** Minutes until the share link expires (5 min .. 30 days). */
-    ttlMinutes: z
-      .int()
-      .min(5)
-      .max(30 * 24 * 60)
-      .optional(),
-  }),
-  z.object({
-    kind: z.literal('run_system_action'),
-    action: RunSystemActionInputSchema.shape.action,
-    params: z.record(z.string(), z.unknown()).optional(),
-  }),
+  SetAlertInputSchema,
+  LogJournalInputSchema,
+  ShareSnapshotInputSchema,
+  RunSystemActionMutationInputSchema,
 ]);
 export type MutationInput = z.infer<typeof MutationInputSchema>;
 

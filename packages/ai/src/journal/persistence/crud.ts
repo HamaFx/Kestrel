@@ -100,7 +100,7 @@ export async function createEntry(input: CreateJournalInput): Promise<JournalEnt
   const side = TradeSideSchema.parse(input.side);
   const outcome = input.outcome ? TradeOutcomeSchema.parse(input.outcome) : 'open';
 
-  const db = getDb();
+  const db = input.db ?? getDb();
   const tenantId = await requireTenantIdForUser(input.userId, db);
   const inserted = await db
     .insert(schema.journalEntries)

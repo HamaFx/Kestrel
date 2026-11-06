@@ -54,12 +54,7 @@ export {
   type MutationExecutor,
   type MutationExecutorResult,
 } from '@kestrel/ai/mastra-v2';
-export {
-  extractUserMessageText,
-  isBudgetEnforced,
-  rememberJournalEntry,
-  syncIntermarketResonance,
-} from '@kestrel/ai';
+export { extractUserMessageText, isBudgetEnforced, syncIntermarketResonance } from '@kestrel/ai';
 export { BudgetExceededError } from '@kestrel/ai/cost';
 export {
   executeMutationOnce,

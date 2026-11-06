@@ -73,12 +73,5 @@ export function createMutationExecuteStep(deps: MutationWorkflowDeps) {
     },
   });
 
-  const notifyStep = createStep({
-    id: 'notify',
-    inputSchema: MutationOutputSchema,
-    outputSchema: MutationOutputSchema,
-    execute: async ({ inputData }) => inputData,
-  });
-
-  return [executeStep, notifyStep] as const;
+  return executeStep;
 }

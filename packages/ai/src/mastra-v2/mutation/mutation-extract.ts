@@ -26,17 +26,20 @@
  * exported so unit tests can cover validation/normalization without an LLM.
  */
 
-import {
-  AlertChannelSchema,
-  AlertRuleSchema,
-  RunSystemActionInputSchema,
-  type Symbol,
-} from '@kestrel/shared';
+import { AlertChannelSchema, AlertRuleSchema, type Symbol } from '@kestrel/shared';
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
 
 import { runMastraStructured } from '../shared/text-runner';
-import { MutationInputSchema, type MutationInput, type MutationKind } from '../workflows/mutation';
+import {
+  LogJournalInputSchema,
+  MutationInputSchema,
+  RunSystemActionMutationInputSchema,
+  SetAlertInputSchema,
+  ShareSnapshotInputSchema,
+  type MutationInput,
+  type MutationKind,
+} from '../workflows/mutation';
 import { checkLevelsAgainstMarket, type ModelLevel } from './level-sanity';
 
 /** Why an extraction failed; level reasons come from the market cross-check. */
@@ -71,36 +74,25 @@ export class MutationExtractionError extends Error {
   }
 }
 
-const ALERT_EXTRACTION_SCHEMA = z.object({
+const ALERT_EXTRACTION_SCHEMA = SetAlertInputSchema.omit({ kind: true }).extend({
   rule: AlertRuleSchema.describe(
     'The alert condition as a structured rule (priceCross / candleClose / indicatorCross)',
   ),
   channels: z.array(AlertChannelSchema).default(['email']),
-  note: z.string().nullish(),
 });
-const JOURNAL_EXTRACTION_SCHEMA = z.object({
+
+const JOURNAL_EXTRACTION_SCHEMA = LogJournalInputSchema.omit({
+  kind: true,
+  openedAt: true,
+}).extend({
   symbol: z.string().min(1).describe('The trading symbol, e.g. XAUUSD'),
-  side: z.enum(['long', 'short']),
   entry: z.number().positive(),
-  stop: z.number().positive().nullish(),
-  target: z.number().positive().nullish(),
-  exit: z.number().positive().nullish(),
-  size: z.number().nullish(),
-  outcome: z.enum(['win', 'loss', 'breakeven', 'open']).default('open'),
-  rMultiple: z.number().nullish(),
-  notes: z.string().nullish(),
   tags: z.array(z.string()).default([]),
 });
-const SHARE_EXTRACTION_SCHEMA = z.object({
-  title: z.string().min(2).describe('Short title for the shared snapshot'),
-  body: z.string().min(2).describe('The analysis text to share'),
-  symbol: z.string().nullish(),
-  tf: z.string().nullish(),
-});
-const ACTION_EXTRACTION_SCHEMA = z.object({
-  action: RunSystemActionInputSchema.shape.action.describe('The registered operator action to run'),
-  params: z.record(z.string(), z.unknown()).default({}),
-});
+
+const SHARE_EXTRACTION_SCHEMA = ShareSnapshotInputSchema.omit({ kind: true });
+
+const ACTION_EXTRACTION_SCHEMA = RunSystemActionMutationInputSchema.omit({ kind: true });
 
 export const MUTATION_EXTRACTION_SCHEMAS: Record<
   MutationKind,
@@ -159,6 +151,7 @@ export function buildMutationInput(kind: MutationKind, raw: unknown): MutationIn
         rule: e.rule,
         channels: e.channels,
         ...(e.note ? { note: e.note } : {}),
+        ...(e.snoozeHours != null ? { snoozeHours: e.snoozeHours } : {}),
       };
       break;
     }
@@ -189,12 +182,13 @@ export function buildMutationInput(kind: MutationKind, raw: unknown): MutationIn
         body: e.body,
         ...(e.symbol ? { symbol: normalizeSymbol(e.symbol) } : {}),
         ...(e.tf ? { tf: e.tf } : {}),
+        ...(e.ttlMinutes != null ? { ttlMinutes: e.ttlMinutes } : {}),
       };
       break;
     }
     case 'run_system_action': {
       const e = parseStrict<ActionExtraction>(ACTION_EXTRACTION_SCHEMA, raw, kind);
-      input = { kind, action: e.action, params: e.params };
+      input = { kind, action: e.action, params: e.params ?? {} };
       break;
     }
   }

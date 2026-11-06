@@ -27,18 +27,8 @@
  * was not really a mutation. Matches are case-insensitive word/phrase checks.
  */
 
+import { MUTATION_INTENT_PATTERNS } from '../../routing/keywords';
 import { MutationKindSchema, type MutationKind } from '../workflows/mutation';
-
-const PATTERNS: Record<MutationKind, RegExp> = {
-  set_alert:
-    /\b(?:set|create|add|make|schedule|send)\b[\s\S]{0,60}?\balert\b|\balert\s+me\b|\bnotify\s+me\b|\bremind\s+me\b|\bwatch\s+for\b/i,
-  log_journal:
-    /\b(?:log|record|add|write|journal|note)\b[\s\S]{0,60}?\b(?:trade|journal|entry|position|transaction)\b|\b(?:trade|journal|position)\b[\s\S]{0,40}?\b(?:log|record|add|write|entry)\b/i,
-  share_snapshot:
-    /\b(?:share|send|export|publish)\b[\s\S]{0,40}?\b(?:snapshot|summary|analysis|report|link)\b|\bshare\s+this\b/i,
-  run_system_action:
-    /\b(?:run|execute|trigger|perform)\b[\s\S]{0,40}?\b(?:system\s+action|maintenance|cleanup|diagnostic|backup)\b|\bsystem\s+action\b/i,
-};
 
 /**
  * Classify a chat prompt as a mutation request. Returns the matched mutation
@@ -47,7 +37,7 @@ const PATTERNS: Record<MutationKind, RegExp> = {
 export function classifyMutationRequest(text: string): MutationKind | null {
   if (!text || text.trim().length < 4) return null;
   for (const kind of MutationKindSchema.options) {
-    if (PATTERNS[kind].test(text)) return kind;
+    if (MUTATION_INTENT_PATTERNS[kind].test(text)) return kind;
   }
   return null;
 }

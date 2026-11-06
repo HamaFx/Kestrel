@@ -16,7 +16,7 @@
 
 // Mutation confirmation workflow factory + run driver.
 //
-//   draft (validate + token + suspend) → execute (audited write) → notify
+//   draft (validate + token + suspend) → execute (audited write)
 //
 // The write executor is injected by the composition edge; this module never
 // imports the database.
@@ -45,7 +45,7 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
   const mutation = deps.mutation;
 
   const draftStep = createMutationDraftStep(deps);
-  const [executeStep, notifyStep] = createMutationExecuteStep(deps);
+  const executeStep = createMutationExecuteStep(deps);
 
   return new Workflow({
     id: `mutation-${mutation}`,
@@ -55,7 +55,6 @@ export function createMutationWorkflow(deps: MutationWorkflowDeps): Workflow {
   })
     .then(draftStep as unknown as ChainStep)
     .then(executeStep as unknown as ChainStep)
-    .then(notifyStep as unknown as ChainStep)
     .commit() as unknown as Workflow;
 }
 
@@ -137,7 +136,7 @@ export async function runMutationWorkflow(
       });
       if (result.status === 'success') {
         // The workflow's terminal step returns the MutationOutput; it is not
-        // surfaced on the top-level result, so read it from the notify step.
+        // surfaced on the top-level result, so read it from the execute step.
         const output = extractMutationOutput(result);
         logWorkflowEnd({ ...runLog, startedAt, message: 'Mutation run executed' });
         return { status: 'executed', runId, output };
@@ -216,9 +215,9 @@ function toError(value: unknown): Error {
   return new Error(String(value));
 }
 
-/** Pull the notify-step output from a successful resume result. */
+/** Pull the execute-step output from a successful resume result. */
 function extractMutationOutput(result: { steps: Record<string, unknown> }): MutationOutput {
-  const stepResult = result.steps['notify'];
+  const stepResult = result.steps['execute'];
   const candidate = stepResult as { output?: unknown } | undefined;
   if (candidate && typeof candidate === 'object' && candidate.output !== undefined) {
     return MutationOutputSchema.parse(candidate.output);

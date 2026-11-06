@@ -170,7 +170,7 @@ export async function createAlert(input: CreateAlertInput): Promise<Alert> {
   // caught this already; the bound is a defensive guard.
   const snoozeHours = Math.max(0, Math.min(168, Math.trunc(input.snoozeHours ?? 0)));
 
-  const db = getDb();
+  const db = input.db ?? getDb();
   const tenantId = await requireTenantIdForUser(input.userId, db);
   const inserted = await db
     .insert(schema.alerts)

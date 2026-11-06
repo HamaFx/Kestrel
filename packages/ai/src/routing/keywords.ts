@@ -147,12 +147,31 @@ export function isUserDataReadIntent(prompt: string): boolean {
 }
 
 /**
+ * Per-kind mutation-intent patterns. The chat-boundary classifier and the
+ * unified router's broad mutation exclusion both read this one table.
+ */
+export const MUTATION_INTENT_PATTERNS = {
+  set_alert:
+    /\b(?:set|create|add|make|schedule|send)\b[\s\S]{0,60}?\balert\b|\balert\s+me\b|\bnotify\s+me\b|\bremind\s+me\b|\bwatch\s+for\b/i,
+  log_journal:
+    /\b(?:log|record|add|write|journal|note)\b[\s\S]{0,60}?\b(?:trade|journal|entry|position|transaction)\b|\b(?:trade|journal|position)\b[\s\S]{0,40}?\b(?:log|record|add|write|entry)\b/i,
+  share_snapshot:
+    /\b(?:share|send|export|publish)\b[\s\S]{0,40}?\b(?:snapshot|summary|analysis|report|link)\b|\bshare\s+this\b/i,
+  run_system_action:
+    /\b(?:run|execute|trigger|perform)\b[\s\S]{0,40}?\b(?:system\s+action|maintenance|cleanup|diagnostic|backup)\b|\bsystem\s+action\b/i,
+} as const;
+
+/**
  * Broad mutation-routing exclusion. Used by the unified router to route a
  * prompt *away* from the research/symbol paths; it is intentionally wider
  * than the high-confidence chat gate below.
  */
-export const BROAD_MUTATION_TERMS =
-  /\b(?:set|create|add|make|schedule|send)\b[\s\S]{0,60}?\balert\b|\balert\s+me\b|\bnotify\s+me\b|\bremind\s+me\b|\b(?:log|record|write|journal|note)\b[\s\S]{0,60}?\b(?:trade|journal|entry|position|transaction)\b|\b(?:share|send|export|publish)\b[\s\S]{0,40}?\b(?:snapshot|summary|analysis|report|link)\b|\b(?:run|execute|trigger|perform)\b[\s\S]{0,40}?\b(?:system\s+action|maintenance|cleanup|diagnostic|backup)\b/i;
+export const BROAD_MUTATION_TERMS = new RegExp(
+  Object.values(MUTATION_INTENT_PATTERNS)
+    .map((pattern) => `(?:${pattern.source})`)
+    .join('|'),
+  'i',
+);
 
 // — High-confidence mutation gate (the chat-boundary 422 classifier) ————
 

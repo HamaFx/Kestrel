@@ -16,6 +16,7 @@
 
 // Journal CRUD input contracts.
 
+import type { DbClient } from '@kestrel/db';
 import type { Symbol, TradeOutcome, TradeSide } from '@kestrel/shared';
 
 export interface CreateJournalInput {
@@ -30,6 +31,8 @@ export interface CreateJournalInput {
   tags?: string[];
   screenshotUrl?: string | null;
   userId: string;
+  /** Optional transaction client from a caller that owns the write unit. */
+  db?: DbClient;
   /**
    * Optional close fields for entries that are created already closed
    * (paper-trading journal sync). Defaults keep a brand-new entry `open`.

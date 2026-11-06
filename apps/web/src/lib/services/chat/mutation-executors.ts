@@ -30,8 +30,8 @@
 // The insert SQL lives in `executeMutationWrite` exactly once; the former
 // copy-pasted switch in each executor was the source of their drift.
 
+import { createAlert, createEntry } from '@kestrel/ai';
 import { requireTenantIdForUser, schema, withUserTenant, type DbClient } from '@kestrel/db';
-import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { eq } from 'drizzle-orm';
 import type { z } from 'zod';
 
@@ -39,7 +39,6 @@ import {
   assertRegisteredSystemAction,
   assertSystemActionAuthorized,
   executeMutationOnce,
-  rememberJournalEntry,
   syncIntermarketResonance,
   type MutationExecutor,
   type MutationExecutorResult,
@@ -48,21 +47,6 @@ import {
 
 type MutationKind = z.infer<typeof MutationKindSchema>;
 type MutationInput = Parameters<MutationExecutor>[0];
-
-const mlog = createCategorizedLogger('ai', { component: 'chat-mutation-executor' });
-
-/**
- * Chat-confirmed journal entries must be recallable through
- * `search_knowledge`, exactly like entries created in the Journal UI.
- * Runs after the business write commits and never blocks the response.
- */
-function indexJournalEntryBestEffort(userId: string, entryId: string): void {
-  void withUserTenant(userId, async () => rememberJournalEntry({ entryId, userId })).catch(
-    (err) => {
-      mlog.warn('chat journal memory write failed', { userId, entryId, err: String(err) });
-    },
-  );
-}
 
 /**
  * Execute one registered system action. `resonance_sync` runs the shared
@@ -103,40 +87,34 @@ async function executeMutationWrite(
   const summary = mutationSummary(input);
   switch (input.kind) {
     case 'set_alert': {
-      const rows = await db
-        .insert(schema.alerts)
-        .values({
-          userId,
-          tenantId,
-          rule: input.rule,
-          channels: input.channels ?? ['email'],
-          note: input.note ?? null,
-          snoozeHours: input.snoozeHours ?? 0,
-        })
-        .returning({ id: schema.alerts.id });
-      return { id: rows[0]!.id, summary };
+      const alert = await createAlert({
+        userId,
+        rule: input.rule,
+        channels: input.channels,
+        note: input.note ?? null,
+        snoozeHours: input.snoozeHours ?? 0,
+        db,
+      });
+      return { id: alert.id, summary };
     }
     case 'log_journal': {
-      const rows = await db
-        .insert(schema.journalEntries)
-        .values({
-          userId,
-          tenantId,
-          symbol: input.symbol,
-          side: input.side,
-          openedAt: new Date(input.openedAt),
-          entry: input.entry,
-          stop: input.stop ?? null,
-          target: input.target ?? null,
-          exit: input.exit ?? null,
-          size: input.size ?? null,
-          outcome: input.outcome ?? 'open',
-          rMultiple: input.rMultiple ?? null,
-          notes: input.notes ?? null,
-          tags: input.tags ?? [],
-        })
-        .returning({ id: schema.journalEntries.id });
-      return { id: rows[0]!.id, summary };
+      const entry = await createEntry({
+        userId,
+        symbol: input.symbol,
+        side: input.side,
+        openedAt: input.openedAt,
+        entry: input.entry,
+        stop: input.stop ?? null,
+        target: input.target ?? null,
+        exit: input.exit ?? null,
+        size: input.size ?? null,
+        outcome: input.outcome ?? 'open',
+        rMultiple: input.rMultiple ?? null,
+        notes: input.notes ?? null,
+        tags: input.tags ?? [],
+        db,
+      });
+      return { id: entry.id, summary };
     }
     case 'share_snapshot': {
       const rows = await db
@@ -167,7 +145,6 @@ export function executorFor(kind: MutationKind, userId: string): MutationExecuto
       const tenantId = await requireTenantIdForUser(userId, db);
       return executeMutationWrite(db, userId, tenantId, input);
     });
-    if (kind === 'log_journal') indexJournalEntryBestEffort(userId, result.id);
     return result;
   };
 }
@@ -211,8 +188,5 @@ export function atomicExecutorFor(kind: MutationKind, userId: string) {
         if (input.kind !== kind) throw new Error('mutation kind mismatch');
         return executeMutationWrite(tx, userId, tenantId, input);
       },
-    }).then(({ result }) => {
-      if (kind === 'log_journal') indexJournalEntryBestEffort(userId, result.id);
-      return result;
-    });
+    }).then(({ result }) => result);
 }

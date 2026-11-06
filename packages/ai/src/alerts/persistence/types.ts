@@ -17,10 +17,13 @@
 // Alert CRUD input contracts. SQL stays in `crud.ts` so all callers see the
 // same row → DTO mapping.
 
+import type { DbClient } from '@kestrel/db';
 import type { AlertChannel, AlertRule } from '@kestrel/shared';
 
 export interface CreateAlertInput {
   userId: string;
+  /** Optional transaction client from a caller that owns the write unit. */
+  db?: DbClient;
   rule: AlertRule;
   channels?: AlertChannel[];
   note?: string | null;
