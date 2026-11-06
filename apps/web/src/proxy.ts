@@ -53,13 +53,17 @@ const { auth } = NextAuth(authConfig);
 
 /** Build the per-request CSP with the nonce (single source for request + response). */
 function buildCsp(nonce: string): string {
+  // React's development runtime uses eval() for callstack reconstruction.
+  // Production builds do not, so the strict policy stays in production.
+  const devEval = process.env.NODE_ENV === 'production' ? '' : " 'unsafe-eval'";
+  const devSocket = process.env.NODE_ENV === 'production' ? '' : ' ws:';
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' https://s3.tradingview.com https://d3js.org`,
+    `script-src 'self'${devEval} 'nonce-${nonce}' https://s3.tradingview.com https://d3js.org`,
     "style-src 'self' 'unsafe-inline' https://s3.tradingview.com",
     "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://s3.tradingview.com https://api.dicebear.com",
     "font-src 'self' data:",
-    "connect-src 'self' wss: https://*.supabase.co https://*.biquote.io https://*.binance.com https://api.resend.com https://*.tradingview.com https://api.dicebear.com",
+    `connect-src 'self'${devSocket} wss: https://*.supabase.co https://*.biquote.io https://*.binance.com https://api.resend.com https://*.tradingview.com https://api.dicebear.com`,
     "frame-src 'self' https://*.tradingview.com https://*.s3.tradingview.com https://s.tradingview.com",
   ].join('; ');
 }

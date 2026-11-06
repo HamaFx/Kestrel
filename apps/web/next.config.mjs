@@ -5,8 +5,22 @@ import bundleAnalyzer from '@next/bundle-analyzer';
 
 const workspaceRoot = path.resolve(fileURLToPath(new URL('../..', import.meta.url)));
 
+// The dev server runs behind the sandbox's HTTPS proxy, so its Host header is
+// not localhost. Next 16 blocks dev resources from unknown origins unless the
+// public preview host is allow-listed.
+const devOriginHost = (() => {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!appUrl) return undefined;
+  try {
+    return new URL(appUrl).host;
+  } catch {
+    return undefined;
+  }
+})();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  allowedDevOrigins: devOriginHost ? [devOriginHost] : undefined,
   output: process.env.VERCEL ? undefined : 'standalone',
 
   reactStrictMode: true,
@@ -102,7 +116,8 @@ const nextConfig = {
             // per-request nonces is set dynamically in proxy.ts and
             // overrides this header. This static CSP serves as a fallback
             // for requests that bypass middleware.
-            // - 'unsafe-eval' REMOVED — blocks arbitrary code execution.
+            // - 'unsafe-eval' is limited to development (React's dev runtime
+            //   needs it for callstack reconstruction); production never adds it.
             // - 'strict-dynamic' ADDED — trust propagation from nonce'd scripts.
             // - 'unsafe-inline' retained: Next.js App Router injects inline
             //   <script> tags for hydration that cannot pick up per-request
@@ -112,7 +127,9 @@ const nextConfig = {
             // domains: Supabase Storage, TradingView CDN, and Vercel analytics.
             // The proxy CSP (with nonce) also uses these directives.
             value:
-              "default-src 'self'; script-src 'self' 'unsafe-inline' https://s3.tradingview.com https://d3js.org; style-src 'self' 'unsafe-inline' https://s3.tradingview.com; img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://s3.tradingview.com https://api.dicebear.com; font-src 'self' data:; connect-src 'self' wss: https://*.supabase.co https://*.biquote.io https://*.binance.com https://api.resend.com https://*.tradingview.com https://api.dicebear.com; frame-src 'self' https://*.tradingview.com https://*.s3.tradingview.com https://s.tradingview.com;",
+              process.env.NODE_ENV === 'production'
+                ? "default-src 'self'; script-src 'self' 'unsafe-inline' https://s3.tradingview.com https://d3js.org; style-src 'self' 'unsafe-inline' https://s3.tradingview.com; img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://s3.tradingview.com https://api.dicebear.com; font-src 'self' data:; connect-src 'self' wss: https://*.supabase.co https://*.biquote.io https://*.binance.com https://api.resend.com https://*.tradingview.com https://api.dicebear.com; frame-src 'self' https://*.tradingview.com https://*.s3.tradingview.com https://s.tradingview.com;"
+                : "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://s3.tradingview.com https://d3js.org; style-src 'self' 'unsafe-inline' https://s3.tradingview.com; img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://s3.tradingview.com https://api.dicebear.com; font-src 'self' data:; connect-src 'self' ws: wss: https://*.supabase.co https://*.biquote.io https://*.binance.com https://api.resend.com https://*.tradingview.com https://api.dicebear.com; frame-src 'self' https://*.tradingview.com https://*.s3.tradingview.com https://s.tradingview.com;",
           },
         ],
       },
