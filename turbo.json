@@ -2,7 +2,6 @@
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": [
     "packages/config/typescript/*.json",
-    "packages/config/eslint/*.js",
     ".oxlintrc.json",
     ".oxfmtrc.json",
     "pnpm-lock.yaml",
@@ -92,6 +91,9 @@
       "dependsOn": ["topo"],
       "inputs": ["$TURBO_DEFAULT$", "!README.md", "!docs/**"],
       "outputs": ["node_modules/.cache/tsbuildinfo.typecheck.json", "tsconfig.tsbuildinfo"]
+    },
+    "@kestrel/loadtest#typecheck": {
+      "outputs": []
     },
     "test": {
       "dependsOn": [],

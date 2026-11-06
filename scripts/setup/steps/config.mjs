@@ -113,19 +113,34 @@ export async function run(ctx) {
   } else {
     // External mode keeps its config in `.env.local` (loaded by Next.js and by
     // the root `pnpm dev` guard). Seed the multi-user defaults the rest of the
-    // stack expects, and carry over a database URL the operator already
-    // exported or wrote to the Docker `.env`, so the app can boot without a
-    // second manual step.
+    // stack expects, and derive host-facing URLs from the Compose `.env` when
+    // the bundled Postgres is used, so the app can boot without a second
+    // manual step.
     const dockerEnv = readEnvFile(resolve(repoRoot, '.env')).entries;
+    const read = (key) => process.env[key] ?? dockerEnv.get(key);
+    const publishedPort = read('POSTGRES_PUBLISHED_PORT') ?? '5432';
+    const hostPort = publishedPort.includes(':')
+      ? publishedPort.slice(publishedPort.lastIndexOf(':') + 1)
+      : publishedPort;
+    const appPassword = read('POSTGRES_APP_PASSWORD');
+    const adminPassword = read('POSTGRES_ADMIN_PASSWORD');
+    const encoded = (value) => encodeURIComponent(value ?? '');
     const databaseUrl =
-      process.env.DATABASE_URL ??
-      process.env.POSTGRES_URL ??
-      dockerEnv.get('DATABASE_URL') ??
-      dockerEnv.get('POSTGRES_URL');
-    const adminDatabaseUrl = process.env.ADMIN_DATABASE_URL ?? dockerEnv.get('ADMIN_DATABASE_URL');
+      read('DATABASE_URL') ??
+      read('POSTGRES_URL') ??
+      (appPassword
+        ? `postgres://kestrel_app:${encoded(appPassword)}@127.0.0.1:${hostPort}/hamafx`
+        : undefined);
+    const adminDatabaseUrl =
+      read('ADMIN_DATABASE_URL') ??
+      (adminPassword
+        ? `postgres://hamafx_admin:${encoded(adminPassword)}@127.0.0.1:${hostPort}/hamafx`
+        : undefined);
     values = {
       ...(databaseUrl ? { DATABASE_URL: databaseUrl } : {}),
       ...(adminDatabaseUrl ? { ADMIN_DATABASE_URL: adminDatabaseUrl } : {}),
+      // `@kestrel/db migrate:apply` only accepts a direct, non-pooled URL.
+      ...(adminDatabaseUrl ? { DIRECT_URL: adminDatabaseUrl } : {}),
       MULTI_USER_ENABLED: '1',
       KESTREL_ENABLE_RLS: '1',
       REGISTRATION_MODE: 'first_user',

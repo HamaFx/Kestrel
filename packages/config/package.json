@@ -15,7 +15,6 @@
   },
   "scripts": {
     "lint": "oxlint .",
-    "typecheck": "echo 'no typecheck for config'",
     "test": "echo 'no tests for config'",
     "clean": "rm -rf node_modules .turbo",
     "test:coverage": "echo 'no coverage for this package'"

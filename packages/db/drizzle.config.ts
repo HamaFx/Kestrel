@@ -29,10 +29,11 @@ const databaseUrl =
   process.env.MIGRATION_DATABASE_URL ||
   process.env.DATABASE_URL ||
   process.env.POSTGRES_URL;
-if (!databaseUrl) {
+const invokedByDrizzleKit = process.argv.some((arg) => arg.includes('drizzle-kit'));
+if (!databaseUrl && invokedByDrizzleKit) {
   // eslint-disable-next-line no-console
   console.warn(
-    '[drizzle-kit] None of DIRECT_URL, POSTGRES_URL_NON_POOLING, MIGRATION_DATABASE_URL, DATABASE_URL, or POSTGRES_URL is set — generate-only commands will work, but migrate/studio will fail.',
+    '[drizzle-kit] None of DIRECT_URL, POSTGRES_URL_NON_POOLING, MIGRATION_DATABASE_URL, DATABASE_URL, or POSTGRES_URL is set. Generate-only commands will work, but migrate/studio will fail.',
   );
 }
 

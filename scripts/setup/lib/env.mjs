@@ -75,7 +75,7 @@ function diffEnv(existing, target, { mask = undefined } = {}) {
     if (typeof mask === 'function') return mask(value, key);
     if (Array.isArray(mask))
       return mask.includes(key) ? '•'.repeat(Math.min(value.length, 12)) : value;
-    if (mask === undefined && /(KEY|SECRET|PASSWORD|TOKEN|HASH)/i.test(key)) {
+    if (mask === undefined && /(KEY|SECRET|PASSWORD|TOKEN|HASH|URL)/i.test(key)) {
       return '•'.repeat(Math.min(value.length, 12));
     }
     return value;

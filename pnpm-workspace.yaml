@@ -27,6 +27,7 @@ patchedDependencies:
 # supports the js-yaml 3.x API, so it keeps a scoped 3.x exception while the
 # rest of the tree can use js-yaml 4.x.
 overrides:
+  '@hono/node-server': '>=2.1.3'
   '@opentelemetry/api': '1.9.1'
   '@auth/core': '0.41.3'
   esbuild: '0.28.2'

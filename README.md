@@ -89,15 +89,25 @@ docker compose up -d
 ### Option 2: Local Development
 
 ```bash
-# 1. Start PostgreSQL with pgvector
+# 1. Generate local secrets and start PostgreSQL 16 + pgvector
+./docker/init-secrets.sh
 docker compose up -d db
 
 # 2. Install workspace dependencies
 pnpm install
 
-# 3. Run the setup wizard or start dev
+# 3. Write .env.local with host-facing database URLs (choose External Postgres)
+pnpm setup --mode=external --no-launch
+
+# 4. Build workspace packages and apply database migrations
+pnpm build:packages
+pnpm --filter @kestrel/db migrate:apply
+
+# 5. Start the dev stack at http://localhost:3000
 pnpm dev
 ```
+
+If you point Kestrel at your own PostgreSQL instead of the bundled container, set `DATABASE_URL`, `ADMIN_DATABASE_URL`, and `DIRECT_URL` in `.env.local` before step 4. `migrate:apply` requires the direct, non-pooled URL.
 
 ---
 
@@ -329,7 +339,7 @@ kestrel/
 │   ├── db/                # Drizzle ORM schema, migrations, Postgres client & RLS
 │   ├── indicators/        # Pure TypeScript technical indicators & structure math
 │   ├── shared/            # Zod validation schemas, encryption, logging, types
-│   ├── config/            # Shared TypeScript & ESLint configs
+│   ├── config/            # Shared TypeScript & Tailwind token configs
 │   └── test-utils/        # Testing factories, mocks, and Vitest fixtures
 ├── docker/                # Docker compose configs, entrypoints, backup scripts
 └── docs/                  # Configuration reference, design system, and audit notes

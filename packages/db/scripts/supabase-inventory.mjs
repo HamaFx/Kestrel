@@ -203,9 +203,6 @@ try {
     'chat_tool_telemetry',
     'diagnostic_traces',
     'candles_1m',
-    'payments',
-    'subscriptions',
-    'billing_webhook_dlq',
   ];
   const knownRowCounts = {};
   for (const table of knownTables) {
@@ -242,8 +239,6 @@ try {
       sql`SELECT count(*)::int AS count FROM public.chat_threads WHERE tenant_id IS NULL`,
     tenantNullMessages: () =>
       sql`SELECT count(*)::int AS count FROM public.chat_messages WHERE tenant_id IS NULL`,
-    pendingBillingDlq: () =>
-      sql`SELECT count(*)::int AS count FROM public.billing_webhook_dlq WHERE status = 'pending'`,
   };
   const integrity = {};
   for (const [name, query] of Object.entries(integrityQueries)) {

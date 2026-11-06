@@ -25,7 +25,7 @@ export const hint = 'Docker with bundled Postgres or external Postgres';
 const DOCKER_FEATURES = [
   ['✓', 'Postgres 16 + pgvector', 'Full RAG & memory'],
   ['✓', 'Worker daemon', 'Live SignalR + crons'],
-  ['✓', 'Langfuse UI', 'LLM observability'],
+  ['!', 'Langfuse UI (opt-in)', 'Optional --with-observability'],
   ['✓', 'All features enabled', 'Production-ready'],
   ['!', 'Slower first start', 'Docker build ~3-5 min'],
   ['!', 'More resource usage', '~2GB RAM recommended'],
@@ -90,7 +90,7 @@ function printCompactComparison(io) {
     right: [
       ['✓', 'Postgres 16 + pgvector'],
       ['✓', 'Worker · live market data'],
-      ['✓', 'Langfuse observability'],
+      ['!', 'Langfuse (opt-in overlay)'],
       ['!', 'First build ~3–5 min'],
     ],
     width: 60,
