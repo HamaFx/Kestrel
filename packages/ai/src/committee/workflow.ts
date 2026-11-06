@@ -128,7 +128,6 @@ export function createCommitteeWorkflow(
     inputSchema: CommitteeWorkflowInputSchema,
     outputSchema: CommitteeWorkflowOutputSchema,
     requestContextSchema: REQUEST_CONTEXT_SCHEMA,
-    retryConfig: { attempts: 2, delay: 2_000 },
     ...(deps.mastra ? { mastra: deps.mastra } : {}),
   })
     .then(createCollectStep(ctx))

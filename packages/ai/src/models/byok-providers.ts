@@ -1,5 +1,6 @@
 import { createGoogle } from '@ai-sdk/google';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { BYOK_PROVIDERS } from '../_providers/registry';
 import { KNOWN_BYOK_PROVIDERS, type ByokPayload } from '@kestrel/shared';
 import type { ProviderId } from '@kestrel/shared/byok';
 import { decryptByok } from '@kestrel/shared/encryption';
@@ -66,77 +67,23 @@ export interface ProviderCapability {
 }
 
 /**
- * Static map of provider capabilities. Prevents re-deriving capabilities
- * on every routing turn.
+ * Provider capabilities derived from the one provider-spec registry. Model
+ * capability flags and the settings picker read the same source.
  */
-export const providerCapabilities: Record<ProviderId, ProviderCapability> = {
-  google: {
-    supportsVision: true,
-    supportsEmbedding: true,
-    supportsToolCalling: true,
-    modelPrefix: 'google/',
-  },
-  anthropic: {
-    supportsVision: true,
-    supportsEmbedding: false,
-    supportsToolCalling: true,
-    modelPrefix: 'anthropic/',
-  },
-  openai: {
-    supportsVision: true,
-    supportsEmbedding: true,
-    supportsToolCalling: true,
-    modelPrefix: 'openai/',
-  },
-  groq: {
-    supportsVision: true,
-    supportsEmbedding: false,
-    supportsToolCalling: true,
-    modelPrefix: 'groq/',
-  },
-  mistral: {
-    supportsVision: true,
-    supportsEmbedding: true,
-    supportsToolCalling: true,
-    modelPrefix: 'mistral/',
-  },
-  openrouter: {
-    supportsVision: true,
-    supportsEmbedding: false,
-    supportsToolCalling: true,
-    modelPrefix: 'openrouter/',
-  },
-  xai: {
-    supportsVision: true,
-    supportsEmbedding: false,
-    supportsToolCalling: true,
-    modelPrefix: 'xai/',
-  },
-  deepseek: {
-    supportsVision: false,
-    supportsEmbedding: false,
-    supportsToolCalling: true,
-    modelPrefix: 'deepseek/',
-  },
-  dphn: {
-    supportsVision: false,
-    supportsEmbedding: false,
-    supportsToolCalling: true,
-    modelPrefix: 'dphn/',
-  },
-  iamhc: {
-    supportsVision: true,
-    supportsEmbedding: false,
-    supportsToolCalling: true,
-    modelPrefix: 'iamhc/',
-  },
-  hcnsec: {
-    supportsVision: false,
-    supportsEmbedding: false,
-    supportsToolCalling: true,
-    modelPrefix: 'hcnsec/',
-  },
-};
+export const providerCapabilities = Object.fromEntries(
+  (Object.keys(BYOK_PROVIDERS) as ProviderId[]).map((id) => {
+    const spec = BYOK_PROVIDERS[id];
+    return [
+      id,
+      {
+        supportsVision: spec.supports.vision,
+        supportsEmbedding: spec.supports.embedding,
+        supportsToolCalling: true,
+        modelPrefix: `${id}/`,
+      } satisfies ProviderCapability,
+    ];
+  }),
+) as Record<ProviderId, ProviderCapability>;
 
 /**
  * Whether the user has stored their own API key for a provider.

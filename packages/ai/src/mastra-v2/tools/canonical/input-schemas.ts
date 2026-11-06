@@ -44,7 +44,15 @@ export const CanonicalIndicatorsInputSchema = z.object({
   indicators: z
     .array(z.object({ kind: IndicatorKindSchema, params: IndicatorParamsSchema.default({}) }))
     .min(1)
-    .max(6),
+    .max(6)
+    // Provider-neutral default: a caller that omits the list gets the core
+    // bundle instead of forcing provider wire helpers to know tool semantics.
+    .default([
+      { kind: 'rsi', params: {} },
+      { kind: 'macd', params: {} },
+      { kind: 'ema', params: { period: 20 } },
+      { kind: 'ema', params: { period: 50 } },
+    ]),
 });
 
 export const CanonicalKnowledgeInputSchema = SearchKnowledgeInputSchema.extend({

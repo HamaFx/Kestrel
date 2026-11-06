@@ -190,7 +190,6 @@ export function createSpecialistStep(ctx: WorkflowContext, slot: WorkflowSlot) {
     id: slot.stepId,
     inputSchema: SpecialistStepInputSchema,
     outputSchema: SpecialistStepResultSchema,
-    retries: 1,
     execute: async ({ inputData, requestContext, abortSignal }) => {
       const packet = slot.symbol ? inputData.packets?.[slot.symbol] : inputData.packet;
       if (!packet) {

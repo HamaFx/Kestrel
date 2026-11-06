@@ -16,23 +16,13 @@
 
 // HCNSEC tool-argument repair.
 
-/** Default indicator bundle used when HCNSEC omits the required list. */
-const HCNSEC_DEFAULT_INDICATORS = [
-  { kind: 'rsi', params: {} },
-  { kind: 'macd', params: {} },
-  { kind: 'ema', params: { period: 20 } },
-  { kind: 'ema', params: { period: 50 } },
-] as const;
-
 /**
  * Normalize HCNSEC's common aliases to Kestrel tool-input names.
  *
  * DeepSeek-compatible endpoints are often trained/documented with
  * `timeframe`/`limit`, while Kestrel's schemas intentionally use the
- * shorter `tf`/`count` names. HCNSEC has also emitted a bare
- * `get_indicators` call without an indicator list. Repairing that payload
- * at the provider boundary keeps the canonical tool schemas strict for
- * every other provider while making this provider interoperable.
+ * shorter `tf`/`count` names. Tool-specific defaults belong to the canonical
+ * tool schemas, not to this provider wire helper.
  */
 export function normalizeHcnsecToolArguments(toolName: string, rawArguments: string): string {
   let parsed: unknown;
@@ -51,9 +41,6 @@ export function normalizeHcnsecToolArguments(toolName: string, rawArguments: str
   if (args.count === undefined && args.limit !== undefined) {
     args.count = args.limit;
     delete args.limit;
-  }
-  if (toolName === 'get_indicators' && !Array.isArray(args.indicators)) {
-    args.indicators = HCNSEC_DEFAULT_INDICATORS;
   }
   return JSON.stringify(args);
 }

@@ -116,16 +116,7 @@ describe('HCNSEC DSML normalization', () => {
     expect(normalized?.toolCalls[1]).toMatchObject({
       function: {
         name: 'get_indicators',
-        arguments: JSON.stringify({
-          symbol: 'XAUUSD',
-          tf: '15m',
-          indicators: [
-            { kind: 'rsi', params: {} },
-            { kind: 'macd', params: {} },
-            { kind: 'ema', params: { period: 20 } },
-            { kind: 'ema', params: { period: 50 } },
-          ],
-        }),
+        arguments: JSON.stringify({ symbol: 'XAUUSD', tf: '15m' }),
       },
     });
   });

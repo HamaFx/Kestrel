@@ -19,8 +19,6 @@
 // Process-wide cached storage for maintenance / pruning jobs.
 
 import type { MastraCompositeStore } from '@mastra/core/storage';
-import { LibSQLStore } from '@mastra/libsql';
-import { PostgresStore } from '@mastra/pg';
 
 import { libsqlUrl, mastraRuntimeConnectionString, resolveMastraStorageKind } from './connection';
 import { createMastraStorage } from './create';
@@ -56,12 +54,6 @@ function storageCacheKey(env: NodeJS.ProcessEnv = process.env): string {
   return `libsql:${libsqlUrl(env)}`;
 }
 
-function isMockConstructorCleared(fn: unknown): boolean {
-  if (typeof fn !== 'function' || !('mock' in fn)) return false;
-  const mockObj = (fn as { mock?: { calls?: unknown[] } }).mock;
-  return Array.isArray(mockObj?.calls) && mockObj.calls.length === 0;
-}
-
 /**
  * Internal helper for maintenance paths without a live instance. NOT part of
  * the public barrel surface (D-01/C-01): the Mastra instance owns storage in
@@ -70,9 +62,7 @@ function isMockConstructorCleared(fn: unknown): boolean {
 export function getSharedMastraStorage(env: NodeJS.ProcessEnv = process.env): MastraStorageResult {
   const key = storageCacheKey(env);
   const cached = globalForMastraStorage.__kestrelMastraStorageCache ?? null;
-  const mockCleared =
-    isMockConstructorCleared(PostgresStore) && isMockConstructorCleared(LibSQLStore);
-  if (cached && cached.key === key && !mockCleared) {
+  if (cached && cached.key === key) {
     return cached.result;
   }
   const result = createMastraStorage(env);
