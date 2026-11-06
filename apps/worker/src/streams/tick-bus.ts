@@ -22,8 +22,6 @@
 // each subscriber is isolated behind an error boundary with its own bounded
 // in-flight queue.
 
-import { createPluginExecutionContext } from '@kestrel/ai/plugins';
-import { listEnabledPluginUsers } from '@kestrel/db';
 import {
   pluginHost,
   type PluginInstalledUser,
@@ -32,12 +30,9 @@ import {
   type PluginTickSubscriber,
   type RegisteredPluginTickSubscriber,
 } from '@kestrel/plugin-sdk';
-import { decryptPluginSettings } from '@kestrel/plugin-sdk/settings';
-import { createTenantRouterFromEnv, filterMyTenants } from '@kestrel/shared/tenant-partition';
 
 import type { Logger } from '../log.js';
-
-const tenantRouter = createTenantRouterFromEnv();
+import { loadInstalledPluginUsers } from '../scheduler/plugin-users.js';
 
 const INSTALLED_USERS_TTL_MS = 30_000;
 const MAX_IN_FLIGHT_PER_SUBSCRIBER = 100;
@@ -46,13 +41,6 @@ export interface TickBusOptions {
   log: Logger;
   /** Override the subscriber set (tests). Defaults to `pluginHost`. */
   subscribers?: readonly RegisteredPluginTickSubscriber[];
-}
-
-export interface TickBusStats {
-  published: number;
-  delivered: number;
-  dropped: number;
-  failed: number;
 }
 
 interface SubscriberState {
@@ -69,7 +57,6 @@ export class TickBus {
     string,
     { expiresAt: number; users: readonly PluginInstalledUser[] }
   >();
-  private readonly stats: TickBusStats = { published: 0, delivered: 0, dropped: 0, failed: 0 };
   private stopped = false;
 
   constructor(options: TickBusOptions) {
@@ -83,7 +70,6 @@ export class TickBus {
   /** Publish one validated tick. Never throws and never awaits subscribers. */
   publish(tick: PluginTick): void {
     if (this.stopped || this.subscribers.length === 0) return;
-    this.stats.published += 1;
 
     for (const subscriber of this.subscribers) {
       if (!this.accepts(subscriber, tick.symbol)) continue;
@@ -94,7 +80,6 @@ export class TickBus {
 
       if (state.inFlight >= MAX_IN_FLIGHT_PER_SUBSCRIBER) {
         state.dropped += 1;
-        this.stats.dropped += 1;
         if (state.dropped === 1 || state.dropped % 1_000 === 0) {
           this.log.warn('plugin tick subscriber is saturated; dropping ticks', {
             pluginId: subscriber.pluginId,
@@ -115,11 +100,8 @@ export class TickBus {
 
       void Promise.resolve()
         .then(() => subscriber.handler(tick, ctx))
-        .then(() => {
-          this.stats.delivered += 1;
-        })
+        .then(() => {})
         .catch((err: unknown) => {
-          this.stats.failed += 1;
           this.log.error('plugin tick subscriber failed', {
             pluginId: subscriber.pluginId,
             subscriberId: subscriber.id,
@@ -140,49 +122,9 @@ export class TickBus {
     const cached = this.userCache.get(pluginId);
     if (cached && cached.expiresAt > now) return cached.users;
 
-    try {
-      const allRows = await listEnabledPluginUsers(pluginId);
-      // R16 — like the plugin cron jobs, tick fan-out must only serve tenants
-      // this worker owns, or every replica fills every tenant's paper trades.
-      const rows = filterMyTenants(allRows, tenantRouter);
-      const manifest = pluginHost.getPlugin(pluginId)?.manifest;
-      const users: readonly PluginInstalledUser[] = rows.map((row) => {
-        const settings = decryptPluginSettings(manifest?.settingsSchema, row.settings ?? {});
-        const ctx = createPluginExecutionContext({
-          userId: row.userId,
-          tenantId: row.tenantId,
-          pluginId,
-          settings,
-        });
-        return {
-          userId: row.userId,
-          tenantId: row.tenantId,
-          settings,
-          storage: ctx.storage,
-        };
-      });
-      this.userCache.set(pluginId, { expiresAt: now + INSTALLED_USERS_TTL_MS, users });
-      return users;
-    } catch (err) {
-      this.log.warn('plugin installed-user lookup failed', {
-        pluginId,
-        err: err instanceof Error ? err.message : String(err),
-      });
-      return [];
-    }
-  }
-
-  /** Invalidate the installed-user cache after install/uninstall/settings change. */
-  invalidate(pluginId?: string): void {
-    if (pluginId) {
-      this.userCache.delete(pluginId);
-      return;
-    }
-    this.userCache.clear();
-  }
-
-  getStats(): Readonly<TickBusStats> {
-    return { ...this.stats };
+    const users = await loadInstalledPluginUsers(pluginId, this.log);
+    this.userCache.set(pluginId, { expiresAt: now + INSTALLED_USERS_TTL_MS, users });
+    return users;
   }
 
   /** Stop accepting ticks and signal in-flight handlers to abort. */

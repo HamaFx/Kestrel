@@ -32,8 +32,12 @@ import { loadEnv } from '../env.js';
 import { JOBS, type JobName } from '../jobs/index.js';
 import { createLogger } from '../log.js';
 import { withHeartbeat } from '../runtime/healthchecks.js';
-import { acquireCronLock, type CronLock } from '../scheduler/cron-lock.js';
-import { SKIP_DAILY_LOCK } from '../scheduler/index.js';
+import type { CronLock } from '../scheduler/cron-lock.js';
+import {
+  acquireJobLock,
+  createJobTimeout,
+  resolveJobTimeoutMs,
+} from '../scheduler/job-execution.js';
 
 const tenantRouter = createTenantRouterFromEnv();
 
@@ -72,47 +76,35 @@ export async function runJob(jobName: JobName): Promise<number> {
   const job = JOBS[jobName];
   const hcUuid = resolveHcUuid(env, jobName);
 
-  const timeoutMs = Number(process.env.JOB_TIMEOUT_MS) || 120_000;
-  const ac = new AbortController();
-  const timer = setTimeout(() => {
-    log.warn('Job timed out — aborting', { timeoutMs });
-    ac.abort(new Error(`Job timed out after ${timeoutMs}ms`));
-  }, timeoutMs);
-  timer.unref();
+  const timeout = createJobTimeout(`Job ${jobName}`, resolveJobTimeoutMs(job.timeoutMs));
 
   // SIGTERM from systemd → AbortSignal so jobs can short-circuit cleanly.
   const sigtermHandler = (): void => {
     log.warn('SIGTERM received — aborting job');
-    ac.abort(new Error('SIGTERM'));
+    timeout.abort(new Error('SIGTERM'));
   };
   process.on('SIGTERM', sigtermHandler);
   process.on('SIGINT', sigtermHandler);
 
   let lock: CronLock | null = null;
-  const useLock = !SKIP_DAILY_LOCK.has(jobName);
-  if (useLock) {
-    try {
-      const { getDb } = await import('@kestrel/db');
-      lock = await acquireCronLock(jobName, getDb());
-      if (!lock) {
-        log.info('Job skipped — already ran today (idempotency guard)');
-        clearTimeout(timer);
-        return 0;
-      }
-    } catch (lockErr) {
-      log.error('Failed to acquire cron lock in CLI runner — failing closed', {
-        err: String(lockErr),
-      });
-      clearTimeout(timer);
+  if (job.lock === 'daily') {
+    const acquisition = await acquireJobLock(jobName, log);
+    if (acquisition.status === 'skipped') {
+      log.info('Job skipped — already ran today (idempotency guard)');
+      timeout.clear();
+      return 0;
+    }
+    if (acquisition.status === 'error') {
+      timeout.clear();
       return 1;
     }
+    lock = acquisition.lock;
   }
 
   try {
-    const result = await withHeartbeat(hcUuid, async () => {
-      const r = await job.run({ log, signal: ac.signal, tenantRouter });
-      return r;
-    });
+    const result = await timeout.race(
+      withHeartbeat(hcUuid, () => job.run({ log, signal: timeout.signal, tenantRouter })),
+    );
     if (lock) await lock.done(result.note);
     log.info('job completed', { processed: result.processed, note: result.note });
     return 0;
@@ -120,9 +112,9 @@ export async function runJob(jobName: JobName): Promise<number> {
     if (lock) await lock.fail(err);
     const stack = err instanceof Error && typeof err.stack === 'string' ? err.stack : String(err);
     log.error('job failed', { err: String(err), stack });
-    return 2;
+    return timeout.timedOut() ? 1 : 2;
   } finally {
-    clearTimeout(timer);
+    timeout.clear();
     try {
       const { flushMastraObservability, getKestrelMastra, closeKestrelMastra } =
         await import('@kestrel/ai/mastra-v2');

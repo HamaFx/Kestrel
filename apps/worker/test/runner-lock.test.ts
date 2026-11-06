@@ -144,7 +144,7 @@ describe('worker CLI runner cron locks & timeouts (F-12)', () => {
 
     try {
       const exitCode = await runJob('alerts');
-      expect(exitCode).toBe(0);
+      expect(exitCode).toBe(1);
       expect(receivedSignal?.aborted).toBe(true);
     } finally {
       JOBS.alerts.run = originalRun;

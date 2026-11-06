@@ -21,30 +21,25 @@
 // whole tenant population. Runs are isolated, timeout-bounded, and optionally
 // guarded by the shared daily cron lock.
 
-import { createPluginExecutionContext } from '@kestrel/ai/plugins';
-import { getDb, listEnabledPluginUsers } from '@kestrel/db';
 import {
   pluginHost,
   type PluginInstalledUser,
   type RegisteredPluginJob,
 } from '@kestrel/plugin-sdk';
-import { decryptPluginSettings } from '@kestrel/plugin-sdk/settings';
-import {
-  createTenantRouterFromEnv,
-  filterMyTenants,
-  type TenantRouter,
-} from '@kestrel/shared/tenant-partition';
 import cron from 'node-cron';
 
 import type { Logger } from '../log.js';
-import { acquireCronLock } from './cron-lock.js';
-
-const JOB_TIMEOUT_MS = Number(process.env.JOB_TIMEOUT_MS) || 120_000;
-
-const tenantRouter = createTenantRouterFromEnv();
+import type { CronLock } from './cron-lock.js';
+import { loadInstalledPluginUsers } from './plugin-users.js';
+import {
+  acquireJobLock,
+  createJobTimeout,
+  resolveJobTimeoutMs,
+  type JobTimeout,
+} from './job-execution.js';
 
 const runningJobs = new Set<string>();
-const activeControllers = new Set<AbortController>();
+const activeTimeouts = new Set<JobTimeout>();
 
 function jobKey(job: RegisteredPluginJob): string {
   return `${job.pluginId}:${job.id}`;
@@ -85,8 +80,8 @@ export function startPluginJobs(log: Logger): () => void {
 
   return () => {
     for (const task of tasks) task.stop();
-    for (const controller of activeControllers) {
-      controller.abort(new Error('scheduler: worker shutting down'));
+    for (const timeout of activeTimeouts) {
+      timeout.abort(new Error('scheduler: worker shutting down'));
     }
   };
 }
@@ -100,59 +95,46 @@ async function runPluginJobSafely(job: RegisteredPluginJob, log: Logger): Promis
   runningJobs.add(key);
 
   const jobLog = log.with({ pluginId: job.pluginId, pluginJob: job.id });
-  const controller = new AbortController();
-  activeControllers.add(controller);
+  const timeout = createJobTimeout(`Plugin job ${key}`, resolveJobTimeoutMs());
+  activeTimeouts.add(timeout);
 
-  const useLock = job.lock === 'daily';
-  let lock: Awaited<ReturnType<typeof acquireCronLock>> = null;
-  if (useLock) {
-    try {
-      lock = await acquireCronLock(`plugin:${key}`, getDb());
-      if (!lock) {
-        jobLog.info('Plugin job skipped — already ran today (idempotency guard)');
-        runningJobs.delete(key);
-        activeControllers.delete(controller);
-        return;
-      }
-    } catch (err) {
-      jobLog.error('Plugin job lock acquisition failed — skipping to avoid duplicates', {
-        err: err instanceof Error ? err.message : String(err),
-      });
+  let lock: CronLock | null = null;
+  if (job.lock === 'daily') {
+    const acquisition = await acquireJobLock(`plugin:${key}`, jobLog);
+    if (acquisition.status === 'skipped') {
+      jobLog.info('Plugin job skipped — already ran today (idempotency guard)');
+      activeTimeouts.delete(timeout);
       runningJobs.delete(key);
-      activeControllers.delete(controller);
       return;
     }
+    if (acquisition.status === 'error') {
+      jobLog.error('Plugin job lock acquisition failed — skipping to avoid duplicates');
+      activeTimeouts.delete(timeout);
+      runningJobs.delete(key);
+      return;
+    }
+    lock = acquisition.lock;
   }
 
   // Resolve once per run; the plugin may call getInstalledUsers repeatedly.
   let usersPromise: Promise<readonly PluginInstalledUser[]> | null = null;
   const getInstalledUsers = (): Promise<readonly PluginInstalledUser[]> => {
-    usersPromise ??= loadInstalledUsers(job.pluginId, jobLog);
+    usersPromise ??= loadInstalledPluginUsers(job.pluginId, jobLog);
     return usersPromise;
   };
-
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => {
-      controller.abort(new Error(`Plugin job ${key} timed out after ${JOB_TIMEOUT_MS}ms`));
-      reject(new Error(`Plugin job ${key} timed out after ${JOB_TIMEOUT_MS}ms`));
-    }, JOB_TIMEOUT_MS);
-    timeoutId.unref?.();
-  });
 
   jobLog.info('Running plugin job');
   const startedAt = Date.now();
   try {
-    const result = await Promise.race([
+    const result = await timeout.race(
       job.run({
         pluginId: job.pluginId,
         jobId: job.id,
         log: jobLog,
-        signal: controller.signal,
+        signal: timeout.signal,
         getInstalledUsers,
       }),
-      timeoutPromise,
-    ]);
+    );
     jobLog.info('Plugin job completed', {
       durationMs: Date.now() - startedAt,
       processed: result.processed,
@@ -166,50 +148,8 @@ async function runPluginJobSafely(job: RegisteredPluginJob, log: Logger): Promis
     });
     await lock?.fail(err);
   } finally {
-    if (timeoutId) clearTimeout(timeoutId);
-    activeControllers.delete(controller);
+    timeout.clear();
+    activeTimeouts.delete(timeout);
     runningJobs.delete(key);
-  }
-}
-
-/**
- * Resolve the plugin's enabled users, filtered to this worker's partition.
- *
- * Production code reaches it through the job closure in `startPluginJobs`.
- * `router` and `listUsers` are injectable so the partition filter can be
- * exercised without a database or a process-wide partition config.
- */
-async function loadInstalledUsers(
-  pluginId: string,
-  log: Logger,
-  router: TenantRouter = tenantRouter,
-  listUsers: typeof listEnabledPluginUsers = listEnabledPluginUsers,
-): Promise<readonly PluginInstalledUser[]> {
-  try {
-    const allRows = await listUsers(pluginId);
-    // R16 — only this worker partition's tenants, like core jobs.
-    const rows = filterMyTenants(allRows, router);
-    const manifest = pluginHost.getPlugin(pluginId)?.manifest;
-    return rows.map((row) => {
-      const settings = decryptPluginSettings(manifest?.settingsSchema, row.settings ?? {});
-      const ctx = createPluginExecutionContext({
-        userId: row.userId,
-        tenantId: row.tenantId,
-        pluginId,
-        settings,
-      });
-      return {
-        userId: row.userId,
-        tenantId: row.tenantId,
-        settings,
-        storage: ctx.storage,
-      };
-    });
-  } catch (err) {
-    log.error('Failed to resolve plugin installed users', {
-      pluginId,
-      err: err instanceof Error ? err.message : String(err),
-    });
-    return [];
   }
 }

@@ -31,10 +31,8 @@ import {
   listDiagnosticTracesForAdmin as listDiagnosticTracesForAdminDb,
   listUsersWithSettings,
   recordAdminAudit as recordAdminAuditDb,
-  runRetentionCleanup,
   schema,
   updateUserRole,
-  withAdminDb,
   type DiagnosticTraceRow,
 } from '@kestrel/db';
 import { eq } from 'drizzle-orm';
@@ -153,12 +151,6 @@ export async function updateUserRoleService({
 // admin-gated routes.
 
 export type { DiagnosticTraceRow };
-
-// Retention cleanup is system-wide (all tenants) and the cron route carries no
-// tenant scope, so it runs on the admin (BYPASSRLS) connection.
-export async function runRetentionCleanupAcrossTenants() {
-  return withAdminDb(() => runRetentionCleanup());
-}
 
 export {
   createAuditLog,

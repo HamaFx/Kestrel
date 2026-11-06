@@ -41,4 +41,9 @@ export {
   type RunFredActualsRefreshArgs,
 } from '../calendar/actuals';
 export { runNewsRefresh, type NewsRefreshResult } from '../news/refresh';
+export {
+  runRetentionMaintenance,
+  RETENTION_RESERVATION_STALE_MS,
+  type RetentionMaintenanceResult,
+} from './retention';
 export type { CronRunLogger, CronRunOptions } from '../runtime/cron-runner';

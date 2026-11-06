@@ -18,5 +18,4 @@
 // point. The legacy `src/scheduler.ts` re-export shim was deleted in the
 // Phase 2 restructure; callers import `./scheduler/index.js` directly.
 
-export { SKIP_DAILY_LOCK } from './skip-daily-lock.js';
 export { startScheduler } from './start-scheduler.js';

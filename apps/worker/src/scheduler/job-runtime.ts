@@ -18,20 +18,19 @@
 // hard timeout race, and stuck/abort bookkeeping. Cron registration lives
 // in `./start-scheduler.ts`; this module owns running one job safely.
 
-import { getDb } from '@kestrel/db';
 import { createTenantRouterFromEnv } from '@kestrel/shared/tenant-partition';
 
 import type { WorkerEnv } from '../env.js';
 import { JOBS } from '../jobs/index.js';
 import type { Logger } from '../log.js';
 import { withHeartbeat } from '../runtime/healthchecks.js';
-import { acquireCronLock } from './cron-lock.js';
-import { SKIP_DAILY_LOCK } from './skip-daily-lock.js';
-
-// Maximum wall-clock time any scheduled job may run.
-// Overridable via JOB_TIMEOUT_MS env var, or per job through
-// `JobRegistration.timeoutMs` for long-lived durable work.
-const JOB_TIMEOUT_MS = Number(process.env.JOB_TIMEOUT_MS) || 120_000;
+import {
+  acquireJobLock,
+  createJobTimeout,
+  JOB_TIMEOUT_GRACE_MS,
+  resolveJobTimeoutMs,
+  type JobTimeout,
+} from './job-execution.js';
 
 const tenantRouter = createTenantRouterFromEnv();
 
@@ -45,17 +44,17 @@ const _runningJobs = new Set<keyof typeof JOBS>();
 const _jobStartedAt = new Map<keyof typeof JOBS, number>();
 // Active AbortControllers for in-flight jobs. Aborted on shutdown so
 // well-behaved jobs stop their work before the database connection closes.
-const _activeControllers = new Set<AbortController>();
+const _activeControllers = new Set<JobTimeout>();
 
 /** Wall-clock budget for one invocation of a job (per-job override wins). */
 function effectiveJobTimeoutMs(name: keyof typeof JOBS): number {
-  return JOBS[name]?.timeoutMs ?? JOB_TIMEOUT_MS;
+  return resolveJobTimeoutMs(JOBS[name]?.timeoutMs);
 }
 
 // A job is wedged when it overruns its own budget plus a grace period.  The
 // grace keeps ordinary slow runs from tripping the container healthcheck the
 // moment they cross their timeout.
-const STUCK_GRACE_MS = 5 * 60_000;
+const STUCK_GRACE_MS = JOB_TIMEOUT_GRACE_MS;
 
 interface StuckJobSummary {
   stuck: Array<{ name: string; stuckForMs: number }>;
@@ -139,9 +138,9 @@ export function reportStuckJobs(log: Logger, now: number): void {
  * should short-circuit within their configured timeout.
  */
 export function abortActiveJobs(): void {
-  for (const ac of _activeControllers) {
+  for (const timeout of _activeControllers) {
     try {
-      ac.abort(new Error('scheduler: worker shutting down'));
+      timeout.abort(new Error('scheduler: worker shutting down'));
     } catch {
       // Best-effort — the process is exiting.
     }
@@ -173,65 +172,29 @@ export async function runJobSafely(
   const jobLog = log.with({ job: name, runId });
 
   // Acquire an idempotency lock for daily-cadence jobs.
-  const useLock = !SKIP_DAILY_LOCK.has(name);
   let lock = null;
-  if (useLock) {
-    try {
-      lock = await acquireCronLock(name, getDb());
-      if (!lock) {
-        jobLog.info('Job skipped - already ran today (idempotency guard)');
-        _runningJobs.delete(name);
-        _jobStartedAt.delete(name);
-        return;
-      }
-    } catch (lockErr) {
-      // Lock acquisition failed (DB unavailable?). Retry once before
-      // proceeding without the lock — a duplicate is acceptable for
-      // idempotent jobs, but a missed run is worse.
-      jobLog.warn('Failed to acquire cron lock, retrying once', {
-        err: String(lockErr),
-      });
-      try {
-        await new Promise((r) => setTimeout(r, 500));
-        lock = await acquireCronLock(name, getDb());
-        if (!lock) {
-          jobLog.info('Job skipped - already ran today (idempotency guard, after retry)');
-          _runningJobs.delete(name);
-          _jobStartedAt.delete(name);
-          return;
-        }
-      } catch (retryErr) {
-        // Both attempts failed — fail closed to prevent concurrent duplicate execution.
-        jobLog.error(
-          'Failed to acquire cron lock after retry — failing closed to prevent duplicate execution',
-          {
-            err: String(retryErr),
-          },
-        );
-        _runningJobs.delete(name);
-        _jobStartedAt.delete(name);
-        return;
-      }
+  if (job.lock === 'daily') {
+    const acquisition = await acquireJobLock(name, jobLog);
+    if (acquisition.status === 'skipped') {
+      jobLog.info('Job skipped - already ran today (idempotency guard)');
+      _runningJobs.delete(name);
+      _jobStartedAt.delete(name);
+      return;
     }
+    if (acquisition.status === 'error') {
+      _runningJobs.delete(name);
+      _jobStartedAt.delete(name);
+      return;
+    }
+    lock = acquisition.lock;
   }
 
   // Race the job against a hard timeout. An abort signal alone is
   // advisory — an uncooperative job that ignores AbortSignal remains pending
   // forever. Racing a rejection promise ensures the scheduler regains control
   // after JOB_TIMEOUT_MS regardless of the job's behaviour.
-  const ac = new AbortController();
-  _activeControllers.add(ac);
-  const timeoutMs = effectiveJobTimeoutMs(name);
-  let timedOut = false;
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => {
-      timedOut = true;
-      ac.abort(new Error(`Job ${name} timed out after ${timeoutMs}ms`));
-      reject(new Error(`Job ${name} timed out after ${timeoutMs}ms`));
-    }, timeoutMs);
-    timeoutId.unref?.();
-  });
+  const timeout = createJobTimeout(`Job ${name}`, effectiveJobTimeoutMs(name));
+  _activeControllers.add(timeout);
 
   jobLog.info('Running scheduled job');
 
@@ -241,7 +204,7 @@ export async function runJobSafely(
   let jobSettled = false;
   let cleanupRequested = false;
   const cleanup = () => {
-    _activeControllers.delete(ac);
+    _activeControllers.delete(timeout);
     _runningJobs.delete(name);
     _jobStartedAt.delete(name);
   };
@@ -253,7 +216,7 @@ export async function runJobSafely(
     env && job.hcUuidEnvVar ? (env[job.hcUuidEnvVar] as string | undefined) : undefined;
   const jobPromise = Promise.resolve()
     .then(() =>
-      withHeartbeat(hcUuid, () => job.run({ log: jobLog, signal: ac.signal, tenantRouter })),
+      withHeartbeat(hcUuid, () => job.run({ log: jobLog, signal: timeout.signal, tenantRouter })),
     )
     .finally(() => {
       jobSettled = true;
@@ -265,7 +228,7 @@ export async function runJobSafely(
 
   try {
     const startMs = Date.now();
-    const result = await Promise.race([jobPromise, timeoutPromise]);
+    const result = await timeout.race(jobPromise);
     const durationMs = Date.now() - startMs;
 
     jobLog.info('Job completed successfully', {
@@ -276,13 +239,13 @@ export async function runJobSafely(
 
     await lock?.done(result.note);
   } catch (err) {
-    const isTimeout = ac.signal.aborted;
+    const isTimeout = timeout.timedOut();
     jobLog.error(`Job ${isTimeout ? 'timed out' : 'failed'}`, { err: String(err) });
     await lock?.fail(err);
   } finally {
-    if (timeoutId) clearTimeout(timeoutId);
+    timeout.clear();
     requestCleanup();
-    if (timedOut && !jobSettled) {
+    if (timeout.timedOut() && !jobSettled) {
       jobLog.warn('Job timed out; retaining in-flight guard until the job settles');
     }
   }

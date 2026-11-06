@@ -49,6 +49,7 @@ export const JOBS: Record<JobName, JobRegistration> = {
     run: runAlerts,
     description: 'Evaluates user alerts every minute.',
     schedule: '* * * * *',
+    lock: 'none',
     hcUuidEnvVar: 'HC_JOB_ALERTS_UUID',
   },
   'embedding-backfill': {
@@ -56,6 +57,7 @@ export const JOBS: Record<JobName, JobRegistration> = {
     run: runEmbeddingBackfill,
     description: 'Embed news_articles missing embeddings via the AI Gateway.',
     schedule: '0 */6 * * *',
+    lock: 'none',
     hcUuidEnvVar: 'HC_JOB_EMBEDDING_BACKFILL_UUID',
   },
   briefings: {
@@ -64,6 +66,7 @@ export const JOBS: Record<JobName, JobRegistration> = {
     description:
       'Pre/post-event briefings — scan economic_events for windows around high-impact releases.',
     schedule: '*/5 * * * *',
+    lock: 'none',
     hcUuidEnvVar: 'HC_JOB_BRIEFINGS_UUID',
   },
   cot: {
@@ -71,6 +74,7 @@ export const JOBS: Record<JobName, JobRegistration> = {
     run: runCoT,
     description: 'Weekly CFTC Commitment-of-Traders ingestion.',
     schedule: '0 22 * * 5',
+    lock: 'daily',
     hcUuidEnvVar: 'HC_JOB_COT_UUID',
   },
   'fred-actuals': {
@@ -79,6 +83,7 @@ export const JOBS: Record<JobName, JobRegistration> = {
     description:
       'Daily FRED actuals backfill — patches economic_events.actual where it was null at ingestion.',
     schedule: '30 1 * * *',
+    lock: 'daily',
     hcUuidEnvVar: 'HC_JOB_FRED_ACTUALS_UUID',
   },
   news: {
@@ -87,6 +92,7 @@ export const JOBS: Record<JobName, JobRegistration> = {
     description:
       'News ingestion — fetches new Marketaux/Finnhub articles since the high-water mark.',
     schedule: '*/10 * * * *',
+    lock: 'daily',
     hcUuidEnvVar: 'HC_JOB_NEWS_UUID',
   },
   'resonance-sync': {
@@ -95,6 +101,7 @@ export const JOBS: Record<JobName, JobRegistration> = {
     description:
       'Daily intermarket resonance sync — computes and stores real yield and DXY gold divergences.',
     schedule: '0 23 * * *',
+    lock: 'daily',
     hcUuidEnvVar: 'HC_JOB_RESONANCE_SYNC_UUID',
   },
   retention: {
@@ -103,6 +110,7 @@ export const JOBS: Record<JobName, JobRegistration> = {
     description:
       'Daily retention: telemetry, traces, quota, shared snapshots, stale AI budget reservations, and candle pruning.',
     schedule: '15 3 * * *',
+    lock: 'daily',
     hcUuidEnvVar: 'HC_JOB_RETENTION_UUID',
   },
 };

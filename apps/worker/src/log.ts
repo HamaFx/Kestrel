@@ -78,13 +78,8 @@ class WorkerLogger implements Logger {
   }
 }
 
-function serviceToCategory(service: string): LogCategory {
-  if (service.startsWith('worker:job')) return 'worker';
-  return 'worker';
-}
-
 export function createLogger(opts: LoggerOptions): Logger {
-  const category = serviceToCategory(opts.service);
+  const category: LogCategory = 'worker';
   const context: Record<string, unknown> = { service: opts.service };
   if (opts.commit) context['commit'] = opts.commit;
   if (opts.forceJson) context['forceJson'] = opts.forceJson;

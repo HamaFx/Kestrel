@@ -25,30 +25,25 @@
 
 import 'server-only';
 
-import { recoverStaleBudgetReservations } from '@kestrel/ai';
 import {
   runBriefingsFanout,
   runCotIngestion,
   runFredActualsRefresh,
+  runRetentionMaintenance,
   runSnapshotRefresh,
   runWeeklyReviewFanout,
 } from '@kestrel/ai/cron';
-import { pruneMastraStorage } from '@kestrel/ai/mastra-v2';
+import { getKestrelMastra, pruneMastraStorage } from '@kestrel/ai/mastra-v2';
 import { withAdminDb } from '@kestrel/db';
 import { createTenantRouterFromEnv } from '@kestrel/shared/tenant-partition';
 
 import { getServerEnv } from '@/lib/env';
 import { createScopedLoggerWithContext } from '@/lib/logger';
-import { runRetentionCleanupAcrossTenants } from '@/lib/services/admin';
 
 export interface CronJobResult {
   processed: number;
   note?: string;
 }
-
-/** Reservations older than this are considered abandoned by their turn. */
-const RESERVATION_STALE_MS = 15 * 60 * 1000;
-const RECOVERY_BATCH_SIZE = 100;
 
 function loggerFor(job: string) {
   return createScopedLoggerWithContext({ component: 'cron', job });
@@ -73,12 +68,17 @@ export async function runBriefingsCronService(): Promise<CronJobResult> {
  */
 export async function runCleanupTelemetryCronService(): Promise<CronJobResult> {
   const log = loggerFor('cleanup-telemetry');
-  const cutoff = new Date(Date.now() - RESERVATION_STALE_MS);
-  const { result, budgetRecovery, mastraRetention } = await withAdminDb(async () => {
-    const budgetRecovery = await recoverStaleBudgetReservations(cutoff, RECOVERY_BATCH_SIZE);
-    const result = await runRetentionCleanupAcrossTenants();
-    const mastraRetention = await pruneMastraStorage();
-    return { result, budgetRecovery, mastraRetention };
+  const {
+    cleanup: result,
+    budgetRecovery,
+    mastraRetention,
+    processed,
+  } = await withAdminDb(async () => {
+    const maintenance = await runRetentionMaintenance();
+    const mastraRetention = await pruneMastraStorage(
+      getKestrelMastra().instance.getStorage() ?? undefined,
+    );
+    return { ...maintenance, mastraRetention };
   });
 
   log.info('retention cleanup completed', {
@@ -95,11 +95,8 @@ export async function runCleanupTelemetryCronService(): Promise<CronJobResult> {
     mastraPruned: mastraRetention.pruned,
   });
 
-  const cleanupProcessed = Object.values(result)
-    .filter((value): value is number => typeof value === 'number')
-    .reduce((sum, value) => sum + value, 0);
   return {
-    processed: cleanupProcessed + budgetRecovery.released,
+    processed,
     note: `${result.note}, budgetReleased=${budgetRecovery.released}, mastraPruned=${mastraRetention.pruned}`,
   };
 }

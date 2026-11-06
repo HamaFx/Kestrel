@@ -19,36 +19,27 @@
 // diagnostic_traces, provider_daily_quota, and recovery ledgers) and to
 // release AI budget reservations left open by interrupted runs.
 
-import { recoverStaleBudgetReservations } from '@kestrel/ai';
 import { getKestrelMastra, pruneMastraStorage } from '@kestrel/ai/mastra-v2';
-import { runRetentionCleanup, runVacuumAnalyze } from '@kestrel/db';
+import { RETENTION_RESERVATION_STALE_MS, runRetentionMaintenance } from '@kestrel/ai/cron';
+import { runVacuumAnalyze } from '@kestrel/db';
 
 import type { JobContext, JobResult } from './types.js';
-
-/** Reservations older than this are considered abandoned by their turn. */
-const RESERVATION_STALE_MS = 15 * 60 * 1000;
-const RECOVERY_BATCH_SIZE = 100;
 
 export async function runRetention(ctx: JobContext): Promise<JobResult> {
   if (ctx.signal?.aborted) return { processed: 0, note: 'aborted' };
 
-  // Absorbed from the retired `budget-recovery` job: release reservations
-  // whose turn died before settling. Release is conditional on status, so a
-  // concurrently finishing turn cannot be double-released.
-  const cutoff = new Date(Date.now() - RESERVATION_STALE_MS);
-  const budgetRecovery = await recoverStaleBudgetReservations(
-    cutoff,
-    RECOVERY_BATCH_SIZE,
-    ctx.signal,
-  );
+  const {
+    cleanup: result,
+    budgetRecovery,
+    processed: cleanupProcessed,
+  } = await runRetentionMaintenance({ ...(ctx.signal ? { signal: ctx.signal } : {}) });
   ctx.log.info('stale budget reservation recovery', {
-    cutoff: cutoff.toISOString(),
+    cutoff: new Date(Date.now() - RETENTION_RESERVATION_STALE_MS).toISOString(),
     scanned: budgetRecovery.scanned,
     released: budgetRecovery.released,
     failed: budgetRecovery.failed,
   });
 
-  const result = await runRetentionCleanup();
   // VACUUM is intentionally worker-only: it is not suitable for a Vercel
   // request and needs the persistent worker's longer statement timeout.
   if (!ctx.signal?.aborted) {
@@ -78,11 +69,8 @@ export async function runRetention(ctx: JobContext): Promise<JobResult> {
   );
   ctx.log.info('Mastra storage pruning', mastraRetention);
 
-  const cleanupProcessed = Object.values(result)
-    .filter((value): value is number => typeof value === 'number')
-    .reduce((sum, value) => sum + value, 0);
   return {
-    processed: cleanupProcessed + budgetRecovery.released,
+    processed: cleanupProcessed,
     note: `${result.note}, budgetReleased=${budgetRecovery.released}`,
   };
 }

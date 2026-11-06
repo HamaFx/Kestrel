@@ -96,6 +96,11 @@ export interface JobRegistration {
   /** Cron expression for node-cron scheduling. `null` = no cron schedule. */
   schedule: string | null;
   /**
+   * Idempotency policy. `daily` takes the shared UTC-day cron lock; `none`
+   * relies on the job's own idempotency for minute-level or retrying jobs.
+   */
+  lock: 'daily' | 'none';
+  /**
    * Wall-clock budget for one invocation, overriding the global
    * `JOB_TIMEOUT_MS`. Only genuinely long-lived jobs should need this; the
    * default stays tight so a wedged job cannot hold its in-flight guard for
