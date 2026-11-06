@@ -18,20 +18,8 @@ import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { JournalEntry, ServerEnv } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
-import { acquireBudget } from '../budget';
-import {
-  DEFAULT_MAX_DAILY_USD,
-  estimateKnownCostUsd,
-  releaseBudgetReservation,
-} from '../budget/cost';
 import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
-import {
-  beginMastraRun,
-  createMastraRunFinalizer,
-  mastraOutcomeForError,
-} from '../mastra-v2/shared/telemetry';
-import * as textRunner from '../mastra-v2/shared/text-runner';
-import { resolveChatModel } from '../models/model';
+import { runMastraBackgroundText } from '../mastra-v2/shared/background-text';
 import {
   CoachInsightsOutputSchema,
   CoachInsightsUnavailableError,
@@ -174,170 +162,57 @@ ${recentNotes || '- No trade notes recorded yet.'}
 
 export async function getCoachInsights(args: CoachInsightsArgs): Promise<CoachInsightsResult> {
   const { userId, userSettings, env, signal } = args;
-  const startedAt = Date.now();
-  const runId = crypto.randomUUID();
   const threadId = `journal-coach:${userId}`;
 
-  const { model, modelId } = resolveChatModel(userSettings, env);
-  const providerId = modelId.includes(':') ? modelId.split(':')[0]! : 'google';
+  const [stats, entries] = await Promise.all([
+    computeStats(userId),
+    listEntries(userId, { limit: 50 }),
+  ]);
+  const userPrompt = formatStatsForCoachPrompt(stats, entries);
 
-  // Audit v3 Phase 7 (Q4): use acquireBudget so daily caps are ledger-only
-  // unless ENFORCE_BUDGET=true.
-  const estimatedUsd = 0.008;
-  const maxDailyUsd = userSettings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD;
-  const { reservation } = await acquireBudget({
+  const result = await runMastraBackgroundText({
     userId,
-    estimateUsd: estimatedUsd,
-    maxDailyUsd,
-    correlation: { runId, threadId },
-  });
-  if (!reservation.ok) {
-    throw new Error(
-      `Daily AI budget exceeded ($${reservation.spent.toFixed(2)} / $${reservation.max.toFixed(2)}).`,
-    );
-  }
-
-  beginMastraRun({
-    runId,
     threadId,
-    model: modelId,
-    providerId,
+    task: 'journal_review',
+    prompt: userPrompt,
+    instructions: COACH_SYSTEM_PROMPT,
+    settings: userSettings,
+    env,
+    estimateUsd: 0.008,
+    structuredSchema: CoachInsightsOutputSchema,
+    structuredInstructions: 'Return only the coach insights JSON object.',
+    ...(signal ? { signal } : {}),
   });
 
-  // The finalizer records the terminal outcome exactly once: the success path
-  // finishes first, and the catch reuses the same promise on failure.
-  const finishRun = createMastraRunFinalizer();
-
-  let inputTokens = 0;
-  let outputTokens = 0;
-
-  try {
-    const [stats, entries] = await Promise.all([
-      computeStats(userId),
-      listEntries(userId, { limit: 50 }),
-    ]);
-
-    const userPrompt = formatStatsForCoachPrompt(stats, entries);
-
-    let rawText = '';
-    let generatedObject: unknown;
-
-    if (typeof textRunner.runMastraStructured === 'function') {
-      const structuredResult = await textRunner.runMastraStructured({
-        task: 'journal-review',
-        model,
-        instructions: COACH_SYSTEM_PROMPT,
-        prompt: userPrompt,
-        schema: CoachInsightsOutputSchema,
-        userId,
-        threadId,
-        runId,
-        ...(signal ? { signal } : {}),
-        maxOutputTokens: 1200,
-      });
-      inputTokens = structuredResult.inputTokens;
-      outputTokens = structuredResult.outputTokens;
-      rawText = structuredResult.text ?? '';
-      generatedObject = structuredResult.object;
-    } else {
-      const textResult = await textRunner.runMastraText({
-        task: 'journal-review',
-        model,
-        instructions: COACH_SYSTEM_PROMPT,
-        prompt: userPrompt,
-        userId,
-        threadId,
-        runId,
-        ...(signal ? { signal } : {}),
-        maxOutputTokens: 1200,
-      });
-      inputTokens = textResult.inputTokens;
-      outputTokens = textResult.outputTokens;
-      rawText = textResult.text;
-    }
-
-    const latencyMs = Date.now() - startedAt;
-    const costUsd = estimateKnownCostUsd(modelId, inputTokens, outputTokens);
-
-    // R13 (audit 2026-10-31): validate before anything is recorded as a
-    // completed review. A malformed response fails the run; it is never
-    // rewritten into a fabricated summary or stored as raw model prose.
-    const payload = parseCoachPayload(rawText, generatedObject);
-    if (!payload) {
-      clog.warn(
-        {
-          runId,
-          rawTextLength: rawText.length,
-          rawPreview: rawText.slice(0, 200),
-        },
-        'Coach review rejected: model output failed schema validation',
-      );
-      throw new CoachInsightsUnavailableError();
-    }
-
-    await finishRun({
-      userId,
-      threadId,
-      runId,
-      model: modelId,
-      providerId,
-      startedAt,
-      inputTokens,
-      outputTokens,
-      toolCalls: 0,
-      steps: 1,
-      outcome: 'success',
-      answerOutcome: 'ready',
-      telemetryKind: 'mastra_worker_task',
-    });
-
-    if (reservation.reservationId) {
-      const { reconcileBudgetReservation } = await import('../budget/cost');
-      await reconcileBudgetReservation(reservation.reservationId, costUsd);
-    }
-
-    const insights: CoachInsightsResult = {
-      ...payload,
-      modelId,
-      costUsd,
-      latencyMs,
-    };
-
-    // Phase 3 — mirror the quantitative edge and behavioral
-    // leaks into Mastra's resource-scoped working memory so chat turns are
-    // aware of the trader's personal profile. Best-effort: a memory failure is
-    // logged and never fails the review response.
-    const coachMemorySyncArgs = { userId, threadId, userSettings, env, insights, stats };
-    await syncCoachInsightsToWorkingMemory(coachMemorySyncArgs);
-
-    return insights;
-  } catch (err) {
-    await finishRun({
-      userId,
-      threadId,
-      runId,
-      model: modelId,
-      providerId,
-      startedAt,
-      inputTokens,
-      outputTokens,
-      toolCalls: 0,
-      steps: 0,
-      outcome: mastraOutcomeForError(err, signal),
-      telemetryKind: 'mastra_worker_task',
-      error: err,
-    });
-
-    try {
-      if (reservation.reservationId) {
-        await releaseBudgetReservation(reservation.reservationId);
-      } else {
-        const { applyBudgetDelta } = await import('../budget/cost');
-        await applyBudgetDelta(userId, -estimatedUsd);
-      }
-    } catch (releaseErr) {
-      clog.error({ err: releaseErr }, 'journal budget release failed; reservation remains open');
-    }
-    throw err;
+  // R13 (audit 2026-10-31): validate before anything is recorded as a
+  // completed review. A malformed response is never rewritten into a
+  // fabricated summary or stored as raw model prose.
+  const payload = parseCoachPayload(result.text, result.object);
+  if (!payload) {
+    clog.warn(
+      {
+        runId: result.runId,
+        rawTextLength: result.text.length,
+        rawPreview: result.text.slice(0, 200),
+      },
+      'Coach review rejected: model output failed schema validation',
+    );
+    throw new CoachInsightsUnavailableError();
   }
+
+  const insights: CoachInsightsResult = {
+    ...payload,
+    modelId: result.modelId,
+    costUsd: result.costUsd,
+    latencyMs: result.latencyMs,
+  };
+
+  // Phase 3 — mirror the quantitative edge and behavioral leaks into Mastra's
+  // resource-scoped working memory so chat turns are aware of the trader's
+  // personal profile. Best-effort: a memory failure is logged and never fails
+  // the review response.
+  const coachMemorySyncArgs = { userId, threadId, userSettings, env, insights, stats };
+  await syncCoachInsightsToWorkingMemory(coachMemorySyncArgs);
+
+  return insights;
 }

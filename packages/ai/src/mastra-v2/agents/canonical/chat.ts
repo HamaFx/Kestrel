@@ -18,7 +18,6 @@
 
 import { metrics } from '@kestrel/shared';
 
-import { estimateCostUsd } from '@ai/budget/cost';
 import { getDiagnosticContext, withDiagnostics } from '@ai/diagnostics';
 import { MAX_TURN_FALLBACKS, resolveFallbackChain, runWithModelFallback } from '@ai/models/model';
 import { createGenerationLedger } from '@ai/persistence/generation-ledger';
@@ -26,18 +25,10 @@ import { withRetry } from '@ai/runtime/retry';
 import { withToolContext } from '@ai/runtime/tool-context';
 
 import { manifestForCapability } from '../../capabilities';
-import {
-  beginMastraRun,
-  finishMastraRun,
-  getMastraGenerationStats,
-  mastraOutcomeForError,
-} from '../../shared/telemetry';
+import { beginMastraRun, finishMastraRun, mastraOutcomeForError } from '../../shared/telemetry';
 import { runTracingOptions } from '../../telemetry';
-import { extractToolPartsFromMessages } from '../../tools/tool-lifecycle';
-import { attemptCanonicalSelfCorrection } from './correction';
-import { assertCanonicalEvidence, checkCanonicalEvidence } from './evidence';
 import { setupCanonicalChat } from './setup';
-import { extractToolEvidence, extractToolNames, mergeToolEvidenceWithParts } from './tool-evidence';
+import { finalizeCanonicalTurn } from './finalize';
 import type { MastraCanonicalChatResult, RunMastraCanonicalChatArgs } from './types';
 
 export async function runMastraCanonicalChat(
@@ -62,17 +53,8 @@ async function executeCanonicalChat(
   const startedAt = Date.now();
   const setup = await setupCanonicalChat({ ...args, runId });
   const generationLedger = args.ledger ?? createGenerationLedger();
-  const {
-    agent,
-    routing,
-    resolution,
-    callMemory,
-    requestContext,
-    toolPartsBuffer,
-    context,
-    messages,
-    scorers,
-  } = setup;
+  const { agent, routing, resolution, callMemory, requestContext, context, messages, scorers } =
+    setup;
   beginMastraRun({
     runId,
     threadId: args.threadId,
@@ -145,133 +127,18 @@ async function executeCanonicalChat(
         tags: { kind: 'mastra_canonical_chat', model: resolution.modelId },
       });
     }
-    let stats = getMastraGenerationStats(result);
-    const initialToolParts = extractToolPartsFromMessages(
-      result.response?.messages,
-      toolPartsBuffer,
-    );
-    let toolParts = initialToolParts;
-    let toolNames = [
-      ...new Set([
-        ...extractToolNames(result.response?.messages),
-        ...initialToolParts.map((p) => p.toolName),
-      ]),
-    ];
-    const initialToolEvidence = mergeToolEvidenceWithParts(
-      extractToolEvidence(result.response?.messages),
-      initialToolParts,
-    );
-    let finalText = result.text;
-    let evidence = checkCanonicalEvidence(finalText, initialToolEvidence);
-    let repaired = false;
-
-    if (!evidence.ok) {
-      const correction = await attemptCanonicalSelfCorrection({
-        agent,
-        context,
-        requestContext,
-        messages,
-        draftText: finalText,
-        initialFindings: evidence.findings,
-        initialToolEvidence,
-        initialToolNames: toolNames,
-        toolPartsBuffer: initialToolParts,
-        callMemory,
-        ...(args.signal ? { signal: args.signal } : {}),
-      });
-      if (correction) {
-        stats = {
-          inputTokens: stats.inputTokens + correction.extraStats.inputTokens,
-          outputTokens: stats.outputTokens + correction.extraStats.outputTokens,
-          toolCalls: stats.toolCalls + correction.extraStats.toolCalls,
-          steps: stats.steps + correction.extraStats.steps,
-        };
-        if (correction.repaired) {
-          finalText = correction.text;
-          evidence = correction.evidence;
-          toolNames = correction.toolNames;
-          toolParts = correction.toolParts;
-          repaired = true;
-        }
-      }
-    }
-
-    const primaryCostUsd = estimateCostUsd(
-      activeResolution.modelId,
-      stats.inputTokens,
-      stats.outputTokens,
-    );
-    generationLedger.recordCost(`primary:${runId}`, 'primary', primaryCostUsd);
-    const totalCostUsd = generationLedger.total();
-    const totalLatencyMs = Date.now() - startedAt;
-    if (!evidence.ok) {
-      // §5.2: Q1 renamed the degraded-evidence outcome to a hard block.
-      metrics.increment('canonical_evidence_blocked_total', {
-        tags: {
-          reason: evidence.findings.some((f) => /without a market-data tool/.test(f))
-            ? 'no_tool'
-            : 'ungrounded',
-        },
-      });
-      await finishMastraRun({
-        userId: args.userId,
-        threadId: args.threadId,
-        runId,
-        model: activeResolution.modelId,
-        providerId: activeResolution.providerId,
-        startedAt,
-        ...stats,
-        outcome: 'success',
-        answerOutcome: 'blocked',
-        memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
-        memoryBackfill: setup.memoryBackfill,
-        modelSnapshot: {
-          providerId: activeResolution.providerId,
-          bareModelId: activeResolution.bareModelId,
-        },
-        telemetryKind: 'mastra_canonical_chat',
-      });
-      assertCanonicalEvidence(evidence);
-    }
-    await finishMastraRun({
-      userId: args.userId,
-      threadId: args.threadId,
+    return finalizeCanonicalTurn({
+      run: args,
       runId,
-      model: activeResolution.modelId,
-      providerId: activeResolution.providerId,
       startedAt,
-      ...stats,
+      setup,
+      activeResolution,
+      generationLedger,
+      output: result,
+      fallbackParts,
       outcome: 'success',
-      answerOutcome: finalText.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
-      memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
-      memoryBackfill: setup.memoryBackfill,
-      modelSnapshot: {
-        providerId: activeResolution.providerId,
-        bareModelId: activeResolution.bareModelId,
-      },
-      telemetryKind: 'mastra_canonical_chat',
+      finishRun: finishMastraRun,
     });
-    return {
-      text: finalText.trim(),
-      modelId: activeResolution.modelId,
-      providerId: activeResolution.providerId,
-      routing,
-      stats,
-      totalCostUsd,
-      totalLatencyMs,
-      toolNames,
-      toolParts,
-      evidence,
-      answerOutcome: finalText.trim().length > 0 ? ('ready' as const) : ('degraded' as const),
-      ...(repaired ? { repaired: true } : {}),
-      ...(fallbackParts.length > 0 ? { fallbackParts } : {}),
-      memoryMode: setup.memoryDegraded ? 'degraded' : 'native',
-      memoryBackfill: setup.memoryBackfill,
-      modelSnapshot: {
-        providerId: activeResolution.providerId,
-        bareModelId: activeResolution.bareModelId,
-      },
-    };
   } catch (error) {
     await finishMastraRun({
       userId: args.userId,

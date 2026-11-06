@@ -18,6 +18,7 @@ import type { UserSettingsRow } from '@kestrel/db/schema';
 import { Agent } from '@mastra/core/agent';
 import type { MastraModelConfig } from '@mastra/core/llm';
 import { RequestContext } from '@mastra/core/request-context';
+import type { z } from 'zod';
 
 import { reserveTurnBudget } from '@ai/budget';
 import { DEFAULT_MAX_DAILY_USD, DEFAULT_TURN_ESTIMATE_USD, estimateCostUsd } from '@ai/budget/cost';
@@ -28,6 +29,7 @@ import { getDb } from '@ai/runtime/db';
 import { telemetryConfig } from '@ai/runtime/telemetry';
 import { createToolContext, type ToolEnv, withToolContext } from '@ai/runtime/tool-context';
 
+import { jsonPromptInjectionForModel } from '../../committee/structured-output';
 import { manifestForCapability } from '../capabilities';
 import { buildGuardrailInputProcessors } from '../guardrails';
 import {
@@ -52,6 +54,10 @@ export interface RunMastraBackgroundTextArgs {
   skipInputGuardrails?: boolean;
   /** Conservative reservation for this bounded background generation. */
   estimateUsd?: number;
+  /** Optional structured output contract (journal coach insights). */
+  structuredSchema?: z.ZodType<Record<string, unknown>>;
+  /** Instructions for the structured-output call. */
+  structuredInstructions?: string;
   ledger?: GenerationLedger;
   ledgerId?: string;
   /**
@@ -71,6 +77,8 @@ export interface MastraBackgroundTextResult {
   outputTokens: number;
   costUsd: number;
   latencyMs: number;
+  /** Parsed structured output when `structuredSchema` was supplied. */
+  object?: unknown;
 }
 
 function resolveBackgroundModel(
@@ -162,22 +170,32 @@ export async function runMastraBackgroundText(
       ['runId', runId],
       ['backgroundTask', args.task],
     ]);
+    const baseOptions = {
+      requestContext,
+      toolChoice: hasTools ? ('auto' as const) : ('none' as const),
+      maxSteps: hasTools
+        ? BACKGROUND_TOOL_MAX_STEPS
+        : manifestForCapability('canonical-chat').maxSteps > 0
+          ? 1
+          : 0,
+      ...(args.task === 'title' ? { maxOutputTokens: 80 } : { maxOutputTokens: 2_000 }),
+      ...telemetryConfig({
+        functionId: `mastra.worker.${args.task}`,
+        metadata: { task: args.task, provider: model.providerId },
+      }),
+      ...(args.signal ? { abortSignal: args.signal } : {}),
+    };
     const generate = () =>
-      agent.generate(args.prompt, {
-        requestContext,
-        toolChoice: hasTools ? 'auto' : 'none',
-        maxSteps: hasTools
-          ? BACKGROUND_TOOL_MAX_STEPS
-          : manifestForCapability('canonical-chat').maxSteps > 0
-            ? 1
-            : 0,
-        ...(args.task === 'title' ? { maxOutputTokens: 80 } : { maxOutputTokens: 2_000 }),
-        ...telemetryConfig({
-          functionId: `mastra.worker.${args.task}`,
-          metadata: { task: args.task, provider: model.providerId },
-        }),
-        ...(args.signal ? { abortSignal: args.signal } : {}),
-      });
+      args.structuredSchema
+        ? agent.generate(args.prompt, {
+            ...baseOptions,
+            structuredOutput: {
+              schema: args.structuredSchema,
+              jsonPromptInjection: jsonPromptInjectionForModel(model.model),
+              ...(args.structuredInstructions ? { instructions: args.structuredInstructions } : {}),
+            },
+          })
+        : agent.generate(args.prompt, baseOptions);
     // Tools resolve their tenant scope and settings from the async tool
     // context; without it every tool call throws outside `runChat()`.
     const result = hasTools
@@ -196,6 +214,7 @@ export async function runMastraBackgroundText(
         )
       : await generate();
     const stats = getMastraGenerationStats(result);
+    const structuredObject = (result as { object?: unknown }).object;
     const costUsd = estimateCostUsd(model.modelId, stats.inputTokens, stats.outputTokens);
     const ledger = args.ledger ?? createGenerationLedger();
     ledger.recordCost(args.ledgerId ?? `background:${runId}`, 'auxiliary', costUsd);
@@ -208,7 +227,8 @@ export async function runMastraBackgroundText(
       startedAt,
       ...stats,
       outcome: 'success',
-      answerOutcome: result.text.trim().length > 0 ? 'ready' : 'degraded',
+      answerOutcome:
+        result.text.trim().length > 0 || structuredObject !== undefined ? 'ready' : 'degraded',
       telemetryKind: 'mastra_worker_task',
     });
     // The helper owns admission for every caller, including cron, bot, and
@@ -224,6 +244,7 @@ export async function runMastraBackgroundText(
       outputTokens: stats.outputTokens,
       costUsd,
       latencyMs: Date.now() - startedAt,
+      ...(structuredObject !== undefined ? { object: structuredObject } : {}),
     };
   } catch (error) {
     await finishMastraRun({

@@ -21,22 +21,9 @@
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { JournalEntry, ServerEnv } from '@kestrel/shared';
-import { createCategorizedLogger } from '@kestrel/shared/logger';
 
-import { acquireBudget } from '../budget';
-import {
-  DEFAULT_MAX_DAILY_USD,
-  estimateKnownCostUsd,
-  releaseBudgetReservation,
-} from '../budget/cost';
 import { sanitizeExternalText } from '../mastra-v2/packets/external-content';
-import {
-  beginMastraRun,
-  finishMastraRun,
-  mastraOutcomeForError,
-} from '../mastra-v2/shared/telemetry';
-import { runMastraText } from '../mastra-v2/shared/text-runner';
-import { resolveChatModel } from '../models/model';
+import { runMastraBackgroundText } from '../mastra-v2/shared/background-text';
 import { computeStats, type JournalStatsSummary } from './persistence';
 
 export interface ReviewTradeArgs {
@@ -62,8 +49,6 @@ export interface TradeReviewResult {
   costUsd: number;
   latencyMs: number;
 }
-
-const rlog = createCategorizedLogger('ai', { component: 'journal-review' });
 
 const SYSTEM_PROMPT = `You are a disciplined trading coach reviewing a single closed trade from the user's journal.
 
@@ -108,126 +93,32 @@ function formatEntryForPrompt(entry: JournalEntry, stats: JournalStatsSummary): 
 
 export async function reviewTrade(args: ReviewTradeArgs): Promise<TradeReviewResult> {
   const { userId, entry, userSettings, env, signal } = args;
-  const startedAt = Date.now();
-  const runId = crypto.randomUUID();
   const threadId = `journal-review:${entry.id}`;
 
   if (entry.outcome === 'open') {
     throw new Error('Cannot review an open trade; close it first.');
   }
 
-  // Resolve the user's default chat model (BYOK or env fallback).
-  const { model, modelId } = resolveChatModel(userSettings, env);
-  const providerId = modelId.includes(':') ? modelId.split(':')[0]! : 'google';
-
-  // Audit v3 Phase 7 (Q4): use acquireBudget so daily caps are ledger-only
-  // unless ENFORCE_BUDGET=true.
-  const estimatedUsd = 0.005;
-  const maxDailyUsd = userSettings.maxDailyUsd ?? env.MAX_DAILY_USD ?? DEFAULT_MAX_DAILY_USD;
-  const { reservation } = await acquireBudget({
+  const stats = await computeStats(userId);
+  const userPrompt = formatEntryForPrompt(entry, stats);
+  const result = await runMastraBackgroundText({
     userId,
-    estimateUsd: estimatedUsd,
-    maxDailyUsd,
-    correlation: { runId, threadId },
-  });
-  if (!reservation.ok) {
-    throw new Error(
-      `Daily AI budget exceeded ($${reservation.spent.toFixed(2)} / $${reservation.max.toFixed(2)}).`,
-    );
-  }
-
-  beginMastraRun({
-    runId,
     threadId,
-    model: modelId,
-    providerId,
+    task: 'journal_review',
+    prompt: userPrompt,
+    instructions: SYSTEM_PROMPT,
+    settings: userSettings,
+    env,
+    estimateUsd: 0.005,
+    ...(signal ? { signal } : {}),
   });
 
-  try {
-    const stats = await computeStats(userId);
-    const userPrompt = formatEntryForPrompt(entry, stats);
-    const result = await runMastraText({
-      task: 'journal-review',
-      model,
-      instructions: SYSTEM_PROMPT,
-      prompt: userPrompt,
-      userId,
-      threadId,
-      runId,
-      ...(signal ? { signal } : {}),
-      maxOutputTokens: 800,
-    });
-    const reviewText = result.text;
-    const inputTokens = result.inputTokens;
-    const outputTokens = result.outputTokens;
-    const latencyMs = Date.now() - startedAt;
-    const costUsd = estimateKnownCostUsd(modelId, inputTokens, outputTokens);
-
-    await finishMastraRun({
-      userId,
-      threadId,
-      runId,
-      model: modelId,
-      providerId,
-      startedAt,
-      inputTokens,
-      outputTokens,
-      toolCalls: 0,
-      steps: 1,
-      outcome: 'success',
-      answerOutcome: reviewText.trim().length > 0 ? 'ready' : 'degraded',
-      telemetryKind: 'mastra_worker_task',
-    });
-
-    // Reconcile the durable budget reservation with actual cost.
-    if (reservation.reservationId) {
-      const { reconcileBudgetReservation } = await import('../budget/cost');
-      await reconcileBudgetReservation(reservation.reservationId, costUsd);
-    }
-
-    return {
-      review: reviewText.trim(),
-      modelId,
-      inputTokens,
-      outputTokens,
-      costUsd,
-      latencyMs,
-    };
-  } catch (err) {
-    await finishMastraRun({
-      userId,
-      threadId,
-      runId,
-      model: modelId,
-      providerId,
-      startedAt,
-      inputTokens: 0,
-      outputTokens: 0,
-      toolCalls: 0,
-      steps: 0,
-      outcome: mastraOutcomeForError(err, signal),
-      telemetryKind: 'mastra_worker_task',
-      error: err,
-    });
-
-    // Release the reservation on failure so the user isn't charged. A failed
-    // ledger release is logged and remains recoverable for a later retry.
-    try {
-      if (reservation.reservationId) {
-        await releaseBudgetReservation(reservation.reservationId);
-      } else {
-        // Legacy reservations without a ledger id are not expected in production.
-        const { applyBudgetDelta } = await import('../budget/cost');
-        await applyBudgetDelta(userId, -estimatedUsd);
-      }
-    } catch (releaseErr) {
-      rlog.error('journal budget release failed; reservation remains open', {
-        err: String(releaseErr),
-      });
-    }
-    if (env.LOG_PROMPTS) {
-      rlog.warn('LLM failed', { err: String(err) });
-    }
-    throw err;
-  }
+  return {
+    review: result.text.trim(),
+    modelId: result.modelId,
+    inputTokens: result.inputTokens,
+    outputTokens: result.outputTokens,
+    costUsd: result.costUsd,
+    latencyMs: result.latencyMs,
+  };
 }
