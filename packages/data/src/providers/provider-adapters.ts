@@ -41,6 +41,7 @@ import {
   type MarketDataProvider,
   type ProviderFetchOptions,
   type ProviderPriceSnapshot,
+  type ProviderSupportContext,
 } from './provider-registry';
 import { toCandle, toCandleFromBiquote } from './to-candle';
 
@@ -233,8 +234,8 @@ function createFinnhubProvider(): MarketDataProvider {
       const fetchedAt = Date.now();
       return raw.map((bar) => toCandle(bar, { symbol, tf, source: 'finnhub', fetchedAt }));
     },
-    supports(_symbol: Symbol, _tf?: Timeframe): boolean {
-      return Boolean(process.env.FINNHUB_API_KEY);
+    supports(_symbol: Symbol, _tf?: Timeframe, ctx?: ProviderSupportContext): boolean {
+      return Boolean(ctx?.apiKeys?.finnhub || process.env.FINNHUB_API_KEY);
     },
     async testConnection(opts?: ProviderFetchOptions): Promise<{ ok: boolean; error?: string }> {
       try {

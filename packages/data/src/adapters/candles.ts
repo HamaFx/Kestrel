@@ -141,7 +141,7 @@ export async function getCandlesWithMeta(
         .filter(
           (p) =>
             typeof p.fetchCandles === 'function' &&
-            (p.name === 'finnhub' ? Boolean(keys.finnhub) : (p.supports?.(symbol, tf) ?? true)),
+            (p.supports?.(symbol, tf, { apiKeys: keys }) ?? true),
         )
         .map((p) => ({
           name: p.name,

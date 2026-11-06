@@ -26,8 +26,8 @@
 
 import { z } from 'zod';
 
-import { noteBackoff, tryReserve, type ThrottleConfig } from '../../cache/throttle';
-import { ProviderError } from '../../errors';
+import type { ThrottleConfig } from '../../cache/throttle';
+import { providerFetchJson } from '../http';
 
 const PROVIDER = 'cftc';
 const BASE_URL = 'https://publicreporting.cftc.gov/resource/gpe5-46if.json';
@@ -63,75 +63,28 @@ interface FetchLatestArgs {
 }
 
 export async function fetchLatestRows(args: FetchLatestArgs): Promise<CftcRow[]> {
-  if (!args.skipThrottle && !(await tryReserve(PROVIDER, THROTTLE))) {
-    throw new ProviderError(
-      'PROVIDER_QUOTA_EXCEEDED',
-      PROVIDER,
-      `Self-throttle: capped at ${THROTTLE.limit} req / ${THROTTLE.windowMs}ms`,
-    );
-  }
-
   const url = new URL(BASE_URL);
   url.searchParams.set('$where', `market_and_exchange_names="${args.commodityName}"`);
   url.searchParams.set('$order', 'report_date_as_yyyy_mm_dd DESC');
   url.searchParams.set('$limit', String(args.weeks ?? 8));
 
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(new Error('timeout')), DEFAULT_TIMEOUT_MS);
-  if (args.signal) {
-    if (args.signal.aborted) ctrl.abort(args.signal.reason);
-    else
-      args.signal.addEventListener('abort', () => ctrl.abort(args.signal!.reason), { once: true });
-  }
-
-  let res: Response;
-  try {
-    res = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
-  } catch (cause) {
-    if (args.signal?.aborted) {
-      throw args.signal.reason ?? cause;
-    }
-    const isAbort = (cause as Error)?.name === 'AbortError';
-    throw new ProviderError(
-      isAbort ? 'PROVIDER_TIMEOUT' : 'PROVIDER_HTTP_ERROR',
-      PROVIDER,
-      isAbort ? 'request timed out' : 'fetch failed',
-      { cause },
-    );
-  } finally {
-    clearTimeout(timer);
-  }
-
-  if (!res.ok) {
-    if (res.status === 429) {
-      await noteBackoff(PROVIDER, THROTTLE);
-    }
-    throw new ProviderError(
-      res.status === 429 ? 'PROVIDER_QUOTA_EXCEEDED' : 'PROVIDER_HTTP_ERROR',
-      PROVIDER,
-      `HTTP ${res.status} ${res.statusText}`,
-      { status: res.status },
-    );
-  }
-
-  let json: unknown;
-  try {
-    json = await res.json();
-  } catch (cause) {
-    throw new ProviderError('PROVIDER_PARSE_ERROR', PROVIDER, 'invalid JSON', { cause });
-  }
-  if (!Array.isArray(json)) {
-    throw new ProviderError('PROVIDER_PARSE_ERROR', PROVIDER, 'expected JSON array');
-  }
+  const rows = await providerFetchJson({
+    provider: PROVIDER,
+    url,
+    schema: z.array(z.unknown()),
+    throttle: THROTTLE,
+    ...(args.skipThrottle !== undefined ? { skipThrottle: args.skipThrottle } : {}),
+    ...(args.signal ? { signal: args.signal } : {}),
+    timeoutMs: DEFAULT_TIMEOUT_MS,
+  });
 
   const out: CftcRow[] = [];
-  for (const row of json) {
+  for (const row of rows) {
     const parsed = CftcRowSchema.safeParse(row);
     if (parsed.success) out.push(parsed.data);
   }
   return out;
 }
-
 /**
  * Parse a CFTC string-typed integer column into `number | null`. Empty
  * strings and the literal `"."` (Socrata's missing-data placeholder) map

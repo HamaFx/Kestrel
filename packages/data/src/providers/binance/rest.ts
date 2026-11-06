@@ -15,9 +15,11 @@
  */
 
 import { getSymbolDefinition, type Symbol, type Timeframe } from '@kestrel/shared';
+import { z } from 'zod';
 
-import { noteBackoff, tryReserve, type ThrottleConfig } from '../../cache/throttle';
+import type { ThrottleConfig } from '../../cache/throttle';
 import { ProviderError } from '../../errors';
+import { providerFetchJson } from '../http';
 import { isCryptoSymbol, toBinanceInterval } from './map';
 import { parseKline, type NormalizedBinanceCandle } from './types';
 
@@ -41,54 +43,20 @@ async function klinesCall(
   query: Record<string, string>,
   opts: CallOptions,
 ): Promise<NormalizedBinanceCandle[]> {
-  if (!opts.skipThrottle && !(await tryReserve(PROVIDER, THROTTLE))) {
-    throw new ProviderError(
-      'PROVIDER_QUOTA_EXCEEDED',
-      PROVIDER,
-      `Self-throttle: capped at ${THROTTLE.limit} req / ${THROTTLE.windowMs}ms`,
-    );
-  }
-
   const url = new URL(`${BASE_URL}/api/v3/klines`);
   for (const [k, v] of Object.entries(query)) url.searchParams.set(k, v);
 
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(new Error('timeout')), DEFAULT_TIMEOUT_MS);
-  if (opts.signal) {
-    if (opts.signal.aborted) ctrl.abort(opts.signal.reason);
-    else
-      opts.signal.addEventListener('abort', () => ctrl.abort(opts.signal!.reason), { once: true });
-  }
+  const json = await providerFetchJson<unknown>({
+    provider: PROVIDER,
+    url,
+    schema: z.unknown(),
+    throttle: THROTTLE,
+    ...(opts.skipThrottle !== undefined ? { skipThrottle: opts.skipThrottle } : {}),
+    ...(opts.signal ? { signal: opts.signal } : {}),
+    timeoutMs: DEFAULT_TIMEOUT_MS,
+    quotaStatuses: [429, 418],
+  });
 
-  let res: Response;
-  try {
-    res = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
-  } catch (cause) {
-    if (opts?.signal?.aborted) {
-      throw opts.signal.reason ?? cause;
-    }
-    const isAbort = (cause as Error)?.name === 'AbortError';
-    throw new ProviderError(
-      isAbort ? 'PROVIDER_TIMEOUT' : 'PROVIDER_HTTP_ERROR',
-      PROVIDER,
-      isAbort ? 'request timed out' : 'fetch failed',
-      { cause },
-    );
-  } finally {
-    clearTimeout(timer);
-  }
-
-  if (!res.ok) {
-    if (res.status === 429 || res.status === 418) await noteBackoff(PROVIDER, THROTTLE);
-    throw new ProviderError(
-      res.status === 429 || res.status === 418 ? 'PROVIDER_QUOTA_EXCEEDED' : 'PROVIDER_HTTP_ERROR',
-      PROVIDER,
-      `HTTP ${res.status} ${res.statusText}`,
-      { status: res.status },
-    );
-  }
-
-  const json: unknown = await res.json().catch(() => null);
   if (!Array.isArray(json)) {
     throw new ProviderError('PROVIDER_PARSE_ERROR', PROVIDER, 'expected array response');
   }
@@ -196,59 +164,16 @@ export async function fetchTickerPrice(
   const url = new URL(`${BASE_URL}/api/v3/ticker/price`);
   url.searchParams.set('symbol', getSymbolDefinition(canonical).binance!);
 
-  const allowed = await tryReserve(PROVIDER, THROTTLE);
-  if (!allowed) {
-    throw new ProviderError(
-      'PROVIDER_QUOTA_EXCEEDED',
-      PROVIDER,
-      `binance self-throttle exhausted (${THROTTLE.limit} requests / ${THROTTLE.windowMs / 1000}s)`,
-    );
-  }
-
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(new Error('timeout')), DEFAULT_TIMEOUT_MS);
-  if (opts?.signal) {
-    if (opts.signal.aborted) ctrl.abort(opts.signal.reason);
-    else
-      opts.signal.addEventListener('abort', () => ctrl.abort(opts.signal!.reason), { once: true });
-  }
-
-  let res: Response;
-  try {
-    res = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
-  } catch (cause) {
-    if (opts?.signal?.aborted) {
-      throw opts.signal.reason ?? cause;
-    }
-    const isAbort = (cause as Error)?.name === 'AbortError';
-    throw new ProviderError(
-      isAbort ? 'PROVIDER_TIMEOUT' : 'PROVIDER_HTTP_ERROR',
-      PROVIDER,
-      isAbort ? 'request timed out' : 'fetch failed',
-      { cause },
-    );
-  } finally {
-    clearTimeout(timer);
-  }
-
-  if (!res.ok) {
-    if (res.status === 429 || res.status === 418) await noteBackoff(PROVIDER, THROTTLE);
-    throw new ProviderError(
-      res.status === 429 || res.status === 418 ? 'PROVIDER_QUOTA_EXCEEDED' : 'PROVIDER_HTTP_ERROR',
-      PROVIDER,
-      `HTTP ${res.status} ${res.statusText}`,
-      { status: res.status },
-    );
-  }
-
-  const json: unknown = await res.json().catch(() => null);
-  if (!json || typeof json !== 'object' || !('price' in json)) {
-    throw new ProviderError(
-      'PROVIDER_PARSE_ERROR',
-      PROVIDER,
-      'expected { price: string } response',
-    );
-  }
+  const json = await providerFetchJson<{ price: string }>({
+    provider: PROVIDER,
+    url,
+    schema: z.object({ price: z.string() }),
+    throttle: THROTTLE,
+    ...(opts?.signal ? { signal: opts.signal } : {}),
+    timeoutMs: DEFAULT_TIMEOUT_MS,
+    quotaStatuses: [429, 418],
+    quotaMessage: `binance self-throttle exhausted (${THROTTLE.limit} requests / ${THROTTLE.windowMs / 1000}s)`,
+  });
 
   const price = Number.parseFloat((json as { price: string }).price);
   if (Number.isNaN(price)) {

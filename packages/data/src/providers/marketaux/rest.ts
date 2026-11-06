@@ -27,8 +27,8 @@
 
 import { z } from 'zod';
 
-import { noteBackoff, tryReserve, type ThrottleConfig } from '../../cache/throttle';
-import { ProviderError } from '../../errors';
+import type { ThrottleConfig } from '../../cache/throttle';
+import { providerFetchJson } from '../http';
 
 const PROVIDER = 'marketaux';
 const BASE_URL = 'https://api.marketaux.com';
@@ -93,14 +93,6 @@ export interface FetchNewsParams {
  * keep this single-page since the cron runs frequently and we trust the
  * default sort (published_at desc). */
 export async function fetchLatest(params: FetchNewsParams): Promise<RawMarketauxArticle[]> {
-  if (!params.skipThrottle && !(await tryReserve(PROVIDER, THROTTLE))) {
-    throw new ProviderError(
-      'PROVIDER_QUOTA_EXCEEDED',
-      PROVIDER,
-      `Self-throttle: capped at ${THROTTLE.limit} req / ${THROTTLE.windowMs}ms`,
-    );
-  }
-
   const url = new URL('/v1/news/all', BASE_URL);
   url.searchParams.set('api_token', params.apiKey);
   url.searchParams.set('search', params.search ?? DEFAULT_SEARCH);
@@ -113,56 +105,18 @@ export async function fetchLatest(params: FetchNewsParams): Promise<RawMarketaux
     url.searchParams.set('published_after', trimmed);
   }
 
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(new Error('timeout')), DEFAULT_TIMEOUT_MS);
-  if (params.signal) {
-    if (params.signal.aborted) ctrl.abort(params.signal.reason);
-    else
-      params.signal.addEventListener('abort', () => ctrl.abort(params.signal!.reason), {
-        once: true,
-      });
-  }
-
-  let res: Response;
-  try {
-    res = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
-  } catch (cause) {
-    const isAbort = (cause as Error)?.name === 'AbortError';
-    throw new ProviderError(
-      isAbort ? 'PROVIDER_TIMEOUT' : 'PROVIDER_HTTP_ERROR',
-      PROVIDER,
-      isAbort ? 'request timed out' : 'fetch failed',
-      { cause },
-    );
-  } finally {
-    clearTimeout(timer);
-  }
-
-  if (!res.ok) {
-    const json: unknown = await res.json().catch(() => null);
-    const errEnv = ErrorSchema.safeParse(json);
-    const message = errEnv.success ? errEnv.data.error.message : `HTTP ${res.status}`;
-    if (res.status === 429) await noteBackoff(PROVIDER, THROTTLE);
-    throw new ProviderError(
-      res.status === 429 ? 'PROVIDER_QUOTA_EXCEEDED' : 'PROVIDER_HTTP_ERROR',
-      PROVIDER,
-      message,
-      { status: res.status },
-    );
-  }
-
-  let json: unknown;
-  try {
-    json = await res.json();
-  } catch (cause) {
-    throw new ProviderError('PROVIDER_PARSE_ERROR', PROVIDER, 'invalid JSON', { cause });
-  }
-
-  const parsed = ResponseSchema.safeParse(json);
-  if (!parsed.success) {
-    throw new ProviderError('PROVIDER_PARSE_ERROR', PROVIDER, 'unexpected response shape', {
-      cause: parsed.error,
-    });
-  }
-  return parsed.data.data;
+  const response = await providerFetchJson({
+    provider: PROVIDER,
+    url,
+    schema: ResponseSchema,
+    throttle: THROTTLE,
+    ...(params.skipThrottle !== undefined ? { skipThrottle: params.skipThrottle } : {}),
+    ...(params.signal ? { signal: params.signal } : {}),
+    timeoutMs: DEFAULT_TIMEOUT_MS,
+    errorMessage: (json) => {
+      const errEnv = ErrorSchema.safeParse(json);
+      return errEnv.success ? errEnv.data.error.message : null;
+    },
+  });
+  return response.data;
 }

@@ -24,13 +24,13 @@
 import { msPerTimeframe, type Symbol, type Timeframe } from '@kestrel/shared';
 import { z } from 'zod';
 
-import { noteBackoff, tryReserve, type ThrottleConfig } from '../../cache/throttle';
+import type { ThrottleConfig } from '../../cache/throttle';
 import { ProviderError } from '../../errors';
+import { providerFetchJson } from '../http';
 import { toFinnhubResolution, toFinnhubSymbol } from './map';
 
 const PROVIDER = 'finnhub';
 const BASE_URL = 'https://finnhub.io/api/v1';
-const DEFAULT_TIMEOUT_MS = 8_000;
 
 // Free tier is 60 req/min. Cap ourselves at 30 to leave room.
 const THROTTLE: ThrottleConfig = { limit: 30, windowMs: 60_000 };
@@ -70,60 +70,18 @@ async function call<T>(
   schema: z.ZodType<T>,
   opts: CallOptions,
 ): Promise<T> {
-  if (!opts.skipThrottle && !(await tryReserve(PROVIDER, THROTTLE))) {
-    throw new ProviderError(
-      'PROVIDER_QUOTA_EXCEEDED',
-      PROVIDER,
-      `Self-throttle: capped at ${THROTTLE.limit} req / ${THROTTLE.windowMs}ms`,
-    );
-  }
-
   const url = new URL(`${BASE_URL}${path}`);
   for (const [k, v] of Object.entries(query)) url.searchParams.set(k, v);
   url.searchParams.set('token', opts.apiKey);
 
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(new Error('timeout')), DEFAULT_TIMEOUT_MS);
-  if (opts.signal) {
-    if (opts.signal.aborted) ctrl.abort(opts.signal.reason);
-    else
-      opts.signal.addEventListener('abort', () => ctrl.abort(opts.signal!.reason), { once: true });
-  }
-
-  let res: Response;
-  try {
-    res = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
-  } catch (cause) {
-    if (opts.signal?.aborted) throw opts.signal.reason ?? cause;
-    const isAbort = (cause as Error)?.name === 'AbortError';
-    throw new ProviderError(
-      isAbort ? 'PROVIDER_TIMEOUT' : 'PROVIDER_HTTP_ERROR',
-      PROVIDER,
-      isAbort ? 'request timed out' : 'fetch failed',
-      { cause },
-    );
-  } finally {
-    clearTimeout(timer);
-  }
-
-  if (!res.ok) {
-    if (res.status === 429) await noteBackoff(PROVIDER, THROTTLE);
-    throw new ProviderError(
-      res.status === 429 ? 'PROVIDER_QUOTA_EXCEEDED' : 'PROVIDER_HTTP_ERROR',
-      PROVIDER,
-      `HTTP ${res.status} ${res.statusText}`,
-      { status: res.status },
-    );
-  }
-
-  const json: unknown = await res.json().catch(() => null);
-  const parsed = schema.safeParse(json);
-  if (!parsed.success) {
-    throw new ProviderError('PROVIDER_PARSE_ERROR', PROVIDER, 'unexpected response shape', {
-      cause: parsed.error,
-    });
-  }
-  return parsed.data;
+  return providerFetchJson({
+    provider: PROVIDER,
+    url,
+    schema,
+    throttle: THROTTLE,
+    ...(opts.skipThrottle !== undefined ? { skipThrottle: opts.skipThrottle } : {}),
+    ...(opts.signal ? { signal: opts.signal } : {}),
+  });
 }
 
 export async function fetchPrice(symbol: Symbol, opts: CallOptions): Promise<{ price: number }> {

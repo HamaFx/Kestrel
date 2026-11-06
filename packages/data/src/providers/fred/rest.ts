@@ -25,8 +25,8 @@
 
 import { z } from 'zod';
 
-import { noteBackoff, tryReserve, type ThrottleConfig } from '../../cache/throttle';
-import { ProviderError } from '../../errors';
+import type { ThrottleConfig } from '../../cache/throttle';
+import { providerFetchJson } from '../http';
 
 const PROVIDER = 'fred';
 const BASE_URL = 'https://api.stlouisfed.org';
@@ -60,14 +60,6 @@ function isoDate(d: Date): string {
 }
 
 export async function fetchReleaseDates(params: FetchReleasesParams): Promise<FredReleaseDate[]> {
-  if (!params.skipThrottle && !(await tryReserve(PROVIDER, THROTTLE))) {
-    throw new ProviderError(
-      'PROVIDER_QUOTA_EXCEEDED',
-      PROVIDER,
-      `Self-throttle: capped at ${THROTTLE.limit} req / ${THROTTLE.windowMs}ms`,
-    );
-  }
-
   const now = new Date();
   const fromDefault = isoDate(now);
   const toDefault = isoDate(new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000));
@@ -82,55 +74,16 @@ export async function fetchReleaseDates(params: FetchReleasesParams): Promise<Fr
   url.searchParams.set('order_by', 'release_date');
   url.searchParams.set('sort_order', 'asc');
 
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(new Error('timeout')), DEFAULT_TIMEOUT_MS);
-  if (params.signal) {
-    if (params.signal.aborted) ctrl.abort(params.signal.reason);
-    else
-      params.signal.addEventListener('abort', () => ctrl.abort(params.signal!.reason), {
-        once: true,
-      });
-  }
-
-  let res: Response;
-  try {
-    res = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
-  } catch (cause) {
-    const isAbort = (cause as Error)?.name === 'AbortError';
-    throw new ProviderError(
-      isAbort ? 'PROVIDER_TIMEOUT' : 'PROVIDER_HTTP_ERROR',
-      PROVIDER,
-      isAbort ? 'request timed out' : 'fetch failed',
-      { cause },
-    );
-  } finally {
-    clearTimeout(timer);
-  }
-
-  if (!res.ok) {
-    if (res.status === 429) await noteBackoff(PROVIDER, THROTTLE);
-    throw new ProviderError(
-      res.status === 429 ? 'PROVIDER_QUOTA_EXCEEDED' : 'PROVIDER_HTTP_ERROR',
-      PROVIDER,
-      `HTTP ${res.status} ${res.statusText}`,
-      { status: res.status },
-    );
-  }
-
-  let json: unknown;
-  try {
-    json = await res.json();
-  } catch (cause) {
-    throw new ProviderError('PROVIDER_PARSE_ERROR', PROVIDER, 'invalid JSON', { cause });
-  }
-
-  const parsed = ResponseSchema.safeParse(json);
-  if (!parsed.success) {
-    throw new ProviderError('PROVIDER_PARSE_ERROR', PROVIDER, 'unexpected shape', {
-      cause: parsed.error,
-    });
-  }
-  return parsed.data.release_dates;
+  const response = await providerFetchJson({
+    provider: PROVIDER,
+    url,
+    schema: ResponseSchema,
+    throttle: THROTTLE,
+    ...(params.skipThrottle !== undefined ? { skipThrottle: params.skipThrottle } : {}),
+    ...(params.signal ? { signal: params.signal } : {}),
+    timeoutMs: DEFAULT_TIMEOUT_MS,
+  });
+  return response.release_dates;
 }
 
 // ---------------------------------------------------------------------------
@@ -171,14 +124,6 @@ export interface FredObservation {
 export async function fetchObservations(
   params: FetchObservationParams,
 ): Promise<FredObservation[]> {
-  if (!params.skipThrottle && !(await tryReserve(PROVIDER, THROTTLE))) {
-    throw new ProviderError(
-      'PROVIDER_QUOTA_EXCEEDED',
-      PROVIDER,
-      `Self-throttle: capped at ${THROTTLE.limit} req / ${THROTTLE.windowMs}ms`,
-    );
-  }
-
   const url = new URL('/fred/series/observations', BASE_URL);
   url.searchParams.set('api_key', params.apiKey);
   url.searchParams.set('file_type', 'json');
@@ -186,56 +131,18 @@ export async function fetchObservations(
   url.searchParams.set('observation_start', params.start);
   url.searchParams.set('observation_end', params.end);
 
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(new Error('timeout')), DEFAULT_TIMEOUT_MS);
-  if (params.signal) {
-    if (params.signal.aborted) ctrl.abort(params.signal.reason);
-    else
-      params.signal.addEventListener('abort', () => ctrl.abort(params.signal!.reason), {
-        once: true,
-      });
-  }
-
-  let res: Response;
-  try {
-    res = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
-  } catch (cause) {
-    const isAbort = (cause as Error)?.name === 'AbortError';
-    throw new ProviderError(
-      isAbort ? 'PROVIDER_TIMEOUT' : 'PROVIDER_HTTP_ERROR',
-      PROVIDER,
-      isAbort ? 'request timed out' : 'fetch failed',
-      { cause },
-    );
-  } finally {
-    clearTimeout(timer);
-  }
-
-  if (!res.ok) {
-    if (res.status === 429) await noteBackoff(PROVIDER, THROTTLE);
-    throw new ProviderError(
-      res.status === 429 ? 'PROVIDER_QUOTA_EXCEEDED' : 'PROVIDER_HTTP_ERROR',
-      PROVIDER,
-      `HTTP ${res.status} ${res.statusText}`,
-      { status: res.status },
-    );
-  }
-
-  let json: unknown;
-  try {
-    json = await res.json();
-  } catch (cause) {
-    throw new ProviderError('PROVIDER_PARSE_ERROR', PROVIDER, 'invalid JSON', { cause });
-  }
-  const parsed = ObservationsResponseSchema.safeParse(json);
-  if (!parsed.success) {
-    throw new ProviderError('PROVIDER_PARSE_ERROR', PROVIDER, 'unexpected shape', {
-      cause: parsed.error,
-    });
-  }
+  const response = await providerFetchJson({
+    provider: PROVIDER,
+    url,
+    schema: ObservationsResponseSchema,
+    throttle: THROTTLE,
+    ...(params.skipThrottle !== undefined ? { skipThrottle: params.skipThrottle } : {}),
+    ...(params.signal ? { signal: params.signal } : {}),
+    timeoutMs: DEFAULT_TIMEOUT_MS,
+  });
 
   const out: FredObservation[] = [];
-  for (const o of parsed.data.observations) {
+  for (const o of response.observations) {
     if (o.value === '.' || o.value.trim().length === 0) continue;
     const v = Number(o.value);
     if (!Number.isFinite(v)) continue;

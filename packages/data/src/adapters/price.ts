@@ -154,9 +154,7 @@ export async function getPriceWithMeta(
     async () => {
       const providers = marketDataProviders.list();
       const attempts: ProviderAttempt<ProviderPriceSnapshot>[] = providers
-        .filter((p) =>
-          p.name === 'finnhub' ? Boolean(keys.finnhub) : (p.supports?.(symbol) ?? true),
-        )
+        .filter((p) => p.supports?.(symbol, undefined, { apiKeys: keys }) ?? true)
         .map((p) => ({
           name: p.name,
           pinned: p.pinned ?? false,

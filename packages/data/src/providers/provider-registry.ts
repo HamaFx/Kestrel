@@ -50,6 +50,11 @@ export interface ProviderFetchOptions {
   includeOpenBar?: boolean;
 }
 
+export interface ProviderSupportContext {
+  /** Per-call BYOK keys so a provider can gate on its own credential. */
+  apiKeys?: Record<string, string | undefined>;
+}
+
 export interface ProviderPriceSnapshot {
   price: number;
   provider: string;
@@ -118,7 +123,7 @@ export interface MarketDataProvider {
    * Optional per-provider guard: can this provider serve this symbol/tf?
    * Defaults to true when not implemented (provider is tried unconditionally).
    */
-  supports?(symbol: Symbol, tf?: Timeframe): boolean;
+  supports?(symbol: Symbol, tf?: Timeframe, ctx?: ProviderSupportContext): boolean;
 }
 
 // --- Registry -------------------------------------------------------------
