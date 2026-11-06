@@ -1,8 +1,35 @@
+/**
+ * Copyright 2026 Kestrel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { getTableConfig, type PgTable } from 'drizzle-orm/pg-core';
+
+/**
+ * Migration layouts Kestrel understands.
+ *
+ * - `folders` — Drizzle v1 / drizzle-kit v3: one subfolder per migration
+ *   containing `migration.sql` (and `snapshot.json`). The migrator applies
+ *   every missing folder and matches applied rows by folder name.
+ * - `journal` — the pre-v1 flat layout. Retained only so fixtures and older
+ *   checkouts still produce a useful preflight.
+ */
+type MigrationLayout = 'journal' | 'folders';
 
 interface MigrationEntry {
   tag: string;
@@ -11,12 +38,17 @@ interface MigrationEntry {
 }
 
 export interface MigrationPlanEntry extends MigrationEntry {
+  /** SQL path relative to the migrations folder. */
   file: string;
   hash: string;
+  /** v3 folder name, when the plan was built from folders. */
+  folder?: string;
 }
 
 export interface MigrationPlan {
+  layout: MigrationLayout;
   entries: MigrationPlanEntry[];
+  /** SQL files in the migrations root (folders layout) or absent from the journal. */
   unjournaledFiles: string[];
   missingTags: string[];
 }
@@ -27,13 +59,10 @@ export interface MigrationPlan {
  * `0111`–`0113` were generated in a single drizzle-kit batch and all three
  * recorded `when=1792900506784` before this guard existed. Their timestamps
  * cannot be rewritten: every database that already applied them stores that
- * value as `drizzle.__drizzle_migrations.created_at`, and rewriting the
- * journal would make the preflight disagree with that history.
+ * value as `drizzle.__drizzle_migrations.created_at`.
  *
- * Do not add to this list — and do not copy it anywhere that could be widened
- * independently. A new duplicate `when` makes drizzle skip entries silently,
- * so `assertMigrationPlanIsConsistent` fails for any duplicate group whose
- * tags are not all listed here.
+ * The v3 folder layout disambiguates same-second migrations by folder name,
+ * so this list only constrains the legacy journal layout. Do not add to it.
  */
 export const HISTORICAL_DUPLICATE_WHEN_TAGS: readonly string[] = Object.freeze([
   '0111_custom_agent_runs',
@@ -66,10 +95,12 @@ export function findDuplicateWhenGroups(entries: readonly MigrationEntry[]): Dup
   return groups.sort((a, b) => a.when - b.when);
 }
 
-interface AppliedMigration {
+export interface AppliedMigration {
   hash: string;
-  /** `created_at` from `drizzle.__drizzle_migrations`; drizzle records the journal entry's `when`. */
-  createdAt: number;
+  /** Legacy `created_at` millis. Null/absent when the column is not populated. */
+  createdAt?: number | null;
+  /** v1 folder name recorded by the migrator. Null for rows backfilled from v0. */
+  name?: string | null;
 }
 
 type MigrationEntryState = 'applied' | 'applied-modified' | 'pending' | 'would-be-skipped';
@@ -83,24 +114,46 @@ interface MigrationEntryStatus {
 interface MigrationAppliedAudit {
   /** `MAX(created_at)` in `drizzle.__drizzle_migrations`, or null when nothing is applied. */
   newestAppliedAt: number | null;
-  /** Journal entries whose hash is recorded in the database. */
+  /** Entries whose hash or folder name is recorded in the database. */
   appliedCount: number;
-  /** Applied hashes the current journal does not contain. */
+  /** Applied hashes the current plan does not contain. */
   unknownAppliedHashes: string[];
   statuses: MigrationEntryStatus[];
   /** Applied migrations whose file hash changed since they ran; drizzle never re-runs them. */
   modifiedApplied: MigrationEntryStatus[];
-  /** Entries drizzle will silently skip: not applied, `when` <= newestAppliedAt. */
+  /**
+   * Journal-only: entries drizzle v0 would silently skip. Always empty for the
+   * v1 folder layout, where migrations are matched by name.
+   */
   wouldBeSkipped: MigrationEntryStatus[];
   pending: MigrationEntryStatus[];
 }
 
-export function buildMigrationPlan(migrationsDir: string): MigrationPlan {
-  const journalPath = join(migrationsDir, 'meta', '_journal.json');
-  if (!existsSync(journalPath)) {
-    throw new Error(`No migration journal found at ${journalPath}`);
+/** Parse the 14-digit UTC prefix of a v3 migration folder. */
+function folderMillis(folder: string): number {
+  const match = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/.exec(folder);
+  if (!match) {
+    throw new Error(
+      `Migration folder '${folder}' does not start with a 14-digit UTC timestamp ` +
+        '(YYYYMMDDHHMMSS). Drizzle orders and dates folders by that prefix.',
+    );
   }
+  return Date.UTC(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3]),
+    Number(match[4]),
+    Number(match[5]),
+    Number(match[6]),
+  );
+}
 
+function sha256File(path: string): string {
+  return createHash('sha256').update(readFileSync(path)).digest('hex');
+}
+
+function buildFromJournal(migrationsDir: string): MigrationPlan {
+  const journalPath = join(migrationsDir, 'meta', '_journal.json');
   const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as {
     entries?: MigrationEntry[];
   };
@@ -118,9 +171,7 @@ export function buildMigrationPlan(migrationsDir: string): MigrationPlan {
     plan.push({
       ...entry,
       file,
-      hash: createHash('sha256')
-        .update(readFileSync(join(migrationsDir, file)))
-        .digest('hex'),
+      hash: sha256File(join(migrationsDir, file)),
     });
   }
 
@@ -129,7 +180,42 @@ export function buildMigrationPlan(migrationsDir: string): MigrationPlan {
     (file) => ![...tags].some((tag) => file.startsWith(`${tag}.`)),
   );
 
-  return { entries: plan, unjournaledFiles, missingTags };
+  return { layout: 'journal', entries: plan, unjournaledFiles, missingTags };
+}
+
+function buildFromFolders(migrationsDir: string): MigrationPlan {
+  const folders = readdirSync(migrationsDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
+    .map((entry) => entry.name)
+    .filter((name) => existsSync(join(migrationsDir, name, 'migration.sql')))
+    .sort((a, b) => a.localeCompare(b));
+
+  if (folders.length === 0) {
+    throw new Error(
+      `No migration folders found at ${migrationsDir}. Expected ` +
+        '<YYYYMMDDHHMMSS>_<name>/migration.sql subfolders (drizzle-kit v3 layout).',
+    );
+  }
+
+  const entries: MigrationPlanEntry[] = folders.map((folder) => ({
+    tag: folder,
+    folder,
+    when: folderMillis(folder),
+    breakpoints: 1,
+    file: join(folder, 'migration.sql'),
+    hash: sha256File(join(migrationsDir, folder, 'migration.sql')),
+  }));
+
+  const unjournaledFiles = readdirSync(migrationsDir).filter((file) => file.endsWith('.sql'));
+
+  return { layout: 'folders', entries, unjournaledFiles, missingTags: [] };
+}
+
+export function buildMigrationPlan(migrationsDir: string): MigrationPlan {
+  if (existsSync(join(migrationsDir, 'meta', '_journal.json'))) {
+    return buildFromJournal(migrationsDir);
+  }
+  return buildFromFolders(migrationsDir);
 }
 
 export function assertMigrationPlanIsConsistent(plan: MigrationPlan): void {
@@ -137,7 +223,10 @@ export function assertMigrationPlanIsConsistent(plan: MigrationPlan): void {
     throw new Error(`Missing migration files: ${plan.missingTags.join(', ')}`);
   }
   if (plan.unjournaledFiles.length > 0) {
-    throw new Error(`Unjournaled migration files: ${plan.unjournaledFiles.join(', ')}`);
+    const where = plan.layout === 'folders' ? 'the migrations root' : 'the journal';
+    throw new Error(
+      `Migration SQL files are not tracked by ${where}: ${plan.unjournaledFiles.join(', ')}`,
+    );
   }
 
   const missingWhen = plan.entries
@@ -145,8 +234,24 @@ export function assertMigrationPlanIsConsistent(plan: MigrationPlan): void {
     .map((entry) => entry.tag);
   if (missingWhen.length > 0) {
     throw new Error(
-      `Journal entries without a numeric 'when' timestamp: ${missingWhen.join(', ')}`,
+      `Migration entries without a numeric 'when' timestamp: ${missingWhen.join(', ')}`,
     );
+  }
+
+  if (plan.layout === 'folders') {
+    // Drizzle orders folder migrations by name. The 14-digit prefix carries the
+    // timestamp, so a lexicographic sort must reproduce journal order; without
+    // that, `migrate` runs a later migration before its parent.
+    const sorted = [...plan.entries].sort((a, b) => a.tag.localeCompare(b.tag));
+    const outOfOrder = plan.entries.find((entry, index) => sorted[index]?.tag !== entry.tag);
+    if (outOfOrder) {
+      throw new Error(
+        `Migration folders are not in lexicographic order at '${outOfOrder.tag}'. Drizzle runs ` +
+          'folders in name order; regenerate the folder name so its timestamp and suffix sort ' +
+          'after its parent.',
+      );
+    }
+    return;
   }
 
   const unexpected = findDuplicateWhenGroups(plan.entries).filter((group) => !group.allowed);
@@ -156,16 +261,16 @@ export function assertMigrationPlanIsConsistent(plan: MigrationPlan): void {
       .join('; ');
     throw new Error(
       `Duplicate migration journal 'when' timestamps: ${described}. The only permitted duplicate ` +
-        `is the historical ${HISTORICAL_DUPLICATE_WHEN_TAGS.join(', ')} group. Drizzle applies an ` +
-        'entry only when its `when` is newer than the newest applied `created_at`, so a new duplicate ' +
-        'can be skipped silently. Regenerate the migration (`pnpm --filter @kestrel/db migrate:gen`) ' +
-        'so its `when` is unique and newer.',
+        `is the historical ${HISTORICAL_DUPLICATE_WHEN_TAGS.join(', ')} group. Drizzle v0 applies ` +
+        'an entry only when its `when` is newer than the newest applied `created_at`, so a new ' +
+        'duplicate can be skipped silently. Regenerate the migration ' +
+        '(`pnpm --filter @kestrel/db migrate:gen`) so its `when` is unique and newer.',
     );
   }
 }
 
 /**
- * Classify every journal entry against what `drizzle.__drizzle_migrations`
+ * Classify every plan entry against what `drizzle.__drizzle_migrations`
  * already records. Pure so the CLI scripts and tests share one decision table.
  */
 export function auditMigrationPlan(
@@ -173,39 +278,69 @@ export function auditMigrationPlan(
   applied: readonly AppliedMigration[],
 ): MigrationAppliedAudit {
   const appliedHashes = new Set(applied.map((row) => row.hash));
-  const appliedWhens = new Set(applied.map((row) => row.createdAt));
 
   let newestAppliedAt: number | null = null;
   for (const row of applied) {
+    if (typeof row.createdAt !== 'number') continue;
     if (newestAppliedAt === null || row.createdAt > newestAppliedAt) {
       newestAppliedAt = row.createdAt;
     }
   }
 
+  const byName = new Map<string, AppliedMigration>();
+  for (const row of applied) {
+    if (row.name) byName.set(row.name, row);
+  }
+
   const statuses: MigrationEntryStatus[] = plan.entries.map((entry) => {
-    if (typeof entry.when !== 'number') {
+    const when = entry.when;
+    if (typeof when !== 'number') {
       throw new Error(
-        `Journal entry ${entry.tag} has no numeric 'when' timestamp; drizzle would record it as NULL ` +
-          'and could skip later migrations. Regenerate the migration.',
+        `Migration ${entry.tag} has no numeric timestamp; drizzle cannot order it. Regenerate the ` +
+          'migration.',
       );
     }
+
+    if (plan.layout === 'folders') {
+      const named = byName.get(entry.tag);
+      if (named) {
+        return {
+          tag: entry.tag,
+          when,
+          state: named.hash === entry.hash ? 'applied' : 'applied-modified',
+        };
+      }
+      // A row written before the folder-name backfill has no `name`; its hash
+      // is still authoritative and `migrate()` fills the name on the next run.
+      return {
+        tag: entry.tag,
+        when,
+        state: appliedHashes.has(entry.hash) ? 'applied' : 'pending',
+      };
+    }
+
+    const appliedWhens = new Set(
+      applied
+        .map((row) => row.createdAt)
+        .filter((value): value is number => typeof value === 'number'),
+    );
 
     let state: MigrationEntryState = 'pending';
     if (appliedHashes.has(entry.hash)) {
       state = 'applied';
-    } else if (appliedWhens.has(entry.when)) {
+    } else if (appliedWhens.has(when)) {
       // A row exists at this entry's timestamp but with a different hash: the
       // migration ran and its file has since been edited.
       state = 'applied-modified';
-    } else if (newestAppliedAt !== null && entry.when <= newestAppliedAt) {
+    } else if (newestAppliedAt !== null && when <= newestAppliedAt) {
       state = 'would-be-skipped';
     }
 
-    return { tag: entry.tag, when: entry.when, state };
+    return { tag: entry.tag, when, state };
   });
 
-  const journalHashes = new Set(plan.entries.map((entry) => entry.hash));
-  const unknownAppliedHashes = [...appliedHashes].filter((hash) => !journalHashes.has(hash));
+  const planHashes = new Set(plan.entries.map((entry) => entry.hash));
+  const unknownAppliedHashes = [...appliedHashes].filter((hash) => !planHashes.has(hash));
 
   const byState = (state: MigrationEntryState) =>
     statuses.filter((status) => status.state === state);
@@ -222,10 +357,12 @@ export function auditMigrationPlan(
 }
 
 /**
- * Refuse to run a plan that drizzle would not fully apply. Drizzle compares
- * each entry's `when` against the newest `created_at` in the migrations table
- * (`order by created_at desc limit 1`) rather than following journal order, so
- * an entry whose timestamp is not strictly newer is skipped without warning.
+ * Refuse to run a plan that the migrator would misapply.
+ *
+ * v0 compared each entry's `when` against the newest `created_at` and skipped
+ * anything older, which is why `would-be-skipped` is fatal there. v1 matches
+ * applied migrations by folder name and applies every missing one, so only
+ * modified applied migrations are fatal.
  *
  * Returns the audit so callers can report counts; throws otherwise.
  */
@@ -243,18 +380,17 @@ export function assertMigrationPlanWillApply(
         audit.modifiedApplied
           .map((entry) => `  - ${entry.tag} (recorded at ${entry.when})`)
           .join('\n') +
-        '\nCreate a NEW migration with a newer `when` instead of editing an applied one.',
+        '\nCreate a NEW migration instead of editing an applied one.',
     );
   }
 
-  if (audit.wouldBeSkipped.length > 0) {
+  if (plan.layout === 'journal' && audit.wouldBeSkipped.length > 0) {
     problems.push(
       `${audit.wouldBeSkipped.length} migration(s) would be silently skipped because their \`when\` ` +
         `is not newer than the newest applied \`created_at\` (${audit.newestAppliedAt}):\n` +
         audit.wouldBeSkipped.map((entry) => `  - ${entry.tag} (when=${entry.when})`).join('\n') +
-        '\nDrizzle applies migrations by `when` timestamp, not journal order (it compares against the ' +
-        'newest `created_at` in drizzle.__drizzle_migrations). Regenerate the migration so its `when` ' +
-        'is strictly newer, or restore the original journal timestamp.',
+        '\nDrizzle v0 applies migrations by `when` timestamp, not journal order. Regenerate the ' +
+        'migration so its `when` is strictly newer, or restore the original journal timestamp.',
     );
   }
 

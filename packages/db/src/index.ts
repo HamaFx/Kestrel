@@ -17,6 +17,7 @@
 // Public barrel for @kestrel/db.
 
 export * from './schema/index';
+export { relations } from './schema/relations';
 export { getTenantIdForUser, requireTenantIdForUser } from './tenant';
 export * from './schema/ai/memory-backfill';
 // PF-15 — Export `getDbRO` so consumers can route read queries to

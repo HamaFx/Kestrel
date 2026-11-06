@@ -23,6 +23,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 
+import { resolveScriptSsl } from './lib/ssl.mjs';
 import {
   assertMigrationPlanIsConsistent,
   assertMigrationPlanWillApply,
@@ -40,52 +41,7 @@ try {
   process.exit(1);
 }
 
-function resolveSslOption() {
-  const ca = process.env.SUPABASE_CA_CERT?.replace(/\\n/g, '\n').trim();
-  if (ca) return { ca, rejectUnauthorized: true };
-
-  const SUPABASE_ROOT_CA_2021 = `-----BEGIN CERTIFICATE-----
-MIIDxDCCAqygAwIBAgIUbLxMod62P2ktCiAkxnKJwtE9VPYwDQYJKoZIhvcNAQEL
-BQAwazELMAkGA1UEBhMCVVMxEDAOBgNVBAgMB0RlbHdhcmUxEzARBgNVBAcMCk5l
-dyBDYXN0bGUxFTATBgNVBAoMDFN1cGFiYXNlIEluYzEeMBwGA1UEAwwVU3VwYWJh
-c2UgUm9vdCAyMDIxIENBMB4XDTIxMDQyODEwNTY1M1oXDTMxMDQyNjEwNTY1M1ow
-azELMAkGA1UEBhMCVVMxEDAOBgNVBAgMB0RlbHdhcmUxEzARBgNVBAcMCk5ldyBD
-YXN0bGUxFTATBgNVBAoMDFN1cGFiYXNlIEluYzEeMBwGA1UEAwwVU3VwYWJhc2Ug
-Um9vdCAyMDIxIENBMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqQXW
-QyHOB+qR2GJobCq/CBmQ40G0oDmCC3mzVnn8sv4XNeWtE5XcEL0uVih7Jo4Dkx1Q
-DmGHBH1zDfgs2qXiLb6xpw/CKQPypZW1JssOTMIfQppNQ87K75Ya0p25Y3ePS2t2
-GtvHxNjUV6kjOZjEn2yWEcBdpOVCUYBVFBNMB4YBHkNRDa/+S4uywAoaTWnCJLUi
-cvTlHmMw6xSQQn1UfRQHk50DMCEJ7Cy1RxrZJrkXXRP3LqQL2ijJ6F4yMfh+Gyb4
-O4XajoVj/+R4GwywKYrrS8PrSNtwxr5StlQO8zIQUSMiq26wM8mgELFlS/32Uclt
-NaQ1xBRizkzpZct9DwIDAQABo2AwXjALBgNVHQ8EBAMCAQYwHQYDVR0OBBYEFKjX
-uXY32CztkhImng4yJNUtaUYsMB8GA1UdIwQYMBaAFKjXuXY32CztkhImng4yJNUt
-aUYsMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAB8spzNn+4VU
-tVxbdMaX+39Z50sc7uATmus16jmmHjhIHz+l/9GlJ5KqAMOx26mPZgfzG7oneL2b
-VW+WgYUkTT3XEPFWnTp2RJwQao8/tYPXWEJDc0WVQHrpmnWOFKU/d3MqBgBm5y+6
-jB81TU/RG2rVerPDWP+1MMcNNy0491CTL5XQZ7JfDJJ9CCmXSdtTl4uUQnSuv/Qx
-Cea13BX2ZgJc7Au30vihLhub52De4P/4gonKsNHYdbWjg7OWKwNv/zitGDVDB9Y2
-CMTyZKG3XEu5Ghl1LEnI3QmEKsqaCLv12BnVjbkSeZsMnevJPs1Ye6TjjJwdik5P
-o/bKiIz+Fq8=
------END CERTIFICATE-----`;
-
-  if (databaseUrl && /\bsupabase\.(?:co|com)\b/i.test(databaseUrl)) {
-    return { ca: SUPABASE_ROOT_CA_2021, rejectUnauthorized: true };
-  }
-
-  if (process.env.DB_DISABLE_SSL === 'true') {
-    if (process.env.NODE_ENV !== 'production' || process.env.KESTREL_LOCAL_DOCKER === 'true') {
-      return false;
-    }
-    throw new Error(
-      '[migrate:apply] DB_DISABLE_SSL=true is only permitted with KESTREL_LOCAL_DOCKER=true; ' +
-        'configure verified TLS for production databases.',
-    );
-  }
-
-  const productionTls =
-    process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
-  return productionTls ? { rejectUnauthorized: true } : { rejectUnauthorized: false };
-}
+const resolveSslOption = () => resolveScriptSsl(databaseUrl);
 
 const plan = buildMigrationPlan(DRIZZLE_DIR);
 try {
@@ -121,12 +77,26 @@ try {
   const tracking = await sql`
     SELECT to_regclass('drizzle.__drizzle_migrations') AS table_name
   `;
-  const appliedRows = tracking[0]?.table_name
-    ? await sql`SELECT hash, created_at FROM drizzle."__drizzle_migrations"`
-    : [];
+  let appliedRows = [];
+  if (tracking[0]?.table_name) {
+    // v0 databases have no `name` column yet; the migrator adds and backfills
+    // it on the first v1 run, so the preflight must tolerate both shapes.
+    const columns = await sql`
+      SELECT column_name FROM information_schema.columns
+       WHERE table_schema = 'drizzle' AND table_name = '__drizzle_migrations'
+    `;
+    const hasName = columns.some((column) => column.column_name === 'name');
+    appliedRows = hasName
+      ? await sql`SELECT hash, created_at, name FROM drizzle."__drizzle_migrations"`
+      : await sql`SELECT hash, created_at FROM drizzle."__drizzle_migrations"`;
+  }
   const audit = assertMigrationPlanWillApply(
     plan,
-    appliedRows.map((row) => ({ hash: row.hash, createdAt: Number(row.created_at) })),
+    appliedRows.map((row) => ({
+      hash: row.hash,
+      createdAt: row.created_at === null ? null : Number(row.created_at),
+      name: row.name ?? null,
+    })),
   );
   console.log(
     `[migrate:apply] Preflight OK — ${audit.appliedCount} of ${plan.entries.length} migration(s) ` +
@@ -162,13 +132,17 @@ try {
     $$;
   `;
 
-  const db = drizzle(sql);
+  const db = drizzle({ client: sql });
   const startedAt = Date.now();
   console.log('[migrate:apply] Applying migrations using postgres.js...');
   console.log(
     '[migrate:apply] PostgreSQL migration lock is managed by Drizzle; lock waits will be reported by the driver.',
   );
-  await migrate(db, { migrationsFolder: DRIZZLE_DIR });
+  await migrate(db, {
+    migrationsFolder: DRIZZLE_DIR,
+    migrationsSchema: 'drizzle',
+    migrationsTable: '__drizzle_migrations',
+  });
   console.log(
     `[migrate:apply] OK — migrations applied successfully in ${Date.now() - startedAt}ms.`,
   );

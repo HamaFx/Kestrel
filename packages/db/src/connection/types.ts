@@ -18,20 +18,17 @@
 
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 
-import type * as schema from '../schema/index';
+import type { relations } from '../schema/relations';
 
 /**
  * The application client type.
  *
- * `ReturnType<typeof drizzle>` resolves the overload with its default type
- * arguments, which erases the schema and leaves `db.query` typed as `{}`
- * across the whole workspace. Naming the schema keeps table and query types
- * intact everywhere a `DbClient` is passed around.
- *
- * Drizzle v1 replaces the schema generic with a relations generic:
- * `PostgresJsDatabase<typeof relations>` after `defineRelations()` lands.
+ * Drizzle v1 parameterises `PostgresJsDatabase` by the relations config, and
+ * `defineRelations()` is what carries every table plus its query relations.
+ * `ReturnType<typeof drizzle>` would resolve the default (empty) relations and
+ * erase both table and query types workspace-wide.
  */
-export type DbClient = PostgresJsDatabase<typeof schema>;
+export type DbClient = PostgresJsDatabase<typeof relations>;
 
 export interface TenantDbScopeOptions {
   userId?: string;

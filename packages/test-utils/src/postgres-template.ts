@@ -19,6 +19,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { drizzle } from 'drizzle-orm/postgres-js';
+import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -28,26 +30,27 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const DRIZZLE_DIR = resolve(__dirname, '../../db/drizzle');
 
 // Fixed advisory-lock key: every test worker serializes template creation, so
-// only one of them ever runs the 119 migrations.
+// only one of them ever runs the migration chain.
 const TEMPLATE_LOCK_ID = 74839201;
 const TEMPLATE_PREFIX = 'kestrel_tmpl_';
 
 type Raw = ReturnType<typeof postgres>;
 
-interface JournalEntry {
-  tag: string;
-}
-
-/** Hash the journal and every migration body, so an edited migration rebuilds the template. */
+/**
+ * Hash every migration folder name and body, so a new or edited migration
+ * rebuilds the template. Folder order is part of the identity: the migrator
+ * applies them in name order.
+ */
 function computeTemplateIdentity(): string {
-  const journalRaw = readFileSync(join(DRIZZLE_DIR, 'meta/_journal.json'), 'utf8');
-  const hash = createHash('sha256').update(journalRaw);
-  const files = readdirSync(DRIZZLE_DIR)
-    .filter((name) => name.endsWith('.sql'))
+  const hash = createHash('sha256');
+  const folders = readdirSync(DRIZZLE_DIR, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
+    .map((entry) => entry.name)
+    .filter((name) => readdirSync(join(DRIZZLE_DIR, name)).includes('migration.sql'))
     .sort();
-  for (const file of files) {
-    hash.update(file);
-    hash.update(readFileSync(join(DRIZZLE_DIR, file), 'utf8'));
+  for (const folder of folders) {
+    hash.update(folder);
+    hash.update(readFileSync(join(DRIZZLE_DIR, folder, 'migration.sql'), 'utf8'));
   }
   return hash.digest('hex').slice(0, 10);
 }
@@ -65,25 +68,14 @@ async function applyMigrations(client: Raw): Promise<void> {
     $$;
   `);
 
-  const journal = JSON.parse(readFileSync(join(DRIZZLE_DIR, 'meta/_journal.json'), 'utf8')) as {
-    entries?: JournalEntry[];
-  };
-  const files = readdirSync(DRIZZLE_DIR);
-  for (const entry of journal.entries ?? []) {
-    const file = files.find((name) => name.startsWith(`${entry.tag}.sql`));
-    if (!file) throw new Error(`Missing migration ${entry.tag}`);
-    const statements = readFileSync(join(DRIZZLE_DIR, file), 'utf8').split(
-      '--> statement-breakpoint',
-    );
-    for (const statement of statements) {
-      const executable = statement
-        .split('\n')
-        .filter((line) => !line.trim().startsWith('--'))
-        .join('\n')
-        .trim();
-      if (executable) await client.unsafe(executable);
-    }
-  }
+  // Use the real migrator instead of hand-splitting on `--> statement-breakpoint`
+  // so every test database also gets drizzle.__drizzle_migrations and exercises
+  // the same v0 -> v1 upgrade/backfill path as production.
+  await migrate(drizzle({ client }), {
+    migrationsFolder: DRIZZLE_DIR,
+    migrationsSchema: 'drizzle',
+    migrationsTable: '__drizzle_migrations',
+  });
 }
 
 function databaseUrl(adminUrl: string, databaseName: string): string {

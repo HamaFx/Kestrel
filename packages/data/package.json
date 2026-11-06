@@ -42,7 +42,7 @@
   "dependencies": {
     "@kestrel/db": "workspace:*",
     "@kestrel/shared": "workspace:*",
-    "drizzle-orm": "^0.45.4",
+    "drizzle-orm": "^1.0.0-rc.5",
     "redis": "^6.3.0",
     "zod": "^4.6.7"
   },

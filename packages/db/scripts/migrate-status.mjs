@@ -18,23 +18,24 @@
 
 // Phase 8 — Task 40: Migration status script
 //
-// Queries the database's __drizzle_migrations table and compares it
-// against the journal. Reports four states per entry (R11):
+// Queries the database's __drizzle_migrations table and compares it against
+// the migration folders. Drizzle v1 matches applied rows by folder name (with
+// a hash fallback for rows that predate the name backfill), so a missing name
+// is not itself a problem.
+//
+// States per entry:
 //
 //   [OK]         applied — recorded hash matches the file on disk.
 //   [MODIFIED]   applied, but the file on disk was edited afterwards.
-//                Drizzle keys on the recorded hash, so it will NEVER
-//                re-run this entry, and the change is not live.
-//   [PENDING]    not applied, and strictly newer than the newest recorded
-//                created_at — drizzle will apply it.
-//   [WILL-SKIP]  not applied, but its `when` is at or below the newest
-//                recorded created_at — drizzle will silently skip it.
+//                Drizzle keys on the recorded hash and never re-runs it.
+//   [PENDING]    not applied; drizzle will apply it.
+//   [WILL-SKIP]  legacy journal layout only (v0 timestamp ordering).
 //
 // Usage: pnpm --filter @kestrel/db migrate:status
-import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { resolveScriptSsl } from './lib/ssl.mjs';
 import {
   assertMigrationPlanIsConsistent,
   auditMigrationPlan,
@@ -44,24 +45,20 @@ import {
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DRIZZLE_DIR = join(HERE, '..', 'drizzle');
 
-const journalPath = join(DRIZZLE_DIR, 'meta', '_journal.json');
-if (!existsSync(journalPath)) {
-  console.error('No migration journal found. Run `pnpm migrate:gen` first.');
-  process.exit(1);
-}
-
-const plan = buildMigrationPlan(DRIZZLE_DIR);
+let plan;
 try {
+  plan = buildMigrationPlan(DRIZZLE_DIR);
   assertMigrationPlanIsConsistent(plan);
 } catch (error) {
-  console.error(`[migrate:status] ${error.message}`);
+  console.error(`[migrate:status] ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
 }
-const journalEntries = plan.entries;
+
+const migrations = plan.entries;
+const layoutLabel = plan.layout === 'folders' ? 'migration folders' : 'journal entries';
 
 console.log('\nMigration Status\n');
-console.log(`   Journal entries: ${journalEntries.length}`);
-console.log(`   SQL files found: ${journalEntries.length}\n`);
+console.log(`   Layout: ${plan.layout} (${migrations.length} ${layoutLabel})\n`);
 
 if (plan.missingTags.length > 0) {
   for (const tag of plan.missingTags) console.log(`   [MISSING]  ${tag}`);
@@ -70,10 +67,8 @@ if (plan.missingTags.length > 0) {
 }
 
 if (plan.unjournaledFiles.length > 0) {
-  for (const file of plan.unjournaledFiles) console.log(`   [UNJOURNALED]  ${file}`);
-  console.log(
-    '\nSome SQL files are not present in _journal.json. Register or remove them before deploying.\n',
-  );
+  for (const file of plan.unjournaledFiles) console.log(`   [UNTRACKED]  ${file}`);
+  console.log('\nSome SQL files are outside the migration folders. Move or remove them.\n');
   process.exit(1);
 }
 
@@ -83,7 +78,7 @@ const dbUrl =
   process.env.DATABASE_URL ||
   process.env.POSTGRES_URL;
 if (!dbUrl) {
-  for (const entry of journalEntries) console.log(`   [OK]  ${entry.tag} (file present)`);
+  for (const entry of migrations) console.log(`   [OK]  ${entry.tag} (file present)`);
   console.log('\nDATABASE_URL not set — showing file-based status only.');
   console.log('Set DATABASE_URL to check which migrations are applied in the database.\n');
   process.exit(0);
@@ -98,46 +93,47 @@ const BADGES = {
 
 async function checkDatabase() {
   const { default: postgres } = await import('postgres');
-  function resolveSslOption() {
-    const ca = process.env.SUPABASE_CA_CERT?.replace(/\\n/g, '\n').trim();
-    if (ca) return { ca, rejectUnauthorized: true };
-
-    if (process.env.DB_DISABLE_SSL === 'true') {
-      if (process.env.NODE_ENV !== 'production' || process.env.KESTREL_LOCAL_DOCKER === 'true') {
-        return false;
-      }
-      throw new Error(
-        'DB_DISABLE_SSL=true is only permitted with KESTREL_LOCAL_DOCKER=true; configure verified TLS for production databases.',
-      );
-    }
-
-    const productionTls =
-      process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
-    return productionTls ? { rejectUnauthorized: true } : { rejectUnauthorized: false };
-  }
 
   const sql = postgres(dbUrl, {
     prepare: false,
-    ssl: resolveSslOption(),
+    ssl: resolveScriptSsl(dbUrl),
   });
 
   try {
     const tracking = await sql`
       SELECT to_regclass('drizzle.__drizzle_migrations') AS table_name
     `;
-    const rows = tracking[0]?.table_name
-      ? await sql`
-          SELECT hash, created_at FROM drizzle."__drizzle_migrations" ORDER BY id
-        `
-      : [];
+    let rows = [];
+    if (tracking[0]?.table_name) {
+      const columns = await sql`
+        SELECT column_name FROM information_schema.columns
+         WHERE table_schema = 'drizzle' AND table_name = '__drizzle_migrations'
+      `;
+      const hasName = columns.some((column) => column.column_name === 'name');
+      const hasAppliedAt = columns.some((column) => column.column_name === 'applied_at');
+      rows = hasName
+        ? await sql`
+            SELECT hash, created_at, name${hasAppliedAt ? sql`, applied_at` : sql``}
+              FROM drizzle."__drizzle_migrations" ORDER BY id
+          `
+        : await sql`
+            SELECT hash, created_at FROM drizzle."__drizzle_migrations" ORDER BY id
+          `;
+    }
+
     const audit = auditMigrationPlan(
       plan,
-      rows.map((row) => ({ hash: row.hash, createdAt: Number(row.created_at) })),
+      rows.map((row) => ({
+        hash: row.hash,
+        createdAt: row.created_at === null ? null : Number(row.created_at),
+        name: row.name ?? null,
+      })),
     );
 
+    const namedCount = rows.filter((row) => row.name).length;
     console.log(
-      `   Database has ${rows.length} applied migration row(s); newest created_at ` +
-        `${audit.newestAppliedAt ?? 'none'}.\n`,
+      `   Database has ${rows.length} applied migration row(s) (${namedCount} named); ` +
+        `newest created_at ${audit.newestAppliedAt ?? 'none'}.\n`,
     );
 
     for (const status of audit.statuses) {
@@ -152,7 +148,7 @@ async function checkDatabase() {
 
     if (audit.unknownAppliedHashes.length > 0) {
       console.error(
-        `\n   Database contains ${audit.unknownAppliedHashes.length} applied migration hash(es) absent from the current journal:`,
+        `\n   Database contains ${audit.unknownAppliedHashes.length} applied migration hash(es) absent from the current folder:`,
       );
       for (const hash of audit.unknownAppliedHashes) {
         console.error(`      ?  ${hash.substring(0, 12)}...`);
@@ -174,7 +170,7 @@ async function checkDatabase() {
       console.error(
         '\n   Drizzle records migrations by hash and will never re-run an edited file.',
       );
-      console.error('   Create a NEW migration with a newer `when` instead of editing this one.\n');
+      console.error('   Create a NEW migration instead of editing this one.\n');
       process.exitCode = 1;
     }
 

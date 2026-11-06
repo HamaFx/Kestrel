@@ -24,7 +24,7 @@
     "@kestrel/shared": "workspace:*",
     "@microsoft/signalr": "^10.0.11",
     "@opentelemetry/api": "^1.9.1",
-    "drizzle-orm": "^0.45.4",
+    "drizzle-orm": "^1.0.0-rc.5",
     "node-cron": "^4.6.0",
     "pg-boss": "^12.38.0",
     "postgres": "^3.4.9",

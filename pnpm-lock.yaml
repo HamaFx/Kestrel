@@ -230,9 +230,6 @@ importers:
       '@ai-sdk/react':
         specifier: ^4.0.147
         version: 4.0.147(react@19.3.1)(zod@4.6.7)
-      '@auth/drizzle-adapter':
-        specifier: ^1.11.3
-        version: 1.11.3
       '@dnd-kit/core':
         specifier: ^6.3.1
         version: 6.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -285,8 +282,8 @@ importers:
         specifier: ^3.4.17
         version: 3.4.17
       drizzle-orm:
-        specifier: ^0.45.4
-        version: 0.45.4(@electric-sql/pglite@0.5.4)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(gel@2.2.0)(pg@8.23.1)(postgres@3.4.9)
+        specifier: ^1.0.0-rc.5
+        version: 1.0.0-rc.5(@electric-sql/pglite@0.5.4)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(pg@8.23.1)(postgres@3.4.9)(zod@4.6.7)
       lightweight-charts:
         specifier: ^5.2.1
         version: 5.2.1
@@ -430,8 +427,8 @@ importers:
         specifier: 1.9.1
         version: 1.9.1
       drizzle-orm:
-        specifier: ^0.45.4
-        version: 0.45.4(@electric-sql/pglite@0.5.4)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(gel@2.2.0)(pg@8.23.1)(postgres@3.4.9)
+        specifier: ^1.0.0-rc.5
+        version: 1.0.0-rc.5(@electric-sql/pglite@0.5.4)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(pg@8.23.1)(postgres@3.4.9)(zod@4.6.7)
       node-cron:
         specifier: ^4.6.0
         version: 4.6.0
@@ -564,8 +561,8 @@ importers:
         specifier: ^7.0.143
         version: 7.0.143(zod@4.6.7)
       drizzle-orm:
-        specifier: ^0.45.4
-        version: 0.45.4(@electric-sql/pglite@0.5.4)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(gel@2.2.0)(pg@8.23.1)(postgres@3.4.9)
+        specifier: ^1.0.0-rc.5
+        version: 1.0.0-rc.5(@electric-sql/pglite@0.5.4)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(pg@8.23.1)(postgres@3.4.9)(zod@4.6.7)
       react:
         specifier: ^19.3.1
         version: 19.3.1
@@ -626,8 +623,8 @@ importers:
         specifier: workspace:*
         version: link:../shared
       drizzle-orm:
-        specifier: ^0.45.4
-        version: 0.45.4(@electric-sql/pglite@0.5.4)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(gel@2.2.0)(pg@8.23.1)(postgres@3.4.9)
+        specifier: ^1.0.0-rc.5
+        version: 1.0.0-rc.5(@electric-sql/pglite@0.5.4)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(pg@8.23.1)(postgres@3.4.9)(zod@4.6.7)
       redis:
         specifier: ^6.3.0
         version: 6.3.0(@opentelemetry/api@1.9.1)
@@ -657,8 +654,8 @@ importers:
         specifier: workspace:*
         version: link:../shared
       drizzle-orm:
-        specifier: ^0.45.4
-        version: 0.45.4(@electric-sql/pglite@0.5.4)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(gel@2.2.0)(pg@8.23.1)(postgres@3.4.9)
+        specifier: ^1.0.0-rc.5
+        version: 1.0.0-rc.5(@electric-sql/pglite@0.5.4)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(pg@8.23.1)(postgres@3.4.9)(zod@4.6.7)
       pg-boss:
         specifier: ^12.38.0
         version: 12.38.0(@opentelemetry/api@1.9.1)
@@ -676,8 +673,8 @@ importers:
         specifier: ^22.20.5
         version: 22.20.5
       drizzle-kit:
-        specifier: ^0.31.11
-        version: 0.31.11
+        specifier: 1.0.0-rc.5
+        version: 1.0.0-rc.5(drizzle-orm@1.0.0-rc.5(@electric-sql/pglite@0.5.4)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(pg@8.23.1)(postgres@3.4.9)(zod@4.6.7))
       tsrs:
         specifier: 0.20.1-ts7.1.0-beta
         version: 0.20.1-ts7.1.0-beta
@@ -777,6 +774,9 @@ importers:
       '@kestrel/shared':
         specifier: workspace:*
         version: link:../shared
+      drizzle-orm:
+        specifier: ^1.0.0-rc.5
+        version: 1.0.0-rc.5(@electric-sql/pglite@0.5.4)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(pg@8.23.1)(postgres@3.4.9)(zod@4.6.7)
       postgres:
         specifier: ^3.4.9
         version: 3.4.9
@@ -846,8 +846,8 @@ importers:
         specifier: ^3.49.0
         version: 3.49.0(react@19.3.1)
       drizzle-orm:
-        specifier: ^0.45.4
-        version: 0.45.4(@electric-sql/pglite@0.5.4)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(gel@2.2.0)(pg@8.23.1)(postgres@3.4.9)
+        specifier: ^1.0.0-rc.5
+        version: 1.0.0-rc.5(@electric-sql/pglite@0.5.4)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(pg@8.23.1)(postgres@3.4.9)(zod@4.6.7)
       quickjs-emscripten:
         specifier: ^0.32.0
         version: 0.32.0
@@ -910,8 +910,8 @@ importers:
         specifier: ^3.49.0
         version: 3.49.0(react@19.3.1)
       drizzle-orm:
-        specifier: ^0.45.4
-        version: 0.45.4(@electric-sql/pglite@0.5.4)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(gel@2.2.0)(pg@8.23.1)(postgres@3.4.9)
+        specifier: ^1.0.0-rc.5
+        version: 1.0.0-rc.5(@electric-sql/pglite@0.5.4)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(pg@8.23.1)(postgres@3.4.9)(zod@4.6.7)
       react:
         specifier: ^19.3.1
         version: 19.3.1
@@ -965,8 +965,8 @@ importers:
         specifier: ^7.0.143
         version: 7.0.143(zod@4.6.7)
       drizzle-orm:
-        specifier: ^0.45.4
-        version: 0.45.4(@electric-sql/pglite@0.5.4)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(gel@2.2.0)(pg@8.23.1)(postgres@3.4.9)
+        specifier: ^1.0.0-rc.5
+        version: 1.0.0-rc.5(@electric-sql/pglite@0.5.4)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(pg@8.23.1)(postgres@3.4.9)(zod@4.6.7)
       grammy:
         specifier: ^1.46.0
         version: 1.46.0
@@ -1133,9 +1133,6 @@ packages:
         optional: true
       nodemailer:
         optional: true
-
-  '@auth/drizzle-adapter@1.11.3':
-    resolution: {integrity: sha512-TxqVasPVuf7LDAT1Yuu6bftpuet8o0tjdXW+mXpnXWdSRPQsomdzMoz9RsXkFN/JfdK+/DwdgOEmOTv1gbiFNw==}
 
   '@babel/code-frame@7.29.7':
     resolution: {integrity: sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw==}
@@ -1368,9 +1365,6 @@ packages:
     peerDependencies:
       react: '>=16.8.0'
 
-  '@drizzle-team/brocli@0.10.2':
-    resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
-
   '@electric-sql/pglite@0.5.4':
     resolution: {integrity: sha512-yYZUyyXrHU7tPlCjwZQJ6hIG9DscdCCn7Uk0mYKwC1FeHX286AbcmFveMiRBEak8e9iPupjsoVImN3yJZVed2g==}
 
@@ -1385,14 +1379,6 @@ packages:
 
   '@emnapi/wasi-threads@1.2.2':
     resolution: {integrity: sha512-c95qOXkHdydNKhscBTebqEC1CVAZpyqOfVfBzQ1qgzyl3gfeldUjIggDbIZgDKsHLgnsM+igH7TJ/eAasaVuMA==}
-
-  '@esbuild-kit/core-utils@3.3.2':
-    resolution: {integrity: sha512-sPRAnw9CdSsRmEtnsl2WXWdyquogVpB3yZ3dgwJfe8zrOzTsV7cJvmwrKVa+0ma5BoiGJ+BoqkMvawbayKUsqQ==}
-    deprecated: 'Merged into tsx: https://tsx.hirok.io'
-
-  '@esbuild-kit/esm-loader@2.6.5':
-    resolution: {integrity: sha512-FxEMIkJKnodyA1OaCUoEvbYRkoZlLZ4d/eXFu9Fh8CbBBgP5EmZxrfTRyN0qpXZ4vOvqnE5YdRdcrmUUXuU+dA==}
-    deprecated: 'Merged into tsx: https://tsx.hirok.io'
 
   '@esbuild/aix-ppc64@0.28.2':
     resolution: {integrity: sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ==}
@@ -2922,9 +2908,6 @@ packages:
 
   '@paulirish/trace_engine@0.0.65':
     resolution: {integrity: sha512-Qsm6F5C8xf6ZzQXbQc2+wcpe6sggfs/gvc/ytqSurdvYg3kyW0ECHCqE0CWBKZpqgjVfPNX9c7SCS3r2nEIRGg==}
-
-  '@petamoriken/float16@3.9.3':
-    resolution: {integrity: sha512-8awtpHXCx/bNpFt4mt2xdkgtgVvKqty8VbjHI/WWWQuEw+KLzFot3f4+LkQY9YmOtq7A5GdOnqoIC8Pdygjk2g==}
 
   '@pinojs/redact@0.4.0':
     resolution: {integrity: sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg==}
@@ -4673,47 +4656,96 @@ packages:
     resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
     engines: {node: '>=12'}
 
-  drizzle-kit@0.31.11:
-    resolution: {integrity: sha512-YCYqxTLIB2OCqf6w9/Vef13baBVbwQIPcbT4Y56AfO6B9ajZhDhD8Jkveg/hJvT/iuMloKD/IYYkyMMNhr7Kqg==}
+  drizzle-kit@1.0.0-rc.5:
+    resolution: {integrity: sha512-8glQN7iFK3e1aOIoRit1NtslcsqE/rnlqNw/1jUC5Ph4RFVh/E5Jricxd6Nu2ugj2HlFZlZ6O4006AwqJ9e24g==}
     hasBin: true
+    peerDependencies:
+      drizzle-orm: '>=1.0.0-rc.5'
+    peerDependenciesMeta:
+      drizzle-orm:
+        optional: true
 
-  drizzle-orm@0.45.4:
-    resolution: {integrity: sha512-NiM1YZpJ2UxyeE67DpDDZ+Tsw4YLX3trSlkNT7Tm9eKoUNb1LvaAaQzXgYQsWs+AQ9TUmmwMmBOCXuqqxUWKKQ==}
+  drizzle-orm@1.0.0-rc.5:
+    resolution: {integrity: sha512-7BMYTsAZbQ9DcQCtLG4G202Hq6nc/e8o1EBKN6nBweRI8EGPFe/VdyvWQCsU9fuZSiRjNpELolUSi//JFBq+lw==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
+      '@aws/aurora-dsql-node-postgres-connector': '>=0.1.9'
+      '@aws/aurora-dsql-postgresjs-connector': '>=0.3.0'
       '@cloudflare/workers-types': '>=4'
+      '@drizzle-team/minipg': '>=0.4.2'
+      '@effect/sql-d1': '>=4.0.0'
+      '@effect/sql-libsql': '>=4.0.0'
+      '@effect/sql-mysql2': '>=4.0.0'
+      '@effect/sql-pg': '>=4.0.0'
+      '@effect/sql-pglite': '>=4.0.0'
+      '@effect/sql-sqlite-bun': '>=4.0.0'
+      '@effect/sql-sqlite-do': '>=4.0.0'
+      '@effect/sql-sqlite-node': '>=4.0.0'
+      '@effect/sql-sqlite-wasm': '>=4.0.0'
       '@electric-sql/pglite': '>=0.2.0'
       '@libsql/client': '>=0.10.0'
       '@libsql/client-wasm': '>=0.10.0'
       '@neondatabase/serverless': '>=0.10.0'
-      '@netlify/db': '>=0.4.0'
-      '@op-engineering/op-sqlite': '>=2'
+      '@op-engineering/op-sqlite': '>=17'
       '@opentelemetry/api': 1.9.1
       '@planetscale/database': '>=1.13'
-      '@prisma/client': '*'
+      '@sinclair/typebox': '>=0.34.8'
+      '@sqlitecloud/drivers': '>=1.0.653'
       '@tidbcloud/serverless': '*'
+      '@tursodatabase/database': '>=0.7.1'
+      '@tursodatabase/database-common': '>=0.7.1'
+      '@tursodatabase/database-wasm': '>=0.7.1'
+      '@tursodatabase/serverless': '>=1.4.0'
+      '@tursodatabase/sync': '>=0.7.1'
       '@types/better-sqlite3': '*'
+      '@types/mssql': ^9.1.4
       '@types/pg': '*'
       '@types/sql.js': '*'
       '@upstash/redis': '>=1.34.7'
       '@vercel/postgres': '>=0.8.0'
       '@xata.io/client': '*'
-      better-sqlite3: '>=7'
+      arktype: '>=2.0.0'
+      better-sqlite3: '>=9.3.0'
       bun-types: '*'
+      effect: '>=4.0.0'
       expo-sqlite: '>=14.0.0'
-      gel: '>=2'
-      knex: '*'
-      kysely: '*'
+      mssql: ^11.0.1
       mysql2: '>=2'
       pg: 8.23.1
       postgres: '>=3'
-      prisma: '*'
       sql.js: '>=1'
       sqlite3: '>=5'
+      typebox: '>=1.2.0'
+      valibot: '>=1.0.0-beta.7'
+      zod: ^3.25.0 || ^4.0.0
     peerDependenciesMeta:
       '@aws-sdk/client-rds-data':
         optional: true
+      '@aws/aurora-dsql-node-postgres-connector':
+        optional: true
+      '@aws/aurora-dsql-postgresjs-connector':
+        optional: true
       '@cloudflare/workers-types':
+        optional: true
+      '@drizzle-team/minipg':
+        optional: true
+      '@effect/sql-d1':
+        optional: true
+      '@effect/sql-libsql':
+        optional: true
+      '@effect/sql-mysql2':
+        optional: true
+      '@effect/sql-pg':
+        optional: true
+      '@effect/sql-pglite':
+        optional: true
+      '@effect/sql-sqlite-bun':
+        optional: true
+      '@effect/sql-sqlite-do':
+        optional: true
+      '@effect/sql-sqlite-node':
+        optional: true
+      '@effect/sql-sqlite-wasm':
         optional: true
       '@electric-sql/pglite':
         optional: true
@@ -4723,19 +4755,31 @@ packages:
         optional: true
       '@neondatabase/serverless':
         optional: true
-      '@netlify/db':
-        optional: true
       '@op-engineering/op-sqlite':
         optional: true
       '@opentelemetry/api':
         optional: true
       '@planetscale/database':
         optional: true
-      '@prisma/client':
+      '@sinclair/typebox':
+        optional: true
+      '@sqlitecloud/drivers':
         optional: true
       '@tidbcloud/serverless':
         optional: true
+      '@tursodatabase/database':
+        optional: true
+      '@tursodatabase/database-common':
+        optional: true
+      '@tursodatabase/database-wasm':
+        optional: true
+      '@tursodatabase/serverless':
+        optional: true
+      '@tursodatabase/sync':
+        optional: true
       '@types/better-sqlite3':
+        optional: true
+      '@types/mssql':
         optional: true
       '@types/pg':
         optional: true
@@ -4747,17 +4791,17 @@ packages:
         optional: true
       '@xata.io/client':
         optional: true
+      arktype:
+        optional: true
       better-sqlite3:
         optional: true
       bun-types:
         optional: true
+      effect:
+        optional: true
       expo-sqlite:
         optional: true
-      gel:
-        optional: true
-      knex:
-        optional: true
-      kysely:
+      mssql:
         optional: true
       mysql2:
         optional: true
@@ -4765,11 +4809,15 @@ packages:
         optional: true
       postgres:
         optional: true
-      prisma:
-        optional: true
       sql.js:
         optional: true
       sqlite3:
+        optional: true
+      typebox:
+        optional: true
+      valibot:
+        optional: true
+      zod:
         optional: true
 
   dunder-proto@1.0.1:
@@ -4824,10 +4872,6 @@ packages:
   entities@8.1.0:
     resolution: {integrity: sha512-kxL7msIffSuh9aaFAMD7rxAIuTRMAHMeBtgHW2yUdWw732ZNh4MehkF2gdjvtdmikkaIP9bFDDJOPlsvm7avrA==}
     engines: {node: '>=20.19.0'}
-
-  env-paths@3.0.0:
-    resolution: {integrity: sha512-dtJUTepzMW3Lm/NPxRf3wP4642UWhjL2sQxc+ym2YMj1m/H2zDNQOlezafzkHwn6sMstjHTwG6iQQsctDW/b1A==}
-    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
   es-define-property@1.0.1:
     resolution: {integrity: sha512-e3nRfgfUZ4rNGL232gUgX06QNyyez04KdjFrF+LTRoOXmrOgFKDg4BCdsjW8EnT69eqdYGmRpJwiPVYNrCaW3g==}
@@ -5046,11 +5090,6 @@ packages:
 
   function-bind@1.1.2:
     resolution: {integrity: sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==}
-
-  gel@2.2.0:
-    resolution: {integrity: sha512-q0ma7z2swmoamHQusey8ayo8+ilVdzDt4WTxSPzq/yRqvucWRfymRVMvNgmSC0XK7eNjjEZEcplxpgaNojKdmQ==}
-    engines: {node: '>= 18.0.0'}
-    hasBin: true
 
   gensync@1.0.0-beta.2:
     resolution: {integrity: sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==}
@@ -5318,10 +5357,6 @@ packages:
 
   isexe@2.0.0:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
-
-  isexe@3.1.5:
-    resolution: {integrity: sha512-6B3tLtFqtQS4ekarvLVMZ+X+VlvQekbe4taUkf/rhVO3d/h0M2rfARm/pXLcPEsjjMsFgrFgSrhQIxcSVrBz8w==}
-    engines: {node: '>=18'}
 
   jiti@2.7.0:
     resolution: {integrity: sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==}
@@ -6707,10 +6742,6 @@ packages:
     resolution: {integrity: sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==}
     engines: {node: '>=8'}
 
-  shell-quote@1.12.0:
-    resolution: {integrity: sha512-PcByqNyT/38F2kDNi006HAMRJaULuBzq/FOsw3qdZvX/GA9W/jamDaRskgHjubHiftXK5sIFxLNkvrXUwcof6Q==}
-    engines: {node: '>= 0.4'}
-
   shiki@4.5.0:
     resolution: {integrity: sha512-OcRW72ngQvc+MSVWBRIovC/BTW589iUE/Vxav7VeM4RcY9MUjqB+IR6ILG1k9nuW6LiG/nct9uma4/MBtnZbmQ==}
     engines: {node: '>=20'}
@@ -7299,11 +7330,6 @@ packages:
     engines: {node: '>= 8'}
     hasBin: true
 
-  which@4.0.0:
-    resolution: {integrity: sha512-GlaYyEb07DPxYCKhKzplCWBJtvxZcZMrL+4UkrTSJHHPyZU4mYYTv3qaOe77H7EODLSSopAUFAc6W8U4yqvscg==}
-    engines: {node: ^16.13.0 || >=18.0.0}
-    hasBin: true
-
   why-is-node-running@3.2.1:
     resolution: {integrity: sha512-Tb2FUhB4vUsGQlfSquQLYkApkuPAFQXGFzxWKHHumVz2dK+X1RUm/HnID4+TfIGYJ1kTcwOaCk/buYCEJr6YjQ==}
     engines: {node: '>=20.11'}
@@ -7571,14 +7597,6 @@ snapshots:
       preact: 10.24.3
       preact-render-to-string: 6.5.11(preact@10.24.3)
 
-  '@auth/drizzle-adapter@1.11.3':
-    dependencies:
-      '@auth/core': 0.41.3
-    transitivePeerDependencies:
-      - '@simplewebauthn/browser'
-      - '@simplewebauthn/server'
-      - nodemailer
-
   '@babel/code-frame@7.29.7':
     dependencies:
       '@babel/helper-validator-identifier': 7.29.7
@@ -7839,8 +7857,6 @@ snapshots:
       react: 19.3.1
       tslib: 2.8.1
 
-  '@drizzle-team/brocli@0.10.2': {}
-
   '@electric-sql/pglite@0.5.4':
     optional: true
 
@@ -7864,16 +7880,6 @@ snapshots:
     dependencies:
       tslib: 2.8.1
     optional: true
-
-  '@esbuild-kit/core-utils@3.3.2':
-    dependencies:
-      esbuild: 0.28.2
-      source-map-support: 0.5.21
-
-  '@esbuild-kit/esm-loader@2.6.5':
-    dependencies:
-      '@esbuild-kit/core-utils': 3.3.2
-      get-tsconfig: 4.14.3
 
   '@esbuild/aix-ppc64@0.28.2':
     optional: true
@@ -9231,9 +9237,6 @@ snapshots:
       legacy-javascript: 0.0.4
       third-party-web: 0.30.0
 
-  '@petamoriken/float16@3.9.3':
-    optional: true
-
   '@pinojs/redact@0.4.0': {}
 
   '@playwright/test@1.64.1':
@@ -10305,7 +10308,8 @@ snapshots:
 
   buffer-equal-constant-time@1.0.1: {}
 
-  buffer-from@1.1.2: {}
+  buffer-from@1.1.2:
+    optional: true
 
   buffer-image-size@0.6.4:
     dependencies:
@@ -10583,22 +10587,19 @@ snapshots:
 
   dotenv@17.4.2: {}
 
-  drizzle-kit@0.31.11:
-    dependencies:
-      '@drizzle-team/brocli': 0.10.2
-      '@esbuild-kit/esm-loader': 2.6.5
-      esbuild: 0.28.2
-      tsx: 4.23.15
+  drizzle-kit@1.0.0-rc.5(drizzle-orm@1.0.0-rc.5(@electric-sql/pglite@0.5.4)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(pg@8.23.1)(postgres@3.4.9)(zod@4.6.7)):
+    optionalDependencies:
+      drizzle-orm: 1.0.0-rc.5(@electric-sql/pglite@0.5.4)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(pg@8.23.1)(postgres@3.4.9)(zod@4.6.7)
 
-  drizzle-orm@0.45.4(@electric-sql/pglite@0.5.4)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(gel@2.2.0)(pg@8.23.1)(postgres@3.4.9):
+  drizzle-orm@1.0.0-rc.5(@electric-sql/pglite@0.5.4)(@libsql/client@0.18.0)(@opentelemetry/api@1.9.1)(@types/pg@8.6.1)(pg@8.23.1)(postgres@3.4.9)(zod@4.6.7):
     optionalDependencies:
       '@electric-sql/pglite': 0.5.4
       '@libsql/client': 0.18.0
       '@opentelemetry/api': 1.9.1
       '@types/pg': 8.6.1
-      gel: 2.2.0
       pg: 8.23.1
       postgres: 3.4.9
+      zod: 4.6.7
 
   dunder-proto@1.0.1:
     dependencies:
@@ -10646,9 +10647,6 @@ snapshots:
   entities@7.0.1: {}
 
   entities@8.1.0:
-    optional: true
-
-  env-paths@3.0.0:
     optional: true
 
   es-define-property@1.0.1:
@@ -10912,18 +10910,6 @@ snapshots:
     optional: true
 
   function-bind@1.1.2: {}
-
-  gel@2.2.0:
-    dependencies:
-      '@petamoriken/float16': 3.9.3
-      debug: 4.4.3
-      env-paths: 3.0.0
-      semver: 7.8.5
-      shell-quote: 1.12.0
-      which: 4.0.0
-    transitivePeerDependencies:
-      - supports-color
-    optional: true
 
   gensync@1.0.0-beta.2: {}
 
@@ -11235,9 +11221,6 @@ snapshots:
   isarray@1.0.0: {}
 
   isexe@2.0.0: {}
-
-  isexe@3.1.5:
-    optional: true
 
   jiti@2.7.0: {}
 
@@ -13022,9 +13005,6 @@ snapshots:
 
   shebang-regex@3.0.0: {}
 
-  shell-quote@1.12.0:
-    optional: true
-
   shiki@4.5.0:
     dependencies:
       '@shikijs/core': 4.5.0
@@ -13097,8 +13077,10 @@ snapshots:
     dependencies:
       buffer-from: 1.1.2
       source-map: 0.6.1
+    optional: true
 
-  source-map@0.6.1: {}
+  source-map@0.6.1:
+    optional: true
 
   space-separated-tokens@2.0.2: {}
 
@@ -13626,11 +13608,6 @@ snapshots:
   which@2.0.2:
     dependencies:
       isexe: 2.0.0
-
-  which@4.0.0:
-    dependencies:
-      isexe: 3.1.5
-    optional: true
 
   why-is-node-running@3.2.1: {}
 

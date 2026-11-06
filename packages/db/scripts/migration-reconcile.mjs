@@ -17,44 +17,27 @@
  *   DIRECT_URL=... pnpm --filter @kestrel/db migrate:reconcile
  *   DIRECT_URL=... pnpm --filter @kestrel/db migrate:reconcile -- --json
  */
-import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import postgres from 'postgres';
+
+import { resolveScriptSsl } from './lib/ssl.mjs';
+import { buildMigrationPlan } from '../dist/migration-plan.js';
 
 const HERE = new URL('.', import.meta.url).pathname;
 const DRIZZLE_DIR = join(HERE, '..', 'drizzle');
 const jsonOutput = process.argv.includes('--json');
 
 function getRepositoryMigrations() {
-  const journal = JSON.parse(readFileSync(join(DRIZZLE_DIR, 'meta', '_journal.json'), 'utf8'));
+  // Handles both the v1 folder layout and the legacy journal so the script
+  // also works from an older checkout.
+  const plan = buildMigrationPlan(DRIZZLE_DIR);
   const byHash = new Map();
-  const entries = journal.entries ?? [];
-  for (const entry of entries) {
-    const file = join(DRIZZLE_DIR, `${entry.tag}.sql`);
-    if (!existsSync(file)) {
-      throw new Error(`Missing SQL file for journal entry ${entry.tag}`);
-    }
-    const hash = createHash('sha256').update(readFileSync(file)).digest('hex');
-    byHash.set(hash, entry.tag);
-  }
-  return { entries, byHash };
+  for (const entry of plan.entries) byHash.set(entry.hash, entry.tag);
+  return { entries: plan.entries, byHash };
 }
 
-function resolveSslOptions() {
-  if (process.env.DB_DISABLE_SSL === 'true') {
-    if (process.env.NODE_ENV !== 'production' || process.env.KESTREL_LOCAL_DOCKER === 'true') {
-      return false;
-    }
-    throw new Error('DB_DISABLE_SSL=true is only permitted with KESTREL_LOCAL_DOCKER=true.');
-  }
-  const ca = process.env.SUPABASE_CA_CERT?.replace(/\\n/g, '\n').trim();
-  if (ca) return { ca, rejectUnauthorized: true };
-  return process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production'
-    ? { rejectUnauthorized: true }
-    : { rejectUnauthorized: false };
-}
+const resolveSslOptions = () => resolveScriptSsl(resolveDatabaseUrl() ?? '');
 
 function resolveDatabaseUrl() {
   return (
@@ -177,15 +160,9 @@ try {
     .filter((row) => !byHash.has(row.hash))
     .map((row) => ({ id: row.id, hash: row.hash, createdAt: row.created_at }));
   const missing = trackingTableAvailable
-    ? entries
-        .filter((entry) => {
-          const file = join(DRIZZLE_DIR, `${entry.tag}.sql`);
-          const hash = createHash('sha256').update(readFileSync(file)).digest('hex');
-          return !appliedHashes.has(hash);
-        })
-        .map((entry) => entry.tag)
-    : // No tracking table at all: nothing has been applied, so every journal
-      // entry is absent. Reporting an empty list here would be misleading.
+    ? entries.filter((entry) => !appliedHashes.has(entry.hash)).map((entry) => entry.tag)
+    : // No tracking table at all: nothing has been applied, so every entry is
+      // absent. Reporting an empty list here would be misleading.
       entries.map((entry) => entry.tag);
 
   // The briefings invariant only exists once chat_threads has been created;

@@ -28,7 +28,7 @@ import {
   requireTenantIdForUser,
   type BacktestRunRow,
 } from '@kestrel/db';
-import { and, count, desc, eq, inArray } from 'drizzle-orm';
+import { and, count, desc, eq, getColumns, inArray } from 'drizzle-orm';
 
 import type {
   BacktestMetrics,
@@ -149,27 +149,18 @@ export async function listBacktestRunSummaryRows(
   opts: ListRunsOptions = {},
 ): Promise<BacktestRunSummaryRow[]> {
   const db = getDb();
+  // getColumns() keeps the projection in sync with the table while still
+  // omitting the five multi-megabyte JSONB blobs.
+  const {
+    trades: _trades,
+    equityCurve: _equityCurve,
+    source: _source,
+    logs: _logs,
+    rejectedSignals: _rejectedSignals,
+    ...summaryColumns
+  } = getColumns(backtestRuns);
   return db
-    .select({
-      id: backtestRuns.id,
-      tenantId: backtestRuns.tenantId,
-      userId: backtestRuns.userId,
-      createdAt: backtestRuns.createdAt,
-      updatedAt: backtestRuns.updatedAt,
-      name: backtestRuns.name,
-      symbol: backtestRuns.symbol,
-      timeframe: backtestRuns.timeframe,
-      status: backtestRuns.status,
-      engineVersion: backtestRuns.engineVersion,
-      bars: backtestRuns.bars,
-      fromTs: backtestRuns.fromTs,
-      toTs: backtestRuns.toTs,
-      initialBalance: backtestRuns.initialBalance,
-      finalEquity: backtestRuns.finalEquity,
-      metrics: backtestRuns.metrics,
-      durationMs: backtestRuns.durationMs,
-      error: backtestRuns.error,
-    })
+    .select(summaryColumns)
     .from(backtestRuns)
     .where(and(...runFilters(userId, opts)))
     .orderBy(desc(backtestRuns.createdAt))

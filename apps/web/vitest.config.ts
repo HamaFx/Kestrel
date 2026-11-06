@@ -72,7 +72,7 @@ export default defineConfig({
     },
     server: {
       deps: {
-        inline: ['next-auth', '@auth/drizzle-adapter'],
+        inline: ['next-auth'],
       },
     },
     projects: [

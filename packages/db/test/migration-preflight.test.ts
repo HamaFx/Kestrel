@@ -206,11 +206,16 @@ describe('R11 — applied-migration preflight', () => {
   });
 });
 
-describe('R11 — repository journal and schema inventory', () => {
-  it('accepts the live journal and finds no unapproved duplicate', () => {
+describe('R11 — repository migration folders and schema inventory', () => {
+  it('accepts the live v1 folder layout and orders it by name', () => {
     const plan = buildMigrationPlan(DRIZZLE_DIR);
+    expect(plan.layout).toBe('folders');
     expect(() => assertMigrationPlanIsConsistent(plan)).not.toThrow();
-    expect(findDuplicateWhenGroups(plan.entries).filter((group) => !group.allowed)).toEqual([]);
+    // Same-second migrations are disambiguated by the numeric prefix retained
+    // in the folder suffix, so name order must equal the derived timestamp order.
+    const names = plan.entries.map((entry) => entry.tag);
+    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
+    expect(plan.entries.length).toBeGreaterThan(120);
   });
 
   it('collects the tables, columns and indexes the reconcile check verifies', async () => {

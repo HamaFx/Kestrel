@@ -22,11 +22,6 @@
       "types": "./dist/ui/index.d.ts",
       "import": "./dist/ui/index.js"
     },
-    "./db/tables": {
-      "@kestrel/source": "./src/db/tables.ts",
-      "types": "./dist/db/tables.d.ts",
-      "import": "./dist/db/tables.js"
-    },
     "./db/queries": {
       "@kestrel/source": "./src/db/queries/index.ts",
       "types": "./dist/db/queries/index.d.ts",
@@ -49,7 +44,7 @@
     "@kestrel/plugin-sdk": "workspace:*",
     "@kestrel/shared": "workspace:*",
     "@tabler/icons-react": "^3.49.0",
-    "drizzle-orm": "^0.45.4",
+    "drizzle-orm": "^1.0.0-rc.5",
     "react": "^19.3.1",
     "zod": "^4.6.7"
   },

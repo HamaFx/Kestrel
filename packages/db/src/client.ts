@@ -22,6 +22,7 @@
 // health probe (`health.ts`).
 
 import * as schema from './schema/index';
+import { relations } from './schema/relations';
 
 export { closeAdminDb, closeDb, closeReplicaDb, getPrimaryDb } from './connection/pools';
 export {
@@ -42,4 +43,4 @@ export { withDbRetry } from './connection/retry';
 export { checkDbHealth } from './connection/health';
 export type { DbClient, TenantDbScopeOptions } from './connection/types';
 
-export { schema };
+export { relations, schema };

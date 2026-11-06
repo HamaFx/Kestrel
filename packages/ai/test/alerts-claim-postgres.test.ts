@@ -28,7 +28,7 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { schema, setDbForTest } from '@kestrel/db';
+import { relations, setDbForTest } from '@kestrel/db';
 import { createMigratedTestDatabase, type MigratedTestDatabase } from '@kestrel/test-utils';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
@@ -50,7 +50,7 @@ const USER_ID = 'alerts-r10-user';
 // the user id, so the membership tenant for this user is the user id.
 const TENANT_ID = USER_ID;
 
-type TestDb = ReturnType<typeof drizzle<typeof schema>>;
+type TestDb = ReturnType<typeof drizzle<typeof relations>>;
 type Raw = ReturnType<typeof postgres>;
 
 let raw: Raw | null = null;
@@ -89,7 +89,7 @@ describe.skipIf(!enabled || !adminUrl)('alert fan-out and claims — real Postgr
       'alerts-r10@example.com',
     ]);
 
-    db = drizzle(raw, { schema });
+    db = drizzle({ client: raw, relations });
     setDbForTest(db as never);
   }, 300_000);
 

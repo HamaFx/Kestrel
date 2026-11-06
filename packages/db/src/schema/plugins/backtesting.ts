@@ -18,7 +18,7 @@
 //
 // These physically live in @kestrel/db (rather than inside the plugin
 // package) so `drizzle-kit`, `migration-reconcile.mjs`, and the runtime
-// `drizzle(client, { schema })` call all see them. The plugin re-exports
+// `drizzle({ client, relations })` call all see them. The plugin re-exports
 // nothing: its query modules import the tables from @kestrel/db directly.
 //
 // They follow the `createPluginTable()` contract (same physical prefix,

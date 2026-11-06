@@ -21,7 +21,7 @@
 // The routes stay controllers: they own HTTP status and response shape, while
 // every query and migration-file read lives here in the service layer.
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -51,14 +51,17 @@ export interface CronRunsHealthResult extends HealthCheckResult {
 }
 
 /**
- * Resolve the Drizzle migration journal shipped with `@kestrel/db`.
- * A missing journal is a deployment-integrity failure: never fall back to a
- * stale count.
+ * Count the Drizzle migrations shipped with `@kestrel/db`.
+ *
+ * v1 uses one folder per migration (`<timestamp>_<name>/migration.sql`); the
+ * journal branch only keeps an older checkout working. A missing migrations
+ * directory is a deployment-integrity failure: never fall back to a stale
+ * count.
  */
 function getExpectedMigrationCount(): number | null {
   try {
     const here = dirname(fileURLToPath(import.meta.url));
-    const journalPath = join(
+    const migrationsDir = join(
       here,
       '..',
       '..',
@@ -69,11 +72,16 @@ function getExpectedMigrationCount(): number | null {
       'packages',
       'db',
       'drizzle',
-      'meta',
-      '_journal.json',
     );
-    const journal = JSON.parse(readFileSync(journalPath, 'utf-8')) as { entries: unknown[] };
-    return journal.entries.length;
+    const journalPath = join(migrationsDir, 'meta', '_journal.json');
+    if (existsSync(journalPath)) {
+      const journal = JSON.parse(readFileSync(journalPath, 'utf-8')) as { entries: unknown[] };
+      return journal.entries.length;
+    }
+    return readdirSync(migrationsDir, { withFileTypes: true }).filter(
+      (entry) =>
+        entry.isDirectory() && existsSync(join(migrationsDir, entry.name, 'migration.sql')),
+    ).length;
   } catch {
     return null;
   }
@@ -183,7 +191,7 @@ export async function getDatabaseHealth(): Promise<DatabaseHealthResult> {
         ok: false,
         expected: 0,
         actual,
-        message: 'migration journal unavailable in deployment',
+        message: 'migration folders unavailable in deployment',
       };
     }
   } catch (err) {

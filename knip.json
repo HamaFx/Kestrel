@@ -86,6 +86,6 @@
   "ignoreBinaries": ["systemd-notify", "where", "xdg-open"],
   "vitest": false,
   "playwright": false,
-  "drizzle": false,
+  "drizzle": { "config": ["packages/db/drizzle.config.ts"] },
   "ignoreDependencies": ["@vitejs/plugin-react", "vite", "pg-boss"]
 }

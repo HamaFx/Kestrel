@@ -62,7 +62,7 @@
  */
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -227,56 +227,33 @@ o/bKiIz+Fq8=
       : [];
     const appliedHashes = new Set(appliedRows.map((r) => r.hash));
 
-    // R11: drizzle compares each entry's `when` against the newest recorded
-    // created_at (`order by created_at desc limit 1`) instead of following
-    // journal order, so an entry that is not strictly newer is skipped with no
-    // error at all. The same rule is enforced inside migrate:apply via
-    // packages/db/src/migration-plan.ts; checking it here fails the deploy
-    // before any build step runs.
-    let newestAppliedAt = null;
-    for (const row of appliedRows) {
-      const createdAt = Number(row.created_at);
-      if (newestAppliedAt === null || createdAt > newestAppliedAt) {
-        newestAppliedAt = createdAt;
-      }
+    // Drizzle v1 matches applied migrations by folder name (with a hash
+    // fallback for rows written before the v0 -> v1 upgrade), and applies every
+    // missing folder. There is no timestamp-ordering skip to guard against.
+    const folders = readdirSync(migrationsDir, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
+      .map((entry) => entry.name)
+      .filter((name) => existsSync(join(migrationsDir, name, 'migration.sql')))
+      .sort();
+
+    if (folders.length === 0) {
+      throw new Error(`No migration folders found under ${migrationsDir}`);
     }
 
-    const journalPath = join(migrationsDir, 'meta', '_journal.json');
-    const journal = JSON.parse(readFileSync(journalPath, 'utf-8'));
     const currentHashes = new Map();
-    const silentlySkipped = [];
     let pendingCount = 0;
 
-    for (const entry of journal.entries || []) {
-      const sqlPath = join(migrationsDir, `${entry.tag}.sql`);
-      if (!existsSync(sqlPath)) {
-        throw new Error(`Migration file is missing for journal entry ${entry.tag}`);
-      }
+    for (const folder of folders) {
+      const sqlPath = join(migrationsDir, folder, 'migration.sql');
       const fileHash = createHash('sha256').update(readFileSync(sqlPath)).digest('hex');
-      currentHashes.set(fileHash, entry.tag);
-
-      if (appliedHashes.has(fileHash)) continue;
-      if (typeof entry.when !== 'number') {
-        throw new Error(
-          `Journal entry ${entry.tag} has no numeric 'when' timestamp; drizzle would not apply it reliably. Regenerate the migration.`,
-        );
-      }
-      pendingCount += 1;
-      if (newestAppliedAt !== null && entry.when <= newestAppliedAt) {
-        silentlySkipped.push(`${entry.tag} (when=${entry.when} <= ${newestAppliedAt})`);
-      }
+      currentHashes.set(fileHash, folder);
+      if (!appliedHashes.has(fileHash)) pendingCount += 1;
     }
 
     const unknownAppliedHashes = [...appliedHashes].filter((hash) => !currentHashes.has(hash));
     if (unknownAppliedHashes.length > 0) {
       throw new Error(
-        `${unknownAppliedHashes.length} applied migration hash(es) are absent from the current journal; refusing to apply migrations until history is reconciled`,
-      );
-    }
-
-    if (silentlySkipped.length > 0) {
-      throw new Error(
-        `${silentlySkipped.length} pending migration(s) would be silently skipped because their \`when\` is not newer than the newest applied \`created_at\`: ${silentlySkipped.join(', ')}. Regenerate the migration with a strictly newer \`when\` before deploying.`,
+        `${unknownAppliedHashes.length} applied migration hash(es) are absent from the current migrations folder; refusing to apply migrations until history is reconciled`,
       );
     }
 

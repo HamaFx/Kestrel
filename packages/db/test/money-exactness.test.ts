@@ -44,6 +44,7 @@ import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import * as schema from '../src/schema';
+import { relations } from '../src/schema/relations';
 
 const enabled = process.env.RUN_POSTGRES_RLS_TESTS === '1';
 const adminUrl = process.env.TEST_POSTGRES_ADMIN_URL;
@@ -104,7 +105,7 @@ const MONEY_COLUMNS: ReadonlyArray<readonly [string, readonly string[]]> = [
 
 type Raw = ReturnType<typeof postgres>;
 let raw: Raw | null = null;
-let db: ReturnType<typeof drizzle<typeof schema>> | null = null;
+let db: ReturnType<typeof drizzle<typeof relations>> | null = null;
 let testDb: MigratedTestDatabase | null = null;
 
 describe.skipIf(!enabled || !adminUrl)('money columns are exact numeric — real PostgreSQL', () => {
@@ -125,7 +126,7 @@ describe.skipIf(!enabled || !adminUrl)('money columns are exact numeric — real
        VALUES ($1, $2, $3, 'Exactness account', 'confirm', 'USD', 10000, 0, 30, 1, 'active', true)`,
       [ACCOUNT_ID, TENANT_ID, USER_ID],
     );
-    db = drizzle(raw, { schema });
+    db = drizzle({ client: raw, relations });
   });
 
   afterAll(async () => {

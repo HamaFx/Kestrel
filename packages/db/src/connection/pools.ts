@@ -21,7 +21,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
-import * as schema from '../schema/index';
+import { relations } from '../schema/relations';
 import { resolvePostgresSslOptions } from './supabase-ca';
 import type { DbClient } from './types';
 
@@ -142,7 +142,13 @@ export function getPrimaryDb(): DbClient {
     },
   });
 
-  pools.primaryClient = drizzle(pools.primarySql, { schema });
+  pools.primaryClient = drizzle({
+    client: pools.primarySql,
+    relations,
+    jit: true,
+    // Default in v1; the env flag exists only for local debugging.
+    paramsInErrors: process.env.DRIZZLE_PARAMS_IN_ERRORS === 'true',
+  });
   return pools.primaryClient;
 }
 
@@ -176,7 +182,12 @@ export function getReplicaDb(): DbClient | null {
     },
   });
 
-  pools.replicaClient = drizzle(pools.replicaSql, { schema });
+  pools.replicaClient = drizzle({
+    client: pools.replicaSql,
+    relations,
+    jit: true,
+    paramsInErrors: process.env.DRIZZLE_PARAMS_IN_ERRORS === 'true',
+  });
   return pools.replicaClient;
 }
 
@@ -211,7 +222,12 @@ export function getAdminDbPool(): DbClient {
     },
   });
 
-  pools.adminClient = drizzle(pools.adminSql, { schema });
+  pools.adminClient = drizzle({
+    client: pools.adminSql,
+    relations,
+    jit: true,
+    paramsInErrors: process.env.DRIZZLE_PARAMS_IN_ERRORS === 'true',
+  });
   return pools.adminClient;
 }
 

@@ -215,7 +215,7 @@ try {
     $$;
   `;
 
-  const db = drizzle(sql);
+  const db = drizzle({ client: sql });
   await migrate(db, {
     migrationsFolder: '/app/packages/db/drizzle',
     migrationsSchema: 'drizzle',

@@ -96,32 +96,5 @@ export async function GET() {
     result.auth_error = String(e).substring(0, 500);
   }
 
-  // Test DrizzleAdapter
-  let adapterLoaded = false;
-  try {
-    await import('@auth/drizzle-adapter');
-    adapterLoaded = true;
-  } catch (e) {
-    result.adapter_error = String(e).substring(0, 500);
-  }
-  result.adapter_loaded = adapterLoaded;
-
-  // Test NextAuth full initialization
-  if (adapterLoaded) {
-    try {
-      const NextAuth = (await import('next-auth')).default;
-      const { authConfig } = await import('@/auth.config');
-      const { getDb } = await import('@kestrel/db');
-      const { DrizzleAdapter } = await import('@auth/drizzle-adapter');
-      const adapter = DrizzleAdapter(getDb());
-      result.adapter_created = true;
-      const test = NextAuth({ ...authConfig, adapter, providers: [] });
-      result.nextauth_created = true;
-      result.nextauth_keys = Object.keys(test).join(', ');
-    } catch (e) {
-      result.nextauth_error = String(e).substring(0, 500);
-    }
-  }
-
   return NextResponse.json(result);
 }

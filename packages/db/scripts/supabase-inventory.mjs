@@ -18,6 +18,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
+import { resolveScriptSsl } from './lib/ssl.mjs';
 
 function loadDotEnv(path) {
   if (!existsSync(path)) return {};
@@ -59,20 +60,7 @@ function resolveDatabaseUrl() {
   );
 }
 
-function resolveSslOptions() {
-  if (process.env.DB_DISABLE_SSL === 'true') {
-    if (process.env.NODE_ENV !== 'production' || process.env.KESTREL_LOCAL_DOCKER === 'true') {
-      return false;
-    }
-    throw new Error('DB_DISABLE_SSL=true is only permitted with KESTREL_LOCAL_DOCKER=true.');
-  }
-  const ca = process.env.SUPABASE_CA_CERT?.replace(/\\n/g, '\n').trim();
-  return ca
-    ? { ca, rejectUnauthorized: true }
-    : process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production'
-      ? { rejectUnauthorized: true }
-      : { rejectUnauthorized: false };
-}
+const resolveSslOptions = () => resolveScriptSsl(resolveDatabaseUrl() ?? '');
 
 function number(value) {
   return Number(value ?? 0);
@@ -199,7 +187,7 @@ try {
     [{ bytes: null }],
   );
   const migrationRows = await safe(
-    'migration journal',
+    'migration table',
     () => sql`SELECT count(*)::int AS count FROM drizzle."__drizzle_migrations"`,
     [{ count: null }],
   );
