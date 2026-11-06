@@ -25,6 +25,7 @@ export const ERROR_CODES = [
   'NOT_FOUND',
   'RATE_LIMITED',
   'PROVIDER_UNAVAILABLE',
+  'PLUGIN_SETUP_FAILED',
   'BUDGET_EXCEEDED',
   'INTERNAL',
 ] as const;
@@ -96,6 +97,15 @@ export const notFound = (message = 'Not found'): AppError =>
 
 export const providerUnavailable = (message: string, details?: unknown): AppError =>
   new AppError('PROVIDER_UNAVAILABLE', message, 503, details);
+
+/**
+ * A plugin's install lifecycle hook failed. Kept separate from
+ * `PROVIDER_UNAVAILABLE`: the failure is in the plugin setup, not in an
+ * upstream API key or market-data provider, so the UI must not send the user
+ * looking for credentials.
+ */
+export const pluginSetupFailed = (message: string, details?: unknown): AppError =>
+  new AppError('PLUGIN_SETUP_FAILED', message, 500, details);
 
 export const budgetExceeded = (message = 'Daily AI budget exceeded'): AppError =>
   new AppError('BUDGET_EXCEEDED', message, 503);

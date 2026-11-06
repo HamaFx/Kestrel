@@ -31,6 +31,7 @@
  *                                       picks for the home screen)
  *   - icon-maskable-512.png            (Android adaptive safe zone)
  *   - apple-touch-icon-180/167/152.png (iPhone / iPad Pro / iPad)
+ *   - apple-touch-icon(-precomposed).png (root fallbacks iOS probes directly)
  *   - favicon.ico                      (16/32/48 PNG-in-ICO container)
  *   - apple-splash-<w>x<h>.png         (one per device + orientation, from
  *                                       src/lib/pwa/splash-devices.json)
@@ -141,6 +142,19 @@ const TARGETS = Object.freeze([
   { file: 'apple-touch-icon-180.png', width: 180, height: 180, kind: 'icon' },
   { file: 'apple-touch-icon-167.png', width: 167, height: 167, kind: 'icon' },
   { file: 'apple-touch-icon-152.png', width: 152, height: 152, kind: 'icon' },
+]);
+
+/**
+ * iOS also probes `/apple-touch-icon.png` and
+ * `/apple-touch-icon-precomposed.png` directly when a page does not expose an
+ * `<link rel="apple-touch-icon">`. Emit both at the documented 180px size so
+ * those requests never 404.
+ *
+ * @type {readonly IconTarget[]}
+ */
+const ROOT_APPLE_TARGETS = Object.freeze([
+  { file: 'apple-touch-icon.png', width: 180, height: 180, kind: 'icon' },
+  { file: 'apple-touch-icon-precomposed.png', width: 180, height: 180, kind: 'icon' },
 ]);
 
 /** @type {readonly IconTarget[]} */
@@ -363,6 +377,10 @@ async function main() {
   }
 
   track(await writeTarget(resolve(PUBLIC_DIR, 'favicon.ico'), () => buildFavicon(sharp), force));
+
+  for (const t of ROOT_APPLE_TARGETS) {
+    track(await writeTarget(resolve(PUBLIC_DIR, t.file), () => buildPng(t, sharp), force));
+  }
 
   console.log(
     `[generate-icons] done — ${written} written, ${skipped} skipped` +

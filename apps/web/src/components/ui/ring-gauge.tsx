@@ -1,8 +1,11 @@
+'use client';
+
 // SPDX-License-Identifier: Apache-2.0
 
-// Machined semicircle gauge for a 0–100 budget. The arc, percent and label
-// share one tone so the same primitive can show an SLO error budget, a daily
-// spend watch or a risk cap.
+// Machined semicircle notch gauge for a 0–100 budget, powered by
+// `bklit-tanstack-charts` Gauge primitive with Kestrel's compact numeric readout.
+import { Gauge } from 'bklit-tanstack-charts';
+
 import { cn } from '@/lib/formatters/cn';
 
 type RingTone = 'success' | 'warn' | 'danger' | 'brand';
@@ -14,14 +17,12 @@ const TONE_CLASS: Record<RingTone, string> = {
   brand: 'text-brand',
 };
 
-const RADIUS = 38;
-const CENTER = 50;
-const TRACK = `M ${CENTER - RADIUS} ${CENTER} A ${RADIUS} ${RADIUS} 0 0 1 ${CENTER + RADIUS} ${CENTER}`;
-
-function pointOnArc(angle: number, radius: number): readonly [number, number] {
-  const radians = (angle * Math.PI) / 180;
-  return [CENTER + radius * Math.cos(radians), CENTER + radius * Math.sin(radians)];
-}
+const TONE_COLOR: Record<RingTone, string> = {
+  success: 'var(--color-success)',
+  warn: 'var(--color-warn)',
+  danger: 'var(--color-danger)',
+  brand: 'var(--color-brand)',
+};
 
 export function RingGauge({
   value,
@@ -40,83 +41,50 @@ export function RingGauge({
   className?: string;
 }) {
   const pct = Math.max(0, Math.min(100, value));
-  const endAngle = 180 + (pct / 100) * 180;
-  const [endX, endY] = pointOnArc(endAngle, RADIUS);
-  const progress =
-    pct > 0
-      ? `M ${CENTER - RADIUS} ${CENTER} A ${RADIUS} ${RADIUS} 0 0 1 ${endX.toFixed(2)} ${endY.toFixed(2)}`
-      : null;
+  const height = Math.round(size * 0.72);
+  const notches = size <= 64 ? 18 : 24;
 
   return (
     <div
       role="img"
       aria-label={`${label ?? 'Gauge'}: ${Math.round(pct)}%`}
-      className={cn('inline-flex shrink-0 flex-col items-center', TONE_CLASS[tone], className)}
-      style={{ width: size }}
+      className={cn(
+        'relative inline-flex shrink-0 flex-col items-center justify-end',
+        TONE_CLASS[tone],
+        className,
+      )}
+      style={{ width: size, height }}
     >
-      <svg
-        viewBox="0 0 100 58"
+      <Gauge
+        value={pct}
+        orientation="arc"
+        startAngle={180}
+        endAngle={360}
+        totalNotches={notches}
+        spacing={28}
+        notchCornerRadius={1.5}
+        notchLengthPercent={86}
+        activeFill={TONE_COLOR[tone]}
+        inactiveFill="var(--chart-grid)"
+        inactiveFillOpacity={0.9}
         width={size}
-        height={size * 0.58}
-        className="overflow-visible"
-        aria-hidden="true"
-      >
-        {[180, 225, 270, 315, 360].map((angle) => {
-          const [x1, y1] = pointOnArc(angle, 43.5);
-          const [x2, y2] = pointOnArc(angle, 46);
-          return (
-            <line
-              key={angle}
-              x1={x1}
-              y1={y1}
-              x2={x2}
-              y2={y2}
-              stroke="var(--chart-grid)"
-              strokeWidth="1.2"
-            />
-          );
-        })}
-        <path
-          d={TRACK}
-          fill="none"
-          stroke="var(--chart-grid)"
-          strokeWidth="6.5"
-          strokeLinecap="round"
-        />
-        {progress ? (
-          <path
-            d={progress}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="6.5"
-            strokeLinecap="round"
-          />
-        ) : null}
-        <text
-          x="50"
-          y="45"
-          textAnchor="middle"
-          fill="currentColor"
-          fontFamily="var(--font-mono)"
-          fontSize="15"
-          fontWeight="700"
+        height={height}
+        minWidth={size}
+        className="pointer-events-none"
+      />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0.5 flex flex-col items-center leading-none">
+        <span
+          className="font-mono font-bold tracking-tight tabular-nums"
+          style={{ fontSize: Math.max(10, Math.round(size * 0.17)) }}
         >
           {Math.round(pct)}%
-        </text>
+        </span>
         {showLabel && label ? (
-          <text
-            x="50"
-            y="55"
-            textAnchor="middle"
-            fill="var(--color-fg-subtle)"
-            fontFamily="var(--font-mono)"
-            fontSize="6"
-            letterSpacing="0.5"
-          >
-            {label.toUpperCase()}
-          </text>
+          <span className="text-fg-subtle mt-0.5 font-mono text-[7px] tracking-wider uppercase">
+            {label}
+          </span>
         ) : null}
-      </svg>
+      </div>
     </div>
   );
 }

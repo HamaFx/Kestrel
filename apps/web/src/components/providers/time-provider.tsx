@@ -32,11 +32,23 @@ const TimeContext = createContext<TimeContextValue | null>(null);
 
 const ReducedMotionContext = createContext<boolean>(false);
 
-export function TimeProvider({ children }: { children: ReactNode }) {
-  const [now, setNow] = useState(() => Date.now());
+export function TimeProvider({
+  children,
+  initialNow,
+}: {
+  children: ReactNode;
+  /**
+   * Timestamp captured by the server render and serialized into the RSC
+   * payload. Using it for the first render keeps SSR and hydration in sync;
+   * the effect below replaces it with the real client clock after mount.
+   */
+  initialNow?: number;
+}) {
+  const [now, setNow] = useState(() => initialNow ?? 0);
   const [reducedMotion, setReducedMotion] = useState(false);
 
   useEffect(() => {
+    setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(id);
   }, []);

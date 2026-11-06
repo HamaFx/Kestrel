@@ -195,7 +195,9 @@ export const config = {
   // unauthenticated uptime probe, /share is public, /auth is the login
   // surface.
   // landing, fonts, brand, icons, screenshots are public static assets.
+  // iOS probes the two root apple-touch-icon filenames directly; they must
+  // bypass auth or the home-screen request receives the login page.
   matcher: [
-    '/((?!auth|share|offline|api/auth|api/dev/login|api/cron|api/health/public|api/health/alerts|debug|sw\\.js|sw-precache\\.json|_next/static|_next/image|favicon\\.ico|manifest\\.webmanifest|icons|brand|landing|fonts|screenshots|robots\\.txt|sitemap\\.xml).*)',
+    '/((?!auth|share|offline|api/auth|api/dev/login|api/cron|api/health/public|api/health/alerts|debug|sw\\.js|sw-precache\\.json|_next/static|_next/image|favicon\\.ico|apple-touch-icon\\.png|apple-touch-icon-precomposed\\.png|manifest\\.webmanifest|icons|brand|landing|fonts|screenshots|robots\\.txt|sitemap\\.xml).*)',
   ],
 };

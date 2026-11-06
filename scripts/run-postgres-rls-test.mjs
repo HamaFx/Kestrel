@@ -133,7 +133,15 @@ try {
   );
   run(
     'pnpm',
-    ['--filter', '@kestrel/web', 'exec', 'vitest', 'run', 'test/settings-actions-app-role.test.ts'],
+    [
+      '--filter',
+      '@kestrel/web',
+      'exec',
+      'vitest',
+      'run',
+      'test/settings-actions-app-role.test.ts',
+      'test/plugin-install-app-role.test.ts',
+    ],
     { env: integrationEnv },
   );
 } finally {

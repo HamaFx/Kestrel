@@ -25,7 +25,7 @@ import {
   seedAccount,
   updateAccountSettings,
 } from '../db/queries';
-import type { PaperAccountRow } from '@kestrel/db';
+import { withUserTenant, type PaperAccountRow } from '@kestrel/db';
 import type { AccountView } from '../schemas';
 import type { PaperSettings } from '../settings';
 import { accountView } from './views';
@@ -44,25 +44,33 @@ export async function ensurePaperAccounts(
   userId: string,
   settings: PaperSettings,
 ): Promise<SeededAccounts> {
-  const [personal, sandbox] = await Promise.all([
-    seedAccount({
-      userId,
-      name: 'Personal Demo',
-      mode: 'confirm',
-      initialBalance: settings.defaultPersonalBalance,
-      leverage: settings.defaultLeverage,
-      riskPerTradePct: settings.defaultRiskPct,
-    }),
-    seedAccount({
-      userId,
-      name: 'AI Agent Sandbox',
-      mode: 'autonomous_sandbox',
-      initialBalance: settings.defaultSandboxBalance,
-      leverage: settings.defaultLeverage,
-      riskPerTradePct: settings.defaultRiskPct,
-    }),
-  ]);
-  return { personal, sandbox };
+  // The install lifecycle hook can run in a different bundled module instance
+  // from the web request that invoked it. Its AsyncLocalStorage tenant scope
+  // would then be invisible to `getDb()` here, so the inserts would arrive at
+  // the non-bypass role without `app.current_tenant` and be rejected by RLS.
+  // Opening the scope here guarantees the plugin's own queries see it; inside
+  // an existing scope this reuses the caller's transaction.
+  return withUserTenant(userId, async () => {
+    const [personal, sandbox] = await Promise.all([
+      seedAccount({
+        userId,
+        name: 'Personal Demo',
+        mode: 'confirm',
+        initialBalance: settings.defaultPersonalBalance,
+        leverage: settings.defaultLeverage,
+        riskPerTradePct: settings.defaultRiskPct,
+      }),
+      seedAccount({
+        userId,
+        name: 'AI Agent Sandbox',
+        mode: 'autonomous_sandbox',
+        initialBalance: settings.defaultSandboxBalance,
+        leverage: settings.defaultLeverage,
+        riskPerTradePct: settings.defaultRiskPct,
+      }),
+    ]);
+    return { personal, sandbox };
+  });
 }
 
 /** Resolve an account by id, `personal`, or `sandbox`. */

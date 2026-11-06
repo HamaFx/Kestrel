@@ -38,6 +38,7 @@
     "@tanstack/react-virtual": "^3.14.21",
     "ai": "^7.0.143",
     "bcryptjs": "^3.0.3",
+    "bklit-tanstack-charts": "0.1.1",
     "clsx": "^2.1.1",
     "dompurify": "^3.4.17",
     "drizzle-orm": "^1.0.0-rc.5",

@@ -18,16 +18,32 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Sign-coloured profit/loss curve with real axes, layered grid, a smoothed
-// line, an area gradient and a hover card. The zero baseline is the colour
-// boundary; drag to measure remains available for range analysis.
-import { useId, useMemo, useRef, useState } from 'react';
+// Sign-coloured profit/loss curve built directly on `bklit-tanstack-charts`.
+// Combines Bklit's `LineChart`, `ProfitLossLine` (with interactive
+// `ProfitLossLegend` segment highlighting), soft area shading, `Segment`
+// drag-to-measure range selection, and Kestrel's recessed well chrome.
+import {
+  Area,
+  ProfitLossLine as BklitProfitLossLine,
+  ChartTooltip,
+  Grid,
+  Line,
+  LineChart,
+  ProfitLossLegend,
+  ProfitLossLegendHoverProvider,
+  SegmentBackground,
+  SegmentLineFrom,
+  SegmentLineTo,
+  TooltipContent,
+  XAxis,
+  YAxis,
+} from 'bklit-tanstack-charts';
+import { useMemo, useState } from 'react';
 
 import { cn } from '@/lib/formatters/cn';
 
-import { buildProfitLossGeometry, formatAxisValue } from './chart-geometry';
-import { ChartLegend, ChartTooltip, ChartYAxis } from './chart-ui';
-import { ProfitLossSvg } from './profit-loss-svg';
+import { formatAxisValue } from './chart-geometry';
+import { ChartLegend } from './chart-ui';
 
 interface ProfitLossLineProps {
   values: readonly number[];
@@ -45,8 +61,16 @@ interface ProfitLossLineProps {
   ceilingLabel?: string;
 }
 
-function clampIndex(index: number, length: number): number {
-  return Math.min(length - 1, Math.max(0, index));
+const BASE_EPOCH_MS = Date.UTC(2026, 0, 1);
+const DAY_MS = 86_400_000;
+
+interface PlRow extends Record<string, unknown> {
+  date: Date;
+  index: number;
+  label: string;
+  value: number;
+  delta: number | null;
+  ceiling?: number;
 }
 
 export function ProfitLossLine({
@@ -60,21 +84,32 @@ export function ProfitLossLine({
   ariaLabel,
   className,
   measure = false,
-  measureUnit = 'points',
   seriesLabel = 'Equity',
   ceilingLabel,
 }: ProfitLossLineProps) {
-  const rawId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
-  const plotRef = useRef<HTMLDivElement | null>(null);
-  const draggingRef = useRef(false);
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
-  const [selection, setSelection] = useState<{ start: number; end: number } | null>(null);
-  const [dragging, setDragging] = useState(false);
+  const [legendHovered, setLegendHovered] = useState<number | null>(null);
+  const hasCeiling = Boolean(ceilingValues && ceilingValues.length === values.length);
 
-  const geometry = useMemo(
-    () => buildProfitLossGeometry(values, ceilingValues, baseline),
-    [values, ceilingValues, baseline],
-  );
+  const { rows, labelByTime, isUnderwaterOnly } = useMemo(() => {
+    const map = new Map<number, string>();
+    let allNonPositive = true;
+    const built: PlRow[] = values.map((val, idx) => {
+      const time = BASE_EPOCH_MS + idx * DAY_MS;
+      const label = labels?.[idx] ?? `Pt ${idx + 1}`;
+      map.set(time, label);
+      if (val > baseline) allNonPositive = false;
+      const prev = idx > 0 ? (values[idx - 1] ?? baseline) : null;
+      return {
+        date: new Date(time),
+        index: idx,
+        label,
+        value: val,
+        delta: prev !== null ? val - prev : null,
+        ...(hasCeiling && ceilingValues ? { ceiling: ceilingValues[idx] ?? baseline } : {}),
+      };
+    });
+    return { rows: built, labelByTime: map, isUnderwaterOnly: allNonPositive };
+  }, [values, ceilingValues, hasCeiling, labels, baseline]);
 
   if (values.length < 2) {
     return (
@@ -87,231 +122,159 @@ export function ProfitLossLine({
     );
   }
 
-  const indexFromClientX = (clientX: number): number | null => {
-    const element = plotRef.current;
-    if (!element) return null;
-    const rect = element.getBoundingClientRect();
-    if (rect.width <= 0) return null;
-    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-    return clampIndex(Math.round(ratio * (values.length - 1)), values.length);
-  };
-
-  const startMeasure = (clientX: number) => {
-    if (!measure) return;
-    const index = indexFromClientX(clientX);
-    if (index === null) return;
-    draggingRef.current = true;
-    setSelection({ start: index, end: index });
-    setDragging(true);
-  };
-
-  const updateMeasure = (clientX: number) => {
-    if (!draggingRef.current) return;
-    const index = indexFromClientX(clientX);
-    if (index === null) return;
-    setSelection((previous) => (previous ? { ...previous, end: index } : previous));
-  };
-
-  const endMeasure = () => {
-    if (!draggingRef.current) return;
-    draggingRef.current = false;
-    setDragging(false);
-    setSelection((previous) => {
-      if (previous && previous.start === previous.end) return null;
-      return previous;
-    });
-  };
-
-  const safeHover =
-    hoverIndex !== null && hoverIndex >= 0 && hoverIndex < values.length ? hoverIndex : null;
-  const displayIndex = safeHover ?? values.length - 1;
-  const displayValue = values[displayIndex] ?? baseline;
   const lastValue = values[values.length - 1] ?? baseline;
-  const previousValue = displayIndex > 0 ? (values[displayIndex - 1] ?? baseline) : null;
-  const displayTone =
-    displayValue > baseline ? 'text-bull' : displayValue < baseline ? 'text-bear' : 'text-fg';
-  const terminalDotClass =
-    lastValue > baseline ? 'bg-bull' : lastValue < baseline ? 'bg-bear' : 'bg-fg-muted';
-
-  const selectionStart = selection ? Math.min(selection.start, selection.end) : null;
-  const selectionEnd = selection ? Math.max(selection.start, selection.end) : null;
-  const selectionDelta =
-    selection && selectionStart !== null && selectionEnd !== null
-      ? (values[selectionEnd] ?? baseline) - (values[selectionStart] ?? baseline)
-      : 0;
-  const selectionX =
-    selectionStart !== null && selectionEnd !== null
-      ? (geometry.xFor(selectionStart) + geometry.xFor(selectionEnd)) / 2
-      : 0;
-  const selectionWidth =
-    selectionStart !== null && selectionEnd !== null
-      ? geometry.xFor(selectionEnd) - geometry.xFor(selectionStart)
-      : 0;
-  const midLabel = labels?.[Math.floor((labels.length - 1) / 2)];
-  const legendItems = [
-    { label: seriesLabel, tone: 'bull' as const, dualTone: ['bull', 'bear'] as const },
-    ...(ceilingLabel ? [{ label: ceilingLabel, tone: 'muted' as const, dashed: true }] : []),
-  ];
+  const lastTone =
+    lastValue > baseline ? 'text-bull' : lastValue < baseline ? 'text-bear' : 'text-fg';
 
   return (
-    <div className={cn('flex flex-col', className)}>
-      <div className="mb-2 flex items-center justify-between gap-3 pr-12">
-        <ChartLegend items={legendItems} />
-        <div className="flex items-center gap-2 font-mono text-[10px]">
-          {safeHover !== null ? (
-            <span className="text-fg-subtle">
-              {labels?.[safeHover] ?? `Point ${safeHover + 1}`}
-            </span>
-          ) : null}
-          <span className={cn('font-semibold tabular-nums', displayTone)}>
-            {formatValue(displayValue)}
-          </span>
-        </div>
-      </div>
-
-      <div className="relative" style={{ height }}>
-        <div
-          ref={plotRef}
-          role="img"
-          tabIndex={0}
-          aria-label={`${ariaLabel}. Use arrow keys to inspect values.`}
-          className={cn(
-            'surface-well absolute inset-y-0 right-12 left-0 touch-pan-y rounded-xl outline-none select-none focus-visible:ring-2 focus-visible:ring-brand/40',
-            dragging ? 'cursor-col-resize' : measure ? 'cursor-crosshair' : 'cursor-default',
+    <ProfitLossLegendHoverProvider hoveredIndex={legendHovered}>
+      <div className={cn('flex flex-col gap-2', className)}>
+        <div className="flex flex-wrap items-center justify-between gap-3 px-0.5">
+          {hasCeiling ? (
+            <ChartLegend
+              items={[
+                {
+                  label: seriesLabel,
+                  tone: isUnderwaterOnly ? 'bear' : 'bull',
+                  ...(isUnderwaterOnly ? {} : { dualTone: ['bull', 'bear'] as const }),
+                },
+                ...(ceilingLabel
+                  ? [{ label: ceilingLabel, tone: 'muted' as const, dashed: true }]
+                  : []),
+              ]}
+            />
+          ) : (
+            <div className="flex items-center gap-3">
+              <ProfitLossLegend
+                hoveredIndex={legendHovered}
+                onHoverChange={setLegendHovered}
+                className="font-mono text-[10px]"
+              />
+              {measure ? (
+                <span className="text-fg-subtle hidden font-mono text-[9px] tracking-wider uppercase sm:inline">
+                  Drag to select segment
+                </span>
+              ) : null}
+            </div>
           )}
-          onPointerDown={(event) => {
-            const index = indexFromClientX(event.clientX);
-            setHoverIndex(index);
-            if (measure) {
-              event.preventDefault();
-              event.currentTarget.setPointerCapture(event.pointerId);
-              startMeasure(event.clientX);
-            }
-          }}
-          onPointerMove={(event) => {
-            const index = indexFromClientX(event.clientX);
-            setHoverIndex(index);
-            updateMeasure(event.clientX);
-          }}
-          onPointerUp={() => endMeasure()}
-          onPointerCancel={() => endMeasure()}
-          onPointerLeave={() => {
-            if (!draggingRef.current) setHoverIndex(null);
-          }}
-          onDoubleClick={() => setSelection(null)}
-          onKeyDown={(event) => {
-            if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-              event.preventDefault();
-              setHoverIndex((previous) => {
-                const current = previous ?? values.length - 1;
-                return clampIndex(current + (event.key === 'ArrowLeft' ? -1 : 1), values.length);
-              });
-            } else if (event.key === 'Home') {
-              event.preventDefault();
-              setHoverIndex(0);
-            } else if (event.key === 'End') {
-              event.preventDefault();
-              setHoverIndex(values.length - 1);
-            } else if (event.key === 'Escape') {
-              setHoverIndex(null);
-              setSelection(null);
-            }
-          }}
-        >
-          <ProfitLossSvg
-            rawId={rawId}
-            geometry={geometry}
-            values={values}
-            ceilingValues={ceilingValues}
-            selectionStart={selectionStart}
-            selectionEnd={selectionEnd}
-            selectionWidth={selectionWidth}
-            safeHover={safeHover}
-          />
 
-          {safeHover !== null ? (
-            <>
-              <span
-                className={cn(
-                  'pointer-events-none absolute size-2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-[#0d0e10]',
-                  (values[safeHover] ?? baseline) >= baseline ? 'bg-bull' : 'bg-bear',
-                )}
-                style={{
-                  left: `${geometry.xFor(safeHover)}%`,
-                  top: `${geometry.yFor(values[safeHover] ?? baseline)}%`,
-                }}
-                aria-hidden="true"
-              />
-              <ChartTooltip
-                x={geometry.xFor(safeHover)}
-                y={geometry.yFor(values[safeHover] ?? baseline)}
-                title={labels?.[safeHover] ?? `Point ${safeHover + 1}`}
-                rows={[
-                  {
-                    label: seriesLabel,
-                    value: formatValue(values[safeHover] ?? baseline),
-                    tone: displayValue >= baseline ? 'bull' : 'bear',
-                  },
-                  ...(previousValue !== null
-                    ? [
-                        {
-                          label: 'Change',
-                          value: formatValue((values[safeHover] ?? baseline) - previousValue),
-                          tone:
-                            (values[safeHover] ?? baseline) >= previousValue
-                              ? ('bull' as const)
-                              : ('bear' as const),
-                        },
-                      ]
-                    : []),
-                  ...(ceilingValues?.[safeHover] !== undefined
-                    ? [
-                        {
-                          label: ceilingLabel ?? 'Peak',
-                          value: formatValue(ceilingValues[safeHover]!),
-                          tone: 'muted' as const,
-                        },
-                      ]
-                    : []),
-                ]}
-              />
-            </>
-          ) : null}
-
-          <span
-            className={cn(
-              'pointer-events-none absolute size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full',
-              terminalDotClass,
-            )}
-            style={{
-              left: `${geometry.xFor(values.length - 1)}%`,
-              top: `${geometry.yFor(lastValue)}%`,
-            }}
-            aria-hidden="true"
-          />
-
-          {selectionStart !== null && selectionEnd !== null ? (
-            <span
-              className="surface-panel text-fg absolute top-2 z-20 rounded-md border border-white/10 px-2 py-1 font-mono text-[9px] whitespace-nowrap tabular-nums shadow-xl"
-              style={{ left: `${Math.min(84, Math.max(16, selectionX))}%`, translate: '-50% 0' }}
-            >
-              <span className="text-fg-subtle mr-1 tracking-wider uppercase">Measure</span>
-              {formatValue(selectionDelta)} · {Math.abs(selectionEnd - selectionStart)}{' '}
-              {measureUnit}
+          <div className="flex items-center gap-2 font-mono text-[10px]">
+            <span className="text-fg-subtle uppercase">{seriesLabel}</span>
+            <span className={cn('font-semibold tabular-nums', lastTone)}>
+              {formatValue(lastValue)}
             </span>
-          ) : null}
+          </div>
         </div>
 
-        <ChartYAxis ticks={geometry.ticks} yFor={geometry.yFor} format={formatAxis} />
+        <div
+          className="surface-well relative overflow-hidden rounded-xl border border-white/[0.05]"
+          style={{ height }}
+        >
+          <LineChart
+            data={rows}
+            xDataKey="date"
+            aspectRatio="unset"
+            style={{ height: '100%', aspectRatio: 'unset' }}
+            margin={{ top: 16, right: 54, bottom: 28, left: 14 }}
+            ariaLabel={ariaLabel}
+          >
+            <Grid
+              horizontal
+              numTicksRows={4}
+              highlightRowValues={[baseline]}
+              highlightRowStroke="var(--color-fg-subtle)"
+              highlightRowStrokeOpacity={0.45}
+            />
+
+            {measure ? (
+              <>
+                <SegmentBackground fill="var(--chart-segment-background)" />
+                <SegmentLineFrom stroke="var(--chart-segment-line)" variant="dashed" />
+                <SegmentLineTo stroke="var(--chart-segment-line)" variant="dashed" />
+              </>
+            ) : null}
+
+            <Area
+              dataKey="value"
+              showLine={false}
+              showHighlight={false}
+              fill={isUnderwaterOnly ? 'var(--chart-negative)' : 'var(--chart-line-primary)'}
+              fillOpacity={isUnderwaterOnly ? 0.24 : 0.14}
+              gradientToOpacity={0.01}
+            />
+
+            <BklitProfitLossLine
+              dataKey="value"
+              positiveColor="var(--chart-positive)"
+              negativeColor="var(--chart-negative)"
+              strokeWidth={2.25}
+            />
+
+            {hasCeiling ? (
+              <Line
+                dataKey="ceiling"
+                stroke="var(--color-fg-subtle)"
+                strokeWidth={1.25}
+                dashFromIndex={0}
+                dashArray="4,4"
+                fadeEdges={false}
+                showHighlight={false}
+              />
+            ) : null}
+
+            <XAxis
+              numTicks={Math.min(5, rows.length)}
+              formatValue={(date) => labelByTime.get(date.getTime()) ?? ''}
+            />
+            <YAxis
+              orientation="right"
+              numTicks={4}
+              formatLargeNumbers={false}
+              formatValue={formatAxis}
+            />
+
+            <ChartTooltip
+              showDatePill={false}
+              content={({ point }) => {
+                const row = point as PlRow;
+                const val = typeof row.value === 'number' ? row.value : baseline;
+                const delta = typeof row.delta === 'number' ? row.delta : null;
+                const ceiling = typeof row.ceiling === 'number' ? row.ceiling : null;
+                return (
+                  <TooltipContent
+                    title={typeof row.label === 'string' ? row.label : undefined}
+                    rows={[
+                      {
+                        color: val >= baseline ? 'var(--chart-positive)' : 'var(--chart-negative)',
+                        label: seriesLabel,
+                        value: formatValue(val),
+                      },
+                      ...(delta !== null
+                        ? [
+                            {
+                              color: delta >= 0 ? 'var(--chart-positive)' : 'var(--chart-negative)',
+                              label: 'Change',
+                              value: formatValue(delta),
+                            },
+                          ]
+                        : []),
+                      ...(ceiling !== null
+                        ? [
+                            {
+                              color: 'var(--color-fg-subtle)',
+                              label: ceilingLabel ?? 'Peak',
+                              value: formatValue(ceiling),
+                            },
+                          ]
+                        : []),
+                    ]}
+                  />
+                );
+              }}
+            />
+          </LineChart>
+        </div>
       </div>
-
-      {labels && labels.length >= 2 ? (
-        <div className="text-fg-subtle mt-1.5 flex justify-between pr-12 pl-1 font-mono text-[9px]">
-          <span>{labels[0]}</span>
-          <span>{midLabel}</span>
-          <span>{labels[labels.length - 1]}</span>
-        </div>
-      ) : null}
-    </div>
+    </ProfitLossLegendHoverProvider>
   );
 }

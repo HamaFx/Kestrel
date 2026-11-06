@@ -14,6 +14,6 @@
  * limitations under the License.
  */
 
-export { fetchCandles, fetchTickerPrice } from './rest';
+export { fetchCandles, fetchTickerPrice, fetchTickerPrices } from './rest';
 export { isCryptoSymbol, toBinanceInterval } from './map';
 export type { NormalizedBinanceCandle } from './types';

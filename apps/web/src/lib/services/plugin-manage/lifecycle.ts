@@ -20,7 +20,11 @@
 // One place owns the install ledger, lifecycle hooks, settings encryption and
 // cache invalidation.
 
-import { createPluginExecutionContext, invalidateInstalledPluginCache } from '@kestrel/ai/plugins';
+import {
+  createPluginExecutionContext,
+  invalidateInstalledPluginCache,
+  runWithPluginTenantScope,
+} from '@kestrel/ai/plugins';
 import {
   getInstalledPlugin,
   installPlugin,
@@ -33,7 +37,7 @@ import {
 } from '@kestrel/db';
 import { pluginHost, type RegisteredPlugin } from '@kestrel/plugin-sdk';
 import { decryptPluginSettings, preparePluginSettings } from '@kestrel/plugin-sdk/settings';
-import { notFound, providerUnavailable } from '@kestrel/shared/errors';
+import { notFound, pluginSetupFailed } from '@kestrel/shared/errors';
 
 import type {
   PluginInstallRequest,
@@ -124,10 +128,14 @@ export async function installPluginForUser(
   invalidateInstalledPluginCache(userId);
 
   let warning: string | undefined;
-  if (registered.plugin.onUserInstall) {
+  const onUserInstall = registered.plugin.onUserInstall;
+  if (onUserInstall) {
     try {
-      await registered.plugin.onUserInstall(
-        lifecycleContext(registered, row, prepared.plain, onboardingCompleted),
+      // Hooks seed RLS-protected plugin tables. Run them inside the tenant
+      // scope so the plugin's repository calls inherit `app.current_tenant`
+      // instead of falling back to the shared, unscoped pool.
+      await runWithPluginTenantScope(row.userId, row.tenantId, () =>
+        onUserInstall(lifecycleContext(registered, row, prepared.plain, onboardingCompleted)),
       );
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
@@ -148,7 +156,10 @@ export async function installPluginForUser(
           },
         );
         invalidateInstalledPluginCache(userId);
-        throw providerUnavailable(`${manifest.name} could not finish setup`, { reason });
+        throw pluginSetupFailed(`${manifest.name} could not finish setup`, {
+          pluginId: request.pluginId,
+          reason,
+        });
       }
       warning = `Installed, but the plugin's setup hook failed: ${reason}`;
     }
@@ -184,13 +195,16 @@ export async function uninstallPluginForUser(
 
   let warning: string | undefined;
 
-  if (registered.plugin.onUserUninstall) {
+  const onUserUninstall = registered.plugin.onUserUninstall;
+  if (onUserUninstall) {
     const plain = decryptedRowSettings(registered.manifest, existing);
     try {
-      await registered.plugin.onUserUninstall({
-        ...lifecycleContext(registered, existing, plain, existing.onboardingCompleted),
-        ...(request.wipeData !== undefined ? { wipeData: request.wipeData } : {}),
-      });
+      await runWithPluginTenantScope(existing.userId, existing.tenantId, () =>
+        onUserUninstall({
+          ...lifecycleContext(registered, existing, plain, existing.onboardingCompleted),
+          ...(request.wipeData !== undefined ? { wipeData: request.wipeData } : {}),
+        }),
+      );
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       plog.warn('plugin onUserUninstall failed; continuing with removal', {

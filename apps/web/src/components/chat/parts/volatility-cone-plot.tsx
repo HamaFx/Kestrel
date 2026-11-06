@@ -2,22 +2,29 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Forward ATR cone for the `forecast_volatility` tool part. The live mid is
-// the cone anchor and the band widens with the square root of elapsed time.
-// A real price axis, time axis, legend and event marker make it feel like a
-// chart rather than an illustration.
+// Forward ATR cone for the `forecast_volatility` tool part built on
+// `bklit-tanstack-charts` (`LineChart` + `ReferenceArea` + `LineSeriesTerminalMarker`
+// + `ChartMarkers` for high-impact economic events).
 import { IconChartLine } from '@tabler/icons-react';
-import { useId } from 'react';
+import {
+  ChartMarkers,
+  ChartTooltip,
+  Grid,
+  Line,
+  LineChart,
+  LineSeriesTerminalMarker,
+  ReferenceArea,
+  TooltipContent,
+  XAxis,
+  YAxis,
+  type ChartMarker,
+} from 'bklit-tanstack-charts';
+import { useMemo } from 'react';
 
-import { niceTicks } from '@/components/chart/chart-geometry';
 import { ChartLegend } from '@/components/chart/chart-ui';
 import { cn } from '@/lib/formatters/cn';
 
 const STEPS = 24;
-const X_START = 4;
-const X_END = 94;
-const Y_TOP = 10;
-const Y_BOTTOM = 88;
 
 interface VolatilityConePlotProps {
   symbol: string;
@@ -26,6 +33,14 @@ interface VolatilityConePlotProps {
   asOf: number;
   event: { title: string; whenIso: string; currency: string | null } | null;
   className?: string;
+}
+
+interface ConeRow extends Record<string, unknown> {
+  date: Date;
+  hourOffset: number;
+  upper: number;
+  mid: number;
+  lower: number;
 }
 
 function formatPrice(value: number): string {
@@ -44,36 +59,42 @@ export function VolatilityConePlot({
   event,
   className,
 }: VolatilityConePlotProps) {
-  const rawId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
-  const span = Math.max(range.high - range.low, Number.EPSILON);
   const upperMove = Math.max(range.high - range.mid, 0);
   const lowerMove = Math.max(range.mid - range.low, 0);
-  const yFor = (price: number) => Y_BOTTOM - ((price - range.low) / span) * (Y_BOTTOM - Y_TOP);
-  const xFor = (t: number) => X_START + (X_END - X_START) * t;
-  const midY = yFor(range.mid);
-  const midLabelY = Math.min(Y_BOTTOM - 2, Math.max(Y_TOP + 2, midY));
+  const horizonMs = Math.max(1, horizonHours) * 3_600_000;
 
-  // Filter out background axis ticks that would collide with the live-mid readout pill
-  const ticks = niceTicks(range.low, range.high, 4).filter((tick) => {
-    const y = yFor(tick);
-    return y >= Y_TOP - 4 && y <= Y_BOTTOM + 4 && Math.abs(y - midLabelY) >= 10;
-  });
+  const rows = useMemo<ConeRow[]>(() => {
+    return Array.from({ length: STEPS + 1 }, (_, index) => {
+      const t = index / STEPS;
+      const rootT = Math.sqrt(t);
+      return {
+        date: new Date(asOf + t * horizonMs),
+        hourOffset: Math.round(t * horizonHours * 10) / 10,
+        upper: range.mid + upperMove * rootT,
+        mid: range.mid,
+        lower: range.mid - lowerMove * rootT,
+      };
+    });
+  }, [asOf, horizonHours, horizonMs, lowerMove, range.mid, upperMove]);
 
-  const upper = Array.from({ length: STEPS + 1 }, (_, index) => {
-    const t = index / STEPS;
-    return [xFor(t), yFor(range.mid + upperMove * Math.sqrt(t))] as const;
-  });
-  const lower = Array.from({ length: STEPS + 1 }, (_, index) => {
-    const t = 1 - index / STEPS;
-    return [xFor(t), yFor(range.mid - lowerMove * Math.sqrt(t))] as const;
-  });
-  const toPath = (points: ReadonlyArray<readonly [number, number]>) =>
-    points
-      .map(([x, y], index) => `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`)
-      .join(' ');
-  const band = [...upper, ...lower].map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).join(' ');
-  const eventT = event ? (Date.parse(event.whenIso) - asOf) / (horizonHours * 60 * 60 * 1000) : NaN;
-  const eventX = Number.isFinite(eventT) && eventT >= 0 && eventT <= 1 ? xFor(eventT) : null;
+  const markers = useMemo<ChartMarker[]>(() => {
+    if (!event) return [];
+    const eventMs = Date.parse(event.whenIso);
+    if (!Number.isFinite(eventMs) || eventMs < asOf || eventMs > asOf + horizonMs) {
+      return [];
+    }
+    return [
+      {
+        date: new Date(eventMs),
+        icon: '!',
+        title: event.title,
+        description: event.currency
+          ? `${event.currency} high-impact catalyst`
+          : 'High-impact catalyst',
+        color: 'var(--color-warn)',
+      },
+    ];
+  }, [asOf, event, horizonMs]);
 
   return (
     <div className={cn('flex flex-col gap-2', className)}>
@@ -90,158 +111,113 @@ export function VolatilityConePlot({
         </span>
       </div>
 
-      <div
-        className="surface-well relative h-52 overflow-hidden rounded-xl"
-        role="img"
-        aria-label={`${symbol} ${horizonHours}h volatility cone: ${formatPrice(range.low)} to ${formatPrice(range.high)} around ${formatPrice(range.mid)}`}
-      >
-        <div className="absolute inset-y-0 right-16 left-0">
-          <svg
-            viewBox="0 0 100 100"
-            preserveAspectRatio="none"
-            className="absolute inset-0 h-full w-full"
-            aria-hidden="true"
-          >
-            <defs>
-              <linearGradient id={`${rawId}-cone`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--chart-line-primary)" stopOpacity="0.22" />
-                <stop offset="50%" stopColor="var(--chart-line-primary)" stopOpacity="0.08" />
-                <stop offset="100%" stopColor="var(--chart-line-primary)" stopOpacity="0.22" />
-              </linearGradient>
-            </defs>
-
-            {ticks.map((tick) => (
-              <line
-                key={`tick-${tick}`}
-                x1="0"
-                x2="100"
-                y1={yFor(tick)}
-                y2={yFor(tick)}
-                stroke="var(--chart-grid)"
-                strokeWidth="1"
-                vectorEffect="non-scaling-stroke"
-              />
-            ))}
-
-            {[0, 25, 50, 75, 100].map((pct) => (
-              <line
-                key={`x-${pct}`}
-                x1={pct}
-                x2={pct}
-                y1={Y_TOP}
-                y2={Y_BOTTOM}
-                stroke="var(--chart-grid)"
-                strokeWidth="1"
-                strokeDasharray="1 4"
-                vectorEffect="non-scaling-stroke"
-              />
-            ))}
-
-            <polygon points={band} fill={`url(#${rawId}-cone)`} />
-
-            <path
-              d={toPath(upper)}
-              fill="none"
-              stroke="var(--chart-line-primary)"
-              strokeOpacity={0.7}
-              strokeWidth="1.25"
-              strokeDasharray="3 3"
-              vectorEffect="non-scaling-stroke"
-            />
-            <path
-              d={toPath(lower)}
-              fill="none"
-              stroke="var(--chart-line-primary)"
-              strokeOpacity={0.7}
-              strokeWidth="1.25"
-              strokeDasharray="3 3"
-              vectorEffect="non-scaling-stroke"
-            />
-
-            <line
-              x1={X_START}
-              x2={X_END}
-              y1={midY}
-              y2={midY}
-              stroke="var(--color-fg-subtle)"
-              strokeOpacity={0.5}
-              strokeWidth="1"
-              strokeDasharray="2 3"
-              vectorEffect="non-scaling-stroke"
-            />
-
-            <line
-              x1={X_END}
-              x2={X_END}
-              y1={Y_TOP}
-              y2={Y_BOTTOM}
-              stroke="var(--chart-line-primary)"
-              strokeOpacity={0.6}
-              strokeWidth="1"
-              vectorEffect="non-scaling-stroke"
-            />
-
-            {eventX !== null ? (
-              <line
-                x1={eventX}
-                x2={eventX}
-                y1={Y_TOP - 2}
-                y2={Y_BOTTOM + 2}
-                stroke="var(--color-warn)"
-                strokeOpacity={0.85}
-                strokeWidth="1"
-                strokeDasharray="2 2"
-                vectorEffect="non-scaling-stroke"
-              />
-            ) : null}
-          </svg>
-
-          <span
-            className="absolute -translate-x-1/2 -translate-y-1/2"
-            style={{ left: `${X_END}%`, top: `${midY}%` }}
-            aria-hidden="true"
-          >
-            <span className="bg-brand/35 motion-reduce:animate-none absolute inset-0 animate-ping rounded-full" />
-            <span className="bg-brand relative block size-1.5 rounded-full" />
-          </span>
-
-          {eventX !== null ? (
-            <span
-              className="bg-warn absolute size-1.5 -translate-x-1/2 rounded-full ring-2 ring-[#0d0e10]"
-              style={{ left: `${eventX}%`, top: `${Y_TOP - 2}%` }}
-              aria-hidden="true"
-            />
-          ) : null}
-        </div>
-
-        <div
-          className="border-border/30 absolute inset-y-0 right-0 w-16 border-l bg-black/20"
-          aria-hidden="true"
+      <div className="surface-well relative h-56 overflow-hidden rounded-xl border border-white/[0.05]">
+        <LineChart
+          data={rows}
+          xDataKey="date"
+          aspectRatio="unset"
+          style={{ height: '100%', aspectRatio: 'unset' }}
+          margin={{ top: 18, right: 64, bottom: 28, left: 14 }}
+          ariaLabel={`${symbol} ${horizonHours}h volatility cone: ${formatPrice(range.low)} to ${formatPrice(range.high)} around ${formatPrice(range.mid)}`}
         >
-          {ticks.map((tick) => (
-            <span
-              key={`price-${tick}`}
-              className="text-fg-subtle absolute right-1.5 -translate-y-1/2 font-mono text-[9px] tabular-nums"
-              style={{ top: `${yFor(tick)}%` }}
-            >
-              {formatPrice(tick)}
-            </span>
-          ))}
-          <span
-            className="text-brand border-brand/30 bg-brand/10 absolute right-1.5 -translate-y-1/2 rounded border px-1 py-0.5 font-mono text-[9px] font-semibold tabular-nums"
-            style={{ top: `${midLabelY}%` }}
-          >
-            {formatPrice(range.mid)}
-          </span>
-        </div>
-      </div>
-
-      <div className="text-fg-subtle flex justify-between pr-16 pl-1 font-mono text-[9px]">
-        <span>Now</span>
-        <span>+{Math.round(horizonHours / 4)}h</span>
-        <span>+{Math.round(horizonHours / 2)}h</span>
-        <span>+{Math.round((horizonHours * 3) / 4)}h</span>
-        <span>+{horizonHours}h</span>
+          <Grid
+            horizontal
+            vertical
+            numTicksRows={4}
+            numTicksColumns={4}
+            highlightRowValues={[range.mid]}
+            highlightRowStroke="var(--color-fg-subtle)"
+            highlightRowStrokeOpacity={0.5}
+          />
+          <ReferenceArea
+            y1={range.low}
+            y2={range.high}
+            fill="var(--chart-line-primary)"
+            fillOpacity={0.09}
+            stroke="var(--chart-line-primary)"
+            strokeStyle="dashed"
+          />
+          <Line
+            dataKey="upper"
+            stroke="var(--chart-line-primary)"
+            strokeWidth={2}
+            dashFromIndex={0}
+            dashArray="4,3"
+            fadeEdges={false}
+          />
+          <Line
+            dataKey="mid"
+            stroke="var(--color-fg-subtle)"
+            strokeWidth={1.5}
+            dashFromIndex={0}
+            dashArray="2,4"
+            fadeEdges={false}
+          />
+          <Line
+            dataKey="lower"
+            stroke="var(--chart-line-primary)"
+            strokeWidth={2}
+            dashFromIndex={0}
+            dashArray="4,3"
+            fadeEdges={false}
+          />
+          <LineSeriesTerminalMarker
+            dataKey="upper"
+            stroke="var(--chart-line-primary)"
+            fill="var(--chart-line-primary)"
+            radius={3.5}
+          />
+          <LineSeriesTerminalMarker
+            dataKey="lower"
+            stroke="var(--chart-line-primary)"
+            fill="var(--chart-line-primary)"
+            radius={3.5}
+          />
+          <XAxis
+            numTicks={5}
+            tickMode="domain"
+            formatValue={(date) => {
+              const elapsedHours = Math.round((date.getTime() - asOf) / 3_600_000);
+              return elapsedHours <= 0 ? 'Now' : `+${elapsedHours}h`;
+            }}
+          />
+          <YAxis
+            orientation="right"
+            numTicks={4}
+            formatLargeNumbers={false}
+            formatValue={(v) => formatPrice(v)}
+          />
+          <ChartTooltip
+            showDatePill={false}
+            content={({ point }) => {
+              const row = point as ConeRow;
+              const hours = typeof row.hourOffset === 'number' ? row.hourOffset : 0;
+              return (
+                <TooltipContent
+                  title={hours <= 0 ? 'Now (Anchor)' : `+${hours}h Horizon`}
+                  rows={[
+                    {
+                      color: 'var(--chart-positive)',
+                      label: 'Upper (+1σ)',
+                      value: formatPrice(row.upper),
+                    },
+                    {
+                      color: 'var(--color-fg-subtle)',
+                      label: 'Live Mid',
+                      value: formatPrice(row.mid),
+                    },
+                    {
+                      color: 'var(--chart-negative)',
+                      label: 'Lower (-1σ)',
+                      value: formatPrice(row.lower),
+                    },
+                  ]}
+                />
+              );
+            }}
+          />
+          {markers.length > 0 ? <ChartMarkers items={markers} size={22} /> : null}
+        </LineChart>
       </div>
     </div>
   );

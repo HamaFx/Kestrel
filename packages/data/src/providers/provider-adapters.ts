@@ -272,6 +272,29 @@ const binanceProvider: MarketDataProvider = {
     });
     return { price, provider: 'binance', ageMs: null };
   },
+  async fetchPrices(
+    symbols: Symbol[],
+    opts?: ProviderFetchOptions,
+  ): Promise<Map<Symbol, ProviderPriceSnapshot>> {
+    const mapped = symbols.flatMap((symbol) => {
+      const exchange = getSymbolDefinition(symbol)?.binance;
+      return exchange ? [{ internal: symbol, exchange }] : [];
+    });
+    const out = new Map<Symbol, ProviderPriceSnapshot>();
+    if (mapped.length === 0) return out;
+
+    const prices = await binance.fetchTickerPrices(
+      mapped.map((entry) => entry.exchange),
+      { ...(opts?.signal ? { signal: opts.signal } : {}) },
+    );
+    for (const entry of mapped) {
+      const price = prices.get(entry.exchange);
+      if (price !== undefined) {
+        out.set(entry.internal, { price, provider: 'binance', ageMs: null });
+      }
+    }
+    return out;
+  },
   async fetchCandles(
     symbol: Symbol,
     tf: Timeframe,

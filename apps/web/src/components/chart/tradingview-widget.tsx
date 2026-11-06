@@ -111,7 +111,7 @@ export function TradingViewWidget({ symbol, tf, theme = 'dark' }: TradingViewWid
 
   // Try to create the widget once the container and TradingView API are both ready.
   const tryCreate = (tv: TradingViewGlobal) => {
-    if (!containerRef.current || widgetRef.current) return;
+    if (!containerRef.current?.isConnected || widgetRef.current) return;
     try {
       const w = new tv.widget({
         container_id: containerId,
@@ -161,7 +161,7 @@ export function TradingViewWidget({ symbol, tf, theme = 'dark' }: TradingViewWid
       timerRef.current = setTimeout(() => {
         if (!isSubscribed) return;
         const tvCheck = typeof window !== 'undefined' ? window.TradingView : undefined;
-        if (tvCheck && containerRef.current && !widgetRef.current) {
+        if (tvCheck && containerRef.current?.isConnected && !widgetRef.current) {
           tryCreate(tvCheck);
         } else if (!tvCheck) {
           setState('failed');
@@ -175,9 +175,19 @@ export function TradingViewWidget({ symbol, tf, theme = 'dark' }: TradingViewWid
         clearTimeout(timerRef.current);
         timerRef.current = null;
       }
-      if (widgetRef.current) {
-        widgetRef.current.remove();
-        widgetRef.current = null;
+      const widget = widgetRef.current;
+      // Clear the ref first: `remove()` can throw when the widget's DOM was
+      // already detached (navigation, view transition, Strict Mode double
+      // cleanup). A stale ref would then block every later mount attempt.
+      widgetRef.current = null;
+      if (widget) {
+        try {
+          widget.remove();
+        } catch {
+          // TradingView's cleanup assumes its container still has a parent;
+          // when the browser has already torn it down there is nothing left
+          // to remove, so an exception here is expected and safe to ignore.
+        }
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

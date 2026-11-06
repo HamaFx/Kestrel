@@ -21,6 +21,7 @@ import { Providers } from '@/components/providers';
 import { PWA_THEME_COLOR } from '@/lib/pwa/pwa-theme';
 import { SPLASH_LINKS } from '@/lib/pwa/splash-links';
 
+import 'bklit-tanstack-charts/styles.css';
 import './globals.css';
 
 function resolveMetadataBase(): URL {
@@ -102,7 +103,7 @@ export const metadata: Metadata = {
     // iPad home screens pick the closest size; without the 152/167 variants
     // iOS has to downscale the 180px iPhone asset.
     apple: [
-      { url: '/icons/apple-touch-icon-180.png', sizes: '180x180' },
+      { url: '/apple-touch-icon.png', sizes: '180x180' },
       { url: '/icons/apple-touch-icon-167.png', sizes: '167x167' },
       { url: '/icons/apple-touch-icon-152.png', sizes: '152x152' },
     ],
@@ -125,7 +126,13 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-brand="kestrel" suppressHydrationWarning>
+    <html
+      lang="en"
+      className="dark"
+      data-theme="dark"
+      data-brand="kestrel"
+      suppressHydrationWarning
+    >
       <head>
         <link
           rel="preload"
@@ -195,7 +202,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="bg-bg text-fg min-h-svh antialiased">
         <ViewTransitions>
-          <Providers>{children}</Providers>
+          {/* The server timestamp travels in the RSC payload so the first
+              client render matches SSR; TimeProvider reconciles it on mount. */}
+          <Providers initialNow={Date.now()}>{children}</Providers>
         </ViewTransitions>
       </body>
     </html>

@@ -64,7 +64,7 @@ export function OutcomeSummary({ entry, liveStats, outcomeColor }: OutcomeSummar
           >
             {entry.outcome}
           </span>
-          {entry.rMultiple !== null && (
+          {entry.rMultiple != null && Number.isFinite(entry.rMultiple) && (
             <span className={cn('mt-1 text-sm font-extrabold tabular-nums', outcomeColor)}>
               {entry.rMultiple >= 0 ? '+' : ''}
               {entry.rMultiple.toFixed(2)}R

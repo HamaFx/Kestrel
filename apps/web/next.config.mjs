@@ -170,6 +170,15 @@ const nextConfig = {
         source: '/favicon.ico',
         headers: [{ key: 'Cache-Control', value: 'public, max-age=604800' }],
       },
+      {
+        // iOS probes both root filenames directly for the home-screen icon.
+        source: '/apple-touch-icon.png',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=604800' }],
+      },
+      {
+        source: '/apple-touch-icon-precomposed.png',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=604800' }],
+      },
     ];
   },
 

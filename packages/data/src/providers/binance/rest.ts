@@ -26,12 +26,19 @@ import { parseKline, type NormalizedBinanceCandle } from './types';
 const PROVIDER = 'binance';
 const BASE_URL = 'https://api.binance.com';
 const DEFAULT_TIMEOUT_MS = 8_000;
+/**
+ * Price quotes are a poll-loop read: a stalled exchange must fail over to the
+ * next provider quickly, not hold the request for the full candle timeout.
+ */
+const PRICE_TIMEOUT_MS = 3_000;
 
 const THROTTLE: ThrottleConfig = { limit: 20, windowMs: 60_000 };
 
 interface CallOptions {
   signal?: AbortSignal;
   skipThrottle?: boolean;
+  /** Override the transport timeout (price reads use a shorter budget). */
+  timeoutMs?: number;
 }
 
 export interface BinanceFetchCandlesOptions extends CallOptions {
@@ -147,10 +154,54 @@ export async function fetchCandles(
   return filtered.slice(-targetCount);
 }
 
-/** GET /api/v3/ticker/price?symbol=BTCUSDT — lightweight current price fetch. */
+const TickerPriceSchema = z.object({ symbol: z.string(), price: z.string() });
+const TickerPricesSchema = z.union([TickerPriceSchema, z.array(TickerPriceSchema)]);
+
+/**
+ * GET /api/v3/ticker/price — lightweight current price fetch for one symbol or
+ * a JSON `symbols` batch. Returns a map keyed by the exchange symbol so the
+ * adapter can restore Kestrel's internal symbol names.
+ */
+export async function fetchTickerPrices(
+  symbols: readonly string[],
+  opts?: { signal?: AbortSignal; timeoutMs?: number },
+): Promise<Map<string, number>> {
+  const canonical = [
+    ...new Set(symbols.map((symbol) => symbol.trim().toUpperCase()).filter(isCryptoSymbol)),
+  ];
+  if (canonical.length === 0) return new Map();
+
+  const url = new URL(`${BASE_URL}/api/v3/ticker/price`);
+  if (canonical.length === 1) {
+    url.searchParams.set('symbol', getSymbolDefinition(canonical[0]!).binance!);
+  } else {
+    url.searchParams.set('symbols', JSON.stringify(canonical));
+  }
+
+  const json = await providerFetchJson({
+    provider: PROVIDER,
+    url,
+    schema: TickerPricesSchema,
+    throttle: THROTTLE,
+    ...(opts?.signal ? { signal: opts.signal } : {}),
+    timeoutMs: opts?.timeoutMs ?? PRICE_TIMEOUT_MS,
+    quotaStatuses: [429, 418],
+    quotaMessage: `binance self-throttle exhausted (${THROTTLE.limit} requests / ${THROTTLE.windowMs / 1000}s)`,
+  });
+
+  const items = Array.isArray(json) ? json : [json];
+  const prices = new Map<string, number>();
+  for (const item of items) {
+    const price = Number.parseFloat(item.price);
+    if (Number.isFinite(price) && price > 0) prices.set(item.symbol, price);
+  }
+  return prices;
+}
+
+/** Single-symbol convenience wrapper over {@link fetchTickerPrices}. */
 export async function fetchTickerPrice(
   symbol: string,
-  opts?: { signal?: AbortSignal },
+  opts?: { signal?: AbortSignal; timeoutMs?: number },
 ): Promise<number> {
   const canonical = symbol.trim().toUpperCase();
   if (!isCryptoSymbol(canonical)) {
@@ -161,22 +212,9 @@ export async function fetchTickerPrice(
     );
   }
 
-  const url = new URL(`${BASE_URL}/api/v3/ticker/price`);
-  url.searchParams.set('symbol', getSymbolDefinition(canonical).binance!);
-
-  const json = await providerFetchJson<{ price: string }>({
-    provider: PROVIDER,
-    url,
-    schema: z.object({ price: z.string() }),
-    throttle: THROTTLE,
-    ...(opts?.signal ? { signal: opts.signal } : {}),
-    timeoutMs: DEFAULT_TIMEOUT_MS,
-    quotaStatuses: [429, 418],
-    quotaMessage: `binance self-throttle exhausted (${THROTTLE.limit} requests / ${THROTTLE.windowMs / 1000}s)`,
-  });
-
-  const price = Number.parseFloat((json as { price: string }).price);
-  if (Number.isNaN(price)) {
+  const prices = await fetchTickerPrices([canonical], opts);
+  const price = prices.get(canonical) ?? prices.get(getSymbolDefinition(canonical).binance!);
+  if (price === undefined) {
     throw new ProviderError('PROVIDER_PARSE_ERROR', PROVIDER, 'invalid ticker price');
   }
   return price;

@@ -18,16 +18,12 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Shared sparkline primitive. A single `<path>` through normalized values,
-// stretched to its container, with optional pointer scrubbing. The scrub
-// readout belongs to the parent card (the existing monospace number), so no
-// floating tooltip ever covers a neighbouring row.
-//
-// Renders nothing when fewer than 2 points are available (a flat line is not
-// useful information).
+// Shared sparkline primitive. Uses monotone cubic Hermite interpolation
+// (`smoothPath`) in real pixel coordinates (via ResizeObserver with an SSR
+// fallback) so curves, strokes, and terminal markers never distort.
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
-import { useId } from 'react';
-
+import { smoothPath } from '@/components/chart/chart-geometry';
 import { cn } from '@/lib/formatters/cn';
 
 import { useSparklineHover } from './use-sparkline-hover';
@@ -41,8 +37,10 @@ const TONE_TEXT: Record<SparklineTone, string> = {
   neutral: 'text-fg-subtle',
 };
 
-const Y_TOP = 10;
-const Y_BOTTOM = 90;
+const DEFAULT_WIDTH = 160;
+const DEFAULT_HEIGHT = 40;
+const PAD_X = 2;
+const PAD_Y = 4;
 
 interface SparklineProps {
   values: readonly number[];
@@ -61,33 +59,35 @@ interface SparklineProps {
   onHoverChange?: (index: number | null) => void;
 }
 
-function buildPaths(values: readonly number[]): {
+function buildPixelGeometry(
+  values: readonly number[],
+  width: number,
+  height: number,
+): {
   line: string;
   area: string;
+  xAt: (index: number) => number;
   yAt: (index: number) => number;
 } {
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;
-  const span = Y_BOTTOM - Y_TOP;
+  const innerW = Math.max(1, width - PAD_X * 2);
+  const innerH = Math.max(1, height - PAD_Y * 2);
 
+  const xAt = (index: number) => PAD_X + (index / Math.max(values.length - 1, 1)) * innerW;
   const yAt = (index: number) => {
     const value = values[index] ?? min;
-    return max === min ? 50 : Y_BOTTOM - ((value - min) / range) * span;
+    return max === min ? height / 2 : PAD_Y + (1 - (value - min) / range) * innerH;
   };
 
-  const points = values.map((_, index) => {
-    const x = (index / (values.length - 1)) * 100;
-    const y = yAt(index);
-    return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
-  });
+  const points = values.map((_, index) => ({ x: xAt(index), y: yAt(index) }));
+  const line = smoothPath(points);
+  const firstX = xAt(0);
+  const lastX = xAt(values.length - 1);
+  const area = `${line} L ${lastX.toFixed(2)} ${height.toFixed(2)} L ${firstX.toFixed(2)} ${height.toFixed(2)} Z`;
 
-  const line = points.join(' ');
-  return {
-    line,
-    area: `${line} L 100 100 L 0 100 Z`,
-    yAt,
-  };
+  return { line, area, xAt, yAt };
 }
 
 export function Sparkline({
@@ -102,20 +102,45 @@ export function Sparkline({
 }: SparklineProps) {
   const gradId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const hover = useSparklineHover(values.length, interactive ? onHoverChange : undefined);
+  const measureRef = useRef<HTMLDivElement | null>(null);
+  const [box, setBox] = useState<{ width: number; height: number }>({
+    width: DEFAULT_WIDTH,
+    height: DEFAULT_HEIGHT,
+  });
 
-  if (values.length < 2) {
+  useEffect(() => {
+    const el = interactive ? hover.containerRef.current : measureRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const sync = () => {
+      const w = Math.round(el.clientWidth);
+      const h = Math.round(el.clientHeight);
+      if (w > 0 && h > 0) {
+        setBox((prev) => (prev.width === w && prev.height === h ? prev : { width: w, height: h }));
+      }
+    };
+    sync();
+    const observer = new ResizeObserver(sync);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [interactive, hover.containerRef]);
+
+  const geometry = useMemo(
+    () => (values.length >= 2 ? buildPixelGeometry(values, box.width, box.height) : null),
+    [values, box.width, box.height],
+  );
+
+  if (values.length < 2 || !geometry) {
     return <div className={cn('h-4 w-full', className)} aria-hidden="true" />;
   }
 
-  const { line, area, yAt } = buildPaths(values);
   const start = values[0];
   const end = values[values.length - 1];
-  const hoverX = hover.hoverIndex === null ? null : (hover.hoverIndex / (values.length - 1)) * 100;
-  const hoverY = hover.hoverIndex === null ? null : yAt(hover.hoverIndex);
+  const hoverX = hover.hoverIndex === null ? null : geometry.xAt(hover.hoverIndex);
+  const hoverY = hover.hoverIndex === null ? null : geometry.yAt(hover.hoverIndex);
 
   return (
     <div
-      ref={interactive ? hover.containerRef : undefined}
+      ref={interactive ? hover.containerRef : measureRef}
       className={cn(
         'relative overflow-hidden',
         TONE_TEXT[tone],
@@ -125,8 +150,7 @@ export function Sparkline({
       {...(interactive ? hover.handlers : {})}
     >
       <svg
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
+        viewBox={`0 0 ${box.width} ${box.height}`}
         className="h-full w-full"
         role="img"
         aria-label={label ? `${label} trend: ${start} to ${end}` : `Trend: ${start} to ${end}`}
@@ -135,44 +159,51 @@ export function Sparkline({
           <>
             <defs>
               <linearGradient id={`${gradId}-fill`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={stroke ?? 'currentColor'} stopOpacity="0.22" />
+                <stop offset="0%" stopColor={stroke ?? 'currentColor'} stopOpacity="0.28" />
                 <stop offset="100%" stopColor={stroke ?? 'currentColor'} stopOpacity="0.01" />
               </linearGradient>
             </defs>
-            <path d={area} fill={`url(#${gradId}-fill)`} stroke="none" aria-hidden="true" />
+            <path
+              d={geometry.area}
+              fill={`url(#${gradId}-fill)`}
+              stroke="none"
+              aria-hidden="true"
+            />
           </>
         ) : null}
         <path
-          d={line}
+          d={geometry.line}
           fill="none"
           stroke={stroke ?? 'currentColor'}
-          strokeWidth="1.35"
+          strokeWidth="1.65"
           strokeLinecap="round"
           strokeLinejoin="round"
-          vectorEffect="non-scaling-stroke"
         />
-        {hoverX !== null ? (
-          <line
-            x1={hoverX}
-            x2={hoverX}
-            y1="0"
-            y2="100"
-            stroke="currentColor"
-            strokeOpacity={0.45}
-            strokeWidth="1"
-            strokeDasharray="2 2"
-            vectorEffect="non-scaling-stroke"
-            aria-hidden="true"
-          />
+        {hoverX !== null && hoverY !== null ? (
+          <>
+            <line
+              x1={hoverX}
+              x2={hoverX}
+              y1="0"
+              y2={box.height}
+              stroke="currentColor"
+              strokeOpacity={0.45}
+              strokeWidth="1"
+              strokeDasharray="2 2"
+              aria-hidden="true"
+            />
+            <circle
+              cx={hoverX}
+              cy={hoverY}
+              r="2.75"
+              fill="currentColor"
+              stroke="#0d0e10"
+              strokeWidth="1.25"
+              aria-hidden="true"
+            />
+          </>
         ) : null}
       </svg>
-      {hoverX !== null && hoverY !== null ? (
-        <span
-          className="pointer-events-none absolute size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-current"
-          style={{ left: `${hoverX}%`, top: `${hoverY}%` }}
-          aria-hidden="true"
-        />
-      ) : null}
     </div>
   );
 }

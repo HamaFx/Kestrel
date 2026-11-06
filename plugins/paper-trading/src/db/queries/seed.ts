@@ -27,6 +27,7 @@ import {
   paperPositions,
   paperStrategyRuns,
   requireTenantIdForUser,
+  withUserTenant,
   type PaperAccountRow,
 } from '@kestrel/db';
 import { and, eq } from 'drizzle-orm';
@@ -96,10 +97,15 @@ export async function resetAccount(
 
 /** Uninstall + wipe: remove every row owned by this user. */
 export async function deleteAllPaperData(userId: string): Promise<void> {
-  const db = getDb();
-  await db.delete(paperStrategyRuns).where(eq(paperStrategyRuns.userId, userId));
-  await db.delete(paperFills).where(eq(paperFills.userId, userId));
-  await db.delete(paperOrders).where(eq(paperOrders.userId, userId));
-  await db.delete(paperPositions).where(eq(paperPositions.userId, userId));
-  await db.delete(paperAccounts).where(eq(paperAccounts.userId, userId));
+  // Same independent-scope rule as `ensurePaperAccounts`: the uninstall hook
+  // may execute in a bundled module instance whose ALS scope differs from the
+  // request that triggered it.
+  await withUserTenant(userId, async () => {
+    const db = getDb();
+    await db.delete(paperStrategyRuns).where(eq(paperStrategyRuns.userId, userId));
+    await db.delete(paperFills).where(eq(paperFills.userId, userId));
+    await db.delete(paperOrders).where(eq(paperOrders.userId, userId));
+    await db.delete(paperPositions).where(eq(paperPositions.userId, userId));
+    await db.delete(paperAccounts).where(eq(paperAccounts.userId, userId));
+  });
 }

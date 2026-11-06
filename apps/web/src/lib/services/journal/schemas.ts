@@ -79,6 +79,8 @@ export interface EntryDTO {
   openedAt: number;
   closedAt: number | null;
   outcome: string | null;
+  /** Realized R-multiple; null until the entry has an exit and stop. */
+  rMultiple: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -103,6 +105,7 @@ export function toEntryDTO(e: JournalEntry): EntryDTO {
     openedAt: e.openedAt,
     closedAt: e.closedAt,
     outcome: e.outcome,
+    rMultiple: e.rMultiple ?? null,
     createdAt: new Date(e.createdAt),
     updatedAt: new Date(e.updatedAt),
   };

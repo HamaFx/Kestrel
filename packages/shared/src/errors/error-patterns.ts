@@ -47,6 +47,19 @@ export const ERROR_PATTERNS: ErrorPattern[] = [
     retryable: false,
   },
   {
+    pattern: /plugin.*(setup|install).*failed/i,
+    code: 'PLUGIN_SETUP_FAILED',
+    description: 'A plugin install lifecycle hook failed',
+    suggestedFix:
+      'Check the structured plugin-manage log for the original error. Verify the plugin migration and RLS policies, then retry the install; the install row is compensated automatically.',
+    relatedFiles: [
+      'apps/web/src/lib/services/plugin-manage/lifecycle.ts',
+      'packages/plugin-sdk/src/types/manifest.ts',
+      'packages/db/src/queries/plugins',
+    ],
+    retryable: true,
+  },
+  {
     pattern: /Daily AI budget exceeded/i,
     code: 'BUDGET_EXCEEDED',
     description: 'Daily AI spend cap reached',

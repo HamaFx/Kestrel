@@ -1,3 +1,4 @@
+@layer theme, base, components, bklit-charts, utilities;
 @import 'tailwindcss';
 
 /* -------------------------------------------------------------------------
@@ -242,17 +243,74 @@ html {
 /* -------------------------------------------------------------------------
  * Layout & spacing tokens
  * ------------------------------------------------------------------------- */
-:root {
+:root,
+.dark,
+[data-theme='dark'] {
   color-scheme: dark;
 
-  /* Chart contract — one token layer for every SVG / chart surface. Declared
-     outside `@theme` so the variables are always emitted, including when the
-     only reference is an SVG paint attribute. */
+  /* ── Bklit TanStack Charts & Kestrel Token Bridge ──
+     Maps Bklit's `--chart-*`, `--bkm-*`, and `--legend*` variables onto
+     Kestrel's Classical Antiquity × Cyber-Industrial Hardware palette. */
+  --background: #0d0e10;
+  --foreground: var(--color-fg);
+  --border: rgba(255, 255, 255, 0.08);
+  --muted: #161616;
+  --muted-foreground: var(--color-fg-subtle);
+  --popover: #121315;
+  --popover-foreground: var(--color-fg);
+  --ring: var(--color-brand);
+
+  --color-emerald-500: var(--color-bull);
+  --color-red-500: var(--color-bear);
+
+  --chart-1: var(--color-brand);
+  --chart-2: var(--color-bull);
+  --chart-3: var(--color-info);
+  --chart-4: var(--color-warn);
+  --chart-5: var(--color-bear);
+
   --chart-positive: var(--color-bull);
   --chart-negative: var(--color-bear);
   --chart-line-primary: var(--color-brand);
+  --chart-line-secondary: var(--color-info);
+  --chart-background: #0d0e10;
+  --chart-foreground: var(--color-fg-subtle);
+  --chart-foreground-muted: rgba(229, 229, 229, 0.42);
+  --chart-label: var(--color-fg-subtle);
   --chart-grid: rgba(255, 255, 255, 0.06);
   --chart-band: rgba(255, 54, 22, 0.1);
+  --chart-crosshair: rgba(229, 229, 229, 0.45);
+  --chart-brush-border: rgba(255, 54, 22, 0.35);
+
+  --chart-tooltip-background: rgba(18, 19, 21, 0.96);
+  --chart-tooltip-foreground: var(--color-fg);
+  --chart-tooltip-muted: var(--color-fg-subtle);
+
+  --chart-indicator-color: var(--color-brand);
+  --chart-indicator-secondary-color: rgba(255, 255, 255, 0.12);
+  --chart-marker-background: #1d1d1d;
+  --chart-marker-border: rgba(255, 54, 22, 0.45);
+  --chart-marker-foreground: var(--color-fg);
+  --chart-marker-badge-background: var(--color-brand);
+  --chart-marker-badge-foreground: #ffffff;
+
+  --chart-segment-background: rgba(255, 54, 22, 0.09);
+  --chart-segment-line: rgba(255, 54, 22, 0.6);
+  --chart-date-pill-background: #1d1d1d;
+  --chart-date-pill-foreground: var(--color-fg);
+
+  --legend: #161616;
+  --legend-foreground: var(--color-fg);
+  --legend-muted: #1d1d1d;
+  --legend-muted-foreground: var(--color-fg-subtle);
+  --legend-track: rgba(255, 255, 255, 0.08);
+
+  --chart-scale-01: #161718;
+  --chart-scale-02: rgba(63, 158, 61, 0.28);
+  --chart-scale-03: rgba(63, 158, 61, 0.5);
+  --chart-scale-04: rgba(63, 158, 61, 0.72);
+  --chart-scale-05: #3f9e3d;
+  --chart-scale-pattern-color: rgba(255, 54, 22, 0.45);
 
   --topbar-h: 48px;
   /* Height of the phone bottom bar. Zero from `lg` up, where the bar itself is
@@ -1359,4 +1417,26 @@ html[data-reduce-motion='force'] *::after {
 .architecture-backdrop-mask {
   mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black 25%, transparent 75%);
   -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black 25%, transparent 75%);
+}
+
+/* -------------------------------------------------------------------------
+ * Bklit TanStack Charts — Kestrel Instrument Surface & Typography Overrides
+ * ------------------------------------------------------------------------- */
+[data-bkm-chart],
+[data-bkm-kit] {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+[data-bkm-chart] text,
+[data-bkm-kit] text {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+
+.ts-chart-tooltip {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  backdrop-filter: blur(12px);
 }

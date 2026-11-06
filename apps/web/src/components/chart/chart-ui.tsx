@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Small chart chrome primitives shared by the analytical surfaces: hover
-// cards, legends and axis labels. The hover card is deliberately compact and
-// only appears on charts, never on dense list sparklines.
-import type { ReactNode } from 'react';
-
+// Compact Kestrel legend primitive shared across analytical chart headers.
 import { cn } from '@/lib/formatters/cn';
 
 type ChartTone = 'bull' | 'bear' | 'brand' | 'muted' | 'warn' | 'neutral';
@@ -16,15 +12,6 @@ const DOT_TONE: Record<ChartTone, string> = {
   muted: 'bg-fg-subtle',
   warn: 'bg-warn',
   neutral: 'bg-fg-subtle',
-};
-
-const TEXT_TONE: Record<ChartTone, string> = {
-  bull: 'text-bull',
-  bear: 'text-bear',
-  brand: 'text-brand',
-  muted: 'text-fg-muted',
-  warn: 'text-warn',
-  neutral: 'text-fg-muted',
 };
 
 export function ChartLegend({
@@ -72,88 +59,6 @@ export function ChartLegend({
             />
           )}
           {item.label}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-export function ChartTooltip({
-  x,
-  y,
-  title,
-  rows,
-  className,
-}: {
-  x: number;
-  y: number;
-  title?: string;
-  rows: ReadonlyArray<{ label: string; value: ReactNode; tone?: ChartTone }>;
-  className?: string;
-}) {
-  const left = Math.min(86, Math.max(14, x));
-  const top = y < 32 ? y + 6 : y - 6;
-  return (
-    <div
-      className={cn(
-        'pointer-events-none absolute z-30 min-w-[122px] rounded-lg border border-white/12 bg-[#121315]/95 p-2.5 shadow-2xl backdrop-blur-md',
-        className,
-      )}
-      style={{
-        left: `${left}%`,
-        top: `${top}%`,
-        transform: y < 32 ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
-      }}
-      role="status"
-      aria-live="polite"
-    >
-      {title ? (
-        <div className="text-fg-subtle border-border/40 mb-1.5 border-b pb-1 font-mono text-[9px] font-semibold tracking-wider uppercase">
-          {title}
-        </div>
-      ) : null}
-      <div className="flex flex-col gap-1">
-        {rows.map((row) => (
-          <div key={row.label} className="flex items-center justify-between gap-3">
-            <span className="text-fg-subtle font-mono text-[10px]">{row.label}</span>
-            <span
-              className={cn(
-                'font-mono text-[10px] font-semibold tabular-nums',
-                row.tone ? TEXT_TONE[row.tone] : 'text-fg',
-              )}
-            >
-              {row.value}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export function ChartYAxis({
-  ticks,
-  yFor,
-  format,
-  className,
-}: {
-  ticks: readonly number[];
-  yFor: (value: number) => number;
-  format: (value: number) => string;
-  className?: string;
-}) {
-  return (
-    <div
-      className={cn('pointer-events-none absolute inset-y-0 right-0 w-12', className)}
-      aria-hidden="true"
-    >
-      {ticks.map((tick) => (
-        <span
-          key={`tick-${tick}`}
-          className="text-fg-subtle absolute right-1 -translate-y-1/2 font-mono text-[9px] tabular-nums"
-          style={{ top: `${yFor(tick)}%` }}
-        >
-          {format(tick)}
         </span>
       ))}
     </div>

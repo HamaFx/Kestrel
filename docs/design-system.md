@@ -58,24 +58,14 @@ Located in `apps/web/src/app/globals.css`, the Kestrel surface token system repl
 
 ### Chart Contract
 
-Every chart surface reads one token layer instead of hard-coding series colours:
+Every chart surface reads one token layer bridged to `bklit-tanstack-charts` instead of hard-coding series colours:
 
-- `--chart-positive` → `--color-bull` for reward / bullish series
-- `--chart-negative` → `--color-bear` for risk / bearish series
-- `--chart-line-primary` → `--color-brand` for the primary projection or entry line
+- `--chart-positive` / `--color-emerald-500` → `--color-bull` for reward / bullish series
+- `--chart-negative` / `--color-red-500` → `--color-bear` for risk / bearish series
+- `--chart-line-primary` / `--chart-1` → `--color-brand` for the primary projection or entry line
 - `--chart-grid` for grid lines and `--chart-band` for shaded bands
 
-New SVG charts use these variables directly. The shared
-`ProfitLossLine` primitive (`apps/web/src/components/chart/profit-loss-line.tsx`)
-owns the zero baseline, sign clipping, hover readout and drag-to-measure HUD for
-the performance and drawdown charts. The session dial and ring gauges read the
-same tokens, and primitives that cannot resolve CSS variables in a paint call
-(the candle sparkline SVG and the replay canvas) mirror the series hexes in
-`apps/web/src/components/chart/chart-colors.ts`.
-
-Analytical charts share one frame grammar: value ticks in the side gutter,
-layered grid lines, a legend row, a hover card, a soft data-area gradient and a
-reduced-motion-safe entrance.
+Analytical charts (`PerformanceChart`, `DrawdownChart`, `JournalComposedChart`, `RDistribution`, `DayOfWeekChart`, `DailyActivityChart`, `RingGauge`, `OutcomeDistribution`, `CandleSparkline`, `VolatilityConePlot`, and `SimulatorSetupChart`) are built directly on `bklit-tanstack-charts` (`LineChart`, `ComposedChart`, `BarChart`, `CandlestickChart`, `RingChart`, `Gauge`, `ProfitLossLine`, `ReferenceArea`, `Segment`, and `ChartMarkers`). The shared `ProfitLossLine` wrapper (`apps/web/src/components/chart/profit-loss-line.tsx`) owns the zero baseline, Bklit `ProfitLossLegend` hover coordination, and `Segment` drag-to-measure range selection for the performance and drawdown charts. The session dial and sparklines read the same tokens, and primitives that require hex strings (`CandleSparkline` and the replay canvas) mirror the series hexes in `apps/web/src/components/chart/chart-colors.ts`.
 
 ### Surface CSS Utility Classes
 

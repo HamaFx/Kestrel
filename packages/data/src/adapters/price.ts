@@ -232,13 +232,46 @@ export async function getPriceWithMeta(
   };
 }
 
+type PriceCache = Awaited<ReturnType<typeof getDefaultCache>>;
+
+async function hasFreshCachedPrice(cache: PriceCache, symbol: Symbol): Promise<boolean> {
+  const existing = await cache.getWithMeta?.<{ tick: Tick; ageMs: number | null }>(
+    cacheKey({ resource: 'price', symbol }),
+  );
+  return Boolean(existing && !existing.meta.stale);
+}
+
+async function storeBatchPrices(
+  cache: PriceCache,
+  batchMap: Map<Symbol, ProviderPriceSnapshot>,
+  ttl: number,
+  swr: number,
+): Promise<void> {
+  const fetchedAt = Date.now();
+  await Promise.all(
+    [...batchMap.entries()].map(async ([sym, snap]) => {
+      const tick = snapshotToTick(sym, snap, fetchedAt);
+      await cache.set?.(
+        cacheKey({ resource: 'price', symbol: sym }),
+        { tick, ageMs: snap.ageMs ?? null },
+        {
+          ttlSeconds: ttl,
+          maxStaleSeconds: swr,
+          tags: [cacheTag('price'), cacheTag('price', sym)],
+        },
+      );
+    }),
+  );
+}
+
 /**
  * Batch price lookup for multiple symbols with SWR metadata.
  *
- * When 2 or more FX/Gold symbols miss the fresh cache tier in on-demand mode,
- * this issues a single `GET /api/latest?symbols=A&symbols=B` batch request via
- * `biquoteProvider.fetchPrices()`, populates each symbol's cache entry, and
- * falls back to `getPriceWithMeta()` for any unquoted or crypto symbols.
+ * In on-demand mode, cold FX/Gold symbols are fetched in one BiQuote
+ * `GET /api/latest?symbols=A&symbols=B` round trip and cold crypto symbols in
+ * one Binance `GET /api/v3/ticker/price?symbols=[…]` round trip. Both populate
+ * the per-symbol price cache; anything the batches do not cover (or a failed
+ * batch) falls back to `getPriceWithMeta()` with full failover + SWR.
  */
 export async function getPricesWithMeta(
   symbolsInput: readonly Symbol[],
@@ -256,6 +289,8 @@ export async function getPricesWithMeta(
   const swr = opts.maxStaleSeconds ?? PRICE_TTL.maxStaleSeconds;
   const cache = await getDefaultCache();
 
+  const uniqueSymbols = [...new Set(symbols)];
+
   const biquoteProvider = marketDataProviders.has('biquote')
     ? marketDataProviders.get('biquote')
     : null;
@@ -266,22 +301,19 @@ export async function getPricesWithMeta(
 
   if (canBatchBiquote && biquoteProvider?.fetchPrices) {
     // Identify unique BiQuote-supported symbols that are not fresh in cache.
-    const coldBiquoteSymbols: Symbol[] = [];
-    const seen = new Set<Symbol>();
-    for (const s of symbols) {
-      if (seen.has(s)) continue;
-      seen.add(s);
-      if (!(biquoteProvider.supports?.(s) ?? false)) continue;
-      // Crypto keeps Binance as its primary provider; BiQuote is only its
-      // per-symbol failover, so crypto pairs never enter the batch tier.
-      if (getSymbolDefinition(s).category === 'crypto') continue;
-      const existing = await cache.getWithMeta?.<{ tick: Tick; ageMs: number | null }>(
-        cacheKey({ resource: 'price', symbol: s }),
-      );
-      if (!existing || existing.meta.stale) {
-        coldBiquoteSymbols.push(s);
-      }
-    }
+    // Cache probes run in parallel; the old sequential loop added one await
+    // per symbol to every multi-symbol request.
+    const coldBiquoteSymbols = (
+      await Promise.all(
+        uniqueSymbols.map(async (s) => {
+          if (!(biquoteProvider.supports?.(s) ?? false)) return null;
+          // Crypto keeps Binance as its primary provider; BiQuote is only its
+          // per-symbol failover, so crypto pairs never enter this batch tier.
+          if (getSymbolDefinition(s).category === 'crypto') return null;
+          return (await hasFreshCachedPrice(cache, s)) ? null : s;
+        }),
+      )
+    ).filter((s): s is Symbol => s !== null);
 
     if (coldBiquoteSymbols.length >= 2) {
       try {
@@ -290,26 +322,51 @@ export async function getPricesWithMeta(
           baseUrl: keys.biquoteBaseUrl,
         });
         recordSuccess('biquote');
-        const fetchedAt = Date.now();
-        await Promise.all(
-          [...batchMap.entries()].map(async ([sym, snap]) => {
-            const tick = snapshotToTick(sym, snap, fetchedAt);
-            await cache.set?.(
-              cacheKey({ resource: 'price', symbol: sym }),
-              { tick, ageMs: snap.ageMs ?? null },
-              {
-                ttlSeconds: ttl,
-                maxStaleSeconds: swr,
-                tags: [cacheTag('price'), cacheTag('price', sym)],
-              },
-            );
-          }),
-        );
+        await storeBatchPrices(cache, batchMap, ttl, swr);
       } catch (err) {
         if (opts.signal?.aborted || (err as Error)?.name === 'AbortError') {
           throw opts.signal?.reason ?? err;
         }
         recordFailure('biquote');
+        // Fall through to per-symbol getPriceWithMeta with full failover + SWR.
+      }
+    }
+  }
+
+  const binanceProvider = marketDataProviders.has('binance')
+    ? marketDataProviders.get('binance')
+    : null;
+  const canBatchBinance =
+    !isTickStreamEnabled() &&
+    Boolean(binanceProvider?.fetchPrices) &&
+    (!opts.marketDataProvider || opts.marketDataProvider === 'binance');
+
+  if (canBatchBinance && binanceProvider?.fetchPrices) {
+    // Six crypto pairs used to fan out into six single-symbol Binance calls.
+    // One batch keeps the poll loop to a single round trip and bounds a
+    // geo-blocked exchange to one price timeout, not six.
+    const coldBinanceSymbols = (
+      await Promise.all(
+        uniqueSymbols.map(async (s) => {
+          if (getSymbolDefinition(s).category !== 'crypto') return null;
+          if (!(binanceProvider.supports?.(s) ?? false)) return null;
+          return (await hasFreshCachedPrice(cache, s)) ? null : s;
+        }),
+      )
+    ).filter((s): s is Symbol => s !== null);
+
+    if (coldBinanceSymbols.length >= 2) {
+      try {
+        const batchMap = await binanceProvider.fetchPrices(coldBinanceSymbols, {
+          ...(opts.signal ? { signal: opts.signal } : {}),
+        });
+        recordSuccess('binance');
+        await storeBatchPrices(cache, batchMap, ttl, swr);
+      } catch (err) {
+        if (opts.signal?.aborted || (err as Error)?.name === 'AbortError') {
+          throw opts.signal?.reason ?? err;
+        }
+        recordFailure('binance');
         // Fall through to per-symbol getPriceWithMeta with full failover + SWR.
       }
     }

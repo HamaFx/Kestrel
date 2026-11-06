@@ -86,7 +86,7 @@ export function ReplaySetupPart({ output, state, errorMessage }: ToolPartProps<'
                 <span>{t.entry.toFixed(decimals)}</span>
                 <span>{t.exit.toFixed(decimals)}</span>
                 <span className={metricTone(t.rMultiple, (v) => v >= 0)}>
-                  {t.rMultiple === null
+                  {t.rMultiple == null || !Number.isFinite(t.rMultiple)
                     ? '—'
                     : `${t.rMultiple >= 0 ? '+' : ''}${t.rMultiple.toFixed(2)}`}
                 </span>

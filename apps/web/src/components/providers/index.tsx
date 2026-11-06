@@ -26,9 +26,11 @@
 // ~50-200ms.
 import dynamic from 'next/dynamic';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
+import type { ReactNode } from 'react';
 
 import { QueryProvider } from './query-provider';
 import { TimeProvider } from './time-provider';
+import { ViewTransitionGuard } from './view-transition-guard';
 
 const LazySwRegister = dynamic(
   () => import('./sw-register').then((m) => ({ default: m.SwRegister })),
@@ -40,11 +42,19 @@ const LazyPwaSignals = dynamic(
   { ssr: false },
 );
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({
+  children,
+  initialNow,
+}: {
+  children: ReactNode;
+  /** Server render timestamp; see TimeProvider. */
+  initialNow?: number;
+}) {
   return (
     <QueryProvider>
       <NuqsAdapter>
-        <TimeProvider>
+        <TimeProvider initialNow={initialNow}>
+          <ViewTransitionGuard />
           <LazySwRegister />
           <LazyPwaSignals />
           {children}

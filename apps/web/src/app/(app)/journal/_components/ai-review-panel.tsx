@@ -126,7 +126,7 @@ export function AiReviewPanel({ entries }: AiReviewPanelProps) {
             {closed.map((candidate) => (
               <option key={candidate.id} value={candidate.id}>
                 {candidate.symbol} {candidate.side} ·{' '}
-                {candidate.rMultiple === null
+                {candidate.rMultiple == null || !Number.isFinite(candidate.rMultiple)
                   ? '—'
                   : `${candidate.rMultiple > 0 ? '+' : ''}${candidate.rMultiple.toFixed(2)}R`}{' '}
                 · {new Date(candidate.closedAt ?? candidate.openedAt).toISOString().slice(0, 10)}
