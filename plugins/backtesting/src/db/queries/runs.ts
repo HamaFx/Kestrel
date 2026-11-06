@@ -20,7 +20,14 @@
 // by the caller's `withTenantDb` scope (chat tools, plugin API routes, and
 // install hooks all run inside one).
 
-import { getDb, requireTenantIdForUser } from '@kestrel/db';
+import {
+  backtestRuns,
+  backtestStrategies,
+  backtestSweeps,
+  getDb,
+  requireTenantIdForUser,
+  type BacktestRunRow,
+} from '@kestrel/db';
 import { and, count, desc, eq, inArray } from 'drizzle-orm';
 
 import type {
@@ -29,7 +36,6 @@ import type {
   EquityPoint,
   RejectedSignal,
 } from '../../engine/types';
-import { backtestRuns, backtestStrategies, backtestSweeps, type BacktestRunRow } from '../tables';
 
 export interface ListRunsOptions {
   limit?: number;

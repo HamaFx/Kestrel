@@ -8,6 +8,7 @@ import { sql } from 'drizzle-orm';
 import { index, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { organization, users } from '../core/auth';
+import { tenantIsolationPolicy } from '../core/rls';
 
 /**
  * One committed business mutation per suspended workflow run.
@@ -43,6 +44,7 @@ export const mutationExecutions = pgTable(
   (table) => [
     index('mutation_executions_user_idx').on(table.userId, table.createdAt),
     index('mutation_executions_tenant_idx').on(table.tenantId, table.createdAt),
+    tenantIsolationPolicy(),
   ],
 );
 

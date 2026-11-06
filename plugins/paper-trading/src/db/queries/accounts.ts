@@ -19,11 +19,10 @@
 // Callers are always inside a tenant transaction (chat tool, plugin API,
 // worker TickBus/job) and every query additionally filters by user_id.
 
-import { getDb } from '@kestrel/db';
+import { getDb, paperAccounts, type PaperAccountRow } from '@kestrel/db';
 import { and, desc, eq, sql } from 'drizzle-orm';
 
 import type { AccountMode } from '../../domain';
-import { paperAccounts, type PaperAccountRow } from '../tables';
 
 export async function listAccounts(userId: string): Promise<PaperAccountRow[]> {
   const db = getDb();

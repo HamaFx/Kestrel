@@ -43,5 +43,8 @@ export const providerHealth = pgTable('provider_health', {
   /** Number of consecutive failures across all instances. */
   consecutiveFailures: integer('consecutive_failures').notNull().default(0),
   /** Last time this row was updated. */
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
 });

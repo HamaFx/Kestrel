@@ -32,7 +32,10 @@ export const providerCircuitState = pgTable('provider_circuit_state', {
   /** When this circuit last transitioned to open (ms epoch). */
   openedAt: timestamp('opened_at', { withTimezone: true }),
   /** Last time this row was updated. */
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
 });
 
 export type ProviderCircuitStateRow = typeof providerCircuitState.$inferSelect;

@@ -19,11 +19,10 @@
 // Callers are always inside a tenant transaction (chat tool, plugin API,
 // worker TickBus/job) and every query additionally filters by user_id.
 
-import { getDb, requireTenantIdForUser } from '@kestrel/db';
+import { getDb, paperPositions, requireTenantIdForUser, type PaperPositionRow } from '@kestrel/db';
 import { and, count, desc, eq, sql } from 'drizzle-orm';
 
 import type { PositionStatus } from '../../domain';
-import { paperPositions, type PaperPositionRow } from '../tables';
 import { getAccount } from './accounts';
 
 export interface InsertPositionInput {

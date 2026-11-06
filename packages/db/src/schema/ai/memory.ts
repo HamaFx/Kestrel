@@ -18,6 +18,7 @@ import { sql } from 'drizzle-orm';
 import { index, jsonb, pgTable, text, timestamp, unique, uuid, vector } from 'drizzle-orm/pg-core';
 
 import { organization, users } from '../core/auth';
+import { tenantIsolationPolicy } from '../core/rls';
 
 /**
  * Unified memory index. Phase 7b additions:
@@ -94,7 +95,8 @@ export const memoryEmbeddings = pgTable(
       t.tenantId,
       t.userId,
       t.kind,
-      t.occurredAt,
+      t.occurredAt.desc(),
     ),
+    tenantIsolationPolicy(),
   ],
 );

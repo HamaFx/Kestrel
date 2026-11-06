@@ -24,7 +24,7 @@ import {
   updateOpenPosition,
   updateOrder,
 } from '../db/queries';
-import type { PaperAccountRow, PaperOrderRow, PaperPositionRow } from '../db/tables';
+import type { PaperAccountRow, PaperOrderRow, PaperPositionRow } from '@kestrel/db';
 import {
   contractSizeFor,
   evaluatePosition,

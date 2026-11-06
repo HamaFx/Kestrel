@@ -17,7 +17,7 @@
 // Read-side projections for parameter sweeps (API + agent tool surface).
 
 import { getBacktestSweep, listBacktestSweeps } from '../db/queries';
-import type { BacktestSweepRow } from '../db/tables';
+import type { BacktestSweepRow } from '@kestrel/db';
 import { SweepDetailSchema, SweepSummarySchema } from '../schemas';
 
 function rowSummary(row: BacktestSweepRow) {

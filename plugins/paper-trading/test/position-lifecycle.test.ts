@@ -24,7 +24,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type * as queries from '../src/db/queries';
-import type { PaperAccountRow, PaperFillRow, PaperPositionRow } from '../src/db/tables';
+import type { PaperAccountRow, PaperFillRow, PaperPositionRow } from '@kestrel/db';
 import { applyClose, closePositionForUser } from '../src/services/position-lifecycle';
 import { DEFAULT_SETTINGS } from '../src/settings';
 

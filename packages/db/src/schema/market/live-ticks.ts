@@ -50,7 +50,10 @@ export const liveTicks = pgTable('live_ticks', {
   source: text('source').notNull(),
   tenantId: text('tenant_id').default(sql`'__system__'`),
   /** Drizzle-managed; updated automatically on every UPSERT (see SQL migration). */
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
 });
 
 export type LiveTickRow = typeof liveTicks.$inferSelect;

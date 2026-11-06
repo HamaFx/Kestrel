@@ -30,6 +30,7 @@ import {
 
 import { organization, users } from '../core/auth';
 import { chatMessages, chatThreads } from '../core/chat';
+import { tenantIsolationPolicy } from '../core/rls';
 
 export const agentOpinions = pgTable(
   'agent_opinions',
@@ -63,6 +64,7 @@ export const agentOpinions = pgTable(
     index('agent_opinions_thread_idx').on(t.threadId),
     index('agent_opinions_user_created_idx').on(t.userId, t.createdAt),
     unique('agent_opinions_message_agent_uk').on(t.messageId, t.agentName),
+    tenantIsolationPolicy(),
   ],
 );
 

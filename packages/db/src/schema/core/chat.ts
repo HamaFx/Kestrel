@@ -28,6 +28,7 @@ import {
 
 // Note: `real` is not needed here — analysis_mode is text.
 import { organization, users } from './auth';
+import { tenantIsolationPolicy } from './rls';
 
 /**
  * Chat threads. One row per conversation.
@@ -75,10 +76,11 @@ export const chatThreads = pgTable(
     // Phase 2 (0098) — listThreads: user_id + updated_at DESC + id DESC.
     // Covers chat_threads_user_id_idx and chat_threads_updated_at_idx for
     // every per-user read (audit 2026-10-31); both were dropped in 0122.
-    index('chat_threads_user_updated_id_idx').on(t.userId, t.updatedAt, t.id),
+    index('chat_threads_user_updated_id_idx').on(t.userId, t.updatedAt.desc(), t.id.desc()),
     uniqueIndex('chat_threads_one_briefings_per_user_idx')
       .on(t.userId)
       .where(sql`${t.isBriefings} = true`),
+    tenantIsolationPolicy(),
   ],
 );
 
@@ -111,5 +113,6 @@ export const chatMessages = pgTable(
     // A regular unique index already permits multiple NULLs in Postgres,
     // while remaining usable by ON CONFLICT (idempotency_key).
     uniqueIndex('chat_messages_idempotency_key_uk').on(t.idempotencyKey),
+    tenantIsolationPolicy(),
   ],
 );

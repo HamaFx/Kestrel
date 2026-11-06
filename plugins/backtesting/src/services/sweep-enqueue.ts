@@ -23,7 +23,7 @@
 import { BACKTEST_SWEEP_QUEUE, enqueueJob } from '@kestrel/db/queue';
 
 import { updateBacktestSweep } from '../db/queries';
-import type { BacktestSweepRow } from '../db/tables';
+import type { BacktestSweepRow } from '@kestrel/db';
 import type { SweepInput } from '../schemas';
 import { createSweepForUser } from './sweep-service';
 

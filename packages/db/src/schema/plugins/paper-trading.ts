@@ -16,30 +16,35 @@
 
 // Paper Trading plugin tables.
 //
-// Follows the createPluginTable() contract (plg_ prefix, tenant columns, RLS)
-// but is declared explicitly so Drizzle keeps full column inference.
+// Defined in @kestrel/db so Drizzle Kit, the migration reconciler, and the
+// runtime schema barrel all see the `plg_paper_trading_*` tables.
 //
 // Money columns are `numeric(20, 8)` (audit R2, migration 0121), not
-// `double precision`: balances, P&L and fees accumulate, so they must be exact
-// in the database. `mode: 'number'` keeps the inferred TS type `number`; the
-// accumulation itself stays in SQL (`balance = balance + $1`,
+// `double precision`: balances, P&L and fees accumulate, so they must be
+// exact in the database. `mode: 'number'` keeps the inferred TS type `number`;
+// the accumulation itself stays in SQL (`balance = balance + $1`,
 // `quantity = quantity - $1`) — see claimPositionClose and
 // incrementAccountBalance.
 //
 // Migration: packages/db/drizzle/0109_paper_trading_plugin_tables.sql
+//            packages/db/drizzle/0113_paper_strategy_runs.sql
 //            packages/db/drizzle/0121_money_columns_to_numeric.sql
 
-import { pluginBaseColumns, pluginMoneyColumn, pluginTenantIsolation } from '@kestrel/db';
+import { sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
   index,
   integer,
   jsonb,
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
+
+import { pluginBaseColumns, pluginMoneyColumn, pluginTenantIsolation } from '../ops/plugins';
 
 export const paperAccounts = pgTable(
   'plg_paper_trading_accounts',
@@ -60,12 +65,19 @@ export const paperAccounts = pgTable(
   },
   (t) => [
     index('plg_paper_trading_accounts_tenant_user_idx').on(t.tenantId, t.userId),
-    // One account per (user, mode), enforced by the unique constraint created
-    // in 0109. plg_paper_trading_accounts_user_mode_idx duplicated that key's
-    // leading columns and was dropped in 0122 (audit 2026-10-31 Phase 4).
+    // One account per (user, mode). 0109 created this as a unique index;
+    // the duplicate non-unique index was dropped in 0122.
+    uniqueIndex('plg_paper_trading_accounts_user_mode_key').on(t.userId, t.mode),
+    check(
+      'plg_paper_trading_accounts_mode_check',
+      sql`${t.mode} IN ('confirm', 'autonomous_sandbox')`,
+    ),
+    check('plg_paper_trading_accounts_status_check', sql`${t.status} IN ('active', 'archived')`),
+    check('plg_paper_trading_accounts_initial_balance_check', sql`${t.initialBalance} > 0`),
+    check('plg_paper_trading_accounts_balance_nonnegative_check', sql`${t.balance} >= 0`),
     pluginTenantIsolation(),
   ],
-).enableRLS();
+);
 
 export const paperPositions = pgTable(
   'plg_paper_trading_positions',
@@ -106,9 +118,16 @@ export const paperPositions = pgTable(
     index('plg_paper_trading_positions_tenant_user_idx').on(t.tenantId, t.userId),
     index('plg_paper_trading_positions_account_status_idx').on(t.accountId, t.status),
     index('plg_paper_trading_positions_user_symbol_idx').on(t.userId, t.symbol, t.status),
+    check('plg_paper_trading_positions_side_check', sql`${t.side} IN ('long', 'short')`),
+    check('plg_paper_trading_positions_status_check', sql`${t.status} IN ('open', 'closed')`),
+    check(
+      'plg_paper_trading_positions_close_reason_check',
+      sql`${t.closeReason} IS NULL OR ${t.closeReason} IN ('manual', 'stop_loss', 'take_profit', 'trailing_stop', 'account_reset')`,
+    ),
+    check('plg_paper_trading_positions_quantity_check', sql`${t.quantity} >= 0`),
     pluginTenantIsolation(),
   ],
-).enableRLS();
+);
 
 export const paperOrders = pgTable(
   'plg_paper_trading_orders',
@@ -145,9 +164,20 @@ export const paperOrders = pgTable(
     index('plg_paper_trading_orders_tenant_user_idx').on(t.tenantId, t.userId),
     index('plg_paper_trading_orders_account_status_idx').on(t.accountId, t.status),
     index('plg_paper_trading_orders_symbol_status_idx').on(t.symbol, t.status),
+    check('plg_paper_trading_orders_side_check', sql`${t.side} IN ('buy', 'sell')`),
+    check('plg_paper_trading_orders_type_check', sql`${t.type} IN ('market', 'limit', 'stop')`),
+    check(
+      'plg_paper_trading_orders_status_check',
+      sql`${t.status} IN ('pending', 'filled', 'cancelled', 'rejected', 'expired')`,
+    ),
+    check('plg_paper_trading_orders_time_in_force_check', sql`${t.timeInForce} IN ('gtc', 'day')`),
+    check(
+      'plg_paper_trading_orders_trigger_check',
+      sql`${t.type} = 'market' OR ${t.limitPrice} IS NOT NULL OR ${t.stopPrice} IS NOT NULL`,
+    ),
     pluginTenantIsolation(),
   ],
-).enableRLS();
+);
 
 export const paperFills = pgTable(
   'plg_paper_trading_fills',
@@ -169,10 +199,10 @@ export const paperFills = pgTable(
   },
   (t) => [
     index('plg_paper_trading_fills_tenant_user_idx').on(t.tenantId, t.userId),
-    index('plg_paper_trading_fills_account_ts_idx').on(t.accountId, t.ts),
+    index('plg_paper_trading_fills_account_ts_idx').on(t.accountId, t.ts.desc()),
     pluginTenantIsolation(),
   ],
-).enableRLS();
+);
 
 export const paperStrategyRuns = pgTable(
   'plg_paper_trading_strategy_runs',
@@ -202,9 +232,21 @@ export const paperStrategyRuns = pgTable(
   (t) => [
     index('plg_paper_trading_strategy_runs_tenant_user_idx').on(t.tenantId, t.userId),
     index('plg_paper_trading_strategy_runs_status_idx').on(t.status, t.updatedAt),
+    check(
+      'plg_paper_trading_strategy_runs_status_check',
+      sql`${t.status} IN ('active', 'paused', 'stopped', 'error')`,
+    ),
+    check(
+      'plg_paper_trading_strategy_runs_signal_check',
+      sql`${t.lastSignal} IS NULL OR ${t.lastSignal} IN ('long', 'short')`,
+    ),
+    check(
+      'plg_paper_trading_strategy_runs_risk_check',
+      sql`${t.riskPct} > 0 AND ${t.riskPct} <= 20`,
+    ),
     pluginTenantIsolation(),
   ],
-).enableRLS();
+);
 
 export type PaperAccountRow = typeof paperAccounts.$inferSelect;
 export type PaperAccountInsert = typeof paperAccounts.$inferInsert;

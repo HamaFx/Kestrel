@@ -18,6 +18,7 @@ import { sql } from 'drizzle-orm';
 import { index, integer, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { organization, users } from '../core/auth';
+import { tenantIsolationPolicy } from '../core/rls';
 
 export const diagnosticTraces = pgTable(
   'diagnostic_traces',
@@ -47,7 +48,8 @@ export const diagnosticTraces = pgTable(
     index('diagnostic_traces_started_at_idx').on(t.startedAt),
     index('diagnostic_traces_created_at_idx').on(t.createdAt),
     // Phase 2 (0098) — listDiagnosticTraces: user_id + started_at DESC.
-    index('diagnostic_traces_user_started_idx').on(t.userId, t.startedAt),
+    index('diagnostic_traces_user_started_idx').on(t.userId, t.startedAt.desc()),
+    tenantIsolationPolicy(),
   ],
 );
 

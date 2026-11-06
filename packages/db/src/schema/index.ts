@@ -4,3 +4,4 @@ export * from './core';
 export * from './market';
 export * from './ai';
 export * from './ops';
+export * from './plugins';

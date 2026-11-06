@@ -18,6 +18,7 @@ import { sql } from 'drizzle-orm';
 import { bigint, date, pgTable, primaryKey, text } from 'drizzle-orm/pg-core';
 
 import { organization, users } from '../core/auth';
+import { tenantIsolationPolicy } from '../core/rls';
 
 /**
  * Atomic daily AI-spend counter (Phase 1 hardening §7).
@@ -45,7 +46,7 @@ export const dailyAiSpend = pgTable(
     /** Running estimated spend in integer USD cents. */
     totalUsdCents: bigint('total_usd_cents', { mode: 'number' }).notNull().default(0),
   },
-  (t) => [primaryKey({ columns: [t.userId, t.day] })],
+  (t) => [primaryKey({ columns: [t.userId, t.day] }), tenantIsolationPolicy()],
 );
 
 export type DailyAiSpendRow = typeof dailyAiSpend.$inferSelect;

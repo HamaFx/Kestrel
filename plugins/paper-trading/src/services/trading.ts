@@ -26,7 +26,7 @@ import {
   listOrders,
   listPositions,
 } from '../db/queries';
-import type { PaperAccountRow } from '../db/tables';
+import type { PaperAccountRow } from '@kestrel/db';
 import {
   accountSnapshot,
   contractSizeFor,

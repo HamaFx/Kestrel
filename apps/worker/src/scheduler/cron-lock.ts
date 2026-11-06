@@ -37,8 +37,8 @@
 // is considered expired after LOCK_TTL_MS (default 2h). A new run can
 // acquire the lock by updating the expired row instead of skipping.
 
-import { type getDb } from '@kestrel/db';
-import { sql } from 'drizzle-orm';
+import { cronRuns, type getDb } from '@kestrel/db';
+import { and, eq, lt, or } from 'drizzle-orm';
 
 type DbClient = ReturnType<typeof getDb>;
 
@@ -65,36 +65,40 @@ export interface CronLock {
 export async function acquireCronLock(jobName: string, db: DbClient): Promise<CronLock | null> {
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD UTC
   const staleThreshold = new Date(Date.now() - LOCK_TTL_MS);
+  const row = and(eq(cronRuns.jobName, jobName), eq(cronRuns.runDate, today));
 
   // M-8 + BUG-10: Reclaim stale 'started' locks (older than LOCK_TTL_MS)
   // OR previous 'error' runs from today (including rows marked 'error' by
   // cleanupStaleCronRuns on worker restart) so transient failures can self-heal.
-  const reclaimed = await db.execute(sql`
-    UPDATE cron_runs
-    SET status = 'started',
-        started_at = now(),
-        finished_at = NULL,
-        note = 'reclaimed stale or failed lock'
-    WHERE job_name = ${jobName}
-      AND run_date = ${today}::date
-      AND (
-        status = 'error'
-        OR (status = 'started' AND started_at < ${staleThreshold})
-      )
-    RETURNING job_name
-  `);
+  const reclaimed = await db
+    .update(cronRuns)
+    .set({
+      status: 'started',
+      startedAt: new Date(),
+      finishedAt: null,
+      note: 'reclaimed stale or failed lock',
+    })
+    .where(
+      and(
+        row,
+        or(
+          eq(cronRuns.status, 'error'),
+          and(eq(cronRuns.status, 'started'), lt(cronRuns.startedAt, staleThreshold)),
+        ),
+      ),
+    )
+    .returning({ jobName: cronRuns.jobName });
   if (reclaimed.length > 0) {
     return buildLock(db, jobName, today);
   }
 
   // Attempt an INSERT. ON CONFLICT on the (job_name, run_date) PK means
   // the row already exists — another instance is running or already ran.
-  const inserted = await db.execute(sql`
-    INSERT INTO cron_runs (job_name, run_date, status, started_at)
-    VALUES (${jobName}, ${today}::date, 'started', now())
-    ON CONFLICT (job_name, run_date) DO NOTHING
-    RETURNING job_name
-  `);
+  const inserted = await db
+    .insert(cronRuns)
+    .values({ jobName, runDate: today, status: 'started', startedAt: new Date() })
+    .onConflictDoNothing({ target: [cronRuns.jobName, cronRuns.runDate] })
+    .returning({ jobName: cronRuns.jobName });
 
   // If nothing was inserted, the job already ran today.
   if (inserted.length === 0) {
@@ -105,25 +109,29 @@ export async function acquireCronLock(jobName: string, db: DbClient): Promise<Cr
 }
 
 function buildLock(db: DbClient, jobName: string, today: string): CronLock {
+  const row = and(eq(cronRuns.jobName, jobName), eq(cronRuns.runDate, today));
+
   return {
     async done(note?: string) {
-      await db.execute(sql`
-        UPDATE cron_runs
-        SET status = 'done',
-            finished_at = now(),
-            note = ${note?.slice(0, 500) ?? null}
-        WHERE job_name = ${jobName} AND run_date = ${today}::date
-      `);
+      await db
+        .update(cronRuns)
+        .set({
+          status: 'done',
+          finishedAt: new Date(),
+          note: note?.slice(0, 500) ?? null,
+        })
+        .where(row);
     },
     async fail(err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      await db.execute(sql`
-        UPDATE cron_runs
-        SET status = 'error',
-            finished_at = now(),
-            note = ${message.slice(0, 500)}
-        WHERE job_name = ${jobName} AND run_date = ${today}::date
-      `);
+      await db
+        .update(cronRuns)
+        .set({
+          status: 'error',
+          finishedAt: new Date(),
+          note: message.slice(0, 500),
+        })
+        .where(row);
     },
   };
 }

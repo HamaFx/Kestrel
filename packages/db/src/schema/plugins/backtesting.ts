@@ -16,9 +16,14 @@
 
 // Backtesting plugin tables.
 //
-// These follow the `createPluginTable()` contract from @kestrel/db (same
-// physical prefix, tenant columns, RLS policy, and index), but are declared
-// explicitly so Drizzle retains full column inference for query builders.
+// These physically live in @kestrel/db (rather than inside the plugin
+// package) so `drizzle-kit`, `migration-reconcile.mjs`, and the runtime
+// `drizzle(client, { schema })` call all see them. The plugin re-exports
+// nothing: its query modules import the tables from @kestrel/db directly.
+//
+// They follow the `createPluginTable()` contract (same physical prefix,
+// tenant columns, RLS policy, and index), but are declared explicitly so
+// Drizzle retains full column inference for query builders.
 //
 // Money columns are `numeric(20, 8)` (audit R2, migration 0121), not
 // `double precision`: starting balance, final equity, risk percentage and the
@@ -26,12 +31,24 @@
 // database. `mode: 'number'` keeps the inferred TS type `number`.
 //
 // Migration: packages/db/drizzle/0108_backtesting_plugin_tables.sql
+//            packages/db/drizzle/0112_backtesting_sweeps.sql
 //            packages/db/drizzle/0121_money_columns_to_numeric.sql
 
-import { pluginBaseColumns, pluginMoneyColumn, pluginTenantIsolation } from '@kestrel/db';
-import { boolean, index, integer, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import type { BacktestMetrics, BacktestTrade, EquityPoint, RejectedSignal } from '@kestrel/shared';
+import { sql } from 'drizzle-orm';
+import {
+  boolean,
+  check,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+} from 'drizzle-orm/pg-core';
 
-import type { BacktestMetrics, BacktestTrade, EquityPoint, RejectedSignal } from '../engine/types';
+import { pluginBaseColumns, pluginMoneyColumn, pluginTenantIsolation } from '../ops/plugins';
 
 export const backtestRuns = pgTable(
   'plg_backtesting_runs',
@@ -62,10 +79,11 @@ export const backtestRuns = pgTable(
   },
   (t) => [
     index('plg_backtesting_runs_tenant_user_idx').on(t.tenantId, t.userId),
-    index('plg_backtesting_runs_user_created_idx').on(t.userId, t.createdAt),
+    index('plg_backtesting_runs_user_created_idx').on(t.userId, t.createdAt.desc()),
+    check('plg_backtesting_runs_status_check', sql`${t.status} IN ('completed', 'failed')`),
     pluginTenantIsolation(),
   ],
-).enableRLS();
+);
 
 export const backtestStrategies = pgTable(
   'plg_backtesting_strategies',
@@ -82,10 +100,10 @@ export const backtestStrategies = pgTable(
   },
   (t) => [
     index('plg_backtesting_strategies_tenant_user_idx').on(t.tenantId, t.userId),
-    index('plg_backtesting_strategies_user_slug_idx').on(t.userId, t.slug),
+    unique('plg_backtesting_strategies_user_slug_key').on(t.userId, t.slug),
     pluginTenantIsolation(),
   ],
-).enableRLS();
+);
 
 export const backtestSweeps = pgTable(
   'plg_backtesting_sweeps',
@@ -118,10 +136,22 @@ export const backtestSweeps = pgTable(
   },
   (t) => [
     index('plg_backtesting_sweeps_tenant_user_idx').on(t.tenantId, t.userId),
-    index('plg_backtesting_sweeps_user_created_idx').on(t.userId, t.createdAt),
+    index('plg_backtesting_sweeps_user_created_idx').on(t.userId, t.createdAt.desc()),
+    check(
+      'plg_backtesting_sweeps_status_check',
+      sql`${t.status} IN ('queued', 'running', 'completed', 'failed', 'cancelled')`,
+    ),
+    check(
+      'plg_backtesting_sweeps_objective_check',
+      sql`${t.objective} IN ('profitFactor', 'netPnl', 'returnPct', 'sharpeRatio', 'expectancyR', 'maxDrawdownPct')`,
+    ),
+    check(
+      'plg_backtesting_sweeps_progress_check',
+      sql`${t.total} >= 0 AND ${t.completed} >= 0 AND ${t.completed} <= ${t.total}`,
+    ),
     pluginTenantIsolation(),
   ],
-).enableRLS();
+);
 
 export type BacktestRunRow = typeof backtestRuns.$inferSelect;
 export type BacktestStrategyRow = typeof backtestStrategies.$inferSelect;

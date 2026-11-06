@@ -25,12 +25,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type * as queries from '../src/db/queries';
-import type {
-  PaperAccountRow,
-  PaperFillRow,
-  PaperOrderRow,
-  PaperPositionRow,
-} from '../src/db/tables';
+import type { PaperAccountRow, PaperFillRow, PaperOrderRow, PaperPositionRow } from '@kestrel/db';
 import { PlaceOrderInputSchema } from '../src/schemas';
 import { processQuotesForUser } from '../src/services/fill-engine';
 import { placeOrderForUser } from '../src/services/trading';

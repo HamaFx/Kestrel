@@ -18,6 +18,7 @@ import { sql } from 'drizzle-orm';
 import { index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 import { organization, users } from '../core/auth';
+import { tenantIsolationPolicy } from '../core/rls';
 
 /**
  * Browser-issued web-push subscription. Each user can
@@ -46,5 +47,5 @@ export const pushSubscriptions = pgTable(
     userAgent: text('user_agent'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [index('push_subscriptions_user_id_idx').on(t.userId)],
+  (t) => [index('push_subscriptions_user_id_idx').on(t.userId), tenantIsolationPolicy()],
 );

@@ -18,6 +18,7 @@ import { sql } from 'drizzle-orm';
 import { index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 import { organization, users } from './auth';
+import { tenantIsolationPolicy } from './rls';
 
 /**
  * One-off shareable analysis snapshots. Reachable via `/share/<id>?t=<token>`
@@ -53,5 +54,6 @@ export const sharedSnapshots = pgTable(
   (t) => [
     index('shared_snapshots_user_id_idx').on(t.userId),
     index('shared_snapshots_expires_at_idx').on(t.expiresAt),
+    tenantIsolationPolicy(),
   ],
 );

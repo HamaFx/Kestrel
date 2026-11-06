@@ -22,7 +22,7 @@ import type {
   PaperOrderRow,
   PaperPositionRow,
   PaperStrategyRunRow,
-} from '../db/tables';
+} from '@kestrel/db';
 import { accountSnapshot, type AccountMode, type PositionSide } from '../domain';
 import {
   isAccountMode,

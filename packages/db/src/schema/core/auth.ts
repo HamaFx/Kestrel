@@ -31,6 +31,8 @@ import {
 
 import type { SessionGameplan } from '@kestrel/shared';
 
+import { tenantIsolationPolicy } from './rls';
+
 // ── Users ────────────────────────────────────────────────────────────────
 
 export const users = pgTable('user', {
@@ -114,7 +116,7 @@ export const userSessions = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     lastActiveAt: timestamp('last_active_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [index('user_sessions_user_id_idx').on(t.userId)],
+  (t) => [index('user_sessions_user_id_idx').on(t.userId), tenantIsolationPolicy()],
 );
 
 export type UserSessionRow = typeof userSessions.$inferSelect;
@@ -139,7 +141,12 @@ export const accounts = pgTable(
     id_token: text('id_token'),
     session_state: text('session_state'),
   },
-  (t) => [primaryKey({ columns: [t.provider, t.providerAccountId] })],
+  (t) => [
+    primaryKey({ columns: [t.provider, t.providerAccountId] }),
+    // ON DELETE CASCADE from users: without this, deleting a user scans the
+    // whole account table for each removed row.
+    index('account_userId_idx').on(t.userId),
+  ],
 );
 
 export type AccountRow = typeof accounts.$inferSelect;
@@ -147,13 +154,17 @@ export type AccountInsert = typeof accounts.$inferInsert;
 
 // ── Sessions (DB-backed — only used if strategy='database') ───────────────
 
-export const sessions = pgTable('session', {
-  sessionToken: text('sessionToken').primaryKey(),
-  userId: text('userId')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  expires: timestamp('expires', { withTimezone: true }).notNull(),
-});
+export const sessions = pgTable(
+  'session',
+  {
+    sessionToken: text('sessionToken').primaryKey(),
+    userId: text('userId')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    expires: timestamp('expires', { withTimezone: true }).notNull(),
+  },
+  (t) => [index('session_userId_idx').on(t.userId)],
+);
 
 export type SessionRow = typeof sessions.$inferSelect;
 export type SessionInsert = typeof sessions.$inferInsert;
@@ -182,118 +193,122 @@ export type VerificationTokenInsert = typeof verificationTokens.$inferInsert;
 
 // ── User Settings (application-level preferences) ─────────────────────────
 
-export const userSettings = pgTable('user_settings', {
-  userId: text('user_id')
-    .primaryKey()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  tenantId: text('tenant_id')
-    .notNull()
-    .default(sql`current_setting('app.current_tenant', true)`)
-    .references(() => organization.id, { onDelete: 'cascade' }),
-  /** Default trading symbol (e.g. 'XAUUSD'). */
-  defaultSymbol: text('default_symbol').notNull().default('XAUUSD'),
-  /** IANA timezone string. */
-  timezone: text('timezone').notNull().default('UTC'),
-  /** Locale string (BCP 47), e.g. 'en', 'zh-CN', 'ar-AE'. */
-  language: text('language').notNull().default('en'),
-  /** Accessibility preference. */
-  reduceMotion: boolean('reduce_motion').notNull().default(false),
-  /**
-   * Telegram integration — per-user bot token.
-   * Encrypted at rest with AES-256-GCM using ENCRYPTION_SECRET
-   * (same scheme as aiApiKeys). See @kestrel/shared/encryption.
-   */
-  telegramBotToken: text('telegram_bot_token'),
-  /** Telegram chat ID for direct messages. */
-  telegramChatId: text('telegram_chat_id'),
-  /** Email address for alert delivery. */
-  alertEmail: text('alert_email'),
-  /**
-   * Encrypted JSON payload of BYOK API keys.
-   * Encrypted at rest with AES-256-GCM using ENCRYPTION_SECRET.
-   * Shape when decrypted: { openai?: string; anthropic?: string; google?: string }
-   */
-  aiApiKeys: text('ai_api_keys'),
-  /**
-   * Phase E — per-user per-domain default model overrides.
-   * Shape (JSONB): { fundamental?: "<provider>:<modelId>",
-   *                    technical?: ..., summary?: ...,
-   *                    vision?: ..., embedding?: ... }
-   */
-  defaultModels: jsonb('default_models').$type<{
-    fundamental?: string;
-    technical?: string;
-    summary?: string;
-    vision?: string;
-    embedding?: string;
-  }>(),
-  /**
-   * Phase F — the single "default chat model" picker.
-   * Shape: "<providerId>:<bareModelId>" (e.g. "google:gemini-2.5-pro").
-   */
-  chatModel: text('chat_model'),
-  /** Phase D2 — user-pickable vision model. */
-  visionModel: text('vision_model'),
-  /** Phase D2 — user-pickable embedding model. */
-  embeddingModel: text('embedding_model'),
-  /** Fallback chain of provider IDs, e.g. ["openai", "google", "groq"] */
-  aiFallbackChain: jsonb('ai_fallback_chain').$type<string[]>(),
-  /** Max daily USD spend for this user. Overrides global MAX_DAILY_USD. */
-  maxDailyUsd: integer('max_daily_usd'),
-  /** Map of providerId to last update ISO timestamp string. */
-  aiApiKeysUpdatedAt: jsonb('ai_api_keys_updated_at').$type<Record<string, string>>(),
-  /** Selected market data provider. */
-  marketDataProvider: text('market_data_provider').notNull().default('biquote'),
-  /** Theme preference: 'light', 'dark', or 'system'. */
-  theme: text('theme'),
-  /** Notification preferences matrix. */
-  notificationPreferences: jsonb('notification_preferences'),
-  /**
-   * The trader's pre-session gameplan for the current UTC day (daily R cap,
-   * mindset, execution rule). Read by the AI risk context; ignored by
-   * consumers once `date` is in the past.
-   */
-  sessionGameplan: jsonb('session_gameplan').$type<SessionGameplan | null>(),
-  /** Free-form custom instructions appended to the AI's system prompt. */
-  customInstructions: text('custom_instructions'),
-  /** Display time format: '12h' or '24h'. */
-  timeFormat: text('time_format'),
-  /** List of tool names the user has disabled. */
-  disabledTools: jsonb('disabled_tools').$type<string[]>(),
-  /** Whether onboarding has been completed. */
-  onboardingCompleted: boolean('onboarding_completed').notNull().default(false),
-  /** Server-side onboarding wizard progress (JSON). Excludes API keys. */
-  onboardingProgress: jsonb('onboarding_progress').$type<Record<string, unknown>>(),
-  /**
-   * Multi-Agent Orchestration — default analysis mode for new chats.
-   * Values: 'single' | 'quick' | 'standard' | 'full' | 'auto'
-   * 'auto' lets the orchestrator pick based on the user's message.
-   */
-  defaultAnalysisMode: text('default_analysis_mode').default('auto'),
-  /**
-   * Multi-Agent Orchestration — whether to show the expandable
-   * agent opinions panel in the chat UI.
-   */
-  showAgentOpinions: boolean('show_agent_opinions').notNull().default(true),
-  /**
-   * Multi-Agent Orchestration — per-agent model overrides.
-   * Shape: { technical?: string; fundamental?: string; risk?: string;
-   *          sentiment?: string; decision?: string }
-   * Each value is a "<providerId>:<bareModelId>" string.
-   */
-  agentModelOverrides: jsonb('agent_model_overrides').$type<{
-    technical?: string;
-    fundamental?: string;
-    risk?: string;
-    sentiment?: string;
-    decision?: string;
-  }>(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true })
-    .defaultNow()
-    .notNull()
-    .$onUpdate(() => new Date()),
-});
+export const userSettings = pgTable(
+  'user_settings',
+  {
+    userId: text('user_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tenantId: text('tenant_id')
+      .notNull()
+      .default(sql`current_setting('app.current_tenant', true)`)
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    /** Default trading symbol (e.g. 'XAUUSD'). */
+    defaultSymbol: text('default_symbol').notNull().default('XAUUSD'),
+    /** IANA timezone string. */
+    timezone: text('timezone').notNull().default('UTC'),
+    /** Locale string (BCP 47), e.g. 'en', 'zh-CN', 'ar-AE'. */
+    language: text('language').notNull().default('en'),
+    /** Accessibility preference. */
+    reduceMotion: boolean('reduce_motion').notNull().default(false),
+    /**
+     * Telegram integration — per-user bot token.
+     * Encrypted at rest with AES-256-GCM using ENCRYPTION_SECRET
+     * (same scheme as aiApiKeys). See @kestrel/shared/encryption.
+     */
+    telegramBotToken: text('telegram_bot_token'),
+    /** Telegram chat ID for direct messages. */
+    telegramChatId: text('telegram_chat_id'),
+    /** Email address for alert delivery. */
+    alertEmail: text('alert_email'),
+    /**
+     * Encrypted JSON payload of BYOK API keys.
+     * Encrypted at rest with AES-256-GCM using ENCRYPTION_SECRET.
+     * Shape when decrypted: { openai?: string; anthropic?: string; google?: string }
+     */
+    aiApiKeys: text('ai_api_keys'),
+    /**
+     * Phase E — per-user per-domain default model overrides.
+     * Shape (JSONB): { fundamental?: "<provider>:<modelId>",
+     *                    technical?: ..., summary?: ...,
+     *                    vision?: ..., embedding?: ... }
+     */
+    defaultModels: jsonb('default_models').$type<{
+      fundamental?: string;
+      technical?: string;
+      summary?: string;
+      vision?: string;
+      embedding?: string;
+    }>(),
+    /**
+     * Phase F — the single "default chat model" picker.
+     * Shape: "<providerId>:<bareModelId>" (e.g. "google:gemini-2.5-pro").
+     */
+    chatModel: text('chat_model'),
+    /** Phase D2 — user-pickable vision model. */
+    visionModel: text('vision_model'),
+    /** Phase D2 — user-pickable embedding model. */
+    embeddingModel: text('embedding_model'),
+    /** Fallback chain of provider IDs, e.g. ["openai", "google", "groq"] */
+    aiFallbackChain: jsonb('ai_fallback_chain').$type<string[]>(),
+    /** Max daily USD spend for this user. Overrides global MAX_DAILY_USD. */
+    maxDailyUsd: integer('max_daily_usd'),
+    /** Map of providerId to last update ISO timestamp string. */
+    aiApiKeysUpdatedAt: jsonb('ai_api_keys_updated_at').$type<Record<string, string>>(),
+    /** Selected market data provider. */
+    marketDataProvider: text('market_data_provider').notNull().default('biquote'),
+    /** Theme preference: 'light', 'dark', or 'system'. */
+    theme: text('theme'),
+    /** Notification preferences matrix. */
+    notificationPreferences: jsonb('notification_preferences'),
+    /**
+     * The trader's pre-session gameplan for the current UTC day (daily R cap,
+     * mindset, execution rule). Read by the AI risk context; ignored by
+     * consumers once `date` is in the past.
+     */
+    sessionGameplan: jsonb('session_gameplan').$type<SessionGameplan | null>(),
+    /** Free-form custom instructions appended to the AI's system prompt. */
+    customInstructions: text('custom_instructions'),
+    /** Display time format: '12h' or '24h'. */
+    timeFormat: text('time_format'),
+    /** List of tool names the user has disabled. */
+    disabledTools: jsonb('disabled_tools').$type<string[]>(),
+    /** Whether onboarding has been completed. */
+    onboardingCompleted: boolean('onboarding_completed').notNull().default(false),
+    /** Server-side onboarding wizard progress (JSON). Excludes API keys. */
+    onboardingProgress: jsonb('onboarding_progress').$type<Record<string, unknown>>(),
+    /**
+     * Multi-Agent Orchestration — default analysis mode for new chats.
+     * Values: 'single' | 'quick' | 'standard' | 'full' | 'auto'
+     * 'auto' lets the orchestrator pick based on the user's message.
+     */
+    defaultAnalysisMode: text('default_analysis_mode').default('auto'),
+    /**
+     * Multi-Agent Orchestration — whether to show the expandable
+     * agent opinions panel in the chat UI.
+     */
+    showAgentOpinions: boolean('show_agent_opinions').notNull().default(true),
+    /**
+     * Multi-Agent Orchestration — per-agent model overrides.
+     * Shape: { technical?: string; fundamental?: string; risk?: string;
+     *          sentiment?: string; decision?: string }
+     * Each value is a "<providerId>:<bareModelId>" string.
+     */
+    agentModelOverrides: jsonb('agent_model_overrides').$type<{
+      technical?: string;
+      fundamental?: string;
+      risk?: string;
+      sentiment?: string;
+      decision?: string;
+    }>(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  () => [tenantIsolationPolicy()],
+);
 
 export type UserSettingsRow = typeof userSettings.$inferSelect;
 export type UserSettingsInsert = typeof userSettings.$inferInsert;
@@ -316,7 +331,7 @@ export const userSymbols = pgTable(
     displayOrder: integer('display_order').notNull().default(0),
     addedAt: timestamp('added_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [primaryKey({ columns: [t.userId, t.symbol] })],
+  (t) => [primaryKey({ columns: [t.userId, t.symbol] }), tenantIsolationPolicy()],
 );
 
 export type UserSymbolRow = typeof userSymbols.$inferSelect;

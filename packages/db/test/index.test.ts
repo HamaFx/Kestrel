@@ -20,15 +20,47 @@ import type * as clientModule from '../src/client';
 
 interface ScopeHolder {
   tenantId: string;
-  db: { execute: (query: unknown) => Promise<unknown> };
+  db: unknown;
 }
 
-const mocks = vi.hoisted(() => ({
-  execute: vi.fn(),
-  withTenantDb: vi.fn(),
-  withUserTenant: vi.fn(),
-  scope: null as ScopeHolder | null,
-}));
+interface InsertCapture {
+  table: unknown;
+  values: Record<string, unknown>;
+}
+
+const mocks = vi.hoisted(() => {
+  const inserts: InsertCapture[] = [];
+  const rows: Array<Record<string, unknown>> = [];
+  // Minimal stand-in for the Drizzle insert builder: `insert(table).values(v)
+  // .onConflictDoUpdate(...).returning()` resolves to the configured rows.
+  const db = {
+    insert(table: unknown) {
+      const entry: InsertCapture = { table, values: {} };
+      inserts.push(entry);
+      const chain = {
+        values(values: Record<string, unknown>) {
+          entry.values = values;
+          return chain;
+        },
+        onConflictDoUpdate() {
+          return chain;
+        },
+        returning() {
+          return Promise.resolve(rows);
+        },
+      };
+      return chain;
+    },
+  };
+  return {
+    db,
+    inserts,
+    rows,
+    withTenantDb: vi.fn(),
+    withUserTenant: vi.fn(),
+    scope: null as ScopeHolder | null,
+  };
+});
 
 vi.mock('../src/client', async (importOriginal) => {
   const actual = await importOriginal<typeof clientModule>();
@@ -45,16 +77,16 @@ vi.mock('../src/tenant/with-user-tenant', () => ({
   withUserTenant: mocks.withUserTenant,
 }));
 
-const fakeDb = { execute: mocks.execute };
-
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.scope = null;
+  mocks.inserts.length = 0;
+  mocks.rows.length = 0;
   mocks.withTenantDb.mockImplementation(
-    (_tenantId: string, work: (db: typeof fakeDb) => Promise<unknown>) => work(fakeDb),
+    (_tenantId: string, work: (db: typeof mocks.db) => Promise<unknown>) => work(mocks.db),
   );
   mocks.withUserTenant.mockImplementation(
-    (_userId: string, work: (db: typeof fakeDb) => Promise<unknown>) => work(fakeDb),
+    (_userId: string, work: (db: typeof mocks.db) => Promise<unknown>) => work(mocks.db),
   );
 });
 
@@ -76,12 +108,16 @@ describe('resolveRateLimitTenant', () => {
 
 describe('withRateLimit with mocked client', () => {
   it('includes tenant_id in the pre-auth insert and scopes to the platform tenant', async () => {
-    mocks.execute.mockResolvedValue([{ request_count: 1 }]);
+    mocks.rows.push({ requestCount: 1 });
     const { withRateLimit } = await import('../src/ops/rate-limit');
     await withRateLimit('__system__', 'login-ip', 10);
-    const query = JSON.stringify(mocks.execute.mock.calls[0]?.[0]);
-    expect(query).toContain('tenant_id');
-    expect(query).toContain('__system__');
+    expect(mocks.inserts).toHaveLength(1);
+    expect(mocks.inserts[0]?.values).toMatchObject({
+      userId: '__system__',
+      tenantId: '__system__',
+      endpointGroup: 'login-ip',
+      requestCount: 1,
+    });
     // Pre-auth buckets have no user scope: the helper must open the platform
     // tenant's scope itself (RLS rejects an unscoped INSERT).
     expect(mocks.withTenantDb).toHaveBeenCalledWith('__system__', expect.any(Function));
@@ -89,7 +125,7 @@ describe('withRateLimit with mocked client', () => {
   });
 
   it('opens the user tenant scope for an authenticated subject outside any scope', async () => {
-    mocks.execute.mockResolvedValue([{ request_count: 1 }]);
+    mocks.rows.push({ requestCount: 1 });
     const { withRateLimit } = await import('../src/ops/rate-limit');
     await withRateLimit('user-1', 'ai_chat', 10);
     expect(mocks.withUserTenant).toHaveBeenCalledWith('user-1', expect.any(Function));
@@ -105,25 +141,25 @@ describe('withRateLimit with mocked client', () => {
   });
 
   it('reuses an active same-tenant scope without opening another one', async () => {
-    mocks.scope = { tenantId: 'org-1', db: fakeDb };
-    mocks.execute.mockResolvedValue([{ request_count: 1 }]);
+    mocks.scope = { tenantId: 'org-1', db: mocks.db };
+    mocks.rows.push({ requestCount: 1 });
     const { withRateLimit } = await import('../src/ops/rate-limit');
     await withRateLimit('user-1', 'ai_chat', 10);
-    expect(mocks.execute).toHaveBeenCalledOnce();
+    expect(mocks.inserts).toHaveLength(1);
     expect(mocks.withTenantDb).not.toHaveBeenCalled();
     expect(mocks.withUserTenant).not.toHaveBeenCalled();
   });
 
   it('honours an explicit tenant over the active scope', async () => {
-    mocks.scope = { tenantId: 'org-1', db: fakeDb };
-    mocks.execute.mockResolvedValue([{ request_count: 1 }]);
+    mocks.scope = { tenantId: 'org-1', db: mocks.db };
+    mocks.rows.push({ requestCount: 1 });
     const { withRateLimit } = await import('../src/ops/rate-limit');
     await withRateLimit('user-1', 'ai_chat', 10, { tenantId: 'org-2' });
     expect(mocks.withTenantDb).toHaveBeenCalledWith('org-2', expect.any(Function));
   });
 
   it('returns { allowed: true } when count <= limit', async () => {
-    mocks.execute.mockResolvedValue([{ request_count: 3 }]);
+    mocks.rows.push({ requestCount: 3 });
     const { withRateLimit } = await import('../src/ops/rate-limit');
     const result = await withRateLimit('user-1', 'ai_chat', 10);
     expect(result.allowed).toBe(true);
@@ -132,23 +168,14 @@ describe('withRateLimit with mocked client', () => {
   });
 
   it('returns { allowed: false } when count exceeds limit', async () => {
-    mocks.execute.mockResolvedValue([{ request_count: 15 }]);
+    mocks.rows.push({ requestCount: 15 });
     const { withRateLimit } = await import('../src/ops/rate-limit');
     const result = await withRateLimit('user-2', 'ai_chat', 10);
     expect(result.allowed).toBe(false);
     expect(result.count).toBe(15);
   });
 
-  it('handles legacy result row shape ({ rows })', async () => {
-    mocks.execute.mockResolvedValue({ rows: [{ request_count: 7 }] });
-    const { withRateLimit } = await import('../src/ops/rate-limit');
-    const result = await withRateLimit('user-3', 'ai_chat', 10);
-    expect(result.allowed).toBe(true);
-    expect(result.count).toBe(7);
-  });
-
-  it('handles empty result from both shapes', async () => {
-    mocks.execute.mockResolvedValue([]);
+  it('returns count 0 when the upsert returns no row', async () => {
     const { withRateLimit } = await import('../src/ops/rate-limit');
     const result = await withRateLimit('user-4', 'ai_chat', 10);
     expect(result.allowed).toBe(true);
@@ -156,7 +183,7 @@ describe('withRateLimit with mocked client', () => {
   });
 
   it('coerces string/bigint count to number', async () => {
-    mocks.execute.mockResolvedValue([{ request_count: '42' }]);
+    mocks.rows.push({ requestCount: '42' });
     const { withRateLimit } = await import('../src/ops/rate-limit');
     const result = await withRateLimit('user-5', 'ai_chat', 10);
     expect(result.count).toBe(42);

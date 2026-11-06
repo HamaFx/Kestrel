@@ -19,18 +19,19 @@
 // Callers are always inside a tenant transaction (chat tool, plugin API,
 // worker TickBus/job) and every query additionally filters by user_id.
 
-import { getDb, requireTenantIdForUser } from '@kestrel/db';
-import { and, eq } from 'drizzle-orm';
-
-import type { AccountMode } from '../../domain';
 import {
+  getDb,
   paperAccounts,
   paperFills,
   paperOrders,
   paperPositions,
   paperStrategyRuns,
+  requireTenantIdForUser,
   type PaperAccountRow,
-} from '../tables';
+} from '@kestrel/db';
+import { and, eq } from 'drizzle-orm';
+
+import type { AccountMode } from '../../domain';
 import { findAccountByMode, getAccount, setAccountBalance } from './accounts';
 
 export interface SeedAccountInput {

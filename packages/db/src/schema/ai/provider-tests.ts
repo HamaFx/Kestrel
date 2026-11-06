@@ -18,6 +18,7 @@ import { sql } from 'drizzle-orm';
 import { boolean, jsonb, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { organization, users } from '../core/auth';
+import { tenantIsolationPolicy } from '../core/rls';
 
 /**
  * Latest test result per (userId, providerId) — populated by the
@@ -58,5 +59,5 @@ export const providerTests = pgTable(
       resetTokens?: string;
     }>(),
   },
-  (t) => [primaryKey({ columns: [t.userId, t.providerId] })],
+  (t) => [primaryKey({ columns: [t.userId, t.providerId] }), tenantIsolationPolicy()],
 );

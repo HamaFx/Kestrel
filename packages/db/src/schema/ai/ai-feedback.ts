@@ -10,6 +10,7 @@ import { index, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizz
 
 import { organization, users } from '../core/auth';
 import { chatMessages, chatThreads } from '../core/chat';
+import { tenantIsolationPolicy } from '../core/rls';
 
 export type FeedbackRating = 'positive' | 'negative';
 export type FeedbackReviewStatus = 'unreviewed' | 'in_review' | 'reviewed' | 'rejected';
@@ -53,7 +54,10 @@ export const aiMessageFeedback = pgTable(
     reviewerNote: text('reviewer_note'),
     reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
   },
   (table) => [
     uniqueIndex('ai_message_feedback_user_message_uk').on(table.userId, table.messageId),
@@ -61,6 +65,7 @@ export const aiMessageFeedback = pgTable(
     index('ai_message_feedback_thread_idx').on(table.threadId, table.createdAt),
     index('ai_message_feedback_trace_idx').on(table.traceId, table.createdAt),
     index('ai_message_feedback_reviewer_idx').on(table.reviewerId, table.reviewedAt),
+    tenantIsolationPolicy(),
   ],
 );
 

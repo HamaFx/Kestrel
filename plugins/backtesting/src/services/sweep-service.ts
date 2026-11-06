@@ -36,7 +36,7 @@ import {
   getBacktestSweep,
   updateBacktestSweep,
 } from '../db/queries';
-import type { BacktestSweepRow } from '../db/tables';
+import type { BacktestSweepRow } from '@kestrel/db';
 import { yieldToEventLoop } from '../engine/yield';
 import type { SweepInput, SweepObjective } from '../schemas';
 import { normaliseSettings } from '../settings';

@@ -17,7 +17,7 @@
 // Bounded DELETE helpers for the retention job. Table names and predicates
 // are internal constants only; callers must never pass user input here.
 
-import { sql } from 'drizzle-orm';
+import { sql, type SQL } from 'drizzle-orm';
 
 import type { getDb } from '../client';
 
@@ -31,25 +31,30 @@ export const BATCH_SIZE = 1_000;
  * Delete rows from a table in bounded batches. Table names and predicates are
  * internal constants only; callers must never pass user input here.
  *
+ * Identifiers are quoted by `sql.identifier()` and `batchSize` is a bound
+ * parameter, so only an internally authored `predicate` is ever emitted as
+ * raw SQL.
+ *
  * `schema` addresses tables outside the default schema (e.g. Mastra's runtime
  * `mastra` schema) without changing the bounded batching contract.
  */
 export async function deleteBatchedWhere(
   db: ReturnType<typeof getDb>,
   tableName: string,
-  predicate: string,
+  predicate: string | SQL,
   batchSize = BATCH_SIZE,
   maxBatches = MAX_BATCHES_PER_TABLE,
   schema?: string,
 ): Promise<number> {
-  const tableRef = schema ? `"${schema}"."${tableName}"` : `"${tableName}"`;
+  const tableRef = schema
+    ? sql`${sql.identifier(schema)}.${sql.identifier(tableName)}`
+    : sql.identifier(tableName);
+  const predicateSql = typeof predicate === 'string' ? sql.raw(predicate) : predicate;
   let total = 0;
   let batches = 0;
   while (batches < maxBatches) {
     const result = await db.execute(
-      sql.raw(
-        `DELETE FROM ${tableRef} WHERE ctid IN (SELECT ctid FROM ${tableRef} WHERE ${predicate} LIMIT ${batchSize})`,
-      ),
+      sql`DELETE FROM ${tableRef} WHERE ctid IN (SELECT ctid FROM ${tableRef} WHERE ${predicateSql} LIMIT ${batchSize})`,
     );
     const count = Number((result as { count?: number | string }).count ?? 0);
     total += count;
@@ -91,7 +96,7 @@ export async function deleteBatched(
   return deleteBatchedWhere(
     db,
     tableName,
-    `"${whereColumn}" < '${cutoff}'`,
+    sql`${sql.identifier(whereColumn)} < ${cutoff}`,
     batchSize,
     MAX_BATCHES_PER_TABLE,
   );

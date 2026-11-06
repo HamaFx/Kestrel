@@ -32,7 +32,7 @@ import {
   type BacktestRunSummaryRow,
   type PersistBacktestRunInput,
 } from '../db/queries';
-import type { BacktestRunRow } from '../db/tables';
+import type { BacktestRunRow } from '@kestrel/db';
 import { downsample, runBacktest as executeBacktest, type RunBacktestOutput } from '../engine/run';
 import type { RunBacktestInput, RunDetail, RunResult, RunSummary } from '../schemas';
 import { normaliseSettings } from '../settings';

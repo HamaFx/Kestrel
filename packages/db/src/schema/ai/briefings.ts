@@ -30,10 +30,11 @@
 // dangling pointers.
 
 import { sql } from 'drizzle-orm';
-import { check, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { check, index, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 import { organization, users } from '../core/auth';
 import { chatMessages } from '../core/chat';
+import { tenantIsolationPolicy } from '../core/rls';
 
 export const briefingsEmitted = pgTable(
   'briefings_emitted',
@@ -57,5 +58,9 @@ export const briefingsEmitted = pgTable(
     primaryKey({ columns: [t.userId, t.eventId, t.kind] }),
     // Phase 2 (0028) — kind allow-list CHECK, absent from the TypeScript schema.
     check('briefings_emitted_kind_check', sql`${t.kind} IN ('pre', 'post', 'weekly_review')`),
+    // ON DELETE CASCADE on message_id: index it so thread deletion does not
+    // sequentially scan this table for every removed message.
+    index('briefings_emitted_message_id_idx').on(t.messageId),
+    tenantIsolationPolicy(),
   ],
 );

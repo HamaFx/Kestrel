@@ -27,7 +27,6 @@ import {
   index,
   jsonb,
   numeric,
-  pgPolicy,
   pgTable,
   primaryKey,
   text,
@@ -36,6 +35,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import { organization, users } from '../core/auth';
+import { tenantIsolationPolicy } from '../core/rls';
 
 /** Tenant column shared by every plugin-owned table. */
 export function pluginTenantColumn() {
@@ -45,14 +45,13 @@ export function pluginTenantColumn() {
     .references(() => organization.id, { onDelete: 'cascade' });
 }
 
-/** RLS policy shared by every plugin-owned table. */
-export function pluginTenantIsolation() {
-  return pgPolicy('tenant_isolation', {
-    for: 'all',
-    using: sql`tenant_id = current_setting('app.current_tenant', true)`,
-    withCheck: sql`tenant_id = current_setting('app.current_tenant', true)`,
-  });
-}
+/**
+ * RLS policy shared by every plugin-owned table.
+ *
+ * Kept as a named alias of the canonical policy so existing imports keep
+ * working while there is exactly one policy definition.
+ */
+export const pluginTenantIsolation = tenantIsolationPolicy;
 
 /** Exact money / price / ratio column. See the 0121 migration header. */
 export function pluginMoneyColumn(name: string) {
@@ -109,7 +108,7 @@ export const userInstalledPlugins = pgTable(
     ),
     pluginTenantIsolation(),
   ],
-).enableRLS();
+);
 
 export type UserInstalledPluginRow = typeof userInstalledPlugins.$inferSelect;
 export type UserInstalledPluginInsert = typeof userInstalledPlugins.$inferInsert;
@@ -144,7 +143,7 @@ export const pluginStorage = pgTable(
     check('plugin_storage_key_length', sql`char_length(${t.key}) BETWEEN 1 AND 128`),
     pluginTenantIsolation(),
   ],
-).enableRLS();
+);
 
 export type PluginStorageRow = typeof pluginStorage.$inferSelect;
 export type PluginStorageInsert = typeof pluginStorage.$inferInsert;

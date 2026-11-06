@@ -29,6 +29,8 @@
 // table lives in Mastra's runtime schema and may not exist at all
 // (libsql dev setups, fresh installs).
 
+import { sql } from 'drizzle-orm';
+
 import { getDb } from '../client';
 import {
   BATCH_SIZE,
@@ -112,14 +114,14 @@ export async function runRetentionCleanup(
   const budgetReservationsDeleted = await deleteBatchedWhere(
     db,
     'ai_budget_reservations',
-    `status IN ('reconciled', 'released') AND resolved_at IS NOT NULL AND resolved_at < '${budgetCutoff}'`,
+    sql`status IN ('reconciled', 'released') AND resolved_at IS NOT NULL AND resolved_at < ${budgetCutoff}`,
   );
   // Expired share links cannot pass token validation and their snapshots are
   // no longer reachable through the public share route.
   const sharedSnapshotsDeleted = await deleteBatchedWhere(
     db,
     'shared_snapshots',
-    `expires_at < '${now.toISOString()}'`,
+    sql`expires_at < ${now.toISOString()}`,
   );
   // Audit v2 §4.4 (P2-4) — Mastra's observational-memory table is excluded
   // from the storage domain's own retention tables, so prune() can never
@@ -134,7 +136,7 @@ export async function runRetentionCleanup(
     mastraObservationalMemoryDeleted = await deleteBatchedWhere(
       db,
       'mastra_observational_memory',
-      `"updatedAt" < '${observationalMemoryCutoff}'`,
+      sql`"updatedAt" < ${observationalMemoryCutoff}`,
       BATCH_SIZE,
       MAX_BATCHES_PER_TABLE,
       mastraSchema,

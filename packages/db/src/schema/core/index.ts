@@ -3,5 +3,6 @@ export * from './audit';
 export * from './auth';
 export * from './bot-links';
 export * from './chat';
+export * from './rls';
 export * from './share';
 export * from './symbol-catalog';

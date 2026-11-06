@@ -42,7 +42,7 @@ import {
   updateStrategyRun,
   type StrategyRunPatch,
 } from './db/queries';
-import type { PaperPositionRow, PaperStrategyRunRow } from './db/tables';
+import type { PaperPositionRow, PaperStrategyRunRow } from '@kestrel/db';
 import { cancelOrderForUser, closePositionForUser, placeOrderForUser } from './services/trading';
 import type { PaperSettings } from './settings';
 import {

@@ -25,7 +25,7 @@ import {
   seedAccount,
   updateAccountSettings,
 } from '../db/queries';
-import type { PaperAccountRow } from '../db/tables';
+import type { PaperAccountRow } from '@kestrel/db';
 import type { AccountView } from '../schemas';
 import type { PaperSettings } from '../settings';
 import { accountView } from './views';

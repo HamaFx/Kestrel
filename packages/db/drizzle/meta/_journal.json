@@ -883,6 +883,13 @@
       "when": 1793918400000,
       "tag": "0126_drop_dead_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 126,
+      "version": "7",
+      "when": 1794004800000,
+      "tag": "0127_tenant_fk_indexes",
+      "breakpoints": true
     }
   ]
 }

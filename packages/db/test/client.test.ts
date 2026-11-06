@@ -276,6 +276,102 @@ describe('withTenantDbFresh and tenant short-circuit', () => {
   });
 });
 
+describe('read-only tenant scope semantics', () => {
+  beforeEach(async () => {
+    vi.stubEnv('DATABASE_URL', 'postgres://mock:5432/db');
+    vi.stubEnv('MULTI_USER_ENABLED', '1');
+    vi.stubEnv('KESTREL_ENABLE_RLS', '1');
+    const { closeDb } = await import('../src/client');
+    await closeDb();
+  });
+
+  afterEach(async () => {
+    const { closeDb } = await import('../src/client');
+    await closeDb();
+    vi.unstubAllEnvs();
+  });
+
+  /**
+   * Replace the mocked client's `transaction` with one that records whether
+   * the callback executed `SET TRANSACTION READ ONLY`. Mirrors the real
+   * postgres-js contract: `transaction(cb)` runs `cb` with a tx handle and
+   * returns its result.
+   */
+  interface TransactionMock {
+    mockImplementation(
+      impl: (
+        cb: (tx: { execute: (query: unknown) => Promise<void> }) => Promise<unknown>,
+      ) => Promise<unknown>,
+    ): void;
+  }
+
+  function installTransactionMock(primary: { transaction: unknown }) {
+    const log: Array<{ readOnly: boolean }> = [];
+    const transaction = primary.transaction as TransactionMock;
+    transaction.mockImplementation(async (cb) => {
+      const entry = { readOnly: false };
+      log.push(entry);
+      const tx = {
+        execute: vi.fn(async (query: unknown) => {
+          if (extractSqlText(query).includes('READ ONLY')) entry.readOnly = true;
+        }),
+      };
+      return cb(tx);
+    });
+    return log;
+  }
+
+  it('opens a fresh writable transaction instead of reusing a READ ONLY scope', async () => {
+    const { getPrimaryDb, withTenantDb, withTenantDbRO } = await import('../src/client');
+    const log = installTransactionMock(getPrimaryDb());
+
+    const handles: unknown[] = [];
+    await withTenantDbRO('tenant-1', async (roDb) => {
+      handles.push(roDb);
+      await withTenantDb('tenant-1', async (writeDb) => {
+        handles.push(writeDb);
+      });
+    });
+
+    expect(log).toHaveLength(2);
+    expect(log[0]?.readOnly).toBe(true);
+    expect(log[1]?.readOnly).toBe(false);
+    expect(handles[0]).not.toBe(handles[1]);
+  });
+
+  it('reuses an active writable scope for nested writes', async () => {
+    const { getPrimaryDb, withTenantDb } = await import('../src/client');
+    const log = installTransactionMock(getPrimaryDb());
+
+    const handles: unknown[] = [];
+    await withTenantDb('tenant-1', async (outer) => {
+      handles.push(outer);
+      await withTenantDb('tenant-1', async (inner) => {
+        handles.push(inner);
+      });
+    });
+
+    expect(log).toHaveLength(1);
+    expect(handles[0]).toBe(handles[1]);
+  });
+
+  it('reuses an active writable scope for reads so uncommitted writes are visible', async () => {
+    const { getPrimaryDb, withTenantDb, withTenantDbRO } = await import('../src/client');
+    const log = installTransactionMock(getPrimaryDb());
+
+    let sameHandle = false;
+    await withTenantDb('tenant-1', async (writeDb) => {
+      await withTenantDbRO('tenant-1', async (roDb) => {
+        sameHandle = roDb === writeDb;
+      });
+    });
+
+    expect(log).toHaveLength(1);
+    expect(log[0]?.readOnly).toBe(false);
+    expect(sameHandle).toBe(true);
+  });
+});
+
 // Import clean-up: reset singleton state so subsequent tests don't use cached _client
 afterEach(() => {
   vi.resetModules();

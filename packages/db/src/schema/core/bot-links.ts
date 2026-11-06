@@ -26,6 +26,7 @@ import { sql } from 'drizzle-orm';
 import { index, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { organization, users } from './auth';
+import { tenantIsolationPolicy } from './rls';
 
 export const botLinks = pgTable(
   'bot_links',
@@ -47,6 +48,7 @@ export const botLinks = pgTable(
   (t) => [
     primaryKey({ columns: [t.platform, t.chatId] }),
     index('bot_links_user_idx').on(t.userId, t.platform),
+    tenantIsolationPolicy(),
   ],
 );
 

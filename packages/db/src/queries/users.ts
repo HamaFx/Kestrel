@@ -18,7 +18,7 @@
 //
 // These decouple the admin API routes from the schema/users table.
 
-import { desc, eq, ilike, or, sql } from 'drizzle-orm';
+import { count, desc, eq, ilike, or } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
 
@@ -90,7 +90,7 @@ export async function listUsersWithSettings(
       onboardingCompleted: schema.userSettings.onboardingCompleted,
     })
     .from(schema.users)
-    .leftJoin(schema.userSettings, sql`${schema.userSettings.userId} = ${schema.users.id}`)
+    .leftJoin(schema.userSettings, eq(schema.userSettings.userId, schema.users.id))
     .where(whereClause)
     .orderBy(desc(schema.users.createdAt))
     .limit(limit)
@@ -117,21 +117,20 @@ export async function countUsers(q?: string): Promise<number> {
     ? or(ilike(schema.users.email, `%${filter}%`), ilike(schema.users.name, `%${filter}%`))
     : undefined;
 
-  const [row] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(schema.users)
-    .where(whereClause);
-  return row?.count ?? 0;
+  const [row] = await db.select({ count: count() }).from(schema.users).where(whereClause);
+  // postgres.js returns int8 as a string; `count()` declares number but we
+  // normalise anyway so callers always get a real number.
+  return Number(row?.count ?? 0);
 }
 
 /** Count users with an explicit admin role. */
 export async function countAdmins(): Promise<number> {
   const db = getDb();
   const [row] = await db
-    .select({ count: sql<number>`count(*)` })
+    .select({ count: count() })
     .from(schema.users)
     .where(eq(schema.users.role, 'admin'));
-  return row?.count ?? 0;
+  return Number(row?.count ?? 0);
 }
 
 /**

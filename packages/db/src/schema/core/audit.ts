@@ -18,6 +18,7 @@ import { sql } from 'drizzle-orm';
 import { index, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { organization, users } from './auth';
+import { tenantIsolationPolicy } from './rls';
 
 export const auditLogs = pgTable(
   'audit_logs',
@@ -42,5 +43,6 @@ export const auditLogs = pgTable(
     index('audit_logs_user_id_idx').on(t.userId),
     index('audit_logs_action_idx').on(t.action),
     index('audit_logs_tenant_created_idx').on(t.tenantId, t.createdAt),
+    tenantIsolationPolicy(),
   ],
 );

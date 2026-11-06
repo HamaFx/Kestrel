@@ -34,6 +34,7 @@ import { sql } from 'drizzle-orm';
 import { index, integer, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { organization, users } from '../core/auth';
+import { tenantIsolationPolicy } from '../core/rls';
 
 /**
  * Rate-limit counters per (user, endpoint_group, 1-minute window).
@@ -60,6 +61,7 @@ export const rateLimits = pgTable(
     primaryKey({ columns: [t.userId, t.endpointGroup, t.windowStart] }),
     index('rate_limits_user_idx').on(t.userId),
     index('rate_limits_window_start_idx').on(t.windowStart),
+    tenantIsolationPolicy(),
   ],
 );
 

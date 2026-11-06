@@ -27,6 +27,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import { organization, users } from '../core/auth';
+import { tenantIsolationPolicy } from '../core/rls';
 
 /**
  * Per-tool execution telemetry — Phase 7b.
@@ -85,7 +86,8 @@ export const chatToolTelemetry = pgTable(
     index('tool_telemetry_tool_idx').on(t.tool),
     // Phase 2 (0098) — listToolTelemetry: user_id + created_at DESC.
     // Covers chat_tool_telemetry_user_id_idx (dropped in 0122).
-    index('tool_telemetry_user_created_idx').on(t.userId, t.createdAt),
+    index('tool_telemetry_user_created_idx').on(t.userId, t.createdAt.desc()),
+    tenantIsolationPolicy(),
   ],
 );
 

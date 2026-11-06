@@ -19,10 +19,8 @@
 // Callers are always inside a tenant transaction (chat tool, plugin API,
 // worker TickBus/job) and every query additionally filters by user_id.
 
-import { getDb } from '@kestrel/db';
+import { getDb, paperOrders, paperPositions } from '@kestrel/db';
 import { and, eq } from 'drizzle-orm';
-
-import { paperOrders, paperPositions } from '../tables';
 
 /** Distinct symbols with an open position or pending order for this user. */
 export async function listWatchedSymbols(userId: string): Promise<string[]> {

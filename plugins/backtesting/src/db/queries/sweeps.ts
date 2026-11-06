@@ -16,10 +16,14 @@
 
 // Backtesting persistence helpers — parameter sweeps.
 
-import { getDb, requireTenantIdForUser } from '@kestrel/db';
+import {
+  backtestSweeps,
+  getDb,
+  requireTenantIdForUser,
+  type BacktestSweepInsert,
+  type BacktestSweepRow,
+} from '@kestrel/db';
 import { and, desc, eq, inArray } from 'drizzle-orm';
-
-import { backtestSweeps, type BacktestSweepInsert, type BacktestSweepRow } from '../tables';
 
 export async function createBacktestSweep(
   input: Omit<BacktestSweepInsert, 'tenantId'>,

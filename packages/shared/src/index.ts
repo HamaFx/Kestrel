@@ -26,6 +26,10 @@ export * from './symbol-catalog';
 export * from './domain/timeframes';
 export * from './domain/trade-levels';
 
+// Backtesting JSONB payload shapes (shared by @kestrel/db schema and the
+// backtesting plugin engine).
+export * from './domain/backtest';
+
 // F6 — Market Phase Detection
 export * from './domain/market-phase';
 

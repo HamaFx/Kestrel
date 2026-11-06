@@ -20,7 +20,7 @@ import { createEntry } from '@kestrel/ai';
 import { SymbolSchema } from '@kestrel/shared';
 
 import { updatePosition } from '../db/queries';
-import type { PaperAccountRow, PaperPositionRow } from '../db/tables';
+import type { PaperAccountRow, PaperPositionRow } from '@kestrel/db';
 import { outcomeFor, type PositionCloseReason } from '../domain';
 import type { PaperSettings } from '../settings';
 

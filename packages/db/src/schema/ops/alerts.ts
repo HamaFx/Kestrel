@@ -28,6 +28,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import { organization, users } from '../core/auth';
+import { tenantIsolationPolicy } from '../core/rls';
 
 /**
  * Alerts. The `rule` column holds the discriminated-union AlertRule schema
@@ -90,7 +91,7 @@ export const alerts = pgTable(
     index('alerts_last_fired_at_idx').on(t.lastFiredAt),
     index('alerts_delivery_claimed_at_idx').on(t.deliveryClaimedAt),
     // Phase 2 (0098) — high-frequency listAlerts / listEvaluable predicates.
-    index('alerts_user_active_created_idx').on(t.userId, t.active, t.createdAt),
+    index('alerts_user_active_created_idx').on(t.userId, t.active, t.createdAt.desc()),
     // listAlerts: user_id filter + created_at DESC sort (audit 2026-10-31).
     // The composite above cannot serve the sort because `active` sits between.
     index('alerts_user_created_idx').on(t.userId, t.createdAt.desc()),
@@ -99,5 +100,6 @@ export const alerts = pgTable(
       .where(sql`${t.active} = true AND ${t.firedAt} IS NULL`),
     // Phase 2 (0028) — snooze range CHECK, absent from the TypeScript schema.
     check('alerts_snooze_hours_check', sql`${t.snoozeHours} >= 0 AND ${t.snoozeHours} <= 168`),
+    tenantIsolationPolicy(),
   ],
 );

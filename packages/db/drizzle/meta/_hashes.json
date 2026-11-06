@@ -503,6 +503,10 @@
     {
       "tag": "0126_drop_dead_columns",
       "hash": "e5b6144ebe5b838cd73b3ccb2d41989d8527c63441cfe4bfde18e87bbc00a0ab"
+    },
+    {
+      "tag": "0127_tenant_fk_indexes",
+      "hash": "1dc663173e4b3f55e2ecc0425f30ad27d07a71f61a6d4db4b9e4ea9859a12ea0"
     }
   ]
 }

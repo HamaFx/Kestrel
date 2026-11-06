@@ -27,6 +27,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import { organization, users } from '../core/auth';
+import { tenantIsolationPolicy } from '../core/rls';
 
 /**
  * Discriminator for non-assistant-turn telemetry rows.
@@ -162,6 +163,7 @@ export const chatTelemetry = pgTable(
     // — leading with userId then createdAt lets Postgres range-scan this index
     // without a bitmap merge of two single-column indexes.
     index('telemetry_user_created_idx').on(t.userId, t.createdAt),
+    tenantIsolationPolicy(),
   ],
 );
 

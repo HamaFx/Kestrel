@@ -18,6 +18,7 @@ import { sql } from 'drizzle-orm';
 import { check, index, numeric, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 import { organization, users } from '../core/auth';
+import { tenantIsolationPolicy } from '../core/rls';
 
 export const journalEntries = pgTable(
   'journal_entries',
@@ -74,11 +75,12 @@ export const journalEntries = pgTable(
     index('journal_entries_deleted_at_idx').on(t.deletedAt),
     // Phase 2 (0098) — listEntries(user_id, opened_at DESC) predicate.
     // Covers journal_entries_user_id_idx (dropped in 0122).
-    index('journal_entries_user_opened_idx').on(t.userId, t.openedAt),
+    index('journal_entries_user_opened_idx').on(t.userId, t.openedAt.desc()),
     // Phase 2 (0028) — outcome/closedAt consistency CHECK.
     check(
       'journal_outcome_closed_consistency',
       sql`(${t.outcome} = 'open' AND ${t.closedAt} IS NULL) OR (${t.outcome} IN ('win', 'loss', 'breakeven') AND ${t.closedAt} IS NOT NULL)`,
     ),
+    tenantIsolationPolicy(),
   ],
 );

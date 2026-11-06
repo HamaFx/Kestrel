@@ -29,6 +29,12 @@ interface TenantDbScope {
   tenantId: string;
   db: DbClient;
   userId?: string;
+  /**
+   * True when the scope's transaction executed `SET TRANSACTION READ ONLY`.
+   * A writable caller must never reuse such a scope: PostgreSQL aborts the
+   * whole transaction with SQLSTATE 25006 instead of failing just the write.
+   */
+  readOnly?: boolean;
 }
 
 // RLS context is request-scoped. The transaction client is carried through
@@ -175,7 +181,7 @@ export async function withTenantDbFresh<T>(
     // so switching to it would fail with SQLSTATE 42501 on the first query.
     await tx.execute(sql`SELECT set_config('app.current_tenant', ${tenantId}, true)`);
     return tenantDbScope.run(
-      { tenantId, db: scopedDb, ...(opts?.userId ? { userId: opts.userId } : {}) },
+      { tenantId, db: scopedDb, readOnly: false, ...(opts?.userId ? { userId: opts.userId } : {}) },
       () => work(scopedDb),
     );
   });
@@ -184,6 +190,10 @@ export async function withTenantDbFresh<T>(
 /**
  * Run work inside a tenant transaction, reusing an active same-tenant scope
  * when one exists. Use withTenantDbFresh for independent stream lifecycles.
+ *
+ * A scope opened by `withTenantDbRO` is read-only, so it is never reused for
+ * a write: doing so would raise SQLSTATE 25006 and abort the reader's whole
+ * transaction. Writable callers open a fresh primary transaction instead.
  *
  * `opts.userId` is forwarded into the fresh scope so repository calls inside
  * `work` short-circuit their membership lookup (see getTenantIdForUser) — a
@@ -197,7 +207,7 @@ export async function withTenantDb<T>(
 ): Promise<T> {
   assertTenantIsolationConfig();
   const current = tenantDbScope.getStore();
-  if (current?.tenantId === tenantId) return work(current.db);
+  if (current?.tenantId === tenantId && !current.readOnly) return work(current.db);
   return withTenantDbFresh(tenantId, work, opts);
 }
 
@@ -208,12 +218,17 @@ export async function withTenantDb<T>(
  * optimise read-only transactions (no lock contention, no WAL writes).
  * RLS is always enabled in a supported deployment — there is no unscoped
  * read path.
+ *
+ * An active same-tenant scope is reused whether it is read-only or writable:
+ * a read inside the caller's open write transaction must see its uncommitted
+ * writes.
  */
 export async function withTenantDbRO<T>(
   tenantId: string,
   work: (db: DbClient) => Promise<T>,
   opts?: TenantDbScopeOptions,
 ): Promise<T> {
+  assertTenantIsolationConfig();
   const current = tenantDbScope.getStore();
   if (current?.tenantId === tenantId) return work(current.db);
   if (!isRlsEnabled()) {
@@ -227,7 +242,7 @@ export async function withTenantDbRO<T>(
     await tx.execute(sql`SELECT set_config('app.current_tenant', ${tenantId}, true)`);
     const scopedDb = tx as unknown as DbClient;
     return tenantDbScope.run(
-      { tenantId, db: scopedDb, ...(opts?.userId ? { userId: opts.userId } : {}) },
+      { tenantId, db: scopedDb, readOnly: true, ...(opts?.userId ? { userId: opts.userId } : {}) },
       () => work(scopedDb),
     );
   });

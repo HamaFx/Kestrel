@@ -20,19 +20,28 @@
 // It never reads the clock, so the exact same input always produces the exact
 // same result (important for regression tests and agent iteration).
 
-import type { Symbol, Timeframe } from '@kestrel/shared';
+import type {
+  BacktestMetrics,
+  BacktestTrade,
+  EquityPoint,
+  RejectedSignal,
+  Symbol,
+  Timeframe,
+  TradeSide,
+} from '@kestrel/shared';
 
-export type TradeSide = 'long' | 'short';
-
-export type TradeExitReason =
-  | 'stop_loss'
-  | 'take_profit'
-  | 'trailing_stop'
-  | 'max_bars'
-  | 'end_of_data'
-  | 'manual';
-
-export type EntryType = 'market' | 'limit';
+// Serialised payload shapes live in @kestrel/shared so @kestrel/db can type
+// the `plg_backtesting_*` JSONB columns without importing this package.
+// Re-exported here to keep the engine's public surface unchanged.
+export type {
+  BacktestMetrics,
+  BacktestTrade,
+  EntryType,
+  EquityPoint,
+  RejectedSignal,
+  TradeExitReason,
+  TradeSide,
+} from '@kestrel/shared';
 
 /** Trailing-stop modes available to an agent-authored strategy. */
 export type TrailingMode = 'atr' | 'percent' | 'fixed';
@@ -102,83 +111,6 @@ export interface BacktestOptions {
   allowShort: boolean;
   /** Default maximum bars in a trade when a signal omits `maxBars`. */
   maxBarsInTrade: number;
-}
-
-export interface BacktestTrade {
-  id: number;
-  side: TradeSide;
-  entryType: EntryType;
-  entryTime: number;
-  exitTime: number;
-  entryPrice: number;
-  exitPrice: number;
-  stop: number;
-  target: number | null;
-  /** Position size in lots (FX/gold) or coins (crypto). */
-  quantity: number;
-  riskAmount: number;
-  pnl: number;
-  fees: number;
-  rMultiple: number;
-  barsHeld: number;
-  exitReason: TradeExitReason;
-  mfe: number;
-  mae: number;
-  reason?: string;
-  tags?: string[];
-}
-
-export interface RejectedSignal {
-  signalIndex: number;
-  signalTime: number;
-  reason: string;
-}
-
-export interface EquityPoint {
-  t: number;
-  equity: number;
-  drawdown: number;
-  drawdownPct: number;
-}
-
-export interface BacktestMetrics {
-  trades: number;
-  wins: number;
-  losses: number;
-  breakeven: number;
-  winRate: number;
-  profitFactor: number;
-  netPnl: number;
-  returnPct: number;
-  grossProfit: number;
-  grossLoss: number;
-  feesPaid: number;
-  expectancy: number;
-  expectancyR: number;
-  averageR: number;
-  averageWinR: number;
-  averageLossR: number;
-  totalR: number;
-  largestWin: number;
-  largestLoss: number;
-  maxDrawdown: number;
-  maxDrawdownPct: number;
-  maxDrawdownBars: number;
-  sharpeRatio: number;
-  sortinoRatio: number;
-  /** System Quality Number: trade-scaled t-stat (avg trade return / std) * sqrt(N). */
-  sqn: number;
-  averageBarsHeld: number;
-  exposurePct: number;
-  longTrades: number;
-  shortTrades: number;
-  longWinRate: number;
-  shortWinRate: number;
-  consecutiveWins: number;
-  consecutiveLosses: number;
-  bestTradeR: number;
-  worstTradeR: number;
-  finalEquity: number;
 }
 
 export interface BacktestResult {

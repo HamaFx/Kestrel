@@ -51,7 +51,7 @@
 
 import { sql } from 'drizzle-orm';
 
-import { getTenantDbScope, withTenantDb, type DbClient } from '../client';
+import { getTenantDbScope, schema, withTenantDb, type DbClient } from '../client';
 import { withUserTenant } from '../tenant/with-user-tenant';
 
 export interface RateLimitResult {
@@ -117,28 +117,30 @@ export async function withRateLimit(
     db: DbClient,
     rowTenantId: string | undefined,
   ): Promise<RateLimitResult> => {
-    const bucket = sql`date_trunc('minute', now())`;
-    const tenantColumn = rowTenantId ? sql`, "tenant_id"` : sql``;
-    const tenantValue = rowTenantId ? sql`, ${rowTenantId}` : sql``;
+    // `date_trunc('minute', now())` is evaluated by Postgres so every instance
+    // shares the server clock instead of drifting with local time.
+    const [row] = await db
+      .insert(schema.rateLimits)
+      .values({
+        userId,
+        ...(rowTenantId ? { tenantId: rowTenantId } : {}),
+        endpointGroup,
+        windowStart: sql`date_trunc('minute', now())`,
+        requestCount: 1,
+      })
+      .onConflictDoUpdate({
+        target: [
+          schema.rateLimits.userId,
+          schema.rateLimits.endpointGroup,
+          schema.rateLimits.windowStart,
+        ],
+        set: {
+          requestCount: sql`${schema.rateLimits.requestCount} + 1`,
+        },
+      })
+      .returning({ requestCount: schema.rateLimits.requestCount });
 
-    // Use the `rate_limits` table via schema export.
-    const rows = await db.execute<{ request_count: number }>(sql`
-      INSERT INTO "rate_limits" ("user_id"${tenantColumn}, "endpoint_group", "window_start", "request_count")
-      VALUES (${userId}${tenantValue}, ${endpointGroup}, ${bucket}, 1)
-      ON CONFLICT ("user_id", "endpoint_group", "window_start")
-      DO UPDATE SET "request_count" = "rate_limits"."request_count" + 1
-      RETURNING "request_count"
-    `);
-
-    // Driver-shape normalization: postgres-js (prod) returns a Result that
-    // *extends Array* (no `.rows`). Read the shape correctly or the
-    // counter silently reads 0 in production and the limit never fires.
-    const rawRows = (
-      Array.isArray(rows)
-        ? rows
-        : ((rows as { rows?: Array<{ request_count: number }> }).rows ?? [])
-    ) as Array<{ request_count: number }>;
-    const count = Number(rawRows[0]?.request_count ?? 0);
+    const count = Number(row?.requestCount ?? 0);
 
     return {
       allowed: count <= limit,

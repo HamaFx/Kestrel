@@ -16,10 +16,13 @@
 
 // Backtesting persistence helpers — saved strategy library.
 
-import { getDb, requireTenantIdForUser } from '@kestrel/db';
+import {
+  backtestStrategies,
+  getDb,
+  requireTenantIdForUser,
+  type BacktestStrategyRow,
+} from '@kestrel/db';
 import { and, count, desc, eq, or } from 'drizzle-orm';
-
-import { backtestStrategies, type BacktestStrategyRow } from '../tables';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

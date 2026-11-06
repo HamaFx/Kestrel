@@ -24,7 +24,7 @@ import {
   listBacktestStrategies,
   upsertBacktestStrategy,
 } from '../db/queries';
-import type { BacktestStrategyRow } from '../db/tables';
+import type { BacktestStrategyRow } from '@kestrel/db';
 import { slugifyName, type SaveStrategyInput } from '../schemas';
 
 export interface StrategySummaryView {

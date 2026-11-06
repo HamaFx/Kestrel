@@ -18,6 +18,7 @@ import { sql } from 'drizzle-orm';
 import { bigint, date, index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 import { organization, users } from '../core/auth';
+import { tenantIsolationPolicy } from '../core/rls';
 
 export type AiBudgetReservationStatus = 'reserved' | 'reconciled' | 'released';
 
@@ -60,6 +61,7 @@ export const aiBudgetReservations = pgTable(
       .where(
         sql`${table.status} IN ('reconciled', 'released') AND ${table.resolvedAt} IS NOT NULL`,
       ),
+    tenantIsolationPolicy(),
   ],
 );
 

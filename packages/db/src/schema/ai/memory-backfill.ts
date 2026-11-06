@@ -8,6 +8,7 @@ import { sql } from 'drizzle-orm';
 import { index, integer, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { organization, users } from '../core/auth';
+import { tenantIsolationPolicy } from '../core/rls';
 
 /** Durable coordination state for the legacy Drizzle → Mastra memory projection. */
 export const memoryBackfillState = pgTable(
@@ -25,7 +26,10 @@ export const memoryBackfillState = pgTable(
     copiedThroughCreatedAt: timestamp('copied_through_created_at', { withTimezone: true }),
     copiedCount: integer('copied_count').notNull().default(0),
     lastError: text('last_error'),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
     completedAt: timestamp('completed_at', { withTimezone: true }),
   },
   (table) => [
@@ -34,6 +38,7 @@ export const memoryBackfillState = pgTable(
       columns: [table.userId, table.threadId],
     }),
     index('memory_backfill_state_tenant_idx').on(table.tenantId, table.updatedAt),
+    tenantIsolationPolicy(),
   ],
 );
 
