@@ -42,7 +42,7 @@ import { SkipToContent } from '@/components/layout/skip-to-content';
 import { TickerTape } from '@/components/layout/ticker-tape';
 import { TopBar } from '@/components/layout/top-bar';
 import { MotionRoot } from '@/components/ui/motion-config';
-import { AmbientTelemetry } from '@/components/ui/segmented';
+import { AmbientTelemetry } from '@/components/layout/ambient-telemetry';
 import { Toaster } from '@/components/ui/toaster';
 import { checkIsAdmin } from '@/lib/auth/admin-check';
 

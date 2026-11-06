@@ -10,7 +10,20 @@ import { m } from 'motion/react';
 import type { AnalysisMode } from '@/lib/analysis-mode';
 import { cn } from '@/lib/formatters/cn';
 
-import { MODE_DESCRIPTIONS, MODE_LABELS, MODE_LABELS_COMPACT } from './chat-top-bar/mode-labels';
+const MODE_LABELS: Record<AnalysisMode, string> = {
+  single: 'Fast Scout',
+  full: 'Convene Council',
+};
+
+const MODE_LABELS_COMPACT: Record<AnalysisMode, string> = {
+  single: '⚡ Fast Scout',
+  full: '🏛️ Convene Council',
+};
+
+const MODE_DESCRIPTIONS: Record<AnalysisMode, string> = {
+  single: 'Fast single-pass AI scout with live read-only market tools.',
+  full: 'All 4 specialist desks + cross-examination + Arbiter trade plan.',
+};
 
 export function ComposerModePill({
   analysisMode,

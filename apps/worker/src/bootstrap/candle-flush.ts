@@ -14,53 +14,214 @@
  * limitations under the License.
  */
 
-// Closed-candle flush rig: wires the 1m aggregator to the persistence layer
-// with retries, a durable hand-off, gap backfill, and shutdown draining.
+// Closed-candle flush rig: wires the 1m aggregator to persistence with a
+// bounded write retry, a durable pg-boss hand-off, gap backfill, and shutdown
+// draining.
 //
-// R9 (audit 2026-10-31) — a closed bar is no longer fire-and-forget. This
-// file owns the wiring and lifecycle; the cohesive pieces live next door:
-//
-//   1. `candle-writer.ts` writes each bar with a bounded retry loop
-//      (default 3 attempts, backoff 250ms/1s, per-attempt timeout 10s).
-//   2. When the retries are exhausted `candle-queue.ts` hands the bar to the
-//      durable pg-boss queue (`persistence/candle-outbox.ts`), which the
-//      worker consumes on a later cycle or on the next boot. The write is
-//      idempotent, so a replay is a no-op. Only when the write AND the queue
-//      both fail is the bar logged as lost, with its full OHLC payload, and
-//      counted.
-//   3. `candle-gaps.ts` reports a rollover that skipped minutes and asks the
-//      REST OHLC adapters for the missing bars; provider-answered bars are
-//      written through the same durable path. Nothing is synthesised, and
-//      the first closed bar per symbol after a restart is compared against
-//      `candles_1m` so downtime between processes is detected too.
-//   4. `drain()` closes the open bars, gives in-flight work a bounded grace
-//      window, then hands every still-unpersisted bar to the queue. Shutdown
-//      no longer silently discards a bar in flight.
-//
-// This rig only tracks bars; it never inspects their prices, so it stays
-// testable with a fake db and injected writer/gap seams.
+// A closed bar is never fire-and-forget:
+//   1. writeCandleBar retries the direct write (default 3 attempts).
+//   2. When retries are exhausted, handOffBar sends the bar to the durable
+//      `candle-flush` outbox queue. Writes are idempotent, so replay is safe.
+//   3. Only when both the write and the queue fail is the bar logged as lost
+//      with its full OHLC payload and counted.
+//   4. drain() closes open bars, waits a bounded grace window, then queues
+//      anything still unpersisted before shutdown.
 
 import type { DbClient } from '@kestrel/db';
 
 import { Candle1mAggregator, type Candle1mBar, type CandleGap } from '../aggregator/candle-1m.js';
 import type { Logger } from '../log.js';
 import type { GapBackfillResult } from '../persistence/candle-backfill.js';
-import { createCandleGapTracker, GAP_DRAIN_WAIT_MS, type FetchGapBars } from './candle-gaps.js';
+import { flushClosedCandle } from '../persistence/candles-1m.js';
 import {
-  DEFAULT_HAND_OFF_TIMEOUT_MS,
-  defaultEnqueueFailedBar,
-  handOffBar,
-  type EnqueueFailedBar,
-} from './candle-queue.js';
-import { sleep } from './candle-timing.js';
-import {
-  DEFAULT_FLUSH_TIMEOUT_MS,
-  DEFAULT_MAX_ATTEMPTS,
-  DEFAULT_RETRY_DELAYS_MS,
-  writeCandleBar,
-} from './candle-writer.js';
+  createCandleGapTracker,
+  GAP_DRAIN_WAIT_MS,
+  sleep,
+  type FetchGapBars,
+} from './candle-gaps.js';
 
+const DEFAULT_MAX_ATTEMPTS = 3;
+const DEFAULT_RETRY_DELAYS_MS = [250, 1_000];
+const DEFAULT_FLUSH_TIMEOUT_MS = 10_000;
+const DEFAULT_HAND_OFF_TIMEOUT_MS = 2_000;
+
+/** Floor for a per-attempt timeout, even after the shutdown window closes. */
+const ATTEMPT_TIMEOUT_FLOOR_MS = 250;
+/** Floor for one hand-off attempt: a slow pool must not abandon the bar. */
+const HAND_OFF_TIMEOUT_FLOOR_MS = 250;
 const DEFAULT_SHUTDOWN_GRACE_MS = 5_000;
+
+/** Resolve with the promise's value, or `'timeout'` after `ms`. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | 'timeout'> {
+  return Promise.race([promise, sleep(ms).then(() => 'timeout' as const)]);
+}
+
+/** Hands one unpersisted bar to the durable queue. Injected by tests. */
+type EnqueueFailedBar = (bar: Candle1mBar, reason: string) => Promise<boolean>;
+
+/**
+ * Default hand-off: the pg-boss `candle-flush` queue. Imported lazily so the
+ * pure rig tests never load pg-boss.
+ */
+async function defaultEnqueueFailedBar(bar: Candle1mBar, reason: string): Promise<boolean> {
+  const { enqueueClosedCandle } = await import('../persistence/candle-outbox.js');
+  return enqueueClosedCandle(bar, { reason });
+}
+
+type HandOffOutcome = { status: 'queued' } | { status: 'dropped'; reason: string };
+
+interface HandOffBarArgs {
+  bar: Candle1mBar;
+  /** Why the bar reached the queue: 'flush-failed' or 'shutdown'. */
+  reason: string;
+  /** Error that exhausted the write attempts (diagnostics only). */
+  cause: unknown;
+  /** Configured cap for the insert; floored at HAND_OFF_TIMEOUT_FLOOR_MS. */
+  timeoutMs: number;
+  enqueue: EnqueueFailedBar;
+  log: Logger;
+}
+
+/**
+ * Queue one unpersisted bar. Never throws: the caller maps the outcome to
+ * counters so a total failure (write + queue) is visible rather than lost.
+ */
+async function handOffBar(args: HandOffBarArgs): Promise<HandOffOutcome> {
+  const { bar, log } = args;
+  let failure: string;
+  try {
+    const outcome = await withTimeout(
+      args.enqueue(bar, args.reason),
+      Math.max(HAND_OFF_TIMEOUT_FLOOR_MS, args.timeoutMs),
+    );
+    if (outcome === true) {
+      log.warn('candle bar queued for durable replay', {
+        symbol: bar.symbol,
+        t: new Date(bar.t).toISOString(),
+        reason: args.reason,
+        err: args.cause === undefined ? null : String(args.cause),
+      });
+      return { status: 'queued' };
+    }
+    failure = outcome === 'timeout' ? 'durable queue hand-off timed out' : 'durable queue refused';
+  } catch (queueErr) {
+    failure = String(queueErr);
+  }
+
+  log.error('candle bar LOST (write and durable queue both failed)', {
+    symbol: bar.symbol,
+    t: new Date(bar.t).toISOString(),
+    o: bar.o,
+    h: bar.h,
+    l: bar.l,
+    c: bar.c,
+    v: bar.v,
+    tickVolume: bar.tickVolume,
+    source: bar.source,
+    reason: args.reason,
+    lastError: failure,
+  });
+  return { status: 'dropped', reason: failure };
+}
+
+interface CandleWriteOutcome {
+  /** 'written' to `candles_1m`, 'queued' for durable replay, or 'dropped'. */
+  status: 'written' | 'queued' | 'dropped';
+  /** DB write attempts made (1..maxAttempts, plus any made before shutdown). */
+  attempts: number;
+  /** Why the bar was dropped (status 'dropped' only). */
+  failure: string | null;
+}
+
+interface WriteCandleBarArgs {
+  bar: Candle1mBar;
+  db: DbClient;
+  log: Logger;
+  maxAttempts: number;
+  retryDelaysMs: number[];
+  flushTimeoutMs: number;
+  handOffTimeoutMs: number;
+  /** Milliseconds left in the shutdown grace window, or null while running. */
+  remainingShutdownMs: () => number | null;
+  enqueue: EnqueueFailedBar;
+}
+
+/**
+ * Write one closed bar, retrying within the policy above and falling back to
+ * the durable queue. Never throws.
+ */
+async function writeCandleBar(args: WriteCandleBarArgs): Promise<CandleWriteOutcome> {
+  const { bar, db, log } = args;
+
+  const writeOnce = async (timeoutMs: number): Promise<void> => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      controller.abort(new DOMException('candle flush timed out', 'TimeoutError'));
+    }, timeoutMs);
+    timer.unref();
+    try {
+      await flushClosedCandle({ db, log, bar, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  const attemptTimeoutMs = (remainingShutdownMs: number | null): number => {
+    if (remainingShutdownMs === null) return args.flushTimeoutMs;
+    return Math.max(ATTEMPT_TIMEOUT_FLOOR_MS, Math.min(args.flushTimeoutMs, remainingShutdownMs));
+  };
+
+  let attempt = 0;
+  let lastErr: unknown;
+
+  while (attempt < args.maxAttempts) {
+    if (attempt > 0) {
+      const delay = args.retryDelaysMs[Math.min(attempt - 1, args.retryDelaysMs.length - 1)] ?? 0;
+      const remaining = args.remainingShutdownMs();
+      if (remaining !== null && remaining <= delay) break;
+      await sleep(delay);
+    }
+    const remaining = args.remainingShutdownMs();
+    if (remaining !== null && remaining <= 0) break;
+
+    attempt += 1;
+    try {
+      await writeOnce(attemptTimeoutMs(remaining));
+      log.info('candle closed', {
+        symbol: bar.symbol,
+        t: new Date(bar.t).toISOString(),
+        o: bar.o,
+        h: bar.h,
+        l: bar.l,
+        c: bar.c,
+        ticks: bar.tickVolume,
+        attempts: attempt,
+      });
+      return { status: 'written', attempts: attempt, failure: null };
+    } catch (err) {
+      lastErr = err;
+      log.warn('flushClosedCandle attempt failed', {
+        symbol: bar.symbol,
+        t: new Date(bar.t).toISOString(),
+        attempt,
+        maxAttempts: args.maxAttempts,
+        err: String(err),
+      });
+    }
+  }
+
+  const reason = args.remainingShutdownMs() !== null ? 'shutdown' : 'flush-failed';
+  const outcome = await handOffBar({
+    bar,
+    reason,
+    cause: lastErr,
+    timeoutMs: args.handOffTimeoutMs,
+    enqueue: args.enqueue,
+    log,
+  });
+  if (outcome.status === 'queued') return { status: 'queued', attempts: attempt, failure: null };
+  return { status: 'dropped', attempts: attempt, failure: outcome.reason };
+}
 
 export interface CandlePipelineStats {
   /** Bars emitted by the aggregator (rollover + closeAll). */
@@ -169,7 +330,6 @@ export function createCandleFlushRig({
   const pending = new Map<number, PendingBar>();
   let shutdownDeadlineMs: number | null = null;
 
-  /** Milliseconds left in the shutdown grace window, null while running. */
   const remainingShutdownMs = (): number | null =>
     shutdownDeadlineMs === null ? null : shutdownDeadlineMs - Date.now();
 

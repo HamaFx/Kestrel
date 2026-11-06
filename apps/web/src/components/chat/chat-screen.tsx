@@ -116,13 +116,6 @@ export function ChatScreen({
         pinnedSymbol={pinnedSymbol}
         threads={initialThreads}
         isStreaming={session.isStreaming}
-        analysisMode={toolbar.analysisMode}
-        onAnalysisModeChange={toolbar.handleAnalysisModeChange}
-        chatModel={toolbar.chatModel}
-        onChatModelChange={toolbar.handleChatModelChange}
-        modelSelectionPending={toolbar.modelSelectionPending}
-        viewsOpen={splitMode}
-        onToggleViews={() => setSplitMode((v) => !v)}
         splitMode={splitMode}
         onToggleSplitMode={() => setSplitMode((v) => !v)}
       />

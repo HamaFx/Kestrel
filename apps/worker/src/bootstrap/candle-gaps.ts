@@ -41,9 +41,16 @@ import { desc, eq } from 'drizzle-orm';
 import type { Candle1mBar, CandleGap } from '../aggregator/candle-1m.js';
 import type { Logger } from '../log.js';
 import type { GapBackfillResult } from '../persistence/candle-backfill.js';
-import { sleep } from './candle-timing.js';
 
 const MINUTE_MS = 60_000;
+
+/** Sleep for `ms`, without holding the event loop open. */
+export function sleep(ms: number): Promise<void> {
+  return new Promise<void>((resolve) => {
+    const timer = setTimeout(resolve, ms);
+    timer.unref();
+  });
+}
 
 /** How long drain() waits on best-effort gap work before giving up on it. */
 export const GAP_DRAIN_WAIT_MS = 750;

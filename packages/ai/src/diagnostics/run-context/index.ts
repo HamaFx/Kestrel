@@ -14,35 +14,302 @@
  * limitations under the License.
  */
 
-// F5 — Run Diagnostic Context barrel (DEC-05 split of run-context.ts).
+// F5 — per-chat-turn diagnostic tracing via AsyncLocalStorage.
 //
-// Provides per-chat-turn diagnostic tracing via Node.js AsyncLocalStorage.
-// This is the TypeScript equivalent of Python's ContextVar pattern used
-// in DSA's `RunDiagnosticContext`.
-//
-// Usage:
 //   const result = await withDiagnostics(userId, threadId, () => runChat(...));
-//   // Inside runChat or any tool:
 //   recordStep('fetch_candles', { symbol: 'XAUUSD' });
-//   recordStep('fetch_candles', { status: 'completed', durationMs: 42 });
 //   recordError(err);
-//   const ctx = getDiagnosticContext(); // null if not in a diagnostic scope
+//   const ctx = getDiagnosticContext(); // null outside a diagnostic scope
 //
-//   - types.ts            — context/step/error contracts
-//   - store.ts            — the AsyncLocalStorage singleton
-//   - lifecycle.ts        — trace writers (recordStep/completeStep/recordError)
-//   - snapshot.ts         — trace serialization (final redaction pass)
-//   - trace.ts            — best-effort trace persistence
-//   - with-diagnostics.ts — the scope runner wiring ALS + persistence
+// Recording is always optional: outside a scope every writer is a no-op, and
+// trace persistence is best-effort so a storage failure never blocks a turn.
 
-export {
-  type DiagnosticError,
-  type DiagnosticOptions,
-  type DiagnosticStep,
-  type RunDiagnosticContext,
-} from './types';
-export { getDiagnosticContext } from './store';
-export { completeStep, recordError, recordLifecycleStep, recordStep } from './lifecycle';
-export { exportDiagnosticContext } from './snapshot';
-export { persistDiagnosticContext } from './trace';
-export { withDiagnostics } from './with-diagnostics';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { randomUUID } from 'node:crypto';
+
+import type { ObservabilityEventName } from '@kestrel/shared';
+import {
+  createCategorizedLogger,
+  requestIdStorage,
+  runIdStorage,
+  traceIdStorage,
+} from '@kestrel/shared/logger';
+
+import { redactSecrets } from '../redact';
+import { persistTrace, type PersistedTrace } from '../trace-persistence';
+
+export interface DiagnosticStep {
+  /** Step name, e.g. 'fetch_candles', 'run_technical_agent'. */
+  name: string;
+  /** Lifecycle status of the step. */
+  status: 'started' | 'completed' | 'failed';
+  /** Duration in milliseconds (set on completion/failure). */
+  durationMs?: number;
+  /** Auto-redacted metadata for the step. */
+  metadata?: Record<string, unknown>;
+  /** Timestamp the step was recorded. */
+  timestamp: number;
+}
+
+export interface DiagnosticError {
+  /** Error message (redacted). */
+  message: string;
+  /** Error name/class. */
+  name: string;
+  /** Stack trace (redacted), if available. */
+  stack?: string;
+  /** Timestamp the error was recorded. */
+  timestamp: number;
+}
+
+export interface RunDiagnosticContext {
+  traceId: string;
+  userId: string;
+  threadId: string;
+  /** HTTP request correlation id, when the run originated from a request. */
+  requestId?: string;
+  /** Worker/job execution id, when the run is processed asynchronously. */
+  runId?: string;
+  /** Durable queued analysis job id, when the run is processed asynchronously. */
+  jobId?: string;
+  startedAt: number;
+  steps: DiagnosticStep[];
+  errors: DiagnosticError[];
+}
+
+export interface DiagnosticOptions {
+  /** Streamed callers persist completion from their onFinish callback. */
+  deferCompletion?: boolean;
+  /** Preserve a trace id supplied by a distributed worker/job boundary. */
+  traceId?: string;
+  /** Correlate the run with its originating HTTP request. */
+  requestId?: string;
+  /** Correlate the run with a worker/job execution. */
+  runId?: string;
+  /** Correlate the run with a durable queued analysis job. */
+  jobId?: string;
+}
+
+const diagnosticStore = new AsyncLocalStorage<RunDiagnosticContext>();
+
+/** Get the current diagnostic context, or null outside a diagnostic scope. */
+export function getDiagnosticContext(): RunDiagnosticContext | null {
+  return diagnosticStore.getStore() ?? null;
+}
+
+/** Record a step in the current diagnostic context. Metadata is redacted. */
+export function recordStep(name: string, metadata?: Record<string, unknown>): void {
+  const ctx = diagnosticStore.getStore();
+  if (!ctx) return;
+
+  const step: DiagnosticStep = {
+    name,
+    status: 'started',
+    timestamp: Date.now(),
+  };
+
+  if (metadata !== undefined) {
+    step.metadata = redactSecrets(metadata) as Record<string, unknown>;
+  }
+
+  ctx.steps.push(step);
+}
+
+/** Record a typed lifecycle event using the shared observability contract. */
+export function recordLifecycleStep(
+  event: ObservabilityEventName,
+  metadata?: Record<string, unknown>,
+): void {
+  recordStep(event, metadata);
+}
+
+/**
+ * Mark the most recent started step with this name as completed or failed.
+ * Creates a fresh step when none is open.
+ */
+export function completeStep(
+  name: string,
+  status: 'completed' | 'failed',
+  durationMs?: number,
+  metadata?: Record<string, unknown>,
+): void {
+  const ctx = diagnosticStore.getStore();
+  if (!ctx) return;
+
+  let lastStartedIdx = -1;
+  for (let i = ctx.steps.length - 1; i >= 0; i--) {
+    const s = ctx.steps[i]!;
+    if (s.name === name && s.status === 'started') {
+      lastStartedIdx = i;
+      break;
+    }
+  }
+
+  if (lastStartedIdx >= 0) {
+    const step = ctx.steps[lastStartedIdx]!;
+    step.status = status;
+    if (durationMs !== undefined) step.durationMs = durationMs;
+    if (metadata !== undefined) {
+      step.metadata = {
+        ...(step.metadata ?? {}),
+        ...(redactSecrets(metadata) as Record<string, unknown>),
+      };
+    }
+    return;
+  }
+
+  const step: DiagnosticStep = { name, status, timestamp: Date.now() };
+  if (durationMs !== undefined) step.durationMs = durationMs;
+  if (metadata !== undefined) {
+    step.metadata = redactSecrets(metadata) as Record<string, unknown>;
+  }
+  ctx.steps.push(step);
+}
+
+/** Record an error in the current diagnostic context. Message/stack redacted. */
+export function recordError(err: unknown): void {
+  const ctx = diagnosticStore.getStore();
+  if (!ctx) return;
+
+  const errorObj = err as { message?: unknown; name?: unknown; stack?: unknown };
+  const diagnosticError: DiagnosticError = {
+    message: redactSecrets(
+      typeof errorObj?.message === 'string' ? errorObj.message : String(err),
+    ) as string,
+    name: typeof errorObj?.name === 'string' ? errorObj.name : 'Error',
+    timestamp: Date.now(),
+  };
+
+  if (typeof errorObj?.stack === 'string') {
+    diagnosticError.stack = redactSecrets(errorObj.stack) as string;
+  }
+
+  ctx.errors.push(diagnosticError);
+}
+
+function exportDiagnosticContextInternal(
+  ctx: RunDiagnosticContext,
+  status: 'completed' | 'failed' = 'completed',
+): Record<string, unknown> {
+  return redactSecrets({
+    traceId: ctx.traceId,
+    userId: ctx.userId,
+    threadId: ctx.threadId,
+    ...(ctx.requestId ? { requestId: ctx.requestId } : {}),
+    ...(ctx.runId ? { runId: ctx.runId } : {}),
+    ...(ctx.jobId ? { jobId: ctx.jobId } : {}),
+    startedAt: ctx.startedAt,
+    durationMs: Date.now() - ctx.startedAt,
+    stepCount: ctx.steps.length,
+    errorCount: ctx.errors.length,
+    status,
+    steps: ctx.steps,
+    errors: ctx.errors,
+  }) as Record<string, unknown>;
+}
+
+/** Serialize the current diagnostic context for Sentry/logging/API output. */
+export function exportDiagnosticContext(): Record<string, unknown> | null {
+  const ctx = diagnosticStore.getStore();
+  if (!ctx) return null;
+  return exportDiagnosticContextInternal(ctx, 'completed');
+}
+
+const dlog = createCategorizedLogger('ai', { component: 'diagnostics' });
+
+async function maybePersistTrace(
+  ctx: RunDiagnosticContext,
+  status: 'completed' | 'failed' = 'completed',
+): Promise<void> {
+  try {
+    const trace = exportDiagnosticContextInternal(ctx, status);
+    const persisted: PersistedTrace = {
+      traceId: String(trace.traceId ?? ctx.traceId),
+      userId: String(trace.userId ?? ctx.userId),
+      threadId: String(trace.threadId ?? ctx.threadId),
+      startedAt: Number(trace.startedAt ?? ctx.startedAt),
+      durationMs: Number(trace.durationMs ?? Date.now() - ctx.startedAt),
+      stepCount: Number(trace.stepCount ?? ctx.steps.length),
+      errorCount: Number(trace.errorCount ?? ctx.errors.length),
+      status,
+      trace,
+    };
+    await persistTrace(persisted);
+  } catch (err) {
+    dlog.error('trace persistence failed', {
+      traceId: ctx.traceId,
+      status,
+      err: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
+/** Persist a trace for the given context when one exists. */
+export async function persistDiagnosticContext(
+  ctx: RunDiagnosticContext | null,
+  status: 'completed' | 'failed' = 'completed',
+): Promise<void> {
+  if (!ctx) return;
+  await maybePersistTrace(ctx, status);
+}
+
+/**
+ * N-01 (audit 2026-10-18) — aborts are lifecycle outcomes, not failures.
+ * `AbortError` and `TimeoutError` are surfaced by the caller as explicit
+ * terminal outcomes, so they are not recorded as diagnostic errors.
+ */
+function isAbortLike(err: unknown): boolean {
+  if (err === null || typeof err !== 'object') return false;
+  const name = (err as { name?: unknown }).name;
+  return name === 'AbortError' || name === 'TimeoutError';
+}
+
+/** Wrap an async function in a diagnostic context persisted on exit. */
+export function withDiagnostics<T>(
+  userId: string,
+  threadId: string,
+  fn: () => Promise<T>,
+  options: DiagnosticOptions = {},
+): Promise<T> {
+  const ctx: RunDiagnosticContext = {
+    traceId: options.traceId ?? randomUUID(),
+    userId,
+    threadId,
+    ...(options.requestId ? { requestId: options.requestId } : {}),
+    ...(options.runId ? { runId: options.runId } : {}),
+    ...(options.jobId ? { jobId: options.jobId } : {}),
+    startedAt: Date.now(),
+    steps: [],
+    errors: [],
+  };
+
+  const runBody = () =>
+    diagnosticStore.run(ctx, async () => {
+      try {
+        const result = await fn();
+        if (!options.deferCompletion) await maybePersistTrace(ctx);
+        return result;
+      } catch (err) {
+        if (!isAbortLike(err)) recordError(err);
+        await maybePersistTrace(ctx, 'failed');
+        if (err instanceof Error) {
+          try {
+            (err as Error & { diagnosticContext?: unknown }).diagnosticContext =
+              exportDiagnosticContextInternal(ctx, 'failed');
+          } catch {
+            // Read-only error object — preserve the original failure.
+          }
+        }
+        throw err;
+      }
+    });
+
+  const runWithOptionalRunId = () =>
+    options.runId ? runIdStorage.run(options.runId, runBody) : runBody();
+  const runWithOptionalRequestId = () =>
+    options.requestId
+      ? requestIdStorage.run(options.requestId, runWithOptionalRunId)
+      : runWithOptionalRunId();
+
+  return traceIdStorage.run(ctx.traceId, runWithOptionalRequestId);
+}

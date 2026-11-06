@@ -16,45 +16,223 @@
  * limitations under the License.
  */
 
-// IconCalendar event card — data-first, scannable at a glance.
+// Calendar event card — data-first and scannable at a glance.
 //
-// Layout:
+// [USD] · United States · 14:30 EST · in 4h 22m
+// Big title (clamped 2)
+// actual 0.3 · forecast 0.2 · prev 0.2
+// [Ask AI] [Remind me]
 //
-//   ┌────────────────────────────────────────┐
-//   │ [USD] · United States · 14:30 EST      │  meta strip (currency + country + time)
-//   │         in 4h 22m                       │  countdown (future) or "released" (past)
-//   │                                         │
-//   │ Big title (clamped 2)                   │  text-body, semibold
-//   │                                         │
-//   │ actual 0.3 · forecast 0.2 · prev 0.2    │  data row (only when present)
-//   │                                         │
-//   │              [Ask AI]  [Remind me]      │  action row
-//   └────────────────────────────────────────┘
-//
-// Vertical accent ribbon on the left encodes importance: red = high,
-// amber = medium, low = no ribbon (only shown when paired with a
-// contrasting surface tone). Same scannability cue as the news cards.
-//
-// Per PLAN.md §2.4 + §2.6 — sharpen radii, adopt R1 typography tokens,
-// kill the ring-1 chip pattern, surface-align with ArticleCard refactor
-// (commit 1992755) so news and calendar read as one design system.
+// A left accent ribbon encodes importance (red high, amber medium, none low).
+
 import type { EconomicEvent } from '@kestrel/shared';
+import { IconBell, IconBolt } from '@tabler/icons-react';
+import { Link } from 'next-view-transitions';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 import { useTime } from '@/components/providers/time-provider';
+import { formatCountdown } from '@/lib/formatters/datetime';
 import { cn } from '@/lib/formatters/cn';
 
-import { Countdown } from './countdown';
-import { EventActions } from './event-actions';
-import { DataRow } from './event-data-row';
-import { IMPORTANCE } from './event-importance';
-import { timeLabel } from './event-time';
-import { ImpactBadge } from './impact-badge';
+const IMPORTANCE = {
+  high: { ribbon: 'var(--color-danger)', label: 'High impact', glyph: '▲' },
+  medium: { ribbon: 'var(--color-warn)', label: 'Medium impact', glyph: '■' },
+  low: { ribbon: 'transparent', label: 'Low impact', glyph: '•' },
+} as const satisfies Record<
+  EconomicEvent['importance'],
+  { ribbon: string; label: string; glyph: string }
+>;
 
-interface EventCardProps {
-  event: EconomicEvent;
+type EventImportance = (typeof IMPORTANCE)[EconomicEvent['importance']];
+
+function timeLabel(d: Date): string {
+  return d.toLocaleString(undefined, {
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  });
 }
 
-export function EventCard({ event }: EventCardProps) {
+function Countdown({ ms, imminent }: { ms: number; imminent: boolean }) {
+  return (
+    <span
+      className={cn('font-semibold', ms <= 0 ? 'text-danger' : imminent ? 'text-warn' : 'text-fg')}
+    >
+      {formatCountdown(ms)}
+    </span>
+  );
+}
+
+function ImpactBadge({
+  importance,
+  children,
+}: {
+  importance: EventImportance;
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      className="text-fg font-bold uppercase tabular-nums"
+      title={importance.label}
+      aria-label={importance.label}
+    >
+      <span aria-hidden className="mr-1">
+        {importance.glyph}
+      </span>
+      {children}
+    </span>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  unit,
+  emphasis,
+}: {
+  label: string;
+  value: number;
+  unit: string | null;
+  emphasis?: boolean;
+}) {
+  return (
+    <span className="flex items-baseline gap-1">
+      <dt className="text-fg-subtle text-caption tracking-wide uppercase">{label}</dt>
+      <dd className={cn('font-semibold', emphasis ? 'text-fg' : 'text-fg-muted')}>
+        {value}
+        {unit ? <span className="text-fg-subtle ml-0.5 font-normal">{unit}</span> : null}
+      </dd>
+    </span>
+  );
+}
+
+function beatMiss(event: EconomicEvent): 'beat' | 'miss' | null {
+  if (event.actual === null || event.forecast === null) return null;
+  const delta = event.actual - event.forecast;
+  if (delta === 0) return null;
+  const isSignificant =
+    event.forecast !== 0
+      ? Math.abs(delta) / Math.abs(event.forecast) > 0.01
+      : Math.abs(delta) > 0.01;
+  if (!isSignificant) return null;
+  return delta > 0 ? 'beat' : 'miss';
+}
+
+function DataRow({ event }: { event: EconomicEvent }) {
+  const beat = beatMiss(event);
+  return (
+    <dl className="surface-well bg-bg/60 border-edge/40 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-md border p-2 font-mono text-xs tabular-nums sm:text-sm">
+      {event.actual !== null && (
+        <Stat label="actual" value={event.actual} unit={event.unit} emphasis />
+      )}
+      {event.forecast !== null && (
+        <Stat label="forecast" value={event.forecast} unit={event.unit} />
+      )}
+      {event.previous !== null && <Stat label="prev" value={event.previous} unit={event.unit} />}
+      {beat ? (
+        <span
+          className={cn(
+            'text-caption ml-auto inline-flex items-center gap-1 px-1.5 font-bold uppercase tabular-nums',
+            beat === 'beat' ? 'text-bull' : 'text-bear',
+          )}
+        >
+          {beat === 'beat' ? '▲ beat' : '▼ miss'}
+        </span>
+      ) : null}
+    </dl>
+  );
+}
+
+const reminderSet = new Set<string>();
+
+function EventActions({ event }: { event: EconomicEvent }) {
+  const askPrompt = encodeURIComponent(
+    `What does ${event.title} (${event.currency ?? event.country}) at ${new Date(event.date).toUTCString()} usually mean for ${event.currency ?? 'USD'} and gold?`,
+  );
+
+  return (
+    <div
+      className={cn(
+        'border-border/70 flex items-center justify-between gap-2 border-t px-3.5 py-2',
+        'bg-bg-elev-1/60 transition-colors duration-150',
+        'hover:bg-bg-elev-2/60',
+      )}
+    >
+      <Link
+        href={`/chat?prompt=${askPrompt}`}
+        className="surface-chip bg-bg-elev-2 text-fg-muted hover:text-fg tactile-press border-edge/60 inline-flex min-h-10 items-center gap-1.5 rounded-md border px-3.5 py-2 text-xs font-medium shadow-xs transition-all active:translate-y-[0.5px]"
+      >
+        <IconBolt className="size-3.5" />
+        Ask AI
+      </Link>
+      <RemindButton event={event} />
+    </div>
+  );
+}
+
+function RemindButton({ event }: { event: EconomicEvent }) {
+  const [armed, setArmed] = useState(() => reminderSet.has(`cal-${event.id}`));
+
+  async function arm() {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      toast.error('Notifications unsupported on this device');
+      return;
+    }
+    let permission = Notification.permission;
+    if (permission === 'default') {
+      permission = await Notification.requestPermission();
+    }
+    if (permission !== 'granted') {
+      toast.error('Notifications denied', {
+        description: 'Enable notifications in your browser settings to set reminders.',
+      });
+      return;
+    }
+
+    const fireAt = event.date - 5 * 60_000;
+    const ms = fireAt - Date.now();
+    if (ms <= 0) {
+      toast.error('Too close to the event for a 5-minute reminder');
+      return;
+    }
+    setArmed(true);
+    reminderSet.add(`cal-${event.id}`);
+    toast.success('Reminder set', {
+      description: `5 minutes before ${event.title}`,
+    });
+    window.setTimeout(() => {
+      try {
+        new Notification(event.title, {
+          body: `${event.country} · ${timeLabel(new Date(event.date))} — in 5 minutes`,
+          icon: '/icons/icon-192.png',
+          tag: `cal-${event.id}`,
+        });
+      } catch {
+        /* tab gone */
+      }
+    }, ms);
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={arm}
+      disabled={armed}
+      aria-pressed={armed}
+      className={cn(
+        'text-body-sm tactile-press pointer-events-auto inline-flex min-h-10 items-center gap-1.5 rounded-md px-3.5 py-2 font-medium transition-colors active:translate-y-[0.5px]',
+        armed ? 'text-fg bg-bg-elev-2' : 'text-fg-muted hover:text-fg bg-bg-elev-2',
+      )}
+    >
+      <IconBell className={cn('size-3.5', armed && 'fill-current')} />
+      {armed ? 'Reminded' : 'Remind me'}
+    </button>
+  );
+}
+
+export function EventCard({ event }: { event: EconomicEvent }) {
   const { now } = useTime();
   const date = new Date(event.date);
   const importance = IMPORTANCE[event.importance];
@@ -71,8 +249,6 @@ export function EventCard({ event }: EventCardProps) {
         isImminent && 'border-warn/50 shadow-[0_0_16px_rgba(217,143,0,0.15)]',
       )}
     >
-      {/* Importance ribbon — suppressed for low-importance events; the
-       * subdued bg-elev-1 surface already conveys "less prominent". */}
       {hasRibbon ? (
         <span
           aria-hidden="true"
@@ -82,7 +258,6 @@ export function EventCard({ event }: EventCardProps) {
       ) : null}
 
       <div className={cn('flex flex-col gap-2 p-3.5 sm:p-4', hasRibbon && 'pl-4 sm:pl-5')}>
-        {/* Meta strip */}
         <div className="flex flex-wrap items-center gap-1.5 font-mono text-xs">
           <ImpactBadge importance={importance}>{event.currency ?? event.country}</ImpactBadge>
           <span aria-hidden className="text-fg-subtle opacity-50">
@@ -112,19 +287,15 @@ export function EventCard({ event }: EventCardProps) {
           ) : null}
         </div>
 
-        {/* Title */}
         <h3 className="text-fg line-clamp-2 font-sans text-sm leading-snug font-semibold sm:text-base">
           {event.title}
         </h3>
 
-        {/* Data row — actual / forecast / previous + beat/miss */}
         {(event.actual !== null || event.forecast !== null || event.previous !== null) && (
           <DataRow event={event} />
         )}
       </div>
 
-      {/* Actions stay in normal flow so they can never cover the event title
-       * or data. They fade in on pointer hover and remain visible on touch. */}
       {isFuture ? <EventActions event={event} /> : null}
     </article>
   );
