@@ -73,20 +73,4 @@ export const SETUP_INSTRUCTIONS: Record<
     howToGet:
       'Create a DeepSeek account, go to API Keys in the developer dashboard, and create a key.',
   },
-  iamhc: {
-    dashboardUrl: 'https://api.iamhc.cn/',
-    freeTier: 'Paid proxy service — aggregated pricing across 25+ models.',
-    rateLimits: 'Varies by plan. Contact provider for details.',
-    howToGet:
-      'Visit api.iamhc.cn, register an account, and generate an API key from your dashboard.',
-  },
-  hcnsec: {
-    dashboardUrl: 'https://api.hcnsec.cn/console',
-    freeTier:
-      '公益/free quota is documented, but limits and model access depend on your account and token group.',
-    rateLimits:
-      'Varies by token group and model. Check the HCNSEC console for current limits and usage.',
-    howToGet:
-      'Register at the HCNSEC console, create a token under 令牌管理, and copy the full sk-... key when it is shown.',
-  },
 };

@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "scripts": {
     "build": "turbo run build",
-    "dev": "tsx --env-file-if-exists=.env scripts/dev.ts && turbo run dev",
+    "dev": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/dev.ts",
     "setup": "node scripts/setup.mjs",
     "lint": "oxlint .",
     "typecheck": "turbo run typecheck",

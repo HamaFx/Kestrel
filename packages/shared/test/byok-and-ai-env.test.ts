@@ -35,8 +35,8 @@ describe('AiEnv & ByokPayload', () => {
 
   it('defaults the model ids when no env override is set', () => {
     const parsed = AiEnv.parse({});
-    expect(parsed.AI_DEFAULT_MODEL).toBe('google/gemini-2.5-flash');
-    expect(parsed.AI_TITLE_MODEL).toBe('google/gemini-2.5-flash-lite');
+    expect(parsed.AI_DEFAULT_MODEL).toBe('google/gemini-3.5-flash');
+    expect(parsed.AI_TITLE_MODEL).toBe('google/gemini-3.5-flash-lite');
     expect(parsed.AI_EMBEDDING_MODEL).toBe('openai/text-embedding-3-small');
   });
 
@@ -44,10 +44,10 @@ describe('AiEnv & ByokPayload', () => {
     const payload: ByokPayload = {
       openai: 'sk-key',
       anthropic: 'sk-ant-key',
-      finnhub: 'fh-key',
+      deepseek: 'sk-ds-key',
     };
     expect(payload.openai).toBe('sk-key');
     expect(payload.anthropic).toBe('sk-ant-key');
-    expect(payload.finnhub).toBe('fh-key');
+    expect(payload.deepseek).toBe('sk-ds-key');
   });
 });

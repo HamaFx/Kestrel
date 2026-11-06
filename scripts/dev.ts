@@ -16,10 +16,14 @@
 
 // scripts/dev.ts — local development environment guard.
 //
-// The root `pnpm dev` command runs this first so an absent Postgres URL fails
-// immediately. The original Turbo task then starts the workspace dev servers.
+// The root `pnpm dev` command loads `.env` and `.env.local` into this process,
+// then runs this guard so an absent Postgres URL fails immediately. Turbo is
+// started from here rather than from a shell `&&` so the loaded variables are
+// inherited by every dev task (Next.js and the worker included).
 //
 // Usage: pnpm dev
+
+import { execFileSync } from 'node:child_process';
 
 const KESTREL_BANNER = [
   '██╗  ██╗███████╗███████╗████████╗██████╗ ███████╗██╗',
@@ -43,6 +47,8 @@ async function main() {
   }
   console.log('📦 Database: Postgres');
   console.log('▶  Starting workspace development tasks...');
+
+  execFileSync('turbo', ['run', 'dev'], { stdio: 'inherit', env: process.env });
 }
 
 main().catch((err) => {

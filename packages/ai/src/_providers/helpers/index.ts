@@ -17,17 +17,6 @@
 // Shared helpers for BYOK provider definitions. Imported by individual provider
 // spec files to keep them focused on data declarations.
 //
-//   - types.ts           — normalized HCNSEC tool call shape
-//   - tool-arguments.ts  — HCNSEC argument-alias repair
-//   - dsml.ts            — DSML text tool-call parsing
-//   - json-payload.ts    — non-streaming payload normalization
-//   - sse.ts             — streaming event normalization
-//   - fetch.ts           — bounded HCNSEC fetch wrapper
-//   - capabilities.ts    — capability sets, factory, spec validator
+//   - capabilities.ts — capability sets, OpenAI-compatible factory, validator
 
-export { normalizeHcnsecToolArguments } from './tool-arguments';
-export { normalizeHcnsecDsmlToolCalls } from './dsml';
-export { normalizeHcnsecJsonPayload } from './json-payload';
-export { normalizeHcnsecSse } from './sse';
-export { hcnsecFetch } from './fetch';
 export { CAPS_FULL, CAPS_TEXT, openaiCompatibleFactory, defineProvider } from './capabilities';

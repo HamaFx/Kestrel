@@ -6,6 +6,8 @@
 
 import postgres from 'postgres';
 
+import { resolvePostgresSslOptions } from '../../../packages/db/scripts/lib/ssl-standalone.mjs';
+
 const databaseUrl = process.env.MIGRATION_DATABASE_URL;
 if (!databaseUrl) {
   console.error('[wait-for-db] MIGRATION_DATABASE_URL is required.');
@@ -17,6 +19,7 @@ const sql = postgres(databaseUrl, {
   max: 1,
   connect_timeout: 3,
   idle_timeout: 3,
+  ssl: resolvePostgresSslOptions(databaseUrl, process.env),
 });
 
 try {

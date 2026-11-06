@@ -125,8 +125,11 @@ COPY --link --chown=1000:1000 --from=builder /app/packages/db/drizzle.config.ts 
 # Keep migrator dependencies isolated from Next.js standalone's traced tree.
 # ESM resolves these packages from the migrator's local node_modules.
 COPY --link --chown=1000:1000 --from=builder /app/runtime/db/node_modules ./runtime-migrate/node_modules
-COPY --link --chown=1000:1000 --from=builder /app/apps/web/scripts/migrate-runtime.mjs ./runtime-migrate/migrate-runtime.mjs
-COPY --link --chown=1000:1000 --from=builder /app/apps/web/scripts/wait-for-db.mjs ./runtime-migrate/wait-for-db.mjs
+# Preserve the repo-relative layout so the migrator's relative import of the
+# shared TLS helper resolves identically here and in a source checkout.
+COPY --link --chown=1000:1000 --from=builder /app/apps/web/scripts/migrate-runtime.mjs ./runtime-migrate/apps/web/scripts/migrate-runtime.mjs
+COPY --link --chown=1000:1000 --from=builder /app/apps/web/scripts/wait-for-db.mjs ./runtime-migrate/apps/web/scripts/wait-for-db.mjs
+COPY --link --chown=1000:1000 --from=builder /app/packages/db/scripts/lib/ssl-standalone.mjs ./runtime-migrate/packages/db/scripts/lib/ssl-standalone.mjs
 
 # Copy entrypoint
 COPY --link --chown=1000:1000 apps/web/docker-entrypoint.sh /entrypoint.sh

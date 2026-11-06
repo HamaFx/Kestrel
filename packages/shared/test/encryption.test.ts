@@ -225,11 +225,12 @@ describe('configuredProviders', () => {
   });
 
   it('only returns known PROVIDER_IDS', () => {
+    // Legacy vaults may still contain removed ids; they must be ignored.
     const result = configuredProviders({
       openai: 'sk-key',
       vertex: 'sa-key',
       finnhub: 'fh-key',
-    });
+    } as never);
     expect(result).toEqual(['openai']);
     for (const id of result) {
       expect(PROVIDER_IDS.includes(id)).toBe(true);

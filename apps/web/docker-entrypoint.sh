@@ -32,7 +32,7 @@ fi
 # non-default ports without brittle parsing or exposing the password in argv.
 if [ -n "$MIGRATION_DATABASE_URL" ]; then
   echo "Waiting for Postgres..."
-  until MIGRATION_DATABASE_URL="$MIGRATION_DATABASE_URL" node /app/runtime-migrate/wait-for-db.mjs >/dev/null 2>&1; do
+  until MIGRATION_DATABASE_URL="$MIGRATION_DATABASE_URL" node /app/runtime-migrate/apps/web/scripts/wait-for-db.mjs >/dev/null 2>&1; do
     echo "  still waiting..."
     sleep 2
   done
@@ -43,7 +43,7 @@ if [ -n "$MIGRATION_DATABASE_URL" ]; then
   # than refusing to boot.
   echo "Running database migrations..."
   cd /app
-  MIGRATION_DATABASE_URL="$MIGRATION_DATABASE_URL" node /app/runtime-migrate/migrate-runtime.mjs
+  MIGRATION_DATABASE_URL="$MIGRATION_DATABASE_URL" node /app/runtime-migrate/apps/web/scripts/migrate-runtime.mjs
   echo "Migrations applied."
 fi
 

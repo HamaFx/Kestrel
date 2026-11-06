@@ -29,15 +29,13 @@ import { z } from 'zod';
 export const AiEnv = z.object({
   AI_GATEWAY_API_KEY: z.string().min(1).optional(),
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1).optional(),
-  /** Dolphin Inference Network key (OpenAI-compatible DeepSeek endpoint). */
-  DPHN_API_KEY: z.string().min(1).optional(),
-  AI_DEFAULT_MODEL: z.string().default('google/gemini-2.5-flash'),
+  AI_DEFAULT_MODEL: z.string().default('google/gemini-3.5-flash'),
   /**
    * Auto-title generator (first-turn thread title) and operator-set
    * fallback for the planner-style cheap model. Per-user picks come
    * from `user_settings.chat_model` + `derivePlannerModel` / `deriveTitleModel`.
    */
-  AI_TITLE_MODEL: z.string().default('google/gemini-2.5-flash-lite'),
+  AI_TITLE_MODEL: z.string().default('google/gemini-3.5-flash-lite'),
   AI_EMBEDDING_MODEL: z.string().default('openai/text-embedding-3-small'),
 });
 

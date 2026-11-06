@@ -159,7 +159,7 @@ export async function run(ctx) {
   const profileArgs = langfuseEnabled ? overlayArgs : [];
   const startCommand = isDocker
     ? `docker compose${langfuseEnabled ? ` ${overlayArgs.join(' ')}` : ''} up -d --build`
-    : `${packageManagerLabel(getPackageManager())} dev:local`;
+    : `${packageManagerLabel(getPackageManager())} dev`;
 
   io.line();
   io.line(`  ${paint('Ready to launch! 🚀', 'bold', 'brand')}`);
@@ -316,7 +316,7 @@ export async function run(ctx) {
     fail(io, 'The package manager is no longer available. Please restart setup.');
     return 'abort';
   }
-  const child = spawn(manager.command, [...manager.prefix, 'dev:local'], {
+  const child = spawn(manager.command, [...manager.prefix, 'dev'], {
     cwd: repoRoot,
     stdio: 'inherit',
     env: { ...process.env, KESTREL_LOCAL_DEV: '1' },

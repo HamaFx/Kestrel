@@ -37,7 +37,7 @@ export function envFromProcess(): BriefingsEnv {
     AI_GATEWAY_API_KEY: process.env.AI_GATEWAY_API_KEY,
     GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
     // Defaults kept in sync with shared env module (packages/shared/src/env.ts).
-    AI_DEFAULT_MODEL: process.env.AI_DEFAULT_MODEL ?? 'google/gemini-2.5-flash',
+    AI_DEFAULT_MODEL: process.env.AI_DEFAULT_MODEL ?? 'google/gemini-3.5-flash',
     MAX_DAILY_USD: Number.parseFloat(process.env.MAX_DAILY_USD ?? '5'),
     LOG_PROMPTS: process.env.LOG_PROMPTS === '1',
   };

@@ -80,8 +80,6 @@ vi.mock('@kestrel/shared/encryption', () => ({
     'openrouter',
     'xai',
     'deepseek',
-    'iamhc',
-    'hcnsec',
   ],
 }));
 

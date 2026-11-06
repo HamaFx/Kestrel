@@ -10,6 +10,8 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 
+import { resolvePostgresSslOptions } from '../../../packages/db/scripts/lib/ssl-standalone.mjs';
+
 const databaseUrl =
   process.env.MIGRATION_DATABASE_URL ||
   process.env.DIRECT_URL ||
@@ -50,22 +52,6 @@ if (!multiUserEnabled || !rlsEnabled) {
     '[runtime-migrate] MULTI_USER_ENABLED=1 and KESTREL_ENABLE_RLS=1 are required; refusing an unsafe configuration.',
   );
   process.exit(1);
-}
-
-function resolveSslOptions() {
-  if (process.env.DB_DISABLE_SSL === 'true') {
-    if (process.env.NODE_ENV !== 'production' || process.env.KESTREL_LOCAL_DOCKER === 'true') {
-      return false;
-    }
-    throw new Error(
-      '[runtime-migrate] DB_DISABLE_SSL=true is only permitted with KESTREL_LOCAL_DOCKER=true.',
-    );
-  }
-  const ca = process.env.SUPABASE_CA_CERT?.replace(/\\n/g, '\n').trim();
-  if (ca) return { ca, rejectUnauthorized: true };
-  return process.env.NODE_ENV === 'production'
-    ? { rejectUnauthorized: true }
-    : { rejectUnauthorized: false };
 }
 
 const redactUrl = (url) => url.replace(/:[^/@]+@/, ':***@');
@@ -158,7 +144,7 @@ const sql = postgres(databaseUrl, {
   connect_timeout: 10,
   idle_timeout: 10,
   max_lifetime: 60,
-  ssl: resolveSslOptions(),
+  ssl: resolvePostgresSslOptions(databaseUrl, process.env),
 });
 
 try {

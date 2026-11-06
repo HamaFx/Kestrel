@@ -81,7 +81,7 @@ docker compose up -d
 
 1. Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 2. Register the first account (`REGISTRATION_MODE=first_user` by default). It becomes the instance admin and public registration then closes.
-3. Navigate to **Settings → API Keys** and paste your AI provider key (OpenAI, Gemini, Anthropic, DeepSeek, Groq, or Ollama).
+3. Navigate to **Settings → API Keys** and paste your AI provider key (OpenAI, Google Gemini, Anthropic, Groq, Mistral, OpenRouter, xAI, or DeepSeek).
 4. Start chatting with live market data! 🚀
 
 ---
@@ -246,15 +246,16 @@ Kestrel features **zero-friction BYOK**. You don't need to configure AI keys in 
 
 ### Supported AI Providers
 
-| Provider              | Supported Models                                   | In-App BYOK |
-| :-------------------- | :------------------------------------------------- | :---------: |
-| 🟢 **OpenAI**         | GPT-4o, GPT-4o-mini, o1, o3-mini                   |     ✅      |
-| 🔵 **Google Gemini**  | Gemini 2.5 Pro, Gemini 2.5 Flash, Gemini 2.0 Flash |     ✅      |
-| 🟣 **Anthropic**      | Claude 3.7 Sonnet, Claude 3.5 Haiku                |     ✅      |
-| ⚡ **Groq**           | Llama 3.3 70B, DeepSeek R1 Distill (Ultra-fast)    |     ✅      |
-| 🐋 **DeepSeek**       | DeepSeek V3, DeepSeek R1                           |     ✅      |
-| 🦙 **Ollama (Local)** | Llama 3, Mistral, Qwen (100% Offline)              |     ✅      |
-| 🌐 **OpenRouter**     | Any open routing endpoint                          |     ✅      |
+| Provider             | Representative models                                | In-App BYOK |
+| :------------------- | :--------------------------------------------------- | :---------: |
+| 🟢 **OpenAI**        | GPT-5.6 family, GPT-4.1, GPT-4o, embeddings          |     ✅      |
+| 🔵 **Google Gemini** | Gemini 3.6 Flash, 3.5 Flash, 2.5 Pro, embeddings     |     ✅      |
+| 🟣 **Anthropic**     | Claude Fable 5, Opus 4.8, Sonnet 5, Haiku 4.5        |     ✅      |
+| ⚡ **Groq**          | GPT-OSS 120B/20B, Llama 3.3 70B, Qwen 3.6 (fast)     |     ✅      |
+| 🐋 **DeepSeek**      | DeepSeek V4 Pro, DeepSeek V4 Flash                   |     ✅      |
+| 🌑 **xAI (Grok)**    | Grok 4.5, Grok 4.3                                   |     ✅      |
+| 🟠 **Mistral AI**    | Mistral Large, Medium, Small, Codestral, embeddings  |     ✅      |
+| 🌐 **OpenRouter**    | Routed access to Claude, GPT, Gemini, Llama and more |     ✅      |
 
 ---
 
@@ -411,9 +412,9 @@ The backup service automatically creates daily compressed SQL dumps in the `back
 </details>
 
 <details>
-<summary><strong>Q: Can I use free local AI models with Ollama?</strong></summary>
+<summary><strong>Q: Can I use Kestrel without paying for AI keys?</strong></summary>
 
-Yes! Install [Ollama](https://ollama.ai), run your model (e.g. `ollama run llama3`), then in Kestrel navigate to **Settings → API Keys → Ollama**, set the endpoint to `http://localhost:11434`, and select your model.
+Yes. Google Gemini and Groq both offer free API tiers, and OpenRouter exposes free models alongside paid ones. Create a key with either provider and paste it into **Settings → API Keys**. Kestrel does not ship an in-app Ollama provider; to use a local model, put an OpenAI-compatible gateway in front of it and select OpenRouter or another compatible provider.
 </details>
 
 ---

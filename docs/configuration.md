@@ -131,7 +131,7 @@ Kestrel supports per-user BYOK through the application. Server-level AI credenti
 | ------------------------------ | ---------------------------------------- |
 | `AI_GATEWAY_API_KEY`           | Optional AI Gateway credential           |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | Optional direct Gemini API credential    |
-| `AI_DEFAULT_MODEL`             | Default model, `google/gemini-2.5-flash` |
+| `AI_DEFAULT_MODEL`             | Default model, `google/gemini-3.5-flash` |
 | `AI_TITLE_MODEL`               | Title/planner fallback model             |
 | `AI_EMBEDDING_MODEL`           | Embedding model                          |
 

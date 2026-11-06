@@ -110,7 +110,9 @@ export async function handleGetPlatformConfig(user: AdminUser): Promise<Response
       },
       marketData: {
         marketDataProvider: settings?.marketDataProvider ?? 'biquote',
-        finnhubKeySet: Boolean(decrypted?.finnhub || process.env.FINNHUB_API_KEY),
+        finnhubKeySet: Boolean(
+          (decrypted as { finnhub?: string } | null)?.finnhub || process.env.FINNHUB_API_KEY,
+        ),
       },
       tools: {
         catalogue: toolCatalogue,

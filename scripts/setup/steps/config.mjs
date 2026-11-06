@@ -111,7 +111,26 @@ export async function run(ctx) {
       values = { ...missing, ...observabilityMissing, ...marketKeys };
     }
   } else {
-    values = { ...marketKeys };
+    // External mode keeps its config in `.env.local` (loaded by Next.js and by
+    // the root `pnpm dev` guard). Seed the multi-user defaults the rest of the
+    // stack expects, and carry over a database URL the operator already
+    // exported or wrote to the Docker `.env`, so the app can boot without a
+    // second manual step.
+    const dockerEnv = readEnvFile(resolve(repoRoot, '.env')).entries;
+    const databaseUrl =
+      process.env.DATABASE_URL ??
+      process.env.POSTGRES_URL ??
+      dockerEnv.get('DATABASE_URL') ??
+      dockerEnv.get('POSTGRES_URL');
+    const adminDatabaseUrl = process.env.ADMIN_DATABASE_URL ?? dockerEnv.get('ADMIN_DATABASE_URL');
+    values = {
+      ...(databaseUrl ? { DATABASE_URL: databaseUrl } : {}),
+      ...(adminDatabaseUrl ? { ADMIN_DATABASE_URL: adminDatabaseUrl } : {}),
+      MULTI_USER_ENABLED: '1',
+      KESTREL_ENABLE_RLS: '1',
+      REGISTRATION_MODE: 'first_user',
+      ...marketKeys,
+    };
   }
 
   io.line();
@@ -142,7 +161,7 @@ export async function run(ctx) {
       }`,
     );
   } else {
-    ok(io, `Saved external-mode settings to ${paint('.env', 'dim')}`);
+    ok(io, `Saved external-mode settings to ${paint('.env.local', 'dim')}`);
     ok(io, 'Auth & encryption secrets auto-generate on first boot.');
   }
 

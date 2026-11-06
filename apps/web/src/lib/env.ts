@@ -24,7 +24,7 @@
 import 'server-only';
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 
 import { parseServerEnv, type ServerEnv } from '@kestrel/shared';
 import {
@@ -42,11 +42,36 @@ let _serverEnv: ServerEnv | null = null;
 // -----------------------------------------------------------------------
 
 /**
+ * Locate the monorepo root from the current working directory. Next.js runs
+ * with `cwd = apps/web`, so resolving `.kestrel` from `cwd` used to create a
+ * second secrets file per app. Walk up to the workspace manifest instead.
+ */
+function findRepoRoot(start: string): string {
+  let dir = start;
+  for (let depth = 0; depth < 8; depth += 1) {
+    if (existsSync(resolve(dir, 'pnpm-workspace.yaml'))) return dir;
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return start;
+}
+
+/**
  * Path where dev-mode generated secrets are persisted. Lives inside the
  * already-gitignored `.kestrel/` directory so it never reaches the repo.
  * Mode 0600 on creation so other local users cannot read the keys.
+ *
+ * An existing `apps/web/.kestrel/dev-secrets.json` from an older install keeps
+ * working; new files are always written at the monorepo root.
  */
-const DEV_SECRETS_PATH = resolve('.kestrel/dev-secrets.json');
+const REPO_ROOT = findRepoRoot(process.cwd());
+const DEV_SECRETS_DIR = resolve(REPO_ROOT, '.kestrel');
+const LEGACY_DEV_SECRETS_PATH = resolve(process.cwd(), '.kestrel/dev-secrets.json');
+const DEV_SECRETS_PATH =
+  !existsSync(resolve(DEV_SECRETS_DIR, 'dev-secrets.json')) && existsSync(LEGACY_DEV_SECRETS_PATH)
+    ? LEGACY_DEV_SECRETS_PATH
+    : resolve(DEV_SECRETS_DIR, 'dev-secrets.json');
 
 type DevSecretStore = Partial<Record<(typeof AUTO_GENERATED_SECRETS)[number], string>>;
 
@@ -63,7 +88,7 @@ function readDevSecrets(): DevSecretStore {
 }
 
 function writeDevSecrets(store: DevSecretStore): void {
-  mkdirSync(resolve('.kestrel'), { recursive: true });
+  mkdirSync(dirname(DEV_SECRETS_PATH), { recursive: true });
   writeFileSync(DEV_SECRETS_PATH, JSON.stringify(store, null, 2), { mode: 0o600 });
 }
 

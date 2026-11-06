@@ -46,14 +46,6 @@ export function validateProviderConfig(
   providerId: string,
   apiKey: string,
 ): ProviderValidationResult {
-  if (providerId === 'vertex' || providerId === 'google-vertex') {
-    return {
-      ok: false,
-      reason:
-        'Google Vertex AI has been removed. Use direct Google Gemini (google) with an API key instead.',
-    };
-  }
-
   if (typeof apiKey !== 'string' || apiKey.trim().length === 0) {
     return { ok: false, reason: 'API key is required' };
   }

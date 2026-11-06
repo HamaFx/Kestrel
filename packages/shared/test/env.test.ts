@@ -367,12 +367,12 @@ describe('parseServerEnv — defaults and transforms', () => {
 
   it('defaults AI_DEFAULT_MODEL', () => {
     const env = parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'test' });
-    expect(env.AI_DEFAULT_MODEL).toBe('google/gemini-2.5-flash');
+    expect(env.AI_DEFAULT_MODEL).toBe('google/gemini-3.5-flash');
   });
 
   it('defaults AI_TITLE_MODEL', () => {
     const env = parseServerEnv({ ...MINIMAL_ENV, NODE_ENV: 'test' });
-    expect(env.AI_TITLE_MODEL).toBe('google/gemini-2.5-flash-lite');
+    expect(env.AI_TITLE_MODEL).toBe('google/gemini-3.5-flash-lite');
   });
 
   it('defaults NEXT_PUBLIC_APP_URL', () => {

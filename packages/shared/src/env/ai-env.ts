@@ -32,7 +32,6 @@ import type { ServerEnv } from '../env';
 export type AiEnvKeys =
   | 'AI_GATEWAY_API_KEY'
   | 'GOOGLE_GENERATIVE_AI_API_KEY'
-  | 'DPHN_API_KEY'
   | 'AI_DEFAULT_MODEL'
   | 'AI_TITLE_MODEL'
   | 'AI_EMBEDDING_MODEL'
@@ -57,7 +56,6 @@ export function pickAiEnv(env: Pick<ServerEnv, AiEnvKeys>) {
   return {
     AI_GATEWAY_API_KEY: env.AI_GATEWAY_API_KEY,
     GOOGLE_GENERATIVE_AI_API_KEY: env.GOOGLE_GENERATIVE_AI_API_KEY,
-    DPHN_API_KEY: env.DPHN_API_KEY,
     AI_DEFAULT_MODEL: env.AI_DEFAULT_MODEL,
     AI_TITLE_MODEL: env.AI_TITLE_MODEL,
     AI_EMBEDDING_MODEL: env.AI_EMBEDDING_MODEL,

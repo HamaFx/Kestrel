@@ -42,9 +42,6 @@ export const PROVIDER_IDS = [
   'openrouter',
   'xai',
   'deepseek',
-  'dphn',
-  'iamhc',
-  'hcnsec',
 ] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
@@ -57,8 +54,6 @@ export const KNOWN_BYOK_PROVIDERS: ReadonlySet<string> = new Set(PROVIDER_IDS);
 
 export interface ByokPayload {
   google?: string;
-  /** @deprecated Vertex AI has been removed. Retained only for legacy deserialization safety. */
-  vertex?: string;
   anthropic?: string;
   openai?: string;
   groq?: string;
@@ -66,12 +61,6 @@ export interface ByokPayload {
   openrouter?: string;
   xai?: string;
   deepseek?: string;
-  /** Dolphin Inference Network (OpenAI-compatible DeepSeek endpoint). */
-  dphn?: string;
-  finnhub?: string;
-  iamhc?: string;
-  /** HCNSEC OpenAI-compatible gateway API key. */
-  hcnsec?: string;
 }
 
 /**

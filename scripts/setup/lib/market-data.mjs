@@ -45,14 +45,6 @@ export const MARKET_DATA_PROVIDERS = [
     url: 'https://fredaccount.stlouisfed.org/apikeys',
     minLen: 20,
   },
-  {
-    id: 'alphavantage',
-    label: 'Alpha Vantage',
-    envKey: 'ALPHAVANTAGE_API_KEY',
-    hint: 'Stocks, forex, indicators',
-    url: 'https://www.alphavantage.co/support/#api-key',
-    minLen: 10,
-  },
 ];
 
 export function providerById(id) {

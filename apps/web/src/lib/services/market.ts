@@ -92,7 +92,7 @@ async function loadUserMarketPrefs(
 
   const decrypted = settings?.aiApiKeys ? decryptByok(settings.aiApiKeys) : null;
   return {
-    finnhubKey: (decrypted?.finnhub as string) ?? '',
+    finnhubKey: (decrypted as { finnhub?: string } | null)?.finnhub ?? '',
     marketDataProvider: (settings?.marketDataProvider as string) ?? 'biquote',
   };
 }

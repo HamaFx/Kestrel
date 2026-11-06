@@ -70,7 +70,7 @@ function printByokNote(io, compact) {
       'onboarding wizard or Settings → API Keys.',
       'Your key is encrypted at rest (AES-256-GCM).',
       'Supported: Gemini · Anthropic · OpenAI · Groq ·',
-      'Mistral · OpenRouter · xAI · DeepSeek · IAMHC API',
+      'Mistral · OpenRouter · xAI · DeepSeek',
     ],
     'info',
   );

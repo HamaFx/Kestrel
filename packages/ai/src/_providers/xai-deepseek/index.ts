@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-// Types shared by the HCNSEC normalization helpers.
+// BYOK provider specs for xAI and DeepSeek. Each provider lives in its own
+// file so the catalog data stays reviewable; `_providers/registry.ts` imports
+// the barrel.
+//
+//   - xai.ts       — xAI (Grok) first-party specs
+//   - deepseek.ts  — DeepSeek first-party specs
 
-/** A normalized OpenAI-compatible tool call extracted from HCNSEC output. */
-export interface HcnsecToolCall {
-  id: string;
-  type: 'function';
-  function: { name: string; arguments: string };
-}
+export { XAI } from './xai';
+export { DEEPSEEK } from './deepseek';
