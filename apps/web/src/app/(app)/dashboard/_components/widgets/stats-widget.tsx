@@ -43,15 +43,17 @@ type MetricCell = StatCardProps;
 export function StatsWidget({ entries }: StatsWidgetProps) {
   const metrics = useMemo(() => {
     const open = entries.filter((e) => e.outcome === 'open');
-    const closed = entries.filter((e) => e.outcome !== 'open');
+    const closed = [...entries]
+      .filter((e) => e.outcome !== 'open' && e.rMultiple !== null)
+      .sort((a, b) => (a.closedAt ?? a.openedAt) - (b.closedAt ?? b.openedAt));
 
     const totalR = closed.reduce((sum, e) => sum + (e.rMultiple ?? 0), 0);
     const winCount = closed.filter((e) => e.outcome === 'win').length;
     const winRate = closed.length > 0 ? (winCount / closed.length) * 100 : 0;
     const avgR = closed.length > 0 ? totalR / closed.length : 0;
 
-    // Last 10 closed trades (newest → oldest) for the cumulative sparkline.
-    const sparkSource = closed.slice(-10).reverse();
+    // Last 15 closed trades in true chronological order (oldest → newest).
+    const sparkSource = closed.slice(-15);
     let cumulative = 0;
     const sparkline = sparkSource.map((e) => {
       cumulative += e.rMultiple ?? 0;
@@ -64,6 +66,7 @@ export function StatsWidget({ entries }: StatsWidgetProps) {
         value: `${totalR >= 0 ? '+' : ''}${totalR.toFixed(2)}R`,
         tone: totalR > 0 ? 'bull' : totalR < 0 ? 'bear' : 'fg',
         icon: <IconCurrencyDollar />,
+        hint: `${closed.length} closed`,
         ...(sparkline.length >= 2 ? { sparkline } : {}),
       },
       {
@@ -71,6 +74,7 @@ export function StatsWidget({ entries }: StatsWidgetProps) {
         value: closed.length > 0 ? `${winRate.toFixed(0)}%` : '—',
         tone: winRate >= 50 ? 'bull' : winRate > 0 ? 'muted' : 'bear',
         icon: <IconPercentage />,
+        hint: closed.length > 0 ? `${winCount}W / ${closed.length - winCount}L` : 'no trades',
         ...(closed.length > 0
           ? {
               meter: {
@@ -91,12 +95,14 @@ export function StatsWidget({ entries }: StatsWidgetProps) {
         value: closed.length > 0 ? `${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R` : '—',
         tone: avgR > 0 ? 'bull' : avgR < 0 ? 'bear' : 'muted',
         icon: <IconTrendingUp />,
+        hint: 'expectancy',
       },
       {
         label: 'Active',
         value: String(open.length),
         tone: 'fg',
         icon: <IconActivity />,
+        hint: open.length === 1 ? 'open trade' : 'open trades',
       },
     ];
 
@@ -112,6 +118,7 @@ export function StatsWidget({ entries }: StatsWidgetProps) {
           value={m.value}
           tone={m.tone ?? 'fg'}
           icon={m.icon}
+          {...(m.hint ? { hint: m.hint } : {})}
           {...(m.sparkline && m.sparkline.length >= 2 ? { sparkline: m.sparkline } : {})}
           {...(m.meter ? { meter: m.meter } : {})}
         />

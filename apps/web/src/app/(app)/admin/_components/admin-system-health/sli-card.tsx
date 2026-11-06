@@ -34,15 +34,17 @@ export function SliCard({ sli }: { sli: SliSnapshot }) {
         ? 'bg-success'
         : 'bg-danger';
   const borderColor = noData
-    ? 'border-border'
+    ? 'border-white/[0.06]'
     : isInformational
-      ? 'border-border'
+      ? 'border-white/[0.06]'
       : isOk
         ? 'border-success/20'
         : 'border-danger/20';
 
   return (
-    <div className={cn('rounded-xl border p-4 transition-colors', borderColor)}>
+    <div
+      className={cn('surface-card rounded-xl border p-4 shadow-sm transition-colors', borderColor)}
+    >
       <div className="flex items-center gap-2">
         <span className={cn('size-1.5 rounded-full', statusDot)} aria-hidden="true" />
         {isInformational ? (
@@ -69,7 +71,7 @@ export function SliCard({ sli }: { sli: SliSnapshot }) {
             >
               {isInformational ? '—' : successRate}
             </span>
-            <span className="text-fg-subtle text-[10px]">/ SLO {sloTargetPct}</span>
+            <span className="text-fg-subtle font-mono text-[10px]">/ SLO {sloTargetPct}</span>
           </div>
           {sli.details ? <p className="text-fg-subtle mt-1 text-[11px]">{sli.details}</p> : null}
         </div>

@@ -2,11 +2,12 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Seven-bar weekday chart with rounded caps, a shared baseline and animated
-// growth. The busiest day carries the full brand tone.
+// Seven-bar weekday chart with true-aspect rounded caps, a recessed instrument
+// well, and animated growth. The busiest day carries the full brand tone.
 import type { JournalStatsWithNulls } from '@kestrel/shared';
 import { m } from 'motion/react';
-import { useId } from 'react';
+
+import { cn } from '@/lib/formatters/cn';
 
 const DOW_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 const DOW_KEYS = [
@@ -19,95 +20,75 @@ const DOW_KEYS = [
   'saturday',
 ] as const;
 
-const Y_TOP = 10;
-const Y_BOTTOM = 82;
-
 export function DayOfWeekChart({
   perDayOfWeek,
 }: {
   perDayOfWeek: NonNullable<JournalStatsWithNulls['perDayOfWeek']>;
 }) {
-  const rawId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const counts = DOW_KEYS.map((key) => perDayOfWeek[key] ?? 0);
   const max = Math.max(1, ...counts);
-  const slot = 100 / counts.length;
-  const yFor = (count: number) => Y_BOTTOM - (count / max) * (Y_BOTTOM - Y_TOP);
 
   return (
-    <div className="relative h-28">
-      <svg
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        className="absolute inset-0 h-full w-full"
-        role="img"
-        aria-label={`Closed trades by day of week: ${counts
-          .map((count, index) => `${DOW_LABELS[index]} ${count}`)
-          .join(', ')}`}
-      >
-        <defs>
-          <linearGradient id={`${rawId}-day`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--chart-line-primary)" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="var(--chart-line-primary)" stopOpacity="0.35" />
-          </linearGradient>
-          <linearGradient id={`${rawId}-day-muted`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--color-fg-subtle)" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="var(--color-fg-subtle)" stopOpacity="0.15" />
-          </linearGradient>
-        </defs>
-
-        <line
-          x1="0"
-          x2="100"
-          y1={Y_BOTTOM}
-          y2={Y_BOTTOM}
-          stroke="var(--chart-grid)"
-          strokeWidth="1"
-          vectorEffect="non-scaling-stroke"
-        />
-
+    <div
+      role="img"
+      aria-label={`Closed trades by day of week: ${counts
+        .map((count, index) => `${DOW_LABELS[index]} ${count}`)
+        .join(', ')}`}
+      className="surface-well flex flex-col gap-2 rounded-xl px-3 pt-3 pb-2.5"
+    >
+      <div className="grid h-24 grid-cols-7 items-end gap-2 border-b border-white/[0.06] pb-1.5">
         {counts.map((count, index) => {
-          const top = yFor(count);
-          const height = Math.max(Y_BOTTOM - top, count > 0 ? 1 : 0);
-          const width = slot * 0.52;
+          const pct = max > 0 ? (count / max) * 100 : 0;
+          const isPeak = count > 0 && count === max;
           return (
-            <m.rect
+            <div
               key={DOW_KEYS[index]}
-              x={index * slot + slot / 2 - width / 2}
-              y={top}
-              width={width}
-              height={height}
-              rx={0.8}
-              fill={count === max ? `url(#${rawId}-day)` : `url(#${rawId}-day-muted)`}
-              initial={{ scaleY: 0 }}
-              animate={{ scaleY: 1 }}
-              transition={{ duration: 0.45, delay: index * 0.035, ease: [0.32, 0.72, 0, 1] }}
-              style={{ transformBox: 'fill-box', transformOrigin: 'bottom' }}
-            />
+              className="flex h-full flex-col items-center justify-end gap-1"
+            >
+              <span
+                className={cn(
+                  'font-mono text-[9px] leading-none tabular-nums',
+                  isPeak ? 'text-brand font-semibold' : 'text-fg-subtle',
+                )}
+              >
+                {count}
+              </span>
+              <div className="flex h-16 w-full items-end justify-center">
+                <m.div
+                  initial={{ height: 0 }}
+                  animate={{ height: count > 0 ? `${Math.max(8, pct)}%` : '2px' }}
+                  transition={{ duration: 0.45, delay: index * 0.035, ease: [0.32, 0.72, 0, 1] }}
+                  className={cn(
+                    'w-full max-w-[22px] rounded-t-[3px]',
+                    count === 0
+                      ? 'bg-white/[0.06]'
+                      : isPeak
+                        ? 'bg-gradient-to-b from-brand/90 to-brand/35 shadow-[0_0_10px_rgba(255,54,22,0.18)]'
+                        : 'bg-gradient-to-b from-fg-subtle/55 to-fg-subtle/20',
+                  )}
+                />
+              </div>
+            </div>
           );
         })}
-      </svg>
-
-      <div className="pointer-events-none absolute inset-0">
-        {counts.map((count, index) => (
-          <span
-            key={`count-${DOW_KEYS[index]}`}
-            className="text-fg-subtle absolute -translate-x-1/2 -translate-y-full pb-0.5 font-mono text-[9px] tabular-nums"
-            style={{ left: `${index * slot + slot / 2}%`, top: `${yFor(count)}%` }}
-          >
-            {count}
-          </span>
-        ))}
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 flex">
-        {DOW_LABELS.map((label) => (
-          <span
-            key={label}
-            className="text-fg-subtle flex-1 text-center font-mono text-[8px] tracking-wider uppercase"
-          >
-            {label}
-          </span>
-        ))}
+      <div className="grid grid-cols-7 gap-2">
+        {DOW_LABELS.map((label, index) => {
+          const count = counts[index] ?? 0;
+          const isPeak = count > 0 && count === max;
+          return (
+            <span
+              key={label}
+              className={cn(
+                'text-center font-mono text-[8px] tracking-wider uppercase',
+                isPeak ? 'text-fg font-semibold' : 'text-fg-subtle',
+              )}
+            >
+              {label}
+            </span>
+          );
+        })}
       </div>
     </div>
   );

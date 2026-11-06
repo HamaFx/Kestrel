@@ -17,7 +17,8 @@
  */
 
 // "Today at a glance" hero: next catalyst, live session, open exposure and the
-// latest AI nudge. One shared tile shell keeps the four cells aligned.
+// latest AI nudge. One shared tile shell keeps the four cells aligned on a
+// locked horizontal baseline.
 import type { EconomicEvent, JournalEntry, Symbol } from '@kestrel/shared';
 import { IconAlertTriangle, IconBolt, IconClock, IconCompass } from '@tabler/icons-react';
 import Link from 'next/link';
@@ -71,11 +72,11 @@ function GlanceCell({
   label: string;
   tone?: string;
   right?: ReactNode;
-  footer?: ReactNode;
+  footer: ReactNode;
   children: ReactNode;
 }) {
   return (
-    <div className="surface-card group flex min-h-[126px] flex-col gap-3 rounded-xl border border-white/[0.06] p-4 shadow-sm transition-colors hover:border-white/15">
+    <div className="surface-card group flex min-h-[132px] flex-col justify-between gap-2.5 rounded-xl border border-white/[0.06] p-3.5 shadow-sm transition-colors hover:border-white/12">
       <div className="flex items-center justify-between gap-2">
         <div className="text-fg-subtle flex min-w-0 items-center gap-1.5 font-mono text-[10px] font-semibold tracking-wider uppercase">
           <span className={cn('shrink-0', tone ?? 'text-fg-subtle')}>{icon}</span>
@@ -83,8 +84,8 @@ function GlanceCell({
         </div>
         {right}
       </div>
-      <div className="flex flex-1 flex-col justify-end gap-1.5">{children}</div>
-      {footer}
+      <div className="flex flex-1 flex-col justify-center gap-1">{children}</div>
+      <div className="border-t border-white/[0.05] pt-2">{footer}</div>
     </div>
   );
 }
@@ -113,7 +114,12 @@ function CellNextEvent({ events }: { events: EconomicEvent[] }) {
               {formatCountdown(upcoming.date - now)}
             </span>
           </div>
-        ) : null
+        ) : (
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-fg-subtle font-mono text-[9px] uppercase">Schedule</span>
+            <span className="text-fg-subtle font-mono text-[9px]">Clear</span>
+          </div>
+        )
       }
     >
       {upcoming ? (
@@ -124,7 +130,7 @@ function CellNextEvent({ events }: { events: EconomicEvent[] }) {
           >
             {upcoming.title}
           </span>
-          <span className="text-fg-subtle text-[10px]">
+          <span className="text-fg-subtle font-mono text-[10px] tabular-nums">
             {new Date(upcoming.date).toISOString().slice(11, 16)} UTC
           </span>
         </>
@@ -146,7 +152,7 @@ function CellSession() {
       label="Session"
       right={active ? <StatusIndicator tone="online" label="Session live" /> : null}
       footer={
-        <div className="text-fg-subtle flex items-center gap-2.5 font-mono text-[8px] tracking-wider uppercase">
+        <div className="text-fg-subtle flex items-center justify-between gap-2 font-mono text-[8px] tracking-wider uppercase">
           <span className="inline-flex items-center gap-1">
             <span className="bg-info size-1 rounded-full" /> Asia
           </span>
@@ -173,7 +179,7 @@ function CellSession() {
             {active ? 'Live' : 'Closed'}
           </span>
         </div>
-        <SessionDial now={now} label={sessionInfo.label} active={active} size={60} />
+        <SessionDial now={now} label={sessionInfo.label} active={active} size={58} />
       </div>
     </GlanceCell>
   );
@@ -220,7 +226,12 @@ function CellOpenRisk({ entries }: { entries: JournalEntry[] }) {
               </span>
             </div>
           </div>
-        ) : null
+        ) : (
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-fg-subtle font-mono text-[9px] uppercase">Stop guard</span>
+            <span className="text-fg-subtle font-mono text-[9px]">0 exposed</span>
+          </div>
+        )
       }
     >
       {open.length === 0 ? (
@@ -262,9 +273,12 @@ function CellAiNudge({
         </Link>
       }
       footer={
-        <span className="text-fg-subtle font-mono text-[8px] tracking-wider uppercase">
-          {briefingNudge ? 'Latest briefing' : 'Start a conversation'}
-        </span>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-fg-subtle font-mono text-[8px] tracking-wider uppercase">
+            {briefingNudge ? 'Latest briefing' : 'Start a conversation'}
+          </span>
+          <span className="text-fg-subtle font-mono text-[8px] uppercase">{defaultSymbol}</span>
+        </div>
       }
     >
       <p className="text-fg line-clamp-2 border-l-2 border-brand/40 pl-2 text-xs leading-snug">

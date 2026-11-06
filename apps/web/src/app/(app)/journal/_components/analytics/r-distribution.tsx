@@ -18,7 +18,8 @@
 
 // Histogram of R-multiple buckets. Negative buckets are bearish, positive
 // bullish, and the two tail buckets carry a diagonal hatch. The chart has a
-// real count axis, a layered grid, an average-R reference line and a hover card.
+// real count axis, a layered grid, a continuously interpolated average-R
+// reference line and a hover card.
 import type { JournalStatsWithNulls } from '@kestrel/shared';
 import { m } from 'motion/react';
 import { useId, useMemo, useState } from 'react';
@@ -27,7 +28,7 @@ import { ChartLegend, ChartTooltip } from '@/components/chart/chart-ui';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/formatters/cn';
 
-const Y_TOP = 4;
+const Y_TOP = 10;
 const Y_BOTTOM = 92;
 const TAIL_HATCH_CSS =
   'repeating-linear-gradient(45deg, transparent 0 3px, rgba(255,255,255,0.28) 3px 4px)';
@@ -57,11 +58,35 @@ function bucketTone(bucket: string): BucketTone {
 }
 
 function bucketIndexForR(value: number): number {
+  if (value === 0) return 3;
   for (let index = 0; index < BUCKET_BOUNDS.length; index++) {
+    if (index === 3) continue;
     const [min, max] = BUCKET_BOUNDS[index] ?? [-Infinity, Infinity];
     if (value >= min && value <= max) return index;
   }
   return value < 0 ? 0 : BUCKET_BOUNDS.length - 1;
+}
+
+/**
+ * Continuously map an R value to a 0–100 horizontal percentage across the 8
+ * histogram buckets (`<-2`, `[-2,-1]`, `[-1,0]`, `[0,0]`, `[0,1]`, `[1,2]`,
+ * `[2,3]`, `>3`) so +0.1R and +0.9R do not snap to the same bucket center.
+ */
+function continuousXForR(value: number, bucketCount: number): number {
+  const slot = 100 / Math.max(bucketCount, 1);
+  const centerOf = (index: number) => index * slot + slot / 2;
+  if (bucketCount !== 8) {
+    return centerOf(Math.min(bucketCount - 1, bucketIndexForR(value)));
+  }
+  if (value === 0) return centerOf(3);
+  if (value > 0) {
+    // Positive buckets are indices 4 ([0,1]), 5 ([1,2]), 6 ([2,3]), 7 (>3)
+    const clamped = Math.min(value, 3.8);
+    return Math.min(96, 4 * slot + (clamped / 4) * (4 * slot));
+  }
+  // Negative buckets are indices 2 ([-1,0]), 1 ([-2,-1]), 0 (<-2)
+  const clamped = Math.max(value, -2.8);
+  return Math.max(4, 3 * slot + (clamped / 3) * (3 * slot));
 }
 
 interface RDistributionProps {
@@ -88,7 +113,7 @@ export function RDistribution({ stats, className }: RDistributionProps) {
     avgR === null || data.length === 0 ? null : Math.min(data.length - 1, bucketIndexForR(avgR));
   const slot = 100 / Math.max(data.length, 1);
   const xFor = (index: number) => index * slot + slot / 2;
-  const avgX = avgIndex === null ? null : xFor(avgIndex);
+  const avgX = avgR === null || data.length === 0 ? null : continuousXForR(avgR, data.length);
   const hoveredData = hovered !== null ? (data[hovered] ?? null) : null;
 
   return (
@@ -158,7 +183,7 @@ export function RDistribution({ stats, className }: RDistributionProps) {
               {ticks.map((tick) => (
                 <span
                   key={`y-${tick}`}
-                  className="text-fg-subtle absolute right-1 -translate-y-1/2 font-mono text-[9px] tabular-nums"
+                  className="text-fg-subtle absolute right-1.5 -translate-y-1/2 font-mono text-[9px] tabular-nums"
                   style={{ top: `${yFor(tick)}%` }}
                 >
                   {tick}
@@ -166,44 +191,27 @@ export function RDistribution({ stats, className }: RDistributionProps) {
               ))}
             </div>
 
-            <div className="absolute inset-y-0 right-0 left-7">
+            <div className="surface-well absolute inset-y-0 right-0 left-7 overflow-hidden rounded-xl">
               <svg
                 viewBox="0 0 100 100"
                 preserveAspectRatio="none"
-                className="absolute inset-0 h-full w-full overflow-visible"
+                className="absolute inset-0 h-full w-full"
                 role="img"
                 aria-label={`R-multiple distribution over ${total} trades`}
               >
                 <defs>
                   <linearGradient id={`${rawId}-bull`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--chart-positive)" stopOpacity="0.9" />
+                    <stop offset="0%" stopColor="var(--chart-positive)" stopOpacity="0.92" />
                     <stop offset="100%" stopColor="var(--chart-positive)" stopOpacity="0.32" />
                   </linearGradient>
                   <linearGradient id={`${rawId}-bear`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--chart-negative)" stopOpacity="0.9" />
+                    <stop offset="0%" stopColor="var(--chart-negative)" stopOpacity="0.92" />
                     <stop offset="100%" stopColor="var(--chart-negative)" stopOpacity="0.32" />
                   </linearGradient>
                   <linearGradient id={`${rawId}-neutral`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--color-fg-subtle)" stopOpacity="0.55" />
-                    <stop offset="100%" stopColor="var(--color-fg-subtle)" stopOpacity="0.18" />
+                    <stop offset="0%" stopColor="var(--color-fg-subtle)" stopOpacity="0.6" />
+                    <stop offset="100%" stopColor="var(--color-fg-subtle)" stopOpacity="0.2" />
                   </linearGradient>
-                  <pattern
-                    id={`${rawId}-hatch`}
-                    width="4"
-                    height="4"
-                    patternUnits="userSpaceOnUse"
-                    patternTransform="rotate(45)"
-                  >
-                    <line
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="4"
-                      stroke="var(--color-bg)"
-                      strokeOpacity="0.38"
-                      strokeWidth="1"
-                    />
-                  </pattern>
                 </defs>
 
                 {ticks.map((tick) => (
@@ -235,64 +243,80 @@ export function RDistribution({ stats, className }: RDistributionProps) {
                   const tone = bucketTone(bucket.bucket);
                   const top = yFor(bucket.count);
                   const height = Math.max(Y_BOTTOM - top, bucket.count > 0 ? 0.8 : 0);
-                  const isTail = index === 0 || index === data.length - 1;
-                  const width = slot * 0.58;
+                  const width = slot * 0.56;
                   return (
-                    <g key={bucket.bucket}>
-                      <m.rect
-                        x={xFor(index) - width / 2}
-                        y={top}
-                        width={width}
-                        height={height}
-                        rx={0.7}
-                        fill={`url(#${rawId}-${tone})`}
-                        initial={{ scaleY: 0 }}
-                        animate={{ scaleY: 1 }}
-                        transition={{
-                          duration: 0.55,
-                          delay: index * 0.035,
-                          ease: [0.32, 0.72, 0, 1],
-                        }}
-                        style={{ transformBox: 'fill-box', transformOrigin: 'bottom' }}
-                      />
-                      {isTail && height > 0 ? (
-                        <rect
-                          x={xFor(index) - width / 2}
-                          y={top}
-                          width={width}
-                          height={height}
-                          rx={0.7}
-                          fill={`url(#${rawId}-hatch)`}
-                        />
-                      ) : null}
-                    </g>
+                    <m.rect
+                      key={bucket.bucket}
+                      x={xFor(index) - width / 2}
+                      y={top}
+                      width={width}
+                      height={height}
+                      fill={`url(#${rawId}-${tone})`}
+                      opacity={hovered === null || hovered === index ? 0.95 : 0.45}
+                      initial={{ scaleY: 0 }}
+                      animate={{ scaleY: 1 }}
+                      transition={{
+                        duration: 0.5,
+                        delay: index * 0.03,
+                        ease: [0.32, 0.72, 0, 1],
+                      }}
+                      style={{ transformBox: 'fill-box', transformOrigin: 'bottom' }}
+                    />
                   );
                 })}
 
                 {avgX !== null ? (
-                  <>
-                    <line
-                      x1={avgX}
-                      x2={avgX}
-                      y1={Y_TOP}
-                      y2={100}
-                      stroke="var(--chart-line-primary)"
-                      strokeOpacity={0.85}
-                      strokeDasharray="2 3"
-                      strokeWidth="1"
-                      vectorEffect="non-scaling-stroke"
-                    />
-                    <circle cx={avgX} cy={Y_TOP + 1.5} r={1.2} fill="var(--chart-line-primary)" />
-                  </>
+                  <line
+                    x1={avgX}
+                    x2={avgX}
+                    y1={Y_TOP}
+                    y2={Y_BOTTOM}
+                    stroke="var(--chart-line-primary)"
+                    strokeOpacity={0.85}
+                    strokeDasharray="2 3"
+                    strokeWidth="1"
+                    vectorEffect="non-scaling-stroke"
+                  />
                 ) : null}
               </svg>
+
+              {/* True-aspect CSS diagonal hatch overlay on the two tail buckets */}
+              {data.map((bucket, index) => {
+                const isTail = index === 0 || index === data.length - 1;
+                if (!isTail || bucket.count <= 0) return null;
+                const top = yFor(bucket.count);
+                const height = Math.max(Y_BOTTOM - top, 0.8);
+                const width = slot * 0.56;
+                return (
+                  <div
+                    key={`hatch-${bucket.bucket}`}
+                    className="pointer-events-none absolute"
+                    style={{
+                      left: `${xFor(index) - width / 2}%`,
+                      top: `${top}%`,
+                      width: `${width}%`,
+                      height: `${height}%`,
+                      backgroundImage: TAIL_HATCH_CSS,
+                    }}
+                    aria-hidden="true"
+                  />
+                );
+              })}
+
+              {avgX !== null ? (
+                <span
+                  className="bg-brand pointer-events-none absolute size-2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-[#0d0e10]"
+                  style={{ left: `${avgX}%`, top: `${Y_TOP}%` }}
+                  aria-hidden="true"
+                />
+              ) : null}
 
               <div className="absolute inset-0 flex">
                 {data.map((bucket, index) => (
                   <button
                     key={`hover-${bucket.bucket}`}
                     type="button"
-                    className="h-full flex-1 cursor-default focus-visible:ring-1 focus-visible:ring-brand/50 focus-visible:outline-none"
+                    className="h-full flex-1 cursor-crosshair focus-visible:ring-1 focus-visible:ring-brand/50 focus-visible:outline-none"
                     aria-label={`${bucket.bucket}: ${bucket.count} trades, ${Math.round((bucket.count / total) * 100)}%`}
                     onMouseEnter={() => setHovered(index)}
                     onMouseLeave={() => setHovered(null)}

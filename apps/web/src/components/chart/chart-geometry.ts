@@ -27,27 +27,72 @@ export function niceTicks(min: number, max: number, count = 4): number[] {
   return ticks;
 }
 
-/** Catmull-Rom-to-Bezier smoothing for the analytical curves. */
+/**
+ * Fritsch–Carlson monotone cubic Hermite interpolation for analytical curves.
+ * Guarantees zero overshoot at local extrema and flat plateaus.
+ */
 export function smoothPath(points: readonly ChartPoint[]): string {
-  if (points.length === 0) return '';
-  if (points.length < 3) {
-    return points
-      .map(
-        (point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`,
-      )
-      .join(' ');
+  const n = points.length;
+  if (n === 0) return '';
+  if (n === 1) return `M ${points[0]!.x.toFixed(2)} ${points[0]!.y.toFixed(2)}`;
+  if (n === 2) {
+    return `M ${points[0]!.x.toFixed(2)} ${points[0]!.y.toFixed(2)} L ${points[1]!.x.toFixed(2)} ${points[1]!.y.toFixed(2)}`;
+  }
+
+  const dx: number[] = [];
+  const dy: number[] = [];
+  const slopes: number[] = [];
+
+  for (let i = 0; i < n - 1; i++) {
+    const p1 = points[i]!;
+    const p2 = points[i + 1]!;
+    const dxi = p2.x - p1.x;
+    const dyi = p2.y - p1.y;
+    dx.push(dxi);
+    dy.push(dyi);
+    slopes.push(dxi !== 0 ? dyi / dxi : 0);
+  }
+
+  const tangents: number[] = new Array<number>(n).fill(0);
+  tangents[0] = slopes[0] ?? 0;
+  tangents[n - 1] = slopes[n - 2] ?? 0;
+
+  for (let i = 1; i < n - 1; i++) {
+    const s0 = slopes[i - 1] ?? 0;
+    const s1 = slopes[i] ?? 0;
+    if (s0 * s1 <= 0) {
+      tangents[i] = 0;
+    } else {
+      tangents[i] = (s0 + s1) / 2;
+    }
+  }
+
+  for (let i = 0; i < n - 1; i++) {
+    const s = slopes[i] ?? 0;
+    if (s === 0) {
+      tangents[i] = 0;
+      tangents[i + 1] = 0;
+    } else {
+      const alpha = (tangents[i] ?? 0) / s;
+      const beta = (tangents[i + 1] ?? 0) / s;
+      const hypot = Math.hypot(alpha, beta);
+      if (hypot > 3) {
+        const tau = 3 / hypot;
+        tangents[i] = tau * alpha * s;
+        tangents[i + 1] = tau * beta * s;
+      }
+    }
   }
 
   let path = `M ${points[0]!.x.toFixed(2)} ${points[0]!.y.toFixed(2)}`;
-  for (let index = 0; index < points.length - 1; index++) {
-    const p0 = points[index - 1] ?? points[index]!;
-    const p1 = points[index]!;
-    const p2 = points[index + 1]!;
-    const p3 = points[index + 2] ?? p2;
-    const cp1x = p1.x + (p2.x - p0.x) / 6;
-    const cp1y = p1.y + (p2.y - p0.y) / 6;
-    const cp2x = p2.x - (p3.x - p1.x) / 6;
-    const cp2y = p2.y - (p3.y - p1.y) / 6;
+  for (let i = 0; i < n - 1; i++) {
+    const p1 = points[i]!;
+    const p2 = points[i + 1]!;
+    const segDx = (dx[i] ?? 0) / 3;
+    const cp1x = p1.x + segDx;
+    const cp1y = p1.y + (tangents[i] ?? 0) * segDx;
+    const cp2x = p2.x - segDx;
+    const cp2y = p2.y - (tangents[i + 1] ?? 0) * segDx;
     path += ` C ${cp1x.toFixed(2)} ${cp1y.toFixed(2)}, ${cp2x.toFixed(2)} ${cp2y.toFixed(2)}, ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
   }
   return path;
@@ -99,6 +144,12 @@ export function buildProfitLossGeometry(
       .join(' ')} Z`;
   }
 
+  const rawTicks = niceTicks(low, high, 4);
+  const visibleTicks = rawTicks.filter((tick) => {
+    const y = yFor(tick);
+    return y >= CHART_Y_TOP - 2 && y <= CHART_Y_BOTTOM + 2;
+  });
+
   return {
     yFor,
     xFor,
@@ -106,7 +157,7 @@ export function buildProfitLossGeometry(
     area,
     shade,
     baselineY,
-    ticks: niceTicks(min, max, 4),
+    ticks: visibleTicks.length > 0 ? visibleTicks : [low, high],
   };
 }
 

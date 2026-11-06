@@ -55,11 +55,12 @@ export function InstitutionalMetrics({ closedTrades }: { closedTrades: readonly 
         label="Profit factor"
         value={Number.isFinite(metrics.profitFactor) ? metrics.profitFactor.toFixed(2) : '∞'}
         tone={pfTone}
-        hint="win/loss"
+        hint="gross W/L"
         meter={{
           value: Number.isFinite(metrics.profitFactor) ? Math.min(metrics.profitFactor, 3) : 3,
           max: 3,
           tone: pfTone,
+          showPct: false,
         }}
       />
       <StatCard
@@ -74,16 +75,16 @@ export function InstitutionalMetrics({ closedTrades }: { closedTrades: readonly 
         label="Best trade"
         value={`+${metrics.best.toFixed(2)}R`}
         tone="bull"
-        hint="max win"
-        meter={{ value: Math.abs(metrics.best), max: extremeMax, tone: 'bull' }}
+        hint="single win"
+        meter={{ value: Math.abs(metrics.best), max: extremeMax, tone: 'bull', showPct: false }}
       />
       <StatCard
         icon={<IconTrendingDown className="size-3.5" strokeWidth={2} />}
         label="Worst trade"
         value={`${metrics.worst.toFixed(2)}R`}
         tone="bear"
-        hint="max loss"
-        meter={{ value: Math.abs(metrics.worst), max: extremeMax, tone: 'bear' }}
+        hint="single loss"
+        meter={{ value: Math.abs(metrics.worst), max: extremeMax, tone: 'bear', showPct: false }}
       />
     </div>
   );

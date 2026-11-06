@@ -32,7 +32,12 @@ export function ChartLegend({
   className,
   shape = 'line',
 }: {
-  items: ReadonlyArray<{ label: string; tone: ChartTone; dashed?: boolean }>;
+  items: ReadonlyArray<{
+    label: string;
+    tone: ChartTone;
+    dualTone?: readonly [ChartTone, ChartTone];
+    dashed?: boolean;
+  }>;
   className?: string;
   shape?: 'line' | 'bar';
 }) {
@@ -45,14 +50,27 @@ export function ChartLegend({
     >
       {items.map((item) => (
         <span key={item.label} className="inline-flex items-center gap-1.5">
-          <span
-            aria-hidden="true"
-            className={cn(
-              shape === 'line' ? 'h-[2px] w-3.5 rounded-full' : 'h-2 w-2 rounded-[2px]',
-              DOT_TONE[item.tone],
-              item.dashed && 'opacity-50',
-            )}
-          />
+          {item.dualTone ? (
+            <span
+              aria-hidden="true"
+              className={cn(
+                'inline-flex overflow-hidden',
+                shape === 'line' ? 'h-[2px] w-3.5 rounded-full' : 'h-2 w-2.5 rounded-[2px]',
+              )}
+            >
+              <span className={cn('h-full w-1/2', DOT_TONE[item.dualTone[0]])} />
+              <span className={cn('h-full w-1/2', DOT_TONE[item.dualTone[1]])} />
+            </span>
+          ) : (
+            <span
+              aria-hidden="true"
+              className={cn(
+                shape === 'line' ? 'h-[2px] w-3.5 rounded-full' : 'h-2 w-2 rounded-[2px]',
+                DOT_TONE[item.tone],
+                item.dashed && 'opacity-50',
+              )}
+            />
+          )}
           {item.label}
         </span>
       ))}
@@ -78,7 +96,7 @@ export function ChartTooltip({
   return (
     <div
       className={cn(
-        'pointer-events-none absolute z-30 min-w-[118px] rounded-lg border border-white/10 bg-[#141516]/95 p-2.5 shadow-2xl backdrop-blur-md',
+        'pointer-events-none absolute z-30 min-w-[122px] rounded-lg border border-white/12 bg-[#121315]/95 p-2.5 shadow-2xl backdrop-blur-md',
         className,
       )}
       style={{
@@ -90,7 +108,7 @@ export function ChartTooltip({
       aria-live="polite"
     >
       {title ? (
-        <div className="text-fg-subtle mb-1.5 font-mono text-[9px] tracking-wider uppercase">
+        <div className="text-fg-subtle border-border/40 mb-1.5 border-b pb-1 font-mono text-[9px] font-semibold tracking-wider uppercase">
           {title}
         </div>
       ) : null}

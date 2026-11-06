@@ -12,7 +12,7 @@ import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { Sparkline } from '@/components/ui/sparkline';
 import { cn } from '@/lib/formatters/cn';
 
-const FLASH_MS = 600;
+const FLASH_MS = 420;
 
 type FlashTone = 'bull' | 'bear' | null;
 
@@ -59,9 +59,9 @@ export function WatchRow({
   );
 
   return (
-    <li className="border-divider group flex items-center justify-between gap-2 border-b py-2.5 last:border-0">
+    <li className="border-divider group flex items-center justify-between gap-2.5 border-b py-2.5 last:border-0">
       <div className="flex min-w-0 items-center gap-2">
-        <div className="flex min-w-0 flex-col font-mono">
+        <div className="flex min-w-0 flex-col gap-0.5 font-mono">
           <div className="flex items-center gap-1.5">
             <Link
               href={`/chart/${tick.symbol}`}
@@ -71,74 +71,71 @@ export function WatchRow({
               <span>{tick.symbol}</span>
               <IconChartLine className="text-fg-subtle size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
             </Link>
-            {isClosed && (
+            {isClosed ? (
               <span
-                className="text-fg-subtle bg-bg-elev-2 rounded-xs px-1 py-0.5 text-[10px] font-medium uppercase"
+                className="text-fg-subtle bg-bg-elev-2 rounded-xs px-1 py-0.5 text-[9px] font-medium uppercase"
                 title="Market closed — last price"
               >
                 Closed
               </span>
+            ) : (
+              <span
+                className={cn(
+                  'text-[9px] leading-none font-bold',
+                  isBull ? 'text-bull' : 'text-bear',
+                )}
+                aria-label={isBull ? 'Trending up' : 'Trending down'}
+              >
+                {isBull ? '▲' : '▼'}
+              </span>
             )}
           </div>
-          <span
-            className={cn(
-              '-mx-1 inline-flex w-fit items-center rounded-md px-1.5 py-0.5 font-mono text-xs font-semibold tabular-nums transition-all duration-300',
-              flash === 'bull' &&
-                'bg-bull/15 text-bull ring-bull/40 shadow-[0_0_10px_rgba(63,158,61,0.2)] ring-1',
-              flash === 'bear' &&
-                'bg-bear/15 text-bear ring-bear/40 shadow-[0_0_10px_rgba(224,44,16,0.2)] ring-1',
-              flash === null && 'text-fg-subtle ring-1 ring-transparent',
-              scrubPrice !== null && 'text-brand ring-brand/40 bg-brand/5 ring-1',
-            )}
-          >
-            {displayPrice.toFixed(decimals)}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span
+              className={cn(
+                '-mx-1 inline-flex w-fit items-center rounded px-1.5 py-0.5 font-mono text-xs font-semibold tabular-nums transition-colors duration-300',
+                flash === 'bull' && 'bg-bull/15 text-bull',
+                flash === 'bear' && 'bg-bear/15 text-bear',
+                flash === null && scrubPrice === null && 'text-fg-muted',
+                scrubPrice !== null && 'bg-brand/10 text-brand',
+              )}
+            >
+              {displayPrice.toFixed(decimals)}
+            </span>
+            {scrubPrice !== null ? (
+              <span className="text-brand/80 font-mono text-[8px] tracking-wider uppercase">
+                scrub
+              </span>
+            ) : null}
+          </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         {buf.length >= 2 && !isClosed ? (
-          <Sparkline
-            values={buf}
-            tone={isBull ? 'bull' : 'bear'}
-            variant="area"
-            interactive
-            onHoverChange={(index) => setScrubPrice(index === null ? null : (buf[index] ?? null))}
-            label={`${tick.symbol} trend`}
-            className="h-6 w-16"
-          />
+          <div className="surface-well h-7 w-20 overflow-hidden rounded-md px-1 py-0.5">
+            <Sparkline
+              values={buf}
+              tone={isBull ? 'bull' : 'bear'}
+              variant="area"
+              interactive
+              onHoverChange={(index) => setScrubPrice(index === null ? null : (buf[index] ?? null))}
+              label={`${tick.symbol} trend`}
+              className="h-full w-full"
+            />
+          </div>
         ) : (
-          <div className="h-6 w-16" aria-hidden />
-        )}
-
-        {isClosed ? (
-          <span
-            className="text-fg-subtle w-4 text-center text-xs font-medium"
-            aria-label="Market closed"
-            title="Market closed"
-          >
-            —
-          </span>
-        ) : (
-          <span
-            className={cn(
-              'w-4 text-center text-xs font-bold tabular-nums',
-              isBull ? 'text-bull' : 'text-bear',
-            )}
-            aria-label={isBull ? 'Trending up' : 'Trending down'}
-          >
-            {isBull ? '▲' : '▼'}
-          </span>
+          <div className="h-7 w-20" aria-hidden />
         )}
 
         {/* 1-Click Ask AI Copilot */}
         <Link
           href={`/chat?prompt=${aiPrompt}`}
-          className="text-fg-subtle hover:text-brand hover:bg-brand/10 tactile-press inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-lg p-2 transition-colors active:translate-y-[0.5px]"
+          className="text-fg-subtle hover:text-brand hover:bg-brand/10 tactile-press inline-flex size-8 min-h-8 min-w-8 items-center justify-center rounded-lg p-1.5 transition-colors active:translate-y-[0.5px]"
           title={`Ask AI Copilot to analyze ${tick.symbol}`}
           aria-label={`Ask AI Copilot to analyze ${tick.symbol}`}
         >
-          <IconBolt className="text-brand size-4" />
+          <IconBolt className="text-brand size-3.5" />
         </Link>
 
         {/* Remove symbol button in edit hover */}
@@ -146,7 +143,7 @@ export function WatchRow({
           <button
             type="button"
             onClick={onRemove}
-            className="text-fg-subtle hover:text-danger tactile-press inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-lg p-2 opacity-0 transition-all group-hover:opacity-100 active:translate-y-[0.5px]"
+            className="text-fg-subtle hover:text-danger tactile-press inline-flex size-8 min-h-8 min-w-8 items-center justify-center rounded-lg p-1.5 opacity-0 transition-all group-hover:opacity-100 focus-visible:opacity-100 active:translate-y-[0.5px]"
             title={`Remove ${tick.symbol} from watchlist`}
             aria-label={`Remove ${tick.symbol}`}
           >

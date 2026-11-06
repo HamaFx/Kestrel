@@ -13,8 +13,18 @@ import type { Scenario, SimulationStage } from './scenarios';
 
 const Y_TOP = 10;
 const Y_BOTTOM = 90;
+const MIN_LABEL_GAP = 11;
 
 type Tone = 'bull' | 'bear' | 'neutral';
+
+interface LevelRow {
+  key: string;
+  label: string;
+  price: number;
+  y: number;
+  labelY: number;
+  tone: Tone;
+}
 
 function parsePrice(value: string): number | null {
   const parsed = Number(value.replace(/,/g, ''));
@@ -27,6 +37,32 @@ function formatPrice(value: number): string {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
+}
+
+/**
+ * Spread right-gutter labels vertically so tightly clustered targets (e.g.
+ * TP1 / ENTRY) never overlap on the Y axis.
+ */
+function resolveLabelPositions(raw: ReadonlyArray<Omit<LevelRow, 'labelY'>>): LevelRow[] {
+  const sorted = [...raw]
+    .map((item) => ({ ...item, labelY: Math.min(92, Math.max(8, item.y)) }))
+    .sort((a, b) => a.labelY - b.labelY);
+
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1]!;
+    const curr = sorted[i]!;
+    if (curr.labelY - prev.labelY < MIN_LABEL_GAP) {
+      curr.labelY = Math.min(94, prev.labelY + MIN_LABEL_GAP);
+    }
+  }
+  for (let i = sorted.length - 2; i >= 0; i--) {
+    const next = sorted[i + 1]!;
+    const curr = sorted[i]!;
+    if (next.labelY - curr.labelY < MIN_LABEL_GAP) {
+      curr.labelY = Math.max(6, next.labelY - MIN_LABEL_GAP);
+    }
+  }
+  return sorted;
 }
 
 export function SimulatorSetupChart({
@@ -66,18 +102,18 @@ export function SimulatorSetupChart({
   const riskHeight = Math.abs(stopY - entryY);
 
   const pathPoints: Array<readonly [number, number]> = [
-    [14, entryY],
+    [12, entryY],
     [28, yFor(entry + (stop - entry) * 0.45)],
     [48, yFor(targets[0] ?? entry)],
     [68, yFor(targets[1] ?? targets[0] ?? entry)],
-    [90, yFor(targets[2] ?? targets[1] ?? targets[0] ?? entry)],
+    [92, yFor(targets[2] ?? targets[1] ?? targets[0] ?? entry)],
   ];
   const path = pathPoints
     .map(([x, y], index) => `${index === 0 ? 'M' : 'L'} ${x} ${y.toFixed(2)}`)
     .join(' ');
   const live = stage !== 'idle';
 
-  const levels: Array<{ key: string; label: string; price: number; y: number; tone: Tone }> = [
+  const levels = resolveLabelPositions([
     {
       key: 'tp3',
       label: 'TP3',
@@ -101,7 +137,7 @@ export function SimulatorSetupChart({
     },
     { key: 'entry', label: 'ENTRY', price: entry, y: entryY, tone: 'neutral' },
     { key: 'stop', label: 'SL', price: stop, y: stopY, tone: 'bear' },
-  ];
+  ]);
 
   return (
     <div className="my-5 rounded-xl border border-white/5 bg-black/40 p-3">
@@ -135,7 +171,7 @@ export function SimulatorSetupChart({
         role="img"
         aria-label={`Simulated setup for ${scenario.symbol}: entry ${scenario.entry}, stop ${scenario.invalidation}, targets ${scenario.target1}, ${scenario.target2}, ${scenario.target3}`}
       >
-        <div className="absolute inset-y-0 right-20 left-0" aria-hidden="true">
+        <div className="absolute inset-y-0 right-24 left-0" aria-hidden="true">
           <svg
             viewBox="0 0 100 100"
             preserveAspectRatio="none"
@@ -181,7 +217,7 @@ export function SimulatorSetupChart({
                       ? 'var(--chart-negative)'
                       : 'var(--chart-line-primary)'
                 }
-                strokeOpacity={level.key === 'entry' ? 0.8 : 0.45}
+                strokeOpacity={level.key === 'entry' ? 0.85 : 0.45}
                 strokeWidth="1"
                 strokeDasharray={level.key === 'entry' ? undefined : '4 3'}
                 vectorEffect="non-scaling-stroke"
@@ -192,7 +228,7 @@ export function SimulatorSetupChart({
               d={path}
               fill="none"
               stroke="var(--chart-line-primary)"
-              strokeOpacity={0.8}
+              strokeOpacity={0.85}
               strokeWidth="1.5"
               strokeDasharray="3 2"
               strokeLinecap="round"
@@ -220,21 +256,24 @@ export function SimulatorSetupChart({
           </svg>
 
           <span
-            className="bg-brand absolute size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
-            style={{ left: '14%', top: `${entryY}%` }}
+            className="bg-brand absolute size-2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-[#0d0e10]"
+            style={{ left: '12%', top: `${entryY}%` }}
           />
         </div>
 
-        <div className="absolute inset-y-0 right-0 w-20" aria-hidden="true">
+        <div
+          className="border-border/30 absolute inset-y-0 right-0 w-24 border-l bg-black/25"
+          aria-hidden="true"
+        >
           {levels.map((level) => (
             <div
               key={level.key}
-              className="absolute right-1.5 -translate-y-1/2 text-right font-mono whitespace-nowrap tabular-nums"
-              style={{ top: `${level.y}%` }}
+              className="absolute inset-x-1.5 flex -translate-y-1/2 items-center justify-between font-mono whitespace-nowrap tabular-nums"
+              style={{ top: `${level.labelY}%` }}
             >
               <span
                 className={cn(
-                  'text-[9px] tracking-wider uppercase',
+                  'text-[8px] font-semibold tracking-wider uppercase',
                   level.tone === 'bull'
                     ? 'text-bull'
                     : level.tone === 'bear'
@@ -244,7 +283,7 @@ export function SimulatorSetupChart({
               >
                 {level.label}
               </span>
-              <span className="text-fg ml-1 text-[9px]">{formatPrice(level.price)}</span>
+              <span className="text-fg text-[9px]">{formatPrice(level.price)}</span>
             </div>
           ))}
         </div>

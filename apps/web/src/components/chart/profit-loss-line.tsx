@@ -126,9 +126,12 @@ export function ProfitLossLine({
     hoverIndex !== null && hoverIndex >= 0 && hoverIndex < values.length ? hoverIndex : null;
   const displayIndex = safeHover ?? values.length - 1;
   const displayValue = values[displayIndex] ?? baseline;
+  const lastValue = values[values.length - 1] ?? baseline;
   const previousValue = displayIndex > 0 ? (values[displayIndex - 1] ?? baseline) : null;
   const displayTone =
     displayValue > baseline ? 'text-bull' : displayValue < baseline ? 'text-bear' : 'text-fg';
+  const terminalDotClass =
+    lastValue > baseline ? 'bg-bull' : lastValue < baseline ? 'bg-bear' : 'bg-fg-muted';
 
   const selectionStart = selection ? Math.min(selection.start, selection.end) : null;
   const selectionEnd = selection ? Math.max(selection.start, selection.end) : null;
@@ -146,13 +149,13 @@ export function ProfitLossLine({
       : 0;
   const midLabel = labels?.[Math.floor((labels.length - 1) / 2)];
   const legendItems = [
-    { label: seriesLabel, tone: 'brand' as const },
+    { label: seriesLabel, tone: 'bull' as const, dualTone: ['bull', 'bear'] as const },
     ...(ceilingLabel ? [{ label: ceilingLabel, tone: 'muted' as const, dashed: true }] : []),
   ];
 
   return (
     <div className={cn('flex flex-col', className)}>
-      <div className="mb-2 flex items-center justify-between gap-3">
+      <div className="mb-2 flex items-center justify-between gap-3 pr-12">
         <ChartLegend items={legendItems} />
         <div className="flex items-center gap-2 font-mono text-[10px]">
           {safeHover !== null ? (
@@ -227,46 +230,62 @@ export function ProfitLossLine({
           />
 
           {safeHover !== null ? (
-            <ChartTooltip
-              x={geometry.xFor(safeHover)}
-              y={geometry.yFor(values[safeHover] ?? baseline)}
-              title={labels?.[safeHover] ?? `Point ${safeHover + 1}`}
-              rows={[
-                {
-                  label: seriesLabel,
-                  value: formatValue(values[safeHover] ?? baseline),
-                  tone: displayValue >= baseline ? 'bull' : 'bear',
-                },
-                ...(previousValue !== null
-                  ? [
-                      {
-                        label: 'Change',
-                        value: formatValue((values[safeHover] ?? baseline) - previousValue),
-                        tone:
-                          (values[safeHover] ?? baseline) >= previousValue
-                            ? ('bull' as const)
-                            : ('bear' as const),
-                      },
-                    ]
-                  : []),
-                ...(ceilingValues?.[safeHover] !== undefined
-                  ? [
-                      {
-                        label: ceilingLabel ?? 'Peak',
-                        value: formatValue(ceilingValues[safeHover]!),
-                        tone: 'muted' as const,
-                      },
-                    ]
-                  : []),
-              ]}
-            />
+            <>
+              <span
+                className={cn(
+                  'pointer-events-none absolute size-2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-[#0d0e10]',
+                  (values[safeHover] ?? baseline) >= baseline ? 'bg-bull' : 'bg-bear',
+                )}
+                style={{
+                  left: `${geometry.xFor(safeHover)}%`,
+                  top: `${geometry.yFor(values[safeHover] ?? baseline)}%`,
+                }}
+                aria-hidden="true"
+              />
+              <ChartTooltip
+                x={geometry.xFor(safeHover)}
+                y={geometry.yFor(values[safeHover] ?? baseline)}
+                title={labels?.[safeHover] ?? `Point ${safeHover + 1}`}
+                rows={[
+                  {
+                    label: seriesLabel,
+                    value: formatValue(values[safeHover] ?? baseline),
+                    tone: displayValue >= baseline ? 'bull' : 'bear',
+                  },
+                  ...(previousValue !== null
+                    ? [
+                        {
+                          label: 'Change',
+                          value: formatValue((values[safeHover] ?? baseline) - previousValue),
+                          tone:
+                            (values[safeHover] ?? baseline) >= previousValue
+                              ? ('bull' as const)
+                              : ('bear' as const),
+                        },
+                      ]
+                    : []),
+                  ...(ceilingValues?.[safeHover] !== undefined
+                    ? [
+                        {
+                          label: ceilingLabel ?? 'Peak',
+                          value: formatValue(ceilingValues[safeHover]!),
+                          tone: 'muted' as const,
+                        },
+                      ]
+                    : []),
+                ]}
+              />
+            </>
           ) : null}
 
           <span
-            className="bg-brand absolute size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+            className={cn(
+              'pointer-events-none absolute size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full',
+              terminalDotClass,
+            )}
             style={{
               left: `${geometry.xFor(values.length - 1)}%`,
-              top: `${geometry.yFor(values[values.length - 1] ?? baseline)}%`,
+              top: `${geometry.yFor(lastValue)}%`,
             }}
             aria-hidden="true"
           />
@@ -287,7 +306,7 @@ export function ProfitLossLine({
       </div>
 
       {labels && labels.length >= 2 ? (
-        <div className="text-fg-subtle mt-1.5 flex justify-between pl-1 font-mono text-[9px]">
+        <div className="text-fg-subtle mt-1.5 flex justify-between pr-12 pl-1 font-mono text-[9px]">
           <span>{labels[0]}</span>
           <span>{midLabel}</span>
           <span>{labels[labels.length - 1]}</span>

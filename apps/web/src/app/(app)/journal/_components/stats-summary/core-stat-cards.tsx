@@ -10,6 +10,11 @@ import { StatCard, type StatTone } from '@/components/ui/stat-card';
 
 import type { StatSparks } from './use-stat-sparks';
 
+function formatSignedR(value: number | null): string {
+  if (value === null || value === undefined) return '—';
+  return `${value >= 0 ? '+' : ''}${value.toFixed(2)}R`;
+}
+
 export function CoreStatCards({
   stats,
   winRatePct,
@@ -50,16 +55,17 @@ export function CoreStatCards({
     <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2">
       <StatCard
         icon={<IconActivity className="size-3.5" strokeWidth={2} />}
-        label="trades"
+        label="Closed trades"
         value={stats.count}
+        hint="logged"
         sparkline={sparks.trades}
       />
       <StatCard
         icon={<IconTarget className="size-3.5" strokeWidth={2} />}
-        label="win-rate"
+        label="Win rate"
         value={winRatePct}
         tone={winTone}
-        sparkline={sparks.winRate}
+        hint={`${stats.wins}W / ${stats.losses}L`}
         {...(stats.winRate !== null
           ? {
               meter: {
@@ -72,16 +78,18 @@ export function CoreStatCards({
       />
       <StatCard
         icon={<IconTrendingUp className="size-3.5" strokeWidth={2} />}
-        label="avg R"
-        value={stats.avgR == null ? '—' : stats.avgR.toFixed(2)}
+        label="Avg R"
+        value={formatSignedR(stats.avgR)}
         tone={avgRTone}
+        hint="expectancy"
         sparkline={sparks.avgR}
       />
       <StatCard
         icon={<IconCalculator className="size-3.5" strokeWidth={2} />}
-        label="total R"
-        value={stats.totalR == null ? '—' : stats.totalR.toFixed(2)}
+        label="Total R"
+        value={formatSignedR(stats.totalR)}
         tone={totalTone}
+        hint="cumulative"
         sparkline={sparks.cumR}
       />
     </dl>

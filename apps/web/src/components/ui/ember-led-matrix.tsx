@@ -17,10 +17,21 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // 3×3 ember LED matrix for live agent execution. Nine brand-coloured cells
-// with staggered pulses; the reduced-motion branch renders them static.
+// with non-linear staggered cadence so the array shimmers like an active
+// hardware compute core; the reduced-motion branch renders them static.
 import { cn } from '@/lib/formatters/cn';
 
-const LED_DELAYS_MS = [0, 120, 240, 80, 200, 320, 160, 280, 400];
+const LED_CELLS = [
+  { delayMs: 0, durationMs: 920 },
+  { delayMs: 280, durationMs: 1040 },
+  { delayMs: 540, durationMs: 880 },
+  { delayMs: 160, durationMs: 1100 },
+  { delayMs: 420, durationMs: 840 },
+  { delayMs: 680, durationMs: 980 },
+  { delayMs: 600, durationMs: 940 },
+  { delayMs: 220, durationMs: 1080 },
+  { delayMs: 760, durationMs: 900 },
+] as const;
 
 export function EmberLedMatrix({ className }: { className?: string }) {
   return (
@@ -31,10 +42,13 @@ export function EmberLedMatrix({ className }: { className?: string }) {
         className,
       )}
     >
-      {LED_DELAYS_MS.map((delay, index) => (
+      {LED_CELLS.map((cell, index) => (
         <span
           key={index}
-          style={{ animationDelay: `${delay}ms` }}
+          style={{
+            animationDelay: `${cell.delayMs}ms`,
+            animationDuration: `${cell.durationMs}ms`,
+          }}
           className="bg-brand size-[3px] animate-pulse rounded-[0.5px] shadow-[0_0_4px_rgba(255,54,22,0.85)] motion-reduce:animate-none"
         />
       ))}

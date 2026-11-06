@@ -55,17 +55,32 @@ export function RingGauge({
       style={{ width: size }}
     >
       <svg
-        viewBox="0 0 100 56"
+        viewBox="0 0 100 58"
         width={size}
-        height={size * 0.56}
+        height={size * 0.58}
         className="overflow-visible"
         aria-hidden="true"
       >
+        {[180, 225, 270, 315, 360].map((angle) => {
+          const [x1, y1] = pointOnArc(angle, 43.5);
+          const [x2, y2] = pointOnArc(angle, 46);
+          return (
+            <line
+              key={angle}
+              x1={x1}
+              y1={y1}
+              x2={x2}
+              y2={y2}
+              stroke="var(--chart-grid)"
+              strokeWidth="1.2"
+            />
+          );
+        })}
         <path
           d={TRACK}
           fill="none"
           stroke="var(--chart-grid)"
-          strokeWidth="8"
+          strokeWidth="6.5"
           strokeLinecap="round"
         />
         {progress ? (
@@ -73,17 +88,17 @@ export function RingGauge({
             d={progress}
             fill="none"
             stroke="currentColor"
-            strokeWidth="8"
+            strokeWidth="6.5"
             strokeLinecap="round"
           />
         ) : null}
         <text
           x="50"
-          y="43"
+          y="45"
           textAnchor="middle"
           fill="currentColor"
           fontFamily="var(--font-mono)"
-          fontSize="16"
+          fontSize="15"
           fontWeight="700"
         >
           {Math.round(pct)}%
@@ -91,7 +106,7 @@ export function RingGauge({
         {showLabel && label ? (
           <text
             x="50"
-            y="53"
+            y="55"
             textAnchor="middle"
             fill="var(--color-fg-subtle)"
             fontFamily="var(--font-mono)"

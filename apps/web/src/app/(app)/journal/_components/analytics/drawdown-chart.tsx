@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 
-// Equity curve with the running peak shaded behind it. The peak-to-trough
-// band is the drawdown; the shared ProfitLossLine supplies the sign-coloured
-// curve, zero baseline, and drag-to-measure range HUD.
+// Underwater drawdown curve (peak-to-trough depth below the 0R high-water
+// mark) so traders immediately see drawdown magnitude and recovery duration
+// without duplicating the cumulative equity chart above it.
 import type { JournalEntry, JournalStatsWithNulls } from '@kestrel/shared';
 import { useMemo } from 'react';
 
@@ -37,13 +37,13 @@ function formatDay(timestamp: number): string {
 }
 
 export function DrawdownChart({ entries, stats: _stats, className }: DrawdownChartProps) {
-  const { curve, peaks, labels, maxDrawdown, recoveryFactor } = useMemo(() => {
+  const { underwater, zeroCeiling, labels, maxDrawdown, recoveryFactor } = useMemo(() => {
     const closed = [...entries]
       .filter((entry) => entry.outcome !== 'open' && entry.rMultiple !== null)
-      .sort((a, b) => a.openedAt - b.openedAt);
+      .sort((a, b) => (a.closedAt ?? a.openedAt) - (b.closedAt ?? b.openedAt));
 
-    const curve: number[] = [];
-    const peaks: number[] = [];
+    const underwater: number[] = [];
+    const zeroCeiling: number[] = [];
     let cumulative = 0;
     let peak = 0;
     let maxDD = 0;
@@ -53,25 +53,25 @@ export function DrawdownChart({ entries, stats: _stats, className }: DrawdownCha
       if (cumulative > peak) peak = cumulative;
       const drawdown = peak - cumulative;
       if (drawdown > maxDD) maxDD = drawdown;
-      curve.push(cumulative);
-      peaks.push(peak);
+      underwater.push(drawdown === 0 ? 0 : -drawdown);
+      zeroCeiling.push(0);
     }
 
     return {
-      curve,
-      peaks,
-      labels: closed.map((entry) => formatDay(entry.openedAt)),
+      underwater,
+      zeroCeiling,
+      labels: closed.map((entry) => formatDay(entry.closedAt ?? entry.openedAt)),
       maxDrawdown: maxDD,
       recoveryFactor: maxDD === 0 ? 0 : cumulative / maxDD,
     };
   }, [entries]);
 
-  if (curve.length < 2) {
+  if (underwater.length < 2) {
     return (
       <Card as="section" aria-label="Drawdown chart" className={cn('gap-3', className)}>
         <header className="flex items-center justify-between gap-2">
           <span className="text-fg-subtle font-mono text-[11px] font-semibold tracking-wider uppercase">
-            Drawdown
+            Underwater drawdown
           </span>
         </header>
         <div className="surface-well relative h-24 overflow-hidden rounded-xl">
@@ -82,7 +82,7 @@ export function DrawdownChart({ entries, stats: _stats, className }: DrawdownCha
             aria-hidden="true"
           >
             <path
-              d="M0 78 C 14 70, 24 84, 40 58 S 70 48, 100 30"
+              d="M0 22 C 14 35, 24 72, 40 58 S 70 48, 100 22"
               fill="none"
               stroke="var(--chart-negative)"
               strokeWidth="1.5"
@@ -93,7 +93,7 @@ export function DrawdownChart({ entries, stats: _stats, className }: DrawdownCha
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-4 text-center">
             <p className="text-fg text-xs font-medium">No drawdown path yet</p>
             <p className="text-fg-subtle max-w-xs text-[11px] leading-relaxed">
-              Close two trades to plot the peak-to-trough curve.
+              Close two trades to plot the peak-to-trough underwater curve.
             </p>
           </div>
         </div>
@@ -105,25 +105,26 @@ export function DrawdownChart({ entries, stats: _stats, className }: DrawdownCha
     <Card as="section" aria-label="Drawdown chart" className={cn('gap-3', className)}>
       <header className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-fg-subtle font-mono text-[11px] font-semibold tracking-wider uppercase">
-          Drawdown
+          Underwater drawdown
         </span>
         <span className="text-fg-muted font-mono text-[10px] tabular-nums">
-          Max DD: -{maxDrawdown.toFixed(2)}R · Recovery: {recoveryFactor.toFixed(2)}
+          Max DD: <span className="text-bear font-semibold">-{maxDrawdown.toFixed(2)}R</span> ·
+          Recovery: {recoveryFactor.toFixed(2)}
         </span>
       </header>
 
       <ProfitLossLine
-        values={curve}
-        ceilingValues={peaks}
+        values={underwater}
+        ceilingValues={zeroCeiling}
         labels={labels}
-        height={180}
-        formatValue={(value) => `${value >= 0 ? '+' : ''}${value.toFixed(2)}R`}
-        formatAxis={(value) => `${value >= 0 ? '+' : ''}${value.toFixed(1)}R`}
-        ariaLabel={`Drawdown chart: max drawdown ${maxDrawdown.toFixed(2)}R, recovery factor ${recoveryFactor.toFixed(2)}`}
+        height={176}
+        formatValue={(value) => `${value.toFixed(2)}R`}
+        formatAxis={(value) => `${value.toFixed(1)}R`}
+        ariaLabel={`Underwater drawdown chart: max drawdown -${maxDrawdown.toFixed(2)}R, recovery factor ${recoveryFactor.toFixed(2)}`}
         measure
         measureUnit="trades"
-        seriesLabel="Equity"
-        ceilingLabel="Peak"
+        seriesLabel="Drawdown"
+        ceilingLabel="Peak (0R)"
       />
     </Card>
   );

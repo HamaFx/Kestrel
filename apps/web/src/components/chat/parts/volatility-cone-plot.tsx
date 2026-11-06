@@ -50,7 +50,14 @@ export function VolatilityConePlot({
   const lowerMove = Math.max(range.mid - range.low, 0);
   const yFor = (price: number) => Y_BOTTOM - ((price - range.low) / span) * (Y_BOTTOM - Y_TOP);
   const xFor = (t: number) => X_START + (X_END - X_START) * t;
-  const ticks = niceTicks(range.low, range.high, 4);
+  const midY = yFor(range.mid);
+  const midLabelY = Math.min(Y_BOTTOM - 2, Math.max(Y_TOP + 2, midY));
+
+  // Filter out background axis ticks that would collide with the live-mid readout pill
+  const ticks = niceTicks(range.low, range.high, 4).filter((tick) => {
+    const y = yFor(tick);
+    return y >= Y_TOP - 4 && y <= Y_BOTTOM + 4 && Math.abs(y - midLabelY) >= 10;
+  });
 
   const upper = Array.from({ length: STEPS + 1 }, (_, index) => {
     const t = index / STEPS;
@@ -65,10 +72,8 @@ export function VolatilityConePlot({
       .map(([x, y], index) => `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`)
       .join(' ');
   const band = [...upper, ...lower].map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).join(' ');
-  const midY = yFor(range.mid);
   const eventT = event ? (Date.parse(event.whenIso) - asOf) / (horizonHours * 60 * 60 * 1000) : NaN;
   const eventX = Number.isFinite(eventT) && eventT >= 0 && eventT <= 1 ? xFor(eventT) : null;
-  const midLabelY = Math.min(Y_BOTTOM - 1, Math.max(Y_TOP + 1, midY));
 
   return (
     <div className={cn('flex flex-col gap-2', className)}>
@@ -99,8 +104,9 @@ export function VolatilityConePlot({
           >
             <defs>
               <linearGradient id={`${rawId}-cone`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--chart-line-primary)" stopOpacity="0.2" />
-                <stop offset="100%" stopColor="var(--chart-line-primary)" stopOpacity="0.05" />
+                <stop offset="0%" stopColor="var(--chart-line-primary)" stopOpacity="0.22" />
+                <stop offset="50%" stopColor="var(--chart-line-primary)" stopOpacity="0.08" />
+                <stop offset="100%" stopColor="var(--chart-line-primary)" stopOpacity="0.22" />
               </linearGradient>
             </defs>
 
@@ -137,8 +143,8 @@ export function VolatilityConePlot({
               d={toPath(upper)}
               fill="none"
               stroke="var(--chart-line-primary)"
-              strokeOpacity={0.65}
-              strokeWidth="1"
+              strokeOpacity={0.7}
+              strokeWidth="1.25"
               strokeDasharray="3 3"
               vectorEffect="non-scaling-stroke"
             />
@@ -146,8 +152,8 @@ export function VolatilityConePlot({
               d={toPath(lower)}
               fill="none"
               stroke="var(--chart-line-primary)"
-              strokeOpacity={0.65}
-              strokeWidth="1"
+              strokeOpacity={0.7}
+              strokeWidth="1.25"
               strokeDasharray="3 3"
               vectorEffect="non-scaling-stroke"
             />
@@ -167,8 +173,8 @@ export function VolatilityConePlot({
             <line
               x1={X_END}
               x2={X_END}
-              y1={Y_TOP - 5}
-              y2={Y_BOTTOM + 5}
+              y1={Y_TOP}
+              y2={Y_BOTTOM}
               stroke="var(--chart-line-primary)"
               strokeOpacity={0.6}
               strokeWidth="1"
@@ -182,20 +188,13 @@ export function VolatilityConePlot({
                 y1={Y_TOP - 2}
                 y2={Y_BOTTOM + 2}
                 stroke="var(--color-warn)"
-                strokeOpacity={0.8}
+                strokeOpacity={0.85}
                 strokeWidth="1"
                 strokeDasharray="2 2"
                 vectorEffect="non-scaling-stroke"
               />
             ) : null}
           </svg>
-
-          <span className="text-fg-subtle absolute top-1.5 left-1.5 font-mono text-[9px] tracking-wider uppercase">
-            Now
-          </span>
-          <span className="text-fg-subtle absolute top-1.5 right-1.5 font-mono text-[9px] tracking-wider uppercase">
-            +{horizonHours}h
-          </span>
 
           <span
             className="absolute -translate-x-1/2 -translate-y-1/2"
@@ -208,14 +207,17 @@ export function VolatilityConePlot({
 
           {eventX !== null ? (
             <span
-              className="bg-warn absolute size-1.5 -translate-x-1/2 rounded-full"
-              style={{ left: `${eventX}%`, top: `${Y_TOP - 7}%` }}
+              className="bg-warn absolute size-1.5 -translate-x-1/2 rounded-full ring-2 ring-[#0d0e10]"
+              style={{ left: `${eventX}%`, top: `${Y_TOP - 2}%` }}
               aria-hidden="true"
             />
           ) : null}
         </div>
 
-        <div className="absolute inset-y-0 right-0 w-16" aria-hidden="true">
+        <div
+          className="border-border/30 absolute inset-y-0 right-0 w-16 border-l bg-black/20"
+          aria-hidden="true"
+        >
           {ticks.map((tick) => (
             <span
               key={`price-${tick}`}
@@ -226,7 +228,7 @@ export function VolatilityConePlot({
             </span>
           ))}
           <span
-            className="text-brand absolute right-1.5 -translate-y-1/2 rounded bg-black/40 px-1 font-mono text-[9px] font-semibold tabular-nums"
+            className="text-brand border-brand/30 bg-brand/10 absolute right-1.5 -translate-y-1/2 rounded border px-1 py-0.5 font-mono text-[9px] font-semibold tabular-nums"
             style={{ top: `${midLabelY}%` }}
           >
             {formatPrice(range.mid)}
@@ -234,7 +236,7 @@ export function VolatilityConePlot({
         </div>
       </div>
 
-      <div className="text-fg-subtle flex justify-between font-mono text-[9px]">
+      <div className="text-fg-subtle flex justify-between pr-16 pl-1 font-mono text-[9px]">
         <span>Now</span>
         <span>+{Math.round(horizonHours / 4)}h</span>
         <span>+{Math.round(horizonHours / 2)}h</span>

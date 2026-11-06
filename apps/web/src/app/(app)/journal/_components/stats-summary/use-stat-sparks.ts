@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Rolling sparkline series (trades, win-rate, avg R, cumulative R) derived
-// from the most recent closed journal entries.
+// Rolling sparkline series (trades per day, win-rate, avg R, cumulative R)
+// derived from the most recent closed journal entries.
 import type { JournalEntry } from '@kestrel/shared';
 import { useMemo } from 'react';
 
@@ -13,15 +13,15 @@ export interface StatSparks {
 }
 
 export function useStatSparks(entries: readonly JournalEntry[]): StatSparks {
-  // Sparkline values: rolling cumulative R-multiple over the last 20 closed entries.
+  // Sort chronologically (oldest → newest) and take the most recent 20 closed trades.
   const closedSpark = useMemo(() => {
-    return entries
+    return [...entries]
       .filter(
         (e): e is JournalEntry & { rMultiple: number } =>
-          e.rMultiple !== null && e.rMultiple !== undefined,
+          e.rMultiple !== null && e.rMultiple !== undefined && e.outcome !== 'open',
       )
-      .slice(0, 20)
-      .reverse();
+      .sort((a, b) => (a.closedAt ?? a.openedAt) - (b.closedAt ?? b.openedAt))
+      .slice(-20);
   }, [entries]);
 
   const cumR = useMemo(() => {
@@ -45,7 +45,17 @@ export function useStatSparks(entries: readonly JournalEntry[]): StatSparks {
     return res;
   }, [closedSpark]);
 
-  const tradesSpark = useMemo(() => closedSpark.map((_, i) => i + 1), [closedSpark]);
+  // Daily trade count across recent active trading days (instead of a synthetic 1..N index)
+  const tradesSpark = useMemo(() => {
+    const byDay = new Map<string, number>();
+    for (const e of closedSpark) {
+      const ts = e.closedAt ?? e.openedAt;
+      const day = new Date(ts).toISOString().slice(0, 10);
+      byDay.set(day, (byDay.get(day) ?? 0) + 1);
+    }
+    return [...byDay.values()];
+  }, [closedSpark]);
+
   const avgRSpark = useMemo(() => closedSpark.map((e) => e.rMultiple), [closedSpark]);
 
   return { trades: tradesSpark, winRate: winRateSpark, avgR: avgRSpark, cumR };

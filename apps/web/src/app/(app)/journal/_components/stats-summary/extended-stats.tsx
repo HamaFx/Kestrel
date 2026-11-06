@@ -21,36 +21,36 @@ export function ExtendedStats({ stats }: { stats: JournalStatsWithNulls }) {
         <StatCard
           icon={<IconFlame className="size-3.5" strokeWidth={2} />}
           label="Win streak"
-          value={stats.longestWinStreak ?? 0}
+          value={`${stats.longestWinStreak ?? 0}W`}
           tone="bull"
-          hint="max run"
+          hint="best run"
         />
         <StatCard
           icon={<IconFlame className="size-3.5" strokeWidth={2} />}
           label="Loss streak"
-          value={stats.longestLossStreak ?? 0}
+          value={`${stats.longestLossStreak ?? 0}L`}
           tone="bear"
-          hint="max run"
+          hint="worst run"
         />
         <StatCard
           icon={<IconClock className="size-3.5" strokeWidth={2} />}
           label="Avg hold"
           value={stats.avgHoldMs == null ? '—' : formatHoldTime(stats.avgHoldMs)}
           tone="fg"
-          hint="closed"
+          hint="duration"
         />
       </div>
 
       {stats.perDayOfWeek ? (
-        <div className="border-border bg-bg-elev-1 flex flex-col gap-3 rounded-sm border p-3.5">
+        <div className="surface-card flex flex-col gap-3 rounded-xl border border-white/[0.06] p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <IconCalendarEvent className="text-fg-muted size-3.5" />
-              <span className="text-caption text-fg-subtle font-bold tracking-wider uppercase">
+              <IconCalendarEvent className="text-fg-subtle size-3.5" />
+              <span className="text-fg-subtle font-mono text-[10px] font-semibold tracking-wider uppercase">
                 Closed by day of week
               </span>
             </div>
-            <span className="text-caption text-fg-subtle tabular-nums">
+            <span className="text-fg-subtle font-mono text-[10px] tabular-nums">
               {Object.values(stats.perDayOfWeek).reduce((a, b) => a + b, 0)} trades
             </span>
           </div>

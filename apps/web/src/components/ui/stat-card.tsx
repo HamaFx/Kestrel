@@ -17,7 +17,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // KPI tile used across the journal and dashboard. The number is the anchor;
-// the recessed sparkline and optional meter carry the trend and target context.
+// either a recessed sparkline or a machined meter carries the trend / budget
+// context below the readout.
 import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/formatters/cn';
@@ -33,10 +34,10 @@ export interface StatCardProps {
   tone?: StatTone;
   /** Sparkline values (most recent last). Hidden when < 2 points. */
   sparkline?: readonly number[];
-  /** Short context line under the value. */
+  /** Short context line in the header. */
   hint?: string;
-  /** Optional progress meter under the tile. */
-  meter?: { value: number; max: number; tone?: StatTone };
+  /** Optional progress meter under the tile (ignored when a sparkline is shown). */
+  meter?: { value: number; max: number; tone?: StatTone; showPct?: boolean };
   className?: string;
 }
 
@@ -48,11 +49,19 @@ const TONE_CLASS: Record<StatTone, string> = {
   warn: 'text-warn',
 };
 
+const TONE_ICON: Record<StatTone, string> = {
+  fg: 'text-fg-subtle',
+  bull: 'text-bull/85',
+  bear: 'text-bear/85',
+  muted: 'text-fg-subtle',
+  warn: 'text-warn/85',
+};
+
 const TONE_BAR: Record<StatTone, string> = {
-  fg: 'bg-fg',
+  fg: 'bg-fg-muted',
   bull: 'bg-bull',
   bear: 'bg-bear',
-  muted: 'bg-fg-muted',
+  muted: 'bg-fg-subtle',
   warn: 'bg-warn',
 };
 
@@ -74,46 +83,55 @@ export function StatCard({
   meter,
   className,
 }: StatCardProps) {
+  const hasSparkline = Boolean(sparkline && sparkline.length >= 2);
   const meterPct = meter
     ? Math.min(100, Math.max(0, (meter.value / Math.max(meter.max, 1)) * 100))
     : 0;
+  const showMeterPct = meter?.showPct ?? true;
 
   return (
     <div
       role="group"
       aria-label={`${label}: ${value}${hint ? `. ${hint}` : ''}`}
       className={cn(
-        'surface-card group relative flex flex-col overflow-hidden rounded-xl border border-white/[0.06] p-3.5 shadow-sm transition-colors hover:border-white/10',
+        'surface-card group relative flex flex-col justify-between overflow-hidden rounded-xl border border-white/[0.06] p-3.5 shadow-sm transition-colors hover:border-white/12',
         className,
       )}
     >
-      <div className="flex items-center justify-between gap-2">
-        <div className="text-fg-subtle flex min-w-0 items-center gap-1.5 font-sans text-[10px] font-medium tracking-wider uppercase">
-          <span
-            className={cn('size-1.5 shrink-0 rounded-full', TONE_DOT[tone])}
-            aria-hidden="true"
-          />
-          {icon ? (
-            <span className={cn('inline-flex shrink-0', TONE_CLASS[tone])}>{icon}</span>
+      <div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-fg-subtle flex min-w-0 items-center gap-1.5 font-mono text-[10px] font-semibold tracking-wider uppercase">
+            {icon ? (
+              <span className={cn('inline-flex shrink-0 [&>svg]:size-3.5', TONE_ICON[tone])}>
+                {icon}
+              </span>
+            ) : (
+              <span
+                className={cn('size-1.5 shrink-0 rounded-full', TONE_DOT[tone])}
+                aria-hidden="true"
+              />
+            )}
+            <span className="truncate">{label}</span>
+          </div>
+          {hint ? (
+            <span className="text-fg-subtle shrink-0 font-mono text-[9px] tracking-wide uppercase">
+              {hint}
+            </span>
           ) : null}
-          <span className="truncate">{label}</span>
         </div>
-        {hint ? (
-          <span className="text-fg-subtle shrink-0 font-mono text-[9px] tracking-wide">{hint}</span>
-        ) : null}
+
+        <div
+          className={cn(
+            'text-numeric-lg sm:text-numeric-xl mt-2.5 truncate font-mono leading-none font-bold tracking-tight tabular-nums',
+            TONE_CLASS[tone],
+          )}
+        >
+          {value}
+        </div>
       </div>
 
-      <div
-        className={cn(
-          'text-numeric-lg sm:text-numeric-xl mt-2 truncate font-mono leading-none font-bold tracking-tight tabular-nums',
-          TONE_CLASS[tone],
-        )}
-      >
-        {value}
-      </div>
-
-      {sparkline && sparkline.length >= 2 ? (
-        <div className="surface-well mt-3 h-11 overflow-hidden rounded-lg">
+      {hasSparkline && sparkline ? (
+        <div className="surface-well mt-3 h-10 overflow-hidden rounded-lg px-1.5 py-1">
           <Sparkline
             values={sparkline}
             label={label}
@@ -122,11 +140,9 @@ export function StatCard({
             className={cn('h-full w-full', TONE_CLASS[tone])}
           />
         </div>
-      ) : null}
-
-      {meter ? (
+      ) : meter ? (
         <div className="mt-3 flex items-center gap-2">
-          <div className="bg-bg-elev-3 h-1 flex-1 overflow-hidden rounded-full">
+          <div className="surface-well h-1.5 flex-1 overflow-hidden rounded-full p-[1px]">
             <div
               className={cn(
                 'h-full rounded-full transition-all duration-500',
@@ -135,9 +151,11 @@ export function StatCard({
               style={{ width: `${meterPct}%` }}
             />
           </div>
-          <span className="text-fg-subtle font-mono text-[9px] tabular-nums">
-            {Math.round(meterPct)}%
-          </span>
+          {showMeterPct ? (
+            <span className="text-fg-subtle font-mono text-[9px] tabular-nums">
+              {Math.round(meterPct)}%
+            </span>
+          ) : null}
         </div>
       ) : null}
     </div>
