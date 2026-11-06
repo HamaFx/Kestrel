@@ -16,27 +16,21 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Cross-symbol comparison synthesis (DEC-05 split from synthesizer.ts).
+// Cross-symbol comparison synthesis.
 //
-// A-01 (B-01/B-08) — unlike single mode's deterministic desk read, a
-// comparison always runs one bounded LLM synthesis over the per-symbol
-// packets and desk opinions ("compare these N packets …"), then verifies the
-// answer against the union of the packets' evidence with the same single
-// bounded repair as full-mode fusion.
+// A-01 (B-01/B-08) — a comparison always runs one bounded LLM synthesis over
+// the per-symbol packets and desk opinions ("compare these N packets …"),
+// then verifies the answer against the union of the packets' evidence with the
+// same single bounded repair as full-mode fusion.
 //
 // F-01 — at least one healthy packet is required; blocked symbols are
 // disclosed in the prompt and compared against the healthy subset.
 
-import { estimateCostUsd } from '../../budget/cost';
-import {
-  getMastraGenerationStats,
-  type MastraGenerationStats,
-} from '../../mastra-v2/shared/telemetry';
-import { fusionRepairPrompt, verifyComparisonFusionAnswer } from '../fusion-verifier';
+import { verifyComparisonFusionAnswer } from '../fusion-verifier';
 import { comparisonFusionInstructionsForRequest } from '../prompts';
 import { createCommitteeAgent, FUSION_AGENT_ID } from '../specialists';
 import { contextWithPackets, MastraModeStrictFailureError } from '../types';
-import { aggregateStats } from './stats';
+import { runFusionWithRepair } from './fusion-run';
 import type { CommitteeComparisonSynthesisArgs, CommitteeSynthesisResult } from './types';
 
 export async function synthesizeComparisonAnswer(
@@ -92,42 +86,14 @@ export async function synthesizeComparisonAnswer(
       ...(signal ? { abortSignal: signal } : {}),
     });
 
-  const fusionResult = await runFusion(prompt);
-  let finalText = fusionResult.text;
-  let generationStats: MastraGenerationStats[] = [getMastraGenerationStats(fusionResult)];
-  let fusionCostUsd = estimateCostUsd(
-    fusionModel.modelId,
-    generationStats[0]!.inputTokens,
-    generationStats[0]!.outputTokens,
-  );
-
-  const firstVerification = verifyComparisonFusionAnswer(finalText, packets, opinions);
-  if (!firstVerification.ok) {
-    const repairResult = await runFusion(fusionRepairPrompt(prompt, firstVerification.findings));
-    const repairStats = getMastraGenerationStats(repairResult);
-    generationStats = [...generationStats, repairStats];
-    fusionCostUsd += estimateCostUsd(
-      fusionModel.modelId,
-      repairStats.inputTokens,
-      repairStats.outputTokens,
-    );
-    finalText = repairResult.text;
-    const repairVerification = verifyComparisonFusionAnswer(finalText, packets, opinions);
-    if (!repairVerification.ok) {
-      throw new MastraModeStrictFailureError(
-        ['fusion'],
-        new Error(
-          `Comparison fusion verification failed after repair: ${[...firstVerification.findings, ...repairVerification.findings].join('; ')}`,
-        ),
-      );
-    }
-  }
-
-  deps.ledger.recordCost('fusion', 'fusion', fusionCostUsd);
-  return {
-    finalText,
-    stats: aggregateStats([...executionStats, ...generationStats]),
-    fusionModelId: fusionModel.modelId,
-    fusionProviderId: fusionModel.providerId,
-  };
+  return runFusionWithRepair({
+    prompt,
+    executionStats,
+    fusionModel,
+    runFusion,
+    renderFusionResult: (result) => result.text,
+    verify: (text) => verifyComparisonFusionAnswer(text, packets, opinions),
+    ledger: deps.ledger,
+    failureLabel: 'Comparison fusion verification failed after repair',
+  });
 }

@@ -17,30 +17,47 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Committee workflow entry point (audit 2026-10-18, Phase 4 split).
+ * Committee workflow: one N-symbol pipeline.
  *
- * The former 1,100-line god workflow now dispatches to one of two graphs:
- *
- *   single-workflow.ts       single-symbol committee
- *                            (collect → parallel specialists → verify →
- *                             fusion)
- *   comparison-workflow.ts   bounded multi-symbol comparison
- *                            (per-symbol packets → per-symbol desk passes →
- *                             verify → cross-symbol fusion)
- *
- * This module stays the module's public surface: it re-exports the shared
- * input/output schemas and deps contract, and `createCommitteeWorkflow` picks
- * a graph from `deps.comparisonSymbols`. The dispatcher is transparent — every
- * existing import site and integration test is unchanged.
+ * A single-symbol committee is the `symbols.length === 1` case of the same
+ * collect → parallel desk passes → verify → fusion graph used for comparisons.
+ * The collect step decides whether to fetch one packet or a healthy subset;
+ * the specialist/verify/fusion steps are parameterized over the run's slots,
+ * so there is no second workflow to keep in sync.
  */
 
-import type { Symbol } from '@kestrel/shared';
-import type { Workflow } from '@mastra/core/workflows';
+import { readFeatureFlag, type Symbol } from '@kestrel/shared';
+import { Workflow as WorkflowBuilder, type Workflow } from '@mastra/core/workflows';
 
-import { createComparisonCommitteeWorkflow } from './comparison-workflow';
-import { createSingleCommitteeWorkflow } from './single-workflow';
-import type { MastraAnalysisMode } from './types';
-import type { CommitteeWorkflowDeps } from './workflow-shared';
+import {
+  collectMultiSymbolPackets,
+  collectSymbolResearchPacketCached,
+} from '../mastra-v2/packets/packet-cache';
+import { createGenerationLedger } from '../persistence/generation-ledger';
+import {
+  committeeModePolicy,
+  committeeProgressStages,
+  REQUEST_CONTEXT_SCHEMA,
+  SPECIALISTS_BY_MODE,
+  type MastraAnalysisMode,
+  type MastraSpecialistName,
+} from './types';
+import {
+  asParallelSteps,
+  CommitteeWorkflowInputSchema,
+  CommitteeWorkflowOutputSchema,
+  runSignalsFor,
+  specialistRunnerDepsFor,
+  type CommitteeWorkflowDeps,
+} from './workflow-shared';
+import {
+  createCollectStep,
+  createFusionStep,
+  createSpecialistStep,
+  createVerifyStep,
+  type WorkflowContext,
+  type WorkflowSlot,
+} from './workflow-steps';
 
 export {
   CommitteeWorkflowInputSchema,
@@ -48,14 +65,77 @@ export {
   type CommitteeWorkflowDeps,
 } from './workflow-shared';
 
+/**
+ * Specialist desks for a comparison run.
+ *
+ * Full mode runs the same four desks as the single-symbol committee. Single
+ * mode keeps the lean technical pass; the risk desk rides behind the
+ * `ENABLE_COMPARISON_RISK_DESK` rollout flag.
+ */
+export function comparisonDeskNamesForMode(
+  mode: MastraAnalysisMode,
+  riskDeskEnabled: boolean,
+): readonly MastraSpecialistName[] {
+  if (mode === 'full') return SPECIALISTS_BY_MODE.full;
+  return riskDeskEnabled ? ['technical', 'risk'] : ['technical'];
+}
+
 export function createCommitteeWorkflow(
   deps: CommitteeWorkflowDeps,
   mode: MastraAnalysisMode,
   workflowId: string = 'symbol-research',
 ): Workflow {
   const comparisonSymbols: readonly Symbol[] = [...new Set(deps.comparisonSymbols ?? [])];
-  if (comparisonSymbols.length >= 2) {
-    return createComparisonCommitteeWorkflow(deps, comparisonSymbols, mode, workflowId);
-  }
-  return createSingleCommitteeWorkflow(deps, mode, workflowId);
+  const comparison = comparisonSymbols.length >= 2;
+  const policy = committeeModePolicy(mode);
+  const deskNames = comparison
+    ? comparisonDeskNamesForMode(mode, readFeatureFlag('ENABLE_COMPARISON_RISK_DESK'))
+    : policy.specialists;
+  const slots: readonly WorkflowSlot[] = comparison
+    ? comparisonSymbols.flatMap((symbol) =>
+        deskNames.map((desk) => ({
+          desk,
+          symbol,
+          stepId: `${desk}-${symbol.toLowerCase()}`,
+        })),
+      )
+    : deskNames.map((desk) => ({ desk, stepId: desk }));
+
+  const generationLedger = deps.ledger ?? createGenerationLedger();
+  const maxSteps = deps.maxSteps ?? 1;
+  const { runSignals, runSignal } = runSignalsFor(deps);
+  const specialistDeps = specialistRunnerDepsFor(deps, generationLedger, maxSteps);
+
+  const ctx: WorkflowContext = {
+    deps,
+    mode,
+    comparison,
+    symbols: comparison ? comparisonSymbols : [],
+    slots,
+    strict: policy.strict,
+    progressStages: committeeProgressStages(mode),
+    generationLedger,
+    maxSteps,
+    collectPacket: deps.collectPacket ?? collectSymbolResearchPacketCached,
+    collectComparisonPackets: deps.collectComparisonPackets ?? collectMultiSymbolPackets,
+    runSignals,
+    runSignal,
+    specialistDeps,
+  };
+
+  const workflow = new WorkflowBuilder({
+    id: workflowId,
+    inputSchema: CommitteeWorkflowInputSchema,
+    outputSchema: CommitteeWorkflowOutputSchema,
+    requestContextSchema: REQUEST_CONTEXT_SCHEMA,
+    retryConfig: { attempts: 2, delay: 2_000 },
+    ...(deps.mastra ? { mastra: deps.mastra } : {}),
+  })
+    .then(createCollectStep(ctx))
+    .parallel(asParallelSteps(slots.map((slot) => createSpecialistStep(ctx, slot))))
+    .then(createVerifyStep(ctx))
+    .then(createFusionStep(ctx))
+    .commit() as unknown as Workflow;
+
+  return workflow;
 }

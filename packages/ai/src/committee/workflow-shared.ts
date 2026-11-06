@@ -17,18 +17,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Committee workflow shared contract (audit 2026-10-18, Phase 4 — workflow
- * split). The god workflow was split into `single-workflow.ts` (one
- * collect → parallel specialists → verify → fusion graph)
- * and `comparison-workflow.ts` (per-symbol packets → per-symbol desk passes →
- * verify → cross-symbol fusion). This module owns everything both graphs
- * share: the workflow input/output schemas, the injected dependency contract,
- * the step IO schemas, the deadline-signal helper, and the one place that
- * copies workflow deps into specialist-runner deps.
- *
- * `workflow.ts` stays the module entry point: it re-exports these symbols and
- * dispatches `createCommitteeWorkflow` to the right graph, so every existing
- * import site and integration test is unchanged.
+ * Committee workflow shared contract. `workflow.ts` owns the one N-symbol
+ * collect → parallel desk passes → verify → fusion graph; this module holds
+ * the pieces every step uses: the workflow input/output schemas, the injected
+ * dependency contract, the step IO schemas, the deadline-signal helper, and
+ * the one place that copies workflow deps into specialist-runner deps.
  */
 
 import type { Symbol } from '@kestrel/shared';
@@ -90,17 +83,11 @@ export const CommitteeWorkflowOutputSchema = z.object({
   totalCostUsd: z.number().nonnegative().default(0),
 });
 
-/** Step input for the single-symbol specialist steps. */
-export const SpecialistStepInputSchema = z.object({
-  packet: SymbolResearchPacketSchema,
-  prompt: z.string(),
-});
-
 /**
- * A-01 — comparison specialist step input: the collect step's per-symbol
- * packet record plus the primary packet (kept for schema compatibility).
+ * Specialist step input for every run shape: the primary packet plus, for a
+ * comparison, the healthy per-symbol packet record.
  */
-export const ComparisonSpecialistStepInputSchema = z.object({
+export const SpecialistStepInputSchema = z.object({
   packet: SymbolResearchPacketSchema,
   packets: z.record(z.string(), SymbolResearchPacketSchema).optional(),
   prompt: z.string(),

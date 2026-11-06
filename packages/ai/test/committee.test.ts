@@ -17,7 +17,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { readSpecialistStepResult } from '../src/committee/specialist-runner';
-import { comparisonDeskNamesForMode } from '../src/committee/comparison-workflow/workflow';
+import { comparisonDeskNamesForMode } from '../src/committee/workflow';
 import {
   committeeModelMetadata,
   committeeModePolicy,

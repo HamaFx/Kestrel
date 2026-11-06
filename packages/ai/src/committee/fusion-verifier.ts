@@ -48,54 +48,23 @@ function emitVerificationMetrics(ok: boolean, findings: readonly string[]): void
   }
 }
 
-/**
- * Deterministically verify the fusion answer against packet evidence and
- * verified specialist tool evidence (Q8).
- */
-export function verifyFusionAnswer(
-  text: string,
-  packet: SymbolResearchPacket,
-  opinions?: readonly Pick<MastraModeOpinion, 'rawData'>[],
-): FusionVerification {
-  const findings: string[] = [];
-
-  if (!text || !text.trim()) {
-    findings.push('fusion answer is empty');
-    emitVerificationMetrics(false, findings);
-    return { ok: false, findings };
-  }
-
-  // A blocked/degraded packet has no numeric evidence to ground against;
-  // numeric answers over missing data are rejected (mirrors verifyMastraOpinion).
-  if (packet.status !== 'ready') {
-    if (/\d/.test(text)) {
-      findings.push('numeric claims are not allowed when packet data is unavailable');
-    }
-    emitVerificationMetrics(findings.length === 0, findings);
-    return { ok: findings.length === 0, findings };
-  }
-
-  const evidenceValues = packetEvidenceValues(packet, opinions);
-  for (const value of ungroundedNarrativeNumbers(text, evidenceValues)) {
-    findings.push(
-      `fusion answer contains unsupported numeric value ${value}; it must come from the packet or be labeled as a scenario projection`,
-    );
-  }
-
-  emitVerificationMetrics(findings.length === 0, findings);
-  return { ok: findings.length === 0, findings };
+interface VerifyPacketsGroundedOptions {
+  /** Finding used when a comparison supplied no packets. */
+  emptyPacketsFinding?: string;
+  /** Wording for the evidence source in unsupported-number findings. */
+  sourceLabel?: 'packet' | 'packets';
 }
 
 /**
- * A-01 (B-01/B-08) — comparison fusion verification. Every numeric value in
- * the cross-symbol answer must be supported by *some* symbol's packet
- * evidence (plus the desks' verified tool outputs); the union keeps each
- * packet's numbers groundable while still rejecting invented ones.
+ * Deterministically verify a fusion answer against the union of one or more
+ * packets' evidence and the specialists' verified tool evidence (Q8). Single
+ * and comparison fusion differ only in wording and the empty-set finding.
  */
-export function verifyComparisonFusionAnswer(
+function verifyPacketsGroundedText(
   text: string,
   packets: readonly SymbolResearchPacket[],
   opinions?: readonly Pick<MastraModeOpinion, 'rawData'>[],
+  options: VerifyPacketsGroundedOptions = {},
 ): FusionVerification {
   const findings: string[] = [];
 
@@ -106,13 +75,13 @@ export function verifyComparisonFusionAnswer(
   }
 
   if (packets.length === 0) {
-    findings.push('comparison fusion has no packets to verify against');
+    findings.push(options.emptyPacketsFinding ?? 'fusion has no packets to verify against');
     emitVerificationMetrics(false, findings);
     return { ok: false, findings };
   }
 
-  // Only when every symbol's packet is unavailable are numeric claims
-  // categorically rejected (mirrors the single-packet blocked path).
+  // Only when every packet is unavailable are numeric claims categorically
+  // rejected (mirrors the single-packet blocked path).
   const allBlocked = packets.every((packet) => packet.status !== 'ready');
   if (allBlocked) {
     if (/\d/.test(text)) {
@@ -125,12 +94,33 @@ export function verifyComparisonFusionAnswer(
   const evidenceValues = packets.flatMap((packet) => packetEvidenceValues(packet, opinions));
   for (const value of ungroundedNarrativeNumbers(text, evidenceValues)) {
     findings.push(
-      `fusion answer contains unsupported numeric value ${value}; it must come from the packets or be labeled as a scenario projection`,
+      `fusion answer contains unsupported numeric value ${value}; it must come from the ${options.sourceLabel ?? 'packet'} or be labeled as a scenario projection`,
     );
   }
 
   emitVerificationMetrics(findings.length === 0, findings);
   return { ok: findings.length === 0, findings };
+}
+
+/** Verify a single-symbol fusion answer against its packet. */
+export function verifyFusionAnswer(
+  text: string,
+  packet: SymbolResearchPacket,
+  opinions?: readonly Pick<MastraModeOpinion, 'rawData'>[],
+): FusionVerification {
+  return verifyPacketsGroundedText(text, [packet], opinions);
+}
+
+/** Verify a cross-symbol fusion answer against the union of its packets. */
+export function verifyComparisonFusionAnswer(
+  text: string,
+  packets: readonly SymbolResearchPacket[],
+  opinions?: readonly Pick<MastraModeOpinion, 'rawData'>[],
+): FusionVerification {
+  return verifyPacketsGroundedText(text, packets, opinions, {
+    emptyPacketsFinding: 'comparison fusion has no packets to verify against',
+    sourceLabel: 'packets',
+  });
 }
 
 /**

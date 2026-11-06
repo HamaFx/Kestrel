@@ -16,22 +16,18 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Single/full-mode synthesis (DEC-05 split from synthesizer.ts) — the only
-// path allowed to produce the final user-facing answer. Single mode formats
-// the single technical opinion directly; Full runs one bounded LLM synthesis
-// over the verified specialist opinions (structured by default per Q12).
+// Single/full-mode synthesis — the only path allowed to produce the final
+// user-facing answer. Single mode formats the technical opinion directly;
+// Full runs one bounded LLM synthesis over the verified specialist opinions,
+// then delegates repair/cost/verification to the shared fusion runner.
 
-import { estimateCostUsd } from '../../budget/cost';
-import {
-  getMastraGenerationStats,
-  type MastraGenerationStats,
-} from '../../mastra-v2/shared/telemetry';
-import { fusionRepairPrompt, verifyFusionAnswer } from '../fusion-verifier';
+import { verifyFusionAnswer } from '../fusion-verifier';
 import { fusionInstructionsForRequest } from '../prompts';
 import { createCommitteeAgent, FUSION_AGENT_ID } from '../specialists';
 import { jsonPromptInjectionForModel } from '../structured-output';
 import { contextWithPacket, MastraModeStrictFailureError } from '../types';
 import { FusionAnswerSchema, renderFusionAnswer, structuredFusionEnabled } from './fusion-answer';
+import { runFusionWithRepair, type FusionGenerationResult } from './fusion-run';
 import { aggregateStats } from './stats';
 import type { CommitteeSynthesisArgs, CommitteeSynthesisResult } from './types';
 
@@ -63,8 +59,7 @@ export async function synthesizeCommitteeAnswer(
     providerId: deps.providerId,
   };
   // §2.2: the fusion agent reads the packet and the typed opinions from the
-  // request context (injected on every generate call below) instead of
-  // JSON-joining them into the prompt at build time.
+  // request context (injected on every generate call below).
   const fusionAgent = createCommitteeAgent(
     fusionModel.model,
     FUSION_AGENT_ID,
@@ -107,49 +102,19 @@ export async function synthesizeCommitteeAnswer(
   // render path. When a test mock returns only `.text` (with `.object`
   // undefined), fall back to `.text` so unit tests that mock free-form fusion
   // strings continue to work seamlessly.
-  const renderFusionResult = (result: Awaited<ReturnType<typeof runFusion>>): string =>
+  const renderFusionResult = (result: FusionGenerationResult): string =>
     useStructuredFusion && (result as { object?: unknown }).object !== undefined
       ? renderFusionAnswer(FusionAnswerSchema.parse((result as { object: unknown }).object))
       : result.text;
 
-  const fusionResult = await runFusion(prompt);
-  const fusionText = renderFusionResult(fusionResult);
-
-  let finalText = fusionText;
-  let generationStats: MastraGenerationStats[] = [getMastraGenerationStats(fusionResult)];
-  let fusionCostUsd = estimateCostUsd(
-    fusionModel.modelId,
-    generationStats[0]!.inputTokens,
-    generationStats[0]!.outputTokens,
-  );
-
-  const firstVerification = verifyFusionAnswer(finalText, packet, opinions);
-  if (!firstVerification.ok) {
-    const repairResult = await runFusion(fusionRepairPrompt(prompt, firstVerification.findings));
-    const repairStats = getMastraGenerationStats(repairResult);
-    generationStats = [...generationStats, repairStats];
-    fusionCostUsd += estimateCostUsd(
-      fusionModel.modelId,
-      repairStats.inputTokens,
-      repairStats.outputTokens,
-    );
-    finalText = renderFusionResult(repairResult);
-    const repairVerification = verifyFusionAnswer(finalText, packet, opinions);
-    if (!repairVerification.ok) {
-      throw new MastraModeStrictFailureError(
-        ['fusion'],
-        new Error(
-          `Fusion verification failed after repair: ${[...firstVerification.findings, ...repairVerification.findings].join('; ')}`,
-        ),
-      );
-    }
-  }
-
-  deps.ledger.recordCost('fusion', 'fusion', fusionCostUsd);
-  return {
-    finalText,
-    stats: aggregateStats([...executionStats, ...generationStats]),
-    fusionModelId: fusionModel.modelId,
-    fusionProviderId: fusionModel.providerId,
-  };
+  return runFusionWithRepair({
+    prompt,
+    executionStats,
+    fusionModel,
+    runFusion,
+    renderFusionResult,
+    verify: (text) => verifyFusionAnswer(text, packet, opinions),
+    ledger: deps.ledger,
+    failureLabel: 'Fusion verification failed after repair',
+  });
 }
