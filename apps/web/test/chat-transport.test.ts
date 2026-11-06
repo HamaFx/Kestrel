@@ -49,23 +49,26 @@ describe('createKestrelChatTransport', () => {
     vi.restoreAllMocks();
   });
 
-  it('constructs a transport backed by the ai SDK DefaultChatTransport', () => {
-    const transport = createKestrelChatTransport({ api: '/api/chat' });
+  it('propagates custom headers through the transport options', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      sseResponse([
+        { type: 'text-start', id: 'msg-1' },
+        { type: 'text-end', id: 'msg-1' },
+      ]),
+    );
 
-    expect(transport).toBeDefined();
-    // The transport should expose the AI SDK chat surface. If the ai SDK
-    // ever removes or renames DefaultChatTransport, this test fails early
-    // rather than at runtime in the browser.
-    expect(typeof (transport as { sendMessages?: unknown }).sendMessages).toBe('function');
-  });
-
-  it('propagates custom headers through the transport options', () => {
     const transport = createKestrelChatTransport({
       api: '/api/chat',
       headers: { 'x-custom': 'value' },
     });
+    await transport.sendMessages({
+      chatId: 'thread-1',
+      messages: [],
+      abortSignal: new AbortController().signal,
+    });
 
-    expect(transport).toBeDefined();
+    const init = fetchMock.mock.calls[0]?.[1];
+    expect(new Headers(init?.headers).get('x-custom')).toBe('value');
   });
 
   it('closes legacy SSE text exactly once and keeps completed progress visible', async () => {

@@ -66,10 +66,6 @@ const mockDb = {
   })),
 };
 
-vi.mock('@kestrel/ai', () => ({
-  getDb: () => mockDb,
-}));
-
 vi.mock('@kestrel/db', () => ({
   hasAdminDbScope: () => false,
   getDb: () => mockDb,

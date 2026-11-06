@@ -20,7 +20,21 @@ import { defineConfig } from 'vitest/config';
 
 const maxWorkers = process.env.CI ? 2 : Math.max(2, Math.floor(os.availableParallelism() / 2));
 
+// `server-only` throws when loaded outside a React Server Component. Worker
+// tests are server-side but not React, so resolve it to an empty module.
+const serverOnlyStub = {
+  name: 'server-only-stub',
+  enforce: 'pre' as const,
+  resolveId(id: string) {
+    return id === 'server-only' ? '\0server-only-stub' : null;
+  },
+  load(id: string) {
+    return id === '\0server-only-stub' ? 'export {};' : null;
+  },
+};
+
 export default defineConfig({
+  plugins: [serverOnlyStub],
   resolve: {
     conditions: ['@kestrel/source'],
   },
@@ -45,9 +59,6 @@ export default defineConfig({
       deps: {
         inline: [],
       },
-    },
-    alias: {
-      'server-only': new URL('./test/empty.ts', import.meta.url).pathname,
     },
   },
 });
