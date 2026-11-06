@@ -138,6 +138,7 @@ export async function withRateLimit(
           requestCount: sql`${schema.rateLimits.requestCount} + 1`,
         },
       })
+      .comment('kestrel.rate_limit.upsert')
       .returning({ requestCount: schema.rateLimits.requestCount });
 
     const count = Number(row?.requestCount ?? 0);

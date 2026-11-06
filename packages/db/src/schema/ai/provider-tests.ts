@@ -50,7 +50,7 @@ export const providerTests = pgTable(
     ok: boolean('ok').notNull(),
     /** Human-readable error message — null when ok. Never logged. */
     error: text('error'),
-    testedAt: timestamp('tested_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+    testedAt: timestamp('tested_at', { withTimezone: true }).notNull().defaultNow(),
     /** Rate limit information extracted from response headers. */
     rateLimit: jsonb('rate_limit').$type<{
       remainingRequests?: number;

@@ -49,24 +49,24 @@ export interface ProviderTestScope {
   testedAt?: Date | string;
 }
 
-function toIsoTimestamp(value: Date | string | undefined): string {
-  if (!value) return new Date().toISOString();
-  return typeof value === 'string' ? value : value.toISOString();
+function toTimestamp(value: Date | string | undefined): Date {
+  if (!value) return new Date();
+  return typeof value === 'string' ? new Date(value) : value;
 }
 
 async function resolveScope(
   userId: string,
   scope: ProviderTestScope,
-): Promise<{ db: DbClient; tenantId: string; testedAt: string }> {
+): Promise<{ db: DbClient; tenantId: string; testedAt: Date }> {
   const db = scope.db ?? getDb();
   const tenantId = scope.tenantId ?? (await requireTenantIdForUser(userId, db));
-  return { db, tenantId, testedAt: toIsoTimestamp(scope.testedAt) };
+  return { db, tenantId, testedAt: toTimestamp(scope.testedAt) };
 }
 
 function toInsertRow(
   userId: string,
   tenantId: string,
-  testedAt: string,
+  testedAt: Date,
   record: ProviderTestRecord,
 ): typeof providerTests.$inferInsert {
   return {

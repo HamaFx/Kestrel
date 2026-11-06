@@ -26,8 +26,8 @@ drizzle/
 The chain was converted from the pre-v1 `meta/_journal.json` layout without
 the original v0 snapshot files (the repository never had them). Every
 folder before `0127_tenant_fk_indexes` therefore carries a placeholder
-snapshot, and the tip carries the authoritative snapshot generated from
-`src/schema`. Consequences:
+snapshot; `0127` and everything generated after it carry real snapshots, and
+the tip is authoritative for `src/schema`. Consequences:
 
 - `drizzle-kit generate` and `drizzle-kit check` are correct: they diff
   against the tip, which matches the TypeScript schema.

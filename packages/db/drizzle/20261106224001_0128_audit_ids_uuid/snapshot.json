@@ -1,0 +1,67 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "93d8f596-b9cc-41cb-9579-1686f6ee4e6b",
+  "prevIds": [
+    "c403d8ed-9f4e-48ef-8807-96d48b5a438e"
+  ],
+  "footprints": [
+    {
+      "statementType": "alter_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "audit_logs",
+        "id"
+      ],
+      "writes": [
+        "s|colprop|public.audit_logs.id.default",
+        "s|colprop|public.audit_logs.id.type"
+      ],
+      "reads": [
+        "n|tbl|public.audit_logs",
+        "n|sch|public",
+        "n|col|public.audit_logs.id"
+      ],
+      "sqlHash": "78f904eb35cf6968"
+    },
+    {
+      "statementType": "alter_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "admin_audit_log",
+        "id"
+      ],
+      "writes": [
+        "s|colprop|public.admin_audit_log.id.default",
+        "s|colprop|public.admin_audit_log.id.type"
+      ],
+      "reads": [
+        "n|tbl|public.admin_audit_log",
+        "n|sch|public",
+        "n|col|public.admin_audit_log.id"
+      ],
+      "sqlHash": "2b0bfe2ae3685e62"
+    }
+  ],
+  "deltas": [
+    {
+      "op": "alter",
+      "key": "columns\u0000[\"public\",\"audit_logs\",\"id\"]",
+      "set": {
+        "type": "uuid",
+        "default": "gen_random_uuid()"
+      }
+    },
+    {
+      "op": "alter",
+      "key": "columns\u0000[\"public\",\"admin_audit_log\",\"id\"]",
+      "set": {
+        "type": "uuid",
+        "default": "gen_random_uuid()"
+      }
+    }
+  ]
+}

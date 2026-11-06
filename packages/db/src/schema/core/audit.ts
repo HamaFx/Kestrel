@@ -15,7 +15,7 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { index, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 import { organization, users } from './auth';
 import { tenantIsolationPolicy } from './rls';
@@ -23,9 +23,7 @@ import { tenantIsolationPolicy } from './rls';
 export const auditLogs = pgTable(
   'audit_logs',
   {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
+    id: uuid('id').primaryKey().defaultRandom(),
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
@@ -35,9 +33,7 @@ export const auditLogs = pgTable(
       .references(() => organization.id, { onDelete: 'cascade' }),
     action: text('action').notNull(),
     metadata: jsonb('metadata'),
-    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('audit_logs_user_id_idx').on(t.userId),

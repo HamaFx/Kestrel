@@ -96,9 +96,8 @@ export async function loadApiKeysPageData(userId: string): Promise<ApiKeysPageDa
         {
           ok: h.ok,
           error: h.error,
-          // testedAt has `mode: 'string'` in the schema, so the value is
-          // always a string already — no Date coercion needed.
-          testedAt: h.testedAt,
+          // The view type is an ISO string; the schema hands back a Date.
+          testedAt: h.testedAt.toISOString(),
           rateLimit: h.rateLimit,
         },
       ]),
@@ -127,9 +126,7 @@ export async function loadApiKeysPageData(userId: string): Promise<ApiKeysPageDa
     const configured = catalog.providers.filter((p) => p.hasKey);
     const available = catalog.providers.filter((p) => !p.hasKey);
 
-    const testedAtTimes = healthRows
-      .map((h) => new Date(h.testedAt).getTime())
-      .filter((t) => !isNaN(t));
+    const testedAtTimes = healthRows.map((h) => h.testedAt.getTime()).filter((t) => !isNaN(t));
     const lastTestedTime = testedAtTimes.length > 0 ? Math.max(...testedAtTimes) : null;
 
     return {

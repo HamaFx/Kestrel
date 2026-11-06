@@ -82,7 +82,7 @@ export async function handleGetPlatformConfig(user: AdminUser): Promise<Response
           ? {
               ok: h.ok,
               error: h.error ?? null,
-              testedAt: h.testedAt,
+              testedAt: typeof h.testedAt === 'string' ? h.testedAt : h.testedAt.toISOString(),
             }
           : null,
         usage30d: u,

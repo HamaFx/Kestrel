@@ -45,6 +45,9 @@ const mocks = vi.hoisted(() => {
         onConflictDoUpdate() {
           return chain;
         },
+        comment() {
+          return chain;
+        },
         returning() {
           return Promise.resolve(rows);
         },

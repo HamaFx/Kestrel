@@ -87,6 +87,7 @@ export async function acquireCronLock(jobName: string, db: DbClient): Promise<Cr
         ),
       ),
     )
+    .comment('kestrel.cron_lock.reclaim')
     .returning({ jobName: cronRuns.jobName });
   if (reclaimed.length > 0) {
     return buildLock(db, jobName, today);
@@ -98,6 +99,7 @@ export async function acquireCronLock(jobName: string, db: DbClient): Promise<Cr
     .insert(cronRuns)
     .values({ jobName, runDate: today, status: 'started', startedAt: new Date() })
     .onConflictDoNothing({ target: [cronRuns.jobName, cronRuns.runDate] })
+    .comment('kestrel.cron_lock.acquire')
     .returning({ jobName: cronRuns.jobName });
 
   // If nothing was inserted, the job already ran today.
@@ -120,7 +122,8 @@ function buildLock(db: DbClient, jobName: string, today: string): CronLock {
           finishedAt: new Date(),
           note: note?.slice(0, 500) ?? null,
         })
-        .where(row);
+        .where(row)
+        .comment('kestrel.cron_lock.done');
     },
     async fail(err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -131,7 +134,8 @@ function buildLock(db: DbClient, jobName: string, today: string): CronLock {
           finishedAt: new Date(),
           note: message.slice(0, 500),
         })
-        .where(row);
+        .where(row)
+        .comment('kestrel.cron_lock.fail');
     },
   };
 }

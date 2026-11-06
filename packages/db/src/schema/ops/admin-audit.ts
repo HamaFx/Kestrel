@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { index, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 import { users } from '../core/auth';
 
@@ -29,9 +29,7 @@ import { users } from '../core/auth';
 export const adminAuditLogs = pgTable(
   'admin_audit_log',
   {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
+    id: uuid('id').primaryKey().defaultRandom(),
     actorUserId: text('actor_user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
@@ -40,9 +38,7 @@ export const adminAuditLogs = pgTable(
       onDelete: 'cascade',
     }),
     metadata: jsonb('metadata').$type<Record<string, unknown>>(),
-    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('admin_audit_log_actor_user_id_idx').on(t.actorUserId),

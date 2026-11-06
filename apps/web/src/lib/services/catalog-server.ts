@@ -45,7 +45,12 @@ export const buildCatalogForUser = cache(async function buildCatalogForUser(
   // Latest health snapshot per provider (one row per (user, provider)
   // so this is a single round-trip).
   const healthRows = await getProviderHealthForUser(userId);
-  const healthByProvider = new Map(healthRows.map((h) => [h.providerId, h]));
+  const healthByProvider = new Map(
+    healthRows.map((h) => [
+      h.providerId,
+      { ok: h.ok, error: h.error ?? null, testedAt: h.testedAt.toISOString() },
+    ]),
+  );
 
   const providers = BYOK_PROVIDERS_LIST.map((p) => {
     // Provider's hardcoded spec defaults per domain — used for the

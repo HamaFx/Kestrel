@@ -216,4 +216,116 @@ export const relations = defineRelations(schema, (r) => ({
       optional: false,
     }),
   },
+  symbolCatalog: {
+    watchlists: r.many.userSymbols({
+      from: r.symbolCatalog.symbol,
+      to: r.userSymbols.symbol,
+    }),
+  },
+  userSessions: {
+    user: r.one.users({
+      from: r.userSessions.userId,
+      to: r.users.id,
+      optional: false,
+    }),
+  },
+  userInstalledPlugins: {
+    user: r.one.users({
+      from: r.userInstalledPlugins.userId,
+      to: r.users.id,
+      optional: false,
+    }),
+  },
+  alerts: {
+    user: r.one.users({
+      from: r.alerts.userId,
+      to: r.users.id,
+      optional: false,
+    }),
+  },
+  journalEntries: {
+    user: r.one.users({
+      from: r.journalEntries.userId,
+      to: r.users.id,
+      optional: false,
+    }),
+  },
+  agentOpinions: {
+    user: r.one.users({
+      from: r.agentOpinions.userId,
+      to: r.users.id,
+      optional: false,
+    }),
+    thread: r.one.chatThreads({
+      from: r.agentOpinions.threadId,
+      to: r.chatThreads.id,
+      optional: false,
+    }),
+    message: r.one.chatMessages({
+      from: r.agentOpinions.messageId,
+      to: r.chatMessages.id,
+      optional: false,
+    }),
+  },
+  aiMessageFeedback: {
+    user: r.one.users({
+      from: r.aiMessageFeedback.userId,
+      to: r.users.id,
+      optional: false,
+    }),
+    reviewer: r.one.users({
+      from: r.aiMessageFeedback.reviewerId,
+      to: r.users.id,
+    }),
+    thread: r.one.chatThreads({
+      from: r.aiMessageFeedback.threadId,
+      to: r.chatThreads.id,
+      optional: false,
+    }),
+    message: r.one.chatMessages({
+      from: r.aiMessageFeedback.messageId,
+      to: r.chatMessages.id,
+      optional: false,
+    }),
+  },
+  briefingsEmitted: {
+    user: r.one.users({
+      from: r.briefingsEmitted.userId,
+      to: r.users.id,
+      optional: false,
+    }),
+    message: r.one.chatMessages({
+      from: r.briefingsEmitted.messageId,
+      to: r.chatMessages.id,
+      optional: false,
+    }),
+  },
+  memoryEmbeddings: {
+    user: r.one.users({
+      from: r.memoryEmbeddings.userId,
+      to: r.users.id,
+      optional: false,
+    }),
+  },
+  providerTests: {
+    user: r.one.users({
+      from: r.providerTests.userId,
+      to: r.users.id,
+      optional: false,
+    }),
+  },
+  chatTelemetry: {
+    user: r.one.users({
+      from: r.chatTelemetry.userId,
+      to: r.users.id,
+      optional: false,
+    }),
+  },
+  chatToolTelemetry: {
+    user: r.one.users({
+      from: r.chatToolTelemetry.userId,
+      to: r.users.id,
+      optional: false,
+    }),
+  },
 }));

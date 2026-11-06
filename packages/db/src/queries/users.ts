@@ -94,7 +94,8 @@ export async function listUsersWithSettings(
     .where(whereClause)
     .orderBy(desc(schema.users.createdAt))
     .limit(limit)
-    .offset(offset);
+    .offset(offset)
+    .comment('kestrel.users.list_with_settings');
 }
 
 /**
@@ -129,7 +130,8 @@ export async function countAdmins(): Promise<number> {
   const [row] = await db
     .select({ count: count() })
     .from(schema.users)
-    .where(eq(schema.users.role, 'admin'));
+    .where(eq(schema.users.role, 'admin'))
+    .comment('kestrel.users.count_admins');
   return Number(row?.count ?? 0);
 }
 
