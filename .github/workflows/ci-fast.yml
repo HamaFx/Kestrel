@@ -36,7 +36,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Cache Turborepo, Next.js, and Node compile cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             .turbo
@@ -95,7 +95,7 @@ jobs:
           # Throwaway CI-only credential for the non-bypass test role.
           POSTGRES_APP_PASSWORD: kestrel-ci-app-password
       - name: Cache Turborepo cache (test results)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             .turbo
