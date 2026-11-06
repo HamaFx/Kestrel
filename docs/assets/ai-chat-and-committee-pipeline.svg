@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d1117" />
+      <stop offset="100%" stop-color="#090d13" />
+    </linearGradient>
+    <linearGradient id="card" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#161b22" />
+      <stop offset="100%" stop-color="#0d1117" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.5" />
+    </filter>
+  </defs>
+
+  <style>
+    .hdr { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; font-weight: 700; fill: #f0f6fc; }
+    .step-num { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10px; font-weight: 700; fill: #38bdf8; }
+    .title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; font-weight: 700; fill: #ffffff; }
+    .desc { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; fill: #8b949e; }
+    .code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10px; fill: #c9d1d9; }
+  </style>
+
+  <rect width="1000" height="500" rx="14" fill="url(#bg)" />
+  <text x="30" y="34" class="hdr">AI CHAT, 4-DESK COMMITTEE &amp; NUMERIC GROUNDING PIPELINE</text>
+
+  <!-- STEP 1: INGRESS & GUARDS -->
+  <g transform="translate(25, 60)">
+    <rect width="175" height="160" rx="10" fill="url(#card)" stroke="#38bdf8" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="14" y="24" class="step-num">STAGE 1 · INGRESS</text>
+    <text x="14" y="44" class="title">POST /api/chat</text>
+    <line x1="14" y1="54" x2="161" y2="54" stroke="#21262d" />
+    <text x="14" y="74" class="desc">1. Auth + Tenant RLS</text>
+    <text x="14" y="94" class="desc">2. Prompt Injection Guard</text>
+    <text x="14" y="114" class="desc">3. Reserve Budget Cents</text>
+    <text x="14" y="134" class="desc">4. Seed Trader Memory</text>
+    <text x="14" y="150" class="code" fill="#38bdf8">withUserTenant(userId)</text>
+  </g>
+
+  <path d="M 200 140 L 228 140" stroke="#38bdf8" stroke-width="2" />
+  <polygon points="228,136 236,140 228,144" fill="#38bdf8" />
+
+  <!-- STEP 2: UNIFIED ROUTER -->
+  <g transform="translate(238, 60)">
+    <rect width="180" height="160" rx="10" fill="url(#card)" stroke="#a855f7" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="14" y="24" class="step-num" fill="#c084fc">STAGE 2 · ROUTER</text>
+    <text x="14" y="44" class="title">routeUnified()</text>
+    <line x1="14" y1="54" x2="166" y2="54" stroke="#21262d" />
+    <text x="14" y="74" class="code" fill="#38bdf8">• canonical-chat</text>
+    <text x="14" y="94" class="code" fill="#10b981">• symbol-research</text>
+    <text x="14" y="114" class="code" fill="#f59e0b">• multi-symbol-research</text>
+    <text x="14" y="134" class="code" fill="#ec4899">• mutation-draft</text>
+    <text x="14" y="150" class="desc">Immutable ExecutionPlan</text>
+  </g>
+
+  <!-- BRANCH ARROWS -->
+  <path d="M 418 100 L 455 100" stroke="#38bdf8" stroke-width="1.5" />
+  <polygon points="455,96 463,100 455,104" fill="#38bdf8" />
+
+  <path d="M 418 180 L 455 180" stroke="#10b981" stroke-width="1.5" />
+  <polygon points="455,176 463,180 455,184" fill="#10b981" />
+
+  <path d="M 328 220 L 328 360 L 455 360" fill="none" stroke="#ec4899" stroke-width="1.5" />
+  <polygon points="455,356 463,360 455,364" fill="#ec4899" />
+
+  <!-- BRANCH A: CANONICAL CHAT -->
+  <g transform="translate(465, 55)">
+    <rect width="255" height="90" rx="10" fill="url(#card)" stroke="#38bdf8" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="14" y="22" class="step-num">ROUTE A · INTERACTIVE STREAM</text>
+    <text x="14" y="40" class="title">Canonical Agent + Tool Belt</text>
+    <text x="14" y="58" class="desc">25+ Read Tools + Installed Plugin Tools</text>
+    <text x="14" y="74" class="code" fill="#38bdf8">Hybrid RAG (pgvector HNSW + FTS)</text>
+  </g>
+
+  <!-- BRANCH B: 4-DESK COMMITTEE -->
+  <g transform="translate(465, 160)">
+    <rect width="255" height="145" rx="10" fill="url(#card)" stroke="#10b981" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="14" y="22" class="step-num" fill="#34d399">ROUTE B · RESEARCH WORKFLOW</text>
+    <text x="14" y="40" class="title">4-Desk Specialist Committee</text>
+    <text x="14" y="58" class="desc">Step 1: Collect 30s SymbolResearchPacket</text>
+    <text x="14" y="76" class="desc">Step 2: Parallel Desks (Tech/Fund/Risk/Sent)</text>
+    <text x="14" y="94" class="desc">Step 3: Strict 4-of-4 Opinion Verifier Gate</text>
+    <text x="14" y="112" class="desc">Step 4: Conflict-Aware Fusion Synthesis</text>
+    <text x="14" y="132" class="code" fill="#34d399">Single (1 desk) or Full (4 desks)</text>
+  </g>
+
+  <!-- BRANCH C: MUTATION CONFIRMATION -->
+  <g transform="translate(465, 320)">
+    <rect width="255" height="95" rx="10" fill="url(#card)" stroke="#ec4899" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="14" y="22" class="step-num" fill="#f472b6">ROUTE C · HUMAN-IN-THE-LOOP</text>
+    <text x="14" y="40" class="title">Mutation Draft &amp; Level Sanity</text>
+    <text x="14" y="58" class="desc">10x/50x ATR Band Check + HMAC Token</text>
+    <text x="14" y="76" class="code" fill="#f472b6">set_alert • log_journal • plugin write</text>
+  </g>
+
+  <!-- ARROWS TO VERIFICATION & EGRESS -->
+  <path d="M 720 100 L 755 150" stroke="#38bdf8" stroke-width="1.5" />
+  <path d="M 720 230 L 755 190" stroke="#10b981" stroke-width="1.5" />
+  <polygon points="752,186 760,188 754,194" fill="#10b981" />
+
+  <!-- STAGE 4: GROUNDING & FINALIZATION -->
+  <g transform="translate(760, 60)">
+    <rect width="215" height="355" rx="10" fill="url(#card)" stroke="#f59e0b" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="14" y="24" class="step-num" fill="#fbbf24">STAGE 4 · VERIFY &amp; EGRESS</text>
+    <text x="14" y="44" class="title">Grounding &amp; Ledger</text>
+    <line x1="14" y1="54" x2="201" y2="54" stroke="#21262d" />
+    <text x="14" y="78" class="title" fill="#34d399">1. Numeric Grounding</text>
+    <text x="14" y="96" class="desc">Every market price must match</text>
+    <text x="14" y="112" class="desc">fresh tool/packet data (±0.5)</text>
+    <text x="14" y="140" class="title" fill="#38bdf8">2. Staleness Disclosure</text>
+    <text x="14" y="158" class="desc">Enforces explicit disclosure</text>
+    <text x="14" y="174" class="desc">when quote age &gt; 60 seconds</text>
+    <text x="14" y="202" class="title" fill="#c084fc">3. Self-Correction Retry</text>
+    <text x="14" y="220" class="desc">1 repair pass if ungrounded</text>
+    <text x="14" y="236" class="desc">numbers are detected</text>
+    <text x="14" y="264" class="title" fill="#fbbf24">4. Reconcile Budget Cents</text>
+    <text x="14" y="282" class="desc">SELECT ... FOR UPDATE on</text>
+    <text x="14" y="298" class="desc">daily_ai_spend + audit trace</text>
+    <rect x="14" y="316" width="187" height="24" rx="6" fill="#064e3b" />
+    <text x="107" y="332" text-anchor="middle" class="code" fill="#34d399">SSE UIMessageChunk Stream</text>
+  </g>
+</svg>

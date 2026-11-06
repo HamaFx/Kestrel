@@ -1,0 +1,148 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 540" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d1117" />
+      <stop offset="100%" stop-color="#090d13" />
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#161b22" />
+      <stop offset="100%" stop-color="#0d1117" />
+    </linearGradient>
+    <linearGradient id="blueAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <linearGradient id="purpleAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#a855f7" />
+      <stop offset="100%" stop-color="#6366f1" />
+    </linearGradient>
+    <linearGradient id="amberAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <linearGradient id="greenAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.5" />
+    </filter>
+  </defs>
+
+  <style>
+    .header { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; font-weight: 700; fill: #f0f6fc; }
+    .layer-label { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; font-weight: 700; fill: #8b949e; letter-spacing: 1px; }
+    .pkg-title { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; font-weight: 700; fill: #ffffff; }
+    .pkg-sub { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; fill: #8b949e; }
+    .pill { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10px; font-weight: 600; }
+  </style>
+
+  <rect width="1000" height="540" rx="14" fill="url(#bgGrad)" />
+  <text x="30" y="34" class="header">KESTREL MONOREPO — C4 SYSTEM &amp; PACKAGE ARCHITECTURE (13 PACKAGES)</text>
+
+  <!-- LAYER 1: APPLICATIONS -->
+  <rect x="25" y="52" width="950" height="102" rx="10" fill="#11161f" stroke="#21262d" stroke-width="1" />
+  <text x="40" y="72" class="layer-label">LAYER 1 · RUNTIME APPLICATIONS (apps/*)</text>
+
+  <g transform="translate(40, 82)">
+    <rect width="440" height="60" rx="8" fill="url(#cardGrad)" stroke="#38bdf8" stroke-width="1.5" filter="url(#dropShadow)" />
+    <rect width="440" height="3" rx="1.5" fill="url(#blueAccent)" />
+    <text x="16" y="24" class="pkg-title">@kestrel/web (apps/web)</text>
+    <text x="16" y="42" class="pkg-sub">Next.js 16 App Router • Auth.js v5 • SSE Chat • Chart/Journal/Admin UI</text>
+    <rect x="350" y="12" width="76" height="18" rx="9" fill="#0c4a6e" />
+    <text x="388" y="24" text-anchor="middle" class="pill" fill="#38bdf8">Port :3000</text>
+  </g>
+
+  <g transform="translate(515, 82)">
+    <rect width="440" height="60" rx="8" fill="url(#cardGrad)" stroke="#38bdf8" stroke-width="1.5" filter="url(#dropShadow)" />
+    <rect width="440" height="3" rx="1.5" fill="url(#blueAccent)" />
+    <text x="16" y="24" class="pkg-title">@kestrel/worker (apps/worker)</text>
+    <text x="16" y="42" class="pkg-sub">Node Daemon • 7 Core Cron Jobs • pg-boss Workers • SignalR/Binance Streams</text>
+    <rect x="350" y="12" width="76" height="18" rx="9" fill="#0c4a6e" />
+    <text x="388" y="24" text-anchor="middle" class="pill" fill="#38bdf8">Port :8081</text>
+  </g>
+
+  <!-- LAYER 2: PLUGINS & AI ENGINE -->
+  <rect x="25" y="170" width="950" height="118" rx="10" fill="#11161f" stroke="#21262d" stroke-width="1" />
+  <text x="40" y="190" class="layer-label">LAYER 2 · AI ORCHESTRATION &amp; MODULAR PLUGINS (packages/ai, plugins/*)</text>
+
+  <g transform="translate(40, 200)">
+    <rect width="340" height="74" rx="8" fill="url(#cardGrad)" stroke="#a855f7" stroke-width="1.5" filter="url(#dropShadow)" />
+    <rect width="340" height="3" rx="1.5" fill="url(#purpleAccent)" />
+    <text x="14" y="22" class="pkg-title">@kestrel/ai (packages/ai)</text>
+    <text x="14" y="40" class="pkg-sub">Mastra v2 • 4-Desk Committee • Numeric Grounding</text>
+    <text x="14" y="56" class="pkg-sub">11 BYOK Providers • Hybrid HNSW+FTS RAG • Budget Cents</text>
+  </g>
+
+  <g transform="translate(398, 200)">
+    <rect width="180" height="74" rx="8" fill="url(#cardGrad)" stroke="#f59e0b" stroke-width="1.5" filter="url(#dropShadow)" />
+    <rect width="180" height="3" rx="1.5" fill="url(#amberAccent)" />
+    <text x="12" y="22" class="pkg-title">plugin-backtesting</text>
+    <text x="12" y="40" class="pkg-sub">QuickJS WASM Sandbox</text>
+    <text x="12" y="56" class="pkg-sub">33 TA Features • Sweeps</text>
+  </g>
+
+  <g transform="translate(592, 200)">
+    <rect width="180" height="74" rx="8" fill="url(#cardGrad)" stroke="#f59e0b" stroke-width="1.5" filter="url(#dropShadow)" />
+    <rect width="180" height="3" rx="1.5" fill="url(#amberAccent)" />
+    <text x="12" y="22" class="pkg-title">plugin-paper-trading</text>
+    <text x="12" y="40" class="pkg-sub">Personal + AI Accounts</text>
+    <text x="12" y="56" class="pkg-sub">Live TickBus Fill Engine</text>
+  </g>
+
+  <g transform="translate(786, 200)">
+    <rect width="170" height="74" rx="8" fill="url(#cardGrad)" stroke="#f59e0b" stroke-width="1.5" filter="url(#dropShadow)" />
+    <rect width="170" height="3" rx="1.5" fill="url(#amberAccent)" />
+    <text x="12" y="22" class="pkg-title">plugin-telegram-bot</text>
+    <text x="12" y="40" class="pkg-sub">Signed Webhook • 14 Cmds</text>
+    <text x="12" y="56" class="pkg-sub">Alert &amp; Briefing Push</text>
+  </g>
+
+  <!-- LAYER 3: DOMAIN & DATA ADAPTERS -->
+  <rect x="25" y="304" width="950" height="102" rx="10" fill="#11161f" stroke="#21262d" stroke-width="1" />
+  <text x="40" y="324" class="layer-label">LAYER 3 · DATA, INDICATORS, PLUGIN SDK &amp; DATABASE (packages/*)</text>
+
+  <g transform="translate(40, 334)">
+    <rect width="230" height="60" rx="8" fill="url(#cardGrad)" stroke="#10b981" stroke-width="1.5" filter="url(#dropShadow)" />
+    <rect width="230" height="3" rx="1.5" fill="url(#greenAccent)" />
+    <text x="14" y="22" class="pkg-title">@kestrel/data</text>
+    <text x="14" y="40" class="pkg-sub">BiQuote • Binance • Finnhub • FRED • CFTC</text>
+  </g>
+
+  <g transform="translate(285, 334)">
+    <rect width="210" height="60" rx="8" fill="url(#cardGrad)" stroke="#10b981" stroke-width="1.5" filter="url(#dropShadow)" />
+    <rect width="210" height="3" rx="1.5" fill="url(#greenAccent)" />
+    <text x="14" y="22" class="pkg-title">@kestrel/indicators</text>
+    <text x="14" y="40" class="pkg-sub">Pure O(N) TA • Swings • Sessions</text>
+  </g>
+
+  <g transform="translate(510, 334)">
+    <rect width="205" height="60" rx="8" fill="url(#cardGrad)" stroke="#10b981" stroke-width="1.5" filter="url(#dropShadow)" />
+    <rect width="205" height="3" rx="1.5" fill="url(#greenAccent)" />
+    <text x="14" y="22" class="pkg-title">@kestrel/plugin-sdk</text>
+    <text x="14" y="40" class="pkg-sub">PluginHost • UI Slots • AES Secrets</text>
+  </g>
+
+  <g transform="translate(730, 334)">
+    <rect width="226" height="60" rx="8" fill="url(#cardGrad)" stroke="#10b981" stroke-width="1.5" filter="url(#dropShadow)" />
+    <rect width="226" height="3" rx="1.5" fill="url(#greenAccent)" />
+    <text x="14" y="22" class="pkg-title">@kestrel/db</text>
+    <text x="14" y="40" class="pkg-sub">55 Tables • Postgres 16 RLS • pg-boss</text>
+  </g>
+
+  <!-- LAYER 4: SHARED LEAF FOUNDATION -->
+  <rect x="25" y="422" width="950" height="96" rx="10" fill="#11161f" stroke="#21262d" stroke-width="1" />
+  <text x="40" y="442" class="layer-label">LAYER 4 · SHARED LEAF FOUNDATION &amp; INFRASTRUCTURE</text>
+
+  <g transform="translate(40, 452)">
+    <rect width="460" height="54" rx="8" fill="url(#cardGrad)" stroke="#30363d" stroke-width="1.5" />
+    <text x="16" y="22" class="pkg-title">@kestrel/shared (Zero Internal Dependencies)</text>
+    <text x="16" y="40" class="pkg-sub">18-Symbol Catalog • Zod Schemas • AES-256-GCM • SSRF Guard • Pino Logger</text>
+  </g>
+
+  <g transform="translate(515, 452)">
+    <rect width="440" height="54" rx="8" fill="url(#cardGrad)" stroke="#30363d" stroke-width="1.5" />
+    <text x="16" y="22" class="pkg-title">PostgreSQL 16 + pgvector + External APIs</text>
+    <text x="16" y="40" class="pkg-sub">kestrel_app (NOBYPASSRLS) • hamafx_admin (BYPASSRLS) • HNSW Vectors</text>
+  </g>
+</svg>
