@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — Controller for /api/journal/[id].
+// Controller for /api/journal/[id].
 // Thin HTTP layer; business logic delegates to the JournalService.
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';

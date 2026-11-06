@@ -110,7 +110,7 @@ export async function registerAction(
     const hashedPassword = await bcrypt.hash(password, BCRYPT_COST);
     const newUserId = crypto.randomUUID();
 
-    // STAB-10: Wrap the users + userSettings insert in a single transaction
+    // Wrap the users + userSettings insert in a single transaction
     // so a partial failure (e.g. userSettings FK violation) rolls back the
     // user row. Phase 1: the first_user promotion is re-checked under an
     // advisory lock inside the same transaction.

@@ -17,18 +17,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Budget facade (audit plan §1.3 Q4 decision, §4.3 module collapse).
+ * Budget facade.
  *
  * Every reservation is atomically ledgered (`daily_ai_spend` +
  * `ai_budget_reservations`) for admin reporting and BYOK cost tracking, and
- * the cap is **enforced by default** (audit 2026-10-31 R3): a turn that would
- * cross the daily ceiling is rejected with 429. Operators who accept the risk
- * of unmetered spend can set `ENFORCE_BUDGET=false` for ledger-only mode.
+ * the cap is **enforced by default**: a turn that would cross the daily
+ * ceiling is rejected with 429. Operators who accept the risk of unmetered
+ * spend can set `ENFORCE_BUDGET=false` for ledger-only mode.
  *
- * §4.3: this module is the single budget facade. `acquireBudget` /
- * `reserveTurnBudget` are the entry points every turn path goes through
- * (`budget-reservation.ts` and `budget-guard.ts` were folded in / deleted).
- * The ledger/rate table lives in `cost.ts`.
+ * `acquireBudget` / `reserveTurnBudget` are the entry points every turn path
+ * goes through. The ledger/rate table lives in `cost.ts`.
  */
 
 import { metrics, readFeatureFlag } from '@kestrel/shared';
@@ -52,13 +50,11 @@ const alog = createCategorizedLogger('ai', { component: 'budget' });
 export const UNCAPPED_DAILY_USD = 1_000_000;
 
 /**
- * Q4 / audit 2026-10-31 (R3): enforcement is ON by default. Spend is ledgered
- * and a turn that would cross the daily ceiling is rejected. Set
- * `ENFORCE_BUDGET=0` only for a trusted instance that wants ledger-only
- * observation.
+ * Enforcement is ON by default. Spend is ledgered and a turn that would cross
+ * the daily ceiling is rejected. Set `ENFORCE_BUDGET=0` only for a trusted
+ * instance that wants ledger-only observation.
  *
- * Audit v2 P2-14 — read fresh on every call (the flag parser is a documented
- * cheap raw read) so runtime env flips apply without a process restart.
+ * Read fresh on every call so runtime env flips apply without a restart.
  */
 export function isBudgetEnforced(): boolean {
   return readFeatureFlag('ENFORCE_BUDGET');
@@ -98,7 +94,7 @@ export interface AcquireBudgetResult {
 
 /**
  * Acquire the turn's ledger reservation. Never throws `BudgetExceededError`
- * while enforcement is off (Q4); under enforcement the caller receives
+ * while enforcement is off; under enforcement the caller receives
  * `{ ok: false }` and decides how to surface the cap.
  */
 export async function acquireBudget(args: AcquireBudgetArgs): Promise<AcquireBudgetResult> {
@@ -117,8 +113,7 @@ export async function acquireBudget(args: AcquireBudgetArgs): Promise<AcquireBud
 }
 
 // ---------------------------------------------------------------------------
-// Turn reservation handles (folded in from `budget-reservation.ts`, §4.3 —
-// exported names are unchanged so callers did not need to change).
+// Turn reservation handles (exported names unchanged for existing callers).
 // ---------------------------------------------------------------------------
 
 /** Minimal database surface the reservation paths use. */
@@ -148,8 +143,8 @@ export async function reserveTurnBudget(args: {
   };
   db?: BudgetDb;
 }): Promise<BudgetHandle> {
-  // Audit plan §1.3 (Q4): ledger-only by default. The reservation always
-  // records spend; a cap rejection is possible only under ENFORCE_BUDGET.
+  // The reservation always records spend; the configured cap can reject the
+  // turn while enforcement is on.
   const { reservation } = await acquireBudget({
     userId: args.userId,
     ...(args.estimateUsd !== undefined ? { estimateUsd: args.estimateUsd } : {}),

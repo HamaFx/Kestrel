@@ -17,7 +17,6 @@
 // Authenticated Paper Trading HTTP routes.
 //
 // Mounted at /api/plugins/paper-trading/<path> by the core plugin dispatcher.
-// This barrel keeps the previous `api/routes` import path working.
 
 import type { PluginApiRouteHandler } from '@kestrel/plugin-sdk';
 

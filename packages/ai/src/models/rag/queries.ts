@@ -15,7 +15,7 @@
  */
 
 // ---------------------------------------------------------------------------
-// Dense + FTS query primitives (DEC-05 split of rag.ts).
+// Dense + FTS query primitives.
 // ---------------------------------------------------------------------------
 
 import type { Symbol } from '@kestrel/shared';

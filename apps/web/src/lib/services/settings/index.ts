@@ -16,14 +16,12 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — Settings service layer.
+// Settings service layer.
 //
 // Separates business logic from HTTP handling. Route handlers (controllers)
 // call these service functions instead of importing from @kestrel/ai / @kestrel/db
 // directly.
 //
-// Pattern: Service (PF-22). Controllers remain thin: parse request →
-// call service → format Response.
 
 import { testProviderKey } from '@kestrel/ai';
 import {

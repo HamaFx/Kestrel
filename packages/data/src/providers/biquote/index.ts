@@ -18,7 +18,7 @@
 //
 // Steering rule §7: no WebSocket clients live inside this directory. The
 // SignalR consumer that holds the persistent BiQuote hub connection lives
-// in `apps/worker/src/signalr/` (Phase 8 PR-6).
+// in `apps/worker/src/signalr/`.
 
 export {
   BIQUOTE_THROTTLE_LIMIT,

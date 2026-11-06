@@ -142,7 +142,7 @@ export const RuntimeEnv = z.object({
   /** Phase 3.3 — structured fusion output for Full mode. */
   PHASE3_STRUCTURED_FUSION: featureFlag('PHASE3_STRUCTURED_FUSION'),
   /**
-   * Daily spend ceiling. Audit 2026-10-31 (R3) — enforcement is now ON by
+   * Daily spend ceiling. enforcement is now ON by
    * default: a turn that would cross `MAX_DAILY_USD` (or a user's
    * `max_daily_usd` override) is rejected with 429 instead of being ledgered
    * and allowed. Set `ENFORCE_BUDGET=0` to return to ledger-only observation

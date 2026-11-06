@@ -16,14 +16,12 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — Chat threads service layer.
+// Chat threads service layer.
 //
 // Handles chat thread CRUD operations. The streaming chat POST endpoint
 // (/api/chat) remains a thick controller because its logic (SSE streaming,
 // multi-agent dispatch, budget enforcement) is inherently HTTP-coupled.
 //
-// Pattern: Service (PF-22). Controllers remain thin: parse request →
-// call service → format Response.
 
 import {
   createThread as aiCreateThread,

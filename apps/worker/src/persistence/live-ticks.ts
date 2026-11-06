@@ -16,12 +16,7 @@
 
 // `live_ticks` writer. Drains the in-memory tick buffer and UPSERTs each
 // symbol's latest tick into Postgres. Designed to be called on a steady
-// 1 Hz interval — Supabase Free easily handles 3 UPSERTs/sec on a
-// 3-row table.
-//
-// Phase 8 PR-6 — feeds the snapshot table the Vercel `/api/market/price`
-// route will read in PR-8. Until PR-8 lands, this code path simply makes
-// the data available for inspection in the DB.
+// 1 Hz interval — the table stays tiny (one row per symbol).
 
 import type { getDb } from '@kestrel/db';
 import { liveTicks } from '@kestrel/db/schema';

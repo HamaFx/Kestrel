@@ -16,8 +16,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Indicator-spec parsing for `indicatorCross` alerts (DEC-05 split from
-// evaluator.ts). Accepts `kind` or `kind:param[,param[,param]]` and maps the
+// Indicator-spec parsing for `indicatorCross` alerts
+
+// . Accepts `kind` or `kind:param[,param[,param]]` and maps the
 // positional numbers to the indicator's named parameters.
 
 import { indicatorRegistry } from '@kestrel/indicators';

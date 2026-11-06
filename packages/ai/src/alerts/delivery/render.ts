@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Alert message rendering (DEC-05 split from delivery.ts): the email/push
+// Alert message rendering: the email/push
 // body and the Telegram MarkdownV2 escaper.
 //
 // We use MarkdownV2 for Telegram formatting, which requires escaping a

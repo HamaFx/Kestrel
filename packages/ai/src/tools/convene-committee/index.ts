@@ -20,7 +20,7 @@
 // with the deterministic, packet-grounded 4-desk scorecard and returns the
 // structured `ConveneCommitteeOutput` card rendered by the chat part.
 //
-// Audit 2026-11-04 §3.1.B: the tool must not spawn a nested 4-specialist +
+// §3.1.B: the tool must not spawn a nested 4-specialist +
 // fusion workflow inside a normal chat turn. It is an instant deterministic
 // scorecard; the model-reviewed committee is the `full` chat mode, which
 // streams its own progress and fails closed on any desk failure.

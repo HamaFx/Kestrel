@@ -16,13 +16,11 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — Market data service layer.
+// Market data service layer.
 //
 // Handles read-heavy market data operations: candles, prices, search,
 // indicators. All routes are auth-gated to prevent anonymous scraping.
 //
-// Pattern: Service (PF-22). Controllers remain thin: parse request →
-// call service → format Response.
 
 import {
   getCandlesUnchecked,

@@ -27,7 +27,6 @@
 // crosses the WASM boundary once, not 5,000 times. The engine owns execution:
 // a strategy can only describe intent, never fill prices or timestamps.
 //
-// This barrel keeps the previous `./sandbox` import path working.
 
 export { DEFAULT_SANDBOX_LIMITS, StrategySandboxError } from './limits';
 export { runStrategySandbox } from './run';

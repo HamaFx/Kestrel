@@ -18,7 +18,6 @@
 
 // New-backtest form.
 //
-// This barrel keeps the previous `./new-run-form` import path working; state
 // lives in `use-new-run-form.ts` and each field group is its own component.
 import { IconAlertTriangle, IconFlask, IconLoader2, IconPlayerPlay } from '@tabler/icons-react';
 import type { z } from 'zod';

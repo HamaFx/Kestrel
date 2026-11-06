@@ -31,7 +31,7 @@ export default async function OnboardingPage() {
     redirect('/login');
   }
 
-  // Audit 2026-10-31 (R1): server components render outside the API boundary.
+  // server components render outside the API boundary.
   // `user_settings` is RLS-protected, so as `kestrel_app` an unscoped read
   // returns zero rows and a user who already completed onboarding is sent
   // through it again. Read-only scope: both reads below are SELECTs.

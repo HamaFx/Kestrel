@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Noise-control gate for alert delivery (DEC-05 split from delivery.ts).
+// Noise-control gate for alert delivery.
 //
 // Audit plan §1.11 / P1-16 — before any provider is touched, the user's
 // noise control settings (dedup / cooldown / quiet hours) are consulted.

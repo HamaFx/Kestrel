@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Personal-bot Telegram bridge (DEC-05 split from delivery.ts).
+// Personal-bot Telegram bridge.
 //
 // DEC-02 — a web-created alert that stores the core `telegram` channel is
 // delivered exclusively through the user's personal Telegram bot plugin.

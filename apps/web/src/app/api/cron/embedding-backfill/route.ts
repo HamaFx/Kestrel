@@ -20,7 +20,7 @@
 // and embeds them in batches via the AI Gateway. Capped per run so it stays
 // under Vercel's function timeout regardless of backlog.
 //
-// Phase 8 PR-9: this route is a manual-fallback path. The scheduled invocation
+// this route is a manual-fallback path. The scheduled invocation
 // runs as the optional worker `embedding-backfill` job, where it is not bound
 // by the 60s function ceiling.
 

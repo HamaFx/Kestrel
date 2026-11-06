@@ -20,7 +20,7 @@
 
 // UI preferences action: default symbol, time format, reduced motion, theme.
 //
-// Audit 2026-10-31 (R1): server actions do not inherit the page's tenant
+// server actions do not inherit the page's tenant
 // scope, so the `user_settings` write opens its own with `withUserTenant`.
 import { requireTenantIdForUser, schema, withRateLimit, withUserTenant } from '@kestrel/db';
 import { and, eq } from 'drizzle-orm';

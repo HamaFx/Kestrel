@@ -21,7 +21,6 @@
 // `ai-commands/` and are dynamically imported so merely registering the
 // plugin does not initialise the Mastra runtime.
 //
-// This barrel keeps the previous `bot/commands` import path working.
 
 export { buildBriefing } from './briefings';
 export { dispatchDataCommand } from './dispatch';

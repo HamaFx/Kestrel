@@ -25,7 +25,7 @@ const DEFAULTS: AIPrefs = {
 export function useAiPrefs(initialCustomInstructions?: string | null) {
   const [prefs, setPrefs, hydrated] = useLocalStorage<AIPrefs>(AI_PREFS_STORAGE_KEY, DEFAULTS);
   const [confirmEl, confirm] = useConfirm();
-  // STAB-16: Move the debounce timer into a useRef so it's cleaned
+  // Move the debounce timer into a useRef so it's cleaned
   // up on unmount. Previously a module-level `let` variable would
   // fire callbacks on stale component state after navigation.
   const aiSyncTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);

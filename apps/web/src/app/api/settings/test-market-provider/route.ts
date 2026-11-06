@@ -70,7 +70,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
     );
   }
 
-  // Audit 2026-10-31 (R12): this used to pass the caller's `apiKey` through as
+  // this used to pass the caller's `apiKey` through as
   // `baseUrl`, so any authenticated user could make the server fetch an
   // arbitrary host (e.g. cloud metadata endpoints). A base URL is operator
   // configuration — it is never taken from the request.

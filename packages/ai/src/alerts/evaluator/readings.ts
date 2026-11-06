@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Per-rule readings for the alert evaluator (DEC-05 split from evaluator.ts).
+// Per-rule readings for the alert evaluator.
 //
 // All rule inputs (prices, candle windows) are grouped by (symbol, tf) and
 // pre-fetched in parallel before each rule is evaluated purely from the

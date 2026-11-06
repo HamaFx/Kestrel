@@ -27,7 +27,7 @@ export const FLAG_DEFAULTS: Record<FeatureFlagName, boolean> = {
   PHASE2_PACKET_CACHE: true,
   PHASE3_MODEL_DIVERSITY: false,
   PHASE3_STRUCTURED_FUSION: true,
-  // Audit 2026-10-31 (R3): the daily budget cap now blocks by default. With
+  // the daily budget cap now blocks by default. With
   // open registration and operator-inherited provider keys, ledger-only
   // metering let any self-registered account spend without limit.
   ENFORCE_BUDGET: true,

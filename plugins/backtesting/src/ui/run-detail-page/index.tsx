@@ -18,7 +18,6 @@
 
 // Saved backtest run detail page.
 //
-// This barrel keeps the previous `./run-detail-page` import path working;
 // state lives in `use-run-detail.ts` and each section is its own component.
 import type { PluginPageProps } from '@kestrel/plugin-sdk/ui';
 import { IconAlertTriangle, IconArrowLeft, IconLoader2 } from '@tabler/icons-react';

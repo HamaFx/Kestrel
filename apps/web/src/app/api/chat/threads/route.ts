@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — /api/chat/threads — list + create (thin controller).
+// /api/chat/threads — list + create (thin controller).
 
 import { z } from 'zod';
 

@@ -19,7 +19,7 @@
 // GET /api/cron/cleanup-uploads — deletes chat-attachment blobs older than the
 // retention window from the private `chat-images` bucket.
 //
-// Audit 2026-10-31 (R7): the previous version listed bare `YYYY-MM-DD`
+// the previous version listed bare `YYYY-MM-DD`
 // prefixes, but objects are written to `<userId>/<YYYY-MM-DD>/<file>`, so it
 // matched nothing and `RETENTION_DAYS` was decorative. The sweep now lives in
 // `lib/http/upload-cleanup.ts` and walks the same layout the uploader builds.

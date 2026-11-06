@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Alert evaluator environment (DEC-05 split from evaluator.ts).
+// Alert evaluator environment.
 //
 // Provider credentials for the evaluator can come from an explicit `env`
 // argument (cron/worker boundary) or from `process.env`. This leaf module

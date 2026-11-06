@@ -21,7 +21,7 @@
 // API-keys import/export actions: password + 2FA gated encrypted backup
 // transfer of the user's BYOK payload.
 //
-// Audit 2026-10-31 (R1): server actions run outside the page's tenant scope.
+// server actions run outside the page's tenant scope.
 // The direct `user` reads below (2FA gate, password hash) carry no RLS
 // (migration 0039); every `user_settings` access is scoped with
 // `withUserTenant`.
@@ -84,7 +84,7 @@ export async function exportKeysAction(
   }
 
   try {
-    // Audit 2026-10-31 (R1): scope the vault read. Unscoped under `kestrel_app`
+    // scope the vault read. Unscoped under `kestrel_app`
     // this row is invisible and the export would look empty.
     const state = await withUserTenant(session.user.id, (db) =>
       readUserByokState(session.user.id, db),
@@ -154,7 +154,7 @@ export async function importKeysAction(
       return { ok: false as const, error: 'No valid keys found in backup payload' };
     }
 
-    // Audit 2026-10-31 (R1): the write must share the user's tenant scope.
+    // the write must share the user's tenant scope.
     // A restore replaces the vault, carrying the market-data key forward when
     // the backup predates it.
     const merged = await withUserTenant(session.user.id, () =>

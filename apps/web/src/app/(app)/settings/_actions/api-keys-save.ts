@@ -21,7 +21,7 @@
 // API-keys save action: BYOK key create/update/clear with provider health
 // checks and an atomic settings + provider-tests write.
 //
-// Audit 2026-10-31 (R1): server actions are separate requests from the page
+// server actions are separate requests from the page
 // that rendered them, so they inherit no tenant scope. Every DB phase below
 // opens its own `withUserTenant` scope; unscoped under `kestrel_app` the
 // stored-payload read returns no row and untouched keys would be dropped.
@@ -55,7 +55,7 @@ export async function updateApiKeysAction(
   const set: Record<string, string> = {};
   const remove: string[] = [];
   let clearedCount = 0;
-  // Audit 2026-10-31 (R5) / Phase 1 (Task 1.1): the vault inputs are
+  // / Phase 1 (Task 1.1): the vault inputs are
   // write-only. An empty or absent field preserves the stored value (the form
   // no longer prefills a sentinel), the legacy KEEP sentinel from an open
   // pre-Phase-1 tab also preserves it, and only the explicit REMOVE sentinel
@@ -77,7 +77,7 @@ export async function updateApiKeysAction(
     const userId = session.user.id;
     const patch = { set, remove };
 
-    // STAB-10: read and test outside the write transaction so provider
+    // read and test outside the write transaction so provider
     // network calls never hold a database connection open.
     const before = await readUserApiKeyState(userId);
     const checks = await testUserApiKeyPatch(before, patch);

@@ -15,7 +15,7 @@
  */
 
 // ---------------------------------------------------------------------------
-// Adapters (DEC-05 split of rag.ts): RAG/memory rows → the shared
+// Adapters: RAG/memory rows → the shared
 // `SearchKnowledgeItem` DTO the chat part and tool outputs consume.
 // ---------------------------------------------------------------------------
 

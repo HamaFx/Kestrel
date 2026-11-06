@@ -18,7 +18,6 @@
 
 // Knowledge base panel.
 //
-// This barrel keeps the previous `./knowledge-base` import path working; state
 // and API actions live in `use-knowledge-base.ts`, the editor and the document
 // list are separate components.
 import { IconAlertTriangle, IconPlus } from '@tabler/icons-react';

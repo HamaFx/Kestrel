@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — /api/settings/fallback-chain — AI provider fallback chain (thin controller).
+// /api/settings/fallback-chain — AI provider fallback chain (thin controller).
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
 import {

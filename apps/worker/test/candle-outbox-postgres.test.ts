@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// R9 (audit 2026-10-31) — the durable candle hand-off, end to end.
+// the durable candle hand-off, end to end.
 //
 // Opt in with RUN_POSTGRES_RLS_TESTS=1 and TEST_POSTGRES_ADMIN_URL (the same
 // gate as the repo's other Postgres tests; `TEST_POSTGRES_ADMIN_URL` may be

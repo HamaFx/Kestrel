@@ -15,7 +15,7 @@
  */
 
 // ---------------------------------------------------------------------------
-// Memory-side hybrid search (DEC-05 split of rag.ts): journal / briefing /
+// Memory-side hybrid search: journal / briefing /
 // thread_synopsis recall from `memory_embeddings`, decayed the same way.
 //
 // Audit R15 — recalled memory is screened before it becomes tool output. A

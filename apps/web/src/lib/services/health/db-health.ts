@@ -119,7 +119,7 @@ export async function pingDatabase(): Promise<boolean> {
   }
 }
 
-/** STAB-11: Verify the pgvector extension is installed. */
+/** Verify the pgvector extension is installed. */
 export async function checkPgvectorExtension(): Promise<HealthCheckResult> {
   try {
     const rows = await getDb().execute<{ extname: string }>(sql`

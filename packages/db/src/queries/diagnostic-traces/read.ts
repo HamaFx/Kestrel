@@ -14,7 +14,7 @@
 
 // Diagnostic trace reads: owner-scoped list/detail plus the admin variants.
 //
-// Audit 2026-10-31 (R1): `diagnostic_traces` is RLS-protected (migration
+// `diagnostic_traces` is RLS-protected (migration
 // 0098). The owner-scoped helpers below run on the request/tenant connection;
 // the admin variants are cross-tenant and therefore run on the admin
 // (BYPASSRLS) connection, failing loudly when `ADMIN_DATABASE_URL` is unset

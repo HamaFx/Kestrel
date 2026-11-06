@@ -20,7 +20,6 @@
 // by the caller's `withTenantDb` scope (chat tools, plugin API routes, and
 // install hooks all run inside one).
 //
-// This barrel keeps the previous `db/queries` import path working; the run
 // queries live in `runs.ts`, the strategy library in `strategies.ts` and the
 // sweep queries in `sweeps.ts`.
 

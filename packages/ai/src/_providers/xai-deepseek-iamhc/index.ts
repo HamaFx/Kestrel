@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-// BYOK provider specs for xAI, DeepSeek, IAMHC, and HCNSEC (DEC-05 split of
-// xai-deepseek-iamhc.ts). Each provider lives in its own file so the catalog
+// BYOK provider specs for xAI, DeepSeek, IAMHC, and HCNSEC
+
+// . Each provider lives in its own file so the catalog
 // data stays reviewable; `_providers/registry.ts` imports the barrel.
 //
 //   - xai.ts       — xAI (Grok) first-party specs

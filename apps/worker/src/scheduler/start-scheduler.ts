@@ -20,9 +20,9 @@
 // acquireCronLock (STAB-01). Minute-level jobs (alerts, briefings) are
 // inherently idempotent and skip the lock.
 //
-// STAB-02: Every job run races against a 60-second AbortController. The
-// signal is threaded into JobContext so individual jobs can short-circuit
-// long loops.
+// Every job run races against the job timeout (default 120 seconds,
+// configurable via JOB_TIMEOUT_MS). The signal is threaded into JobContext
+// so individual jobs can short-circuit long loops.
 
 import { ensureBundledPluginsRegistered } from '@kestrel/plugins';
 import cron from 'node-cron';
@@ -90,10 +90,10 @@ export function startScheduler(log: Logger, env?: WorkerEnv): () => void {
     });
   }
 
-  // Periodic cleanup — scan for stuck jobs that exceed 2× the
+  // Periodic cleanup — report jobs still in flight beyond twice their
   // timeout. If a run throws synchronously between _runningJobs.add() and
-  // the try block's finally, the entry remains forever. This timer prunes
-  // stale entries so the job can run again on its next schedule.
+  // the try block's finally, the entry remains until the owning promise
+  // settles; this timer surfaces that state without deleting the guard.
   const stuckCleanupTimer = setInterval(() => {
     reportStuckJobs(log, Date.now());
   }, 30_000);

@@ -28,7 +28,7 @@ import { requireTenantIdForUser } from '../../tenant';
  * this transaction. Billing projections, webhook history, tenant records,
  * general audit logs, and admin audit logs are deliberately retained.
  *
- * Audit 2026-10-31 (R1): every table touched below is RLS-protected except the
+ * every table touched below is RLS-protected except the
  * `user` row itself. The purge runs in the account's tenant scope (reusing an
  * active same-tenant scope when the caller entered one) — unscoped deletes
  * matched zero rows and the "deletion" silently kept all the data.

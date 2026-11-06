@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Audit 2026-10-31 (R7): the object layout and the URL shapes are now shared
+// the object layout and the URL shapes are now shared
 // between the uploader, the storage proxy, the cleanup cron and the journal
 // renderers. These tests pin the layout (so the cron can never silently drift
 // from the uploader again) and the accepted legacy URL forms (so rows written

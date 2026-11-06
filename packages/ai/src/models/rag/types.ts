@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// RAG contracts and tuning constants (DEC-05 split of rag.ts).
+// RAG contracts and tuning constants.
 
 import type { Symbol } from '@kestrel/shared';
 

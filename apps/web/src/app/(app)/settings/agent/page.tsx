@@ -65,7 +65,7 @@ export default async function AgentCataloguePage() {
   const userId = session.user.id;
   const isAdmin = await checkIsAdmin();
 
-  // Audit 2026-10-31 (R1): this RSC starts outside the API boundary, so the
+  // this RSC starts outside the API boundary, so the
   // user_settings and user_installed_plugins reads below must run in the
   // user's tenant scope — unscoped they return no rows under the non-bypass
   // application role.

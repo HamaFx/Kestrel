@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — /api/alerts/preview — alert simulator (thin controller).
+// /api/alerts/preview — alert simulator (thin controller).
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
 import { AlertPreviewBodySchema, previewAlertRuleService } from '@/lib/services/alerts';

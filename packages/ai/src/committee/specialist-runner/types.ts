@@ -16,8 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Specialist runner dependency and argument shapes (DEC-05 split from
-// specialist-runner.ts).
+// Specialist runner dependency and argument shapes.
 
 import type { AgentMemoryOption } from '@mastra/core/agent';
 import type { MastraScorers } from '@mastra/core/evals';

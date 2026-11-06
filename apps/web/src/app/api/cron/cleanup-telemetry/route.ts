@@ -26,7 +26,7 @@
 //
 // Schedule: daily via Vercel cron or an external scheduler.
 //
-// Audit 2026-10-31 (R1): most targets are RLS-protected tenant tables and
+// most targets are RLS-protected tenant tables and
 // retention is system-wide (all tenants), so the admin (BYPASSRLS)
 // connection is required — the worker runs the same cleanup on admin.
 

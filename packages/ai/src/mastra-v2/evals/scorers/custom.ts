@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Deterministic Kestrel scorers (DEC-05 split of scorers.ts).
+// Deterministic Kestrel scorers.
 
 import type { MastraScorer, MastraScorers } from '@mastra/core/evals';
 

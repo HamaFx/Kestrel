@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Audit 2026-10-31 (R1, R19) — the application role must actually enforce RLS.
+// (R1, R19) — the application role must actually enforce RLS.
 //
 // The sibling RLS suite proves PostgreSQL semantics on a probe table; this one
 // proves Kestrel's own schema: a fresh database is migrated and every assertion

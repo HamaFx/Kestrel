@@ -16,7 +16,8 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Structured fusion answer and its deterministic markdown rendering (DEC-05
+// Structured fusion answer and its deterministic markdown rendering
+
 // split from synthesizer.ts).
 //
 // Audit plan §3.3 + Audit v3 Q12 — structured fusion answer (enabled by

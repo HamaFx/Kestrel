@@ -21,7 +21,6 @@
 // verified that this plugin is installed — these handlers only own validation
 // and the response shape.
 //
-// This barrel keeps the previous `api/routes` import path working.
 
 import type { PluginApiRouteHandler } from '@kestrel/plugin-sdk';
 

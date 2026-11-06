@@ -22,7 +22,6 @@
 // they explicitly opt out of confirmation — they cannot move money or touch
 // the market.
 //
-// This barrel keeps the previous `./tools` import path working.
 
 import type { PluginToolRegistration } from '@kestrel/plugin-sdk';
 

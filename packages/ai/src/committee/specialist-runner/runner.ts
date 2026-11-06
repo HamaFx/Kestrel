@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Specialist runner loop (DEC-05 split from specialist-runner.ts).
+// Specialist runner loop.
 //
 // Reusable specialist runner (Phase 6 + Audit v3 Phase 4, Owner Decision Q8).
 // Each specialist desk runs with its own dedicated skill playbook and domain

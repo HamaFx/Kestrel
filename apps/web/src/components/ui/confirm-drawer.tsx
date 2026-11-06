@@ -147,7 +147,7 @@ export function useConfirm(): readonly [
   const [options, setOptions] = useState<ConfirmOptions>({ title: '' });
   const resolveRef = useRef<((v: boolean) => void) | null>(null);
 
-  // STAB-20: Resolve any pending promise on unmount so callers that
+  // Resolve any pending promise on unmount so callers that
   // `await confirm(...)` don't hang forever if the component is torn down
   // before the user dismisses the drawer.
   useEffect(() => {

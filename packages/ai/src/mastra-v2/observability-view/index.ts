@@ -17,8 +17,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Phase 8 — unified Mastra run view barrel (DEC-05 split of
- * observability-view.ts).
+ * Unified Mastra run view barrel.
  *
  * The admin "Mastra Runs" viewer joins three runId-keyed surfaces into one
  * row so a single run id answers "which stage failed, which provider, what

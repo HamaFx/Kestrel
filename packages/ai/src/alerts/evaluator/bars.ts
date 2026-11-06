@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Closed-bar selection for alert readings (DEC-05 split from evaluator.ts).
+// Closed-bar selection for alert readings.
 
 import { msPerTimeframe, type Candle, type Timeframe } from '@kestrel/shared';
 

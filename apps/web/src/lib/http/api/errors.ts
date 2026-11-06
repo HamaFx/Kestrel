@@ -85,7 +85,7 @@ export function errorResponse(err: unknown, req?: Request): Response {
     return formatErrorResponse(validationError('Invalid request', err.flatten()), options);
   }
 
-  // PF-22: Handle rate-limit and validation errors thrown from service
+  // Handle rate-limit and validation errors thrown from service
   // functions as plain Error objects with a numeric `statusCode` property.
   if (
     err instanceof Error &&

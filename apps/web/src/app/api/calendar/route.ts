@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — /api/calendar — economic calendar (thin controller).
+// /api/calendar — economic calendar (thin controller).
 
 import { errorResponse, withAuth } from '@/lib/http/api';
 import { checkCalendarRateLimit, listEventsService } from '@/lib/services/calendar';

@@ -20,7 +20,7 @@
 // adapter) configured by the primary Admin account automatically propagate as
 // platform defaults to all subscribers.
 //
-// Audit 2026-10-31 (R1): the inheritance source is another tenant's row, so
+// the inheritance source is another tenant's row, so
 // `getPlatformAdminSettings` reads on the admin (BYPASSRLS) connection when
 // `ADMIN_DATABASE_URL` is configured. Without it they skip the cross-tenant read — platform-owner
 // inheritance degrades to "own settings only" — and warn once per process,

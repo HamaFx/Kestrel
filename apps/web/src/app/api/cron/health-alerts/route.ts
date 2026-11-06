@@ -34,7 +34,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request): Promise<Response> {
   return withCronAuth(request, async () => {
-    // Audit 2026-10-31 (R1): the SLO aggregates span every tenant
+    // the SLO aggregates span every tenant
     // (chat_telemetry, diagnostic_traces,
     // ai_budget_reservations, daily_ai_spend, …), all
     // RLS-protected. `withCronAuth` opens no scope, so read them on the

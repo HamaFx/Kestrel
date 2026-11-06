@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Briefing persistence (DEC-05 split from generate.ts): append the
+// Briefing persistence: append the
 // assistant message that carries the `briefing` part marker and embed the
 // body into the memory index. The first user message in any briefing thread
 // is irrelevant — we directly append assistant messages so the chat UI can

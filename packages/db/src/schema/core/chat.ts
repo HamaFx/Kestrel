@@ -30,7 +30,7 @@ import {
 import { organization, users } from './auth';
 
 /**
- * Chat threads. One row per conversation. Personal-mode: no `user_id`.
+ * Chat threads. One row per conversation.
  */
 export const chatThreads = pgTable(
   'chat_threads',
@@ -45,7 +45,7 @@ export const chatThreads = pgTable(
       .notNull()
       .default(sql`current_setting('app.current_tenant', true)`)
       .references(() => organization.id, { onDelete: 'cascade' }),
-    /** "XAUUSD" | "EURUSD" | "GBPUSD" — kept as text to avoid a coupling enum. */
+    /** Symbol id from the shared catalog. Kept as text to avoid a coupling enum. */
     pinnedSymbol: text('pinned_symbol'),
     /** Provider/model id override, e.g. "anthropic/claude-3.7-sonnet". */
     modelOverride: text('model_override'),

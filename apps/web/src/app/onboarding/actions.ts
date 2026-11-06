@@ -127,7 +127,7 @@ export async function completeOnboardingAction(formData: FormData) {
       validatedTradingStyle = ts.data;
     }
 
-    // Audit 2026-10-31 (R1): server actions do not inherit the calling page's
+    // server actions do not inherit the calling page's
     // tenant scope. `user_settings` and `user_symbols` are RLS-protected, so
     // the whole write unit runs inside withUserTenant — unscoped, the UPDATE
     // matches zero rows and the INSERT fails the WITH CHECK policy.

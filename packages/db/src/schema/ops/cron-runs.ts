@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// STAB-01: Cron idempotency guard table.
+// Cron idempotency guard table.
 //
 // One row per (job_name, run_date). The composite PK prevents duplicate
 // cron runs — even if two schedulers fire simultaneously (e.g. Vercel +

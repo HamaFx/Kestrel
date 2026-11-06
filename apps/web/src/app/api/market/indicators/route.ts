@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — /api/market/indicators — compute indicators (thin controller).
+// /api/market/indicators — compute indicators (thin controller).
 
 import { z } from 'zod';
 

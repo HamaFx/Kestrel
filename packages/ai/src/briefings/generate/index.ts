@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Briefings barrel (DEC-05 split of generate.ts). Re-exports the former
+// Briefings barrel. Re-exports the former
 // module surface: the emit entrypoints, prompt/fallback builders, and the
 // pure calendar/currency helpers used by tests.
 

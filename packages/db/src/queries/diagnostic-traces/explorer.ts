@@ -15,7 +15,7 @@
 // Admin correlation timeline: merge traces, turns, tools, agent opinions and
 // budget reservations into one bounded event list.
 //
-// Audit 2026-10-31 (R1): this is an admin-only view over every tenant's
+// this is an admin-only view over every tenant's
 // telemetry. The optional `userId` filter narrows an admin investigation, it
 // is not a tenant boundary, so the reads run on the admin (BYPASSRLS)
 // connection and fail loudly when `ADMIN_DATABASE_URL` is unset.

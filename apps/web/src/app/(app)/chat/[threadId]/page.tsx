@@ -60,7 +60,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return { title: 'Chat' };
-  // Audit 2026-10-31 (R1): `getThread` reads the RLS-protected `chat_threads`
+  // `getThread` reads the RLS-protected `chat_threads`
   // table; metadata generation starts outside the API boundary.
   const thread = await withUserTenant(userId, () => getThread(userId, threadId));
   return { title: thread?.title ?? 'Chat' };
@@ -73,7 +73,7 @@ export default async function ChatThreadPage({ params, searchParams }: PageProps
 
   const { threadId } = await params;
 
-  // Audit 2026-10-31 (R1): this server component starts outside the API
+  // this server component starts outside the API
   // boundary, and every read below touches an RLS-protected table
   // (`chat_threads`, `chat_messages`, `user_settings`). One tenant scope
   // covers the batch; the helpers inherit it.

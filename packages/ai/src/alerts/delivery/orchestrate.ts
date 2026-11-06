@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Alert delivery orchestration (DEC-05 split from delivery.ts): noise gate,
+// Alert delivery orchestration: noise gate,
 // channel selection, and the single place that marks an alert fired.
 //
 // Audit plan §1.11 / P1-16 — before any provider is touched, the user's

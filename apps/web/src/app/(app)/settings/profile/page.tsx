@@ -43,7 +43,7 @@ export default async function ProfileSettingsPage() {
 
   const userId = session.user.id;
 
-  // Audit 2026-10-31 (R1): the page runs outside `withAuth`'s tenant
+  // the page runs outside `withAuth`'s tenant
   // transaction, so reads of the RLS-protected `user` / `accounts` tables
   // must open an explicit read-only tenant scope.
   const { twoFactorEnabled, googleLinked } = await withUserTenantRO(userId, async (db) => {

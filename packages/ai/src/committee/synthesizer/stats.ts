@@ -16,8 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Token-usage aggregation for committee synthesis (DEC-05 split from
-// synthesizer.ts).
+// Token-usage aggregation for committee synthesis.
 
 import type { MastraGenerationStats } from '../../mastra-v2/shared/telemetry';
 

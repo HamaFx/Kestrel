@@ -16,8 +16,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Pure query helpers behind the unified Mastra run view (DEC-05 split of
-// observability-view.ts): which workflow holds a telemetry row's run state,
+// Pure query helpers behind the unified Mastra run view
+
+// : which workflow holds a telemetry row's run state,
 // and which provider produced a model id.
 
 /** Known workflow ids whose snapshots back Mastra runs (from the registry). */

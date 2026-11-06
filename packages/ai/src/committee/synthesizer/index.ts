@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Committee synthesizer barrel (DEC-05 split of synthesizer.ts).
+// Committee synthesizer barrel.
 //
 // Committee synthesizer (Phase 6 + Audit v3 Phase 4, Owner Decision Q12).
 // The fusion/output layer is the only committee component allowed to produce

@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Alert evaluator barrel (DEC-05 split of evaluator.ts). Re-exports the
+// Alert evaluator barrel. Re-exports the
 // former module surface: the spec-pattern decision helpers, indicator-spec
 // parsing, closed-bar selection, and the cron orchestrator.
 //

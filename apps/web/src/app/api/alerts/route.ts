@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — /api/alerts — list / create (thin controller).
+// /api/alerts — list / create (thin controller).
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
 import { AlertCreateSchema, createAlertService, listAlertsService } from '@/lib/services/alerts';

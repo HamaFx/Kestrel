@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — Journal schemas and response DTOs.
+// Journal schemas and response DTOs.
 
 import {
   SymbolSchema,

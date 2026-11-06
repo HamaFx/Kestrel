@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Prebuilt `@mastra/evals` scorer factories (DEC-05 split of scorers.ts).
+// Prebuilt `@mastra/evals` scorer factories.
 
 import type { MastraScorer, MastraScorers } from '@mastra/core/evals';
 import type { MastraModelConfig } from '@mastra/core/llm';

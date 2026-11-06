@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — Journal service layer.
+// Journal service layer.
 //
 // Separates business logic from HTTP handling. Route handlers (controllers)
 // call these service functions instead of importing @kestrel/ai directly.
@@ -26,7 +26,6 @@
 //   - Error wrapping (converts domain errors to typed results)
 //   - Response formatting (returns typed DTOs)
 //
-// Pattern: Service (PF-22). Each domain (journal, alerts, portfolio, etc.)
 // gets its own service file. Controllers remain thin: parse request →
 // call service → format Response.
 

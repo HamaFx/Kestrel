@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Query embedding (DEC-05 split of rag.ts).
+// Query embedding.
 
 import { embedTexts } from '../embeddings';
 

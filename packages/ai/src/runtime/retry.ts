@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// STAB-06: Exponential-backoff retry helper for external API calls.
+// Exponential-backoff retry helper for external API calls.
 //
 // Design goals:
 //   - Generic: wraps any async function returning a promise.
@@ -177,7 +177,7 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
           signal?.removeEventListener('abort', onAbort);
           resolve();
         }, delayMs);
-        // STAB-22: Defensive abort check BEFORE adding the listener.
+        // Defensive abort check BEFORE adding the listener.
         // If the signal was already aborted between the top-of-loop check
         // and this Promise, the listener would never fire and the sleep
         // would complete after delayMs — adding a latency spike before

@@ -16,7 +16,6 @@
 
 // Deterministic bar-by-bar execution simulator.
 //
-// This barrel keeps the previous `./simulator` import path working; the bar
 // loop lives in `loop.ts`, trade/equity accounting in `accounting.ts`, entry
 // and exit handling in `entries.ts`, and pure arithmetic in `math.ts`.
 

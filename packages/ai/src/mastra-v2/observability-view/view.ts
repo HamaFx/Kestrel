@@ -16,8 +16,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// The unified Mastra run view projection (DEC-05 split of
-// observability-view.ts): joins DB telemetry, workflow state, and scores into
+// The unified Mastra run view projection
+
+// : joins DB telemetry, workflow state, and scores into
 // one runId-keyed row. Pure — the caller supplies the telemetry row and the
 // Mastra instance, so this module is unit-testable without a database.
 

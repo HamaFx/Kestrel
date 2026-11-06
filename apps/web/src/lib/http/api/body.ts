@@ -69,7 +69,7 @@ export async function parseJsonBody<S extends z.ZodType>(
   // Stream the body so we can stop early if the client lied about the
   // length (or never set one). A 50 MB attacker payload should be killed
   // around byte ~6 MB, not after the whole thing has been buffered.
-  // STAB-05: Also enforce a hard time limit on body reading (5s) to
+  // Also enforce a hard time limit on body reading (5s) to
   // prevent slow-loris-style attacks from tying up function instances.
   const BODY_READ_TIMEOUT_MS = 5_000;
   const body = req.body;
@@ -80,7 +80,7 @@ export async function parseJsonBody<S extends z.ZodType>(
     let total = 0;
     try {
       while (true) {
-        // STAB-05: Race reader.read() against a timeout so a slow
+        // Race reader.read() against a timeout so a slow
         // client can't hold the function open indefinitely.
         const readTimeout = AbortSignal.timeout(BODY_READ_TIMEOUT_MS);
         const readResult = await Promise.race([

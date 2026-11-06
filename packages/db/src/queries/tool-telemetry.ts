@@ -16,7 +16,7 @@
 
 // Tool telemetry query helpers.
 //
-// Audit 2026-10-31 (R1): `getToolStats` aggregates across every tenant and is
+// `getToolStats` aggregates across every tenant and is
 // only reachable from admin-gated surfaces, so it runs on the admin
 // (BYPASSRLS) connection and fails loudly when `ADMIN_DATABASE_URL` is unset
 // rather than silently reporting an empty catalogue.

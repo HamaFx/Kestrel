@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// RAG layer barrel (DEC-05 split of rag.ts). Phase 7b upgrade:
+// RAG layer barrel. Phase 7b upgrade:
 //
 //   - Dense cosine over `news_embeddings` (existing).
 //   - Lexical Postgres FTS over `news_articles.title || summary` (new).

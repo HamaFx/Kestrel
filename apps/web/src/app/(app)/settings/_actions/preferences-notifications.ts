@@ -21,7 +21,7 @@
 // Notification preferences action: merges category toggles into the stored
 // notification-preferences object.
 //
-// Audit 2026-10-31 (R1): the read used to merge and the write must share the
+// the read used to merge and the write must share the
 // user's tenant scope — server actions do not inherit their page's scope.
 import { requireTenantIdForUser, schema, withRateLimit, withUserTenant } from '@kestrel/db';
 import { and, eq } from 'drizzle-orm';

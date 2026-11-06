@@ -28,9 +28,6 @@
 //   - "ReceiveTick" (server → client)         — every BiQuote tick
 //   - "Subscribe(symbols[])" (client → server) — subscribe call
 //   - "Unsubscribe(symbols[])"                  — symmetric unsubscribe
-//
-// Phase 8 PR-6 — feeds `live_ticks` (this PR). PR-7 wires the same `onTick`
-// to the in-process 1m candle aggregator.
 
 import { SYMBOLS } from '@kestrel/shared';
 

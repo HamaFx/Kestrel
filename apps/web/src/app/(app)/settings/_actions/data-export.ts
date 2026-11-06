@@ -72,7 +72,7 @@ export async function exportDataAction(
   }
 
   try {
-    // Audit 2026-10-31 (R1): all tenant reads live in `buildUserDataExport`,
+    // all tenant reads live in `buildUserDataExport`,
     // which opens the user's tenant scope itself. The direct `db` reads above
     // are the 2FA gate on `user`, which carries no RLS (migration 0039).
     const data = await buildUserDataExport(session.user.id);

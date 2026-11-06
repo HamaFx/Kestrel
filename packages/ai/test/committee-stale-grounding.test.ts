@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Audit 2026-10-31 (R8): the committee grounding path shares the freshness
+// the committee grounding path shares the freshness
 // rule. A specialist desk's own tool output only grounds a number when the
 // emitter did not disclose it as stale; a number that also appears in a fresh
 // tool output stays grounded.

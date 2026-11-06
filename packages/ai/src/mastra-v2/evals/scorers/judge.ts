@@ -16,8 +16,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// BYOK judge-model resolution for the LLM-as-judge scorers (DEC-05 split of
-// scorers.ts). The judge model is the user's BYOK fast tier, exactly like the
+// BYOK judge-model resolution for the LLM-as-judge scorers
+
+// . The judge model is the user's BYOK fast tier, exactly like the
 // Phase 5 guardrail detector — no new provider surface.
 
 import type { UserSettingsRow } from '@kestrel/db/schema';

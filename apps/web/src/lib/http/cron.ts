@@ -24,7 +24,7 @@
 //      must be at least 16 characters, compared in constant time), or
 //   2. a signed-in administrator opening the route in a browser.
 //
-// Audit 2026-10-31 (R4) removed the default allowance for any authenticated
+// removed the default allowance for any authenticated
 // session. Phase 1 (Task 1.3) removes the per-route `session: 'any'` escape
 // hatch entirely: user-facing refresh buttons call the ordinary `/api/*`
 // routes, which authenticate the session and rate-limit per user. A

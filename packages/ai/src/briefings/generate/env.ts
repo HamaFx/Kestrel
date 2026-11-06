@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Briefings environment and logger (DEC-05 split from generate.ts). The
+// Briefings environment and logger. The
 // catalog logger is created exactly once here so the emit and persist paths
 // share one instance.
 

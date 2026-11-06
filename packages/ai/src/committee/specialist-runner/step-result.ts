@@ -16,8 +16,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Specialist step-result normalization (DEC-05 split from
-// specialist-runner.ts) — the typed schema, one-off step outputs, and the
+// Specialist step-result normalization
+
+// — the typed schema, one-off step outputs, and the
 // schema-validated readers used at the workflow boundary.
 
 import { z } from 'zod';

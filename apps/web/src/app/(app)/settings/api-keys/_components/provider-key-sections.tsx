@@ -25,8 +25,7 @@ interface ProviderKeySectionsProps {
   configured: ProviderMeta[];
   available: ProviderMeta[];
   /**
-   * Ids that have a stored key (derived server-side). Audit 2026-10-31 (R5):
-   * plaintext keys are no longer part of this payload.
+   * Ids that have a stored key (derived server-side).    * plaintext keys are no longer part of this payload.
    */
   configuredIds: readonly string[];
   /**

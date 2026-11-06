@@ -15,7 +15,7 @@
  */
 
 // ---------------------------------------------------------------------------
-// Hybrid news retrieval (DEC-05 split of rag.ts): dense + lexical, fused.
+// Hybrid news retrieval: dense + lexical, fused.
 // ---------------------------------------------------------------------------
 
 import { screenSnippets } from '../../mastra-v2/packets/snippet-screen';

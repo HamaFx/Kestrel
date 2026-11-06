@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Direct notifications (DEC-05 split from delivery.ts) — a one-off
+// Direct notifications — a one-off
 // subject/body send used by budget and system alerts. Unlike `deliverAlert`
 // this path has no alert row, noise gate, or markFired write.
 

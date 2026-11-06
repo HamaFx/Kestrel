@@ -16,7 +16,7 @@
 
 // User sessions query helpers — session management and revocation.
 //
-// Audit 2026-10-31 (R1): `user_sessions` carries `tenant_isolation` RLS. Every
+// `user_sessions` carries `tenant_isolation` RLS. Every
 // helper below runs in the owning user's tenant scope; unscoped, the SELECT
 // returned "no sessions" and the DELETEs matched zero rows — revocation and
 // "sign out everywhere" silently did nothing.

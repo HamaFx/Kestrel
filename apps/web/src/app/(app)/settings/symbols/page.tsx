@@ -42,8 +42,7 @@ export default async function SymbolsSettingsPage() {
     )
     .orderBy(schema.symbolCatalog.sortOrder);
 
-  // Fetch the user's watchlist with catalog metadata. Audit 2026-10-31 (R1):
-  // this RSC starts outside the API boundary, so the `user_symbols` read must
+  // Fetch the user's watchlist with catalog metadata.   // this RSC starts outside the API boundary, so the `user_symbols` read must
   // run in a tenant scope — unscoped it returns no rows under the non-bypass
   // application role and the watchlist renders empty.
   const rawSymbols = await withUserTenant(userId, () => getWatchlistWithCatalog(userId));

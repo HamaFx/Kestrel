@@ -17,7 +17,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Audit 2026-10-31 (R1) — end-to-end proof that a settings server action is
+// end-to-end proof that a settings server action is
 // tenant-scoped when it runs as the application role.
 //
 // GATED, following the convention of packages/db/test/postgres-app-role.test.ts:

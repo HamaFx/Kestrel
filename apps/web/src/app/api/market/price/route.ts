@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — /api/market/price — latest prices (thin controller).
+// /api/market/price — latest prices (thin controller).
 
 import { SYMBOLS } from '@kestrel/shared';
 import { z } from 'zod';

@@ -26,7 +26,7 @@
 // flush path that writes closed bars to `candles_1m` lives in
 // `persistence/candles-1m.ts` and is wired up at the worker bootstrap.
 //
-// R9 (audit 2026-10-31) — two corrections to the open-bar rules:
+// two corrections to the open-bar rules:
 //
 //   1. The close only advances with a strictly newer tick time. Both feeds
 //      push snapshots of the in-progress minute: Binance kline events carry

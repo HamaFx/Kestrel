@@ -67,7 +67,7 @@ export async function handleSessionCallback(
   const userId = token.id;
 
   try {
-    // Audit 2026-10-31 (R1): the session callback runs on every `auth()` call,
+    // the session callback runs on every `auth()` call,
     // before any route handler opens a tenant transaction, and
     // `user_sessions` carries RLS. Whenever the throttles say a check is due,
     // run it in the user's tenant scope — otherwise the session row is

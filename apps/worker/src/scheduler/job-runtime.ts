@@ -37,7 +37,7 @@ const tenantRouter = createTenantRouterFromEnv();
 // PERF-7: In-flight guard — ensures no two invocations of the same job
 // overlap. Complements the DB-level acquireCronLock for daily-cadence jobs.
 const _runningJobs = new Set<keyof typeof JOBS>();
-// STAB-19: Track when each running job started so we can detect stuck
+// Track when each running job started so we can detect stuck
 // entries (e.g., a synchronous throw before the finally block, or a crash
 // between _runningJobs.add() and the try block). Entries older than 2×
 // JOB_TIMEOUT_MS are pruned by a periodic cleanup timer.

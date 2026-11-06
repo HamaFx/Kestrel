@@ -16,12 +16,10 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — Admin service layer.
+// Admin service layer.
 //
 // Handles admin-only operations: user management.
 //
-// Pattern: Service (PF-22). Controllers remain thin: parse request →
-// call service → format Response.
 
 import {
   countAdmins,

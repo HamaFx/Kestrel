@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Phase 8 PR-9 — `embedding-backfill` heavy job, migrated from
+// `embedding-backfill` heavy job, migrated from
 // /api/cron/embedding-backfill on Vercel (which stays in place as a
 // manual-fallback route, see plan §8 PR-9).
 //

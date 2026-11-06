@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — Trade Setup Replay service: candles, EMA/RSI context, MFE/MAE and
+// Trade Setup Replay service: candles, EMA/RSI context, MFE/MAE and
 // execution-efficiency stats for a completed or open journal entry.
 
 import { getEntry } from '@kestrel/ai';

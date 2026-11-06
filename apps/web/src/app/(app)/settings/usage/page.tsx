@@ -46,7 +46,7 @@ export default async function UsagePage() {
   const userId = session.user.id;
   const startOfMonth = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
 
-  // Audit 2026-10-31 (R1): this RSC starts outside the API boundary, so every
+  // this RSC starts outside the API boundary, so every
   // tenant read below — chat_telemetry, daily_ai_spend, and agent_opinions —
   // must run in the user's tenant scope. A single `withUserTenantRO` covers
   // all of them; RO is safe because every call below is a SELECT, and it lets

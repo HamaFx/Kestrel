@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Audit 2026-10-31 (R1) — tenant scope for entry points that are not the API
+// tenant scope for entry points that are not the API
 // boundary.
 //
 // `withAuth` opens a tenant transaction, so every service it calls already has

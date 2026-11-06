@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — /api/admin/users — list users (thin controller).
+// /api/admin/users — list users (thin controller).
 
 import { z } from 'zod';
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Audit 2026-10-31 (R6) — margin and position-limit guards are re-verified
+// margin and position-limit guards are re-verified
 // under the account row lock, immediately before the write.
 //
 // The first half of each check still runs against a snapshot (fast failure

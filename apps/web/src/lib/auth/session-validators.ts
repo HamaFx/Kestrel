@@ -113,7 +113,7 @@ function validationDue(token: SessionToken, nowSeconds: number): ValidationDue {
  * Whether {@link validateSession} will issue a database round-trip for this
  * token at `nowSeconds`.
  *
- * Audit 2026-10-31 (R1): `user_sessions` is RLS-protected and the Auth.js
+ * `user_sessions` is RLS-protected and the Auth.js
  * session callback runs outside any tenant scope; the callback opens the
  * user's scope only when this returns true. That keeps a fully throttled
  * `auth()` call (the common case, thanks to the in-process ledger) at zero

@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Briefing emit orchestration (DEC-05 split from generate.ts) — pre-event,
+// Briefing emit orchestration — pre-event,
 // post-event, and weekly review.
 //
 // Each function:

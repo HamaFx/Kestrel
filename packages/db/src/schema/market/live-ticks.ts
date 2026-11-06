@@ -15,10 +15,9 @@
  */
 
 // Phase 8 — `live_ticks` is a tiny snapshot table the worker UPSERTs at
-// ≤1 Hz per symbol from the BiQuote SignalR consumer. Three rows total
-// (one per supported symbol). The Vercel `/api/market/price` route reads
-// this table first and only falls through to a REST provider if the row
-// is missing or stale (≥60 s old).
+// ≤1 Hz per symbol from the BiQuote SignalR consumer. The Vercel
+// `/api/market/price` route reads this table first and only falls through to
+// a REST provider if the row is missing or stale (≥60 s old).
 //
 // Design choice (spec §3.3): we deliberately keep this a snapshot table,
 // not a tick history. Tick history would balloon Supabase Free's 500 MB
@@ -29,7 +28,7 @@ import { sql } from 'drizzle-orm';
 import { doublePrecision, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 export const liveTicks = pgTable('live_ticks', {
-  /** 'XAUUSD' | 'EURUSD' | 'GBPUSD'. PK so UPSERT collapses to one row per symbol. */
+  /** Symbol id from the shared catalog. PK so UPSERT collapses to one row per symbol. */
   symbol: text('symbol').primaryKey(),
   bid: doublePrecision('bid').notNull(),
   ask: doublePrecision('ask').notNull(),

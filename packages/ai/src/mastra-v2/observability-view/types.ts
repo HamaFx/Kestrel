@@ -16,8 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Phase 8 unified Mastra run view contracts (DEC-05 split of
-// observability-view.ts).
+// Unified Mastra run view contracts.
 
 import type { ScoreRecord } from '../evals/scores';
 

@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Deterministic local scorer (DEC-05 split of scorers.ts).
+// Deterministic local scorer.
 
 import { createScorer, type MastraScorer } from '@mastra/core/evals';
 

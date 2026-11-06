@@ -30,7 +30,7 @@ export const dynamic = 'force-dynamic';
 // Max 8 KB covers every realistic API key size.
 const BodySchema = z.object({
   provider: z.enum(PROVIDER_IDS as readonly [ProviderId, ...ProviderId[]]),
-  // Audit 2026-10-31 (R5): the settings page is write-only, so a user testing
+  // the settings page is write-only, so a user testing
   // an already-stored key sends no plaintext — the route resolves it from the
   // server-side vault instead.
   apiKey: z.string().min(8).max(8192).optional(),

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Audit 2026-10-31 (R7 follow-up) — the persistence guard.
+// (R7 follow-up) — the persistence guard.
 //
 // Mastra's memory saves the input messages it is given (drained as new user
 // messages) and its pre-flight downloader fetches URL parts unless the model

@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Audit 2026-10-31 (R7) — service-role read of one `chat-images` object.
+// service-role read of one `chat-images` object.
 //
 // The AI layer cannot ask a model provider to fetch the owner-authorised
 // proxy (`/api/uploads/...`) or a legacy public Supabase URL once the bucket

@@ -2,7 +2,7 @@
 
 // Data loading for Settings → API Keys.
 //
-// Audit 2026-10-31 (R1): a React Server Component starts outside the API
+// a React Server Component starts outside the API
 // boundary, so nothing has set `app.current_tenant`. Under the non-bypass
 // application role an unscoped tenant read does not fail — it returns no rows,
 // which would render a fully configured account as empty. `withUserTenant`
@@ -61,7 +61,7 @@ export async function loadApiKeysPageData(userId: string): Promise<ApiKeysPageDa
       getOwnUserSettings(userId),
     ]);
 
-    // Audit 2026-10-31 (R5): decrypt server-side ONLY to learn which providers
+    // decrypt server-side ONLY to learn which providers
     // have a key. The plaintext is used to build an id list and is never passed
     // to a component, so it cannot end up in the RSC payload.
     const ownKeyPayload = ownSettings?.aiApiKeys ? decryptByok(ownSettings.aiApiKeys) : null;

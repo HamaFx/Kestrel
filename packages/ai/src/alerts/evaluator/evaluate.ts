@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Alert evaluator orchestrator (DEC-05 split from evaluator.ts) — what the
+// Alert evaluator orchestrator — what the
 // cron handler calls.
 //
 // Semantics:

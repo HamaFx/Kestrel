@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — /api/market/search — symbol search (thin controller).
+// /api/market/search — symbol search (thin controller).
 
 import { z } from 'zod';
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Briefings persistence barrel (DEC-05 split of persistence.ts) — locate or
+// Briefings persistence barrel — locate or
 // create the dedicated `Briefings_Thread` plus the idempotency helpers for
 // `briefings_emitted`.
 //

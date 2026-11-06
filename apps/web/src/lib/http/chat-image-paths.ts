@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Audit 2026-10-31 (R7) — the one place that knows the object layout and the
+// the one place that knows the object layout and the
 // URL shapes of chat-image uploads.
 //
 // Objects live in the `chat-images` bucket as:

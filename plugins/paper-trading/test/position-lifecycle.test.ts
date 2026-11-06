@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Audit 2026-10-31 (R6) — close claims must be atomic.
+// close claims must be atomic.
 //
 // `applyClose` may only insert a fill and credit the balance when its guarded
 // `claimPositionClose` returned a row. These tests pin the payload the claim

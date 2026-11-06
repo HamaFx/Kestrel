@@ -16,8 +16,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Briefing prompt assembly and deterministic summaries (DEC-05 split from
-// generate.ts). LLM-authored bodies are built here; the deterministic
+// Briefing prompt assembly and deterministic summaries
+
+// . LLM-authored bodies are built here; the deterministic
 // fallbacks are the stats-only equivalent used when budget or settings do
 // not allow a generation.
 

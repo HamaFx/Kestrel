@@ -61,7 +61,7 @@ const ALLOWED_MEDIA_TYPES = new Set<string>([
 
 export const POST = withAuth<void>(async (req, { user }) => {
   try {
-    // STAB-12: Rate limit uploads — 20 per user per minute.
+    // Rate limit uploads — 20 per user per minute.
     const rl = await withRateLimit(user.userId, 'upload', 20);
     if (!rl.allowed) {
       return errorResponse(

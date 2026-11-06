@@ -94,7 +94,7 @@ export function defineProvider(spec: ByokProviderSpec): ByokProviderSpec {
       );
     }
   }
-  // Audit 2026-10-31 (R7 follow-up) — every BYOK model instance carries the
+  // (R7 follow-up) — every BYOK model instance carries the
   // provider-boundary image resolver. Call sites (canonical chat, custom
   // agents, the chart tool, the worker payload) keep the storage reference;
   // only the final provider prompt gets inline bytes, so no message store

@@ -16,8 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Scorer contracts for the prebuilt LLM-as-judge set (DEC-05 split of
-// scorers.ts).
+// Scorer contracts for the prebuilt LLM-as-judge set.
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { MastraScorer, MastraScorers } from '@mastra/core/evals';

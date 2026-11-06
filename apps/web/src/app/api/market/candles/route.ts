@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — /api/market/candles — OHLC data (thin controller).
+// /api/market/candles — OHLC data (thin controller).
 
 import { z } from 'zod';
 

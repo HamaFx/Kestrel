@@ -46,7 +46,7 @@ const BodySchema = z.object({
 });
 
 export const POST = withAuth<void>(async (req, { user }) => {
-  // STAB-12: Rate limit — 10 subscribe attempts per user per minute.
+  // Rate limit — 10 subscribe attempts per user per minute.
   const rl = await withRateLimit(user.userId, 'push_subscribe', 10);
   if (!rl.allowed) {
     return rateLimitedResponse(rl);

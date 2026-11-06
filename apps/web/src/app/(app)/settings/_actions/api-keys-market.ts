@@ -19,7 +19,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Market-data provider selection action.
-// Audit 2026-10-31 (R1): a server action inherits no scope from its page, so
+// a server action inherits no scope from its page, so
 // the `user_settings` write opens its own `withUserTenant` scope.
 import { withRateLimit, withUserTenant } from '@kestrel/db';
 import { revalidatePath } from 'next/cache';

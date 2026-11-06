@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Audit 2026-10-31 (R1) — pins which tenant wrapper each per-user scope helper
+// pins which tenant wrapper each per-user scope helper
 // selects. The write path must use `withTenantDb`; the read-only helper must
 // use `withTenantDbRO` so `DATABASE_URL_REPLICA` can serve read-only pages.
 

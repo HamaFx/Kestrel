@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Mutation + system-action names (DEC-05 split of mutation-policy.ts). This is
+// Mutation + system-action names. This is
 // the closed vocabulary every other mutation module validates against.
 
 import { pluginHost } from '@kestrel/plugin-sdk';

@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — /api/settings/bulk-test — bulk BYOK key testing (thin controller).
+// /api/settings/bulk-test — bulk BYOK key testing (thin controller).
 
 import { errorResponse, withAuth } from '@/lib/http/api';
 import { bulkTestKeysService } from '@/lib/services/settings';

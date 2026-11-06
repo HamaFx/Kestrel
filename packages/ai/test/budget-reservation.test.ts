@@ -74,7 +74,7 @@ const BudgetExceededErrorActual = (
 
 beforeEach(() => {
   metrics.reset();
-  // Audit 2026-10-31 (R3): enforcement is now the default, so the cases below
+  // enforcement is now the default, so the cases below
   // that cover the ledger-only path pin the opt-out explicitly instead of
   // relying on an unset variable.
   process.env.ENFORCE_BUDGET = 'false';

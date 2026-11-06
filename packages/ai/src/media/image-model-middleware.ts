@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Audit 2026-10-31 (R7, follow-up) — the ONE place that turns a Kestrel
+// (R7, follow-up) — the ONE place that turns a Kestrel
 // chat-image reference into bytes for a model provider.
 //
 // Resolution has to happen here, at the final provider conversion, because

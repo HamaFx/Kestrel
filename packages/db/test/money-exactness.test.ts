@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Audit 2026-10-31 (R2) — money columns are exact, not IEEE-754.
+// money columns are exact, not IEEE-754.
 //
 // Migration 0121 converted every cost/balance/P&L/fee/size/journal-level
 // column to `numeric(20, 8)`. This suite proves the contract on a disposable

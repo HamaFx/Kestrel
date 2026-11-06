@@ -27,7 +27,7 @@
 //     the server env. No additional config needed.
 //   - The web bundle stays Edge-friendly for any future migration.
 //
-// Audit 2026-10-31 (R7): the bucket (`chat-images`) is PRIVATE. Uploads are
+// the bucket (`chat-images`) is PRIVATE. Uploads are
 // written with the service-role key, and the only thing a caller gets back is
 // an app-owned proxy path (`/api/uploads/<userId>/<day>/<file>`); object bytes
 // are streamed by `GET /api/uploads/[[...path]]` after an ownership check.

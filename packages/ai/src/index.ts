@@ -216,7 +216,7 @@ export * from './runtime/wait-until';
 export { initLangfuse, flushLangfuse, shutdownLangfuse } from './runtime/instrumentation';
 export { telemetryConfig, type TelemetryConfigOptions } from './runtime/telemetry';
 
-// STAB-06: Exponential-backoff retry helper.
+// Exponential-backoff retry helper.
 export { withRetry, type RetryOptions } from './runtime/retry';
 
 export { extractUserMessageText } from './runtime/message-text';

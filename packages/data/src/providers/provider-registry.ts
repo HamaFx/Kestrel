@@ -36,7 +36,7 @@ export interface ProviderFetchOptions {
    * Per-call base URL override. **Operator configuration only** — never pass a
    * value that originated from a request body, query string or user setting.
    *
-   * Audit 2026-10-31 (R12): `/api/settings/test-market-provider` forwarded the
+   * `/api/settings/test-market-provider` forwarded the
    * caller's `apiKey` field into this option, which turned an authenticated
    * user into an SSRF proxy (`baseUrl: 'http://169.254.169.254/…'`). Provider
    * endpoints come from `<PROVIDER>_BASE_URL` env vars or the adapter default.

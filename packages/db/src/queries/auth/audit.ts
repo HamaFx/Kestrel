@@ -21,7 +21,7 @@ import { withUserTenant } from '../../tenant/with-user-tenant';
 /**
  * Create an audit log entry (best-effort, fail open).
  *
- * Audit 2026-10-31 (R1): `audit_logs` carries `tenant_isolation` RLS, so the
+ * `audit_logs` carries `tenant_isolation` RLS, so the
  * INSERT must run in the user's tenant scope. `withUserTenant` reuses an
  * active same-user scope (route handlers, scoped server actions) and opens one
  * for callers outside the request boundary (password reset, login actions).

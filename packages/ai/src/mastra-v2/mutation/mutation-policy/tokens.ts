@@ -15,8 +15,7 @@
  */
 
 // ---------------------------------------------------------------------------
-// Phase 7 — stateful confirmation tokens (DEC-05 split of
-// mutation-policy.ts).
+// Stateful confirmation tokens.
 //
 // The workflow issues a single-use, expiring confirmation token at the draft
 // step and stores only its HMAC in the persisted run state. The resume step

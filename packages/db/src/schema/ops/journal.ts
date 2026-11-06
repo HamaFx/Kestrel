@@ -27,7 +27,7 @@ export const journalEntries = pgTable(
     userId: text('user_id')
       .references(() => users.id, { onDelete: 'cascade' })
       .notNull(),
-    /** "XAUUSD" | "EURUSD" | "GBPUSD". */
+    /** Symbol id from the shared catalog. */
     symbol: text('symbol').notNull(),
     tenantId: text('tenant_id')
       .notNull()

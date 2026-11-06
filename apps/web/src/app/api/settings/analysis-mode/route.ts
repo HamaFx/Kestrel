@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — /api/settings/analysis-mode — analysis mode settings (thin controller).
+// /api/settings/analysis-mode — analysis mode settings (thin controller).
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
 import {

@@ -16,8 +16,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Core channel adapters — email (Resend) and web-push (DEC-05 split from
-// delivery.ts). Each provider is invoked with a bounded request timeout;
+// Core channel adapters — email (Resend) and web-push
+
+// . Each provider is invoked with a bounded request timeout;
 // the evaluator supplies a database lease so concurrent cron runners do not
 // deliver the same alert.
 //

@@ -16,8 +16,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Synthesizer dependency/argument/result shapes (DEC-05 split from
-// synthesizer.ts) — shared by the full-mode fusion and the cross-symbol
+// Synthesizer dependency/argument/result shapes
+
+// — shared by the full-mode fusion and the cross-symbol
 // comparison fusion.
 
 import type { AgentMemoryOption } from '@mastra/core/agent';

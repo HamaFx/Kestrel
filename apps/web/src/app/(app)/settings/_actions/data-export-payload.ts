@@ -21,7 +21,7 @@
 // exports a plain server helper, so it must not carry a "use server"
 // directive.
 //
-// Audit 2026-10-31 (R1): the builder is called from a server action, which
+// the builder is called from a server action, which
 // inherits no tenant scope. Every query below runs on a tenant RLS table;
 // unscoped under `kestrel_app` each one would return zero rows and the export
 // would silently omit the user's data.

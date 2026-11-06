@@ -21,7 +21,7 @@
 // Account-deletion action: password and optional 2FA gated soft delete that
 // scrubs PII, revokes sessions, and signs the user out.
 //
-// Audit 2026-10-31 (R1): `deleteUserAccount` purges tenant-scoped tables
+// `deleteUserAccount` purges tenant-scoped tables
 // (user_settings, chat_threads, alerts, user_symbols, …), all with RLS.
 // Unscoped under `kestrel_app` each DELETE would silently match zero rows, so
 // the purge runs inside `withUserTenant`. The `user` read before it has no RLS.
@@ -76,7 +76,7 @@ export async function deleteAccountAction(
   }
 
   try {
-    // Audit 2026-10-31 (R1): run the purge inside the user's tenant scope so
+    // run the purge inside the user's tenant scope so
     // the RLS-protected deletes actually remove their rows.
     await withUserTenant(session.user.id, () => deleteUserAccount(session.user.id));
     await signOut({ redirectTo: '/' });

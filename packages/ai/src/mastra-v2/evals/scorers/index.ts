@@ -17,7 +17,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Phase 6 evals barrel (DEC-05 split of scorers.ts) — prebuilt
+ * Phase 6 evals barrel — prebuilt
  * LLM-as-judge scorers.
  *
  * Wraps the `@mastra/evals` prebuilt scorers (faithfulness, hallucination,

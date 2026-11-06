@@ -20,7 +20,6 @@
 // stays cheap. The handlers reuse Kestrel's canonical mode runner and
 // background-text path rather than duplicating agent logic.
 //
-// This barrel keeps the previous `bot/ai-commands` import path working.
 
 export { analyzeReply, committeeReply } from './analyze';
 export { askReply } from './ask';

@@ -14,7 +14,7 @@
 
 // Auth query helpers — user session rows (JWT callback support).
 //
-// Audit 2026-10-31 (R1): `user_sessions` carries `tenant_isolation` RLS, so
+// `user_sessions` carries `tenant_isolation` RLS, so
 // every statement here must run in the owning user's tenant scope. The JWT
 // callback runs before any request scope exists, which is why
 // `createUserSession` opens the scope itself; `findSession` /

@@ -55,7 +55,7 @@ export default async function PluginPage({ params }: PluginPageRouteProps) {
 
   let installed = false;
   try {
-    // Audit 2026-10-31 (R1): `getInstalledPlugin` reads the RLS-protected
+    // `getInstalledPlugin` reads the RLS-protected
     // `user_installed_plugins` table; this page starts outside the API
     // boundary, so the read runs in an explicit tenant scope.
     const row = await withUserTenant(session.user.id, () =>

@@ -18,7 +18,6 @@
 
 // Parameter-sweep panel.
 //
-// This barrel keeps the previous `./sweep-panel` import path working; state
 // lives in `use-sweep-panel.ts` and each section is its own component.
 import { IconAlertTriangle } from '@tabler/icons-react';
 import type { z } from 'zod';

@@ -16,8 +16,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Briefing data loading and calendar/currency helpers (DEC-05 split from
-// generate.ts): read the source economic event and derive the ISO-week and
+// Briefing data loading and calendar/currency helpers
+
+// : read the source economic event and derive the ISO-week and
 // memory-index symbol context used by the emit paths.
 
 import { schema } from '@kestrel/db';

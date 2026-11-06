@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Audit 2026-10-31 (R7) — the decision table for a chat-image reference.
+// the decision table for a chat-image reference.
 //
 // Chat screenshots live in the PRIVATE `chat-images` Supabase bucket and are
 // referenced by `/api/uploads/<userId>/<day>/<file>` (served by an

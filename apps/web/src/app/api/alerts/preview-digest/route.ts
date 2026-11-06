@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — /api/alerts/preview-digest — noise config preview (thin controller).
+// /api/alerts/preview-digest — noise config preview (thin controller).
 
 import { errorResponse, withAuth } from '@/lib/http/api';
 import { previewDigestService } from '@/lib/services/alerts';

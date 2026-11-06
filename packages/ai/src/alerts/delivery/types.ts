@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Shared alert-delivery shapes (DEC-05 split from delivery.ts). Leaf module:
+// Shared alert-delivery shapes. Leaf module:
 // no runtime imports of the evaluator or the channel adapters, so every
 // other delivery sibling can depend on it without a cycle.
 

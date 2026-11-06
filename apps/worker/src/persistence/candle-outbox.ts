@@ -16,7 +16,7 @@
 
 // Durable hand-off for closed 1m bars the direct write could not persist.
 //
-// R9 (audit 2026-10-31): the candle flush used to be fire-and-forget, so a
+// the candle flush used to be fire-and-forget, so a
 // failed (or shutdown-interrupted) INSERT dropped that minute forever. When
 // the in-process retry in `bootstrap/candle-flush.ts` is exhausted, the bar
 // is enqueued on the existing pg-boss queue (same Postgres, same mechanism

@@ -36,7 +36,7 @@
 //     uses, so a partitioned deployment cannot have this route process
 //     another partition's users.
 //
-// Audit 2026-10-31 (R1): `alerts` and the `user_settings` join are
+// `alerts` and the `user_settings` join are
 // RLS-protected and the evaluator is cross-tenant by design (one pass over
 // every user's alerts, then per-user writes with explicit tenant
 // predicates). `withCronAuth` opens no scope, so run it on the admin

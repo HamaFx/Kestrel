@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Delivery logging, budgets, and rule labels (DEC-05 split from delivery.ts).
+// Delivery logging, budgets, and rule labels.
 // The catalog logger and timeout constants are created exactly once here so
 // every channel adapter shares one instance.
 

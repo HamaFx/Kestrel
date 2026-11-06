@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Notification delivery barrel (DEC-05 split of delivery.ts) for email,
+// Notification delivery barrel for email,
 // Telegram, and web-push channels. Re-exports the former module surface:
 // `deliverAlert`, `escapeMd`, `sendDirectNotification`, and the
 // `DeliveryResult` shape.

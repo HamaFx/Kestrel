@@ -21,7 +21,7 @@
 // Password-change action: current-password and optional 2FA gated rotation
 // with token-version bump and audit logging.
 //
-// Audit 2026-10-31 (R1): the `user` read/update below carries no RLS
+// the `user` read/update below carries no RLS
 // (migration 0039 disables it for `user`), but `createAuditLog` writes
 // `audit_logs`, which is tenant-scoped — that insert runs inside
 // `withUserTenant`.

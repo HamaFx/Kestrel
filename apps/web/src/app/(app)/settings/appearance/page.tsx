@@ -40,7 +40,7 @@ export default async function AppearancePage() {
 
   const userId = session.user.id;
 
-  // Audit 2026-10-31 (R1): this RSC starts outside the API boundary, so the
+  // this RSC starts outside the API boundary, so the
   // user_settings and user_symbols reads must run in a tenant scope — unscoped
   // they return no rows under the non-bypass application role.
   const { settings, symbolRows } = await withUserTenant(userId, async () => {

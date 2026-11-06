@@ -36,7 +36,7 @@ export const cotReports = pgTable(
   'cot_reports',
   {
     id: text('id').primaryKey(),
-    /** "XAUUSD" | "EURUSD" | "GBPUSD" — kept as text. */
+    /** Symbol id from the shared catalog. Kept as text. */
     symbol: text('symbol').notNull(),
     reportDate: timestamp('report_date', { withTimezone: true }).notNull(),
     dealerLong: bigint('dealer_long', { mode: 'number' }),

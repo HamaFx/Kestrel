@@ -20,7 +20,7 @@
 
 // AI preferences actions: custom instructions and the disabled-tools list.
 //
-// Audit 2026-10-31 (R1): server actions inherit no tenant scope from their
+// server actions inherit no tenant scope from their
 // page, so each `user_settings` write opens one with `withUserTenant`.
 import { withRateLimit, withUserTenant } from '@kestrel/db';
 import { PresentationPreferencesSchema } from '@kestrel/shared';

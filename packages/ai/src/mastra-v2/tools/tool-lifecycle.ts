@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Read-only tool lifecycle barrel (DEC-05 split, moved to tools/ in Phase 4):
+// Read-only tool lifecycle barrel:
 // the Mastra lifecycle wrapper plus the stream-part parsing the canonical chat
 // runner and specialist runner share.
 //

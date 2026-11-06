@@ -51,7 +51,7 @@ const WorkerEnvSchema = z.object({
    * Opt-in flag for the legacy 24/7 SignalR + Binance -> Postgres (`live_ticks` /
    * `candles_1m`) streaming pipeline. Defaults to `'0'` (100% on-demand BiQuote REST mode).
    *
-   * R9 (audit 2026-10-31) — keeping this default is a deliberate product
+   * keeping this default is a deliberate product
    * decision, not an oversight, but the consequence has to be stated: with
    * `'0'` the SignalR consumer, the Binance consumer, the tick buffer, the
    * `live_ticks` flusher and the 1m candle aggregator are all inert, so

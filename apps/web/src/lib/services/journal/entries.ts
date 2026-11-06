@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — Journal CRUD service functions. Route handlers (controllers) call
+// Journal CRUD service functions. Route handlers (controllers) call
 // these instead of importing @kestrel/ai directly.
 
 import {

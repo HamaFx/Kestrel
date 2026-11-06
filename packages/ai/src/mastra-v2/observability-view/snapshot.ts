@@ -16,8 +16,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Workflow snapshot summarization for the run view (DEC-05 split of
-// observability-view.ts): step statuses plus the Phase 5.2 failure detail
+// Workflow snapshot summarization for the run view
+
+// : step statuses plus the Phase 5.2 failure detail
 // recovered from failed-step errors and their cause chains.
 
 import type { WorkflowRunState } from '@mastra/core/workflows';

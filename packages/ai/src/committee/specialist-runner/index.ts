@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Specialist runner barrel (DEC-05 split of specialist-runner.ts).
+// Specialist runner barrel.
 // Re-exports the former module surface: the runner, its deps/args shapes,
 // the typed step result, and the schema-validated step readers.
 

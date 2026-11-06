@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Audit 2026-10-31 (R7) — minimal mirror of the web uploader's object-path
+// minimal mirror of the web uploader's object-path
 // parser (`apps/web/src/lib/http/chat-image-paths.ts`) for the AI package.
 //
 // The AI layer must not import web code, and the web helper owns layout

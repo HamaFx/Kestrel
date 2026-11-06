@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Mastra mutation policy barrel (DEC-05 split of mutation-policy.ts).
+// Mastra mutation policy barrel.
 // Three layers, each with one job:
 //
 //   - names.ts  — the closed core/plugin/system-action vocabulary

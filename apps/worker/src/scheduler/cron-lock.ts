@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// STAB-01: Cron idempotency guard.
+// Cron idempotency guard.
 //
 // Usage:
 //   const guard = await acquireCronLock('briefings', db);
@@ -127,5 +127,3 @@ function buildLock(db: DbClient, jobName: string, today: string): CronLock {
     },
   };
 }
-
-// Expose schema for convenience (re-exported from @kestrel/db).

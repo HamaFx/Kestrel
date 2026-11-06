@@ -16,12 +16,10 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — Calendar service layer.
+// Calendar service layer.
 //
 // Handles economic calendar event retrieval.
 //
-// Pattern: Service (PF-22). Controllers remain thin: parse request →
-// call service → format Response.
 
 import { listUpcomingEvents, upsertEvents } from '@kestrel/ai';
 import { fetchUpcomingEvents, ProviderError } from '@kestrel/data';

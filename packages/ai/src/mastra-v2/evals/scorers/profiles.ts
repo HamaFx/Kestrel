@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Agent scorer profiles (DEC-05 split of scorers.ts).
+// Agent scorer profiles.
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { MastraScorer, MastraScorers } from '@mastra/core/evals';

@@ -48,7 +48,7 @@ export default async function NotificationsPage() {
 
   const userId = session.user.id;
 
-  // Audit 2026-10-31 (R1): this RSC starts outside the API boundary, so the
+  // this RSC starts outside the API boundary, so the
   // user_settings and push_subscriptions reads must run in the user's tenant
   // scope — unscoped they return no rows under the non-bypass application role.
   const { settings, pushDevices } = await withUserTenant(userId, async () => {

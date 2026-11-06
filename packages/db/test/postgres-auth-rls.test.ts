@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Audit 2026-10-31 (R1) — the auth/session helpers must work under RLS.
+// the auth/session helpers must work under RLS.
 //
 // Sibling of postgres-app-role.test.ts: a disposable database is migrated, the
 // helpers under test run with a login role that has `NOBYPASSRLS` (granted the

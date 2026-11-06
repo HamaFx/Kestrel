@@ -55,7 +55,7 @@ export default async function ApiKeysSettingsPage({
   const fromChat = sp.from === 'chat';
   const preservedPrompt = sp.prompt && sp.prompt.trim().length > 0 ? sp.prompt : null;
 
-  // Audit 2026-10-31 (R1): this server component starts outside the API
+  // this server component starts outside the API
   // boundary, so every tenant read below must run inside a tenant scope — see
   // `_lib/load-page-data.ts`.
   const {

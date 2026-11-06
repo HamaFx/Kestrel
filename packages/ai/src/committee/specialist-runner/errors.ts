@@ -16,8 +16,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Error classification for the specialist runner (DEC-05 split from
-// specialist-runner.ts): aborts and transient provider failures must
+// Error classification for the specialist runner
+
+// : aborts and transient provider failures must
 // propagate so the workflow's retry/abort handling sees them, while every
 // other failure becomes a step-level marker.
 

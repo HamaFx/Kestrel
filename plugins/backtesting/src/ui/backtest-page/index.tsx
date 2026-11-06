@@ -18,7 +18,6 @@
 
 // Backtesting Lab page.
 //
-// This barrel keeps the previous `./backtest-page` import path working; state
 // and effects live in `use-backtest-page.ts` and each section is its own
 // component.
 import type { PluginPageProps } from '@kestrel/plugin-sdk/ui';

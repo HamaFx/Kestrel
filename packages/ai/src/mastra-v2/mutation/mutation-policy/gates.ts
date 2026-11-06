@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Mutation gates (DEC-05 split of mutation-policy.ts). The draft gate starts a
+// Mutation gates. The draft gate starts a
 // confirmation flow; the execute gate requires a server-issued approval whose
 // HMAC token verifies against the persisted digest.
 

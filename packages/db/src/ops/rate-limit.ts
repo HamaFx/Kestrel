@@ -29,7 +29,7 @@
 // same user. The query returns the new count; if it exceeds `limit`
 // we reject the request.
 //
-// Audit 2026-10-31 (R1): `rate_limits` carries `tenant_isolation` RLS
+// `rate_limits` carries `tenant_isolation` RLS
 // (`tenant_id = current_setting('app.current_tenant', true)`), so an
 // unscoped INSERT is rejected outright under the non-bypass application
 // role — login, registration, password reset and 2FA rate limiting all

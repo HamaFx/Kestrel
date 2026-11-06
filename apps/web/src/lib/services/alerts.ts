@@ -16,7 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// PF-22 — Alerts service layer.
+// Alerts service layer.
 //
 // Separates business logic from HTTP handling. Route handlers (controllers)
 // call these service functions instead of importing @kestrel/ai directly.

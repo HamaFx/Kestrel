@@ -21,8 +21,8 @@
 // REST endpoint, cached by the existing data layer.
 //
 // Retention: pruned to the trailing 14 days by a tail step in the
-// `snapshots` nightly job (Phase 8 PR-11). 14d × 3 symbols × 1440 bars =
-// 60,480 rows max — trivial.
+// `snapshots` nightly job. 14 days × 1440 bars per configured symbol keeps
+// the table small.
 
 import { sql } from 'drizzle-orm';
 import {
