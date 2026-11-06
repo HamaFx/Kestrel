@@ -20,7 +20,7 @@
 // verification gate, and one cost-ledger write. Single-symbol and comparison
 // synthesis differ only in their prompt/context wiring and verifier.
 
-import { estimateCostUsd } from '../../budget/cost';
+import { estimateCostUsd } from '../../budget/pricing-catalog';
 import {
   getMastraGenerationStats,
   type MastraGenerationStats,

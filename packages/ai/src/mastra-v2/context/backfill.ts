@@ -30,7 +30,7 @@ import type { MastraDBMessage } from '@mastra/core/memory';
 import type { Memory } from '@mastra/memory';
 
 import { listMessages } from '../../persistence';
-import { mlog } from './log';
+import { mlog } from './working-memory-seed';
 
 /** Recent Drizzle history copied into Mastra storage on first use per thread. */
 const BACKFILL_LIMIT = 40;

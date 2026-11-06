@@ -18,15 +18,14 @@
 
 // Error envelopes and failure mapping for the /api/chat boundary.
 
-import type { createRequestLogger } from '@/lib/logger';
 import {
-  BudgetExceededError,
   CanonicalEvidenceBlockedError,
   GuardrailUnavailableError,
-  isBudgetEnforced,
   MutationExtractionError,
   TripWire,
-} from '@/lib/services/chat-ai';
+} from '@kestrel/ai/mastra-v2';
+import { BudgetExceededError, isBudgetEnforced } from '@kestrel/ai';
+import type { createRequestLogger } from '@/lib/logger';
 
 type RequestLogger = ReturnType<typeof createRequestLogger>;
 

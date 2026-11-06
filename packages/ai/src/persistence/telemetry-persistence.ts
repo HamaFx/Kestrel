@@ -23,7 +23,7 @@ import { requireTenantIdForUser, schema, withDbRetry } from '@kestrel/db';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { eq } from 'drizzle-orm';
 
-import { estimateCostUsd } from '../budget/cost';
+import { estimateCostUsd } from '../budget/pricing-catalog';
 import { getDiagnosticContext } from '../diagnostics/run-context';
 import { resolveProviderMode } from '../models/byok-providers';
 import { getDb } from '../runtime/db';

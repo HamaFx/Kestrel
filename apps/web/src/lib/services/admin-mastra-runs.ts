@@ -21,11 +21,11 @@
 // The route is a thin controller over this module so the raw Drizzle query
 // never lives under `src/app/api/**`.
 
+import { getKestrelMastra, toMastraRunView } from '@kestrel/ai/mastra-v2';
 import { getDb, schema } from '@kestrel/db';
 import { and, desc, gt, isNotNull, like, or } from 'drizzle-orm';
 
 import type { RunTelemetryRow } from './admin';
-import { getKestrelMastra, toMastraRunView } from './chat-ai';
 
 export interface MastraRunsQuery {
   hours: number;

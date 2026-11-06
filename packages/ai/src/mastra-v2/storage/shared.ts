@@ -20,9 +20,13 @@
 
 import type { MastraCompositeStore } from '@mastra/core/storage';
 
-import { libsqlUrl, mastraRuntimeConnectionString, resolveMastraStorageKind } from './connection';
+import {
+  libsqlUrl,
+  mastraRuntimeConnectionString,
+  mlog,
+  resolveMastraStorageKind,
+} from './connection';
 import { createMastraStorage } from './create';
-import { mlog } from './log';
 import type { MastraStorageResult } from './types';
 
 /**

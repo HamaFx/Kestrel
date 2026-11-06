@@ -17,7 +17,7 @@
 import { z } from 'zod';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
-import { updateUserSettingsField } from '@/lib/services/settings';
+import { updateUserSettingsField } from '@kestrel/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

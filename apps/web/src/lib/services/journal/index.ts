@@ -44,7 +44,6 @@ export {
   listJournalEntriesService,
   updateJournalEntryService,
 } from './entries';
-export { getCoachInsightsService } from './coach';
 export { importJournalEntriesService, JournalImportPayloadSchema } from './import';
 export { getTradeSetupReplayService, type TradeSetupReplayDTO } from './replay';
 

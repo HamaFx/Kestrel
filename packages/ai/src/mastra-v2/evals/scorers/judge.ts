@@ -21,12 +21,13 @@
 // Phase 5 guardrail detector — no new provider surface.
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
 import type { LanguageModel } from 'ai';
 
 import type { ResolveModelEnv } from '@ai/models/env-factory';
 import { resolveChatModel } from '@ai/models/model';
 
-import { slog } from './log';
+export const slog = createCategorizedLogger('ai', { component: 'mastra:evals-scorers' });
 
 /**
  * Resolve the BYOK fast-tier model used as the LLM judge for all scorers.

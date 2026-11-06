@@ -19,14 +19,17 @@
 
 import type { MastraMemory } from '@mastra/core/memory';
 
+import { createCategorizedLogger } from '@kestrel/shared/logger';
+
 import { prepareKestrelMemory } from '../../context';
 import {
   createKestrelMemory,
   kestrelMemoryOptions,
   type CreateKestrelMemoryArgs,
 } from '../../memory';
-import { mlog } from './log';
 import type { RunMastraCanonicalChatArgs } from './types';
+
+export const mlog = createCategorizedLogger('ai', { component: 'mastra:canonical-chat' });
 
 export function startCanonicalMemory(args: RunMastraCanonicalChatArgs) {
   return (async () => {

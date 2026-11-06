@@ -18,7 +18,7 @@ import { metrics } from '@kestrel/shared';
 import { createCategorizedLogger, logErrorContext } from '@kestrel/shared/logger';
 import { flushMetrics } from '@kestrel/shared/metrics-export';
 
-import { estimateKnownCostUsd } from '../../budget/cost';
+import { estimateKnownCostUsd } from '../../budget/pricing-catalog';
 import { completeStep, recordError, recordStep } from '../../diagnostics';
 import { recordModelFailure, recordModelSuccess } from '../../models/circuit-breaker';
 import { recordTelemetry } from '../../persistence';

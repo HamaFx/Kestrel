@@ -64,24 +64,24 @@
           {
             "paths": [
               {
-                "name": "@kestrel/ai",
-                "message": "API routes must import from @/lib/services/* instead of @kestrel/ai directly. Import domain functions through the service layer."
+                "name": "@kestrel/db/schema",
+                "message": "API routes must not import raw Drizzle schema. Use a @kestrel/db query or @/lib/services/*."
               },
               {
-                "name": "@kestrel/data",
-                "message": "API routes must import from @/lib/services/* instead of @kestrel/data directly. Import data functions through the service layer."
+                "name": "@kestrel/db/client",
+                "message": "API routes must not import the raw database client. Use a @kestrel/db query or @/lib/services/*."
               },
               {
                 "name": "@kestrel/db",
-                "message": "API routes must import from @/lib/services/* instead of @kestrel/db directly. Import database functions through the service layer."
+                "importNames": ["schema", "getDb"],
+                "message": "API routes must not import raw schema/client internals from @kestrel/db. Import a query function or use @/lib/services/*."
               }
             ],
             "patterns": [
               {
                 "group": [
-                  "@kestrel/ai/*",
-                  "@kestrel/data/*",
-                  "@kestrel/db/*",
+                  "@kestrel/db/schema/*",
+                  "@kestrel/db/client/*",
                   "@kestrel/indicators",
                   "@kestrel/indicators/*",
                   "@kestrel/plugin-sdk",
@@ -92,7 +92,7 @@
                   "@kestrel/test-utils",
                   "@kestrel/test-utils/*"
                 ],
-                "message": "API routes must import from @/lib/services/* instead of @kestrel/* directly. @kestrel/shared is the only exception."
+                "message": "API routes may import @kestrel/ai, @kestrel/data, and @kestrel/db query functions directly, but not raw schema/client internals or other @kestrel/* packages."
               }
             ]
           }

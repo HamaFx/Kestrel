@@ -16,8 +16,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
+import { removeUserSymbol } from '@kestrel/db';
+
 import { errorResponse, withAuth } from '@/lib/http/api';
-import { removeUserSymbol } from '@/lib/services/settings';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

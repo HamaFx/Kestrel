@@ -88,9 +88,7 @@ export interface AnalysisModeDTO {
 
 // ── Service functions ────────────────────────────────────────────────────────
 
-// Phase 3 Task 4 — route-facing re-exports (settings, onboarding, watchlist).
-export * from './domain';
-
+// Phase 3 Task 4 — route-facing service functions.
 export { validateAndSaveUserModel } from './chat-model';
 export * from './user-settings';
 

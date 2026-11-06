@@ -21,10 +21,12 @@
 // stats, and behavioral leaks into the resource-scoped block.
 
 import type { UserSettingsRow } from '@kestrel/db/schema';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
 import type { Memory } from '@mastra/memory';
 
 import { sanitizeExternalText } from '../packets/external-content';
-import { mlog } from './log';
+
+export const mlog = createCategorizedLogger('ai', { component: 'mastra:memory-context' });
 
 /**
  * Phase 3 — markdown heading of the coach-synced trader edge and

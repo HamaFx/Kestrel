@@ -27,7 +27,7 @@
 import type { UserSettingsRow } from '@kestrel/db/schema';
 import type { LanguageModel } from 'ai';
 
-import { estimateCostUsd } from '../../budget/cost';
+import { estimateCostUsd } from '../../budget/pricing-catalog';
 import { resolveChatModel, resolveModel, type ResolveModelEnv } from '../../models/model';
 import type { GenerationLedger } from '../../persistence/generation-ledger';
 import { runMastraText } from './text-runner';

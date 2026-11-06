@@ -21,7 +21,7 @@ import type { Symbol } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { eq } from 'drizzle-orm';
 
-import { dailySpendUsd } from '../../budget/cost';
+import { dailySpendUsd } from '../../budget/budget-spend';
 import { embedTexts } from '../../models/embeddings';
 import { getDb } from '../../runtime/db';
 import type { EmbedEnv, EmbedUserSettings, MemoryKind } from './types';

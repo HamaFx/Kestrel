@@ -32,7 +32,7 @@
 import { configuredProviders, decryptByok } from '@kestrel/shared/encryption';
 
 import { errorResponse, withAuth } from '@/lib/http/api';
-import { getUserWithSettings } from '@/lib/services/settings';
+import { getUserWithSettings } from '@kestrel/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

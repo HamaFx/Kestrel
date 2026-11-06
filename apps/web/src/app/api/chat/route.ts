@@ -20,22 +20,23 @@
 // authentication, persistence, budgets, and the UI transport; Mastra owns
 // agent selection, workflows, tool loops, structured research, and synthesis.
 
-import type { UIMessage } from 'ai';
-
-import { withAuth } from '@/lib/http/api';
-import { createRequestLogger } from '@/lib/logger';
-import { getThread, listMessages } from '@/lib/services/chat';
+import { extractUserMessageText } from '@kestrel/ai';
 import {
   createExecutionPlan,
   extractMastraSymbols,
-  extractUserMessageText,
   isHighConfidenceMutationIntent,
   isInjectionAttempt,
   isMastraMutationEnabled,
   isMastraXauusdFollowupCandidate,
   resolveMode,
   routeUnified,
-} from '@/lib/services/chat-ai';
+} from '@kestrel/ai/mastra-v2';
+import { getUserWithSettings } from '@kestrel/db';
+import type { UIMessage } from 'ai';
+
+import { withAuth } from '@/lib/http/api';
+import { createRequestLogger } from '@/lib/logger';
+import { getThread, listMessages } from '@/lib/services/chat';
 import { extractLatestMastraReport } from '@/lib/services/mastra/mastra-report-context';
 import { startMutationDraft } from '@/lib/services/mastra/mutation/mastra-mutation-draft';
 import {
@@ -43,7 +44,6 @@ import {
   getInstalledPluginIdsForUser,
 } from '@/lib/services/plugin-manage';
 import { withRateLimit } from '@/lib/services/rate-limit';
-import { getUserWithSettings } from '@/lib/services/settings';
 
 import { CHAT_RATE_LIMIT } from './_lib/constants';
 import {

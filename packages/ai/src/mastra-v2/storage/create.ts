@@ -26,9 +26,9 @@ import {
   libsqlUrl,
   mastraRuntimeConnectionString,
   mastraSslOptions,
+  mlog,
   resolveMastraStorageKind,
 } from './connection';
-import { mlog } from './log';
 import { mastraRetention } from './retention';
 import type { MastraStorageKind, MastraStorageResult } from './types';
 

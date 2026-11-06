@@ -29,7 +29,7 @@ import {
   mastraComparisonScope,
   MAX_COMPARISON_SYMBOLS,
   type ExecutionPlan,
-} from '@/lib/services/chat-ai';
+} from '@kestrel/ai/mastra-v2';
 import {
   runConversationalTurn,
   runResearchWorkflow,

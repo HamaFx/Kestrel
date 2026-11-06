@@ -22,7 +22,7 @@ import { Agent } from '@mastra/core/agent';
 import type { MastraModelConfig } from '@mastra/core/llm';
 import { RequestContext } from '@mastra/core/request-context';
 
-import { estimateCostUsd } from '@ai/budget/cost';
+import { estimateCostUsd } from '@ai/budget/pricing-catalog';
 import { createGenerationLedger } from '@ai/persistence/generation-ledger';
 import {
   buildPluginMastraTools,
@@ -44,10 +44,9 @@ import { assertExecutionPlanRoute } from '../../planning/execution-plan';
 import { nativeCanonicalTools } from '../../tools/canonical';
 import type { MastraToolInvocationPart } from '../../tools/tool-lifecycle';
 import { CANONICAL_PUBLIC_READ_ONLY_SET, READ_ONLY_TOOL_NAMES } from './allowlist';
-import { mlog } from './log';
 import { resolveCanonicalModel } from './model';
 import { latestUserModelMessages, messageHistory, systemInstructions } from './prompts';
-import { startCanonicalMemory } from './setup-memory';
+import { mlog, startCanonicalMemory } from './setup-memory';
 import type { CanonicalChatSetup, RunMastraCanonicalChatArgs } from './types';
 
 export async function setupCanonicalChat(

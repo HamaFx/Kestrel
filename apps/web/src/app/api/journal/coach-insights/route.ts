@@ -19,10 +19,11 @@
 // /api/journal/coach-insights — generate aggregate AI coaching diagnostics and leak detection.
 // POST /api/journal/coach-insights
 
+import { getCoachInsights } from '@kestrel/ai';
+import { getUserWithSettings } from '@kestrel/db';
+
 import { getServerEnv } from '@/lib/env';
 import { errorResponse, withAuth } from '@/lib/http/api';
-import { getCoachInsightsService } from '@/lib/services/journal';
-import { getUserWithSettings } from '@/lib/services/settings';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -39,7 +40,7 @@ export const POST = withAuth<void>(async (req, { user }) => {
     }
 
     const env = getServerEnv();
-    const insights = await getCoachInsightsService({
+    const insights = await getCoachInsights({
       userId: user.userId,
       userSettings,
       env,

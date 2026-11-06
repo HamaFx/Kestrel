@@ -34,8 +34,11 @@
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
-import { mlog } from './log';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
+
 import type { MastraStorageKind } from './types';
+
+export const mlog = createCategorizedLogger('ai', { component: 'mastra:storage' });
 
 /** Direct (non-pooling) connection string in the same order as the migration scripts. */
 export function mastraDirectConnectionString(

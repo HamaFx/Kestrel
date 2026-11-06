@@ -14,20 +14,19 @@
 // context from the persisted workflow snapshot and never accepts thread/user
 // identity from the client.
 
+import {
+  cancelMutationWorkflow,
+  createMutationWorkflow,
+  getKestrelMastra,
+  parseMutationRunContext,
+  verifyMutationConfirmationToken,
+} from '@kestrel/ai/mastra-v2';
+import { getMutationExecution, MutationExecutionConflictError } from '@kestrel/db';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { parseJsonBody, withAuth } from '@/lib/http/api';
 import { createAuditLog } from '@/lib/services/admin';
-import {
-  cancelMutationWorkflow,
-  createMutationWorkflow,
-  getKestrelMastra,
-  getMutationExecution,
-  MutationExecutionConflictError,
-  parseMutationRunContext,
-  verifyMutationConfirmationToken,
-} from '@/lib/services/chat-ai';
 
 import { findMutationRun } from '../confirm/_lib/find-mutation-run';
 

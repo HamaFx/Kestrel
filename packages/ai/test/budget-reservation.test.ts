@@ -23,6 +23,8 @@
 import { metrics } from '@kestrel/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type * as BudgetReservationsModule from '../src/budget/budget-reservations';
+import type * as BudgetSpendModule from '../src/budget/budget-spend';
 import {
   _resetBudgetEnforcementCache,
   reserveTurnBudget,
@@ -37,28 +39,35 @@ let mockApplyBudgetDelta: ReturnType<typeof vi.fn>;
 let mockReconcileBudgetReservation: ReturnType<typeof vi.fn>;
 let mockReleaseBudgetReservation: ReturnType<typeof vi.fn>;
 
-vi.mock('../src/budget/cost', () => ({
-  get tryReserveBudget() {
-    return mockTryReserveBudget;
-  },
-  get applyBudgetDelta() {
-    return mockApplyBudgetDelta;
-  },
-  get reconcileBudgetReservation() {
-    return mockReconcileBudgetReservation;
-  },
-  get releaseBudgetReservation() {
-    return mockReleaseBudgetReservation;
-  },
-  get BudgetExceededError() {
-    return BudgetExceededErrorActual;
-  },
-  DEFAULT_TURN_ESTIMATE_USD: 0.01,
-}));
+vi.mock('../src/budget/budget-reservations', async (importOriginal) => {
+  const actual = await importOriginal<typeof BudgetReservationsModule>();
+  return {
+    ...actual,
+    get tryReserveBudget() {
+      return mockTryReserveBudget;
+    },
+    get reconcileBudgetReservation() {
+      return mockReconcileBudgetReservation;
+    },
+    get releaseBudgetReservation() {
+      return mockReleaseBudgetReservation;
+    },
+  };
+});
+
+vi.mock('../src/budget/budget-spend', async (importOriginal) => {
+  const actual = await importOriginal<typeof BudgetSpendModule>();
+  return {
+    ...actual,
+    get applyBudgetDelta() {
+      return mockApplyBudgetDelta;
+    },
+  };
+});
 
 // We need the real BudgetExceededError class for instanceof checks.
 const BudgetExceededErrorActual = (
-  (await vi.importActual('../src/budget/cost')) as unknown as {
+  (await vi.importActual('../src/budget/budget-spend')) as unknown as {
     BudgetExceededError: new (...args: never[]) => Error;
   }
 ).BudgetExceededError;

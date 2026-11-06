@@ -24,7 +24,7 @@ import { z } from 'zod';
 import { getServerEnv } from '@/lib/env';
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
 import { getEntry, reviewTrade } from '@/lib/services/journal';
-import { getUserWithSettings } from '@/lib/services/settings';
+import { getUserWithSettings } from '@kestrel/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

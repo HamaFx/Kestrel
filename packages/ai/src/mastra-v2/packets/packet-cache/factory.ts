@@ -32,8 +32,7 @@ import {
   PACKET_CACHE_TTL_MS,
   type CacheEntry,
 } from './constants';
-import { pclog } from './log';
-import { getRedisMirror } from './redis-mirror';
+import { getRedisMirror, pclog } from './redis-mirror';
 
 export interface PacketCacheOptions<T> {
   /**

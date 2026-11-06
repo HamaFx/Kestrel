@@ -24,7 +24,7 @@
 // captures any tool outputs into the run's verified evidence ledger, and
 // validates its structured opinion via `verifyMastraOpinion`.
 
-import { estimateCostUsd } from '../../budget/cost';
+import { estimateCostUsd } from '../../budget/pricing-catalog';
 import { getMastraGenerationStats } from '../../mastra-v2/shared/telemetry';
 import {
   extractToolPartsFromMessages,

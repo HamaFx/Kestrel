@@ -21,7 +21,7 @@ import type { Alert } from '@kestrel/shared';
 import { and, eq, isNull, lt, or } from 'drizzle-orm';
 
 import { getDb } from '../../runtime/db';
-import { plog } from './log';
+import { plog } from './crud';
 
 /**
  * R10 (audit 2026-10-31) — how long a delivery claim survives on its own.

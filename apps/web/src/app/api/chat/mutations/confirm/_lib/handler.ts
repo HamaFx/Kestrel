@@ -22,6 +22,18 @@
 // workflow snapshot. The business write, audit row, and mutation execution
 // ledger are committed atomically by executeMutationOnce.
 
+import {
+  assertMastraMutationAllowed,
+  createMutationWorkflow,
+  getKestrelMastra,
+  parseMutationRunContext,
+  runMutationWorkflow,
+} from '@kestrel/ai/mastra-v2';
+import {
+  getMutationExecution,
+  MutationExecutionConflictError,
+  MutationExecutionContextError,
+} from '@kestrel/db';
 import { metrics } from '@kestrel/shared';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -29,16 +41,6 @@ import { z } from 'zod';
 import { parseJsonBody, type RequestUser } from '@/lib/http/api';
 import { getUserRole } from '@/lib/services/admin';
 import { appendAssistantMessage } from '@/lib/services/chat';
-import {
-  assertMastraMutationAllowed,
-  createMutationWorkflow,
-  getKestrelMastra,
-  getMutationExecution,
-  MutationExecutionConflictError,
-  MutationExecutionContextError,
-  parseMutationRunContext,
-  runMutationWorkflow,
-} from '@/lib/services/chat-ai';
 import { atomicExecutorFor, executorFor } from '@/lib/services/chat/mutation-executors';
 
 import { findMutationRun } from './find-mutation-run';

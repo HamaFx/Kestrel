@@ -20,7 +20,7 @@
 
 import { metrics } from '@kestrel/shared';
 
-import { estimateCostUsd } from '@ai/budget/cost';
+import { estimateCostUsd } from '@ai/budget/pricing-catalog';
 import type { ChatModelResolution, FallbackPartPayload } from '@ai/models/model';
 import type { GenerationLedger } from '@ai/persistence/generation-ledger';
 

@@ -28,8 +28,7 @@ import {
   createToxicityScorer,
 } from '@mastra/evals/scorers/prebuilt';
 
-import { resolveJudgeModel } from './judge';
-import { slog } from './log';
+import { resolveJudgeModel, slog } from './judge';
 import type { BuildScorersOptions, BuiltScorers, ScorerId } from './types';
 
 const PREBUILT: Record<

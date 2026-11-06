@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import type * as AiModule from '@kestrel/ai';
 import type * as AiPluginsModule from '@kestrel/ai/plugins';
 import type * as DbModule from '@kestrel/db';
 import type * as SharedModule from '@kestrel/shared';
@@ -105,23 +106,11 @@ vi.mock('@kestrel/ai/mastra-v2', () => ({
   classifyMutationRequest: vi.fn(() => null),
   isMastraMutationEnabled: vi.fn(() => false),
   MutationExtractionError: class MutationExtractionError extends Error {},
-  resolveMastraModeModel: mockResolveMastraModeModel,
-  decideMastraExecution: mockDecideMastraExecution,
-}));
-
-vi.mock('@/lib/services/chat-ai', () => ({
-  BudgetExceededError: class BudgetExceededError extends Error {
-    spent = 5;
-    max = 5;
-  },
   CanonicalEvidenceBlockedError: class CanonicalEvidenceBlockedError extends Error {},
   GuardrailUnavailableError: mockGuardrailUnavailableError,
   TripWire: mockTripWire,
-  extractUserMessageText: (message: { parts?: Array<{ type?: string; text?: string }> }) =>
-    (message.parts ?? [])
-      .filter((part) => part.type === 'text')
-      .map((part) => part.text ?? '')
-      .join('\n'),
+  resolveMastraModeModel: mockResolveMastraModeModel,
+  decideMastraExecution: mockDecideMastraExecution,
   extractMastraSymbols: (text: string) => {
     const symbols: string[] = [];
     if (/xauusd|gold/i.test(text)) symbols.push('XAUUSD');
@@ -167,7 +156,6 @@ vi.mock('@/lib/services/chat-ai', () => ({
       };
     },
   ),
-  isBudgetEnforced: () => false,
   isInjectionAttempt: (prompt: string) =>
     /ignore previous instructions|system:|developer:/i.test(prompt),
   isHighConfidenceMutationIntent: (prompt: string) => /\bbuy\b|\bsell\b/i.test(prompt),
@@ -180,14 +168,6 @@ vi.mock('@/lib/services/chat-ai', () => ({
     !/\b(?:buy|sell|enter|exit|execute|place|open|close|trade|position|portfolio|journal|alert|notify|schedule|automate)\b/i.test(
       prompt,
     ),
-  isMastraMutationEnabled: () => false,
-  classifyMutationRequest: () => null,
-  resolveMastraModeModel: () => ({
-    modelId: 'google/gemini-3.6-flash',
-    providerId: 'google',
-    bareModelId: 'gemini-3.6-flash',
-  }),
-  decideMastraExecution: mockDecideMastraExecution,
   createExecutionPlan: vi.fn(async ({ mode, symbol, modelOverride, userMessage, tenantId }) => {
     const text = userMessage.parts
       .filter((part: { type?: string; text?: string }) => part.type === 'text')
@@ -240,8 +220,150 @@ vi.mock('@/lib/services/chat-ai', () => ({
       symbolCandidate: Boolean(plannedSymbol),
     };
   }),
-  withDiagnostics: async (_userId: string, _threadId: string, fn: () => Promise<Response>) => fn(),
 }));
+
+vi.mock('@kestrel/ai', async (importOriginal) => {
+  const actual = await importOriginal<typeof AiModule>();
+  return {
+    ...actual,
+    BudgetExceededError: class BudgetExceededError extends Error {
+      spent = 5;
+      max = 5;
+    },
+    CanonicalEvidenceBlockedError: class CanonicalEvidenceBlockedError extends Error {},
+    GuardrailUnavailableError: mockGuardrailUnavailableError,
+    TripWire: mockTripWire,
+    extractUserMessageText: (message: { parts?: Array<{ type?: string; text?: string }> }) =>
+      (message.parts ?? [])
+        .filter((part) => part.type === 'text')
+        .map((part) => part.text ?? '')
+        .join('\n'),
+    extractMastraSymbols: (text: string) => {
+      const symbols: string[] = [];
+      if (/xauusd|gold/i.test(text)) symbols.push('XAUUSD');
+      if (/eurusd/i.test(text)) symbols.push('EURUSD');
+      if (/gbpusd/i.test(text)) symbols.push('GBPUSD');
+      if (/usdjpy/i.test(text)) symbols.push('USDJPY');
+      return symbols;
+    },
+    // A-01: mirror the planner's comparison scope (cap 3, overflow beyond).
+    mastraComparisonScope: (text: string) => {
+      const mentioned: string[] = [];
+      if (/xauusd|gold/i.test(text)) mentioned.push('XAUUSD');
+      if (/eurusd/i.test(text)) mentioned.push('EURUSD');
+      if (/gbpusd/i.test(text)) mentioned.push('GBPUSD');
+      if (/usdjpy/i.test(text)) mentioned.push('USDJPY');
+      if (mentioned.length < 2) return { symbols: [], overflow: false };
+      return { symbols: mentioned.slice(0, 3), overflow: mentioned.length > 3 };
+    },
+    MAX_COMPARISON_SYMBOLS: 3,
+    resolveMode: (mode: string) => (mode === 'auto' ? 'single' : mode),
+    // §1.1: the unified router classifies in one pass; mirror the plan the
+    // createExecutionPlan mock below already builds.
+    routeUnified: vi.fn(
+      async (input: {
+        userMessage: { parts: Array<{ type?: string; text?: string }> };
+        mode: string;
+      }) => {
+        const text = input.userMessage.parts.map((part) => part.text ?? '').join(' ');
+        const symbol = /xauusd|gold/i.test(text)
+          ? 'XAUUSD'
+          : /eurusd/i.test(text)
+            ? 'EURUSD'
+            : null;
+        return {
+          domain: 'technical',
+          planRequired: false,
+          symbol,
+          injection: { blocked: /ignore previous instructions|system:|developer:/i.test(text) },
+          mutationKind: null,
+          highConfidenceMutationIntent: /\bbuy\b|\bsell\b/i.test(text),
+          capabilityId: symbol ? 'symbol-research' : null,
+          route: symbol ? 'symbol-research' : 'canonical-chat',
+          modelPurpose: 'canonical-chat',
+          rationale: 'test',
+          decision: { route: symbol ? 'symbol-research' : 'canonical-chat' },
+          routing: { domain: 'technical', planRequired: false, rationale: 'test' },
+        };
+      },
+    ),
+    isBudgetEnforced: () => false,
+    isInjectionAttempt: (prompt: string) =>
+      /ignore previous instructions|system:|developer:/i.test(prompt),
+    isHighConfidenceMutationIntent: (prompt: string) => /\bbuy\b|\bsell\b/i.test(prompt),
+    // The route uses this gate to decide whether to load prior history for a
+    // report follow-up. Mirror the old inline followup/forbidden pair.
+    isMastraXauusdFollowupCandidate: (prompt: string) =>
+      /\b(?:why|explain|how|what\s+changed|based\s+on|according\s+to|invalidation|trigger|scenario|risk|report|analysis|you\s+said)\b/i.test(
+        prompt,
+      ) &&
+      !/\b(?:buy|sell|enter|exit|execute|place|open|close|trade|position|portfolio|journal|alert|notify|schedule|automate)\b/i.test(
+        prompt,
+      ),
+    isMastraMutationEnabled: () => false,
+    classifyMutationRequest: () => null,
+    resolveMastraModeModel: () => ({
+      modelId: 'google/gemini-3.6-flash',
+      providerId: 'google',
+      bareModelId: 'gemini-3.6-flash',
+    }),
+    decideMastraExecution: mockDecideMastraExecution,
+    createExecutionPlan: vi.fn(async ({ mode, symbol, modelOverride, userMessage, tenantId }) => {
+      const text = userMessage.parts
+        .filter((part: { type?: string; text?: string }) => part.type === 'text')
+        .map((part: { text?: string }) => part.text ?? '')
+        .join(' ');
+      const mentioned: string[] = [];
+      if (/xauusd|gold/i.test(text)) mentioned.push('XAUUSD');
+      if (/eurusd/i.test(text)) mentioned.push('EURUSD');
+      if (/gbpusd/i.test(text)) mentioned.push('GBPUSD');
+      if (/usdjpy/i.test(text)) mentioned.push('USDJPY');
+      const comparisonActive = mentioned.length >= 2;
+      const plannedSymbol =
+        symbol ??
+        (mentioned.length === 1
+          ? mentioned[0]!
+          : /xauusd|gold/i.test(text)
+            ? 'XAUUSD'
+            : /eurusd/i.test(text)
+              ? 'EURUSD'
+              : null);
+      return {
+        version: 1,
+        route: comparisonActive
+          ? 'multi-symbol-research'
+          : plannedSymbol
+            ? 'symbol-research'
+            : 'canonical-chat',
+        capabilityId: plannedSymbol ? 'symbol-research' : null,
+        capabilityVersion: 'test',
+        symbol: comparisonActive ? null : plannedSymbol,
+        symbols: comparisonActive ? mentioned.slice(0, 3) : [],
+        mode,
+        model: modelOverride
+          ? { providerId: 'google', bareModelId: modelOverride.split(':')[1] ?? modelOverride }
+          : null,
+        toolPolicy: { capabilityId: null, tools: [], readOnly: true, requiresConfirmation: false },
+        evidencePolicy: {
+          required: Boolean(plannedSymbol),
+          externalData: Boolean(plannedSymbol),
+          contentTrust: plannedSymbol ? 'untrusted' : null,
+        },
+        memoryPolicy: { mode: 'native', required: true, scope: 'user-thread' },
+        guardrail: { mode: 'strict', strategy: 'block' },
+        maxSteps: 6,
+        maxDurationMs: 55_000,
+        streaming: !plannedSymbol && mode !== 'full',
+        mutationRequested: false,
+        tenantId: tenantId ?? null,
+        reportFollowup: false,
+        symbolCandidate: Boolean(plannedSymbol),
+      };
+    }),
+    withDiagnostics: async (_userId: string, _threadId: string, fn: () => Promise<Response>) =>
+      fn(),
+  };
+});
 
 vi.mock('@/lib/services/providers', () => ({
   resolveProviderMode: () => 'managed',

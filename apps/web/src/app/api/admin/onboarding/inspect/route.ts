@@ -22,7 +22,7 @@ import { z } from 'zod';
 
 import { withAdminAuth } from '@/lib/auth/admin-auth';
 import { parseSearchParams } from '@/lib/http/api';
-import { getUserWithSettings, listUserSymbols } from '@/lib/services/settings';
+import { getUserWithSettings, listUserSymbols } from '@kestrel/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

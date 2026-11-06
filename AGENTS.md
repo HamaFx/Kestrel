@@ -31,7 +31,7 @@ Self-hosted multi-user BYOK AI trading research platform (Next.js 16, React 19, 
   - Every tenant read/write in RSCs, Server Actions, or Worker jobs MUST run inside `withUserTenant(userId, ...)` (or `withUserTenantRO` for read-only callbacks). Cross-tenant system jobs MUST use `withAdminDb(...)`.
   - Applications (`apps/web`, `apps/worker`) import `getDb` and the scope wrappers from `@kestrel/db`. `@kestrel/ai` keeps its DI-aware `getDb()` internal; it is not re-exported.
 - **Boundary Honesty:**
-  - `apps/web/src/app/api/**/*.ts` are controllers: they call `@/lib/services/*` and never import `@kestrel/ai`, `@kestrel/data`, or `@kestrel/db` directly (Oxlint enforces `@kestrel/shared` as the only exception).
+  - `apps/web/src/app/api/**/*.ts` are controllers: they may call canonical `@kestrel/ai`, `@kestrel/data`, and `@kestrel/db` query functions directly, but must not import raw Drizzle schema/client internals (`@kestrel/db/schema`, `@kestrel/db/client`, `schema`, or `getDb`). Prefer `@/lib/services/*` when the route needs web-specific orchestration. Oxlint enforces the boundary.
   - `src/lib/services/*` must contain real domain orchestration or queries, never a 1-line re-export of a package. Pass-through shims and `services/db.ts` escape hatches are forbidden.
 - **Protected Guardrails (Never Game or Weaken):**
   - Never modify `scripts/check-*.mjs`, `scripts/maintainability-baseline.json`, `knip.json`, or `packages/config/eslint/index.js` to silence a failure. Fix the underlying code.

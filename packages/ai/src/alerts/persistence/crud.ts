@@ -21,13 +21,15 @@ import { createHash } from 'node:crypto';
 
 import { requireTenantIdForUser, schema } from '@kestrel/db';
 import { AlertChannelSchema, AlertRuleSchema, type Alert } from '@kestrel/shared';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 
 import { getDb } from '../../runtime/db';
-import { plog } from './log';
 import { rowToAlert } from './rows';
 import { isInSnooze } from './snooze';
 import type { CreateAlertInput, UpdateAlertInput } from './types';
+
+export const plog = createCategorizedLogger('ai', { component: 'alerts-persistence' });
 
 export async function listAlerts(
   userId: string,

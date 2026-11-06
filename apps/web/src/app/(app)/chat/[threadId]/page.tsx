@@ -33,7 +33,7 @@ import { STRATEGIST_DESKS, type StrategistDeskId } from '@/lib/kestrel-strategis
 // `useChat` experience.
 
 import { getThread, listMessages, listThreads } from '@/lib/services/chat';
-import { getUserWithSettings } from '@/lib/services/settings';
+import { getUserWithSettings } from '@kestrel/db';
 
 export const dynamic = 'force-dynamic';
 

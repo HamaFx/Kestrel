@@ -20,7 +20,7 @@
 
 import type { MastraCompositeStore } from '@mastra/core/storage';
 
-import { mlog } from './log';
+import { mlog } from './connection';
 import { getSharedMastraStorage } from './shared';
 import type { MastraStorageResult } from './types';
 

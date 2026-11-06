@@ -21,7 +21,11 @@ import { RequestContext } from '@mastra/core/request-context';
 import type { z } from 'zod';
 
 import { reserveTurnBudget } from '@ai/budget';
-import { DEFAULT_MAX_DAILY_USD, DEFAULT_TURN_ESTIMATE_USD, estimateCostUsd } from '@ai/budget/cost';
+import {
+  DEFAULT_MAX_DAILY_USD,
+  DEFAULT_TURN_ESTIMATE_USD,
+  estimateCostUsd,
+} from '@ai/budget/pricing-catalog';
 import type { ResolveModelEnv } from '@ai/models/env-factory';
 import { resolveMastraExecutionModel, type ChatModelResolution } from '@ai/models/model';
 import { createGenerationLedger, type GenerationLedger } from '@ai/persistence/generation-ledger';

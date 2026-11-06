@@ -30,20 +30,23 @@
 // The insert SQL lives in `executeMutationWrite` exactly once; the former
 // copy-pasted switch in each executor was the source of their drift.
 
-import { createAlert, createEntry } from '@kestrel/ai';
-import { requireTenantIdForUser, schema, withUserTenant, type DbClient } from '@kestrel/db';
-import { eq } from 'drizzle-orm';
-import type { z } from 'zod';
-
+import { createAlert, createEntry, syncIntermarketResonance } from '@kestrel/ai';
 import {
   assertRegisteredSystemAction,
   assertSystemActionAuthorized,
-  executeMutationOnce,
-  syncIntermarketResonance,
   type MutationExecutor,
   type MutationExecutorResult,
   type MutationKindSchema,
-} from '@/lib/services/chat-ai';
+} from '@kestrel/ai/mastra-v2';
+import {
+  executeMutationOnce,
+  requireTenantIdForUser,
+  schema,
+  withUserTenant,
+  type DbClient,
+} from '@kestrel/db';
+import { eq } from 'drizzle-orm';
+import type { z } from 'zod';
 
 type MutationKind = z.infer<typeof MutationKindSchema>;
 type MutationInput = Parameters<MutationExecutor>[0];

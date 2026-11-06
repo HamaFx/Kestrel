@@ -46,7 +46,7 @@ import { tool, type ModelMessage, type Tool } from 'ai';
 import { and, desc, eq } from 'drizzle-orm';
 import type { z } from 'zod';
 
-import { estimateCostUsd } from '../budget/cost';
+import { estimateCostUsd } from '../budget/pricing-catalog';
 import { runMastraText } from '../mastra-v2/shared/text-runner';
 import { resolveModel, resolveVisionModel } from '../models/model';
 import { getDb } from '../runtime/db';

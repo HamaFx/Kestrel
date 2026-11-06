@@ -32,14 +32,11 @@
 
 import type { ProviderId } from '@kestrel/shared';
 import { PROVIDER_IDS } from '@kestrel/shared/encryption';
+import { getUserWithSettings, updateUserSettingsField } from '@kestrel/db';
 import { z } from 'zod';
 
 import { errorResponse, parseJsonBody, withAuth } from '@/lib/http/api';
-import {
-  getUserWithSettings,
-  updateUserSettingsField,
-  validateAndSaveUserModel,
-} from '@/lib/services/settings';
+import { validateAndSaveUserModel } from '@/lib/services/settings';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

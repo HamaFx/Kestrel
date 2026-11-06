@@ -21,7 +21,7 @@ import { z } from 'zod';
 import { withAdminAuth } from '@/lib/auth/admin-auth';
 import { jsonApiError, parseJsonBody } from '@/lib/http/api';
 import { getUserById, recordAdminAudit } from '@/lib/services/admin';
-import { resetOnboarding } from '@/lib/services/settings';
+import { resetOnboarding } from '@kestrel/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

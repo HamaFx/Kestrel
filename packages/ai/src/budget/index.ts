@@ -34,15 +34,14 @@
 import { metrics, readFeatureFlag } from '@kestrel/shared';
 import { createCategorizedLogger } from '@kestrel/shared/logger';
 
+import { applyBudgetDelta, BudgetExceededError } from './budget-spend';
+import { DEFAULT_TURN_ESTIMATE_USD } from './pricing-catalog';
 import {
-  applyBudgetDelta,
-  BudgetExceededError,
-  DEFAULT_TURN_ESTIMATE_USD,
   reconcileBudgetReservation,
   releaseBudgetReservation,
   tryReserveBudget,
   type BudgetReservation,
-} from './cost';
+} from './budget-reservations';
 
 const alog = createCategorizedLogger('ai', { component: 'budget' });
 

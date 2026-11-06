@@ -20,7 +20,9 @@
 // enabled lazily when `REDIS_URL` is set and `ioredis` is importable; a missing
 // package degrades the cache to the in-process LRU only.
 
-import { pclog } from './log';
+import { createCategorizedLogger } from '@kestrel/shared/logger';
+
+export const pclog = createCategorizedLogger('ai', { component: 'mastra:packet-cache' });
 
 /** Redis mirror handle — populated lazily when REDIS_URL is set. */
 export type RedisLike = {
