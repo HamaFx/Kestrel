@@ -16,90 +16,45 @@
 
 // Saved-strategy library routes.
 
-import type { PluginApiRouteHandler } from '@kestrel/plugin-sdk';
+import { PluginRouteApiError, type PluginApiRouteHandler } from '@kestrel/plugin-sdk';
 
+import { SaveStrategyInputSchema } from '../../schemas';
 import {
-  deleteBacktestStrategy,
-  getBacktestStrategy,
-  listBacktestStrategies,
-  upsertBacktestStrategy,
-} from '../../db/queries';
-import { SaveStrategyInputSchema, slugifyName } from '../../schemas';
-import { ApiError, byMethod, json, parseBody, queryNumber, wrap } from './shared';
+  deleteStrategyForUser,
+  getStrategyForUser,
+  listStrategyViews,
+  saveStrategyForUser,
+  strategyDetailView,
+  strategySummaryView,
+} from '../../services/strategies';
+import { byMethod, json, parseBody, queryNumber, wrap } from './shared';
 
 // ── Strategies ───────────────────────────────────────────────────────────
 
 const listStrategies = wrap(async (ctx) => {
   const limit = Math.min(50, Math.max(1, queryNumber(ctx.request, 'limit', 50)));
-  const rows = await listBacktestStrategies(ctx.userId, { limit });
-  return json({
-    strategies: rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      slug: row.slug,
-      description: row.description,
-      tags: row.tags,
-      favorite: row.favorite,
-      updatedAt: row.updatedAt.toISOString(),
-    })),
-  });
+  return json({ strategies: await listStrategyViews(ctx.userId, { limit }) });
 });
 
 const saveStrategy = wrap(
   async (ctx) => {
     const input = await parseBody(ctx.request, SaveStrategyInputSchema);
-    const slug = input.slug ?? slugifyName(input.name);
-    if (!slug) throw new ApiError(400, 'Could not derive a slug from the name.', 'INVALID_SLUG');
-    const row = await upsertBacktestStrategy({
-      userId: ctx.userId,
-      name: input.name,
-      slug,
-      description: input.description ?? '',
-      source: input.source,
-      params: input.params ?? {},
-      tags: input.tags ?? [],
-      ...(input.favorite !== undefined ? { favorite: input.favorite } : {}),
-    });
-    return json({
-      strategy: {
-        id: row.id,
-        name: row.name,
-        slug: row.slug,
-        description: row.description,
-        tags: row.tags,
-        favorite: row.favorite,
-        updatedAt: row.updatedAt.toISOString(),
-      },
-    });
+    const row = await saveStrategyForUser(ctx.userId, input);
+    return json({ strategy: strategySummaryView(row) });
   },
   { userErrorStatus: 400 },
 );
 
 const getStrategy = wrap(async (ctx) => {
-  const strategyId = ctx.params['strategyId'];
-  if (!strategyId) throw new ApiError(400, 'A strategy id is required.', 'MISSING_STRATEGY_ID');
-  const row = await getBacktestStrategy(ctx.userId, strategyId);
-  if (!row) throw new ApiError(404, 'Strategy not found.', 'STRATEGY_NOT_FOUND');
-  return json({
-    strategy: {
-      id: row.id,
-      name: row.name,
-      slug: row.slug,
-      description: row.description,
-      source: row.source,
-      params: row.params,
-      tags: row.tags,
-      favorite: row.favorite,
-      updatedAt: row.updatedAt.toISOString(),
-    },
-  });
+  const row = await getStrategyForUser(ctx.userId, ctx.params['strategyId'] ?? '');
+  return json({ strategy: strategyDetailView(row) });
 });
 
 const removeStrategy = wrap(async (ctx) => {
-  const strategyId = ctx.params['strategyId'];
-  if (!strategyId) throw new ApiError(400, 'A strategy id is required.', 'MISSING_STRATEGY_ID');
-  const deleted = await deleteBacktestStrategy(ctx.userId, strategyId);
-  if (!deleted) throw new ApiError(404, 'Strategy not found.', 'STRATEGY_NOT_FOUND');
+  const deleted = await deleteStrategyForUser(ctx.userId, ctx.params['strategyId'] ?? '');
+  if (!deleted) {
+    throw new PluginRouteApiError(404, 'Strategy not found.', 'STRATEGY_NOT_FOUND');
+  }
   return json({ ok: true });
 });
 

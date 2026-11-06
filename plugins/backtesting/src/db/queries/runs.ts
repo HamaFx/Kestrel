@@ -131,19 +131,6 @@ export async function persistBacktestRun(input: PersistBacktestRunInput): Promis
   return row;
 }
 
-export async function listBacktestRuns(
-  userId: string,
-  opts: ListRunsOptions = {},
-): Promise<BacktestRunRow[]> {
-  const db = getDb();
-  return db
-    .select()
-    .from(backtestRuns)
-    .where(and(...runFilters(userId, opts)))
-    .orderBy(desc(backtestRuns.createdAt))
-    .limit(clampLimit(opts.limit, 20));
-}
-
 /**
  * List run summaries without transferring the multi-megabyte JSONB columns
  * (`trades`, `equity_curve`, `source`, `logs`, `rejected_signals`).

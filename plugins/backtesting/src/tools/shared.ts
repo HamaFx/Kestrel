@@ -16,20 +16,7 @@
 
 // Shared mapping helpers for the Backtesting Lab agent tools.
 
-import type { BacktestStrategyRow } from '../db/tables';
 import type { RunResult } from '../schemas';
-
-export function strategySummary(row: BacktestStrategyRow) {
-  return {
-    id: row.id,
-    name: row.name,
-    slug: row.slug,
-    description: row.description,
-    tags: row.tags,
-    favorite: row.favorite,
-    updatedAt: row.updatedAt.toISOString(),
-  };
-}
 
 export function compactRunForModel(output: RunResult): Record<string, unknown> {
   const m = output.metrics;

@@ -41,6 +41,7 @@ import { resolvePaperAccount } from '../services/accounts';
 import {
   accountModeForPosition,
   closePositionForUser,
+  formatCloseOutcomeMessage,
   getPositionView,
   listPositionViews,
   modifyPositionForUser,
@@ -114,12 +115,7 @@ export const closePositionTool: PluginToolRegistration<
           err: err instanceof Error ? err.message : String(err),
         }),
     });
-    const message =
-      result.outcome === 'closed'
-        ? `Closed ${result.position.initialQuantity} ${result.position.symbol} at ${result.position.closePrice}.`
-        : result.outcome === 'partial'
-          ? `Partially closed ${result.fill?.quantity ?? 0} ${result.position.symbol}.`
-          : `No fill was placed: ${result.position.symbol} was already closed or reduced by a concurrent evaluation.`;
+    const message = formatCloseOutcomeMessage(result, { includePrice: true });
     return {
       ok: result.outcome !== 'not_closed',
       message,

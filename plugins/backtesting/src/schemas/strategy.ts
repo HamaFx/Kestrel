@@ -33,6 +33,8 @@ export const SaveStrategyInputSchema = z.object({
   favorite: z.boolean().optional(),
 });
 
+export type SaveStrategyInput = z.infer<typeof SaveStrategyInputSchema>;
+
 export const StrategySummarySchema = z.object({
   id: z.string(),
   name: z.string(),

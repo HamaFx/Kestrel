@@ -28,64 +28,15 @@
 // Migration: packages/db/drizzle/0108_backtesting_plugin_tables.sql
 //            packages/db/drizzle/0121_money_columns_to_numeric.sql
 
-import { schema } from '@kestrel/db';
-import { sql } from 'drizzle-orm';
-import {
-  boolean,
-  index,
-  integer,
-  jsonb,
-  numeric,
-  pgPolicy,
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-} from 'drizzle-orm/pg-core';
+import { pluginBaseColumns, pluginMoneyColumn, pluginTenantIsolation } from '@kestrel/db';
+import { boolean, index, integer, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 import type { BacktestMetrics, BacktestTrade, EquityPoint, RejectedSignal } from '../engine/types';
-
-const { organization, users } = schema;
-
-function tenantColumn() {
-  return text('tenant_id')
-    .notNull()
-    .default(sql`current_setting('app.current_tenant', true)`)
-    .references(() => organization.id, { onDelete: 'cascade' });
-}
-
-function tenantIsolation() {
-  return pgPolicy('tenant_isolation', {
-    for: 'all',
-    using: sql`tenant_id = current_setting('app.current_tenant', true)`,
-    withCheck: sql`tenant_id = current_setting('app.current_tenant', true)`,
-  });
-}
-
-/** Exact money / price / ratio column. See the 0121 migration header. */
-function moneyColumn(name: string) {
-  return numeric(name, { precision: 20, scale: 8, mode: 'number' });
-}
-
-function baseColumns() {
-  return {
-    id: uuid('id').primaryKey().defaultRandom(),
-    tenantId: tenantColumn(),
-    userId: text('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .defaultNow()
-      .notNull()
-      .$onUpdate(() => new Date()),
-  };
-}
 
 export const backtestRuns = pgTable(
   'plg_backtesting_runs',
   {
-    ...baseColumns(),
+    ...pluginBaseColumns(),
     /** Human label, e.g. "London killzone sweep". */
     name: text('name').notNull(),
     symbol: text('symbol').notNull(),
@@ -98,8 +49,8 @@ export const backtestRuns = pgTable(
     bars: integer('bars').notNull().default(0),
     fromTs: timestamp('from_ts', { withTimezone: true }),
     toTs: timestamp('to_ts', { withTimezone: true }),
-    initialBalance: moneyColumn('initial_balance').notNull(),
-    finalEquity: moneyColumn('final_equity').notNull(),
+    initialBalance: pluginMoneyColumn('initial_balance').notNull(),
+    finalEquity: pluginMoneyColumn('final_equity').notNull(),
     metrics: jsonb('metrics').$type<BacktestMetrics>().notNull(),
     equityCurve: jsonb('equity_curve').$type<EquityPoint[]>().notNull(),
     trades: jsonb('trades').$type<BacktestTrade[]>().notNull(),
@@ -112,14 +63,14 @@ export const backtestRuns = pgTable(
   (t) => [
     index('plg_backtesting_runs_tenant_user_idx').on(t.tenantId, t.userId),
     index('plg_backtesting_runs_user_created_idx').on(t.userId, t.createdAt),
-    tenantIsolation(),
+    pluginTenantIsolation(),
   ],
 ).enableRLS();
 
 export const backtestStrategies = pgTable(
   'plg_backtesting_strategies',
   {
-    ...baseColumns(),
+    ...pluginBaseColumns(),
     name: text('name').notNull(),
     /** Stable per-user slug used by tools and the UI. */
     slug: text('slug').notNull(),
@@ -132,14 +83,14 @@ export const backtestStrategies = pgTable(
   (t) => [
     index('plg_backtesting_strategies_tenant_user_idx').on(t.tenantId, t.userId),
     index('plg_backtesting_strategies_user_slug_idx').on(t.userId, t.slug),
-    tenantIsolation(),
+    pluginTenantIsolation(),
   ],
 ).enableRLS();
 
 export const backtestSweeps = pgTable(
   'plg_backtesting_sweeps',
   {
-    ...baseColumns(),
+    ...pluginBaseColumns(),
     name: text('name').notNull(),
     strategyId: text('strategy_id'),
     symbol: text('symbol').notNull(),
@@ -152,8 +103,8 @@ export const backtestSweeps = pgTable(
       .default([]),
     objective: text('objective').notNull(),
     count: integer('count').notNull().default(1000),
-    initialBalance: moneyColumn('initial_balance').notNull().default(10_000),
-    riskPct: moneyColumn('risk_pct').notNull().default(1),
+    initialBalance: pluginMoneyColumn('initial_balance').notNull().default(10_000),
+    riskPct: pluginMoneyColumn('risk_pct').notNull().default(1),
     minTrades: integer('min_trades').notNull().default(5),
     persistRuns: boolean('persist_runs').notNull().default(false),
     status: text('status').notNull().default('queued'),
@@ -161,14 +112,14 @@ export const backtestSweeps = pgTable(
     completed: integer('completed').notNull().default(0),
     bestParams: jsonb('best_params').$type<Record<string, unknown> | null>(),
     bestMetrics: jsonb('best_metrics').$type<Record<string, unknown> | null>(),
-    bestScore: moneyColumn('best_score'),
+    bestScore: pluginMoneyColumn('best_score'),
     results: jsonb('results').$type<Array<Record<string, unknown>>>().notNull().default([]),
     error: text('error'),
   },
   (t) => [
     index('plg_backtesting_sweeps_tenant_user_idx').on(t.tenantId, t.userId),
     index('plg_backtesting_sweeps_user_created_idx').on(t.userId, t.createdAt),
-    tenantIsolation(),
+    pluginTenantIsolation(),
   ],
 ).enableRLS();
 

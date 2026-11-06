@@ -109,6 +109,26 @@ export async function listAccountViews(
   return accounts.map((account) => accountView(account, grouped.get(account.id) ?? []));
 }
 
+export interface AccountsOverview {
+  accounts: AccountView[];
+  totalEquity: number;
+  totalUnrealizedPnl: number;
+}
+
+/** Account list plus the totals shown by the page header and the agent tool. */
+export async function accountsOverviewForUser(
+  userId: string,
+  settings: PaperSettings,
+): Promise<AccountsOverview> {
+  const accounts = await listAccountViews(userId, settings);
+  return {
+    accounts,
+    totalEquity: Math.round(accounts.reduce((sum, account) => sum + account.equity, 0) * 100) / 100,
+    totalUnrealizedPnl:
+      Math.round(accounts.reduce((sum, account) => sum + account.unrealizedPnl, 0) * 100) / 100,
+  };
+}
+
 export async function accountViewById(
   userId: string,
   account: PaperAccountRow,

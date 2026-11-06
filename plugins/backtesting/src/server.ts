@@ -22,7 +22,6 @@
 import { z } from 'zod';
 
 import { RunBacktestInputSchema } from './schemas';
-import { normaliseSettings } from './settings';
 
 export {
   deleteRun,
@@ -63,8 +62,3 @@ export const BacktestQueueJobSchema = z.object({
 });
 
 export type BacktestQueueJob = z.infer<typeof BacktestQueueJobSchema>;
-
-/** Helper for callers that only have a raw settings record. */
-export function backtestSettings(raw: Readonly<Record<string, unknown>>) {
-  return normaliseSettings(raw);
-}

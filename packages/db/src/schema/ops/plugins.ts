@@ -26,16 +26,27 @@ import {
   check,
   index,
   jsonb,
+  numeric,
   pgPolicy,
   pgTable,
   primaryKey,
   text,
   timestamp,
+  uuid,
 } from 'drizzle-orm/pg-core';
 
 import { organization, users } from '../core/auth';
 
-function tenantIsolation() {
+/** Tenant column shared by every plugin-owned table. */
+export function pluginTenantColumn() {
+  return text('tenant_id')
+    .notNull()
+    .default(sql`current_setting('app.current_tenant', true)`)
+    .references(() => organization.id, { onDelete: 'cascade' });
+}
+
+/** RLS policy shared by every plugin-owned table. */
+export function pluginTenantIsolation() {
   return pgPolicy('tenant_isolation', {
     for: 'all',
     using: sql`tenant_id = current_setting('app.current_tenant', true)`,
@@ -43,11 +54,25 @@ function tenantIsolation() {
   });
 }
 
-function tenantColumn() {
-  return text('tenant_id')
-    .notNull()
-    .default(sql`current_setting('app.current_tenant', true)`)
-    .references(() => organization.id, { onDelete: 'cascade' });
+/** Exact money / price / ratio column. See the 0121 migration header. */
+export function pluginMoneyColumn(name: string) {
+  return numeric(name, { precision: 20, scale: 8, mode: 'number' });
+}
+
+/** Standard plugin row identity, tenant scope, and timestamps. */
+export function pluginBaseColumns() {
+  return {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: pluginTenantColumn(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  };
 }
 
 // ── Per-user installation state ──────────────────────────────────────────
@@ -58,7 +83,7 @@ export const userInstalledPlugins = pgTable(
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    tenantId: tenantColumn(),
+    tenantId: pluginTenantColumn(),
     pluginId: text('plugin_id').notNull(),
     /** Disabled keeps settings/data but hides every capability. */
     enabled: boolean('enabled').notNull().default(true),
@@ -82,7 +107,7 @@ export const userInstalledPlugins = pgTable(
       'user_installed_plugins_plugin_id_format',
       sql`${t.pluginId} ~ '^[a-z][a-z0-9]*(-[a-z0-9]+)*$'`,
     ),
-    tenantIsolation(),
+    pluginTenantIsolation(),
   ],
 ).enableRLS();
 
@@ -94,7 +119,7 @@ export type UserInstalledPluginInsert = typeof userInstalledPlugins.$inferInsert
 export const pluginStorage = pgTable(
   'plugin_storage',
   {
-    tenantId: tenantColumn(),
+    tenantId: pluginTenantColumn(),
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
@@ -117,7 +142,7 @@ export const pluginStorage = pgTable(
     check('plugin_storage_plugin_id_format', sql`${t.pluginId} ~ '^[a-z][a-z0-9]*(-[a-z0-9]+)*$'`),
     check('plugin_storage_collection_length', sql`char_length(${t.collection}) BETWEEN 1 AND 64`),
     check('plugin_storage_key_length', sql`char_length(${t.key}) BETWEEN 1 AND 128`),
-    tenantIsolation(),
+    pluginTenantIsolation(),
   ],
 ).enableRLS();
 

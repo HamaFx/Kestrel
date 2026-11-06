@@ -51,3 +51,14 @@ export {
   type PluginFetcher,
 } from './fetcher';
 export { PluginUiRegistry, pluginUiRegistry } from './registry';
+export {
+  fmtDate,
+  fmtMoney,
+  fmtMoneyPlain,
+  fmtNumber,
+  fmtPct,
+  fmtPrice,
+  fmtQty,
+  fmtR,
+  toneClass,
+} from './format';

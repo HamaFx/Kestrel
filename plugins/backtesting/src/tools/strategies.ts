@@ -20,12 +20,6 @@ import type { PluginToolRegistration } from '@kestrel/plugin-sdk';
 import type { z } from 'zod';
 
 import {
-  deleteBacktestStrategy,
-  getBacktestStrategy,
-  listBacktestStrategies,
-  upsertBacktestStrategy,
-} from '../db/queries';
-import {
   DeleteStrategyInputSchema,
   ListStrategiesInputSchema,
   ListStrategiesOutputSchema,
@@ -34,9 +28,15 @@ import {
   ReadStrategyOutputSchema,
   SaveStrategyInputSchema,
   SaveStrategyOutputSchema,
-  slugifyName,
 } from '../schemas';
-import { strategySummary } from './shared';
+import {
+  deleteStrategyForUser,
+  getStrategyForUser,
+  listStrategyViews,
+  saveStrategyForUser,
+  strategyDetailView,
+  strategySummaryView,
+} from '../services/strategies';
 
 const saveStrategyTool: PluginToolRegistration<
   z.infer<typeof SaveStrategyInputSchema>,
@@ -51,21 +51,10 @@ const saveStrategyTool: PluginToolRegistration<
   requiresConfirmation: false,
   attachTo: ['canonical-chat', 'technical'],
   execute: async (input, ctx) => {
-    const slug = input.slug ?? slugifyName(input.name);
-    if (!slug) throw new Error('Could not derive a slug from the strategy name.');
-    const row = await upsertBacktestStrategy({
-      userId: ctx.userId,
-      name: input.name,
-      slug,
-      description: input.description ?? '',
-      source: input.source,
-      params: input.params ?? {},
-      tags: input.tags ?? [],
-      ...(input.favorite !== undefined ? { favorite: input.favorite } : {}),
-    });
+    const row = await saveStrategyForUser(ctx.userId, input);
     return {
       ok: true,
-      strategy: strategySummary(row),
+      strategy: strategySummaryView(row),
       message: `Saved strategy "${row.name}" as ${row.slug}.`,
     };
   },
@@ -83,8 +72,7 @@ const listStrategiesTool: PluginToolRegistration<
   access: 'read-only',
   attachTo: ['canonical-chat', 'technical'],
   execute: async (input, ctx) => {
-    const rows = await listBacktestStrategies(ctx.userId, { limit: input.limit });
-    return { strategies: rows.map(strategySummary) };
+    return { strategies: await listStrategyViews(ctx.userId, { limit: input.limit }) };
   },
 };
 
@@ -100,16 +88,16 @@ const readStrategyTool: PluginToolRegistration<
   access: 'read-only',
   attachTo: ['canonical-chat', 'technical'],
   execute: async (input, ctx) => {
-    const row = await getBacktestStrategy(ctx.userId, input.strategyId);
-    if (!row) throw new Error(`Saved strategy "${input.strategyId}" was not found.`);
+    const row = await getStrategyForUser(ctx.userId, input.strategyId);
+    const view = strategyDetailView(row);
     return {
-      id: row.id,
-      name: row.name,
-      slug: row.slug,
-      description: row.description,
-      source: row.source,
-      params: row.params,
-      tags: row.tags,
+      id: view.id,
+      name: view.name,
+      slug: view.slug,
+      description: view.description,
+      source: view.source,
+      params: view.params,
+      tags: view.tags,
     };
   },
 };
@@ -126,7 +114,7 @@ const deleteStrategyTool: PluginToolRegistration<
   requiresConfirmation: false,
   attachTo: ['canonical-chat'],
   execute: async (input, ctx) => {
-    const deleted = await deleteBacktestStrategy(ctx.userId, input.strategyId);
+    const deleted = await deleteStrategyForUser(ctx.userId, input.strategyId);
     return {
       ok: deleted,
       message: deleted ? 'Strategy deleted.' : 'No such strategy was found.',

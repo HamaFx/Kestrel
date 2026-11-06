@@ -24,7 +24,7 @@
 
 import type { z } from 'zod';
 
-import type { PluginApiRouteContext, PluginApiRouteHandler } from './types';
+import type { PluginApiRouteContext, PluginApiRouteHandler, PluginExecutionContext } from './types';
 
 /**
  * Thrown by plugin route bodies. The plugin's `wrap()` maps it to
@@ -87,4 +87,79 @@ export async function parsePluginBody<T extends z.ZodType>(
 /** The request's query string as `URLSearchParams`. */
 export function pluginQuery(request: Request): URLSearchParams {
   return new URL(request.url).searchParams;
+}
+
+/** Project a route context onto the plugin execution context. */
+export function pluginExecCtx(ctx: PluginApiRouteContext): PluginExecutionContext {
+  return {
+    pluginId: ctx.pluginId,
+    userId: ctx.userId,
+    tenantId: ctx.tenantId,
+    settings: ctx.settings,
+    storage: ctx.storage,
+    log: ctx.log,
+  };
+}
+
+export interface PluginRouteHelperOptions {
+  /** Log message used for unexpected failures. */
+  logLabel: string;
+  /** Stable error code for unexpected failures. */
+  failureCode: string;
+  /** User-safe message for 5xx failures. */
+  failureMessage: string;
+}
+
+/**
+ * Build the per-plugin route surface: JSON helpers, method dispatch, body
+ * parsing, and one error mapping. Plugins supply only their error code and
+ * user-safe message.
+ */
+export function createPluginRouteHelpers(options: PluginRouteHelperOptions) {
+  function errorResponse(err: unknown, ctx: PluginApiRouteContext, status = 500): Response {
+    if (err instanceof PluginRouteApiError) {
+      return pluginJson({ error: { code: err.code, message: err.message } }, err.status);
+    }
+    ctx.log.error(options.logLabel, {
+      err: err instanceof Error ? err.message : String(err),
+    });
+    return pluginJson(
+      {
+        error: {
+          code: options.failureCode,
+          message:
+            status >= 500
+              ? options.failureMessage
+              : err instanceof Error
+                ? err.message
+                : String(err),
+        },
+      },
+      status,
+    );
+  }
+
+  function wrap(
+    handler: (ctx: PluginApiRouteContext) => Promise<Response>,
+    wrapOptions: number | { userErrorStatus?: number } = {},
+  ): PluginApiRouteHandler {
+    const status =
+      typeof wrapOptions === 'number' ? wrapOptions : (wrapOptions.userErrorStatus ?? 500);
+    return async (ctx) => {
+      try {
+        return await handler(ctx);
+      } catch (err) {
+        return errorResponse(err, ctx, status);
+      }
+    };
+  }
+
+  return {
+    ApiError: PluginRouteApiError,
+    json: pluginJson,
+    byMethod: pluginByMethod,
+    parseBody: parsePluginBody,
+    errorResponse,
+    wrap,
+  };
 }

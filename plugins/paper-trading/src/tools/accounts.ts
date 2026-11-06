@@ -35,7 +35,11 @@ import {
   UpdateAccountInputSchema,
   UpdateAccountOutputSchema,
 } from '../schemas';
-import { listAccountViews, resetAccountForUser, updateAccountForUser } from '../services/accounts';
+import {
+  accountsOverviewForUser,
+  resetAccountForUser,
+  updateAccountForUser,
+} from '../services/accounts';
 import { normaliseSettings } from '../settings';
 
 export const getAccountsTool: PluginToolRegistration<
@@ -51,14 +55,7 @@ export const getAccountsTool: PluginToolRegistration<
   attachTo: ['canonical-chat', 'technical', 'fundamental', 'risk', 'sentiment'],
   execute: async (_input, ctx) => {
     const settings = normaliseSettings(ctx.settings);
-    const accounts = await listAccountViews(ctx.userId, settings);
-    return {
-      accounts,
-      totalEquity:
-        Math.round(accounts.reduce((sum, account) => sum + account.equity, 0) * 100) / 100,
-      totalUnrealizedPnl:
-        Math.round(accounts.reduce((sum, account) => sum + account.unrealizedPnl, 0) * 100) / 100,
-    };
+    return accountsOverviewForUser(ctx.userId, settings);
   },
 };
 

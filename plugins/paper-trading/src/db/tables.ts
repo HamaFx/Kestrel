@@ -29,71 +29,31 @@
 // Migration: packages/db/drizzle/0109_paper_trading_plugin_tables.sql
 //            packages/db/drizzle/0121_money_columns_to_numeric.sql
 
-import { schema } from '@kestrel/db';
-import { sql } from 'drizzle-orm';
+import { pluginBaseColumns, pluginMoneyColumn, pluginTenantIsolation } from '@kestrel/db';
 import {
   boolean,
   index,
   integer,
   jsonb,
-  numeric,
-  pgPolicy,
   pgTable,
   text,
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
 
-const { organization, users } = schema;
-
-function tenantColumn() {
-  return text('tenant_id')
-    .notNull()
-    .default(sql`current_setting('app.current_tenant', true)`)
-    .references(() => organization.id, { onDelete: 'cascade' });
-}
-
-function tenantIsolation() {
-  return pgPolicy('tenant_isolation', {
-    for: 'all',
-    using: sql`tenant_id = current_setting('app.current_tenant', true)`,
-    withCheck: sql`tenant_id = current_setting('app.current_tenant', true)`,
-  });
-}
-
-/** Exact money / price / size column. See the 0121 migration header. */
-function moneyColumn(name: string) {
-  return numeric(name, { precision: 20, scale: 8, mode: 'number' });
-}
-
-function baseColumns() {
-  return {
-    id: uuid('id').primaryKey().defaultRandom(),
-    tenantId: tenantColumn(),
-    userId: text('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .defaultNow()
-      .notNull()
-      .$onUpdate(() => new Date()),
-  };
-}
-
 export const paperAccounts = pgTable(
   'plg_paper_trading_accounts',
   {
-    ...baseColumns(),
+    ...pluginBaseColumns(),
     name: text('name').notNull(),
     /** 'confirm' (personal) | 'autonomous_sandbox' (agent). */
     mode: text('mode').notNull(),
     currency: text('currency').notNull().default('USD'),
-    initialBalance: moneyColumn('initial_balance').notNull(),
+    initialBalance: pluginMoneyColumn('initial_balance').notNull(),
     /** Realised cash. Equity is derived from balance + open positions. */
-    balance: moneyColumn('balance').notNull(),
-    leverage: moneyColumn('leverage').notNull().default(30),
-    riskPerTradePct: moneyColumn('risk_per_trade_pct').notNull().default(1),
+    balance: pluginMoneyColumn('balance').notNull(),
+    leverage: pluginMoneyColumn('leverage').notNull().default(30),
+    riskPerTradePct: pluginMoneyColumn('risk_per_trade_pct').notNull().default(1),
     /** 'active' | 'archived'. */
     status: text('status').notNull().default('active'),
     seeded: boolean('seeded').notNull().default(false),
@@ -103,14 +63,14 @@ export const paperAccounts = pgTable(
     // One account per (user, mode), enforced by the unique constraint created
     // in 0109. plg_paper_trading_accounts_user_mode_idx duplicated that key's
     // leading columns and was dropped in 0122 (audit 2026-10-31 Phase 4).
-    tenantIsolation(),
+    pluginTenantIsolation(),
   ],
 ).enableRLS();
 
 export const paperPositions = pgTable(
   'plg_paper_trading_positions',
   {
-    ...baseColumns(),
+    ...pluginBaseColumns(),
     accountId: uuid('account_id')
       .notNull()
       .references(() => paperAccounts.id, { onDelete: 'cascade' }),
@@ -119,21 +79,21 @@ export const paperPositions = pgTable(
     side: text('side').notNull(),
     /** 'open' | 'closed'. */
     status: text('status').notNull().default('open'),
-    quantity: moneyColumn('quantity').notNull(),
-    initialQuantity: moneyColumn('initial_quantity').notNull(),
-    entryPrice: moneyColumn('entry_price').notNull(),
+    quantity: pluginMoneyColumn('quantity').notNull(),
+    initialQuantity: pluginMoneyColumn('initial_quantity').notNull(),
+    entryPrice: pluginMoneyColumn('entry_price').notNull(),
     entryTime: timestamp('entry_time', { withTimezone: true }).notNull(),
-    stopLoss: moneyColumn('stop_loss'),
-    takeProfit: moneyColumn('take_profit'),
-    trailingStopDistance: moneyColumn('trailing_stop_distance'),
-    trailingStopPrice: moneyColumn('trailing_stop_price'),
-    breakEvenAtR: moneyColumn('break_even_at_r'),
-    initialRiskAmount: moneyColumn('initial_risk_amount').notNull().default(0),
-    unrealizedPnl: moneyColumn('unrealized_pnl').notNull().default(0),
-    realizedPnl: moneyColumn('realized_pnl').notNull().default(0),
-    entryFee: moneyColumn('entry_fee').notNull().default(0),
-    exitFee: moneyColumn('exit_fee').notNull().default(0),
-    closePrice: moneyColumn('close_price'),
+    stopLoss: pluginMoneyColumn('stop_loss'),
+    takeProfit: pluginMoneyColumn('take_profit'),
+    trailingStopDistance: pluginMoneyColumn('trailing_stop_distance'),
+    trailingStopPrice: pluginMoneyColumn('trailing_stop_price'),
+    breakEvenAtR: pluginMoneyColumn('break_even_at_r'),
+    initialRiskAmount: pluginMoneyColumn('initial_risk_amount').notNull().default(0),
+    unrealizedPnl: pluginMoneyColumn('unrealized_pnl').notNull().default(0),
+    realizedPnl: pluginMoneyColumn('realized_pnl').notNull().default(0),
+    entryFee: pluginMoneyColumn('entry_fee').notNull().default(0),
+    exitFee: pluginMoneyColumn('exit_fee').notNull().default(0),
+    closePrice: pluginMoneyColumn('close_price'),
     closeTime: timestamp('close_time', { withTimezone: true }),
     /** 'manual' | 'stop_loss' | 'take_profit' | 'trailing_stop' | 'account_reset'. */
     closeReason: text('close_reason'),
@@ -146,14 +106,14 @@ export const paperPositions = pgTable(
     index('plg_paper_trading_positions_tenant_user_idx').on(t.tenantId, t.userId),
     index('plg_paper_trading_positions_account_status_idx').on(t.accountId, t.status),
     index('plg_paper_trading_positions_user_symbol_idx').on(t.userId, t.symbol, t.status),
-    tenantIsolation(),
+    pluginTenantIsolation(),
   ],
 ).enableRLS();
 
 export const paperOrders = pgTable(
   'plg_paper_trading_orders',
   {
-    ...baseColumns(),
+    ...pluginBaseColumns(),
     accountId: uuid('account_id')
       .notNull()
       .references(() => paperAccounts.id, { onDelete: 'cascade' }),
@@ -164,17 +124,17 @@ export const paperOrders = pgTable(
     type: text('type').notNull(),
     /** 'pending' | 'filled' | 'cancelled' | 'rejected' | 'expired'. */
     status: text('status').notNull().default('pending'),
-    quantity: moneyColumn('quantity').notNull(),
-    riskPct: moneyColumn('risk_pct'),
-    limitPrice: moneyColumn('limit_price'),
-    stopPrice: moneyColumn('stop_price'),
-    stopLoss: moneyColumn('stop_loss'),
-    takeProfit: moneyColumn('take_profit'),
-    trailingStopDistance: moneyColumn('trailing_stop_distance'),
-    breakEvenAtR: moneyColumn('break_even_at_r'),
+    quantity: pluginMoneyColumn('quantity').notNull(),
+    riskPct: pluginMoneyColumn('risk_pct'),
+    limitPrice: pluginMoneyColumn('limit_price'),
+    stopPrice: pluginMoneyColumn('stop_price'),
+    stopLoss: pluginMoneyColumn('stop_loss'),
+    takeProfit: pluginMoneyColumn('take_profit'),
+    trailingStopDistance: pluginMoneyColumn('trailing_stop_distance'),
+    breakEvenAtR: pluginMoneyColumn('break_even_at_r'),
     /** 'gtc' | 'day'. */
     timeInForce: text('time_in_force').notNull().default('gtc'),
-    filledPrice: moneyColumn('filled_price'),
+    filledPrice: pluginMoneyColumn('filled_price'),
     filledAt: timestamp('filled_at', { withTimezone: true }),
     positionId: uuid('position_id'),
     reason: text('reason'),
@@ -185,14 +145,14 @@ export const paperOrders = pgTable(
     index('plg_paper_trading_orders_tenant_user_idx').on(t.tenantId, t.userId),
     index('plg_paper_trading_orders_account_status_idx').on(t.accountId, t.status),
     index('plg_paper_trading_orders_symbol_status_idx').on(t.symbol, t.status),
-    tenantIsolation(),
+    pluginTenantIsolation(),
   ],
 ).enableRLS();
 
 export const paperFills = pgTable(
   'plg_paper_trading_fills',
   {
-    ...baseColumns(),
+    ...pluginBaseColumns(),
     accountId: uuid('account_id')
       .notNull()
       .references(() => paperAccounts.id, { onDelete: 'cascade' }),
@@ -200,24 +160,24 @@ export const paperFills = pgTable(
     orderId: uuid('order_id'),
     /** 'open' | 'close' | 'partial_close' | 'stop_loss' | 'take_profit' | 'trailing_stop'. */
     kind: text('kind').notNull(),
-    price: moneyColumn('price').notNull(),
-    quantity: moneyColumn('quantity').notNull(),
-    pnl: moneyColumn('pnl').notNull().default(0),
-    fees: moneyColumn('fees').notNull().default(0),
+    price: pluginMoneyColumn('price').notNull(),
+    quantity: pluginMoneyColumn('quantity').notNull(),
+    pnl: pluginMoneyColumn('pnl').notNull().default(0),
+    fees: pluginMoneyColumn('fees').notNull().default(0),
     meta: jsonb('meta').$type<Record<string, unknown>>().notNull().default({}),
     ts: timestamp('ts', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
     index('plg_paper_trading_fills_tenant_user_idx').on(t.tenantId, t.userId),
     index('plg_paper_trading_fills_account_ts_idx').on(t.accountId, t.ts),
-    tenantIsolation(),
+    pluginTenantIsolation(),
   ],
 ).enableRLS();
 
 export const paperStrategyRuns = pgTable(
   'plg_paper_trading_strategy_runs',
   {
-    ...baseColumns(),
+    ...pluginBaseColumns(),
     accountId: uuid('account_id')
       .notNull()
       .references(() => paperAccounts.id, { onDelete: 'cascade' }),
@@ -227,7 +187,7 @@ export const paperStrategyRuns = pgTable(
     timeframe: text('timeframe').notNull(),
     source: text('source').notNull(),
     params: jsonb('params').$type<Record<string, unknown>>().notNull().default({}),
-    riskPct: moneyColumn('risk_pct').notNull().default(1),
+    riskPct: pluginMoneyColumn('risk_pct').notNull().default(1),
     /** 'active' | 'paused' | 'stopped' | 'error'. */
     status: text('status').notNull().default('active'),
     lastBarTime: timestamp('last_bar_time', { withTimezone: true }),
@@ -242,7 +202,7 @@ export const paperStrategyRuns = pgTable(
   (t) => [
     index('plg_paper_trading_strategy_runs_tenant_user_idx').on(t.tenantId, t.userId),
     index('plg_paper_trading_strategy_runs_status_idx').on(t.status, t.updatedAt),
-    tenantIsolation(),
+    pluginTenantIsolation(),
   ],
 ).enableRLS();
 

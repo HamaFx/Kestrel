@@ -14,62 +14,20 @@
  * limitations under the License.
  */
 
-// Authenticated Paper Trading HTTP routes — shared helpers.
+// Authenticated Paper Trading HTTP routes
 //
 // Mounted at /api/plugins/paper-trading/<path> by the core plugin dispatcher.
-// The generic primitives live in `@kestrel/plugin-sdk`; only the plugin's
-// error mapping and query object helper stay here.
+// The generic primitives live in `@kestrel/plugin-sdk`.
 
-import {
-  parsePluginBody,
-  pluginByMethod,
-  pluginJson,
-  pluginQuery,
-  PluginRouteApiError,
-  type PluginApiRouteContext,
-  type PluginApiRouteHandler,
-} from '@kestrel/plugin-sdk';
+import { createPluginRouteHelpers, pluginQuery } from '@kestrel/plugin-sdk';
 
-export { PluginRouteApiError as ApiError };
-export const json = pluginJson;
-export const byMethod = pluginByMethod;
-export const parseBody = parsePluginBody;
+const helpers = createPluginRouteHelpers({
+  logLabel: 'paper trading api route failed',
+  failureCode: 'PAPER_TRADING_FAILED',
+  failureMessage: 'The Paper Trading broker could not complete this request.',
+});
 
-function errorResponse(err: unknown, ctx: PluginApiRouteContext, status = 500): Response {
-  if (err instanceof PluginRouteApiError) {
-    return json({ error: { code: err.code, message: err.message } }, err.status);
-  }
-  ctx.log.error('paper trading api route failed', {
-    err: err instanceof Error ? err.message : String(err),
-  });
-  return json(
-    {
-      error: {
-        code: 'PAPER_TRADING_FAILED',
-        message:
-          status >= 500
-            ? 'The Paper Trading broker could not complete this request.'
-            : err instanceof Error
-              ? err.message
-              : String(err),
-      },
-    },
-    status,
-  );
-}
-
-export function wrap(
-  handler: (ctx: PluginApiRouteContext) => Promise<Response>,
-  userErrorStatus?: number,
-): PluginApiRouteHandler {
-  return async (ctx) => {
-    try {
-      return await handler(ctx);
-    } catch (err) {
-      return errorResponse(err, ctx, userErrorStatus ?? 500);
-    }
-  };
-}
+export const { ApiError, json, byMethod, parseBody, wrap } = helpers;
 
 export function queryObject(request: Request): Record<string, string> {
   const result: Record<string, string> = {};

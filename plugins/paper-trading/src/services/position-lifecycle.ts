@@ -160,6 +160,28 @@ export async function applyClose(args: {
  */
 export type CloseOutcome = 'closed' | 'partial' | 'not_closed';
 
+/** User-facing close result, shared by the HTTP route and the agent tool. */
+export function formatCloseOutcomeMessage(
+  result: {
+    position: { symbol: string; initialQuantity: number; closePrice: number | null };
+    fill: { quantity: number } | null;
+    outcome: CloseOutcome;
+  },
+  options: { includePrice?: boolean } = {},
+): string {
+  if (result.outcome === 'closed') {
+    return options.includePrice
+      ? `Closed ${result.position.initialQuantity} ${result.position.symbol} at ${result.position.closePrice}.`
+      : `Closed ${result.position.initialQuantity} ${result.position.symbol}.`;
+  }
+  if (result.outcome === 'partial') {
+    return options.includePrice
+      ? `Partially closed ${result.fill?.quantity ?? 0} ${result.position.symbol}.`
+      : `Partially closed ${result.fill?.quantity ?? 0} ${result.position.symbol}.`;
+  }
+  return `No fill was placed: ${result.position.symbol} was already closed or reduced by a concurrent evaluation.`;
+}
+
 export async function closePositionForUser(args: {
   userId: string;
   positionId: string;

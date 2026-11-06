@@ -27,11 +27,14 @@ export {
 } from './settings-schema';
 export { PluginHost, pluginHost, type RegisteredPlugin, type ResolveToolsOptions } from './host';
 export {
+  createPluginRouteHelpers,
   PluginRouteApiError,
   parsePluginBody,
   pluginByMethod,
+  pluginExecCtx,
   pluginJson,
   pluginQuery,
+  type PluginRouteHelperOptions,
 } from './route-helpers';
 // `resolvePluginSkillDir` lives on the node-only `@kestrel/plugin-sdk/skill-dir`
 // subpath: this barrel is reachable from client components, so it must not

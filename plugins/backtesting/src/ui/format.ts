@@ -16,50 +16,12 @@
 
 // Formatting helpers shared by the Backtesting Lab surfaces.
 
-export function fmtNumber(value: number, digits = 2): string {
-  if (!Number.isFinite(value)) return '—';
-  return new Intl.NumberFormat(undefined, {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  }).format(value);
-}
-
-export function fmtMoney(value: number): string {
-  if (!Number.isFinite(value)) return '—';
-  const sign = value > 0 ? '+' : value < 0 ? '−' : '';
-  return `${sign}$${fmtNumber(Math.abs(value), 2)}`;
-}
-
-export function fmtPct(value: number, digits = 2): string {
-  if (!Number.isFinite(value)) return '—';
-  const sign = value > 0 ? '+' : '';
-  return `${sign}${fmtNumber(value, digits)}%`;
-}
-
-export function fmtR(value: number): string {
-  if (!Number.isFinite(value)) return '—';
-  const sign = value > 0 ? '+' : '';
-  return `${sign}${fmtNumber(value, 2)}R`;
-}
-
-export function fmtPrice(value: number): string {
-  if (!Number.isFinite(value)) return '—';
-  const digits = Math.abs(value) >= 100 ? 2 : Math.abs(value) >= 1 ? 4 : 6;
-  return fmtNumber(value, digits);
-}
-
-export function fmtDate(ms: number | string): string {
-  if (ms === 0 || ms === '0') return '—';
-  const date = new Date(ms);
-  if (Number.isNaN(date.getTime())) return '—';
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
-}
-
-export function toneClass(value: number): string {
-  if (value > 0.0001) return 'text-bull';
-  if (value < -0.0001) return 'text-bear';
-  return 'text-fg-muted';
-}
+export {
+  fmtDate,
+  fmtMoney,
+  fmtNumber,
+  fmtPct,
+  fmtPrice,
+  fmtR,
+  toneClass,
+} from '@kestrel/plugin-sdk/ui';

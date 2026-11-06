@@ -26,6 +26,7 @@ import {
 import { resolvePaperAccount } from '../../services/accounts';
 import {
   closePositionForUser,
+  formatCloseOutcomeMessage,
   getPositionView,
   listPositionViews,
   modifyPositionForUser,
@@ -75,12 +76,7 @@ export const closePosition = wrap(async (ctx) => {
   });
   // A guard rejection must not read as a close: report the outcome the broker
   // actually applied and mark the response not-ok when nothing was closed.
-  const message =
-    result.outcome === 'closed'
-      ? `Closed ${result.position.initialQuantity} ${result.position.symbol}.`
-      : result.outcome === 'partial'
-        ? `Partially closed ${result.fill?.quantity ?? 0} ${result.position.symbol}.`
-        : `No fill was placed: ${result.position.symbol} was already closed or reduced by a concurrent evaluation.`;
+  const message = formatCloseOutcomeMessage(result);
   return json({
     ok: result.outcome !== 'not_closed',
     message,

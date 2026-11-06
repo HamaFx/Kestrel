@@ -20,7 +20,7 @@
 
 import { ResetAccountInputSchema, UpdateAccountInputSchema } from '../../schemas';
 import {
-  listAccountViews,
+  accountsOverviewForUser,
   resetAccountForUser,
   updateAccountForUser,
 } from '../../services/accounts';
@@ -35,13 +35,7 @@ export const summary = wrap(async (ctx) => {
 
 export const accounts = wrap(async (ctx) => {
   const settings = normaliseSettings(ctx.settings);
-  const list = await listAccountViews(ctx.userId, settings);
-  return json({
-    accounts: list,
-    totalEquity: Math.round(list.reduce((sum, account) => sum + account.equity, 0) * 100) / 100,
-    totalUnrealizedPnl:
-      Math.round(list.reduce((sum, account) => sum + account.unrealizedPnl, 0) * 100) / 100,
-  });
+  return json(await accountsOverviewForUser(ctx.userId, settings));
 });
 
 export const updateAccount = wrap(async (ctx) => {

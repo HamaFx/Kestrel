@@ -114,24 +114,6 @@ export async function listOrders(
     .limit(Math.max(1, Math.min(opts.limit ?? 50, 100)));
 }
 
-export async function listPendingOrdersForSymbol(
-  userId: string,
-  symbol: string,
-): Promise<PaperOrderRow[]> {
-  const db = getDb();
-  return db
-    .select()
-    .from(paperOrders)
-    .where(
-      and(
-        eq(paperOrders.userId, userId),
-        eq(paperOrders.status, 'pending'),
-        eq(paperOrders.symbol, symbol),
-      ),
-    )
-    .limit(200);
-}
-
 export interface OrderPatch {
   status?: OrderStatus;
   filledPrice?: number | null;

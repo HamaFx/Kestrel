@@ -57,7 +57,6 @@ export {
   getOrder,
   insertOrder,
   listOrders,
-  listPendingOrdersForSymbol,
   updateOrder,
   type InsertOrderInput,
   type OrderPatch,

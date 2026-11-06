@@ -57,6 +57,7 @@ import { fillView, orderView, positionView } from './views';
 export {
   cancelOrderForUser,
   closePositionForUser,
+  formatCloseOutcomeMessage,
   modifyPositionForUser,
 } from './position-lifecycle';
 export { processQuotesForUser } from './fill-engine';

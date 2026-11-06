@@ -14,59 +14,20 @@
  * limitations under the License.
  */
 
-export function fmtNumber(value: number, digits = 2): string {
-  if (!Number.isFinite(value)) return '—';
-  return new Intl.NumberFormat(undefined, {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  }).format(value);
-}
+export {
+  fmtDate,
+  fmtMoney,
+  fmtMoneyPlain,
+  fmtNumber,
+  fmtPct,
+  fmtPrice,
+  fmtQty,
+  fmtR,
+} from '@kestrel/plugin-sdk/ui';
 
-export function fmtMoney(value: number): string {
-  if (!Number.isFinite(value)) return '—';
-  const sign = value > 0 ? '+' : value < 0 ? '−' : '';
-  return `${sign}$${fmtNumber(Math.abs(value), 2)}`;
-}
+import { toneClass as sharedToneClass } from '@kestrel/plugin-sdk/ui';
 
-export function fmtMoneyPlain(value: number): string {
-  if (!Number.isFinite(value)) return '—';
-  return `$${fmtNumber(value, 2)}`;
-}
-
-export function fmtPct(value: number, digits = 2): string {
-  if (!Number.isFinite(value)) return '—';
-  const sign = value > 0 ? '+' : '';
-  return `${sign}${fmtNumber(value, digits)}%`;
-}
-
-export function fmtR(value: number): string {
-  if (!Number.isFinite(value)) return '—';
-  const sign = value > 0 ? '+' : '';
-  return `${sign}${fmtNumber(value, 2)}R`;
-}
-
-export function fmtPrice(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return '—';
-  const digits = Math.abs(value) >= 100 ? 2 : Math.abs(value) >= 1 ? 4 : 6;
-  return fmtNumber(value, digits);
-}
-
-export function fmtQty(value: number): string {
-  return fmtNumber(value, Math.abs(value) < 1 ? 4 : 2);
-}
-
-export function fmtDate(value: string | number): string {
-  if (value === 0 || value === '0') return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
-}
-
+/** Paper P&L treats sub-half-cent noise as flat. */
 export function toneClass(value: number): string {
-  if (value > 0.005) return 'text-bull';
-  if (value < -0.005) return 'text-bear';
-  return 'text-fg-muted';
+  return sharedToneClass(value, 0.005);
 }

@@ -14,73 +14,21 @@
  * limitations under the License.
  */
 
-// Shared HTTP plumbing for the Backtesting Lab route groups: error mapping,
-// JSON responses, body validation and method dispatch. The generic primitives
-// live in `@kestrel/plugin-sdk`; only the plugin-specific error mapping and
-// query helpers stay here.
+// Shared HTTP plumbing
+// error mapping, JSON responses, body validation and method dispatch. The
+// generic primitives live in `@kestrel/plugin-sdk`.
 
-import {
-  parsePluginBody,
-  pluginByMethod,
-  pluginJson,
-  pluginQuery,
-  PluginRouteApiError,
-  type PluginApiRouteContext,
-  type PluginApiRouteHandler,
-  type PluginExecutionContext,
-} from '@kestrel/plugin-sdk';
+import { createPluginRouteHelpers, pluginExecCtx, pluginQuery } from '@kestrel/plugin-sdk';
 
-export { PluginRouteApiError as ApiError };
-export const json = pluginJson;
-export const byMethod = pluginByMethod;
-export const parseBody = parsePluginBody;
+const helpers = createPluginRouteHelpers({
+  logLabel: 'backtesting api route failed',
+  failureCode: 'BACKTESTING_FAILED',
+  failureMessage: 'The Backtesting Lab could not complete this request.',
+});
 
-function errorResponse(err: unknown, ctx: PluginApiRouteContext, defaultStatus = 500): Response {
-  if (err instanceof PluginRouteApiError) {
-    return json({ error: { code: err.code, message: err.message } }, err.status);
-  }
-  ctx.log.error('backtesting api route failed', {
-    err: err instanceof Error ? err.message : String(err),
-  });
-  return json(
-    {
-      error: {
-        code: 'BACKTESTING_FAILED',
-        message:
-          defaultStatus >= 500
-            ? 'The Backtesting Lab could not complete this request.'
-            : err instanceof Error
-              ? err.message
-              : String(err),
-      },
-    },
-    defaultStatus,
-  );
-}
+export const { ApiError, json, byMethod, parseBody, wrap } = helpers;
 
-export function wrap(
-  handler: (ctx: PluginApiRouteContext) => Promise<Response>,
-  options: { userErrorStatus?: number } = {},
-): PluginApiRouteHandler {
-  return async (ctx) => {
-    try {
-      return await handler(ctx);
-    } catch (err) {
-      return errorResponse(err, ctx, options.userErrorStatus ?? 500);
-    }
-  };
-}
-
-export function execCtx(ctx: PluginApiRouteContext): PluginExecutionContext {
-  return {
-    pluginId: ctx.pluginId,
-    userId: ctx.userId,
-    tenantId: ctx.tenantId,
-    settings: ctx.settings,
-    storage: ctx.storage,
-    log: ctx.log,
-  };
-}
+export const execCtx = pluginExecCtx;
 
 export function queryNumber(request: Request, key: string, fallback: number): number {
   const raw = pluginQuery(request).get(key);
