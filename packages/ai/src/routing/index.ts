@@ -49,11 +49,22 @@ import { classifyTurnLLM, type SemanticRoutingAccounting } from './semantic';
 const routingLog = createCategorizedLogger('ai', { component: 'routing' });
 
 /**
- * Semantic routing is on by default. Set AI_SEMANTIC_ROUTING_ENABLED=false
- * to disable the LLM classification call and fall back to keyword-only
- * routing (zero additional cost per turn).
+ * Semantic routing is opt-in (`.env.example` and `docs/configuration.md`
+ * document `AI_SEMANTIC_ROUTING_ENABLED=0` by default). Accepts boolean
+ * `true` or `'1'` / `'true'` on either the caller's `env` bag or
+ * `process.env`; any other value (including unset) disables it.
  */
-const SEMANTIC_ROUTING_ENABLED = (process.env.AI_SEMANTIC_ROUTING_ENABLED ?? 'true') !== 'false';
+export function isSemanticRoutingEnabled(env?: ResolveModelEnv): boolean {
+  const raw =
+    (env as { AI_SEMANTIC_ROUTING_ENABLED?: unknown } | undefined)?.AI_SEMANTIC_ROUTING_ENABLED ??
+    process.env.AI_SEMANTIC_ROUTING_ENABLED;
+  if (typeof raw === 'boolean') return raw;
+  if (typeof raw === 'string') {
+    const normalized = raw.trim().toLowerCase();
+    return normalized === '1' || normalized === 'true';
+  }
+  return false;
+}
 
 /**
  * Build the semantic routing config for `routeTurn()` when enabled and a
@@ -69,7 +80,7 @@ export function resolveSemanticRoutingConfig(
   env: ResolveModelEnv,
   signal?: AbortSignal | null,
 ): RouteTurnOptions['semanticRouting'] | null {
-  if (!SEMANTIC_ROUTING_ENABLED) return null;
+  if (!isSemanticRoutingEnabled(env)) return null;
   const modelId = derivePlannerModel(userSettings, env);
   if (!modelId) return null;
   let resolvedModel: LanguageModel | null;
