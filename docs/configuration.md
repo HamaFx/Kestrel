@@ -1,6 +1,6 @@
 # Configuration reference
 
-This document describes the supported private self-hosting configuration contract for Kestrel. The canonical validation sources are:
+This document describes the supported self-hosting configuration contract for Kestrel. The canonical validation sources are:
 
 - `packages/shared/src/env/index.ts` — web/server environment
 - `apps/worker/src/env.ts` — worker environment
@@ -16,7 +16,7 @@ Use `pnpm setup` for normal installations. Do not copy production secrets into t
 | Docker              | `.env` plus Compose defaults | PostgreSQL 16 + pgvector | Yes      |
 | External PostgreSQL | Operator-managed environment | External PostgreSQL      | Optional |
 
-Kestrel is a private self-hosted multi-user platform: every deployment uses PostgreSQL with row-level security (RLS) and requires an explicit `role='admin'` for administration.
+Kestrel is an open-source, self-hosted multi-user platform: every deployment uses PostgreSQL with row-level security (RLS) and requires an explicit `role='admin'` for administration.
 
 ## Required deployment environment
 

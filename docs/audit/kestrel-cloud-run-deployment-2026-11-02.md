@@ -1,16 +1,16 @@
 # Kestrel web app on Google Cloud Run
 
 Deployed: 2026-11-02
-Project: `gen-lang-client-REDACTED` ("Default Gemini Project")
+Project: `<gcp-project-id>`
 Region: `us-east1`
 Service: `kestrel-web`
 
 ## What is live
 
-| URL                                                 | Status                                                                          |
-| --------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `https://kestrel.example.com`       | Canonical URL reported by Cloud Run                                             |
-| `https://kestrel-web-000000000000.us-east1.run.app` | Legacy-format alias, also serves (this is what is baked into the client bundle) |
+| URL                                                          | Status                                                                          |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| `https://kestrel-web-<service-hash>-ue.a.run.app`            | Canonical URL reported by Cloud Run                                             |
+| `https://kestrel-web-<project-number>.us-east1.run.app`      | Legacy-format alias, also serves (this is what is baked into the client bundle) |
 
 The worker VM, the Vercel deployment and the Supabase database are untouched. Cloud Run talks to
 the **same Supabase database** as production, so both front doors serve the same data.
@@ -71,9 +71,9 @@ Deploy command:
 
 ```sh
 gcloud run deploy kestrel-web \
-  --project gen-lang-client-REDACTED \
+  --project <gcp-project-id> \
   --region us-east1 \
-  --image us-east1-docker.pkg.dev/gen-lang-client-REDACTED/kestrel/web:v2 \
+  --image us-east1-docker.pkg.dev/<gcp-project-id>/kestrel/web:v2 \
   --platform managed --allow-unauthenticated --port 3000 \
   --memory 1Gi --cpu 1 --timeout 3600 \
   --min-instances 0 --max-instances 2 --cpu-boost \
@@ -86,7 +86,7 @@ requires a rebuild, not just a redeploy.
 ## Roll back
 
 ```sh
-gcloud run services update-traffic kestrel-web --region us-east1 --to-revisions kestrel-web-00001-xcj=100
+gcloud run services update-traffic kestrel-web --region us-east1 --to-revisions kestrel-web-00001-rev=100
 ```
 
 Or delete the service entirely; nothing else depends on it:

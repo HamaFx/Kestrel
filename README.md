@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <a href="#-quickstart-for-vibe-coders--beginners-60-seconds">⚡ 60-Second Quickstart</a> •
+  <a href="#-quickstart">⚡ 60-Second Quickstart</a> •
   <a href="#-self-hosted-deployment-profiles">🚀 Deployment Profiles</a> •
   <a href="#-key-features">✨ Features</a> •
   <a href="#-ai-agent-committee--analysis-modes">🤖 AI Agent Committee</a> •
@@ -373,7 +373,7 @@ Kestrel is designed with strict privacy and security defaults:
 
 ## 🔄 Updating Kestrel
 
-To update your private self-hosted Kestrel instance:
+To update your self-hosted Kestrel instance:
 
 ```bash
 git pull origin main
@@ -422,16 +422,20 @@ Yes! Install [Ollama](https://ollama.ai), run your model (e.g. `ollama run llama
 
 For detailed guides, explore the `docs/` directory:
 
+- 🏛️ **[Architecture Atlas](docs/architecture/README.md)**: Visual system diagrams, 4-Desk AI Committee flows, market-data failover, and plugin maps.
+- 🚀 **[Deployment Guide](DEPLOY.md)**: Self-hosted Docker Compose and Vercel + Supabase deployment profiles.
 - 📖 **[Configuration Reference](docs/configuration.md)**: Exhaustive list of all environment variables and secrets.
 - 🎨 **[Design System](docs/design-system.md)**: Kestrel tokens, typography, and showcase components.
 - 🤝 **[Contributing Guide](CONTRIBUTING.md)**: How to submit bug fixes, features, and new market indicators.
+- 🔒 **[Security Policy](SECURITY.md)**: Built-in security boundaries and private vulnerability reporting.
+- 📜 **[Code of Conduct](CODE_OF_CONDUCT.md)**: Community standards and expectations.
 - 🛟 **[Support](SUPPORT.md)**: Where to ask questions and report issues.
 
 ---
 
 ## 📜 License
 
-Kestrel is source-available software licensed under the **[Apache License 2.0](LICENSE)**.
+Kestrel is open-source software licensed under the **[Apache License 2.0](LICENSE)**.
 
 <div align="center">
 

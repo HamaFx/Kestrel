@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-> The release is a private self-hosted multi-user BYOK platform with Postgres Row Level Security.
+> The release is an open-source, self-hosted multi-user BYOK platform with Postgres Row Level Security.
 
 ### Security
 

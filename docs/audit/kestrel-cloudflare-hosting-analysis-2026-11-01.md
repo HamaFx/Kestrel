@@ -372,7 +372,7 @@ cost of a data-layer rewrite in the most security-sensitive part of the codebase
 
 ```sh
 wrangler --version                 # 4.156.1
-wrangler whoami                    # authenticated; account REDACTED_CLOUDFLARE_ACCOUNT
+wrangler whoami                    # authenticated; account <cloudflare-account-id>
 wrangler hyperdrive --help         # transaction-mode pooling, create/update/list
 wrangler containers --help         # build/push/instances/ssh
 wrangler workflows --help          # durable multi-step execution

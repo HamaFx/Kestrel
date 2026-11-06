@@ -1,6 +1,6 @@
 # Kestrel documentation
 
-These are the active documentation files for the private self-hosted multi-user platform.
+These are the active documentation files for Kestrel, the open-source self-hosted multi-user AI trading research platform.
 
 | Document                                     | Purpose                                                                     |
 | -------------------------------------------- | --------------------------------------------------------------------------- |
@@ -12,5 +12,8 @@ These are the active documentation files for the private self-hosted multi-user 
 Repository-level policy and status documents:
 
 - [README](../README.md) — product overview, profile matrix, and quick start
+- [Deployment Guide](../DEPLOY.md) — Docker Compose and Vercel + Supabase deployment instructions
 - [Contributing](../CONTRIBUTING.md) — contributor workflow and coding rules
+- [Security Policy](../SECURITY.md) — security architecture, operator checklist, and vulnerability reporting
+- [Code of Conduct](../CODE_OF_CONDUCT.md) — community standards
 - [Support](../SUPPORT.md) — support channels and diagnostic information
