@@ -1,153 +1,182 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 500" width="100%" height="100%">
   <defs>
     <linearGradient id="bg2" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0d1117" />
-      <stop offset="100%" stop-color="#090d13" />
+      <stop offset="0%" stop-color="#141516" />
+      <stop offset="100%" stop-color="#0d0e10" />
     </linearGradient>
-    <linearGradient id="card2" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#161b22" />
-      <stop offset="100%" stop-color="#0d1117" />
+    <linearGradient id="card2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1d1e20" />
+      <stop offset="100%" stop-color="#151618" />
     </linearGradient>
-    <filter id="sh2" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.5" />
+    <linearGradient id="emberBar2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ff3616" />
+      <stop offset="100%" stop-color="#ff632a" />
+    </linearGradient>
+    <linearGradient id="bullBar2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3f9e3d" />
+      <stop offset="100%" stop-color="#52b750" />
+    </linearGradient>
+    <linearGradient id="infoBar2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4fa3b5" />
+      <stop offset="100%" stop-color="#6bc0d2" />
+    </linearGradient>
+    <linearGradient id="warnBar2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#d98f00" />
+      <stop offset="100%" stop-color="#f0ad1a" />
+    </linearGradient>
+    <filter id="sh2" x="-8%" y="-8%" width="116%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.65" />
     </filter>
   </defs>
 
   <style>
-    .hdr { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; font-weight: 700; fill: #f0f6fc; }
+    .eyebrow { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10px; font-weight: 700; letter-spacing: 1.6px; fill: #ff3616; }
+    .hdr { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; font-weight: 700; fill: #e5e5e5; }
     .tag { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10px; font-weight: 700; }
-    .title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; font-weight: 700; fill: #ffffff; }
-    .desc { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; fill: #8b949e; }
+    .title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; font-weight: 700; fill: #e5e5e5; }
+    .desc { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; fill: #9a9b9e; }
   </style>
 
-  <rect width="1000" height="500" rx="14" fill="url(#bg2)" />
-  <text x="30" y="34" class="hdr">MARKET DATA FAILOVER, WORKER STREAMING, BACKTESTING &amp; PAPER TRADING PIPELINE</text>
+  <rect width="1000" height="500" rx="16" fill="url(#bg2)" stroke="#2c2c2c" stroke-width="1.5" />
+  <line x1="16" y1="1.5" x2="984" y2="1.5" stroke="rgba(255,255,255,0.12)" stroke-width="1" />
+
+  <text x="28" y="26" class="eyebrow">CLOSED-LOOP QUANTITATIVE WORKFLOW</text>
+  <text x="28" y="46" class="hdr">Market Data Failover, Worker Daemon, QuickJS Backtesting, Paper Broker &amp; Trade Journal</text>
 
   <!-- COLUMN 1: EXTERNAL PROVIDERS -->
-  <g transform="translate(25, 58)">
-    <rect width="205" height="415" rx="10" fill="url(#card2)" stroke="#30363d" stroke-width="1.5" filter="url(#sh2)" />
-    <text x="14" y="24" class="tag" fill="#38bdf8">1 · EXTERNAL FEEDS</text>
+  <g transform="translate(24, 62)" filter="url(#sh2)">
+    <rect width="206" height="414" rx="12" fill="url(#card2)" stroke="#2c2c2c" stroke-width="1.25" />
+    <rect x="0" y="0" width="206" height="3" rx="1.5" fill="url(#infoBar2)" />
+    <text x="14" y="24" class="tag" fill="#4fa3b5">01 · EXTERNAL FEEDS</text>
     <text x="14" y="44" class="title">6 Market Data Sources</text>
-    <line x1="14" y1="54" x2="191" y2="54" stroke="#21262d" />
+    <line x1="14" y1="54" x2="192" y2="54" stroke="#262729" />
 
-    <rect x="14" y="68" width="177" height="48" rx="6" fill="#161b22" stroke="#38bdf8" />
+    <rect x="14" y="68" width="178" height="48" rx="8" fill="#0d0e10" stroke="#4fa3b5" stroke-width="1" />
     <text x="24" y="88" class="title">BiQuote (Zero-Key)</text>
-    <text x="24" y="104" class="desc">FX + XAUUSD REST &amp; SignalR</text>
+    <text x="24" y="104" class="desc">XAUUSD + 11 FX REST &amp; SignalR</text>
 
-    <rect x="14" y="126" width="177" height="48" rx="6" fill="#161b22" stroke="#f59e0b" />
+    <rect x="14" y="126" width="178" height="48" rx="8" fill="#0d0e10" stroke="#d98f00" stroke-width="1" />
     <text x="24" y="146" class="title">Binance (Zero-Key)</text>
     <text x="24" y="162" class="desc">6 Crypto Pairs REST &amp; WS</text>
 
-    <rect x="14" y="184" width="177" height="48" rx="6" fill="#161b22" stroke="#10b981" />
+    <rect x="14" y="184" width="178" height="48" rx="8" fill="#0d0e10" stroke="#3f9e3d" stroke-width="1" />
     <text x="24" y="204" class="title">Finnhub (Optional BYOK)</text>
     <text x="24" y="220" class="desc">Failover OHLC &amp; Quotes</text>
 
-    <rect x="14" y="242" width="177" height="48" rx="6" fill="#161b22" stroke="#a855f7" />
+    <rect x="14" y="242" width="178" height="48" rx="8" fill="#0d0e10" stroke="#2c2c2c" stroke-width="1" />
     <text x="24" y="262" class="title">FRED + CFTC Socrata</text>
-    <text x="24" y="278" class="desc">Macro Yields, DXY &amp; CoT</text>
+    <text x="24" y="278" class="desc">Real Yields, DXY &amp; CoT Reports</text>
 
-    <rect x="14" y="300" width="177" height="48" rx="6" fill="#161b22" stroke="#ec4899" />
+    <rect x="14" y="300" width="178" height="48" rx="8" fill="#0d0e10" stroke="#ff3616" stroke-width="1" />
     <text x="24" y="320" class="title">Marketaux News</text>
-    <text x="24" y="336" class="desc">Breaking News + Sentiment</text>
+    <text x="24" y="336" class="desc">Breaking Headlines &amp; Sentiment</text>
 
-    <text x="14" y="378" class="tag" fill="#34d399">18 Catalog Instruments</text>
+    <text x="14" y="378" class="tag" fill="#3f9e3d">18 Catalog Instruments</text>
     <text x="14" y="396" class="desc">1 Gold • 11 Forex • 6 Crypto</text>
   </g>
 
-  <path d="M 230 160 L 260 160" stroke="#38bdf8" stroke-width="2" />
-  <polygon points="260,156 268,160 260,164" fill="#38bdf8" />
-  <path d="M 230 350 L 260 350" stroke="#a855f7" stroke-width="2" />
-  <polygon points="260,346 268,350 260,354" fill="#a855f7" />
+  <path d="M 230 160 L 260 160" stroke="#4fa3b5" stroke-width="2" />
+  <polygon points="260,156 268,160 260,164" fill="#4fa3b5" />
+  <path d="M 230 350 L 260 350" stroke="#ff3616" stroke-width="2" />
+  <polygon points="260,346 268,350 260,354" fill="#ff3616" />
 
   <!-- COLUMN 2: ADAPTER FAILOVER & WORKER -->
-  <g transform="translate(270, 58)">
-    <rect width="235" height="190" rx="10" fill="url(#card2)" stroke="#38bdf8" stroke-width="1.5" filter="url(#sh2)" />
-    <text x="14" y="24" class="tag" fill="#38bdf8">2A · @kestrel/data ADAPTERS</text>
+  <g transform="translate(270, 62)" filter="url(#sh2)">
+    <rect width="235" height="190" rx="12" fill="url(#card2)" stroke="#2c2c2c" stroke-width="1.25" />
+    <rect x="0" y="0" width="235" height="3" rx="1.5" fill="url(#infoBar2)" />
+    <text x="14" y="24" class="tag" fill="#4fa3b5">02A · @kestrel/data ADAPTERS</text>
     <text x="14" y="44" class="title">Health-Scored Failover</text>
-    <line x1="14" y1="54" x2="221" y2="54" stroke="#21262d" />
+    <line x1="14" y1="54" x2="221" y2="54" stroke="#262729" />
     <text x="14" y="74" class="desc">• L1 Memory + L2 Redis SWR Cache</text>
     <text x="14" y="94" class="desc">• In-Flight Request Deduplication</text>
-    <text x="14" y="114" class="desc">• Provider Health Score (0.0–1.0)</text>
+    <text x="14" y="114" class="desc">• Rolling 5m Health Score (0.0–1.0)</text>
     <text x="14" y="134" class="desc">• Staleness Envelope (ageSeconds)</text>
     <text x="14" y="154" class="desc">• BiQuote 1w-from-1d Synthesis</text>
-    <text x="14" y="174" class="tag" fill="#38bdf8">getPriceWithMeta / getCandles</text>
+    <text x="14" y="174" class="tag" fill="#4fa3b5">getPriceWithMeta / getCandles</text>
   </g>
 
-  <g transform="translate(270, 268)">
-    <rect width="235" height="205" rx="10" fill="url(#card2)" stroke="#a855f7" stroke-width="1.5" filter="url(#sh2)" />
-    <text x="14" y="24" class="tag" fill="#c084fc">2B · @kestrel/worker DAEMON</text>
-    <text x="14" y="44" class="title">Cron + Tick Stream + Outbox</text>
-    <line x1="14" y1="54" x2="221" y2="54" stroke="#21262d" />
-    <text x="14" y="74" class="desc">• 7 Core Jobs + 3 Plugin Jobs</text>
+  <g transform="translate(270, 272)" filter="url(#sh2)">
+    <rect width="235" height="204" rx="12" fill="url(#card2)" stroke="#2c2c2c" stroke-width="1.25" />
+    <rect x="0" y="0" width="235" height="3" rx="1.5" fill="url(#emberBar2)" />
+    <text x="14" y="24" class="tag" fill="#ff3616">02B · @kestrel/worker DAEMON</text>
+    <text x="14" y="44" class="title">8 Core Crons + TickBus</text>
+    <line x1="14" y1="54" x2="221" y2="54" stroke="#262729" />
+    <text x="14" y="74" class="desc">• 8 Core Jobs + 3 Plugin Jobs</text>
     <text x="14" y="94" class="desc">• TenantRouter Hash Partitioning</text>
     <text x="14" y="114" class="desc">• TickBuffer (250ms) → live_ticks</text>
     <text x="14" y="134" class="desc">• 1m Aggregator → candles_1m</text>
     <text x="14" y="154" class="desc">• Durable Disk Outbox Replay</text>
     <text x="14" y="174" class="desc">• pg-boss Queues (Sweeps/Flush)</text>
-    <text x="14" y="192" class="tag" fill="#c084fc">acquireCronLock (cron_runs)</text>
+    <text x="14" y="192" class="tag" fill="#ff632a">acquireCronLock (cron_runs)</text>
   </g>
 
-  <path d="M 505 150 L 535 150" stroke="#10b981" stroke-width="2" />
-  <polygon points="535,146 543,150 535,154" fill="#10b981" />
-  <path d="M 505 370 L 535 370" stroke="#f59e0b" stroke-width="2" />
-  <polygon points="535,366 543,370 535,374" fill="#f59e0b" />
+  <path d="M 505 154 L 535 154" stroke="#3f9e3d" stroke-width="2" />
+  <polygon points="535,150 543,154 535,158" fill="#3f9e3d" />
+  <path d="M 505 374 L 535 374" stroke="#d98f00" stroke-width="2" />
+  <polygon points="535,370 543,374 535,378" fill="#d98f00" />
 
   <!-- COLUMN 3: QUANT PLUGINS (BACKTESTING & PAPER TRADING) -->
-  <g transform="translate(545, 58)">
-    <rect width="215" height="190" rx="10" fill="url(#card2)" stroke="#10b981" stroke-width="1.5" filter="url(#sh2)" />
-    <text x="14" y="24" class="tag" fill="#34d399">3A · BACKTESTING ENGINE</text>
+  <g transform="translate(545, 62)" filter="url(#sh2)">
+    <rect width="215" height="190" rx="12" fill="url(#card2)" stroke="#2c2c2c" stroke-width="1.25" />
+    <rect x="0" y="0" width="215" height="3" rx="1.5" fill="url(#bullBar2)" />
+    <text x="14" y="24" class="tag" fill="#3f9e3d">03A · BACKTESTING LAB</text>
     <text x="14" y="44" class="title">QuickJS WASM Simulator</text>
-    <line x1="14" y1="54" x2="201" y2="54" stroke="#21262d" />
+    <line x1="14" y1="54" x2="201" y2="54" stroke="#262729" />
     <text x="14" y="74" class="desc">1. Market Data Coverage Gate</text>
     <text x="14" y="94" class="desc">2. Precompute 33 TA + Session Series</text>
     <text x="14" y="114" class="desc">3. QuickJS Sandbox (No Look-Ahead)</text>
-    <text x="14" y="134" y2="134" class="desc">4. Pessimistic Bar Simulator</text>
-    <text x="14" y="154" class="desc">5. Train/Test Split Grid Sweeps</text>
-    <text x="14" y="174" class="tag" fill="#34d399">Deploy Strategy → Paper Desk</text>
+    <text x="14" y="134" class="desc">4. Pessimistic Stop-First Simulator</text>
+    <text x="14" y="154" class="desc">5. Walk-Forward Grid Sweeps</text>
+    <text x="14" y="174" class="tag" fill="#3f9e3d">Deploy Strategy → Paper Desk</text>
   </g>
 
-  <g transform="translate(545, 268)">
-    <rect width="215" height="205" rx="10" fill="url(#card2)" stroke="#f59e0b" stroke-width="1.5" filter="url(#sh2)" />
-    <text x="14" y="24" class="tag" fill="#fbbf24">3B · PAPER TRADING DESK</text>
+  <g transform="translate(545, 272)" filter="url(#sh2)">
+    <rect width="215" height="204" rx="12" fill="url(#card2)" stroke="#2c2c2c" stroke-width="1.25" />
+    <rect x="0" y="0" width="215" height="3" rx="1.5" fill="url(#warnBar2)" />
+    <text x="14" y="24" class="tag" fill="#d98f00">03B · PAPER TRADING DESK</text>
     <text x="14" y="44" class="title">Virtual Broker &amp; Live Fills</text>
-    <line x1="14" y1="54" x2="201" y2="54" stroke="#21262d" />
+    <line x1="14" y1="54" x2="201" y2="54" stroke="#262729" />
     <text x="14" y="74" class="desc">• Dual Accounts: Personal (Confirm)</text>
     <text x="14" y="90" class="desc">  vs AI Agent Sandbox (Autonomous)</text>
     <text x="14" y="112" class="desc">• Sub-Second TickBus Fill Engine</text>
     <text x="14" y="132" class="desc">• 1m Cron Fallback Market Watch</text>
     <text x="14" y="152" class="desc">• Break-Even @ R + Trailing Ratchet</text>
     <text x="14" y="172" class="desc">• Auto-Sync Closed Trades → Journal</text>
-    <text x="14" y="192" class="tag" fill="#fbbf24">Enriches AI Research Packet</text>
+    <text x="14" y="192" class="tag" fill="#d98f00">numeric(20,8) Accounting</text>
   </g>
 
-  <path d="M 760 150 L 785 220" stroke="#10b981" stroke-width="1.5" />
-  <path d="M 760 370 L 785 280" stroke="#f59e0b" stroke-width="1.5" />
-  <polygon points="782,276 790,278 784,284" fill="#f59e0b" />
+  <path d="M 760 154 L 785 220" stroke="#3f9e3d" stroke-width="1.5" />
+  <path d="M 760 374 L 785 280" stroke="#d98f00" stroke-width="1.5" />
+  <polygon points="782,276 790,278 784,284" fill="#d98f00" />
 
   <!-- COLUMN 4: ALERTS, JOURNAL & TELEGRAM -->
-  <g transform="translate(790, 58)">
-    <rect width="185" height="415" rx="10" fill="url(#card2)" stroke="#ec4899" stroke-width="1.5" filter="url(#sh2)" />
-    <text x="14" y="24" class="tag" fill="#f472b6">4 · TRADER LOOP</text>
+  <g transform="translate(790, 62)" filter="url(#sh2)">
+    <rect width="186" height="414" rx="12" fill="url(#card2)" stroke="#441c14" stroke-width="1.5" />
+    <rect x="0" y="0" width="186" height="3" rx="1.5" fill="url(#emberBar2)" />
+    <text x="14" y="24" class="tag" fill="#ff3616">04 · TRADER LOOP</text>
     <text x="14" y="44" class="title">Alerts, Journal &amp; Bot</text>
-    <line x1="14" y1="54" x2="171" y2="54" stroke="#21262d" />
+    <line x1="14" y1="54" x2="172" y2="54" stroke="#262729" />
 
-    <text x="14" y="78" class="title" fill="#38bdf8">Alert Evaluator (1m)</text>
+    <text x="14" y="78" class="title" fill="#4fa3b5">Alert Evaluator (1m)</text>
     <text x="14" y="96" class="desc">Price, RSI, EMA &amp; Candle</text>
-    <text x="14" y="112" class="desc">crossings + Quiet Hours</text>
+    <text x="14" y="112" class="desc">crossings + 90d Preview</text>
 
-    <text x="14" y="144" class="title" fill="#10b981">Multi-Channel Delivery</text>
+    <text x="14" y="144" class="title" fill="#3f9e3d">Multi-Channel Delivery</text>
     <text x="14" y="162" class="desc">• Web Push (VAPID)</text>
     <text x="14" y="178" class="desc">• Resend Email</text>
     <text x="14" y="194" class="desc">• Telegram Bot Push</text>
 
-    <text x="14" y="226" class="title" fill="#fbbf24">Trade Journal &amp; Replay</text>
+    <text x="14" y="226" class="title" fill="#d98f00">Trade Journal &amp; Replay</text>
     <text x="14" y="244" class="desc">• MFE / MAE Bar Replay</text>
     <text x="14" y="260" class="desc">• AI Trade Review &amp; Coach</text>
-    <text x="14" y="276" class="desc">• pgvector Memory Index</text>
+    <text x="14" y="276" class="desc">• Underwater Drawdown</text>
 
-    <text x="14" y="308" class="title" fill="#c084fc">Telegram Copilot</text>
+    <text x="14" y="308" class="title" fill="#ff632a">Telegram Copilot</text>
     <text x="14" y="326" class="desc">• Linked Chat Auth Guard</text>
     <text x="14" y="342" class="desc">• /ask &amp; /analyze Commands</text>
     <text x="14" y="358" class="desc">• Daily Morning Briefings</text>
+
+    <rect x="14" y="376" width="158" height="24" rx="6" fill="#0d0e10" stroke="#262729" />
+    <text x="93" y="392" text-anchor="middle" class="tag" fill="#ff3616">pgvector Memory Recall</text>
   </g>
 </svg>

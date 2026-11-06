@@ -1,140 +1,126 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 380" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 390" width="100%" height="100%">
   <defs>
-    <linearGradient id="cardBg1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#161b22" />
-      <stop offset="100%" stop-color="#0d1117" />
+    <linearGradient id="bgObs" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141516" />
+      <stop offset="100%" stop-color="#0d0e10" />
     </linearGradient>
-    <linearGradient id="accentGreen" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#10b981" />
-      <stop offset="100%" stop-color="#059669" />
+    <linearGradient id="cardSurf" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1d1e20" />
+      <stop offset="100%" stop-color="#151618" />
     </linearGradient>
-    <linearGradient id="accentBlue" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#38bdf8" />
-      <stop offset="100%" stop-color="#0284c7" />
+    <linearGradient id="emberTop" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ff3616" />
+      <stop offset="100%" stop-color="#ff632a" />
     </linearGradient>
-    <linearGradient id="accentPurple" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#a855f7" />
-      <stop offset="100%" stop-color="#7c3aed" />
+    <linearGradient id="bullTop" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3f9e3d" />
+      <stop offset="100%" stop-color="#52b750" />
     </linearGradient>
-    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="125%">
-      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.45" />
+    <linearGradient id="infoTop" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4fa3b5" />
+      <stop offset="100%" stop-color="#6bc0d2" />
+    </linearGradient>
+    <filter id="cardSh" x="-8%" y="-8%" width="116%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.65" />
     </filter>
   </defs>
 
   <style>
-    .title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; font-weight: 700; fill: #ffffff; letter-spacing: 0.5px; }
-    .subtitle { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; font-weight: 500; fill: #8b949e; }
-    .badge-text { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 10px; font-weight: 600; }
-    .item-title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12px; font-weight: 600; fill: #e6edf3; }
-    .item-desc { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; fill: #7d8590; }
-    .code-pill { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; font-weight: 600; fill: #38bdf8; }
+    .eyebrow { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10px; font-weight: 700; letter-spacing: 1.6px; fill: #ff3616; }
+    .hdr { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; font-weight: 700; fill: #e5e5e5; }
+    .title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; font-weight: 700; fill: #e5e5e5; }
+    .subtitle { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; fill: #9a9b9e; }
+    .badge { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10px; font-weight: 600; }
+    .item-title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12px; font-weight: 600; fill: #e5e5e5; }
+    .item-desc { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; fill: #8a8b8e; }
+    .cmd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; font-weight: 600; }
   </style>
 
-  <!-- Background -->
-  <rect width="900" height="380" rx="14" fill="#090d13" />
+  <!-- Outer Chassis -->
+  <rect width="920" height="390" rx="16" fill="url(#bgObs)" stroke="#2c2c2c" stroke-width="1.5" />
+  <line x1="16" y1="1.5" x2="904" y2="1.5" stroke="rgba(255,255,255,0.12)" stroke-width="1" />
 
-  <!-- CARD 1: LOCAL DEV (POSTGRES) -->
-  <g transform="translate(30, 30)">
-    <rect width="260" height="320" rx="12" fill="url(#cardBg1)" stroke="#30363d" stroke-width="1.5" filter="url(#cardShadow)" />
-    <!-- Header Top Line -->
-    <rect x="0" y="0" width="260" height="4" rx="2" fill="url(#accentGreen)" />
-    
-    <!-- Title & Badge -->
-    <text x="20" y="34" class="title">🟢 LOCAL DEV</text>
-    <rect x="175" y="20" width="70" height="18" rx="9" fill="#064e3b" stroke="#10b981" stroke-width="1" />
-    <text x="210" y="33" text-anchor="middle" class="badge-text" fill="#34d399">Postgres</text>
-    
-    <text x="20" y="52" class="subtitle">Local dev with bundled Postgres</text>
-    <line x1="20" y1="65" x2="240" y2="65" stroke="#21262d" stroke-width="1" />
+  <text x="28" y="26" class="eyebrow">DATA SOVEREIGNTY &amp; MULTI-TENANT RLS</text>
+  <text x="28" y="46" class="hdr">Kestrel Self-Hosted &amp; Local Execution Profiles</text>
 
-    <!-- Details block 1 -->
-    <rect x="20" y="80" width="220" height="44" rx="8" fill="#161b22" stroke="#30363d" />
-    <text x="32" y="98" class="item-title">💻 Web App Layer</text>
-    <text x="32" y="114" class="item-desc">Next.js 16 • React 19 • Auth.js</text>
+  <!-- PROFILE 1: 1-CLICK DOCKER STACK (PRIMARY) -->
+  <g transform="translate(26, 64)" filter="url(#cardSh)">
+    <rect width="276" height="302" rx="12" fill="url(#cardSurf)" stroke="#441c14" stroke-width="1.5" />
+    <rect x="0" y="0" width="276" height="4" rx="2" fill="url(#emberTop)" />
+    <text x="18" y="30" class="title">1-Click Docker Stack</text>
+    <rect x="184" y="15" width="76" height="20" rx="10" fill="#0d0e10" stroke="#ff3616" stroke-width="1" />
+    <text x="222" y="29" text-anchor="middle" class="badge" fill="#ff3616">RECOMMENDED</text>
+    <text x="18" y="48" class="subtitle">Complete production self-hosted stack</text>
+    <line x1="18" y1="58" x2="258" y2="58" stroke="#262729" />
 
-    <!-- Details block 2 -->
-    <rect x="20" y="134" width="220" height="44" rx="8" fill="#161b22" stroke="#30363d" />
-    <text x="32" y="152" class="item-title">🐘 Bundled Database</text>
-    <text x="32" y="168" class="item-desc">PostgreSQL 16 with pgvector</text>
+    <rect x="18" y="70" width="240" height="44" rx="8" fill="#0d0e10" stroke="#262729" />
+    <text x="30" y="88" class="item-title">Next.js 16 Studio + Worker Daemon</text>
+    <text x="30" y="104" class="item-desc">Web (:3000) + 8 Crons, Queues &amp; Streams</text>
 
-    <!-- Details block 3 -->
-    <rect x="20" y="188" width="220" height="44" rx="8" fill="#161b22" stroke="#30363d" />
-    <text x="32" y="206" class="item-title">⚙️ Development Server</text>
-    <text x="32" y="222" class="item-desc">Next.js Turbopack dev process</text>
+    <rect x="18" y="122" width="240" height="44" rx="8" fill="#0d0e10" stroke="#262729" />
+    <text x="30" y="140" class="item-title">PostgreSQL 16 + pgvector + RLS</text>
+    <text x="30" y="156" class="item-desc">kestrel_app (NOBYPASSRLS) tenant isolation</text>
 
-    <!-- Quick Run Box -->
-    <rect x="20" y="248" width="220" height="50" rx="8" fill="#0d1117" stroke="#10b981" stroke-width="1" stroke-dasharray="3,3" />
-    <text x="32" y="268" class="subtitle">Quickstart Command:</text>
-    <text x="32" y="286" class="code-pill" fill="#10b981">$ pnpm dev</text>
+    <rect x="18" y="174" width="240" height="44" rx="8" fill="#0d0e10" stroke="#262729" />
+    <text x="30" y="192" class="item-title">Automated pg_dump Backup Sidecar</text>
+    <text x="30" y="208" class="item-desc">Daily verified archives + 7-day retention</text>
+
+    <rect x="18" y="232" width="240" height="54" rx="8" fill="#0d0e10" stroke="#441c14" stroke-dasharray="3,3" />
+    <text x="30" y="252" class="subtitle">Launch Command:</text>
+    <text x="30" y="272" class="cmd" fill="#ff3616">$ ./docker/init-secrets.sh &amp;&amp; docker compose up -d</text>
   </g>
 
-  <!-- CARD 2: DOCKER STACK -->
-  <g transform="translate(320, 30)">
-    <rect width="260" height="320" rx="12" fill="url(#cardBg1)" stroke="#38bdf8" stroke-width="1.5" filter="url(#cardShadow)" />
-    <!-- Header Top Line -->
-    <rect x="0" y="0" width="260" height="4" rx="2" fill="url(#accentBlue)" />
-    
-    <!-- Title & Badge -->
-    <text x="20" y="34" class="title">🐳 DOCKER STACK</text>
-    <rect x="165" y="20" width="75" height="18" rx="9" fill="#0c4a6e" stroke="#38bdf8" stroke-width="1" />
-    <text x="202" y="33" text-anchor="middle" class="badge-text" fill="#38bdf8">Full Stack</text>
-    
-    <text x="20" y="52" class="subtitle">Production multi-user self-hosting</text>
-    <line x1="20" y1="65" x2="240" y2="65" stroke="#21262d" stroke-width="1" />
+  <!-- PROFILE 2: LOCAL HYBRID DEV -->
+  <g transform="translate(322, 64)" filter="url(#cardSh)">
+    <rect width="276" height="302" rx="12" fill="url(#cardSurf)" stroke="#2c2c2c" stroke-width="1.25" />
+    <rect x="0" y="0" width="276" height="4" rx="2" fill="url(#bullTop)" />
+    <text x="18" y="30" class="title">Local Developer Loop</text>
+    <rect x="192" y="15" width="68" height="20" rx="10" fill="#0d0e10" stroke="#3f9e3d" stroke-width="1" />
+    <text x="226" y="29" text-anchor="middle" class="badge" fill="#3f9e3d">HMR + TSRS</text>
+    <text x="18" y="48" class="subtitle">Host Node 22 + Docker Postgres 16</text>
+    <line x1="18" y1="58" x2="258" y2="58" stroke="#262729" />
 
-    <!-- Details block 1 -->
-    <rect x="20" y="80" width="220" height="44" rx="8" fill="#161b22" stroke="#30363d" />
-    <text x="32" y="98" class="item-title">📦 Web Container</text>
-    <text x="32" y="114" class="item-desc">Next.js 16 PWA on Node 22</text>
+    <rect x="18" y="70" width="240" height="44" rx="8" fill="#0d0e10" stroke="#262729" />
+    <text x="30" y="88" class="item-title">Zero-Build @kestrel/source Loop</text>
+    <text x="30" y="104" class="item-desc">Resolves workspace TypeScript directly</text>
 
-    <!-- Details block 2 -->
-    <rect x="20" y="134" width="220" height="44" rx="8" fill="#161b22" stroke="#30363d" />
-    <text x="32" y="152" class="item-title">🐘 PostgreSQL 16 + pgvector</text>
-    <text x="32" y="168" class="item-desc">Dedicated DB with semantic embeddings</text>
+    <rect x="18" y="122" width="240" height="44" rx="8" fill="#0d0e10" stroke="#262729" />
+    <text x="30" y="140" class="item-title">Bundled Postgres Container (:5432)</text>
+    <text x="30" y="156" class="item-desc">docker compose up -d db + migrate:apply</text>
 
-    <!-- Details block 3 -->
-    <rect x="20" y="188" width="220" height="44" rx="8" fill="#161b22" stroke="#30363d" />
-    <text x="32" y="206" class="item-title">⚡ 24/7 Tick Worker &amp; Backup</text>
-    <text x="32" y="222" class="item-desc">SignalR + Binance WS + Auto-Dumps</text>
+    <rect x="18" y="174" width="240" height="44" rx="8" fill="#0d0e10" stroke="#262729" />
+    <text x="30" y="192" class="item-title">Sub-Second Rust Verification</text>
+    <text x="30" y="208" class="item-desc">Oxlint + Oxfmt + tsrs + 8 Static Guards</text>
 
-    <!-- Quick Run Box -->
-    <rect x="20" y="248" width="220" height="50" rx="8" fill="#0d1117" stroke="#38bdf8" stroke-width="1" stroke-dasharray="3,3" />
-    <text x="32" y="268" class="subtitle">Quickstart Command:</text>
-    <text x="32" y="286" class="code-pill">$ docker compose up -d</text>
+    <rect x="18" y="232" width="240" height="54" rx="8" fill="#0d0e10" stroke="#3f9e3d" stroke-dasharray="3,3" />
+    <text x="30" y="252" class="subtitle">Launch Command:</text>
+    <text x="30" y="272" class="cmd" fill="#3f9e3d">$ pnpm dev</text>
   </g>
 
-  <!-- CARD 3: EXTERNAL POSTGRES -->
-  <g transform="translate(610, 30)">
-    <rect width="260" height="320" rx="12" fill="url(#cardBg1)" stroke="#30363d" stroke-width="1.5" filter="url(#cardShadow)" />
-    <!-- Header Top Line -->
-    <rect x="0" y="0" width="260" height="4" rx="2" fill="url(#accentPurple)" />
-    
-    <!-- Title & Badge -->
-    <text x="20" y="34" class="title">⚙️ EXTERNAL DB</text>
-    <rect x="175" y="20" width="65" height="18" rx="9" fill="#4c1d95" stroke="#a855f7" stroke-width="1" />
-    <text x="207" y="33" text-anchor="middle" class="badge-text" fill="#c084fc">Managed</text>
-    
-    <text x="20" y="52" class="subtitle">Operator-managed cloud VPS or host</text>
-    <line x1="20" y1="65" x2="240" y2="65" stroke="#21262d" stroke-width="1" />
+  <!-- PROFILE 3: EXTERNAL / CLOUD POSTGRES -->
+  <g transform="translate(618, 64)" filter="url(#cardSh)">
+    <rect width="276" height="302" rx="12" fill="url(#cardSurf)" stroke="#2c2c2c" stroke-width="1.25" />
+    <rect x="0" y="0" width="276" height="4" rx="2" fill="url(#infoTop)" />
+    <text x="18" y="30" class="title">Managed Cloud / VPS</text>
+    <rect x="186" y="15" width="74" height="20" rx="10" fill="#0d0e10" stroke="#4fa3b5" stroke-width="1" />
+    <text x="223" y="29" text-anchor="middle" class="badge" fill="#4fa3b5">EXTERNAL DB</text>
+    <text x="18" y="48" class="subtitle">Vercel / Cloud Run + Supabase / Neon</text>
+    <line x1="18" y1="58" x2="258" y2="58" stroke="#262729" />
 
-    <!-- Details block 1 -->
-    <rect x="20" y="80" width="220" height="44" rx="8" fill="#161b22" stroke="#30363d" />
-    <text x="32" y="98" class="item-title">☁️ VPS / Cloud Host</text>
-    <text x="32" y="114" class="item-desc">Railway, Fly.io, Hetzner, AWS, etc.</text>
+    <rect x="18" y="70" width="240" height="44" rx="8" fill="#0d0e10" stroke="#262729" />
+    <text x="30" y="88" class="item-title">Split Web &amp; Worker Runtime</text>
+    <text x="30" y="104" class="item-desc">Serverless Web + VPS/Container Worker</text>
 
-    <!-- Details block 2 -->
-    <rect x="20" y="134" width="220" height="44" rx="8" fill="#161b22" stroke="#30363d" />
-    <text x="32" y="152" class="item-title">🗄️ External PostgreSQL</text>
-    <text x="32" y="168" class="item-desc">Custom database URL + TLS</text>
+    <rect x="18" y="122" width="240" height="44" rx="8" fill="#0d0e10" stroke="#262729" />
+    <text x="30" y="140" class="item-title">3-Role Connection Separation</text>
+    <text x="30" y="156" class="item-desc">DATABASE_URL · ADMIN_DATABASE_URL · DIRECT_URL</text>
 
-    <!-- Details block 3 -->
-    <rect x="20" y="188" width="220" height="44" rx="8" fill="#161b22" stroke="#30363d" />
-    <text x="32" y="206" class="item-title">🛡️ Operator Governance</text>
-    <text x="32" y="222" class="item-desc">Custom backups, scaling &amp; watchdog</text>
+    <rect x="18" y="174" width="240" height="44" rx="8" fill="#0d0e10" stroke="#262729" />
+    <text x="30" y="192" class="item-title">Pre-Deploy Hash &amp; Role Provisioner</text>
+    <text x="30" y="208" class="item-desc">predeploy-migrate.mjs + provision:app-role</text>
 
-    <!-- Quick Run Box -->
-    <rect x="20" y="248" width="220" height="50" rx="8" fill="#0d1117" stroke="#a855f7" stroke-width="1" stroke-dasharray="3,3" />
-    <text x="32" y="268" class="subtitle">Environment Configuration:</text>
-    <text x="32" y="286" class="code-pill" fill="#c084fc">DATABASE_URL=postgres://...</text>
+    <rect x="18" y="232" width="240" height="54" rx="8" fill="#0d0e10" stroke="#4fa3b5" stroke-dasharray="3,3" />
+    <text x="30" y="252" class="subtitle">Provisioning Helper:</text>
+    <text x="30" y="272" class="cmd" fill="#4fa3b5">$ pnpm setup --mode=external</text>
   </g>
 </svg>

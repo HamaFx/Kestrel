@@ -42,7 +42,7 @@
             "name": "@kestrel/ai",
             "importNames": ["runChat", "createThread", "listThreads", "getThread", "listMessages"],
             "allowTypeImports": true,
-            "message": "Prefer sub-path imports \u2014 use @kestrel/ai/agent, @kestrel/ai/persistence, etc."
+            "message": "Prefer sub-path imports \u2014 use @kestrel/ai/mastra-v2, @kestrel/ai/persistence, @kestrel/ai/cost, @kestrel/ai/cron, or @kestrel/ai/plugins."
           }
         ]
       }
