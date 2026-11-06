@@ -1,30 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Journal entry form state, field validation, screenshot upload, and submit.
-import { type Symbol, type TradeSide } from '@kestrel/shared';
+import { validateTradeLevels, type Symbol, type TradeSide } from '@kestrel/shared';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { z } from 'zod';
 
 import { apiFetch } from '@/lib/http/api-client';
+import { JournalCreateSchema } from '@/lib/services/journal/schemas';
 
 import { createJournalEntryAction } from '../../actions';
 import { useTagSuggestions } from './tag-suggestions';
-
-const entrySchema = z.object({
-  symbol: z.string().min(1, 'Symbol is required'),
-  side: z.enum(['long', 'short']),
-  entry: z
-    .number({
-      error: (issue) => (issue.input === undefined ? undefined : 'Entry price must be a number'),
-    })
-    .positive('Entry price must be positive'),
-  stop: z.number().positive('Stop loss must be positive').nullable().optional(),
-  target: z.number().positive('Target must be positive').nullable().optional(),
-  size: z.number().positive('Size must be positive').nullable().optional(),
-  notes: z.string().max(5000, 'Notes must be under 5000 characters').nullable().optional(),
-  tags: z.array(z.string()).optional(),
-});
 
 interface UseEntryFormArgs {
   onCreated?: () => void;
@@ -51,34 +36,22 @@ export function useEntryForm({ onCreated }: UseEntryFormArgs) {
   });
 
   function validateEntry(v: string): string | null {
-    const n = Number(v);
     if (!v) return 'Entry price is required';
-    if (!Number.isFinite(n) || n <= 0) return 'Entry must be positive';
-    return null;
+    return validateTradeLevels({ side, entry: Number(v) });
   }
 
   function validateStop(v: string): string | null {
     if (!v) return null;
-    const n = Number(v);
-    if (!Number.isFinite(n) || n <= 0) return 'Stop must be positive';
     const entryNum = Number(entry);
-    if (Number.isFinite(entryNum)) {
-      if (side === 'long' && n >= entryNum) return 'Long stop must be below entry';
-      if (side === 'short' && n <= entryNum) return 'Short stop must be above entry';
-    }
-    return null;
+    if (!Number.isFinite(entryNum) || entryNum <= 0) return null;
+    return validateTradeLevels({ side, entry: entryNum, stop: Number(v), target: null });
   }
 
   function validateTarget(v: string): string | null {
     if (!v) return null;
-    const n = Number(v);
-    if (!Number.isFinite(n) || n <= 0) return 'Target must be positive';
     const entryNum = Number(entry);
-    if (Number.isFinite(entryNum)) {
-      if (side === 'long' && n <= entryNum) return 'Long target must be above entry';
-      if (side === 'short' && n >= entryNum) return 'Short target must be below entry';
-    }
-    return null;
+    if (!Number.isFinite(entryNum) || entryNum <= 0) return null;
+    return validateTradeLevels({ side, entry: entryNum, stop: null, target: Number(v) });
   }
 
   function setFieldError(field: string, err: string | null) {
@@ -167,7 +140,7 @@ export function useEntryForm({ onCreated }: UseEntryFormArgs) {
       screenshotUrl,
     };
 
-    const validation = entrySchema.safeParse(parsed);
+    const validation = JournalCreateSchema.safeParse(parsed);
     if (!validation.success) {
       setBusy(false);
       setError(validation.error.issues[0]?.message ?? 'Invalid input');
@@ -175,20 +148,6 @@ export function useEntryForm({ onCreated }: UseEntryFormArgs) {
     }
 
     const data = validation.data;
-
-    // Field-level sanity check: long stops must be below entry, short above.
-    if (data.stop !== null && data.stop !== undefined) {
-      if (side === 'long' && data.stop >= data.entry) {
-        setBusy(false);
-        setError('Long stop must be below entry');
-        return;
-      }
-      if (side === 'short' && data.stop <= data.entry) {
-        setBusy(false);
-        setError('Short stop must be above entry');
-        return;
-      }
-    }
 
     try {
       const res = await createJournalEntryAction({

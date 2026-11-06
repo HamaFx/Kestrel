@@ -18,17 +18,11 @@
 
 // save_api_key / clear_api_key actions for /api/admin/platform-config.
 
-import { testProviderKey } from '@kestrel/ai';
-import {
-  createAuditLog,
-  deleteProviderTestResult,
-  mergeUserByokKeys,
-  recordProviderTestResult,
-  removeUserByokKey,
-} from '@kestrel/db';
+import { createAuditLog } from '@kestrel/db';
 import { PROVIDER_IDS, type ProviderId } from '@kestrel/shared/encryption';
 
 import type { AdminUser } from '@/lib/auth/admin-auth';
+import { applyUserApiKeyPatch } from '@/lib/services/settings/user-settings';
 
 import type { PlatformConfigContext } from './context';
 import type { PlatformConfigPatch } from './schema';
@@ -48,39 +42,27 @@ export async function saveApiKeyAction(
   }
 
   const apiKey = body.apiKey.trim();
-  const testResult = await testProviderKey(providerId, apiKey);
 
   // The vault write and its provider-health row commit together, so a health
   // badge can never describe a key the vault did not keep.
-  await mergeUserByokKeys(
+  const outcome = await applyUserApiKeyPatch(
     targetUserId,
     { set: { [providerId]: apiKey } },
-    {
-      db,
-      tenantId,
-      afterWrite: async (tx) => {
-        await recordProviderTestResult(
-          targetUserId,
-          {
-            providerId,
-            ok: testResult.ok,
-            error: testResult.ok ? null : (testResult.error ?? 'Connection check failed'),
-          },
-          { db: tx, tenantId },
-        );
-      },
-    },
+    { db, tenantId, testUnchanged: true },
   );
+  const check = outcome.checks.find((item) => item.id === providerId && item.action === 'upsert');
+  const testOk = check?.ok ?? false;
+  const testError = check?.error ?? (testOk ? null : 'Connection check failed');
 
   await createAuditLog(user.userId, 'admin.platform_config.save_api_key', {
     providerId,
-    testOk: testResult.ok,
+    testOk,
   });
 
   return Response.json({
     ok: true,
-    testOk: testResult.ok,
-    testError: !testResult.ok ? (testResult.error ?? null) : null,
+    testOk,
+    testError,
   });
 }
 
@@ -92,13 +74,7 @@ export async function clearApiKeyAction(
   const { db, targetUserId, tenantId } = ctx;
   const providerId = body.providerId as ProviderId;
 
-  await removeUserByokKey(targetUserId, providerId, {
-    db,
-    tenantId,
-    afterWrite: async (tx) => {
-      await deleteProviderTestResult(targetUserId, providerId, { db: tx, tenantId });
-    },
-  });
+  await applyUserApiKeyPatch(targetUserId, { remove: [providerId] }, { db, tenantId });
 
   await createAuditLog(user.userId, 'admin.platform_config.clear_api_key', {
     providerId,

@@ -49,15 +49,10 @@ export { updateProfileAction } from './_actions/preferences-profile';
 export { updateUIPrefsAction } from './_actions/preferences-ui';
 export { updateAiPrefsAction, updateDisabledToolsAction } from './_actions/preferences-ai';
 export { updateNotificationPrefsAction } from './_actions/preferences-notifications';
-export { addSymbolAction, removeSymbolAction } from './_actions/preferences-symbols';
 
 // Data
 export { clearChatHistoryAction } from './_actions/data-clear';
 export { exportDataAction } from './_actions/data-export';
 
-// Models & Onboarding
-export {
-  updateChatModelAction,
-  clearChatModelAction,
-  resetOnboardingAction,
-} from './_actions/models';
+// Onboarding
+export { resetOnboardingAction } from './_actions/onboarding';

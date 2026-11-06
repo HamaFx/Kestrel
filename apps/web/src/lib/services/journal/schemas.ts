@@ -22,24 +22,30 @@ import {
   SymbolSchema,
   TradeOutcomeSchema,
   TradeSideSchema,
+  validateTradeLevels,
   type JournalEntry,
 } from '@kestrel/shared';
 import { z } from 'zod';
 
 // ── Schemas (shared between controller and tests) ──────────────────────────
 
-export const JournalCreateSchema = z.object({
-  symbol: SymbolSchema,
-  side: TradeSideSchema,
-  openedAt: z.int(),
-  entry: z.number(),
-  stop: z.number().nullable().optional(),
-  target: z.number().nullable().optional(),
-  size: z.number().nullable().optional(),
-  notes: z.string().max(5000).nullable().optional(),
-  tags: z.array(z.string().max(40)).max(10).optional(),
-  screenshotUrl: z.string().nullable().optional(),
-});
+export const JournalCreateSchema = z
+  .object({
+    symbol: SymbolSchema,
+    side: TradeSideSchema,
+    openedAt: z.int(),
+    entry: z.number(),
+    stop: z.number().nullable().optional(),
+    target: z.number().nullable().optional(),
+    size: z.number().nullable().optional(),
+    notes: z.string().max(5000).nullable().optional(),
+    tags: z.array(z.string().max(40)).max(10).optional(),
+    screenshotUrl: z.string().nullable().optional(),
+  })
+  .superRefine((value, ctx) => {
+    const message = validateTradeLevels(value);
+    if (message) ctx.addIssue({ code: 'custom', message, path: ['entry'] });
+  });
 
 export const JournalPatchSchema = z.object({
   closedAt: z.int().nullable().optional(),

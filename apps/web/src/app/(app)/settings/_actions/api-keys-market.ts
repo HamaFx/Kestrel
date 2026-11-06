@@ -21,12 +21,12 @@
 // Market-data provider selection action.
 // Audit 2026-10-31 (R1): a server action inherits no scope from its page, so
 // the `user_settings` write opens its own `withUserTenant` scope.
-import { requireTenantIdForUser, schema, withRateLimit, withUserTenant } from '@kestrel/db';
-import { and, eq } from 'drizzle-orm';
+import { withRateLimit, withUserTenant } from '@kestrel/db';
 import { revalidatePath } from 'next/cache';
 
 import { auth } from '@/auth';
 import { logActionError } from '@/lib/http/action-errors';
+import { updateUserSettingsFields } from '@/lib/services/settings/user-settings';
 
 import { type ActionResult } from './shared';
 
@@ -50,20 +50,9 @@ export async function updateMarketDataProviderAction(formData: FormData): Promis
   }
 
   try {
-    await withUserTenant(session.user.id, async (db) => {
-      const tenantId = await requireTenantIdForUser(session.user.id, db);
-      await db
-        .update(schema.userSettings)
-        .set({
-          marketDataProvider: provider,
-        })
-        .where(
-          and(
-            eq(schema.userSettings.userId, session.user.id),
-            eq(schema.userSettings.tenantId, tenantId),
-          ),
-        );
-    });
+    await withUserTenant(session.user.id, (db) =>
+      updateUserSettingsFields(session.user.id, { marketDataProvider: provider }, { db }),
+    );
 
     revalidatePath('/settings/api-keys');
     revalidatePath('/settings');

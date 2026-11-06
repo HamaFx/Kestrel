@@ -25,25 +25,19 @@
 // that rendered them, so they inherit no tenant scope. Every DB phase below
 // opens its own `withUserTenant` scope; unscoped under `kestrel_app` the
 // stored-payload read returns no row and untouched keys would be dropped.
-import { testProviderKey } from '@kestrel/ai';
-import {
-  deleteProviderTestResult,
-  mergeUserByokKeys,
-  readUserByokState,
-  recordProviderTestResult,
-  withUserTenant,
-} from '@kestrel/db';
-import { PROVIDER_IDS, type ProviderId } from '@kestrel/shared/encryption';
+import { withUserTenant } from '@kestrel/db';
+import { PROVIDER_IDS } from '@kestrel/shared/encryption';
 import { revalidatePath } from 'next/cache';
 
 import { auth } from '@/auth';
+import {
+  readUserApiKeyState,
+  testUserApiKeyPatch,
+  writeUserApiKeyPatch,
+} from '@/lib/services/settings/user-settings';
 
 import { BYOK_KEY_KEEP, BYOK_KEY_REMOVE } from '../api-keys/_components/byok-key-sentinel';
 import { type SaveKeysResult } from './shared';
-
-type ProviderTestResult =
-  | { id: string; action: 'upsert'; ok: boolean; error: string | null }
-  | { id: string; action: 'delete' };
 
 /**
  * Server action to save/update/clear API keys for all BYOK providers.
@@ -81,66 +75,21 @@ export async function updateApiKeysAction(
 
   try {
     const userId = session.user.id;
+    const patch = { set, remove };
 
-    // Audit 2026-10-31 (R1): read the stored payload inside the user's scope.
-    // The patch below only names providers the form spoke about, so untouched
-    // keys (including finnhub) are carried forward.
-    const before = await withUserTenant(userId, (db) => readUserByokState(userId, db));
-
-    // STAB-10: Run all network calls (testProviderKey) BEFORE opening a
-    // DB transaction so we don't hold a connection open during I/O.
-    const testedAt = new Date();
-    const testResults: ProviderTestResult[] = [];
-
-    for (const [id, value] of Object.entries(set)) {
-      if (value === before.keys[id as ProviderId]) continue;
-      const result = await testProviderKey(id as ProviderId, value);
-      testResults.push({
-        id,
-        action: 'upsert',
-        ok: result.ok,
-        error: result.ok ? null : (result.error ?? 'unknown error'),
-      });
-    }
-    for (const id of remove) {
-      if (!before.keys[id as ProviderId]) continue;
-      testResults.push({ id, action: 'delete' });
-    }
-
-    // STAB-10: Atomic write — the vault update and every health row commit in
-    // one user-tenant transaction, after the network calls above.
-    const merged = await withUserTenant(userId, () =>
-      mergeUserByokKeys(
-        userId,
-        { set, remove },
-        {
-          changedAt: testedAt.toISOString(),
-          afterWrite: async (tx) => {
-            for (const result of testResults) {
-              if (result.action === 'upsert') {
-                await recordProviderTestResult(
-                  userId,
-                  {
-                    providerId: result.id,
-                    ok: result.ok,
-                    error: result.error,
-                  },
-                  { db: tx, testedAt },
-                );
-              } else {
-                await deleteProviderTestResult(userId, result.id, { db: tx });
-              }
-            }
-          },
-        },
-      ),
+    // STAB-10: read and test outside the write transaction so provider
+    // network calls never hold a database connection open.
+    const before = await readUserApiKeyState(userId);
+    const checks = await testUserApiKeyPatch(before, patch);
+    const keys = await withUserTenant(userId, (db) =>
+      writeUserApiKeyPatch(userId, patch, checks, { db }),
     );
 
     revalidatePath('/settings/api-keys');
     return {
       ok: true as const,
       data: {
-        savedCount: Object.keys(merged.keys).length,
+        savedCount: Object.keys(keys).length,
         clearedCount,
         at: Date.now(),
       },

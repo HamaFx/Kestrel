@@ -92,6 +92,7 @@ export interface AnalysisModeDTO {
 export * from './domain';
 
 export { validateAndSaveUserModel } from './chat-model';
+export * from './user-settings';
 
 export async function getAnalysisModeService(userId: string): Promise<AnalysisModeDTO> {
   const { settings } = await getUserWithSettings(userId);

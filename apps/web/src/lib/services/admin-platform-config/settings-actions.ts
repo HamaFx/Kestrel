@@ -19,10 +19,13 @@
 // update_routing / update_market_data / update_disabled_tools / update_budget
 // actions for /api/admin/platform-config.
 
-import { createAuditLog, schema } from '@kestrel/db';
-import { and, eq } from 'drizzle-orm';
+import { createAuditLog } from '@kestrel/db';
 
 import type { AdminUser } from '@/lib/auth/admin-auth';
+import {
+  updateUserSettingsFields,
+  type UserSettingsPatch,
+} from '@/lib/services/settings/user-settings';
 
 import type { PlatformConfigContext } from './context';
 import type { PlatformConfigPatch } from './schema';
@@ -35,7 +38,7 @@ export async function updateRoutingAction(
   body: Extract<Patch, { action: 'update_routing' }>,
 ): Promise<Response> {
   const { db, targetUserId, tenantId } = ctx;
-  const updatePayload: Partial<typeof schema.userSettings.$inferInsert> = {};
+  const updatePayload: UserSettingsPatch = {};
   if (body.chatModel !== undefined) updatePayload.chatModel = body.chatModel;
   if (body.visionModel !== undefined) updatePayload.visionModel = body.visionModel;
   if (body.embeddingModel !== undefined) updatePayload.embeddingModel = body.embeddingModel;
@@ -53,12 +56,7 @@ export async function updateRoutingAction(
     updatePayload.customInstructions = body.customInstructions;
   }
 
-  await db
-    .update(schema.userSettings)
-    .set(updatePayload)
-    .where(
-      and(eq(schema.userSettings.userId, targetUserId), eq(schema.userSettings.tenantId, tenantId)),
-    );
+  await updateUserSettingsFields(targetUserId, updatePayload, { db, tenantId });
 
   await createAuditLog(user.userId, 'admin.platform_config.update_routing', {
     fields: Object.keys(updatePayload),
@@ -73,12 +71,11 @@ export async function updateMarketDataAction(
   body: Extract<Patch, { action: 'update_market_data' }>,
 ): Promise<Response> {
   const { db, targetUserId, tenantId } = ctx;
-  await db
-    .update(schema.userSettings)
-    .set({ marketDataProvider: body.marketDataProvider })
-    .where(
-      and(eq(schema.userSettings.userId, targetUserId), eq(schema.userSettings.tenantId, tenantId)),
-    );
+  await updateUserSettingsFields(
+    targetUserId,
+    { marketDataProvider: body.marketDataProvider },
+    { db, tenantId },
+  );
 
   await createAuditLog(user.userId, 'admin.platform_config.update_market_data', {
     marketDataProvider: body.marketDataProvider,
@@ -93,12 +90,11 @@ export async function updateDisabledToolsAction(
   body: Extract<Patch, { action: 'update_disabled_tools' }>,
 ): Promise<Response> {
   const { db, targetUserId, tenantId } = ctx;
-  await db
-    .update(schema.userSettings)
-    .set({ disabledTools: body.disabledTools })
-    .where(
-      and(eq(schema.userSettings.userId, targetUserId), eq(schema.userSettings.tenantId, tenantId)),
-    );
+  await updateUserSettingsFields(
+    targetUserId,
+    { disabledTools: body.disabledTools },
+    { db, tenantId },
+  );
 
   await createAuditLog(user.userId, 'admin.platform_config.update_disabled_tools', {
     disabledCount: body.disabledTools.length,
@@ -113,17 +109,12 @@ export async function updateBudgetAction(
   body: Extract<Patch, { action: 'update_budget' }>,
 ): Promise<Response> {
   const { db, targetUserId, tenantId } = ctx;
-  const updatePayload: Partial<typeof schema.userSettings.$inferInsert> = {};
+  const updatePayload: UserSettingsPatch = {};
   if (body.maxDailyUsd !== undefined) {
     updatePayload.maxDailyUsd = body.maxDailyUsd;
   }
 
-  await db
-    .update(schema.userSettings)
-    .set(updatePayload)
-    .where(
-      and(eq(schema.userSettings.userId, targetUserId), eq(schema.userSettings.tenantId, tenantId)),
-    );
+  await updateUserSettingsFields(targetUserId, updatePayload, { db, tenantId });
 
   await createAuditLog(user.userId, 'admin.platform_config.update_budget', updatePayload);
 
