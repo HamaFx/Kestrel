@@ -25,7 +25,8 @@
 
 import type { Candle } from '@kestrel/shared';
 
-import { SESSION_WINDOWS } from './sessions';
+import { collectDistinctDays } from '../util';
+import { SESSION_WINDOWS, sliceSessionRange } from './sessions';
 
 const ASIAN_WINDOW = SESSION_WINDOWS[0]!;
 
@@ -44,56 +45,25 @@ export interface AsianRange {
 export function computeAsianRange(candles: Candle[]): AsianRange | null {
   if (candles.length === 0) return null;
 
-  // Walk distinct UTC days backwards from the latest bar; pick the first
-  // day that has at least one bar inside the Asian window.
+  const latest = candles[candles.length - 1]!;
   const days = collectDistinctDays(candles);
 
+  // Walk distinct UTC days backwards from the latest bar; pick the first day
+  // with bars in the Asian window.
   for (let i = days.length - 1; i >= 0; i -= 1) {
     const day = days[i]!;
-    const bars = candles.filter((c) => utcDayKey(c.t) === day && inAsianWindow(c.t));
-    if (bars.length === 0) continue;
-
-    let high = Number.NEGATIVE_INFINITY;
-    let low = Number.POSITIVE_INFINITY;
-    let fromTime = bars[0]!.t;
-    let toTime = bars[0]!.t;
-    for (const b of bars) {
-      if (b.h > high) high = b.h;
-      if (b.l < low) low = b.l;
-      if (b.t < fromTime) fromTime = b.t;
-      if (b.t > toTime) toTime = b.t;
-    }
-
-    const latest = candles[candles.length - 1]!;
-    const forming = utcDayKey(latest.t) === day && inAsianWindow(latest.t);
-
-    return { date: day, high, low, fromTime, toTime, forming };
+    const dayStart = Date.parse(`${day}T00:00:00.000Z`);
+    if (!Number.isFinite(dayStart)) continue;
+    const range = sliceSessionRange(candles, dayStart, latest.t, ASIAN_WINDOW);
+    if (range.open === null || range.high === null || range.low === null) continue;
+    return {
+      date: day,
+      high: range.high,
+      low: range.low,
+      fromTime: range.fromMs,
+      toTime: range.toMs,
+      forming: range.forming,
+    };
   }
   return null;
-}
-
-function utcDayKey(ms: number): string {
-  const d = new Date(ms);
-  const yyyy = d.getUTCFullYear().toString().padStart(4, '0');
-  const mm = (d.getUTCMonth() + 1).toString().padStart(2, '0');
-  const dd = d.getUTCDate().toString().padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-function inAsianWindow(ms: number): boolean {
-  const h = new Date(ms).getUTCHours();
-  return h >= ASIAN_WINDOW.startHour && h < ASIAN_WINDOW.endHour;
-}
-
-function collectDistinctDays(candles: Candle[]): string[] {
-  const days: string[] = [];
-  let last = '';
-  for (const c of candles) {
-    const k = utcDayKey(c.t);
-    if (k !== last) {
-      days.push(k);
-      last = k;
-    }
-  }
-  return days;
 }

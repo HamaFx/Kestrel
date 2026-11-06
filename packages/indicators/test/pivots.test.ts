@@ -37,7 +37,10 @@ describe('classicPivots', () => {
 
 describe('pivotsAligned', () => {
   it('returns null for the first candle and pivots for the rest', () => {
-    const candles = makeCandles([1, 2, 3]);
+    const candles = makeCandles([1, 2, 3]).map((candle, index) => ({
+      ...candle,
+      t: index * 86_400_000,
+    }));
     const out = pivotsAligned(candles);
     expect(out[0]).toBeNull();
     expect(out[1]).not.toBeNull();

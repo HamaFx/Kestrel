@@ -45,13 +45,10 @@ const FX_CURRENCY_TAGS: Record<string, CurrencyTag> = {
   // than a currency. We catch it via keyword detection in `extractSymbols`.
 };
 
-const GOLD_RE = /\b(gold|xau)\b/i;
-
 /**
  * Derive symbol tags from a Marketaux article. We union:
  *   - explicit currency entities ($USD, $EUR, $GBP)
  *   - every catalog symbol mentioned in title/snippet (gold, FX, crypto)
- *   - the currency-style "XAU" tag for the currency filter
  *
  * Result is deduped; stocks and other non-catalog tickers fall out so the
  * news_articles.symbols column stays a tight, indexable set.
@@ -76,9 +73,6 @@ export function extractSymbols(args: {
   for (const symbol of extractSymbolsFromText(text)) {
     if (isKnownSymbol(symbol)) out.add(symbol as Symbol);
   }
-
-  // 3) Currency-style gold tag, so the currency filter also reaches gold news.
-  if (GOLD_RE.test(text)) out.add('XAU');
 
   return [...out];
 }

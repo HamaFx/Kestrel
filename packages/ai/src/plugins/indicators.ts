@@ -32,7 +32,7 @@ import { pluginHost } from '@kestrel/plugin-sdk';
 export function syncPluginIndicators(): void {
   for (const indicator of pluginHost.getIndicators()) {
     indicatorRegistry.register({
-      kind: indicator.kind as never,
+      kind: indicator.kind,
       description: indicator.description,
       paramsSchema: indicator.paramsSchema,
       compute: (candles, params) => indicator.compute(candles, params),

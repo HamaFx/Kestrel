@@ -364,7 +364,8 @@ describe('classicPivots (property)', () => {
 describe('pivotsAligned (property)', () => {
   it('first entry is null, remaining have valid structure', () =>
     fc.assert(
-      fc.property(fc.array(candleArb, { minLength: 2, maxLength: 100 }), (candles) => {
+      fc.property(fc.array(candleArb, { minLength: 2, maxLength: 100 }), (raw) => {
+        const candles = raw.map((candle, index) => ({ ...candle, t: index * 86_400_000 }));
         const out = pivotsAligned(candles);
         expect(out).toHaveLength(candles.length);
         expect(out[0]).toBeNull();

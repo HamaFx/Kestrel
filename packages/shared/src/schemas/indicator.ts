@@ -52,7 +52,7 @@ export const IndicatorSeriesValueSchema = z.union([
 export const IndicatorResultSchema = z.object({
   symbol: SymbolSchema,
   tf: TimeframeSchema,
-  kind: IndicatorKindSchema,
+  kind: IndicatorKindSchema.or(z.string().min(1)),
   params: IndicatorParamsSchema,
   /** Aligned 1:1 with the candle window the request was computed against. */
   values: z.array(IndicatorSeriesValueSchema),

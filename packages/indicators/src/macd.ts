@@ -20,6 +20,7 @@
 import type { Candle } from '@kestrel/shared';
 
 import { ema } from './moving-averages';
+import { emaOfNumbers } from './util';
 
 export interface MacdPoint {
   /** EMA(fast) - EMA(slow). */
@@ -59,22 +60,5 @@ export function macd(candles: Candle[], fast = 12, slow = 26, signal = 9): MacdP
       m !== null && sig !== null && m !== undefined && sig !== undefined ? m - sig : null;
     return { macd: m ?? null, signal: sig, hist };
   });
-  return out;
-}
-
-/** EMA over a raw number series (used internally by MACD signal line). */
-function emaOfNumbers(xs: number[], period: number): (number | null)[] {
-  if (xs.length < period) return Array(xs.length).fill(null);
-  const out: (number | null)[] = [];
-  for (let i = 0; i < period - 1; i += 1) out.push(null);
-  let seed = 0;
-  for (let i = 0; i < period; i += 1) seed += xs[i]!;
-  let prev = seed / period;
-  out.push(prev);
-  const k = 2 / (period + 1);
-  for (let i = period; i < xs.length; i += 1) {
-    prev = (xs[i]! - prev) * k + prev;
-    out.push(prev);
-  }
   return out;
 }

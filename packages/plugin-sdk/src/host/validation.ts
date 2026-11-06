@@ -17,7 +17,7 @@
 // Registration-time validation: id shapes, reserved core ids, and the
 // per-capability assertions used by `PluginHost.register()`.
 
-import { TOOL_NAMES } from '@kestrel/shared';
+import { CORE_ALERT_CHANNELS, IndicatorKindSchema, TOOL_NAMES } from '@kestrel/shared';
 
 import type { PluginAgentTarget, PluginId, PluginToolRegistration } from '../types';
 
@@ -41,18 +41,10 @@ export const RESERVED_TOOL_NAMES = new Set<string>(TOOL_NAMES);
  * Notification channels implemented by the core delivery registry. Plugin
  * channels must use a distinct id so ordering/fallback remains predictable.
  */
-export const RESERVED_ALERT_CHANNELS = new Set(['email', 'telegram', 'web-push']);
+export const RESERVED_ALERT_CHANNELS = new Set<string>(CORE_ALERT_CHANNELS);
 
 /** Core indicator kinds; plugins add new kinds instead of shadowing these. */
-export const RESERVED_INDICATOR_KINDS = new Set([
-  'sma',
-  'ema',
-  'rsi',
-  'macd',
-  'atr',
-  'bollinger',
-  'pivots',
-]);
+export const RESERVED_INDICATOR_KINDS = new Set<string>(IndicatorKindSchema.options);
 
 export function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(`[plugin-sdk] ${message}`);

@@ -33,6 +33,9 @@ export function labelFor(r: IndicatorResult): string {
     }
     case 'pivots':
       return 'Pivots';
+    default:
+      // Plugin-registered kinds are open-ended; label them from the id.
+      return r.kind.toUpperCase();
   }
 }
 

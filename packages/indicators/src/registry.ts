@@ -31,13 +31,7 @@
 // implicit. One module now owns the registry, the registrations, and the
 // compute entry points.
 
-import {
-  type Candle,
-  type IndicatorKind,
-  type IndicatorResult,
-  type Symbol,
-  type Timeframe,
-} from '@kestrel/shared';
+import { type Candle, type IndicatorResult, type Symbol, type Timeframe } from '@kestrel/shared';
 import { z } from 'zod';
 
 import { atr } from './atr';
@@ -56,8 +50,11 @@ import { rsi } from './rsi';
  * The registry wraps the result into the standard IndicatorResult shape.
  */
 export interface IndicatorPlugin {
-  /** Unique indicator kind (e.g. 'sma', 'ema', 'rsi'). */
-  kind: IndicatorKind;
+  /**
+   * Unique indicator kind (e.g. 'sma', 'ema', 'rsi'). Core kinds come from
+   * `IndicatorKind`; plugins may register additional string kinds at runtime.
+   */
+  kind: string;
   /** Zod schema for params. Used by parseIndicatorParams(). */
   paramsSchema: z.ZodType;
   /**
@@ -96,7 +93,7 @@ export interface IndicatorPlugin {
  * no existing code changes.
  */
 export class IndicatorRegistry {
-  private plugins = new Map<IndicatorKind, IndicatorPlugin>();
+  private plugins = new Map<string, IndicatorPlugin>();
 
   /**
    * Register an indicator plugin. Idempotent — registering
@@ -110,7 +107,7 @@ export class IndicatorRegistry {
    * Get a registered indicator plugin by kind.
    * Throws if the kind is not registered.
    */
-  get(kind: IndicatorKind): IndicatorPlugin {
+  get(kind: string): IndicatorPlugin {
     const plugin = this.plugins.get(kind);
     if (!plugin) {
       throw new Error(
@@ -124,14 +121,14 @@ export class IndicatorRegistry {
   /**
    * Check if an indicator kind is registered.
    */
-  has(kind: IndicatorKind): boolean {
+  has(kind: string): boolean {
     return this.plugins.has(kind);
   }
 
   /**
    * List all registered indicator kinds.
    */
-  listKinds(): IndicatorKind[] {
+  listKinds(): string[] {
     return [...this.plugins.keys()];
   }
 
@@ -238,7 +235,8 @@ indicatorRegistry.register({
 export interface ComputeArgs {
   symbol: Symbol;
   tf: Timeframe;
-  kind: IndicatorKind;
+  /** Core kind or a plugin-registered kind, resolved against the registry. */
+  kind: string;
   params: Record<string, unknown>;
   candles: Candle[];
 }
@@ -248,7 +246,7 @@ export interface ComputeArgs {
  * Backward-compatible — same signature as before P0-3.
  */
 export function parseIndicatorParams(
-  kind: IndicatorKind,
+  kind: string,
   raw: Record<string, unknown>,
 ): Record<string, string | number | boolean> {
   const plugin = indicatorRegistry.get(kind);

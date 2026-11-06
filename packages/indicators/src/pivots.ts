@@ -20,6 +20,8 @@
 
 import type { Candle } from '@kestrel/shared';
 
+import { utcDayKey } from './util';
+
 export interface ClassicPivots {
   pp: number;
   r1: number;
@@ -56,15 +58,6 @@ export function classicPivots(prevHigh: number, prevLow: number, prevClose: numb
 export function pivotsAligned(candles: Candle[]): (ClassicPivots | null)[] {
   if (candles.length === 0) return [];
 
-  // Group by UTC date string.
-  const dateStr = (t: number): string => {
-    try {
-      return new Date(t).toISOString().slice(0, 10);
-    } catch {
-      return '';
-    }
-  };
-
   const dates: string[] = [];
   const dayIndex = new Map<string, number>();
   const dayAggregates = new Map<string, { h: number; l: number; c: number }>();
@@ -75,7 +68,7 @@ export function pivotsAligned(candles: Candle[]): (ClassicPivots | null)[] {
 
   for (let i = 0; i < candles.length; i += 1) {
     const c = candles[i]!;
-    const d = dateStr(c.t);
+    const d = utcDayKey(c.t);
     dayKeys[i] = d;
     const existing = dayAggregates.get(d);
     if (!existing) {
@@ -87,16 +80,6 @@ export function pivotsAligned(candles: Candle[]): (ClassicPivots | null)[] {
       existing.l = Math.min(existing.l, c.l);
       existing.c = c.c; // latest close in that day
     }
-  }
-
-  // If all bars share the same day (e.g. single-day synthetic test fixtures or property tests),
-  // fallback to preceding bar.
-  if (dates.length <= 1) {
-    return candles.map((_c, i) => {
-      if (i === 0) return null;
-      const prev = candles[i - 1]!;
-      return classicPivots(prev.h, prev.l, prev.c);
-    });
   }
 
   // Multi-day: for each candle, use previous calendar day's aggregated H/L/C.

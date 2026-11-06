@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import type { IndicatorKind } from '@kestrel/shared';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
@@ -70,7 +69,7 @@ describe('computeIndicator registry lookup', () => {
   it('computes a dynamically registered plugin indicator instead of rejecting its kind', () => {
     // A plugin kind is not part of the closed core enum, so this pins the
     // registry lookup path that plugin indicators rely on.
-    const pluginKind = 'test_plugin_sma' as unknown as IndicatorKind;
+    const pluginKind = 'test_plugin_sma';
     indicatorRegistry.register({
       kind: pluginKind,
       paramsSchema: z.object({}),

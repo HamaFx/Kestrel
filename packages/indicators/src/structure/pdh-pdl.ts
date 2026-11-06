@@ -27,6 +27,8 @@
 
 import type { Candle } from '@kestrel/shared';
 
+import { collectDistinctDays, utcDayKey } from '../util';
+
 export interface PdhPdl {
   /** Date string of the previous day (YYYY-MM-DD UTC). */
   date: string;
@@ -41,16 +43,7 @@ export interface PdhPdl {
 export function computePdhPdl(candles: Candle[]): PdhPdl | null {
   if (candles.length === 0) return null;
 
-  // Build a list of distinct UTC day-keys present in the window, in order.
-  const dayKeys: string[] = [];
-  let lastKey = '';
-  for (const c of candles) {
-    const k = utcDayKey(c.t);
-    if (k !== lastKey) {
-      dayKeys.push(k);
-      lastKey = k;
-    }
-  }
+  const dayKeys = collectDistinctDays(candles);
   if (dayKeys.length < 2) return null; // need a complete previous day
 
   const previousDay = dayKeys[dayKeys.length - 2]!;
@@ -73,12 +66,4 @@ export function computePdhPdl(candles: Candle[]): PdhPdl | null {
   if (!Number.isFinite(high) || !Number.isFinite(low)) return null;
 
   return { date: previousDay, high, low, highTime, lowTime };
-}
-
-function utcDayKey(ms: number): string {
-  const d = new Date(ms);
-  const yyyy = d.getUTCFullYear().toString().padStart(4, '0');
-  const mm = (d.getUTCMonth() + 1).toString().padStart(2, '0');
-  const dd = d.getUTCDate().toString().padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
 }
