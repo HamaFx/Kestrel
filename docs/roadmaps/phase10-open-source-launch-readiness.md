@@ -18,7 +18,7 @@
 See [`docs/superpowers/plans/2026-11-06-kestrel-open-source-launch-plan.md`](../superpowers/plans/2026-11-06-kestrel-open-source-launch-plan.md) for full step-by-step instructions:
 
 - [ ] **Task 1:** Fix `.gitignore` rule ordering (`.env*` at line 84 overriding `!.env.example` at line 25), untrack `.entire/*` and `.opencode/*` (`git rm --cached`), and remove `entire` CLI hooks from `.claude/settings.json` and `.codex/hooks.json`.
-- [ ] **Task 2:** Update `.github/CODEOWNERS` from `* @core-team` to `* @HamaFx` and replace hardcoded `https://hamafx-ai.vercel.app` / `https://hama-fx-ai.vercel.app` URLs in `scripts/deploy-cloud.mjs`, `scripts/verify-production.mjs`, and `tools/lighthouse/run.mjs`.
+- [ ] **Task 2:** Update `.github/CODEOWNERS` from the former organization team handle to `* @HamaFx` and replace the hardcoded personal Vercel URLs in `scripts/deploy-cloud.mjs`, `scripts/verify-production.mjs`, and `tools/lighthouse/run.mjs` with the neutral `https://kestrel.example.com` example.
 - [ ] **Task 3:** Fix `isSemanticRoutingEnabled(env)` in `packages/ai/src/routing/index.ts` so `AI_SEMANTIC_ROUTING_ENABLED=0` (the documented default) is respected and `packages/ai/test/mastra-router.test.ts` no longer makes 4 live HTTPS POST requests to `generativelanguage.googleapis.com` during `pnpm test`.
 - [ ] **Task 4:** Delete the 3 unused candidate JPGs in `apps/web/public/landing/candidates/` (~2.0 MB) and clean redundant `entry` hints in `knip.json`.
 - [ ] **Task 5:** Delete local/remote `entire-checkpoint`, `refs/entire/*`, and `refs/agent/*` Git refs and run the full verification suite (`pnpm format:check && pnpm check:guards && pnpm lint && pnpm typecheck && pnpm knip && pnpm test && pnpm build:packages`).

@@ -22,18 +22,18 @@
 - **`.gitignore` Last-Match-Wins Trap (`.gitignore:25` vs `.gitignore:84`):** Line 25 un-ignores `!.env.example`, but line 84 later specifies `.env*`. In Git, the last matching pattern wins, which causes Git to ignore future edits to `.env.example` or new `.env.example` files unless `--force` is passed.
 - **Tracked Local Agent Telemetry (`.entire/settings.json` & `.opencode/plugins/entire.ts`):** Although `.entire/` and `.opencode/` were added to `.gitignore:101-102`, `.entire/.gitignore`, `.entire/settings.json` (`"telemetry": true`), `.opencode/plugins/entire.ts`, `.claude/settings.json`, and `.codex/hooks.json` are still tracked in the Git index (`git ls-files`) and trigger `"Entire CLI is enabled but not installed"` banners for external contributors using Claude Code or Codex.
 - **`AI_SEMANTIC_ROUTING_ENABLED=0` Ignored in Production & Live Gemini Calls in Unit Tests (`packages/ai/src/routing/index.ts:44`):** `.env.example:66` and `docs/configuration.md:125` document `AI_SEMANTIC_ROUTING_ENABLED=0` (disabled by default). However, `packages/ai/src/routing/index.ts:44` evaluates `(process.env.AI_SEMANTIC_ROUTING_ENABLED ?? 'true') !== 'false'`. Because `'0' !== 'false'` is `true` and `undefined ?? 'true'` is `'true'`, semantic routing runs unconditionally whenever any API key is present—causing `packages/ai/test/mastra-router.test.ts` (which passes `GOOGLE_GENERATIVE_AI_API_KEY: 'test-key'`) to make 4 live HTTPS POST requests to `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent` during `pnpm test`.
-- **Invalid GitHub `CODEOWNERS` Team Handle (`.github/CODEOWNERS:1`):** `* @core-team` references a GitHub Organization team that does not exist on the personal repository `HamaFx/Kestrel`, causing GitHub to flag a syntax error on every pull request.
-- **Hardcoded Personal Vercel URLs in Operational Scripts (`scripts/deploy-cloud.mjs:21,82,163`, `scripts/verify-production.mjs:20`, `tools/lighthouse/run.mjs:36`):** `scripts/deploy-cloud.mjs:163` silently falls back to `https://hamafx-ai.vercel.app` when `--url` and `PRODUCTION_URL` are omitted, writing the author's personal deployment URL into generated `.env.worker` and `.env.vercel` files for external self-hosters.
+- **Invalid GitHub `CODEOWNERS` Wildcard Handle (`.github/CODEOWNERS:1`):** The configured organization team does not exist on the personal repository `HamaFx/Kestrel`, causing GitHub to flag a syntax error on every pull request.
+- **Hardcoded Personal Vercel URLs in Operational Scripts (`scripts/deploy-cloud.mjs:21,82,163`, `scripts/verify-production.mjs:20`, `tools/lighthouse/run.mjs:36`):** `scripts/deploy-cloud.mjs:163` silently falls back to the author's personal deployment URL when `--url` and `PRODUCTION_URL` are omitted, writing that URL into generated `.env.worker` and `.env.vercel` files for external self-hosters.
 
 ```
 +------------ [ PHASE 10 LAUNCH PLAN ] ------------+
 |                                                  |
 | [x]  step 0: docs, security.md & code of conduct |
-| [ ]  task 1: .gitignore fix & untrack .entire    |
-| [ ]  task 2: codeowners & deploy script urls     |
-| [ ]  task 3: fix semantic routing env & test leak|
-| [ ]  task 4: prune 2mb unused jpgs & knip hints  |
-| [ ]  task 5: prune checkpoint refs & final gate  |
+| [x]  task 1: .gitignore fix & untrack .entire    |
+| [x]  task 2: codeowners & deploy script urls     |
+| [x]  task 3: fix semantic routing env & test leak|
+| [x]  task 4: prune 2mb unused jpgs & knip hints  |
+| [x]  task 5: prune checkpoint refs & final gate  |
 +--------------------------------------------------+
 ```
 
@@ -172,32 +172,32 @@ git commit -m "chore(oss): add open-source governance docs, fix .gitignore order
 **Interfaces:**
 
 - Consumes: `.github/CODEOWNERS`, `scripts/deploy-cloud.mjs`, `scripts/verify-production.mjs`, `tools/lighthouse/run.mjs`.
-- Produces: Valid `@HamaFx` code owner and neutral example URLs (`https://kestrel.example.com`) with no hardcoded `hamafx-ai.vercel.app` or `hama-fx-ai.vercel.app` strings anywhere in tracked files.
+- Produces: Valid `@HamaFx` code owner and neutral example URLs (`https://kestrel.example.com`) with no hardcoded personal deployment hosts or former team handles anywhere in tracked operational files.
 
 - [ ] **Step 1: Update `.github/CODEOWNERS` to reference `@HamaFx`**
 
-Replace line 1 of `.github/CODEOWNERS` (`* @core-team`) with:
+Replace line 1 of `.github/CODEOWNERS` (the former organization team handle) with:
 
 ```text
 * @HamaFx
 ```
 
-- [ ] **Step 2: Replace `https://hamafx-ai.vercel.app` in `scripts/deploy-cloud.mjs` (`lines 21, 82, 163`)**
+- [ ] **Step 2: Replace the personal Vercel URL in `scripts/deploy-cloud.mjs` (`lines 21, 82, 163`)**
 
 In `scripts/deploy-cloud.mjs`:
 
 - Change line 21 comment example to `node scripts/deploy-cloud.mjs --db="postgres://..." --url="https://kestrel.example.com"`.
 - Change line 82 `--help` description to `'  --url=<https://...>         Production web URL (default: https://kestrel.example.com)'`.
-- Change line 163 fallback string from `'https://hamafx-ai.vercel.app'` to `'https://kestrel.example.com'`.
+- Change line 163 fallback string from the personal deployment URL to `'https://kestrel.example.com'`.
 
 - [ ] **Step 3: Replace personal URLs in `scripts/verify-production.mjs:20` and `tools/lighthouse/run.mjs:36`**
 
-- In `scripts/verify-production.mjs:20`, change `PRODUCTION_URL=https://hamafx-ai.vercel.app pnpm verify:production` to `PRODUCTION_URL=https://kestrel.example.com pnpm verify:production`.
-- In `tools/lighthouse/run.mjs:36`, change `(e.g. http://localhost:3000 or https://hama-fx-ai.vercel.app)` to `(e.g. http://localhost:3000 or https://kestrel.example.com)`.
+- In `scripts/verify-production.mjs:20`, change the example `PRODUCTION_URL` from the personal host to `PRODUCTION_URL=https://kestrel.example.com pnpm verify:production`.
+- In `tools/lighthouse/run.mjs:36`, change the example URL from the personal host to `https://kestrel.example.com`.
 
-- [ ] **Step 4: Verify zero remaining `hamafx-ai` or `hama-fx-ai` or `@core-team` references in tracked files**
+- [ ] **Step 4: Verify zero remaining personal deployment host or former team handle references in tracked files**
 
-Run: `! git grep -n -E '(hamafx-ai|hama-fx-ai|@core-team)' && pnpm check:guards && echo "PASS"`
+Run: `! git grep -n -E '(hamafx[-]ai|hama[-]fx[-]ai|@core[-]team)' && pnpm check:guards && echo "PASS"`
 Expected: `PASS`
 
 - [ ] **Step 5: Commit Task 2**
