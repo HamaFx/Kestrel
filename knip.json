@@ -14,8 +14,6 @@
       "entry": [
         "src/app/**/{page,layout,loading,error,global-error,not-found,manifest,route,opengraph-image}.{ts,tsx}",
         "src/app/**/actions.ts",
-        "src/instrumentation.ts",
-        "src/proxy.ts",
         "scripts/**/*.mjs",
         "test/**/*.{test,spec}.{ts,tsx}",
         "test/vitest.setup.ts",
@@ -25,98 +23,50 @@
       "project": ["src/**/*.{ts,tsx}", "test/**/*.{ts,tsx}", "src/**/*.css"]
     },
     "apps/worker": {
-      "entry": ["src/index.ts", "src/runner/cli.ts", "test/**/*.test.ts"],
+      "entry": ["src/runner/cli.ts", "test/**/*.test.ts"],
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
     "packages/ai": {
-      "entry": [
-        "src/index.ts",
-        "src/budget/cost.ts",
-        "src/persistence/index.ts",
-        "src/cron/index.ts",
-        "src/mastra-v2/index.ts",
-        "src/plugins/index.ts",
-        "src/runtime/instrumentation.ts",
-        "src/mastra-v2/studio-server.ts",
-        "scripts/eval-gate.ts",
-        "test/**/*.test.ts"
-      ],
+      "entry": ["src/mastra-v2/studio-server.ts", "test/**/*.test.ts"],
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
     "packages/data": {
-      "entry": [
-        "src/index.ts",
-        "src/adapters/*.ts",
-        "src/cache/index.ts",
-        "src/providers/*/index.ts",
-        "test/**/*.test.ts"
-      ],
+      "entry": ["src/adapters/*.ts", "src/providers/*/index.ts", "test/**/*.test.ts"],
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
     "packages/db": {
-      "entry": [
-        "src/index.ts",
-        "src/client.ts",
-        "src/queue/index.ts",
-        "src/schema/index.ts",
-        "scripts/**/*.mjs",
-        "test/**/*.test.ts"
-      ],
+      "entry": ["scripts/**/*.mjs", "test/**/*.test.ts"],
       "project": ["src/**/*.ts", "scripts/**/*.{ts,mjs}", "test/**/*.ts"]
     },
     "packages/indicators": {
-      "entry": ["src/index.ts", "test/**/*.test.ts"],
+      "entry": ["test/**/*.test.ts"],
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
     "packages/plugin-sdk": {
-      "entry": [
-        "src/index.ts",
-        "src/settings.ts",
-        "src/skill-dir.ts",
-        "src/ui/index.tsx",
-        "test/**/*.test.ts"
-      ],
+      "entry": ["test/**/*.test.ts"],
       "project": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts"]
     },
     "packages/shared": {
-      "entry": [
-        "src/index.ts",
-        "src/schemas/*.ts",
-        "src/ai/*.ts",
-        "src/crypto/byok.ts",
-        "src/crypto/encryption.ts",
-        "src/crypto/vault.ts",
-        "src/env/index.ts",
-        "src/env/secrets.ts",
-        "src/errors/index.ts",
-        "src/logger/index.ts",
-        "src/metrics-export/index.ts"
-      ],
+      "entry": ["src/schemas/*.ts", "src/ai/*.ts"],
       "project": ["src/**/*.ts"]
     },
     "packages/test-utils": {
-      "entry": ["src/index.ts", "src/factories/*.ts", "test/**/*.test.ts"],
+      "entry": ["src/factories/*.ts", "test/**/*.test.ts"],
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
     "plugins": {
       "project": ["*.ts"]
     },
     "plugins/backtesting": {
-      "entry": [
-        "src/index.ts",
-        "src/engine/public.ts",
-        "src/server.ts",
-        "src/ui/index.tsx",
-        "test/**/*.test.ts"
-      ],
+      "entry": ["test/**/*.test.ts"],
       "project": ["src/**/*.{ts,tsx}", "test/**/*.ts"]
     },
     "plugins/paper-trading": {
-      "entry": ["src/index.ts", "src/db/tables.ts", "src/ui/index.tsx", "test/**/*.test.ts"],
+      "entry": ["test/**/*.test.ts"],
       "project": ["src/**/*.{ts,tsx}", "test/**/*.ts"]
     },
     "plugins/telegram-bot": {
-      "entry": ["src/index.ts", "src/ui/index.tsx", "test/**/*.test.ts"],
+      "entry": ["test/**/*.test.ts"],
       "project": ["src/**/*.{ts,tsx}", "test/**/*.ts"]
     },
     "loadtest": {
@@ -137,5 +87,5 @@
   "vitest": false,
   "playwright": false,
   "drizzle": false,
-  "ignoreDependencies": ["@vitest/coverage-v8", "@vitejs/plugin-react", "vite", "pg-boss"]
+  "ignoreDependencies": ["@vitejs/plugin-react", "vite", "pg-boss"]
 }
