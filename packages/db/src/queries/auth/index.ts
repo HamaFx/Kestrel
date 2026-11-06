@@ -40,6 +40,5 @@ export {
   findVerificationToken,
 } from './verification-tokens';
 export { getTwoFactorSecret, setTwoFactorEnabled, updateTwoFactorSecret } from './two-factor';
-export { updateUserApiKeys } from './api-keys';
 export { deleteUserAccount } from './account-deletion';
 export { createAuditLog } from './audit';

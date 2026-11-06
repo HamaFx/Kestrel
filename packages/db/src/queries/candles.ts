@@ -16,7 +16,7 @@
 
 // Candle query helpers — market data and alert simulation.
 
-import { and, desc, eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
 
@@ -41,18 +41,4 @@ export async function getRecentCandles(symbol: string, limit: number = 1500): Pr
     .where(eq(schema.candles1m.symbol, symbol))
     .orderBy(desc(schema.candles1m.t))
     .limit(limit);
-}
-
-/**
- * Fetch the active symbol catalog, ordered by sortOrder.
- */
-export async function listActiveSymbols() {
-  const db = getDb();
-  return db
-    .select()
-    .from(schema.symbolCatalog)
-    .where(
-      and(eq(schema.symbolCatalog.isActive, true), eq(schema.symbolCatalog.tenantId, '__system__')),
-    )
-    .orderBy(schema.symbolCatalog.sortOrder);
 }

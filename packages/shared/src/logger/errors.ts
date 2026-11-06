@@ -19,27 +19,11 @@
 // Import here to avoid circular dependency issues at module top level.
 import { redactDiagnosticPayload } from '../errors/bug-report';
 import { findErrorPattern } from '../errors/error-patterns';
+import { parseStack } from '../errors/stack';
 import { getCurrentCorrelation, type LogCategory } from './context';
 import { logger } from './pino';
 
-/** Best-effort parse of file/line from a stack trace. */
-function parseStack(stack: string | undefined): { file?: string; line?: number } {
-  if (!stack) return {};
-  const match = stack.split('\n')[1]?.match(/\((.+):(\d+):\d+\)/);
-  if (match && match[1] && match[2]) {
-    const file = match[1];
-    const line = Number(match[2]);
-    return { file, line };
-  }
-  // Fallback for stacks without parentheses
-  const fallback = stack.split('\n')[1]?.match(/at\s+(.+):(\d+):\d+/);
-  if (fallback && fallback[1] && fallback[2]) {
-    const file = fallback[1];
-    const line = Number(fallback[2]);
-    return { file, line };
-  }
-  return {};
-}
+export { parseStack } from '../errors/stack';
 
 /** Build a structured error object for logging. */
 function buildErrorObject(err: unknown): Record<string, unknown> {

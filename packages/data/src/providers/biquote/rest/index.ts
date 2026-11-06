@@ -40,10 +40,5 @@
 export { BIQUOTE_THROTTLE_LIMIT, type CallOptions } from './call';
 export { fetchLatest, fetchTick } from './ticks';
 export { fetchOhlc, type FetchOhlcArgs } from './ohlc';
-export {
-  fetchCalendar,
-  fetchCalendarUpcoming,
-  type FetchBiquoteCalendarArgs,
-  type FetchBiquoteCalendarUpcomingArgs,
-} from './calendar';
+export { fetchCalendar, type FetchBiquoteCalendarArgs } from './calendar';
 export { fetchMarketNews, type FetchBiquoteNewsArgs } from './news';

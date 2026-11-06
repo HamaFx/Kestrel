@@ -17,7 +17,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
-  getDeprecatedEnvAliases,
   isTransactionPoolerUrl,
   parseServerEnv,
   resolveDatabaseUrl,
@@ -70,18 +69,6 @@ describe('AUTO_GENERATED_SECRETS', () => {
     for (const key of AUTO_GENERATED_SECRETS) {
       expect(SECRET_MIN_BYTES[key]).toBeGreaterThanOrEqual(16);
     }
-  });
-});
-
-describe('deprecated environment aliases', () => {
-  it('no longer reports NEXTAUTH_SECRET as active alias (dropped in 0.3.0)', () => {
-    expect(getDeprecatedEnvAliases({ NEXTAUTH_SECRET: 'a'.repeat(32) })).toEqual([]);
-  });
-
-  it('no longer reports the removed HAMAFX_* aliases', () => {
-    expect(getDeprecatedEnvAliases({ HAMAFX_ENABLE_RLS: '0' })).toEqual([]);
-    expect(getDeprecatedEnvAliases({ HAMAFX_RUNTIME: 'worker' })).toEqual([]);
-    expect(getDeprecatedEnvAliases({ HAMAFX_LOCAL_DOCKER: 'true' })).toEqual([]);
   });
 });
 

@@ -34,7 +34,7 @@ import { sql } from 'drizzle-orm';
 import { fromDrizzle, PgBoss, type Job, type JobWithMetadata } from 'pg-boss';
 
 import { getDb, getTenantDbScope } from '../client';
-import { SUPABASE_ROOT_CA_2021 } from '../connection/supabase-ca';
+import { resolvePostgresSslOptions } from '../connection/supabase-ca';
 import { DEAD_LETTER_QUEUE_OPTIONS, DEAD_LETTER_QUEUES, MANAGED_QUEUES } from './definitions';
 import { runJobWithHeartbeat } from './heartbeat';
 
@@ -43,34 +43,6 @@ export * from './heartbeat';
 
 let bossInstance: PgBoss | null = null;
 let starting: Promise<PgBoss> | null = null;
-
-function queueSslOptions(): false | { rejectUnauthorized: boolean; ca?: string } {
-  if (process.env['DB_DISABLE_SSL'] === 'true') {
-    if (
-      process.env['NODE_ENV'] !== 'production' ||
-      process.env['KESTREL_LOCAL_DOCKER'] === 'true'
-    ) {
-      return false;
-    }
-    throw new Error(
-      '[queue] DB_DISABLE_SSL=true is only permitted with KESTREL_LOCAL_DOCKER=true; configure verified TLS for production databases.',
-    );
-  }
-
-  const ca = process.env['SUPABASE_CA_CERT']?.replace(/\\n|\n/g, '\n').trim();
-  if (ca) return { ca, rejectUnauthorized: true };
-
-  const url = queueConnectionString();
-  // Mirror the drizzle pool's behaviour: Supabase connections chain to the
-  // pinned 2021 root CA, which is not in the system trust store. Omitting
-  // this is what silently broke the backtest queue in production
-  // (node-postgres: "self-signed certificate in certificate chain").
-  if (url.includes('supabase.co') || url.includes('supabase.com')) {
-    return { ca: SUPABASE_ROOT_CA_2021, rejectUnauthorized: true };
-  }
-  if (/@(?:localhost|127\.0\.0\.1)(?::|\/)/.test(url)) return false;
-  return { rejectUnauthorized: process.env['NODE_ENV'] === 'production' };
-}
 
 function queueConnectionString(): string {
   return (
@@ -89,8 +61,9 @@ function queueConnectionString(): string {
  * queueSslOptions() was silently ignored and every pg-boss connection failed
  * with "self-signed certificate in certificate chain" (confirmed by an A/B
  * repro on 2026-10-27: same URL with sslmode stripped + the CA connects).
- * TLS for the queue is therefore controlled exclusively via queueSslOptions();
- * the connection string passed to pg-boss carries no TLS query params.
+ * TLS for the queue is therefore controlled exclusively via
+ * resolvePostgresSslOptions(); the connection string passed to pg-boss
+ * carries no TLS query params.
  */
 function queueConnectionStringWithoutSslParams(): string {
   const url = queueConnectionString();
@@ -127,7 +100,7 @@ export async function getQueue(): Promise<PgBoss> {
       connectionString: queueConnectionStringWithoutSslParams(),
       schema: process.env['PGBOSS_SCHEMA'] ?? 'pgboss',
       max: 2,
-      ssl: queueSslOptions(),
+      ssl: resolvePostgresSslOptions(queueConnectionString()),
       // The web process may be the first to touch the queue; migrations are
       // idempotent and cheap. Set PGBOSS_MIGRATE=false when the worker owns
       // schema creation and the web role is DML-only.

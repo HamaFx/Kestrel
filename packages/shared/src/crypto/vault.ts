@@ -23,9 +23,6 @@
 //   1. `loadSecretsFromVault()` — fetches secrets from GCP Secret Manager
 //      and injects them into `process.env`. Called once at boot before
 //      `parseServerEnv()`.
-//   2. `withVaultSecrets()` — wrapper that loads vault secrets, then runs
-//      a callback. Used by the worker entrypoint and Vercel's
-//      `instrumentation.ts`.
 //
 // When `SECRETS_VAULT_PROVIDER` is not set (or set to `none`), this module
 // is a no-op — `.env` files remain the source of truth. This preserves
@@ -185,29 +182,4 @@ export async function loadSecretsFromVault(): Promise<void> {
   }
 
   vlog.warn(`unknown SECRETS_VAULT_PROVIDER: ${provider}`);
-}
-
-/**
- * Wrapper that loads vault secrets before running the callback.
- * Use in `instrumentation.ts` (Vercel) or the worker entrypoint.
- *
- * @example
- *   // apps/web/src/instrumentation.ts
- *   import { withVaultSecrets } from '@kestrel/shared/vault';
- *   export async function register() {
- *     await withVaultSecrets(async () => {
- *       // ... normal instrumentation
- *     });
- *   }
- */
-export async function withVaultSecrets<T>(fn: () => Promise<T>): Promise<T> {
-  await loadSecretsFromVault();
-  return fn();
-}
-
-/**
- * Reset the idempotency guard. For tests only.
- */
-export function _resetVaultLoader(): void {
-  _vaultLoaded = false;
 }

@@ -89,21 +89,6 @@ export async function isSymbolInCatalog(symbol: string): Promise<boolean> {
 }
 
 /**
- * Get the next displayOrder for a user's watchlist.
- */
-export async function getNextDisplayOrder(userId: string): Promise<number> {
-  const db = getDb();
-  const tenantId = await requireTenantIdForUser(userId, db);
-  const [row] = await db
-    .select({
-      maxOrder: sql<number>`coalesce(max(${schema.userSymbols.displayOrder}), -1)`,
-    })
-    .from(schema.userSymbols)
-    .where(and(eq(schema.userSymbols.userId, userId), eq(schema.userSymbols.tenantId, tenantId)));
-  return (row?.maxOrder ?? -1) + 1;
-}
-
-/**
  * Reorder a user's watchlist symbols using a single CASE WHEN UPDATE.
  * @param userId - The user's ID
  * @param symbols - Array of symbols in the desired order

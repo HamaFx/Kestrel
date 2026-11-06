@@ -23,7 +23,7 @@ export type FeatureFlagName =
   | 'ENABLE_COMPARISON_RISK_DESK';
 
 /** Documented defaults (Q12: PHASE3_STRUCTURED_FUSION enabled by default). */
-const FLAG_DEFAULTS: Record<FeatureFlagName, boolean> = {
+export const FLAG_DEFAULTS: Record<FeatureFlagName, boolean> = {
   PHASE2_PACKET_CACHE: true,
   PHASE3_MODEL_DIVERSITY: false,
   PHASE3_STRUCTURED_FUSION: true,

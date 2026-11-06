@@ -22,7 +22,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
 import * as schema from '../schema/index';
-import { SUPABASE_ROOT_CA_2021 } from './supabase-ca';
+import { resolvePostgresSslOptions } from './supabase-ca';
 import type { DbClient } from './types';
 
 // HMR-safe pool singletons. Next.js App Router re-evaluates module scope on
@@ -107,67 +107,6 @@ function resolveStatementTimeout(): number {
   return isWorker ? DEFAULT_WORKER_STATEMENT_TIMEOUT : DEFAULT_WEB_STATEMENT_TIMEOUT;
 }
 
-function resolveSslOptions(): false | { rejectUnauthorized: boolean; ca?: string } {
-  // DB_DISABLE_SSL is permitted only for the bundled plain-TCP Docker
-  // database (or non-production test/dev). A production deployment outside
-  // that explicit local boundary must fail closed rather than silently
-  // disabling database TLS.
-  if (process.env.DB_DISABLE_SSL === 'true') {
-    if (process.env.NODE_ENV !== 'production' || process.env.KESTREL_LOCAL_DOCKER === 'true') {
-      return false;
-    }
-    throw new Error(
-      '[db] DB_DISABLE_SSL=true is only permitted with KESTREL_LOCAL_DOCKER=true; ' +
-        'configure verified TLS for production databases.',
-    );
-  }
-
-  const rawCa = process.env.SUPABASE_CA_CERT;
-  const ca = rawCa
-    ? rawCa
-        .split(/\\n|\n/)
-        .join('\n')
-        .trim()
-    : undefined;
-  if (ca) {
-    return {
-      ca,
-      rejectUnauthorized: true,
-    };
-  }
-
-  const anyDbUrl =
-    process.env.DATABASE_URL ||
-    process.env.POSTGRES_URL ||
-    process.env.DIRECT_URL ||
-    process.env.POSTGRES_URL_NON_POOLING ||
-    '';
-  if (anyDbUrl.includes('supabase.co') || anyDbUrl.includes('supabase.com')) {
-    return {
-      ca: SUPABASE_ROOT_CA_2021,
-      rejectUnauthorized: true,
-    };
-  }
-
-  // H-9: In production, TLS verification is mandatory. The
-  // DB_ALLOW_INSECURE_TLS escape hatch has been removed — it
-  // was a security risk that could leave database traffic
-  // unencrypted in production deployments.
-  //
-  // Supabase pooler rejects non-TLS connections automatically.
-  // Self-hosted Postgres should configure TLS; Docker Compose
-  // deployments can set DB_DISABLE_SSL=true (which disables
-  // TLS entirely) or supply a CA cert via SUPABASE_CA_CERT.
-  if (process.env.NODE_ENV === 'production') {
-    // Use Node's system CA store when no provider-specific bundle is
-    // supplied. Never silently downgrade a production DB connection to
-    // rejectUnauthorized=false.
-    return { rejectUnauthorized: true };
-  }
-
-  return { rejectUnauthorized: false };
-}
-
 /**
  * Lazy-initialised drizzle client. We use a module-scope singleton so cold
  * Vercel functions reuse the same connection pool across invocations within
@@ -197,7 +136,7 @@ export function getPrimaryDb(): DbClient {
     idle_timeout: 20,
     connect_timeout: 10,
     max_lifetime: 60 * 30,
-    ssl: resolveSslOptions(),
+    ssl: resolvePostgresSslOptions(url),
     connection: {
       statement_timeout: resolveStatementTimeout(),
     },
@@ -231,7 +170,7 @@ export function getReplicaDb(): DbClient | null {
     idle_timeout: 20,
     connect_timeout: 10,
     max_lifetime: 60 * 30,
-    ssl: resolveSslOptions(),
+    ssl: resolvePostgresSslOptions(url),
     connection: {
       statement_timeout: resolveStatementTimeout(),
     },
@@ -266,7 +205,7 @@ export function getAdminDbPool(): DbClient {
     idle_timeout: 20,
     connect_timeout: 10,
     max_lifetime: 60 * 30,
-    ssl: resolveSslOptions(),
+    ssl: resolvePostgresSslOptions(adminUrl),
     connection: {
       statement_timeout: resolveStatementTimeout(),
     },

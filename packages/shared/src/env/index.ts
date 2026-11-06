@@ -112,20 +112,6 @@ export const ServerEnvSchema = z
 export type ServerEnv = z.infer<typeof ServerEnvSchema>;
 
 /**
- * Read-only upgrade aliases map.
- * Deprecated aliases dropped in 0.3.0.
- */
-export const DEPRECATED_ENV_ALIASES: Record<string, string> = {};
-
-export function getDeprecatedEnvAliases(
-  input: NodeJS.ProcessEnv = process.env,
-): Array<{ oldName: string; newName: string }> {
-  return Object.entries(DEPRECATED_ENV_ALIASES)
-    .filter(([oldName, newName]) => input[oldName] !== undefined && input[newName] === undefined)
-    .map(([oldName, newName]) => ({ oldName, newName }));
-}
-
-/**
  * Parse process.env into a typed env object. Throws a readable error listing
  * every missing/invalid variable. Cache the result at module-scope in callers.
  */

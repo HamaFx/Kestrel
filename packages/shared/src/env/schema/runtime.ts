@@ -19,6 +19,16 @@
 
 import { z } from 'zod';
 
+import { FLAG_DEFAULTS } from '../../runtime/feature-flags';
+
+/** Boolean feature flag parsed from '0'/'1'/'true'/'false' with its shared default. */
+function featureFlag(name: keyof typeof FLAG_DEFAULTS) {
+  return z
+    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
+    .default(FLAG_DEFAULTS[name] ? '1' : '0')
+    .transform((v) => v === '1' || v === 'true');
+}
+
 export const RuntimeEnv = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   /** Daily AI cost ceiling in USD. When crossed, /api/chat returns 503. */
@@ -105,10 +115,7 @@ export const RuntimeEnv = z.object({
    * provider quota, unless this is explicitly enabled. The administrator's
    * non-secret routing preferences still inherit.
    */
-  ALLOW_SHARED_OPERATOR_KEYS: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('0')
-    .transform((v) => v === '1' || v === 'true'),
+  ALLOW_SHARED_OPERATOR_KEYS: featureFlag('ALLOW_SHARED_OPERATOR_KEYS'),
   /**
    * Row-level security is required for every deployment. Multi-user is the only
    * supported mode, so this defaults to on; the flag is retained so tests can
@@ -129,20 +136,11 @@ export const RuntimeEnv = z.object({
   // validate and document the variables. Flags whose behavior is unconditional
   // (router, streaming progress, mastra-v2 migration) have no toggle.
   /** Phase 2.1 — 30s fresh-only symbol-research packet cache (LRU + optional Redis). */
-  PHASE2_PACKET_CACHE: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('1')
-    .transform((v) => v === '1' || v === 'true'),
+  PHASE2_PACKET_CACHE: featureFlag('PHASE2_PACKET_CACHE'),
   /** Phase 3.1 — per-specialist top-tier model resolution for the committee. */
-  PHASE3_MODEL_DIVERSITY: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('0')
-    .transform((v) => v === '1' || v === 'true'),
+  PHASE3_MODEL_DIVERSITY: featureFlag('PHASE3_MODEL_DIVERSITY'),
   /** Phase 3.3 — structured fusion output for Full mode. */
-  PHASE3_STRUCTURED_FUSION: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('1')
-    .transform((v) => v === '1' || v === 'true'),
+  PHASE3_STRUCTURED_FUSION: featureFlag('PHASE3_STRUCTURED_FUSION'),
   /**
    * Daily spend ceiling. Audit 2026-10-31 (R3) — enforcement is now ON by
    * default: a turn that would cross `MAX_DAILY_USD` (or a user's
@@ -151,28 +149,19 @@ export const RuntimeEnv = z.object({
    * (previously the default), which is only safe when every account that can
    * reach the instance is trusted.
    */
-  ENFORCE_BUDGET: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('1')
-    .transform((v) => v === '1' || v === 'true'),
+  ENFORCE_BUDGET: featureFlag('ENFORCE_BUDGET'),
   /**
    * M-02 (audit 2026-10-18, Phase 0/2) — generic macro packet for
    * non-XAUUSD symbols (news + calendar + COT). ON by default since M-02
    * landed; `0` is the instant rollback to the prior candle-only packet.
    */
-  ENABLE_GENERIC_MACRO: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('1')
-    .transform((v) => v === '1' || v === 'true'),
+  ENABLE_GENERIC_MACRO: featureFlag('ENABLE_GENERIC_MACRO'),
   /**
    * P1-04 (audit 2026-10-18, Phase 3) — run a second (risk) desk per symbol
    * in comparison runs. ON by default; `0` keeps the cheaper single-desk
    * comparison where cost matters.
    */
-  ENABLE_COMPARISON_RISK_DESK: z
-    .union([z.literal('0'), z.literal('1'), z.literal('true'), z.literal('false')])
-    .default('1')
-    .transform((v) => v === '1' || v === 'true'),
+  ENABLE_COMPARISON_RISK_DESK: featureFlag('ENABLE_COMPARISON_RISK_DESK'),
   /**
    * Audit plan v2 §5.3 (Q4) — non-blocking admin alert threshold: when a
    * user's daily (UTC) reserved+reconciled ledger spend reaches this many

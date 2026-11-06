@@ -75,20 +75,49 @@ function getEncryptionKey(): Buffer {
 }
 
 /**
- * Encrypt a BYOK payload for storage.
- * Returns a string safe for TEXT columns: "<iv_hex>.<ciphertext_hex>.<authTag_hex>"
+ * Encrypt UTF-8 plaintext with the shared AES-256-GCM key.
+ * Returns "<iv_hex>.<ciphertext_hex>.<authTag_hex>".
  */
-export function encryptByok(payload: ByokPayload): string {
+function encryptAesGcm(plaintext: string): string {
   const key = getEncryptionKey();
   const iv = randomBytes(IV_LENGTH);
   const cipher = createCipheriv(ALGORITHM, key, iv);
-  const plaintext = JSON.stringify(payload);
 
   let encrypted = cipher.update(plaintext, 'utf8', 'hex');
   encrypted += cipher.final('hex');
   const authTag = cipher.getAuthTag();
 
   return `${iv.toString('hex')}.${encrypted}.${authTag.toString('hex')}`;
+}
+
+/** Decrypt the shared AES-256-GCM envelope. Throws on malformed or tampered input. */
+function decryptAesGcm(encrypted: string): string {
+  const parts = encrypted.split('.');
+  if (parts.length !== 3) throw new Error('Malformed encrypted payload');
+
+  const iv = Buffer.from(parts[0]!, 'hex');
+  const ciphertext = parts[1]!;
+  const authTag = Buffer.from(parts[2]!, 'hex');
+
+  if (iv.length !== IV_LENGTH || authTag.length !== AUTH_TAG_LENGTH) {
+    throw new Error('Malformed encrypted payload');
+  }
+
+  const key = getEncryptionKey();
+  const decipher = createDecipheriv(ALGORITHM, key, iv);
+  decipher.setAuthTag(authTag);
+
+  let decrypted = decipher.update(ciphertext, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  return decrypted;
+}
+
+/**
+ * Encrypt a BYOK payload for storage.
+ * Returns a string safe for TEXT columns: "<iv_hex>.<ciphertext_hex>.<authTag_hex>"
+ */
+export function encryptByok(payload: ByokPayload): string {
+  return encryptAesGcm(JSON.stringify(payload));
 }
 
 /**
@@ -100,23 +129,7 @@ export function decryptByok(encrypted: string | null | undefined): ByokPayload |
   if (!encrypted) return null;
 
   try {
-    const parts = encrypted.split('.');
-    if (parts.length !== 3) return null;
-
-    const iv = Buffer.from(parts[0]!, 'hex');
-    const ciphertext = parts[1]!;
-    const authTag = Buffer.from(parts[2]!, 'hex');
-
-    if (iv.length !== IV_LENGTH || authTag.length !== AUTH_TAG_LENGTH) return null;
-
-    const key = getEncryptionKey();
-    const decipher = createDecipheriv(ALGORITHM, key, iv);
-    decipher.setAuthTag(authTag);
-
-    let decrypted = decipher.update(ciphertext, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-
-    const parsed = JSON.parse(decrypted);
+    const parsed = JSON.parse(decryptAesGcm(encrypted));
     if (typeof parsed !== 'object' || parsed === null) return null;
     return parsed as ByokPayload;
   } catch (err) {
@@ -212,15 +225,7 @@ export function decryptWithPassword(encrypted: string, password: string): unknow
  * Returns a string safe for TEXT columns: "<iv_hex>.<ciphertext_hex>.<authTag_hex>"
  */
 export function encryptSecret(plaintext: string): string {
-  const key = getEncryptionKey();
-  const iv = randomBytes(IV_LENGTH);
-  const cipher = createCipheriv(ALGORITHM, key, iv);
-
-  let encrypted = cipher.update(plaintext, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  const authTag = cipher.getAuthTag();
-
-  return `${iv.toString('hex')}.${encrypted}.${authTag.toString('hex')}`;
+  return encryptAesGcm(plaintext);
 }
 
 /**
@@ -232,23 +237,7 @@ export function decryptSecret(encrypted: string | null | undefined): string | nu
   if (!encrypted) return null;
 
   try {
-    const parts = encrypted.split('.');
-    if (parts.length !== 3) return null;
-
-    const iv = Buffer.from(parts[0]!, 'hex');
-    const ciphertext = parts[1]!;
-    const authTag = Buffer.from(parts[2]!, 'hex');
-
-    if (iv.length !== IV_LENGTH || authTag.length !== AUTH_TAG_LENGTH) return null;
-
-    const key = getEncryptionKey();
-    const decipher = createDecipheriv(ALGORITHM, key, iv);
-    decipher.setAuthTag(authTag);
-
-    let decrypted = decipher.update(ciphertext, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-
-    return decrypted;
+    return decryptAesGcm(encrypted);
   } catch {
     return null;
   }

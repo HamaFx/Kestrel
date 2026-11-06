@@ -15,7 +15,7 @@
  */
 
 import { getDb } from '@kestrel/db';
-import { providerDailyQuota, providerThrottle } from '@kestrel/db/schema';
+import { providerThrottle } from '@kestrel/db/schema';
 import { sql } from 'drizzle-orm';
 
 // Per-provider self-throttle.
@@ -188,60 +188,7 @@ export async function noteBackoff(provider: string, cfg: ThrottleConfig): Promis
     });
 }
 
-// ── Daily quota ────────────────────────────────────────────────────────
-// Phase A RL-2 — Shared daily counter to replace per-instance module globals.
-
-/** In-memory fallback for tests/single-process. */
-const dailyBuckets = new Map<string, { count: number; day: string }>();
-
-/**
- * Reserve one daily call against a provider with a daily cap.
- * Uses the same dual-backend pattern as {@link tryReserve}.
- *
- * The reservation is atomic: the count is incremented on success, so this
- * replaces both the pre-flight gate AND the post-success increment.
- *
- * @param provider Provider name (e.g. `'finnhub'`).
- * @param cap      Absolute daily cap (e.g. 800 for free-tier providers).
- * @param buffer   Safety buffer subtracted from cap (e.g. 20 → effective 780).
- * @returns true if the daily quota allows another call.
- */
-export async function tryReserveDaily(
-  provider: string,
-  cap: number,
-  buffer: number,
-): Promise<boolean> {
-  const effectiveCap = cap - buffer;
-  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-
-  if (resolveThrottleBackend() === 'memory') {
-    const entry = dailyBuckets.get(provider);
-    if (!entry || entry.day !== today) {
-      dailyBuckets.set(provider, { count: 1, day: today });
-      return true;
-    }
-    if (entry.count >= effectiveCap) return false;
-    entry.count += 1;
-    return true;
-  }
-
-  // Postgres backend — shared across instances
-  const db = getDb();
-  const result = await db
-    .insert(providerDailyQuota)
-    .values({ provider, day: today, count: 1 })
-    .onConflictDoUpdate({
-      target: [providerDailyQuota.provider, providerDailyQuota.day],
-      set: { count: sql`${providerDailyQuota.count} + 1` },
-      where: sql`${providerDailyQuota.count} < ${effectiveCap}`,
-    })
-    .returning({ count: providerDailyQuota.count });
-
-  return result.length > 0;
-}
-
 /** Test helper. */
 export function _resetThrottle(): void {
   buckets.clear();
-  dailyBuckets.clear();
 }

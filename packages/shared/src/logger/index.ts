@@ -33,5 +33,5 @@ export {
   type LogCategory,
 } from './context';
 export { createPinoLogger, createScopedLogger, logger } from './pino';
-export { logErrorContext } from './errors';
+export { logErrorContext, parseStack } from './errors';
 export { createCategorizedLogger, type CategorizedLogger } from './categorized';

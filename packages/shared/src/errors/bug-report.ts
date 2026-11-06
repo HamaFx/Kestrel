@@ -15,6 +15,7 @@
  */
 
 import { AppError } from './index';
+import { parseStack } from './stack';
 
 const PRIVATE_CONTENT_KEY_PATTERN =
   /^(?:prompt|content|text|input|output|args|parts|messages|response|query|snippet|body)$/i;
@@ -129,24 +130,6 @@ export interface BugReport {
   relatedFiles: string[];
   // Log lines surrounding the error (if available)
   surroundingLogs?: string[];
-}
-
-/** Best-effort parse of file/line from a stack trace. */
-function parseStack(stack: string | undefined): { file?: string; line?: number } {
-  if (!stack) return {};
-  const match = stack.split('\n')[1]?.match(/\((.+):(\d+):\d+\)/);
-  if (match && match[1] && match[2]) {
-    const file = match[1];
-    const line = Number(match[2]);
-    return { file, line };
-  }
-  const fallback = stack.split('\n')[1]?.match(/at\s+(.+):(\d+):\d+/);
-  if (fallback && fallback[1] && fallback[2]) {
-    const file = fallback[1];
-    const line = Number(fallback[2]);
-    return { file, line };
-  }
-  return {};
 }
 
 /** Extract file paths from a stack trace. */

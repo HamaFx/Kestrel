@@ -57,30 +57,3 @@ export async function fetchCalendar(
     args,
   );
 }
-
-export interface FetchBiquoteCalendarUpcomingArgs extends CallOptions {
-  /** Max events to return (1..500, default 100). */
-  limit?: number;
-  /** Comma-separated ISO country codes. */
-  countries?: string;
-  importance?: 'low' | 'medium' | 'high';
-}
-
-/**
- * Fetch upcoming economic calendar events over the next 30 days (`GET /api/calendar/upcoming`).
- */
-export async function fetchCalendarUpcoming(
-  args: FetchBiquoteCalendarUpcomingArgs = {},
-): Promise<BiquoteCalendarEvent[]> {
-  const limit = args.limit ? Math.max(1, Math.min(args.limit, 500)) : 100;
-  return call(
-    '/api/calendar/upcoming',
-    {
-      limit: String(limit),
-      ...(args.countries ? { countries: args.countries } : {}),
-      ...(args.importance ? { importance: args.importance } : {}),
-    },
-    CalendarArraySchema,
-    args,
-  );
-}

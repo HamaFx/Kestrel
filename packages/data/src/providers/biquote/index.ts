@@ -26,12 +26,10 @@ export {
   fetchLatest,
   fetchOhlc,
   fetchCalendar,
-  fetchCalendarUpcoming,
   fetchMarketNews,
   type CallOptions,
   type FetchOhlcArgs,
   type FetchBiquoteCalendarArgs,
-  type FetchBiquoteCalendarUpcomingArgs,
   type FetchBiquoteNewsArgs,
 } from './rest';
 export { toBiquoteSymbol, toBiquoteTimeframe, parseBiquoteDate } from './map';

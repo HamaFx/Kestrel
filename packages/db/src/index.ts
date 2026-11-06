@@ -52,7 +52,6 @@ export {
   type RetentionResult,
 } from './retention';
 export { getActiveUserIds } from './ops/active-users';
-export { checkAndIncrementDailyQuota, type DailyQuotaResult } from './ops/provider-quota';
 // PF-01 — Query/repository layer. Every helper is exported by name so
 // consumers tree-shake what they do not use.
 export {
@@ -122,7 +121,6 @@ export type {
 export {
   getWatchlistWithCatalog,
   isSymbolInCatalog,
-  getNextDisplayOrder,
   reorderWatchlist,
   type WatchlistEntry,
 } from './queries/watchlist';
@@ -166,7 +164,6 @@ export {
   updateTwoFactorSecret,
   getTwoFactorSecret,
   setTwoFactorEnabled,
-  updateUserApiKeys,
   createAuditLog,
   incrementTokenVersion,
   updateUserDisplayName,
@@ -179,7 +176,7 @@ export {
   deleteUserSessions,
   type SessionRow,
 } from './queries/user-sessions';
-export { getRecentCandles, listActiveSymbols, type CandleRow } from './queries/candles';
+export { getRecentCandles, type CandleRow } from './queries/candles';
 export { listMtdAgentOpinions, type AgentOpinionRow } from './queries/agent-opinions';
 export {
   upsertMessageFeedback,
