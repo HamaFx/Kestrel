@@ -125,14 +125,16 @@ export async function run(ctx) {
     const appPassword = read('POSTGRES_APP_PASSWORD');
     const adminPassword = read('POSTGRES_ADMIN_PASSWORD');
     const encoded = (value) => encodeURIComponent(value ?? '');
+    // An explicit runtime URL wins. Never copy the Compose `.env` URL: it
+    // points at the `db` service, which is not resolvable from the host.
     const databaseUrl =
-      read('DATABASE_URL') ??
-      read('POSTGRES_URL') ??
+      process.env.DATABASE_URL ??
+      process.env.POSTGRES_URL ??
       (appPassword
         ? `postgres://kestrel_app:${encoded(appPassword)}@127.0.0.1:${hostPort}/hamafx`
         : undefined);
     const adminDatabaseUrl =
-      read('ADMIN_DATABASE_URL') ??
+      process.env.ADMIN_DATABASE_URL ??
       (adminPassword
         ? `postgres://hamafx_admin:${encoded(adminPassword)}@127.0.0.1:${hostPort}/hamafx`
         : undefined);

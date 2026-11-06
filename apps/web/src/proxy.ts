@@ -95,7 +95,13 @@ const proxy: any = auth(async (req) => {
   const useSecureCookie =
     process.env.NODE_ENV === 'production' || process.env.COOKIE_SECURE_MODE === 'true';
   const csrfCookieName = useSecureCookie ? '__Host-kestrel_csrf' : 'kestrel_csrf';
-  let csrfToken = req.cookies.get(csrfCookieName)?.value;
+  // Accept the pre-rename cookies during the transition; the response below
+  // rotates the client onto the new name without rejecting its first POST.
+  let csrfToken =
+    req.cookies.get(csrfCookieName)?.value ??
+    req.cookies.get('kestrel_csrf')?.value ??
+    req.cookies.get('__Host-hfx_csrf')?.value ??
+    req.cookies.get('hfx_csrf')?.value;
   if (!csrfToken) {
     csrfToken = crypto.randomUUID();
   }

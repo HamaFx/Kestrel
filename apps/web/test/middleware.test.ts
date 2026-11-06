@@ -109,6 +109,22 @@ describe('middleware — Phase 0.9', () => {
     expect(cookie?.value).toBe('existing-token');
   });
 
+  it('rotates a legacy hfx_csrf cookie onto the new name', async () => {
+    mockAuth.mockImplementation(
+      (handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx),
+    );
+
+    const req = makeRequest('/api/chat', {
+      method: 'GET',
+      cookies: { hfx_csrf: 'legacy-token' },
+    });
+    const middleware = await loadMiddleware();
+    const res = (await middleware(req, ctx)) as NextResponse;
+
+    const cookie = res.cookies.get('kestrel_csrf');
+    expect(cookie?.value).toBe('legacy-token');
+  });
+
   it('rejects state-changing API requests without CSRF cookie', async () => {
     mockAuth.mockImplementation(
       (handler: MiddlewareFn) => async (req: NextRequest) => handler(req, ctx),

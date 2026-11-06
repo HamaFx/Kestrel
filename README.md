@@ -177,16 +177,16 @@ All deployments enforce Postgres Row Level Security (RLS) across all user tables
 
 <div align="center">
 
-| Feature                     | Description                                                                                    |
-| :-------------------------- | :--------------------------------------------------------------------------------------------- |
-| 🤖 **Multi-Agent Research** | 4 specialized Mastra agents (Technical, Fundamental, Risk, Sentiment) + Fusion synthesizer.    |
-| 📊 **Market Structure**     | Swing highs/lows, PDH/PDL, Asian/London/NY session ranges, and a pluggable indicator registry. |
-| 📈 **Interactive Studio**   | Live candlestick charts with multi-timeframe analysis, indicators, and image upload vision.    |
-| 📅 **Macro Intelligence**   | Real-time economic calendar (CPI, NFP, FOMC) with live countdowns & consensus data.            |
-| 📓 **Interactive Journal**  | Trade logger with automated screenshot attachments, R-multiple calculations, and replay.       |
-| 🚨 **Multi-Channel Alerts** | Instant alert triggers delivered via **Telegram Bot**, **Web Push**, or **Email (Resend)**.    |
-| 🔑 **Encrypted BYOK**       | 100% user-owned API keys stored with AES-256 encryption. Support for 8+ AI providers.          |
-| 🛡️ **Defensive Guardrails** | Strict prompt-injection sanitization, daily cost budget caps, and tool-iteration limits.       |
+| Feature                     | Description                                                                                      |
+| :-------------------------- | :----------------------------------------------------------------------------------------------- |
+| 🤖 **Multi-Agent Research** | 4 specialized Mastra agents (Technical, Fundamental, Risk, Sentiment) + Fusion synthesizer.      |
+| 📊 **Market Structure**     | Swing highs/lows, PDH/PDL, Asian/London/NY session ranges, and a pluggable indicator registry.   |
+| 📈 **Interactive Studio**   | Live candlestick charts with multi-timeframe analysis, indicators, and image upload vision.      |
+| 📅 **Macro Intelligence**   | Real-time economic calendar (CPI, NFP, FOMC) with live countdowns & consensus data.              |
+| 📓 **Interactive Journal**  | Trade logger with automated screenshot attachments, R-multiple calculations, and replay.         |
+| 🚨 **Multi-Channel Alerts** | Instant alert triggers delivered via **Telegram Bot**, **Web Push**, or **Email (Resend)**.      |
+| 🔑 **Encrypted BYOK**       | 100% user-owned API keys stored with AES-256 encryption. Support for 8 first-party AI providers. |
+| 🛡️ **Defensive Guardrails** | Strict prompt-injection sanitization, daily cost budget caps, and tool-iteration limits.         |
 
 </div>
 
