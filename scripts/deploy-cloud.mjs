@@ -18,7 +18,7 @@
  *   2. Vercel web app (`/.env.vercel` pasted into Project Settings)
  *
  * Usage:
- *   node scripts/deploy-cloud.mjs --db="postgres://..." --url="https://hamafx-ai.vercel.app"
+ *   node scripts/deploy-cloud.mjs --db="postgres://..." --url="https://kestrel.example.com"
  */
 
 import { randomBytes } from 'node:crypto';
@@ -79,7 +79,7 @@ function main() {
         'Options:',
         '  --db=<postgres-url>         Supabase/Postgres connection string',
         '  --admin-db=<postgres-url>   Direct/admin Postgres URL (defaults to --db)',
-        '  --url=<https://...>         Production Vercel web URL (default: https://hamafx-ai.vercel.app)',
+        '  --url=<https://...>         Production web URL (default: https://kestrel.example.com)',
       ].join('\n'),
     );
     return;
@@ -160,7 +160,7 @@ function main() {
     process.env.PRODUCTION_URL ||
     existing.get('PRODUCTION_URL') ||
     existing.get('NEXT_PUBLIC_APP_URL') ||
-    'https://hamafx-ai.vercel.app'
+    'https://kestrel.example.com'
   ).replace(/\/+$/, '');
 
   const workerEnv = [

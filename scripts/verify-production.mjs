@@ -17,7 +17,7 @@
  * Read-only production verification.
  *
  * Usage:
- *   PRODUCTION_URL=https://hamafx-ai.vercel.app pnpm verify:production
+ *   PRODUCTION_URL=https://kestrel.example.com pnpm verify:production
  *   PRODUCTION_URL=... WORKER_HEALTH_URL=http://127.0.0.1:8081 pnpm verify:production
  *   VERIFY_MIGRATIONS=1 DIRECT_URL=... pnpm verify:production
  *
