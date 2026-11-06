@@ -9,12 +9,12 @@
 // public registration is closed until the operator explicitly sets
 // `REGISTRATION_MODE=open` or invites users.
 //
-// `countUsers` includes soft-deleted rows on purpose: deleting the only admin
-// must not reopen public registration.
+// `countRegisteredUsers` excludes the seeded `__system__` row but includes
+// soft-deleted accounts, so deleting the only admin cannot reopen registration.
 
 import 'server-only';
 
-import { countUsers } from '@kestrel/db';
+import { countRegisteredUsers } from '@kestrel/db';
 
 import { getServerEnv } from '@/lib/env';
 
@@ -39,9 +39,8 @@ export async function resolveRegistrationPolicy(): Promise<RegistrationDecision>
   const mode = getServerEnv().REGISTRATION_MODE;
   if (mode === 'disabled') return { allowed: false, reason: REGISTRATION_DISABLED_REASON };
 
-  // `countUsers` is the admin listing helper; normalize in case the driver
-  // returns count(*) as a bigint string.
-  const users = Number(await countUsers());
+  // Normalize in case the driver returns count(*) as a bigint string.
+  const users = Number(await countRegisteredUsers());
   if (users === 0) return { allowed: true, role: 'admin', firstUser: true };
   if (mode === 'first_user') return { allowed: false, reason: REGISTRATION_CLOSED_REASON };
   return { allowed: true, role: 'user', firstUser: false };

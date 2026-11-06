@@ -18,7 +18,7 @@
 //
 // These decouple the admin API routes from the schema/users table.
 
-import { count, desc, eq, ilike, or } from 'drizzle-orm';
+import { count, desc, eq, ilike, ne, or } from 'drizzle-orm';
 
 import { getDb, schema } from '../client';
 
@@ -110,6 +110,9 @@ export async function getUserPasswordHash(userId: string): Promise<string | null
   return user?.hashedPassword ?? null;
 }
 
+/** Seeded owner of global catalog rows; never a real account. */
+export const SYSTEM_USER_ID = '__system__';
+
 /** Total count of users, optionally filtered by email/name. */
 export async function countUsers(q?: string): Promise<number> {
   const db = getDb();
@@ -121,6 +124,20 @@ export async function countUsers(q?: string): Promise<number> {
   const [row] = await db.select({ count: count() }).from(schema.users).where(whereClause);
   // postgres.js returns int8 as a string; `count()` declares number but we
   // normalise anyway so callers always get a real number.
+  return Number(row?.count ?? 0);
+}
+
+/**
+ * Count real accounts that can claim an instance. Excludes the seeded
+ * `__system__` row; soft-deleted accounts still count so deleting the only
+ * admin cannot reopen public registration.
+ */
+export async function countRegisteredUsers(): Promise<number> {
+  const db = getDb();
+  const [row] = await db
+    .select({ count: count() })
+    .from(schema.users)
+    .where(ne(schema.users.id, SYSTEM_USER_ID));
   return Number(row?.count ?? 0);
 }
 

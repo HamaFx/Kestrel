@@ -92,6 +92,7 @@ export {
   getUserPasswordHash,
   listUsersWithSettings,
   countUsers,
+  countRegisteredUsers,
   countAdmins,
   updateUserRole,
   type UserRow,

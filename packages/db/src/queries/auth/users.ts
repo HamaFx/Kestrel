@@ -15,9 +15,10 @@
 // Auth query helpers — user CRUD, credentials, lockout and token version.
 
 import { DEFAULT_WATCHLIST_SYMBOLS } from '@kestrel/shared';
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, eq, isNull, ne, sql } from 'drizzle-orm';
 
 import { getDb, schema, withTenantDb } from '../../client';
+import { SYSTEM_USER_ID } from '../users';
 import type { AuthUserRow, CreateUserInput } from './types';
 
 /**
@@ -102,7 +103,11 @@ export async function createUserWithSettings(input: CreateUserInput): Promise<vo
   await withTenantDb(input.id, async (tx) => {
     if (input.requireFirstUser) {
       await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('kestrel:first-user'))`);
-      const [existing] = await tx.select({ id: schema.users.id }).from(schema.users).limit(1);
+      const [existing] = await tx
+        .select({ id: schema.users.id })
+        .from(schema.users)
+        .where(ne(schema.users.id, SYSTEM_USER_ID))
+        .limit(1);
       if (existing) throw new FirstUserRegistrationClosedError();
     }
 
