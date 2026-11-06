@@ -20,7 +20,12 @@
 // cookie handling and the plugin API error envelope are shared here instead of
 // being copy-pasted into every `ui/api.ts`.
 
-const CSRF_COOKIE_NAMES = ['__Host-hfx_csrf', 'hfx_csrf'] as const;
+const CSRF_COOKIE_NAMES = [
+  '__Host-kestrel_csrf',
+  'kestrel_csrf',
+  '__Host-hfx_csrf',
+  'hfx_csrf',
+] as const;
 
 /** CSRF token from the request proxy's cookie, or undefined on the server. */
 export function readCsrfToken(): string | undefined {

@@ -127,7 +127,7 @@ describe.skipIf(!enabled || !appUrl || !adminUrl)(
       marketActionModule = await import('../src/app/(app)/settings/_actions/api-keys-market');
       apiKeysActionModule = await import('../src/app/(app)/settings/_actions/api-keys-save');
       dbModule = await import('@kestrel/db');
-    });
+    }, 120_000);
 
     afterAll(async () => {
       try {
@@ -141,7 +141,7 @@ describe.skipIf(!enabled || !appUrl || !adminUrl)(
         await dbModule?.closeDb();
         await admin?.end();
       }
-    });
+    }, 60_000);
 
     it('hides the settings row from an unscoped read and update as kestrel_app', async () => {
       const db = dbModule.getDb();

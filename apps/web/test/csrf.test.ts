@@ -42,39 +42,44 @@ describe('getCsrfToken', () => {
     expect(getCsrfToken()).toBeUndefined();
   });
 
-  it('returns undefined when hfx_csrf cookie is absent among other cookies', () => {
+  it('returns undefined when kestrel_csrf cookie is absent among other cookies', () => {
     document.cookie = 'other=value; another=123';
     expect(getCsrfToken()).toBeUndefined();
   });
 
-  it('extracts the token when hfx_csrf is the only cookie', () => {
-    document.cookie = 'hfx_csrf=my-token-value';
+  it('extracts the token when kestrel_csrf is the only cookie', () => {
+    document.cookie = 'kestrel_csrf=my-token-value';
     expect(getCsrfToken()).toBe('my-token-value');
   });
 
-  it('extracts the token when hfx_csrf is among multiple cookies', () => {
-    document.cookie = 'session=abc123; hfx_csrf=csrf-token; theme=dark';
+  it('extracts the token when kestrel_csrf is among multiple cookies', () => {
+    document.cookie = 'session=abc123; kestrel_csrf=csrf-token; theme=dark';
     expect(getCsrfToken()).toBe('csrf-token');
   });
 
   it('decodes URI-encoded token values', () => {
-    document.cookie = 'hfx_csrf=hello%20world%21';
+    document.cookie = 'kestrel_csrf=hello%20world%21';
     expect(getCsrfToken()).toBe('hello world!');
   });
 
   it('handles token with special characters', () => {
-    document.cookie = 'hfx_csrf=aB3_xYz-9Qw';
+    document.cookie = 'kestrel_csrf=aB3_xYz-9Qw';
     expect(getCsrfToken()).toBe('aB3_xYz-9Qw');
   });
 
   it('returns empty string when cookie value is empty', () => {
-    document.cookie = 'hfx_csrf=';
+    document.cookie = 'kestrel_csrf=';
     expect(getCsrfToken()).toBe('');
   });
 
   it('handles cookie with trailing semicolon', () => {
-    document.cookie = 'hfx_csrf=token123;';
+    document.cookie = 'kestrel_csrf=token123;';
     expect(getCsrfToken()).toBe('token123');
+  });
+
+  it('accepts the legacy hfx_csrf cookie during the rename window', () => {
+    document.cookie = 'hfx_csrf=legacy-token';
+    expect(getCsrfToken()).toBe('legacy-token');
   });
 });
 
@@ -90,7 +95,7 @@ describe('withCsrf', () => {
   });
 
   it('appends X-CSRF-Token header when token is present', () => {
-    document.cookie = 'hfx_csrf=my-token';
+    document.cookie = 'kestrel_csrf=my-token';
     const result = withCsrf({ method: 'POST' });
     expect(result.method).toBe('POST');
     const headers = result.headers as Headers;
@@ -98,7 +103,7 @@ describe('withCsrf', () => {
   });
 
   it('preserves existing headers and adds CSRF token', () => {
-    document.cookie = 'hfx_csrf=token123';
+    document.cookie = 'kestrel_csrf=token123';
     const existing = new Headers({ 'Content-Type': 'application/json' });
     const result = withCsrf({ headers: existing });
     const headers = result.headers as Headers;
@@ -107,7 +112,7 @@ describe('withCsrf', () => {
   });
 
   it('overwrites existing X-CSRF-Token header with new token', () => {
-    document.cookie = 'hfx_csrf=new-token';
+    document.cookie = 'kestrel_csrf=new-token';
     const existing = new Headers({ 'X-CSRF-Token': 'old-token' });
     const result = withCsrf({ headers: existing });
     const headers = result.headers as Headers;
@@ -115,7 +120,7 @@ describe('withCsrf', () => {
   });
 
   it('handles plain object headers', () => {
-    document.cookie = 'hfx_csrf=token456';
+    document.cookie = 'kestrel_csrf=token456';
     const result = withCsrf({ headers: { Authorization: 'Bearer xyz' } });
     const headers = result.headers as Headers;
     expect(headers.get('Authorization')).toBe('Bearer xyz');
@@ -125,7 +130,7 @@ describe('withCsrf', () => {
 
 describe('fetchCsrf', () => {
   it('calls fetch with the CSRF token appended', async () => {
-    document.cookie = 'hfx_csrf=test-csrf';
+    document.cookie = 'kestrel_csrf=test-csrf';
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response());
 
     await fetchCsrf('/api/data', { method: 'POST' });
@@ -157,7 +162,7 @@ describe('fetchCsrf', () => {
   });
 
   it('passes URL object to fetch', async () => {
-    document.cookie = 'hfx_csrf=t';
+    document.cookie = 'kestrel_csrf=t';
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response());
     const url = new URL('https://example.com/api');
 

@@ -88,7 +88,7 @@ describe('middleware — Phase 0.9', () => {
     const middleware = await loadMiddleware();
     const res = (await middleware(req, ctx)) as NextResponse;
 
-    const cookie = res.cookies.get('hfx_csrf');
+    const cookie = res.cookies.get('kestrel_csrf');
     expect(cookie).toBeDefined();
     expect(cookie?.value).toMatch(/^[0-9a-f-]{36}$/i);
   });
@@ -100,12 +100,12 @@ describe('middleware — Phase 0.9', () => {
 
     const req = makeRequest('/api/chat', {
       method: 'GET',
-      cookies: { hfx_csrf: 'existing-token' },
+      cookies: { kestrel_csrf: 'existing-token' },
     });
     const middleware = await loadMiddleware();
     const res = (await middleware(req, ctx)) as NextResponse;
 
-    const cookie = res.cookies.get('hfx_csrf');
+    const cookie = res.cookies.get('kestrel_csrf');
     expect(cookie?.value).toBe('existing-token');
   });
 
@@ -134,7 +134,7 @@ describe('middleware — Phase 0.9', () => {
     const req = makeRequest('/api/chat', {
       method: 'POST',
       headers: { 'x-csrf-token': 'wrong-token' },
-      cookies: { hfx_csrf: 'correct-token' },
+      cookies: { kestrel_csrf: 'correct-token' },
     });
     const middleware = await loadMiddleware();
     const res = await middleware(req, ctx);
@@ -150,7 +150,7 @@ describe('middleware — Phase 0.9', () => {
     const req = makeRequest('/api/chat', {
       method: 'POST',
       headers: { 'x-csrf-token': 'valid-token' },
-      cookies: { hfx_csrf: 'valid-token' },
+      cookies: { kestrel_csrf: 'valid-token' },
     });
     const middleware = await loadMiddleware();
     const res = await middleware(req, ctx);

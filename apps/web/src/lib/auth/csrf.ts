@@ -21,11 +21,13 @@
 
 /**
  * Extracts the CSRF cookie value set by the request proxy.
- * P2-6: Handles both `hfx_csrf` (dev) and `__Host-hfx_csrf` (prod) names.
+ * Handles `kestrel_csrf` (dev) and `__Host-kestrel_csrf` (prod), plus the
+ * legacy `hfx_` names so a session that predates the rename keeps working
+ * until its next response rotates the cookie.
  */
 export function getCsrfToken(): string | undefined {
   if (typeof document === 'undefined') return undefined;
-  for (const name of ['__Host-hfx_csrf', 'hfx_csrf']) {
+  for (const name of ['__Host-kestrel_csrf', 'kestrel_csrf', '__Host-hfx_csrf', 'hfx_csrf']) {
     const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
     if (match?.[1] !== undefined) return decodeURIComponent(match[1]);
   }

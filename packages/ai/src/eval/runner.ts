@@ -19,7 +19,7 @@
 //
 // CLI:
 //   tsx packages/ai/src/eval/runner.ts --base-url http://localhost:3000 \
-//     --cookie "hfx_auth=..." --out docs/eval --timeout 120000
+//     --cookie "kestrel_auth=..." --out docs/eval --timeout 120000
 
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -224,7 +224,7 @@ async function main(): Promise<void> {
   const f = flags as CliFlags;
   if (!f.cookie || f.cookie.length === 0) {
     process.stderr.write(
-      'error: missing cookie. Pass --cookie "hfx_auth=..." or set EVAL_COOKIE.\n',
+      'error: missing cookie. Pass --cookie "kestrel_auth=..." or set EVAL_COOKIE.\n',
     );
     process.exit(1);
   }

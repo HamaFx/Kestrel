@@ -34,7 +34,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { getDb, schema } from '@kestrel/db/client';
+import { schema, withAdminDb } from '@kestrel/db';
 import { desc, gte } from 'drizzle-orm';
 
 import {
@@ -81,12 +81,15 @@ async function main(): Promise<void> {
 
   // Recent scored turns: last 24h of committee runs with a recorded run id.
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const rows = await getDb()
-    .select({ runId: schema.chatTelemetry.runId })
-    .from(schema.chatTelemetry)
-    .where(gte(schema.chatTelemetry.createdAt, since))
-    .orderBy(desc(schema.chatTelemetry.createdAt))
-    .limit(200);
+  // Cross-tenant telemetry read: the worker/admin scope is required under RLS.
+  const rows = await withAdminDb((db) =>
+    db
+      .select({ runId: schema.chatTelemetry.runId })
+      .from(schema.chatTelemetry)
+      .where(gte(schema.chatTelemetry.createdAt, since))
+      .orderBy(desc(schema.chatTelemetry.createdAt))
+      .limit(200),
+  );
 
   const runIds = [
     ...new Set(

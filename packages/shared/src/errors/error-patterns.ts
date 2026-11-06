@@ -83,7 +83,7 @@ export const ERROR_PATTERNS: ErrorPattern[] = [
     pattern: /CSRF.*missing.*invalid/i,
     description: 'CSRF token validation failed',
     suggestedFix:
-      'Ensure the hfx_csrf cookie is set and the x-csrf-token header matches it. Check proxy.ts CSRF logic and withCsrf() helper.',
+      'Ensure the kestrel_csrf cookie is set and the x-csrf-token header matches it. Check proxy.ts CSRF logic and withCsrf() helper.',
     relatedFiles: ['apps/web/src/proxy.ts', 'apps/web/src/lib/csrf.ts'],
     retryable: false,
   },

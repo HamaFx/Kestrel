@@ -34,7 +34,7 @@ const USAGE = `Usage: node tools/lighthouse/run.mjs --base-url <url> --cookie <c
 
 Options:
   --base-url <url>     Base URL to audit (e.g. http://localhost:3000 or https://kestrel.example.com). Required.
-  --cookie <cookie>    Cookie header value to bypass the password gate (e.g. "hfx_auth=<value>"). Required.
+  --cookie <cookie>    Cookie header value to bypass the password gate (e.g. "kestrel_auth=<value>"). Required.
   --out <dir>          Output root directory (default: docs/lighthouse).
                        Reports land in <dir>/<UTC-timestamp>/.
   -h, --help           Print this help and exit 0.

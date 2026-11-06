@@ -95,7 +95,9 @@ function bootstrapSession(): SessionCtx[] {
     });
 
     const csrfCookieName =
-      extractCookie(warmupRes, '__Host-hfx_csrf') !== undefined ? '__Host-hfx_csrf' : 'hfx_csrf';
+      extractCookie(warmupRes, '__Host-kestrel_csrf') !== undefined
+        ? '__Host-kestrel_csrf'
+        : 'kestrel_csrf';
     const csrfCookie = extractCookie(warmupRes, csrfCookieName) ?? '';
 
     ctxs.push({

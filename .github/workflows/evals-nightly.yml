@@ -37,10 +37,12 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/kestrel_test
       DIRECT_URL: postgres://postgres:postgres@localhost:5432/kestrel_test
       NODE_ENV: test
-      # The gate reads cross-tenant score rows for the quality roll-up; its
-      # connection bypasses row-level tenant scoping (read-only telemetry).
-      KESTREL_ENABLE_RLS: '0'
-      MULTI_USER_ENABLED: '0'
+      # The gate reads cross-tenant score rows for the quality roll-up through
+      # `withAdminDb`; the migration chain still runs with RLS enabled so the
+      # nightly job exercises the same schema a deployment gets.
+      ADMIN_DATABASE_URL: postgres://postgres:postgres@localhost:5432/kestrel_test
+      KESTREL_ENABLE_RLS: '1'
+      MULTI_USER_ENABLED: '1'
       # The CI service postgres speaks plain TCP.
       DB_DISABLE_SSL: 'true'
     steps:
@@ -53,6 +55,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Build packages
         run: pnpm build:packages
+      - name: Apply database migrations
+        run: pnpm --filter @kestrel/db migrate:apply
       - name: Unit regression net
         run: pnpm --filter @kestrel/ai test
       - name: Eval quality gate

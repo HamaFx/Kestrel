@@ -25,7 +25,7 @@ import type { EvalQualityGateResult, EvalQualityGateThresholds } from './quality
 export interface RunEvalsArgs {
   /** Base URL the harness will POST to, e.g. `http://localhost:3000`. */
   baseUrl: string;
-  /** Full `Cookie` header value, e.g. `hfx_auth=...`. */
+  /** Full `Cookie` header value, e.g. `kestrel_auth=...`. */
   cookie: string;
   /** Directory the markdown report is written into. Created if missing. */
   outDir: string;

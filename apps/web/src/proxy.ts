@@ -94,7 +94,7 @@ const proxy: any = auth(async (req) => {
   // for Docker self-hosted deployments that serve over HTTPS.
   const useSecureCookie =
     process.env.NODE_ENV === 'production' || process.env.COOKIE_SECURE_MODE === 'true';
-  const csrfCookieName = useSecureCookie ? '__Host-hfx_csrf' : 'hfx_csrf';
+  const csrfCookieName = useSecureCookie ? '__Host-kestrel_csrf' : 'kestrel_csrf';
   let csrfToken = req.cookies.get(csrfCookieName)?.value;
   if (!csrfToken) {
     csrfToken = crypto.randomUUID();
