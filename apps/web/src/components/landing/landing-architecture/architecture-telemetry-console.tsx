@@ -2,9 +2,13 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Live telemetry console for the currently effective architecture layer.
+// Live telemetry console for the currently effective architecture layer,
+// pairing each 3D isometric tier with its chiaroscuro Sovereign Plate
+// (Meridian Obelisk, Pantheon War Room, Aegis Governor, Arbiter Scales Falcon).
 import { IconLayersLinked } from '@tabler/icons-react';
 import { AnimatePresence, m } from 'motion/react';
+
+import { BlueprintPlate, type BlueprintPlateId } from '@/components/brand/blueprint-plates';
 
 import type { LayerSpec } from './layers';
 
@@ -12,9 +16,18 @@ interface ArchitectureTelemetryConsoleProps {
   activeLayer: LayerSpec;
 }
 
+const LAYER_PLATE_MAP: Record<string, BlueprintPlateId> = {
+  ingestion: 'obelisk',
+  consensus: 'warroom',
+  risk: 'aegis',
+  execution: 'arbiter',
+};
+
 export function ArchitectureTelemetryConsole({ activeLayer }: ArchitectureTelemetryConsoleProps) {
+  const plateId = LAYER_PLATE_MAP[activeLayer.id] ?? 'titan';
+
   return (
-    <div className="surface-panel relative flex flex-col gap-5 overflow-hidden rounded-2xl border border-white/15 bg-[#121314] p-6 shadow-2xl">
+    <div className="surface-panel relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-white/15 bg-[#121314] p-5 shadow-2xl sm:p-6">
       {/* Lit Corner Flare */}
       <div
         aria-hidden="true"
@@ -23,7 +36,7 @@ export function ArchitectureTelemetryConsole({ activeLayer }: ArchitectureTeleme
 
       <div className="relative z-10 flex items-center justify-between border-b border-white/10 pb-3">
         <div className="flex items-center gap-2">
-          <span className="bg-brand size-2 animate-pulse rounded-full shadow-[0_0_8px_#ff3616]" />
+          <span className="bg-brand size-2 rounded-full shadow-[0_0_8px_#ff3616]" />
           <span className="text-brand font-mono text-[10px] font-bold tracking-wider uppercase">
             TIER {activeLayer.num} TELEMETRY
           </span>
@@ -43,11 +56,19 @@ export function ArchitectureTelemetryConsole({ activeLayer }: ArchitectureTeleme
           transition={{ duration: 0.18 }}
           className="relative z-10 flex flex-col gap-4"
         >
+          <BlueprintPlate
+            id={plateId}
+            variant="compact"
+            showRasterBackup
+            showAsciiStrip
+            className="h-40 w-full"
+          />
+
           <div>
             <h3 className="font-display text-fg text-xl font-normal tracking-tight">
               {activeLayer.title}
             </h3>
-            <p className="text-fg-muted mt-2 font-sans text-xs leading-relaxed">
+            <p className="text-fg-muted mt-1.5 font-sans text-xs leading-relaxed">
               {activeLayer.fullDesc}
             </p>
           </div>

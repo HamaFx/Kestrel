@@ -16,13 +16,10 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// SettingsRow — a labeled row inside a SettingsSection. Three slots:
+// SettingsRow — one flush property line:
 //   [optional icon]  [label + optional description]   [right action]
-//
-// Used by both the toggle preferences and the channel-test rows so the
-// settings page reads as one cohesive list rather than five different
-// row layouts.
-
+// Sits inside a shared `divide-y` container; no nested card borders, no
+// competing shadows. Rows stay at least 56px tall for touch.
 import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/formatters/cn';
@@ -41,7 +38,7 @@ interface SettingsRowProps {
 
 export function SettingsRow({
   icon,
-  iconColor = 'var(--color-bg-elev-3)',
+  iconColor = 'var(--color-bg-elev-2)',
   label,
   description,
   action,
@@ -51,7 +48,7 @@ export function SettingsRow({
   return (
     <div
       className={cn(
-        'flex min-h-[56px] items-center gap-3',
+        'flex min-h-14 items-center gap-3 border-b border-white/[0.06] px-4 py-3 last:border-b-0',
         stack ? 'flex-col items-stretch gap-3' : '',
         className,
       )}
@@ -59,19 +56,18 @@ export function SettingsRow({
       {icon ? (
         <span
           aria-hidden="true"
-          className="text-fg-muted inline-flex size-9 shrink-0 items-center justify-center rounded-sm"
+          className="text-fg-muted border-white/[0.08] inline-flex size-8 shrink-0 items-center justify-center rounded-lg border"
           style={{
             background: iconColor,
-            boxShadow: 'none',
           }}
         >
           {icon}
         </span>
       ) : null}
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-fg text-sm leading-tight font-semibold">{label}</span>
+        <span className="text-fg font-sans text-sm leading-tight font-medium">{label}</span>
         {description ? (
-          <span className="text-fg-subtle text-xs leading-snug">{description}</span>
+          <span className="text-fg-subtle font-sans text-xs leading-snug">{description}</span>
         ) : null}
       </div>
       {!stack ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null}

@@ -19,8 +19,7 @@
  */
 
 // Landing desks section shell: owns the auto-cycling/pause-on-hover state and
-// composes the desk selector rail with the active desk console.
-import Image from 'next/image';
+// composes the 2-pane milled instrument frame (selector rail + active console).
 import { useEffect, useRef, useState } from 'react';
 
 import { DeskConsole } from './desk-console';
@@ -60,35 +59,14 @@ export function LandingDesks() {
       id="desks"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      className="relative overflow-hidden border-t border-white/5 bg-[#101112] py-16 sm:py-20 lg:py-24"
+      className="relative overflow-hidden border-t border-white/[0.06] bg-[#101112] py-16 sm:py-20 lg:py-24"
     >
-      {/* ── Neoclassical Cybernetic 4-Strategist Council Artwork ── */}
-      <div
-        aria-hidden="true"
-        className="desks-backdrop-mask pointer-events-none absolute top-4 left-0 z-0 h-[360px] w-full opacity-20 mix-blend-screen select-none sm:top-8 sm:h-[480px] lg:top-1/2 lg:h-[88%] lg:w-[48%] lg:-translate-y-1/2 lg:opacity-25"
-      >
-        <Image
-          src="/landing/desks-council-strategists.webp"
-          alt="The Four Specialist Desks Neoclassical Strategist Council"
-          fill
-          unoptimized
-          sizes="(max-width: 1024px) 100vw, 48vw"
-          className="object-contain object-top lg:object-cover lg:object-center"
-        />
-      </div>
-
-      {/* Background Radial Glow */}
-      <div
-        aria-hidden="true"
-        className="bg-brand/5 pointer-events-none absolute -top-40 right-0 size-[600px] rounded-full blur-[120px] select-none"
-      />
-
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="mb-10 flex flex-col gap-4 sm:mb-12 md:flex-row md:items-end md:justify-between">
           <div className="flex max-w-2xl flex-col items-start gap-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono text-xs">
-              <span className="bg-brand size-2 animate-pulse rounded-full" />
+            <div className="border-border/60 inline-flex items-center gap-2 rounded-full border bg-white/[0.03] px-3 py-1 font-mono text-xs">
+              <span className="bg-brand size-2 rounded-full" />
               <span className="text-brand font-semibold tracking-wider uppercase">
                 Autonomous Syndicate
               </span>
@@ -107,17 +85,17 @@ export function LandingDesks() {
 
           {/* Syndicate Synchronization Telemetry Badge */}
           <div className="text-fg-subtle hidden items-center gap-2.5 rounded-lg border border-white/10 bg-white/[0.02] px-3.5 py-2 font-mono text-xs lg:flex">
-            <span className="bg-bull size-2 animate-pulse rounded-full" />
+            <span className="bg-bull size-2 rounded-full" />
             <span>4/4 DESKS SYNCHRONIZED</span>
           </div>
         </div>
 
-        {/* Side-by-Side Cockpit Grid */}
-        <div className="grid gap-6 lg:grid-cols-12 lg:items-stretch lg:gap-8">
+        {/* Unified 2-Pane Milled Instrument Frame */}
+        <div className="grid overflow-hidden rounded-2xl border border-white/10 bg-[#121315] divide-y divide-white/[0.08] lg:grid-cols-12 lg:divide-x lg:divide-y-0">
           <DeskTabs selectedId={selectedId} isPaused={isPaused} onSelect={handleSelectDesk} />
 
           {/* Right Console: Active Desk Briefing Cockpit */}
-          <div className="flex flex-col lg:col-span-7">
+          <div className="flex min-w-0 flex-col lg:col-span-7">
             <DeskConsole desk={activeDesk} />
           </div>
         </div>

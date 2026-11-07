@@ -71,7 +71,7 @@ export function StageCards({ activeStep, progress, isPlaying, onSelectStep }: St
                   <span className="text-fg-subtle font-mono text-[10px]">· {step.latency}</span>
                 </div>
                 {active && isPlaying && (
-                  <span className="text-brand animate-pulse font-mono text-[10px] font-bold uppercase">
+                  <span className="text-brand font-mono text-[10px] font-bold uppercase">
                     ACTIVE
                   </span>
                 )}

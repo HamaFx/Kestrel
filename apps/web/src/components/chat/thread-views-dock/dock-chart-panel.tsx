@@ -48,7 +48,7 @@ export function DockChartPanel({
         />
       </div>
       <div className="relative min-h-0 w-full flex-1">
-        <TradingViewWidget symbol={symbol} tf={activeTf} theme="dark" />
+        <TradingViewWidget symbol={symbol} tf={activeTf} theme="dark" fit />
       </div>
     </div>
   );

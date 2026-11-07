@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 
-// Route-aware container that keeps ambient market telemetry (TickerTape,
-// MarketSessionBar) out of surfaces where live price chrome is noise and the
-// polling/timers underneath it are pure overhead:
+// Route-aware container that keeps the unified ambient telemetry ribbon out of
+// surfaces where live price chrome is noise and the polling/timers underneath
+// it are pure overhead:
 //
 //   - `/chat` — the cockpit renders its own session/price telemetry
 //   - `/settings/*` — account surfaces (profile, security, appearance, …)

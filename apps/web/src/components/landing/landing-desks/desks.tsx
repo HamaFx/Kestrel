@@ -3,14 +3,19 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Static catalogue for the landing desks section: the four specialist desk
-// specs, their verdicts, capabilities and auto-cycle cadence.
+// specs + paired Sovereign blueprint engravings, verdicts, capabilities, and
+// auto-cycle cadence.
 import { IconBuildingBank, IconChartCandle, IconRadar, IconScale } from '@tabler/icons-react';
+
+import type { BlueprintPlateId } from '@/components/brand/blueprint-plates';
 
 export interface DeskSpec {
   id: string;
   name: string;
   role: string;
   badge: string;
+  blueprintId: BlueprintPlateId;
+  pairedBlueprintId: BlueprintPlateId;
   color: string;
   borderColor: string;
   bgGlow: string;
@@ -31,6 +36,8 @@ export const DESKS: DeskSpec[] = [
     name: 'Technical Desk',
     role: 'Structure & Level Architect',
     badge: 'PRICE ACTION & QUANTITATIVE STRUCTURE',
+    blueprintId: 'astrolabe',
+    pairedBlueprintId: 'colonnade',
     color: 'text-bull',
     borderColor: 'border-bull/30',
     bgGlow: 'from-bull/10 to-transparent',
@@ -55,6 +62,8 @@ export const DESKS: DeskSpec[] = [
     name: 'Macroeconomic Desk',
     role: 'Central Bank & Yield Strategist',
     badge: 'INTEREST RATES & CATALYSTS',
+    blueprintId: 'horus',
+    pairedBlueprintId: 'obelisk',
     color: 'text-info',
     borderColor: 'border-info/30',
     bgGlow: 'from-info/10 to-transparent',
@@ -79,6 +88,8 @@ export const DESKS: DeskSpec[] = [
     name: 'Quantitative Risk Desk',
     role: '1% Mathematical Governor',
     badge: 'CAPITAL PRESERVATION & VETO',
+    blueprintId: 'aegis',
+    pairedBlueprintId: 'eclipse',
     color: 'text-warn',
     borderColor: 'border-warn/30',
     bgGlow: 'from-warn/10 to-transparent',
@@ -103,6 +114,8 @@ export const DESKS: DeskSpec[] = [
     name: 'Institutional Desk',
     role: 'Whale Positioning & COT Analyst',
     badge: 'CFTC & VOLUME PROFILE',
+    blueprintId: 'sentinel',
+    pairedBlueprintId: 'warroom',
     color: 'text-brand',
     borderColor: 'border-brand/30',
     bgGlow: 'from-brand/10 to-transparent',

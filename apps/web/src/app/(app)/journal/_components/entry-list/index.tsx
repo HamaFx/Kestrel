@@ -19,10 +19,14 @@
 // Advanced trade list with real-time price tracking, dynamic PnL sliders,
 // and powerful tabs/filters (Active, Closed, All, symbols, sides, text searches).
 import type { JournalEntry } from '@kestrel/shared';
+import { IconLayoutGrid, IconList } from '@tabler/icons-react';
+import { useState } from 'react';
 
 import { useConfirm } from '@/components/ui/confirm-drawer';
+import { cn } from '@/lib/formatters/cn';
 
 import { EntryFilterPanel } from './entry-filter-panel';
+import { ExecutionLedger } from './execution-ledger';
 import { EntryListEmpty } from './entry-list-empty';
 import { EntryListTabs } from './entry-list-tabs';
 import { useEntryFilters } from './use-entry-filters';
@@ -39,6 +43,7 @@ export function EntryList({ entries, onClosed, onDeleted }: EntryListProps) {
   const [confirmEl, confirm] = useConfirm();
   const filters = useEntryFilters(entries);
   const { timeLabels, priceMap } = useEntryListData(entries);
+  const [view, setView] = useState<'ledger' | 'cards'>('ledger');
 
   return (
     <div className="flex flex-col gap-4">
@@ -68,9 +73,51 @@ export function EntryList({ entries, onClosed, onDeleted }: EntryListProps) {
         />
       )}
 
-      {/* Entries IconList */}
+      {/* View mode: institutional ledger (default) vs detailed cards */}
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-fg-subtle font-mono text-[9px] tracking-[0.14em] uppercase">
+          Execution view
+        </span>
+        <div
+          role="group"
+          aria-label="Journal view mode"
+          className="border-border/60 flex items-center gap-0.5 rounded-lg border bg-white/[0.02] p-0.5"
+        >
+          {(
+            [
+              { id: 'ledger', label: 'Ledger', icon: IconList },
+              { id: 'cards', label: 'Cards', icon: IconLayoutGrid },
+            ] as const
+          ).map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={view === id}
+              onClick={() => setView(id)}
+              className={cn(
+                'inline-flex min-h-11 items-center gap-1.5 rounded-md px-2.5 font-mono text-[10px] font-semibold tracking-wider uppercase transition-colors active:translate-y-[0.5px] sm:min-h-8',
+                view === id ? 'bg-bg-elev-3 text-brand' : 'text-fg-subtle hover:text-fg',
+              )}
+            >
+              <Icon className="size-3.5" />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Entries */}
       {filters.filteredEntries.length === 0 ? (
         <EntryListEmpty isFiltered={Boolean(filters.isFiltered)} />
+      ) : view === 'ledger' ? (
+        <ExecutionLedger
+          entries={filters.filteredEntries}
+          timeLabels={timeLabels}
+          priceMap={priceMap}
+          onClosed={onClosed}
+          onDeleted={onDeleted}
+          confirm={confirm}
+        />
       ) : (
         <VirtualEntryList
           entries={filters.filteredEntries}

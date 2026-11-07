@@ -31,7 +31,6 @@ import { AppShellContainer, AppShellMain } from '@/components/layout/app-shell-c
 import { DesktopSidebar } from '@/components/layout/desktop-sidebar';
 import { InstalledPluginsProvider } from '@/components/layout/installed-plugins-context';
 import { CommandPalette, InstallNudge } from '@/components/layout/lazy-chrome';
-import { MarketSessionBar } from '@/components/layout/market-session-bar';
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
 import { NavDrawer } from '@/components/layout/nav-drawer';
 import { NavDrawerProvider } from '@/components/layout/nav-drawer-context';
@@ -39,7 +38,7 @@ import { OfflineBanner } from '@/components/layout/offline-banner';
 import { ShellRouteProvider } from '@/components/layout/shell-route-context';
 import { SidebarStateProvider } from '@/components/layout/sidebar-state-context';
 import { SkipToContent } from '@/components/layout/skip-to-content';
-import { TickerTape } from '@/components/layout/ticker-tape';
+import { TelemetryRibbon } from '@/components/layout/telemetry-ribbon';
 import { TopBar } from '@/components/layout/top-bar';
 import { MotionRoot } from '@/components/ui/motion-config';
 import { AmbientTelemetry } from '@/components/layout/ambient-telemetry';
@@ -128,8 +127,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <SkipToContent />
                 <TopBar />
                 <AmbientTelemetry>
-                  <TickerTape />
-                  <MarketSessionBar />
+                  <TelemetryRibbon />
                 </AmbientTelemetry>
                 <AppShellMain>
                   <InstallNudge />

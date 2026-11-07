@@ -96,7 +96,6 @@ export function CircuitSpine({ activeStep, activeY, progressRatio }: CircuitSpin
                   stroke="#ff3616"
                   strokeWidth="1"
                   opacity="0.4"
-                  className="animate-ping"
                 />
               )}
             </g>

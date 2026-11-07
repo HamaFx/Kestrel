@@ -81,7 +81,7 @@ export function ArchitectureLayerPlate({
             <span
               className={cn(
                 'size-2 rounded-full',
-                isActive ? 'bg-brand animate-pulse shadow-[0_0_8px_#ff3616]' : 'bg-white/20',
+                isActive ? 'bg-brand shadow-[0_0_8px_#ff3616]' : 'bg-white/20',
               )}
             />
             <span className="text-fg-subtle font-mono text-[10px] font-bold tracking-wider uppercase">

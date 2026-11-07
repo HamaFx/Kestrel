@@ -10,6 +10,7 @@ import { IconUsers } from '@tabler/icons-react';
 import type { UIMessage } from 'ai';
 
 import type { AgentProgress } from '@/lib/chat-transport';
+import { cn } from '@/lib/formatters/cn';
 
 import { SyndicateCircuitLive } from '../parts/syndicate-dossier/syndicate-circuit-live';
 import { SyndicateClashStrip } from '../parts/syndicate-dossier/syndicate-clash-strip';
@@ -44,7 +45,7 @@ export function DockOpinionsPanel({
     <div className="scrollbar-hide h-full overflow-y-auto p-4">
       <div className="border-border/40 mb-3.5 flex items-center justify-between border-b pb-2.5">
         <div className="flex items-center gap-2">
-          <span className="bg-brand size-2 animate-pulse rounded-full" />
+          <span className={cn('bg-brand size-2 rounded-full', isRunning && 'animate-pulse')} />
           <span className="text-brand font-mono text-[10px] font-semibold tracking-wider uppercase">
             SYNDICATE WAR ROOM
           </span>
@@ -84,7 +85,7 @@ export function DockOpinionsPanel({
         <div className="surface-card border-border/40 bg-bg-elev-1 flex min-h-[300px] flex-col items-center justify-center gap-2 rounded-xl border p-6 text-center shadow-sm">
           <IconUsers className="text-brand size-8 stroke-1" />
           <p className="font-display text-fg text-sm font-normal">4-Desk Committee Ready</p>
-          <p className="text-fg-muted max-w-xs font-serif text-xs italic">
+          <p className="text-fg-muted max-w-xs font-sans text-xs leading-relaxed">
             HORUS, ASTROLABE, AEGIS, and SENTINEL opinions synchronize here in real time.
           </p>
         </div>

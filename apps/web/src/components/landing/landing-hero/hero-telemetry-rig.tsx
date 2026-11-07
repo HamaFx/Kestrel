@@ -3,19 +3,19 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Right column of the landing hero: the interactive hardware telemetry rig
-// with symbol switcher, live price card, 3D hologram, desk chips and the
-// committee trade plan.
-import { IconBuildingBank, IconChartCandle, IconRadar, IconScale } from '@tabler/icons-react';
+// framed by the Horus & Obelisk 3-layer blueprint engravings, with an
+// interactive viewport toggle (3-Layer Sovereign Plate vs 3D Hologram), a
+// 4-desk consensus matrix, and the committee trade plan.
+import { IconBolt, IconCube, IconStack2 } from '@tabler/icons-react';
 import { m } from 'motion/react';
 import dynamic from 'next/dynamic';
+import { useState } from 'react';
 
+import { BlueprintPlate, type BlueprintPlateId } from '@/components/brand/blueprint-plates';
 import { cn } from '@/lib/formatters/cn';
 
-import { SYMBOLS } from './telemetry';
+import { SYMBOLS, type DeskBias } from './telemetry';
 
-// The hologram pulls in three.js (~154 KB gzip). It already defers rendering
-// via IntersectionObserver, so keep it out of the synchronous landing bundle
-// and load it only when the client hydrates.
 const Landing3DHologram = dynamic(
   () => import('@/components/landing/landing-3d-hologram').then((m) => m.Landing3DHologram),
   { ssr: false },
@@ -26,18 +26,47 @@ interface HeroTelemetryRigProps {
   onSelectSymbol: (index: number) => void;
 }
 
+const BIAS_STYLES: Record<DeskBias, string> = {
+  BULL: 'border-bull/30 bg-bull/10 text-bull',
+  BEAR: 'border-bear/30 bg-bear/10 text-bear',
+  GUARD: 'border-warn/30 bg-warn/10 text-warn',
+};
+
+const SYMBOL_PLATES: readonly BlueprintPlateId[] = ['horus', 'obelisk', 'arbiter'];
+
 export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTelemetryRigProps) {
+  const [viewportMode, setViewportMode] = useState<'plate' | 'hologram'>('plate');
   const active = SYMBOLS[activeSymbolIndex] ?? SYMBOLS[0]!;
+  const activePlateId = SYMBOL_PLATES[activeSymbolIndex % SYMBOL_PLATES.length] ?? 'horus';
+
+  const desks = [
+    { code: 'DESK-I', label: 'HORUS', read: active.macroSignal, bias: active.macroBias },
+    { code: 'DESK-II', label: 'ASTROLABE', read: active.techSignal, bias: active.techBias },
+    { code: 'DESK-III', label: 'AEGIS', read: active.riskSignal, bias: active.riskBias },
+    {
+      code: 'DESK-IV',
+      label: 'SENTINEL',
+      read: active.sentimentSignal,
+      bias: active.sentimentBias,
+    },
+  ] as const;
 
   return (
-    <div className="lg:col-span-5">
-      <div className="surface-panel relative overflow-hidden rounded-2xl border border-white/15 bg-[#141516]/95 p-5 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.12)] sm:p-6">
+    <div className="relative lg:col-span-5">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -inset-6 z-0 opacity-75 sm:-inset-10"
+      >
+        <BlueprintPlate id={activePlateId} showRasterBackup className="h-full w-full" />
+      </div>
+
+      <div className="surface-panel relative z-10 overflow-hidden rounded-2xl border border-white/15 bg-[#141516]/95 p-4 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.12)] sm:p-6">
         {/* Header Status & Symbol Switcher */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3.5">
           <div className="flex items-center gap-2">
-            <span className="bg-bull size-2 animate-pulse rounded-full shadow-[0_0_8px_#3f9e3d]" />
+            <span className="bg-bull size-2 rounded-full" />
             <span className="text-fg font-mono text-xs font-bold tracking-wider uppercase">
-              LIVE COMMITTEE BRIEFING
+              COMMITTEE BRIEFING
             </span>
           </div>
 
@@ -72,7 +101,7 @@ export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTele
         {/* Symbol Data Container */}
         <div key={active.symbol}>
           {/* Price Display */}
-          <div className="surface-well my-4 rounded-xl border border-white/5 bg-[#0b0c0d] p-4">
+          <div className="surface-well my-3.5 rounded-xl border border-white/5 bg-[#0b0c0d] p-3.5 sm:p-4">
             <div className="flex items-baseline justify-between">
               <span className="text-fg-subtle font-sans text-xs tracking-wider uppercase">
                 {active.name}
@@ -87,83 +116,107 @@ export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTele
               </span>
             </div>
             <div className="mt-1 flex items-baseline justify-between">
-              <div className="text-fg font-mono text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
+              <div className="text-fg font-mono text-2xl font-bold tracking-tight tabular-nums sm:text-4xl">
                 {active.price}
               </div>
               <span className="text-fg-subtle font-mono text-[11px]">Spread: {active.spread}</span>
             </div>
           </div>
 
-          {/* ── Real-Time Interactive 3D WebGL Hologram ── */}
-          <div className="relative my-3 flex h-[190px] w-full items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/60 shadow-inner sm:h-[180px]">
-            <div className="text-fg-subtle absolute top-2.5 left-3 z-10 flex items-center gap-2 font-mono text-[9px] select-none">
-              <span className="bg-brand size-1.5 animate-ping rounded-full" />
-              <span>MULTI-DESK CONSENSUS ENGINE</span>
+          {/* ── Sovereign 3-Layer Brand Plate + 3D Hologram Dual Viewport ── */}
+          <div className="my-3 flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-fg-subtle font-mono text-[9px] tracking-[0.16em] uppercase">
+                SOVEREIGN VISUAL ENGINE
+              </span>
+              <div className="flex items-center gap-1 rounded-md border border-white/10 bg-black/50 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setViewportMode('plate')}
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[9px] font-semibold tracking-wider uppercase transition-colors',
+                    viewportMode === 'plate'
+                      ? 'bg-brand text-white'
+                      : 'text-fg-subtle hover:text-fg',
+                  )}
+                >
+                  <IconStack2 className="size-3" />
+                  3-Layer Plate
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewportMode('hologram')}
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[9px] font-semibold tracking-wider uppercase transition-colors',
+                    viewportMode === 'hologram'
+                      ? 'bg-brand text-white'
+                      : 'text-fg-subtle hover:text-fg',
+                  )}
+                >
+                  <IconCube className="size-3" />
+                  3D Hologram
+                </button>
+              </div>
             </div>
-            <div className="text-brand/80 pointer-events-none absolute right-3 bottom-2 z-10 font-mono text-[9px] select-none">
-              DRAG TO INSPECT
-            </div>
-            <Landing3DHologram className="h-full w-full" />
+
+            {viewportMode === 'plate' ? (
+              <BlueprintPlate
+                id={activePlateId}
+                variant="showcase"
+                showRasterBackup
+                allowLayerToggle
+                className="h-[236px] w-full sm:h-[248px]"
+              />
+            ) : (
+              <div className="relative flex h-[236px] w-full items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/60 shadow-inner sm:h-[248px]">
+                <div className="text-fg-subtle absolute top-2.5 left-3 z-10 flex items-center gap-2 font-mono text-[9px] select-none">
+                  <span className="bg-brand size-1.5 rounded-full" />
+                  <span>MULTI-DESK CONSENSUS ENGINE</span>
+                </div>
+                <div className="text-brand/80 pointer-events-none absolute right-3 bottom-2 z-10 font-mono text-[9px] select-none">
+                  DRAG TO INSPECT
+                </div>
+                <Landing3DHologram className="h-full w-full" />
+              </div>
+            )}
           </div>
 
-          {/* 4 Hardware Specialist Desks — compact horizontal status strip */}
-          <div className="grid grid-cols-2 gap-2 py-2 sm:grid-cols-4">
-            {/* Tech */}
-            <div className="surface-chip hover:border-bull/40 flex items-center gap-2 rounded-lg border border-white/10 p-2 py-1.5 shadow-xs transition-colors">
-              <div className="bg-bull/10 border-bull/20 text-bull flex size-6 shrink-0 items-center justify-center rounded border">
-                <IconChartCandle className="size-3.5" />
-              </div>
-              <div className="flex min-w-0 flex-col">
-                <span className="text-bull font-mono text-[10px] font-bold uppercase">Tech</span>
-                <span className="text-fg-subtle truncate font-mono text-[9px]">
-                  {active.techSignal}
-                </span>
-              </div>
+          {/* 4-Desk Live Consensus Matrix */}
+          <div className="border-y border-white/[0.07]">
+            <div className="text-fg-subtle flex items-center justify-between py-1.5 font-mono text-[9px] tracking-[0.18em] uppercase">
+              <span>4-Desk Consensus Matrix</span>
+              <span className="text-fg-subtle/70 tabular-nums">{active.conviction}%</span>
             </div>
-
-            {/* Macro */}
-            <div className="surface-chip hover:border-info/40 flex items-center gap-2 rounded-lg border border-white/10 p-2 py-1.5 shadow-xs transition-colors">
-              <div className="bg-info/10 border-info/20 text-info flex size-6 shrink-0 items-center justify-center rounded border">
-                <IconBuildingBank className="size-3.5" />
-              </div>
-              <div className="flex min-w-0 flex-col">
-                <span className="text-info font-mono text-[10px] font-bold uppercase">Macro</span>
-                <span className="text-fg-subtle truncate font-mono text-[9px]">
-                  {active.macroSignal}
-                </span>
-              </div>
-            </div>
-
-            {/* Risk */}
-            <div className="surface-chip hover:border-warn/40 flex items-center gap-2 rounded-lg border border-white/10 p-2 py-1.5 shadow-xs transition-colors">
-              <div className="bg-warn/10 border-warn/20 text-warn flex size-6 shrink-0 items-center justify-center rounded border">
-                <IconScale className="size-3.5" />
-              </div>
-              <div className="flex min-w-0 flex-col">
-                <span className="text-warn font-mono text-[10px] font-bold uppercase">Risk</span>
-                <span className="text-fg-subtle truncate font-mono text-[9px]">
-                  {active.riskSignal}
-                </span>
-              </div>
-            </div>
-
-            {/* Sentinel */}
-            <div className="surface-chip hover:border-brand/40 flex items-center gap-2 rounded-lg border border-white/10 p-2 py-1.5 shadow-xs transition-colors">
-              <div className="bg-brand/10 border-brand/20 text-brand flex size-6 shrink-0 items-center justify-center rounded border">
-                <IconRadar className="size-3.5" />
-              </div>
-              <div className="flex min-w-0 flex-col">
-                <span className="text-brand font-mono text-[10px] font-bold uppercase">Whales</span>
-                <span className="text-fg-subtle truncate font-mono text-[9px]">
-                  {active.sentimentSignal}
-                </span>
-              </div>
+            <div className="divide-y divide-white/[0.06]">
+              {desks.map((desk) => (
+                <div
+                  key={desk.code}
+                  className="grid grid-cols-[52px_1fr_auto] items-center gap-2 py-1.5"
+                >
+                  <span className="text-fg-subtle font-mono text-[9px] tracking-wider">
+                    {desk.code}
+                  </span>
+                  <span className="text-fg-muted truncate font-mono text-[10px]">
+                    <span className="text-fg/80 font-semibold">{desk.label}</span>
+                    <span className="text-fg-subtle/60 mx-1">·</span>
+                    {desk.read}
+                  </span>
+                  <span
+                    className={cn(
+                      'rounded border px-1.5 py-0.5 font-mono text-[9px] font-bold tracking-wider',
+                      BIAS_STYLES[desk.bias],
+                    )}
+                  >
+                    {desk.bias}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
 
           {/* Consensus Trade Card */}
-          <div className="border-brand/30 bg-brand/[0.06] mt-3 rounded-xl border p-4 shadow-sm">
-            <div className="flex items-center justify-between">
+          <div className="border-brand/30 bg-brand/[0.06] mt-3 rounded-xl border p-3.5 shadow-sm sm:p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <span className="text-fg font-mono text-xs font-bold uppercase">
                   Committee Trade Plan
@@ -198,6 +251,10 @@ export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTele
                 <span className="text-bull font-bold">{active.target2}</span>
               </div>
             </div>
+            <p className="text-fg-subtle mt-2 flex items-center gap-1.5 font-mono text-[9px]">
+              <IconBolt className="text-brand size-3" />
+              ILLUSTRATIVE COMMITTEE OUTPUT · NOT A LIVE SIGNAL
+            </p>
           </div>
         </div>
       </div>

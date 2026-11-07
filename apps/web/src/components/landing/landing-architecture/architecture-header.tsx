@@ -51,7 +51,7 @@ export function ArchitectureHeader() {
       </div>
 
       <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono text-xs">
-        <span className="bg-brand size-2 animate-pulse rounded-full" />
+        <span className="bg-brand size-2 rounded-full" />
         <span className="text-brand font-semibold tracking-wider uppercase">
           ※ 4-Layer Intelligence Stack
         </span>

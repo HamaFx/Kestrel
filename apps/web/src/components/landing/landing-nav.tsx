@@ -55,7 +55,7 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
             <KestrelBrand variant="lockup" href="/landing" label="Kestrel" />
 
             <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 lg:flex">
-              <span className="bg-bull size-2 animate-pulse rounded-full shadow-[0_0_8px_rgba(63,158,61,0.6)]" />
+              <span className="bg-bull size-2 rounded-full shadow-[0_0_8px_rgba(63,158,61,0.6)]" />
               <span className="text-fg-subtle font-mono text-[11px] font-semibold tracking-wider uppercase">
                 XAU/USD · LIVE
               </span>
@@ -99,7 +99,7 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
                 href="/dashboard"
                 className="text-brand bg-brand/10 border-brand/25 hover:bg-brand/20 inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-mono text-xs font-semibold transition-colors"
               >
-                <span className="bg-brand size-1.5 animate-pulse rounded-full" />
+                <span className="bg-brand size-1.5 rounded-full" />
                 <span>Dashboard</span>
               </Link>
             )}

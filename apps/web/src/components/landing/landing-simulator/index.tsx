@@ -23,9 +23,9 @@
 // machine shared between them.
 import { IconPlayerPlay, IconRefresh } from '@tabler/icons-react';
 import { AnimatePresence, m } from 'motion/react';
-import Image from 'next/image';
 import { useState } from 'react';
 
+import { BlueprintPlate, type BlueprintPlateId } from '@/components/brand/blueprint-plates';
 import { Button } from '@/components/ui/button';
 import { useCopied } from '@/hooks/use-copied';
 import { cn } from '@/lib/formatters/cn';
@@ -44,6 +44,12 @@ export function LandingSimulator() {
 
   const scenario = SCENARIOS.find((s) => s.id === selectedScenarioId) ?? SCENARIOS[0]!;
   const isVetoed = riskSlider > 1.0;
+  const scenarioPlateMap: Record<string, BlueprintPlateId> = {
+    'london-sweep': 'eclipse',
+    'fomc-rate': 'obelisk',
+    'cpi-shock': 'aegis',
+  };
+  const activeScenarioPlate = isVetoed ? 'aegis' : (scenarioPlateMap[scenario.id] ?? 'eclipse');
 
   const handleRunDeliberation = () => {
     setSimulationStage('voting');
@@ -76,32 +82,19 @@ export function LandingSimulator() {
       id="simulator"
       className="relative overflow-hidden border-t border-white/5 bg-[#0d0e0f] py-28 lg:py-36"
     >
-      {/* ── Neoclassical Cybernetic Astrolabe Artwork ── */}
+      {/* ── Aegis Risk Governor Blueprint (raster backup preserved) ── */}
       <div
         aria-hidden="true"
-        className="simulator-backdrop-mask pointer-events-none absolute top-4 right-0 z-0 h-[380px] w-full opacity-20 mix-blend-screen select-none sm:top-8 sm:h-[480px] lg:top-8 lg:right-4 lg:h-[620px] lg:w-[46%] lg:opacity-30"
+        className="pointer-events-none absolute top-8 right-0 z-0 h-[380px] w-full opacity-40 select-none sm:h-[480px] lg:right-4 lg:h-[620px] lg:w-[46%]"
       >
-        <Image
-          src="/landing/simulator-astrolabe.webp"
-          alt="Antikythera Celestial Calculation Engine"
-          fill
-          unoptimized
-          sizes="(max-width: 1024px) 100vw, 46vw"
-          className="object-contain object-top lg:object-contain lg:object-right-top"
-        />
+        <BlueprintPlate id="aegis" showRasterBackup className="h-full w-full" />
       </div>
-
-      {/* Background Radial Ambient Glow */}
-      <div
-        aria-hidden="true"
-        className="bg-brand/10 pointer-events-none absolute -bottom-20 left-1/2 size-[800px] -translate-x-1/2 rounded-full blur-[160px] select-none"
-      />
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="mx-auto mb-14 flex max-w-3xl flex-col items-center gap-4 text-center">
-          <div className="border-brand/30 bg-brand/10 inline-flex items-center gap-2 rounded-full border px-3.5 py-1 font-mono text-xs shadow-[0_0_12px_rgba(255,54,22,0.2)]">
-            <span className="bg-brand size-2 animate-pulse rounded-full" />
+          <div className="border-brand/30 bg-brand/10 inline-flex items-center gap-2 rounded-full border px-3.5 py-1 font-mono text-xs">
+            <span className="bg-brand size-2 rounded-full" />
             <span className="text-brand font-semibold tracking-wider uppercase">
               Interactive Committee Simulator
             </span>
@@ -196,6 +189,16 @@ export function LandingSimulator() {
                 </Button>
               )}
             </div>
+          </div>
+
+          <div className="my-4">
+            <BlueprintPlate
+              id={activeScenarioPlate}
+              variant="showcase"
+              showRasterBackup
+              allowLayerToggle
+              className="h-[188px] w-full sm:h-[208px]"
+            />
           </div>
 
           <SimulatorCanvas

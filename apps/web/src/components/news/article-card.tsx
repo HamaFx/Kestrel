@@ -86,8 +86,8 @@ const ArticleCardInner = memo(
     return (
       <article
         className={cn(
-          'surface-chip group border-border/80 bg-bg-elev-1 relative overflow-hidden rounded-xl shadow-[var(--shadow-chip)]',
-          'md:hover:bg-bg-elev-2 transition-colors duration-200',
+          'group relative overflow-hidden rounded-xl border border-white/[0.07] bg-[#131416]',
+          'transition-colors duration-200 md:hover:border-white/[0.15] md:hover:bg-[#161719]',
         )}
       >
         {sentimentColor ? (
@@ -147,9 +147,8 @@ const ArticleCardInner = memo(
 
         <div
           className={cn(
-            'border-border/70 flex items-center justify-between gap-2 border-t px-3 py-2',
-            'bg-bg-elev-1 transition-colors duration-150',
-            'hover:bg-bg-elev-2',
+            'flex items-center justify-between gap-2 border-t border-white/[0.06] bg-[#131416] px-3 py-2',
+            'transition-colors duration-150 hover:bg-white/[0.02]',
           )}
         >
           <Link

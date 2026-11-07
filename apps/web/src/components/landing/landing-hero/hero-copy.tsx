@@ -58,7 +58,7 @@ export function HeroCopy({ isAuthenticated }: HeroCopyProps) {
         />
         <a href="#simulator">
           <Button variant="secondary" size="lg" className="gap-2 px-5 text-sm font-medium">
-            <span className="bg-brand size-2 animate-pulse rounded-full" />
+            <span aria-hidden="true" className="bg-brand size-2 rounded-full" />
             Try Live Simulator
           </Button>
         </a>

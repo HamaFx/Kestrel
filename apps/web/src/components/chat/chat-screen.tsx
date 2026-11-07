@@ -23,11 +23,14 @@ import type { UIMessage } from 'ai';
 import { AnimatePresence } from 'motion/react';
 import { useEffect, useRef } from 'react';
 
+import { useLocalStorage } from '@/hooks/use-local-storage';
+
 import { ChatThreadView } from './chat-thread-view';
 import { ChatTopBar, type AnalysisMode, type ThreadSummary } from './chat-top-bar';
 import { useChatKeyboardShortcuts } from './hooks/use-chat-keyboard-shortcuts';
 import { useChatSession } from './hooks/use-chat-session';
 import { useChatToolbar } from './hooks/use-chat-toolbar';
+import { ThreadLedgerRail } from './thread-ledger-rail';
 import { ThreadViewsDock } from './thread-views-dock';
 
 interface ChatScreenProps {
@@ -72,6 +75,21 @@ export function ChatScreen({
     analysisModeRef: toolbar.analysisModeRef,
   });
   const { splitMode, setSplitMode, dockTab, setDockTab } = toolbar;
+  const [railOpen, setRailOpen, railHydrated] = useLocalStorage<boolean>(
+    'kestrel:chat-thread-rail:v1',
+    false,
+  );
+
+  // Default the ledger rail open only on >=1440px viewports, and only when the
+  // operator has not explicitly collapsed or opened it before.
+  useEffect(() => {
+    if (!railHydrated || typeof window === 'undefined' || window.innerWidth < 1440) return;
+    try {
+      if (window.localStorage.getItem('kestrel:chat-thread-rail:v1') === null) setRailOpen(true);
+    } catch {
+      // Storage may be unavailable in restricted privacy contexts
+    }
+  }, [railHydrated, setRailOpen]);
 
   useChatKeyboardShortcuts({ onToggleViews: () => setSplitMode((v) => !v) });
 
@@ -118,9 +136,19 @@ export function ChatScreen({
         isStreaming={session.isStreaming}
         splitMode={splitMode}
         onToggleSplitMode={() => setSplitMode((v) => !v)}
+        railOpen={railOpen}
+        onToggleRail={() => setRailOpen((v) => !v)}
       />
 
       <div className="flex min-h-0 w-full flex-1 overflow-hidden">
+        {railOpen ? (
+          <ThreadLedgerRail
+            threads={initialThreads}
+            threadId={threadId}
+            onCollapse={() => setRailOpen(false)}
+          />
+        ) : null}
+
         <ChatThreadView
           threadId={threadId}
           pinnedSymbol={pinnedSymbol}

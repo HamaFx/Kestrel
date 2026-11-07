@@ -16,8 +16,8 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Premium settings section.
-
+// Premium settings section: a 4/8 architectural split on desktop, a hairline
+// divider between sections, and a single right-hand property container.
 import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/formatters/cn';
@@ -27,7 +27,7 @@ interface SettingsSectionProps {
   iconColor?: string;
   title: string;
   description?: string;
-  /** Put the description on the left and the controls on the right at `md`. */
+  /** Put the description on the left and the controls on the right at `lg`. */
   layout?: 'stacked' | 'split';
   children: ReactNode;
 }
@@ -47,18 +47,19 @@ export function SettingsSection({
       aria-labelledby={`section-${title.toLowerCase().replace(/\s+/g, '-')}`}
       className={cn(
         'flex flex-col gap-3',
-        split && 'md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:items-start md:gap-8',
+        split &&
+          'gap-4 border-b border-white/[0.07] pb-8 lg:grid lg:grid-cols-12 lg:items-start lg:gap-8',
       )}
     >
       <header
         className={cn(
           'flex items-center gap-3 px-0.5',
-          split && 'md:flex-col md:items-start md:gap-2 md:pt-1',
+          split && 'lg:col-span-4 lg:flex-col lg:items-start lg:gap-2.5 lg:pt-1',
         )}
       >
         {icon ? (
           <span
-            className="text-fg inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-sm"
+            className="text-fg border-white/[0.08] inline-flex size-9 shrink-0 items-center justify-center rounded-lg border"
             style={{
               background: iconColor,
             }}
@@ -66,19 +67,21 @@ export function SettingsSection({
             {icon}
           </span>
         ) : null}
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col gap-1">
           <h2
             id={`section-${title.toLowerCase().replace(/\s+/g, '-')}`}
-            className="text-fg text-sm font-semibold tracking-tight sm:text-base"
+            className="font-display text-fg text-base font-normal tracking-tight sm:text-lg"
           >
             {title}
           </h2>
           {description ? (
-            <p className="text-fg-subtle text-xs leading-normal">{description}</p>
+            <p className="text-fg-subtle max-w-prose font-sans text-xs leading-relaxed">
+              {description}
+            </p>
           ) : null}
         </div>
       </header>
-      <div className={cn('flex flex-col gap-3', split && 'min-w-0')}>{children}</div>
+      <div className={cn('flex min-w-0 flex-col gap-3', split && 'lg:col-span-8')}>{children}</div>
     </section>
   );
 }

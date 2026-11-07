@@ -23,8 +23,13 @@ import { Link } from 'next-view-transitions';
 import { TradingViewWidget } from '@/components/chart';
 import { SymbolPicker } from '@/components/chart/symbol-picker';
 import { TimeframePicker } from '@/components/chart/timeframe-picker';
-import { MarketSubNav } from '@/components/layout/market-subnav';
 import { useTimeframe } from '@/hooks/use-tf';
+
+const COMPACT_LINKS = [
+  { href: '/news', label: 'News' },
+  { href: '/calendar', label: 'Calendar' },
+  { href: '/alerts', label: 'Alerts' },
+] as const;
 
 export function ProChartView({ symbol, tf: initialTf }: { symbol: Symbol; tf: Timeframe }) {
   const [urlTf, setTf] = useTimeframe();
@@ -37,28 +42,14 @@ export function ProChartView({ symbol, tf: initialTf }: { symbol: Symbol; tf: Ti
   const prompt = `Analyze ${symbol} on the ${currentTf} timeframe and give me key support/resistance levels and trade setups.`;
 
   return (
-    <div className="animate-in fade-in flex flex-col gap-3 duration-300">
-      {/* Market intelligence sub-navigation — news ⇄ calendar ⇄ live chart */}
-      <MarketSubNav />
-
-      {/* Interactive Chart Control Bar */}
-      <div className="surface-card border-border/80 flex flex-col gap-3 rounded-[16px] border p-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0 flex-1">
+    <div className="animate-in fade-in flex flex-col gap-2 duration-300">
+      {/* Single 44px milled terminal bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/[0.08] bg-[#131416] px-3 py-1.5">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <div className="min-w-0">
             <SymbolPicker active={symbol} watchlist={watchlist} />
           </div>
-
-          <Link
-            href={`/chat?prompt=${encodeURIComponent(prompt)}`}
-            className="bg-brand/15 hover:bg-brand/25 text-brand border-brand/40 inline-flex min-h-10 shrink-0 items-center gap-2 rounded-lg border px-3.5 py-2 font-mono text-xs font-semibold transition-colors active:translate-y-[0.5px]"
-          >
-            <IconMessageCircle className="size-4" />
-            <span>Analyze {symbol} in Chat</span>
-          </Link>
-        </div>
-
-        <div className="border-border/50 flex flex-wrap items-center justify-between gap-2 border-t pt-2.5">
-          <span className="text-fg-subtle font-mono text-xs uppercase">Timeframe</span>
+          <span aria-hidden="true" className="hidden h-5 w-px shrink-0 bg-white/10 sm:block" />
           <TimeframePicker
             value={currentTf}
             onChange={(nextTf) => {
@@ -66,9 +57,43 @@ export function ProChartView({ symbol, tf: initialTf }: { symbol: Symbol; tf: Ti
             }}
           />
         </div>
+
+        <div className="flex shrink-0 items-center gap-2">
+          <nav aria-label="Market intelligence sections" className="flex items-center gap-2">
+            {COMPACT_LINKS.map((link, index) => (
+              <span key={link.href} className="flex items-center gap-2">
+                {index > 0 ? (
+                  <span aria-hidden="true" className="text-fg-subtle/40 font-mono text-[10px]">
+                    ·
+                  </span>
+                ) : null}
+                <Link
+                  href={link.href}
+                  className="text-fg-subtle hover:text-fg font-mono text-[10px] tracking-wider uppercase transition-colors"
+                >
+                  {link.label}
+                </Link>
+              </span>
+            ))}
+          </nav>
+
+          <Link
+            href={`/chat?prompt=${encodeURIComponent(prompt)}`}
+            className="bg-brand/15 hover:bg-brand/25 text-brand border-brand/40 inline-flex min-h-10 shrink-0 items-center gap-2 rounded-lg border px-3 py-2 font-mono text-[11px] font-semibold transition-colors active:translate-y-[0.5px]"
+          >
+            <IconMessageCircle className="size-3.5" />
+            <span className="hidden sm:inline">Analyze {symbol} in Chat</span>
+            <span className="sm:hidden">Analyze</span>
+          </Link>
+        </div>
       </div>
 
-      <TradingViewWidget symbol={symbol} tf={currentTf} theme="dark" />
+      <TradingViewWidget
+        symbol={symbol}
+        tf={currentTf}
+        theme="dark"
+        height="calc(100svh - 8.5rem)"
+      />
     </div>
   );
 }

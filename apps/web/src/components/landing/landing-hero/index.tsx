@@ -20,8 +20,8 @@
 
 // Landing hero section shell. The ticker, headline copy and telemetry rig
 // live in sibling presentation components; this file owns the active-symbol
-// state and composes the section backdrop, columns and watermark.
-import Image from 'next/image';
+// state and composes the Swiss-grid section frame. The Horus raster is now a
+// 7% underlay inside the telemetry rig's BlueprintPlate.
 import { useState } from 'react';
 
 import { HeroCopy } from './hero-copy';
@@ -32,54 +32,47 @@ export interface LandingHeroProps {
   isAuthenticated?: boolean;
 }
 
+const REGISTRATION_MARKS = [
+  'top-3 left-3 sm:left-5 lg:left-7',
+  'top-3 right-3 sm:right-5 lg:right-7',
+  'bottom-3 left-3 sm:left-5 lg:left-7',
+  'bottom-3 right-3 sm:right-5 lg:right-7',
+] as const;
+
 export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
   const [activeSymbolIndex, setActiveSymbolIndex] = useState(0);
 
   return (
-    <section className="relative min-h-[92vh] overflow-hidden pt-6 pb-20 lg:pt-14 lg:pb-28">
-      {/* ── Neoclassical Cyber-Art Backdrop (Horus / Kestrel Falcon Masterpiece) ── */}
+    <section className="relative overflow-hidden border-b border-white/[0.08] pt-6 pb-16 lg:pt-10 lg:pb-24">
+      {/* Structural column hairlines */}
       <div
         aria-hidden="true"
-        className="hero-backdrop-mask pointer-events-none absolute top-16 right-0 z-0 h-[360px] w-full opacity-25 mix-blend-screen select-none sm:top-20 sm:h-[480px] lg:top-1/2 lg:right-0 lg:h-[80%] lg:w-[62%] lg:-translate-y-1/2 lg:opacity-35"
-      >
-        <Image
-          src="/landing/kestrel-horus-statue.webp"
-          alt="Sovereign Horus Falcon Neoclassical Sculpture"
-          fill
-          priority
-          sizes="(max-width: 1024px) 100vw, 62vw"
-          className="object-contain object-center lg:object-right"
-        />
-      </div>
-
-      {/* Decorative Grid Accent */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,54,22,0.08),transparent_50%)]"
+        className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-px bg-white/[0.04] lg:block"
       />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/[0.04]"
+      />
+      {REGISTRATION_MARKS.map((position) => (
+        <span
+          key={position}
+          aria-hidden="true"
+          className={`text-fg-subtle/30 pointer-events-none absolute z-20 font-mono text-xs select-none ${position}`}
+        >
+          +
+        </span>
+      ))}
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Top Market Ticker Strip */}
         <HeroTickerStrip />
 
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:items-center lg:gap-8">
-          {/* Left Column: Monumental Headline & Value Prop */}
+        <div className="relative grid grid-cols-1 gap-12 lg:grid-cols-12 lg:items-center lg:gap-8 lg:border-x lg:border-white/[0.05] lg:px-6 xl:px-8">
           <HeroCopy isAuthenticated={isAuthenticated} />
-
-          {/* Right Column: Interactive Hardware Telemetry Rig with 3D Hologram */}
           <HeroTelemetryRig
             activeSymbolIndex={activeSymbolIndex}
             onSelectSymbol={setActiveSymbolIndex}
           />
         </div>
-      </div>
-
-      {/* Background watermark in Bebas Neue */}
-      <div
-        aria-hidden="true"
-        className="font-bebas pointer-events-none absolute -bottom-10 left-6 z-0 text-[110px] font-normal tracking-widest text-white/[0.02] uppercase select-none lg:text-[180px]"
-      >
-        KESTREL // SOVEREIGN AI
       </div>
     </section>
   );

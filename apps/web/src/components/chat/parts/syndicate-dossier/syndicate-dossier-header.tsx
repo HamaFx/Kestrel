@@ -11,6 +11,7 @@ import { useCopied } from '@/hooks/use-copied';
 import { cn } from '@/lib/formatters/cn';
 
 import type { ExtractedTradeLevels } from './extract-trade-levels';
+import { ArbiterSealSizer } from './arbiter-seal-sizer';
 import { InstrumentWells, TugOfWarBar } from './syndicate-instrument-wells';
 
 function SyndicateGuardrailBanner({
@@ -152,6 +153,9 @@ export function SyndicateTicketHeader({
           { label: 'TP2 RUNNER', value: levels.tp2, tone: 'bull' },
         ]}
       />
+
+      {/* ── Collapsible position sizer & cryptographic seal ── */}
+      <ArbiterSealSizer symbol={symbol} planId={planId} levels={levels} />
     </div>
   );
 }

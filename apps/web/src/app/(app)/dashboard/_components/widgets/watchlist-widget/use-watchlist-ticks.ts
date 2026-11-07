@@ -8,7 +8,7 @@ import { useEffect, useReducer, useRef } from 'react';
 import { usePrices } from '@/hooks/use-prices';
 
 /** Number of mids kept per symbol for the sparkline. */
-const BUFFER_SIZE = 10;
+const BUFFER_SIZE = 24;
 
 export function useWatchlistTicks(list: Symbol[]) {
   const tickQuery = usePrices(list);

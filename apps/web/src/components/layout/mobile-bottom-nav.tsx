@@ -56,7 +56,7 @@ export function MobileBottomNav() {
   return (
     <nav
       aria-label="Mobile primary navigation"
-      className="pb-safe px-safe bg-bg/95 fixed inset-x-0 bottom-0 z-30 flex h-[var(--bottom-nav-h)] items-center justify-around border-t border-white/[0.08] shadow-[0_-8px_30px_rgba(0,0,0,0.8)] backdrop-blur-xl select-none lg:hidden"
+      className="pb-safe px-safe fixed inset-x-0 bottom-0 z-30 flex h-[var(--bottom-nav-h)] items-center justify-around border-t border-white/[0.09] bg-[#101113]/95 shadow-[0_-8px_30px_rgba(0,0,0,0.8)] backdrop-blur-2xl select-none lg:hidden"
     >
       {BOTTOM_ITEMS.map((item) => {
         const active = isNavItemActive(item, pathname);

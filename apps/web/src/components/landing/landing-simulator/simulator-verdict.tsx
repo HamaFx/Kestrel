@@ -30,7 +30,7 @@ export function VetoedVerdictCard({ riskSlider, onRestoreLimit }: VetoedVerdictC
     >
       <div className="border-bear/20 flex flex-col justify-between gap-4 border-b pb-4 sm:flex-row sm:items-center">
         <div className="flex items-center gap-3">
-          <span className="bg-bear size-3 animate-ping rounded-full" />
+          <span className="bg-bear size-3 rounded-full" />
           <div>
             <div className="text-bear font-mono text-sm font-bold tracking-wider uppercase">
               SETUP BLOCKED BY RISK GUARDRAIL

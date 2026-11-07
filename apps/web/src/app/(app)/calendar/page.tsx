@@ -20,16 +20,22 @@
 // The page itself is a thin wrapper: fetch + render the
 // <CalendarHero/> at the top and the interactive <CalendarView/> below.
 
-import { listUpcomingEvents } from '@kestrel/ai';
+import { listRecentArticles, listUpcomingEvents } from '@kestrel/ai';
 import { IconCalendarEvent } from '@tabler/icons-react';
 import type { Metadata } from 'next';
 import nextDynamic from 'next/dynamic';
 
 import { MarketSubNav } from '@/components/layout/market-subnav';
+import {
+  HeadlineList,
+  MarketTerminalLayout,
+  RailPanel,
+} from '@/components/layout/market-terminal-rail';
 import { PageHeader } from '@/components/layout/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
 
 import { RefreshButton } from '../news/_components/refresh-button';
+import { SentimentSummary } from '../news/_components/sentiment-summary';
 import { CalendarView } from './_components/calendar-view';
 
 const CalendarHero = nextDynamic(() =>
@@ -43,7 +49,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function CalendarPage() {
-  const events = await listUpcomingEvents();
+  const [events, articles] = await Promise.all([listUpcomingEvents(), listRecentArticles(6)]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -63,10 +69,23 @@ export default async function CalendarPage() {
           action={<RefreshButton endpoint="/api/calendar/refresh" />}
         />
       ) : (
-        <>
-          <CalendarHero events={events} />
-          <CalendarView initialEvents={events} />
-        </>
+        <MarketTerminalLayout
+          rail={
+            <>
+              <RailPanel title="News pulse" bleed>
+                <SentimentSummary articles={articles} />
+              </RailPanel>
+              <RailPanel title="Breaking macro headlines" href="/news">
+                <HeadlineList articles={articles} />
+              </RailPanel>
+            </>
+          }
+        >
+          <div className="flex flex-col gap-4">
+            <CalendarHero events={events} />
+            <CalendarView initialEvents={events} />
+          </div>
+        </MarketTerminalLayout>
       )}
     </div>
   );

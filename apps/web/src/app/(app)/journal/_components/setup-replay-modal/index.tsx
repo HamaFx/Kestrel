@@ -30,6 +30,7 @@ import { ExecutionLevels } from './execution-levels';
 import { ReplayChart } from './replay-chart';
 import { ReplayHeader } from './replay-header';
 import { ReplayStatsGrid } from './replay-stats-grid';
+import { WhatIfScrubber } from './what-if-scrubber';
 
 interface SetupReplayModalProps {
   entry: JournalEntry | null;
@@ -78,6 +79,9 @@ export function SetupReplayModal({ entry, open, onOpenChange }: SetupReplayModal
 
           {/* Key Levels List */}
           <ExecutionLevels entry={entry} />
+
+          {/* Interactive what-if stop & target replay */}
+          <WhatIfScrubber entry={entry} replay={replay} />
         </div>
       </DrawerContent>
     </Drawer>

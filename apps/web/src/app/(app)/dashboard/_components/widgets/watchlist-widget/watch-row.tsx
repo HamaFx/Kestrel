@@ -54,6 +54,15 @@ export function WatchRow({
 
   const displayPrice = scrubPrice ?? last;
 
+  // Recessed session-range micro-gauge: where the current price sits between
+  // the rolling buffer low and high (0% = session low, 100% = session high).
+  const minPrice = Math.min(...buf, tick.bid, tick.mid);
+  const maxPrice = Math.max(...buf, tick.ask, tick.mid);
+  const rangePct =
+    maxPrice > minPrice
+      ? Math.min(100, Math.max(0, ((displayPrice - minPrice) / (maxPrice - minPrice)) * 100))
+      : 50;
+
   const aiPrompt = encodeURIComponent(
     `Analyze market structure, key liquidity levels, and intraday trading bias for ${tick.symbol}`,
   );
@@ -112,21 +121,44 @@ export function WatchRow({
       </div>
 
       <div className="flex items-center gap-1.5">
-        {buf.length >= 2 && !isClosed ? (
-          <div className="surface-well h-7 w-20 overflow-hidden rounded-md px-1 py-0.5">
-            <Sparkline
-              values={buf}
-              tone={isBull ? 'bull' : 'bear'}
-              variant="area"
-              interactive
-              onHoverChange={(index) => setScrubPrice(index === null ? null : (buf[index] ?? null))}
-              label={`${tick.symbol} trend`}
-              className="h-full w-full"
+        <div className="flex w-24 flex-col items-stretch gap-1">
+          {buf.length >= 2 && !isClosed ? (
+            <div className="surface-well h-7 w-full overflow-hidden rounded-md px-1 py-0.5">
+              <Sparkline
+                values={buf}
+                tone={isBull ? 'bull' : 'bear'}
+                variant="area"
+                interactive
+                onHoverChange={(index) =>
+                  setScrubPrice(index === null ? null : (buf[index] ?? null))
+                }
+                label={`${tick.symbol} trend`}
+                className="h-full w-full"
+              />
+            </div>
+          ) : (
+            <div className="h-7 w-full" aria-hidden />
+          )}
+          <div
+            className="relative h-1.5 w-full overflow-hidden rounded-full border border-white/[0.06] bg-[#090a0b]"
+            title={`Range: ${minPrice.toFixed(decimals)} – ${maxPrice.toFixed(decimals)} (${Math.round(rangePct)}%)`}
+          >
+            <span
+              aria-hidden="true"
+              className="absolute top-0 bottom-0 left-1/2 w-px bg-white/15"
+            />
+            <span
+              aria-hidden="true"
+              className={cn('absolute inset-y-0 left-0', isBull ? 'bg-bull/40' : 'bg-bear/40')}
+              style={{ width: `${rangePct}%` }}
+            />
+            <span
+              aria-hidden="true"
+              className="bg-brand shadow-[0_0_6px_#ff3616] absolute top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+              style={{ left: `${rangePct}%` }}
             />
           </div>
-        ) : (
-          <div className="h-7 w-20" aria-hidden />
-        )}
+        </div>
 
         {/* 1-Click Ask AI Copilot */}
         <Link

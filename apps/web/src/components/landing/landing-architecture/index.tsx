@@ -21,8 +21,9 @@
 // Landing architecture section shell. The header marquee, layer tabs,
 // isometric plates and telemetry console live in sibling components; this
 // file owns the active/hovered layer state and composes the workbench.
-import Image from 'next/image';
 import { useState } from 'react';
+
+import { BlueprintPlate } from '@/components/brand/blueprint-plates';
 
 import { ArchitectureHeader } from './architecture-header';
 import { ArchitectureLayerPlate } from './architecture-layer-plate';
@@ -43,24 +44,13 @@ export function LandingArchitecture() {
       id="architecture"
       className="relative overflow-hidden border-t border-white/5 bg-[#0e0f10] py-28 lg:py-36"
     >
-      {/* ── Neoclassical Titan Foundation Artwork ── */}
+      {/* ── Arbiter Convergence Blueprint (raster backup preserved) ── */}
       <div
         aria-hidden="true"
-        className="architecture-backdrop-mask pointer-events-none absolute top-8 right-0 z-0 h-[360px] w-full opacity-15 mix-blend-screen select-none sm:top-12 sm:h-[480px] lg:top-1/2 lg:h-[85%] lg:w-[48%] lg:-translate-y-1/2 lg:opacity-20"
+        className="pointer-events-none absolute top-8 right-0 z-0 h-[360px] w-full opacity-35 select-none sm:top-12 sm:h-[480px] lg:top-1/2 lg:h-[85%] lg:w-[48%] lg:-translate-y-1/2"
       >
-        <Image
-          src="/landing/architecture-titan.webp"
-          alt="Neoclassical Titan Architectural Foundation"
-          fill
-          unoptimized
-          sizes="(max-width: 1024px) 100vw, 48vw"
-          className="object-contain object-top lg:object-cover lg:object-center"
-        />
+        <BlueprintPlate id="arbiter" showRasterBackup className="h-full w-full" />
       </div>
-      <div
-        aria-hidden="true"
-        className="bg-brand/5 pointer-events-none absolute right-1/4 -bottom-40 size-[700px] rounded-full blur-[160px] select-none"
-      />
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header with Concentric Rotating Marquee Badge */}

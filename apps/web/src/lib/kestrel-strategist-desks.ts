@@ -16,6 +16,8 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
+import type { BlueprintPlateId } from '@/components/brand/blueprint-plates';
+
 import type { AnalysisMode } from './analysis-mode';
 
 /**
@@ -61,7 +63,14 @@ export interface StrategistDeskConfig {
   description: string;
   /** Primary domain & metrics line (mirrors the identity matrix). */
   domainMetrics: string;
+  /** Preserved raster artwork — primary chiaroscuro engraving. */
   artworkPath: string;
+  /** Companion chiaroscuro engraving blended with the primary plate. */
+  pairedArtworkPath?: string;
+  /** Precision SVG engraving rendered as the primary desk illustration. */
+  blueprintId: BlueprintPlateId;
+  /** Paired companion blueprint plate ID. */
+  pairedBlueprintId?: BlueprintPlateId;
   /**
    * CSS color token (from `globals.css`) for the desk identity dot. Keep these
    * as `var(--color-*)` references so the Kestrel palette stays the single
@@ -90,6 +99,9 @@ const FUNDAMENTAL_DESK: StrategistDeskConfig = {
   domainMetrics:
     'US10Y Real Yields · Central Bank Policy · DXY Correlation · High-Impact Catalysts',
   artworkPath: '/landing/kestrel-horus-statue.webp',
+  pairedArtworkPath: '/landing/temple-obelisk-meridian.webp',
+  blueprintId: 'horus',
+  pairedBlueprintId: 'obelisk',
   accentColor: 'var(--color-info)',
   analysisMode: 'single',
   defaultPrompt:
@@ -111,6 +123,9 @@ const TECHNICAL_DESK: StrategistDeskConfig = {
   domainMetrics:
     'EMA20/50/200 Alignment · Swing Highs & Lows · PDH/PDL & Session Ranges · RSI/MACD/ATR',
   artworkPath: '/landing/simulator-astrolabe.webp',
+  pairedArtworkPath: '/landing/stepper-colonnade.webp',
+  blueprintId: 'astrolabe',
+  pairedBlueprintId: 'colonnade',
   accentColor: 'var(--color-bull)',
   analysisMode: 'single',
   defaultPrompt:
@@ -132,6 +147,9 @@ const RISK_DESK: StrategistDeskConfig = {
   domainMetrics:
     'Immutable 1.0% Drawdown Ceiling · ATR-14 Invalidation Stops · R:R Asymmetry & Veto',
   artworkPath: '/landing/aegis-spartan-bust.webp',
+  pairedArtworkPath: '/landing/sentinel-eclipse-watch.webp',
+  blueprintId: 'aegis',
+  pairedBlueprintId: 'eclipse',
   accentColor: 'var(--color-warn)',
   analysisMode: 'single',
   defaultPrompt:
@@ -153,6 +171,9 @@ const SENTIMENT_DESK: StrategistDeskConfig = {
   domainMetrics:
     'CFTC Commitments of Traders (COT) · Commercial Hedging · Retail Skew Contrarian Index',
   artworkPath: '/landing/desks-council-strategists.webp',
+  pairedArtworkPath: '/landing/war-room-pantheon.webp',
+  blueprintId: 'sentinel',
+  pairedBlueprintId: 'warroom',
   accentColor: 'var(--color-brand)',
   analysisMode: 'single',
   defaultPrompt:
@@ -172,7 +193,10 @@ const ARBITER_DESK_CONFIG: StrategistDeskConfig = {
   description:
     'Full multi-agent deliberation: all four specialist desks synthesizing into one decisive execution plan.',
   domainMetrics: 'Cross-Desk Reconciliation · Conflict Resolution · Certified Execution Blueprint',
-  artworkPath: '/brand/kestrel-falcon.svg',
+  artworkPath: '/landing/arbiter-scales-falcon.webp',
+  pairedArtworkPath: '/landing/architecture-titan.webp',
+  blueprintId: 'arbiter',
+  pairedBlueprintId: 'titan',
   accentColor: 'var(--color-brand)',
   analysisMode: 'full',
   defaultPrompt:
@@ -226,6 +250,7 @@ export const FALLBACK_STRATEGIST_DESK: StrategistDeskConfig = {
   description: 'Independent specialist analysis.',
   domainMetrics: 'Independent lens',
   artworkPath: '/landing/simulator-astrolabe.webp',
+  blueprintId: 'astrolabe',
   accentColor: 'var(--color-fg-muted)',
   analysisMode: 'single',
   defaultPrompt: 'Run a specialist analysis on XAUUSD.',

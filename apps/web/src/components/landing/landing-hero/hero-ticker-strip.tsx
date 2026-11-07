@@ -14,9 +14,9 @@ export function HeroTickerStrip() {
   return (
     <div className="mb-10 flex items-center justify-between overflow-hidden rounded-full border border-white/10 bg-[#141516]/80 px-4 py-2 shadow-sm backdrop-blur-md">
       <div className="z-10 flex shrink-0 items-center gap-2 border-r border-white/10 bg-[#141516]/90 pr-4">
-        <span className="bg-bull size-2 animate-pulse rounded-full shadow-[0_0_6px_#3f9e3d]" />
+        <span className="bg-bull size-2 rounded-full shadow-[0_0_6px_#3f9e3d]" />
         <span className="text-fg font-mono text-[11px] font-bold tracking-wider uppercase">
-          LIVE MARKET PULSE
+          MARKET PULSE · SAMPLE
         </span>
       </div>
 
@@ -43,7 +43,7 @@ export function HeroTickerStrip() {
       <div className="text-fg-subtle z-10 hidden shrink-0 items-center gap-2 border-l border-white/10 bg-[#141516]/90 pl-4 font-mono text-[11px] lg:flex">
         <span>ANALYST DESKS:</span>
         <span className="text-bull flex items-center gap-1.5 font-bold tabular-nums">
-          <span className="bg-bull size-1.5 animate-ping rounded-full" />4 ACTIVE
+          <span className="bg-bull size-1.5 rounded-full" />4 DESKS
         </span>
       </div>
     </div>

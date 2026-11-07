@@ -27,6 +27,7 @@ import type { EconomicEvent } from '@kestrel/shared';
 import { IconBolt, IconClock } from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
 
+import { BlueprintPlate } from '@/components/brand/blueprint-plates';
 import { useTime } from '@/components/providers/time-provider';
 import { cn } from '@/lib/formatters/cn';
 import { startOfDay, startOfDayOffset } from '@/lib/formatters/datetime';
@@ -63,6 +64,15 @@ export function CalendarHero({ events = [] }: CalendarHeroProps) {
       aria-label="Calendar overview"
       className="border-border/80 bg-bg-elev-1 surface-chip border-edge/80 relative flex flex-col gap-4 overflow-hidden rounded-xl border p-4 shadow-[var(--shadow-chip)] sm:p-5"
     >
+      {/* Sentinel Eclipse Watch & Meridian Obelisk 3-Layer Sovereign Header Plate */}
+      <BlueprintPlate
+        id="eclipse"
+        variant="compact"
+        showRasterBackup
+        showAsciiStrip
+        className="h-28 w-full sm:h-32"
+      />
+
       {/* Countdown row */}
       {nextHigh ? (
         <div className="flex items-start gap-3.5">
@@ -102,6 +112,9 @@ export function CalendarHero({ events = [] }: CalendarHeroProps) {
           No high-impact events in the next 14 days.
         </div>
       )}
+
+      {/* 24-hour UTC Killzone Horizon */}
+      <KillzoneHorizonTimeline events={events} now={now} />
 
       {/* Distribution bar — shows the impact mix for the next two weeks */}
       <div className="flex flex-col gap-2">
@@ -146,6 +159,137 @@ export function CalendarHero({ events = [] }: CalendarHeroProps) {
 }
 
 // ---------------------------------------------------------------------------
+
+const SESSION_BANDS = [
+  {
+    label: 'ASIA',
+    left: '0%',
+    width: '37.5%',
+    className: 'bg-info/[0.06] border-r border-info/20',
+  },
+  {
+    label: 'LON',
+    left: '29.17%',
+    width: '37.5%',
+    className: 'bg-white/[0.03] border-x border-white/10',
+  },
+  { label: 'NY', left: '50%', width: '37.5%', className: 'bg-bull/[0.05] border-r border-bull/20' },
+] as const;
+
+function KillzoneHorizonTimeline({
+  events,
+  now,
+}: {
+  events: readonly EconomicEvent[];
+  now: number;
+}) {
+  const dayStart = new Date(now);
+  dayStart.setUTCHours(0, 0, 0, 0);
+  const startMs = dayStart.getTime();
+  const todayEvents = events.filter(
+    (event) => event.date >= startMs && event.date < startMs + 86_400_000,
+  );
+  const utcDate = new Date(now);
+  const nowPct = ((utcDate.getUTCHours() * 60 + utcDate.getUTCMinutes()) / 1440) * 100;
+  const utcLabel = `${utcDate.toISOString().slice(11, 16)} UTC`;
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-fg-subtle font-mono text-[9px] font-semibold tracking-[0.14em] uppercase">
+          24h UTC Killzone Horizon
+        </span>
+        <span className="text-fg-subtle font-mono text-[9px] tabular-nums">
+          {todayEvents.length} release{todayEvents.length === 1 ? '' : 's'} today · {utcLabel}
+        </span>
+      </div>
+
+      <div
+        className="surface-well relative h-10 w-full overflow-hidden rounded-lg border border-white/[0.07] bg-[#090a0b]"
+        role="img"
+        aria-label={`Today's macro releases across the 24-hour UTC session. Live time ${utcLabel}.`}
+      >
+        {SESSION_BANDS.map((band) => (
+          <span
+            key={band.label}
+            aria-hidden="true"
+            className={cn('absolute inset-y-0', band.className)}
+            style={{ left: band.left, width: band.width }}
+          />
+        ))}
+
+        {/* London x New York killzone */}
+        <span
+          aria-hidden="true"
+          className="bg-brand/[0.12] border-brand/40 absolute inset-y-0 border-x"
+          style={{ left: '50%', width: '16.67%' }}
+        />
+        <span
+          className="text-brand/80 absolute top-0.5 font-mono text-[6px] tracking-wider"
+          style={{ left: '50.3%' }}
+        >
+          KILLZONE
+        </span>
+
+        <span className="text-info/70 absolute top-0.5 left-1 font-mono text-[6px] tracking-wider">
+          ASIA
+        </span>
+        <span
+          className="text-fg-subtle/70 absolute top-0.5 font-mono text-[6px] tracking-wider"
+          style={{ left: '29.5%' }}
+        >
+          LON
+        </span>
+        <span className="text-bull/70 absolute top-0.5 right-1 font-mono text-[6px] tracking-wider">
+          NY
+        </span>
+
+        {todayEvents.map((event) => {
+          const pct =
+            ((new Date(event.date).getUTCHours() * 60 + new Date(event.date).getUTCMinutes()) /
+              1440) *
+            100;
+          return (
+            <span
+              key={event.id}
+              className={cn(
+                'absolute bottom-1.5 z-10 size-2 -translate-x-1/2 rotate-45 rounded-[1px]',
+                event.importance === 'high'
+                  ? 'bg-danger shadow-[0_0_8px_#f03e3e]'
+                  : event.importance === 'medium'
+                    ? 'bg-warn'
+                    : 'bg-fg-subtle',
+              )}
+              style={{ left: `${pct}%` }}
+              title={`${new Date(event.date).toISOString().slice(11, 16)} UTC · ${event.title} · ${event.importance.toUpperCase()}`}
+            />
+          );
+        })}
+
+        <span
+          aria-hidden="true"
+          className="bg-brand shadow-[0_0_8px_#ff3616] absolute inset-y-0 z-20 w-px -translate-x-1/2"
+          style={{ left: `${nowPct}%` }}
+        />
+        <span
+          aria-hidden="true"
+          className="text-brand absolute top-0 z-20 -translate-x-1/2 font-mono text-[8px]"
+          style={{ left: `${nowPct}%` }}
+        >
+          ▼
+        </span>
+      </div>
+
+      <div className="text-fg-subtle/60 flex justify-between font-mono text-[8px] tabular-nums">
+        <span>00:00</span>
+        <span>06:00</span>
+        <span>12:00</span>
+        <span>18:00</span>
+        <span>24:00</span>
+      </div>
+    </div>
+  );
+}
 
 function Countdown({ ms }: { ms: number }) {
   if (ms <= 0) return <span className="text-danger font-semibold">Live now</span>;

@@ -243,10 +243,9 @@ export function EventCard({ event }: { event: EconomicEvent }) {
   return (
     <article
       className={cn(
-        'group relative overflow-hidden rounded-xl',
-        'border-border/80 bg-bg-elev-1 surface-chip border shadow-[var(--shadow-chip)]',
-        'md:hover:bg-bg-elev-2/80 transition-all duration-200',
-        isImminent && 'border-warn/50 shadow-[0_0_16px_rgba(217,143,0,0.15)]',
+        'group relative overflow-hidden rounded-xl border border-white/[0.07] bg-[#131416]',
+        'transition-colors duration-200 md:hover:border-white/[0.15] md:hover:bg-[#161719]',
+        isImminent && 'border-warn/50',
       )}
     >
       {hasRibbon ? (

@@ -3,6 +3,8 @@
 // Static telemetry data for the landing hero: the switchable committee
 // briefings and the live market-pulse ticker items.
 
+export type DeskBias = 'BULL' | 'BEAR' | 'GUARD';
+
 interface SymbolTelemetry {
   symbol: string;
   name: string;
@@ -21,6 +23,10 @@ interface SymbolTelemetry {
   macroSignal: string;
   riskSignal: string;
   sentimentSignal: string;
+  techBias: DeskBias;
+  macroBias: DeskBias;
+  riskBias: DeskBias;
+  sentimentBias: DeskBias;
 }
 
 export const SYMBOLS: SymbolTelemetry[] = [
@@ -42,6 +48,10 @@ export const SYMBOLS: SymbolTelemetry[] = [
     macroSignal: 'Yields -4bp',
     riskSignal: '1% @ 2,846',
     sentimentSignal: 'Whales Long',
+    techBias: 'BULL',
+    macroBias: 'BULL',
+    riskBias: 'GUARD',
+    sentimentBias: 'BULL',
   },
   {
     symbol: 'EUR/USD',
@@ -61,6 +71,10 @@ export const SYMBOLS: SymbolTelemetry[] = [
     macroSignal: 'ECB Hold',
     riskSignal: '0.8% SL',
     sentimentSignal: 'COT Bullish',
+    techBias: 'BULL',
+    macroBias: 'GUARD',
+    riskBias: 'GUARD',
+    sentimentBias: 'BULL',
   },
   {
     symbol: 'GBP/USD',
@@ -80,6 +94,10 @@ export const SYMBOLS: SymbolTelemetry[] = [
     macroSignal: 'BoE Doves',
     riskSignal: '1% @ 1.295',
     sentimentSignal: 'Funds Short',
+    techBias: 'BEAR',
+    macroBias: 'BEAR',
+    riskBias: 'GUARD',
+    sentimentBias: 'BEAR',
   },
 ];
 

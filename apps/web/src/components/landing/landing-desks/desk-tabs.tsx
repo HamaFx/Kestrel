@@ -2,8 +2,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Left rail of the landing desks section: the 4 desk selector tabs with the
-// gliding active indicators and the auto-cycle countdown strip.
+// Left rail of the landing desks section: four flush selector cells inside the
+// shared instrument frame, with gliding active indicators and the auto-cycle
+// countdown strip.
 import { m } from 'motion/react';
 
 import { cn } from '@/lib/formatters/cn';
@@ -21,7 +22,7 @@ export function DeskTabs({ selectedId, isPaused, onSelect }: DeskTabsProps) {
     <div
       role="tablist"
       aria-label="Specialist Desks"
-      className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:col-span-5 lg:flex lg:flex-col lg:justify-between"
+      className="grid grid-cols-2 divide-x divide-y divide-white/[0.06] lg:col-span-5 lg:flex lg:flex-col lg:justify-between lg:divide-x-0"
     >
       {DESKS.map((desk) => {
         const isSelected = desk.id === selectedId;
@@ -35,13 +36,11 @@ export function DeskTabs({ selectedId, isPaused, onSelect }: DeskTabsProps) {
             aria-controls={`desk-panel-${desk.id}`}
             onClick={() => onSelect(desk.id)}
             className={cn(
-              'group relative flex flex-col justify-between overflow-hidden rounded-xl border p-3.5 text-left transition-all duration-200 active:translate-y-[0.5px] sm:p-4',
-              isSelected
-                ? 'surface-chip border-white/25 bg-[#18191a] shadow-[var(--shadow-chip)]'
-                : 'border-white/5 bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.04]',
+              'group relative flex flex-1 flex-col justify-center overflow-hidden p-3.5 text-left transition-colors duration-200 active:translate-y-[0.5px] sm:p-4',
+              isSelected ? 'bg-[#18191a]' : 'bg-[#121315] hover:bg-white/[0.03]',
             )}
           >
-            {/* Active Indicator: Right edge + pointer on desktop, Bottom edge on mobile */}
+            {/* Active indicator: right rail on desktop, bottom rail on mobile */}
             {isSelected && (
               <>
                 <m.div
@@ -72,7 +71,7 @@ export function DeskTabs({ selectedId, isPaused, onSelect }: DeskTabsProps) {
               </div>
             )}
 
-            {/* Responsive Tab Content: Compact stack on mobile, clean row on desktop */}
+            {/* Responsive Tab Content: compact stack on mobile, row on desktop */}
             <div className="flex w-full flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between lg:gap-3">
               <div className="flex min-w-0 items-center justify-between lg:justify-start lg:gap-3">
                 <div

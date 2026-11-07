@@ -16,11 +16,17 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { listRecentArticles } from '@kestrel/ai';
+import { listRecentArticles, listUpcomingEvents } from '@kestrel/ai';
 import { IconNews } from '@tabler/icons-react';
 import type { Metadata } from 'next';
 
+import { CalendarHero } from '../calendar/_components/calendar-hero';
 import { MarketSubNav } from '@/components/layout/market-subnav';
+import {
+  MarketTerminalLayout,
+  RailPanel,
+  TodayEvents,
+} from '@/components/layout/market-terminal-rail';
 import { PageHeader } from '@/components/layout/page-header';
 import { BookmarksProvider } from '@/components/news/bookmarks-context';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -37,7 +43,10 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function NewsPage() {
-  const articles = await listRecentArticles(120);
+  const [articles, events] = await Promise.all([
+    listRecentArticles(120),
+    listUpcomingEvents().catch(() => []),
+  ]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -58,8 +67,23 @@ export default async function NewsPage() {
         />
       ) : (
         <BookmarksProvider>
-          <SentimentSummary articles={articles} />
-          <NewsView initialArticles={articles} />
+          <MarketTerminalLayout
+            rail={
+              <>
+                <RailPanel title="Next high-impact catalyst" href="/calendar" bleed>
+                  <CalendarHero events={events} />
+                </RailPanel>
+                <RailPanel title="Upcoming today">
+                  <TodayEvents events={events} />
+                </RailPanel>
+              </>
+            }
+          >
+            <div className="flex flex-col gap-4">
+              <SentimentSummary articles={articles} />
+              <NewsView initialArticles={articles} />
+            </div>
+          </MarketTerminalLayout>
         </BookmarksProvider>
       )}
     </div>

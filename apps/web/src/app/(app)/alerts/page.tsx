@@ -16,9 +16,17 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
+import { listUpcomingEvents } from '@kestrel/ai';
 import type { Metadata } from 'next';
 
+import { CalendarHero } from '../calendar/_components/calendar-hero';
+import { WatchlistWidget } from '../dashboard/_components/widgets/watchlist-widget';
 import { MarketSubNav } from '@/components/layout/market-subnav';
+import {
+  MarketTerminalLayout,
+  RailPanel,
+  TodayEvents,
+} from '@/components/layout/market-terminal-rail';
 import { PageHeader } from '@/components/layout/page-header';
 
 import { AlertList } from './_components/alert-list';
@@ -28,7 +36,9 @@ export const metadata: Metadata = {
   description: 'Manage price, candle-close, and technical indicator alerts.',
 };
 
-export default function AlertsPage() {
+export default async function AlertsPage() {
+  const events = await listUpcomingEvents().catch(() => []);
+
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
@@ -37,7 +47,23 @@ export default function AlertsPage() {
       >
         <MarketSubNav />
       </PageHeader>
-      <AlertList />
+      <MarketTerminalLayout
+        rail={
+          <>
+            <RailPanel title="Live watchlist" bleed>
+              <WatchlistWidget />
+            </RailPanel>
+            <RailPanel title="Next high-impact catalyst" href="/calendar" bleed>
+              <CalendarHero events={events} />
+            </RailPanel>
+            <RailPanel title="Upcoming today">
+              <TodayEvents events={events} />
+            </RailPanel>
+          </>
+        }
+      >
+        <AlertList />
+      </MarketTerminalLayout>
     </div>
   );
 }

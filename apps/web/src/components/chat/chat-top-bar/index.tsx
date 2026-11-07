@@ -26,6 +26,7 @@ import {
   IconDots,
   IconFileDownload,
   IconHistory,
+  IconLayoutSidebar,
   IconLayoutSidebarRight,
   IconLoader2,
   IconMessages,
@@ -66,6 +67,9 @@ export interface ChatTopBarProps {
   isStreaming: boolean;
   splitMode?: boolean;
   onToggleSplitMode?: () => void;
+  /** Desktop research-ledger rail visibility (xl+). */
+  railOpen?: boolean;
+  onToggleRail?: () => void;
 }
 
 function ThreadContext({
@@ -75,6 +79,8 @@ function ThreadContext({
   onOpenDrawer,
   onClearPin,
   isStreaming,
+  railOpen = true,
+  onToggleRail,
 }: {
   title: string;
   pinnedSymbol: Symbol | null;
@@ -82,11 +88,30 @@ function ThreadContext({
   onOpenDrawer: () => void;
   onClearPin: () => void;
   isStreaming: boolean;
+  railOpen?: boolean;
+  onToggleRail?: () => void;
 }) {
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2">
       <NavTrigger className="lg:hidden" />
       <KestrelBrand variant="mark" href="/dashboard" className="inline-flex lg:hidden" />
+      {onToggleRail ? (
+        <button
+          type="button"
+          onClick={onToggleRail}
+          aria-label={railOpen ? 'Hide research ledger' : 'Show research ledger'}
+          aria-pressed={railOpen}
+          title={railOpen ? 'Hide research ledger' : 'Show research ledger'}
+          className={cn(
+            'hidden size-8 shrink-0 items-center justify-center rounded-md border transition-colors xl:inline-flex',
+            railOpen
+              ? 'border-brand/35 bg-brand/10 text-brand'
+              : 'border-white/[0.08] text-fg-subtle hover:text-fg',
+          )}
+        >
+          <IconLayoutSidebar className="size-3.5" />
+        </button>
+      ) : null}
 
       <button
         type="button"
@@ -179,6 +204,8 @@ export function ChatTopBar({
   isStreaming,
   splitMode = false,
   onToggleSplitMode,
+  railOpen = true,
+  onToggleRail,
 }: ChatTopBarProps) {
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -272,6 +299,8 @@ export function ChatTopBar({
         onOpenDrawer={() => setDrawerOpen(true)}
         onClearPin={() => void clearPin()}
         isStreaming={isStreaming}
+        railOpen={railOpen}
+        {...(onToggleRail ? { onToggleRail } : {})}
       />
 
       <div className="flex shrink-0 items-center gap-1.5">

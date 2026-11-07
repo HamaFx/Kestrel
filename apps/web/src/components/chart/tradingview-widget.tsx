@@ -98,9 +98,19 @@ export interface TradingViewWidgetProps {
   symbol: Symbol;
   tf: Timeframe;
   theme?: 'dark' | 'light';
+  /** Fill the parent's height instead of the viewport formula (dock panes). */
+  fit?: boolean;
+  /** Explicit CSS height, used by the edge-to-edge Pro Chart workspace. */
+  height?: string;
 }
 
-export function TradingViewWidget({ symbol, tf, theme = 'dark' }: TradingViewWidgetProps) {
+export function TradingViewWidget({
+  symbol,
+  tf,
+  theme = 'dark',
+  fit = false,
+  height: heightOverride,
+}: TradingViewWidgetProps) {
   // Stable container ID per symbol & timeframe to avoid recreation loops
   const containerId = `tv-widget-${symbol}-${tf}`;
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -194,11 +204,18 @@ export function TradingViewWidget({ symbol, tf, theme = 'dark' }: TradingViewWid
   }, [containerId, symbol, tf, theme]);
 
   const height =
-    'calc(100dvh - var(--chart-chrome, calc(3rem + 1.75rem + 1.5rem + 24px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px))))';
+    heightOverride ??
+    (fit
+      ? '100%'
+      : 'calc(100dvh - var(--chart-chrome, calc(3rem + 1.75rem + 1.5rem + 24px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px))))');
 
   return (
     <div
-      className="surface-well bg-well relative min-h-[400px] w-full overflow-hidden rounded-sm border-white/5 shadow-[inset_0_1.5px_2px_rgba(0,0,0,0.6)]"
+      className={
+        fit
+          ? 'surface-well bg-well relative min-h-0 w-full flex-1 overflow-hidden rounded-sm border-white/5 shadow-[inset_0_1.5px_2px_rgba(0,0,0,0.6)]'
+          : 'surface-well bg-well relative min-h-[400px] w-full overflow-hidden rounded-sm border-white/5 shadow-[inset_0_1.5px_2px_rgba(0,0,0,0.6)]'
+      }
       style={{ height }}
     >
       {/* The TradingView container — always rendered so the widget has a target. */}

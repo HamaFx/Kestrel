@@ -22,7 +22,7 @@
 // and context panels. Features a desktop drag-resize divider with persisted
 // width (`kestrel:war-room-width:v1`) and keyboard arrow accessibility.
 import type { Symbol, Timeframe } from '@kestrel/shared';
-import { IconChartCandle, IconListCheck, IconUsers, IconX } from '@tabler/icons-react';
+import { IconChartCandle, IconColumns, IconListCheck, IconUsers, IconX } from '@tabler/icons-react';
 import type { UIMessage } from 'ai';
 import { m } from 'motion/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -33,16 +33,20 @@ import { cn } from '@/lib/formatters/cn';
 
 import { DockChartPanel } from './dock-chart-panel';
 import { DockOpinionsPanel } from './dock-opinions-panel';
+import { DockSplitBody } from './dock-split-body';
 import { DockPlanPanel } from './dock-plan-panel';
+import { useDockDossier } from './use-dock-dossier';
 import { useLatestPlan } from './use-latest-plan';
 import { useLatestSyndicateMeta } from './use-latest-syndicate-meta';
 
 export type DockTab = 'chart' | 'opinions' | 'plan';
 
 const DOCK_WIDTH_STORAGE_KEY = 'kestrel:war-room-width:v1';
+const SPLIT_STORAGE_KEY = 'kestrel:war-room-split-stack:v1';
 const DEFAULT_DOCK_WIDTH = 480;
 const MIN_DOCK_WIDTH = 360;
 const MAX_DOCK_WIDTH = 760;
+const DEFAULT_SPLIT_RATIO = 45;
 
 function clampDockWidth(width: number): number {
   return Math.max(MIN_DOCK_WIDTH, Math.min(MAX_DOCK_WIDTH, Math.round(width)));
@@ -102,6 +106,7 @@ export function ThreadViewsDock({
   const councilBadge = Array.isArray(latestSyndicate?.agents)
     ? latestSyndicate?.agents.length
     : undefined;
+  const dossier = useDockDossier(messages, latestSyndicate, symbol);
 
   const isDesktop = useIsDesktop();
   const [dockWidth, setDockWidth] = useState<number>(DEFAULT_DOCK_WIDTH);
@@ -161,6 +166,33 @@ export function ThreadViewsDock({
     [persistWidth],
   );
 
+  const [splitStack, setSplitStack] = useState(false);
+  const [splitRatio, setSplitRatio] = useState(DEFAULT_SPLIT_RATIO);
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(SPLIT_STORAGE_KEY);
+      if (saved !== null) {
+        setSplitStack(saved === 'true');
+      } else {
+        setSplitStack(window.innerHeight >= 760);
+      }
+    } catch {
+      // Ignore storage access errors in restricted privacy contexts
+    }
+  }, []);
+
+  const toggleSplitStack = useCallback(() => {
+    const next = !splitStack;
+    setSplitStack(next);
+    try {
+      window.localStorage.setItem(SPLIT_STORAGE_KEY, String(next));
+    } catch {
+      // Ignore storage write errors
+    }
+    if (next && activeTab === 'chart') onTabChange('opinions');
+  }, [activeTab, onTabChange, splitStack]);
+
   // Mobile sheet: Escape dismisses the slide-over, matching the backdrop tap.
   useEffect(() => {
     if (!isOpen) return;
@@ -171,9 +203,10 @@ export function ThreadViewsDock({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isOpen, onClose]);
 
+  const stacked = splitStack && isDesktop;
   const tabs: Array<{ id: DockTab; label: string; icon: typeof IconChartCandle; badge?: number }> =
     [
-      { id: 'chart', label: 'Chart', icon: IconChartCandle },
+      ...(stacked ? [] : [{ id: 'chart' as const, label: 'Chart', icon: IconChartCandle }]),
       { id: 'opinions', label: 'Council', icon: IconUsers, badge: councilBadge },
       { id: 'plan', label: 'Plan', icon: IconListCheck, badge: latestPlan?.steps.length },
     ];
@@ -259,12 +292,6 @@ export function ThreadViewsDock({
 
         {/* Dock Header & Navigation Tabs */}
         <div className="border-border/40 bg-bg-elev-2/80 relative flex h-12 shrink-0 items-center justify-between overflow-hidden border-b px-3">
-          <span
-            aria-hidden="true"
-            className="font-bebas text-fg pointer-events-none absolute inset-x-0 top-1/2 -z-0 -translate-y-1/2 text-center text-2xl tracking-[0.22em] opacity-[0.03] select-none"
-          >
-            KESTREL // SOVEREIGN COUNCIL
-          </span>
           <div className="relative z-10 flex items-center gap-1">
             {tabs.map((tab) => {
               const Icon = tab.icon;
@@ -293,31 +320,75 @@ export function ThreadViewsDock({
             })}
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close Views"
-            className="text-fg-subtle hover:bg-bg-elev-3 hover:text-fg relative z-10 rounded-lg p-1.5 transition-colors"
-          >
-            <IconX className="size-4" />
-          </button>
+          <div className="relative z-10 flex items-center gap-0.5">
+            <button
+              type="button"
+              onClick={toggleSplitStack}
+              aria-pressed={stacked}
+              title={stacked ? 'Single tab view' : 'Split chart + intelligence'}
+              aria-label={stacked ? 'Switch to single tab view' : 'Split chart and intelligence'}
+              className={cn(
+                'hidden min-h-9 items-center gap-1 rounded-md border px-2 font-mono text-[10px] font-semibold tracking-wider uppercase transition-colors lg:inline-flex',
+                stacked
+                  ? 'border-brand/40 bg-brand/10 text-brand'
+                  : 'text-fg-subtle border-white/[0.08] hover:text-fg',
+              )}
+            >
+              <IconColumns className="size-3.5" />
+              <span className="hidden xl:inline">Split</span>
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close Views"
+              className="text-fg-subtle hover:bg-bg-elev-3 hover:text-fg rounded-lg p-1.5 transition-colors"
+            >
+              <IconX className="size-4" />
+            </button>
+          </div>
         </div>
 
         {/* Dock Content Body */}
         <div className="relative flex-1 overflow-hidden">
-          {activeTab === 'chart' && (
-            <DockChartPanel
+          {stacked ? (
+            <DockSplitBody
               symbol={symbol}
               activeTf={activeTf}
               onTimeframeChange={handleTimeframeChange}
+              splitRatio={splitRatio}
+              onSplitRatioChange={setSplitRatio}
+              activeTab={activeTab}
+              latestPlan={latestPlan}
+              dossierSymbol={dossier.symbol}
+              planId={dossier.planId}
+              levels={dossier.levels}
+              agentProgress={agentProgress}
+              messages={messages}
             />
-          )}
+          ) : (
+            <>
+              {activeTab === 'chart' && (
+                <DockChartPanel
+                  symbol={symbol}
+                  activeTf={activeTf}
+                  onTimeframeChange={handleTimeframeChange}
+                />
+              )}
 
-          {activeTab === 'opinions' && (
-            <DockOpinionsPanel agentProgress={agentProgress} messages={messages} />
-          )}
+              {activeTab === 'opinions' && (
+                <DockOpinionsPanel agentProgress={agentProgress} messages={messages} />
+              )}
 
-          {activeTab === 'plan' && <DockPlanPanel latestPlan={latestPlan} />}
+              {activeTab === 'plan' && (
+                <DockPlanPanel
+                  latestPlan={latestPlan}
+                  symbol={dossier.symbol}
+                  planId={dossier.planId}
+                  levels={dossier.levels}
+                />
+              )}
+            </>
+          )}
         </div>
       </m.aside>
     </>

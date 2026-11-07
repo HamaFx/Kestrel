@@ -21,8 +21,9 @@
 // Landing stepper section shell: owns the auto-advance state machine and
 // composes the circuit spine, stage cards and briefing panel.
 import { IconPlayerPause, IconPlayerPlay } from '@tabler/icons-react';
-import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
+
+import { BlueprintPlate } from '@/components/brand/blueprint-plates';
 
 import { BriefingPanel } from './briefing-panel';
 import { CircuitSpine, nodeYCoordinates } from './circuit-spine';
@@ -80,32 +81,19 @@ export function LandingStepper() {
       id="stepper"
       className="relative overflow-hidden border-t border-b border-white/5 bg-[#0c0d0e] py-28 lg:py-36"
     >
-      {/* ── Neoclassical Colonnade Stoa Artwork ── */}
+      {/* ── Sentinel Stoa Blueprint (raster backup preserved) ── */}
       <div
         aria-hidden="true"
-        className="stepper-backdrop-mask pointer-events-none absolute top-4 left-0 z-0 h-[380px] w-full opacity-20 mix-blend-screen select-none sm:top-8 sm:h-[480px] lg:top-8 lg:left-4 lg:h-[620px] lg:w-[46%] lg:opacity-28"
+        className="pointer-events-none absolute top-8 left-0 z-0 h-[380px] w-full opacity-40 select-none sm:h-[480px] lg:left-4 lg:h-[620px] lg:w-[46%]"
       >
-        <Image
-          src="/landing/stepper-colonnade.webp"
-          alt="Classical Colonnade Stoa Perspective"
-          fill
-          unoptimized
-          sizes="(max-width: 1024px) 100vw, 46vw"
-          className="object-contain object-top lg:object-contain lg:object-left-top"
-        />
+        <BlueprintPlate id="sentinel" showRasterBackup className="h-full w-full" />
       </div>
-
-      {/* Background Ambient Plasma Glow */}
-      <div
-        aria-hidden="true"
-        className="bg-brand/5 pointer-events-none absolute -top-32 left-1/4 size-[600px] rounded-full blur-[160px] select-none"
-      />
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header with Kestrel Rosette Badge */}
         <div className="mb-16 flex max-w-3xl flex-col items-start gap-4">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono text-xs">
-            <span className="bg-brand size-2 animate-pulse rounded-full shadow-[0_0_8px_#ff3616]" />
+            <span className="bg-brand size-2 rounded-full shadow-[0_0_8px_#ff3616]" />
             <span className="text-brand font-semibold tracking-wider uppercase">
               ※ 4-Step Research Workflow
             </span>

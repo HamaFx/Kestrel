@@ -27,7 +27,7 @@ export function SimulatorCanvas({ scenario, simulationStage, isVetoed }: Simulat
         <span className="text-brand flex items-center gap-2 font-mono text-xs font-semibold">
           {simulationStage === 'voting' && (
             <>
-              <span className="bg-brand size-2 animate-ping rounded-full" />
+              <span className="bg-brand size-2 rounded-full" />
               <span>ANALYZING MARKET STRUCTURE & MACRO...</span>
             </>
           )}
@@ -38,9 +38,9 @@ export function SimulatorCanvas({ scenario, simulationStage, isVetoed }: Simulat
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-white/10 bg-white/[0.06] lg:grid-cols-4">
         {/* Desk 1: Technical */}
-        <div className="surface-chip rounded-xl border border-white/10 bg-[#161718] p-4">
+        <div className="bg-[#0f1011] p-4">
           <div className="mb-2 flex items-center justify-between font-mono text-xs">
             <span className="text-bull font-bold uppercase">Technical</span>
             <span className="text-fg font-bold tabular-nums">
@@ -63,7 +63,7 @@ export function SimulatorCanvas({ scenario, simulationStage, isVetoed }: Simulat
         </div>
 
         {/* Desk 2: Macro */}
-        <div className="surface-chip rounded-xl border border-white/10 bg-[#161718] p-4">
+        <div className="bg-[#0f1011] p-4">
           <div className="mb-2 flex items-center justify-between font-mono text-xs">
             <span className="text-info font-bold uppercase">Macro</span>
             <span className="text-fg font-bold tabular-nums">
@@ -86,7 +86,7 @@ export function SimulatorCanvas({ scenario, simulationStage, isVetoed }: Simulat
         </div>
 
         {/* Desk 3: Risk */}
-        <div className="surface-chip rounded-xl border border-white/10 bg-[#161718] p-4">
+        <div className="bg-[#0f1011] p-4">
           <div className="mb-2 flex items-center justify-between font-mono text-xs">
             <span className="text-warn font-bold uppercase">Risk</span>
             <span className={cn('font-bold tabular-nums', isVetoed ? 'text-bear' : 'text-fg')}>
@@ -117,7 +117,7 @@ export function SimulatorCanvas({ scenario, simulationStage, isVetoed }: Simulat
         </div>
 
         {/* Desk 4: Sentiment */}
-        <div className="surface-chip rounded-xl border border-white/10 bg-[#161718] p-4">
+        <div className="bg-[#0f1011] p-4">
           <div className="mb-2 flex items-center justify-between font-mono text-xs">
             <span className="text-brand font-bold uppercase">Whales</span>
             <span className="text-fg font-bold tabular-nums">

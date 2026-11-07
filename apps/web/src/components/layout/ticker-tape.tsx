@@ -5,7 +5,10 @@
 // TopBar. Infinite CSS marquee, strictly monospaced, border-bottom divider.
 //
 //   [symbol mid ▲/▼  change%] · [symbol mid ▲/▼  change%] · …
-
+//
+// `embedded` drops the standalone chrome so the track can sit inside the
+// unified <TelemetryRibbon /> next to the session dock.
+// `onSurface` is kept for callers that still render the standalone strip.
 'use client';
 
 /**
@@ -24,6 +27,7 @@
  * limitations under the License.
  */
 import { priceDecimals, type Symbol, type Tick } from '@kestrel/shared';
+import { Link } from 'next-view-transitions';
 import { useEffect, useReducer, useRef } from 'react';
 
 import { usePrices } from '@/hooks/use-prices';
@@ -39,7 +43,12 @@ function pctChange(prev: number, cur: number): string {
   return `${sign}${pct.toFixed(2)}%`;
 }
 
-export function TickerTape() {
+export interface TickerTapeProps {
+  /** Drop the standalone bar chrome and fill the parent's 28px ribbon. */
+  embedded?: boolean;
+}
+
+export function TickerTape({ embedded = false }: TickerTapeProps = {}) {
   const { isChat } = useShellRoute();
   const tickQuery = usePrices(TAPE_SYMBOLS, { enabled: !isChat });
   const data = tickQuery.data;
@@ -78,40 +87,24 @@ export function TickerTape() {
     return { symbol: t.symbol, mid: t.mid.toFixed(decimals), isBull, changeStr, isClosed };
   });
 
-  // Fallback: show static symbols when live prices aren't available yet
-  if (items.length === 0) {
-    const fallbackSymbols = ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'BTCUSDT', 'ETHUSDT'];
-    const fallback = fallbackSymbols.flatMap((s) => [
-      <span key={`${s}-label`} className="inline-flex shrink-0 items-center gap-1">
-        <span className="text-fg font-semibold tracking-tight">{s}</span>
-        <span className="text-fg-subtle tabular-nums">---.--</span>
-        <span className="text-fg-subtle/40 mx-2 select-none">·</span>
-      </span>,
-    ]);
-    return (
-      <div
-        className="bg-well/80 relative h-7 overflow-hidden shadow-[inset_0_1.5px_2px_rgba(0,0,0,0.5)]"
-        aria-label="Market ticker tape — awaiting data"
-        role="marquee"
-      >
-        <div
-          className="ticker-track font-mono text-xs leading-7 whitespace-nowrap"
-          aria-hidden="true"
-        >
-          {fallback}
-          {fallback}
-        </div>
-      </div>
-    );
-  }
+  const wrapperClass = embedded
+    ? 'relative h-full flex-1 overflow-hidden'
+    : 'bg-well/80 relative h-7 overflow-hidden shadow-[inset_0_1.5px_2px_rgba(0,0,0,0.5)]';
+  const trackClass = 'ticker-track font-mono text-xs leading-7 whitespace-nowrap';
 
-  // Duplicate so the scroll is seamless.
-  const doubled = [...items, ...items];
-
-  const content = doubled.map((item, i) => (
-    <span key={`${item.symbol}-${i}`} className="inline-flex shrink-0 items-center gap-2">
+  const renderItem = (item: (typeof items)[number], i: number, hidden: boolean) => (
+    <Link
+      key={`${item.symbol}-${i}`}
+      href={`/chart/${item.symbol}`}
+      aria-hidden={hidden || undefined}
+      tabIndex={hidden ? -1 : undefined}
+      className="inline-flex shrink-0 items-center gap-2 rounded-sm transition-colors hover:text-white focus-visible:text-white"
+      title={`Open ${item.symbol} chart`}
+    >
       <span className="text-fg font-semibold tracking-tight">{item.symbol}</span>
-      <span className="text-fg-subtle tabular-nums">{item.mid}</span>
+      <span key={item.mid} className="tick-flash text-fg-subtle rounded-xs px-0.5 tabular-nums">
+        {item.mid}
+      </span>
       {item.isClosed ? (
         <span
           className="text-fg-subtle bg-bg-elev-2 rounded-xs px-1 text-xs font-medium"
@@ -124,28 +117,49 @@ export function TickerTape() {
           className={cn(
             'rounded-xs px-1.5 py-0.5 text-xs font-semibold tabular-nums transition-colors',
             item.isBull
-              ? 'text-bull bg-bull/15 ring-bull/30 shadow-[0_0_8px_rgba(63,158,61,0.15)] ring-1'
-              : 'text-bear bg-bear/15 ring-bear/30 shadow-[0_0_8px_rgba(224,44,16,0.15)] ring-1',
+              ? 'text-bull bg-bull/15 ring-bull/30 ring-1'
+              : 'text-bear bg-bear/15 ring-bear/30 ring-1',
           )}
         >
           {item.isBull ? '▲' : '▼'} {item.changeStr}
         </span>
       )}
       <span className="text-fg-subtle/30 mx-2 select-none">·</span>
-    </span>
-  ));
+    </Link>
+  );
+
+  // Fallback: show static symbols when live prices aren't available yet
+  if (items.length === 0) {
+    const fallbackSymbols = ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'BTCUSDT', 'ETHUSDT'];
+    const fallback = (hidden: boolean) =>
+      fallbackSymbols.map((s) => (
+        <Link
+          key={`${s}-${hidden ? 'b' : 'a'}`}
+          href={`/chart/${s}`}
+          aria-hidden={hidden || undefined}
+          tabIndex={hidden ? -1 : undefined}
+          className="inline-flex shrink-0 items-center gap-1"
+        >
+          <span className="text-fg font-semibold tracking-tight">{s}</span>
+          <span className="text-fg-subtle tabular-nums">---.--</span>
+          <span className="text-fg-subtle/40 mx-2 select-none">·</span>
+        </Link>
+      ));
+    return (
+      <div className={wrapperClass} aria-label="Market ticker tape — awaiting data" role="marquee">
+        <div className={trackClass}>
+          {fallback(false)}
+          {fallback(true)}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div
-      className="bg-well/80 relative h-7 overflow-hidden shadow-[inset_0_1.5px_2px_rgba(0,0,0,0.5)]"
-      aria-label="Market ticker tape"
-      role="marquee"
-    >
-      <div
-        className="ticker-track font-mono text-xs leading-7 whitespace-nowrap"
-        aria-hidden="true"
-      >
-        {content}
+    <div className={wrapperClass} aria-label="Market ticker tape" role="marquee">
+      <div className={trackClass}>
+        {items.map((item, i) => renderItem(item, i, false))}
+        {items.map((item, i) => renderItem(item, i + items.length, true))}
       </div>
     </div>
   );

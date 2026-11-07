@@ -2,9 +2,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// SortableWidget — wraps each widget in a chrome card with the drag handle,
-// span toggle, and remove button when in edit mode. The actual widget body
-// is rendered via `renderWidget()`.
+// SortableWidget — one cell of the hairline Bento matrix. In edit mode a
+// floating glass HUD (drag handle, label, span cycle, remove) sits inside the
+// cell so the grid geometry never shifts by a single pixel.
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { RegisteredDashboardWidget } from '@kestrel/plugin-sdk/ui';
@@ -49,49 +49,50 @@ export function SortableWidget({
       ref={setNodeRef}
       style={style}
       className={cn(
+        'relative h-full min-h-[180px] bg-[#121315]',
         widget.span === 3 && 'col-span-1 md:col-span-2 lg:col-span-3',
         widget.span === 2 && 'col-span-1 md:col-span-2 lg:col-span-2',
         widget.span === 1 && 'col-span-1',
-        editMode && 'ring-brand/40 rounded-2xl ring-1',
+        editMode && 'z-10 ring-1 ring-brand/45 ring-inset',
       )}
     >
       {editMode ? (
-        <div className="bg-bg-elev-1/90 mb-1.5 flex items-center justify-between gap-2 rounded-xl border border-white/[0.08] px-3 py-2 shadow-sm backdrop-blur-md">
+        <div className="border-brand/40 absolute top-2.5 right-2.5 z-20 flex items-center gap-1 rounded-lg border bg-[#121315]/95 px-1.5 py-1 shadow-xl backdrop-blur-md">
           <button
             type="button"
             aria-label={`Drag ${label} widget`}
-            className="text-fg-subtle hover:text-fg inline-flex size-10 min-h-10 min-w-10 cursor-grab touch-none items-center justify-center rounded-md transition-colors active:cursor-grabbing"
+            className="text-fg-subtle hover:text-fg inline-flex size-8 min-h-8 min-w-8 cursor-grab touch-none items-center justify-center rounded-md transition-colors active:cursor-grabbing"
             {...attributes}
             {...listeners}
           >
-            <IconGripVertical className="size-4" />
+            <IconGripVertical className="size-3.5" />
           </button>
-          <span className="text-brand font-mono text-[11px] font-semibold tracking-wider uppercase">
+          <span className="text-brand max-w-24 truncate font-mono text-[9px] font-semibold tracking-wider uppercase">
             {label}
           </span>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              aria-label={`Toggle span for ${label}`}
-              onClick={onToggleSpan}
-              className="bg-bg-elev-2 text-fg hover:border-brand/40 hover:text-brand inline-flex min-h-10 items-center justify-center rounded-md border border-white/[0.08] px-3 py-2 font-mono text-xs transition-colors active:translate-y-[0.5px]"
-              title={`Current span: ${widget.span === 1 ? 'Compact' : widget.span === 2 ? 'Wide' : 'Full Width'} (click to cycle)`}
-            >
-              {widget.span === 1 ? 'Compact' : widget.span === 2 ? 'Wide' : 'Full Width'}
-            </button>
-            <button
-              type="button"
-              aria-label={`Remove ${label}`}
-              onClick={onRemove}
-              className="text-fg-subtle hover:bg-danger/10 hover:text-danger inline-flex size-10 min-h-10 min-w-10 items-center justify-center rounded-md transition-colors active:translate-y-[0.5px]"
-            >
-              <IconX className="size-4" />
-            </button>
-          </div>
+          <button
+            type="button"
+            aria-label={`Cycle span for ${label}`}
+            onClick={onToggleSpan}
+            className="text-fg-muted hover:text-brand inline-flex min-h-8 items-center justify-center rounded-md px-1.5 font-mono text-[9px] font-semibold tabular-nums transition-colors"
+            title={`Current span: ${widget.span}x (click to cycle 1x / 2x / 3x)`}
+          >
+            {widget.span}x
+          </button>
+          <button
+            type="button"
+            aria-label={`Remove ${label}`}
+            onClick={onRemove}
+            className="text-fg-subtle hover:bg-danger/10 hover:text-danger inline-flex size-8 min-h-8 min-w-8 items-center justify-center rounded-md transition-colors"
+          >
+            <IconX className="size-3.5" />
+          </button>
         </div>
       ) : null}
 
-      <div className="h-full">{renderWidget(widget.type, data, pluginWidgetByType)}</div>
+      <div className="h-full [&>*]:h-full [&>*]:rounded-none [&>*]:border-0 [&>*]:bg-[#121315] [&>*]:shadow-none">
+        {renderWidget(widget.type, data, pluginWidgetByType)}
+      </div>
     </div>
   );
 }
