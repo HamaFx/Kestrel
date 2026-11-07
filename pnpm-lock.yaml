@@ -356,8 +356,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/config
       '@next/bundle-analyzer':
-        specifier: ^16.4.2
-        version: 16.4.2
+        specifier: ^16.4.5
+        version: 16.4.5
       '@playwright/test':
         specifier: ^1.64.1
         version: 1.64.1
@@ -2097,8 +2097,8 @@ packages:
   '@neon-rs/load@0.0.4':
     resolution: {integrity: sha512-kTPhdZyTQxB+2wpiRcFWrDcejc4JI6tkPuS7UZCG4l6Zvc5kU/gGQ/ozvHTh1XR5tS+UlfAfGuPajjzQjCiHCw==}
 
-  '@next/bundle-analyzer@16.4.2':
-    resolution: {integrity: sha512-tpNTC/WZYsmmixg3MZfx5JUuTh+Sgryu4eKhe7leQRcXHabztqtTkPCQM1Bk1VsE0trZ3w7NUCC3Zf7SeIBVzg==}
+  '@next/bundle-analyzer@16.4.5':
+    resolution: {integrity: sha512-kIlb+9t1i/Zg7yuRXN7I9nhEb92UGbnMfIzpZPps7YoCgmneCMpmN6zG6mduUluhI+y00MGLytkDsccVCujrGw==}
 
   '@next/env@16.4.2':
     resolution: {integrity: sha512-nTUTFH7G5/J/fmpkjVLegOkqyKOP0CEsJcMsyO4UCYeN1su+YMW/MfaSErnJskL7XM+UDK6aTvslxsRCyya/sA==}
@@ -4695,10 +4695,6 @@ packages:
 
   d3-array@3.2.4:
     resolution: {integrity: sha512-tdQAmyA18i4J7wprpYq8ClcxZy3SC31QMeByyCFyRt7BVHdREQZ5lpzoe5mFEYZUWe+oq8HBvk9JjpibyEV4Jg==}
-    engines: {node: '>=12'}
-
-  d3-array@3.2.5:
-    resolution: {integrity: sha512-Th8qGXoBalmWsstpkuhmBuTsBQIFqYOJtjlBvNVvBfJ8E3uYusBUwUR8HU20U0qKKQkgCvKyR1YjiozWadk5QA==}
     engines: {node: '>=12'}
 
   d3-brush@3.0.0:
@@ -8884,7 +8880,7 @@ snapshots:
 
   '@neon-rs/load@0.0.4': {}
 
-  '@next/bundle-analyzer@16.4.2':
+  '@next/bundle-analyzer@16.4.5':
     dependencies:
       webpack-bundle-analyzer: 4.10.1
     transitivePeerDependencies:
@@ -10956,10 +10952,6 @@ snapshots:
     dependencies:
       internmap: 2.0.3
 
-  d3-array@3.2.5:
-    dependencies:
-      internmap: 2.0.3
-
   d3-brush@3.0.0:
     dependencies:
       d3-dispatch: 3.0.2
@@ -10997,7 +10989,7 @@ snapshots:
 
   d3-geo@3.1.1:
     dependencies:
-      d3-array: 3.2.5
+      d3-array: 3.2.4
 
   d3-hexbin@0.2.2: {}
 
@@ -11020,7 +11012,7 @@ snapshots:
 
   d3-scale@4.0.2:
     dependencies:
-      d3-array: 3.2.5
+      d3-array: 3.2.4
       d3-format: 3.1.3
       d3-interpolate: 3.0.2
       d3-time: 3.1.1
@@ -11046,7 +11038,7 @@ snapshots:
 
   d3-time@3.1.1:
     dependencies:
-      d3-array: 3.2.5
+      d3-array: 3.2.4
 
   d3-timer@3.0.2: {}
 
