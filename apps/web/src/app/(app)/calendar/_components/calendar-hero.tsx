@@ -27,7 +27,6 @@ import type { EconomicEvent } from '@kestrel/shared';
 import { IconBolt, IconClock } from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
 
-import { BlueprintPlate } from '@/components/brand/blueprint-plates';
 import { useTime } from '@/components/providers/time-provider';
 import { cn } from '@/lib/formatters/cn';
 import { startOfDay, startOfDayOffset } from '@/lib/formatters/datetime';
@@ -41,7 +40,7 @@ export function CalendarHero({ events = [] }: CalendarHeroProps) {
 
   // Next high-impact event in the future.
   const nextHigh = events
-    .filter((e) => e.importance === 'high' && e.date > now)
+    .filter((e) => e.date > now)
     .sort((a, b) => a.date - b.date)[0];
 
   // Upcoming distribution — only future events, capped at 14 days.
@@ -64,15 +63,6 @@ export function CalendarHero({ events = [] }: CalendarHeroProps) {
       aria-label="Calendar overview"
       className="border-border/80 bg-bg-elev-1 surface-chip border-edge/80 relative flex flex-col gap-4 overflow-hidden rounded-xl border p-4 shadow-[var(--shadow-chip)] sm:p-5"
     >
-      {/* Sentinel Eclipse Watch & Meridian Obelisk 3-Layer Sovereign Header Plate */}
-      <BlueprintPlate
-        id="eclipse"
-        variant="compact"
-        showRasterBackup
-        showAsciiStrip
-        className="h-28 w-full sm:h-32"
-      />
-
       {/* Countdown row */}
       {nextHigh ? (
         <div className="flex items-start gap-3.5">
@@ -196,16 +186,16 @@ function KillzoneHorizonTimeline({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-fg-subtle font-mono text-[9px] font-semibold tracking-[0.14em] uppercase">
-          24h UTC Killzone Horizon
+        <span className="text-fg-subtle font-mono text-[10px] font-semibold tracking-wider uppercase">
+          24-Hour UTC Event Timeline
         </span>
-        <span className="text-fg-subtle font-mono text-[9px] tabular-nums">
+        <span className="text-fg-subtle font-mono text-[10px] tabular-nums">
           {todayEvents.length} release{todayEvents.length === 1 ? '' : 's'} today · {utcLabel}
         </span>
       </div>
 
       <div
-        className="surface-well relative h-10 w-full overflow-hidden rounded-lg border border-white/[0.07] bg-[#090a0b]"
+        className="surface-well relative h-11 w-full overflow-hidden rounded-lg border border-white/[0.07] bg-[#090a0b]"
         role="img"
         aria-label={`Today's macro releases across the 24-hour UTC session. Live time ${utcLabel}.`}
       >
@@ -218,29 +208,29 @@ function KillzoneHorizonTimeline({
           />
         ))}
 
-        {/* London x New York killzone */}
+        {/* London x New York overlap */}
         <span
           aria-hidden="true"
           className="bg-brand/[0.12] border-brand/40 absolute inset-y-0 border-x"
           style={{ left: '50%', width: '16.67%' }}
         />
         <span
-          className="text-brand/80 absolute top-0.5 font-mono text-[6px] tracking-wider"
-          style={{ left: '50.3%' }}
+          className="text-brand/85 absolute top-1 font-mono text-[9px] font-semibold tracking-wider"
+          style={{ left: '50.5%' }}
         >
-          KILLZONE
+          LON / NY OVERLAP
         </span>
 
-        <span className="text-info/70 absolute top-0.5 left-1 font-mono text-[6px] tracking-wider">
+        <span className="text-info/80 absolute top-1 left-1.5 font-mono text-[9px] font-medium tracking-wider">
           ASIA
         </span>
         <span
-          className="text-fg-subtle/70 absolute top-0.5 font-mono text-[6px] tracking-wider"
+          className="text-fg-subtle/80 absolute top-1 font-mono text-[9px] font-medium tracking-wider"
           style={{ left: '29.5%' }}
         >
           LON
         </span>
-        <span className="text-bull/70 absolute top-0.5 right-1 font-mono text-[6px] tracking-wider">
+        <span className="text-bull/80 absolute top-1 right-1.5 font-mono text-[9px] font-medium tracking-wider">
           NY
         </span>
 
@@ -273,14 +263,14 @@ function KillzoneHorizonTimeline({
         />
         <span
           aria-hidden="true"
-          className="text-brand absolute top-0 z-20 -translate-x-1/2 font-mono text-[8px]"
+          className="text-brand absolute top-0 z-20 -translate-x-1/2 font-mono text-[9px]"
           style={{ left: `${nowPct}%` }}
         >
           ▼
         </span>
       </div>
 
-      <div className="text-fg-subtle/60 flex justify-between font-mono text-[8px] tabular-nums">
+      <div className="text-fg-subtle/70 flex justify-between font-mono text-[10px] tabular-nums">
         <span>00:00</span>
         <span>06:00</span>
         <span>12:00</span>

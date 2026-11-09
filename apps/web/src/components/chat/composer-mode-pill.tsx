@@ -2,27 +2,22 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Tactile 2-segment analysis-mode pill: `⚡ Fast Scout` / `🏛️ Convene Council`,
-// with a spring `layoutId` glider (matching the landing HeroTelemetryRig) and
-// the forge glow on the Convene Council segment when armed.
+// Tactile 2-segment analysis-mode pill: `Quick Answer` vs `Deep Analysis`,
+// with clean vector icons and a spring `layoutId` highlight.
+import { IconBolt, IconSparkles } from '@tabler/icons-react';
 import { m } from 'motion/react';
 
 import type { AnalysisMode } from '@/lib/analysis-mode';
 import { cn } from '@/lib/formatters/cn';
 
 const MODE_LABELS: Record<AnalysisMode, string> = {
-  single: 'Fast Scout',
-  full: 'Convene Council',
-};
-
-const MODE_LABELS_COMPACT: Record<AnalysisMode, string> = {
-  single: '⚡ Fast Scout',
-  full: '🏛️ Convene Council',
+  single: 'Quick Answer',
+  full: 'Deep Analysis',
 };
 
 const MODE_DESCRIPTIONS: Record<AnalysisMode, string> = {
-  single: 'Fast single-pass AI scout with live read-only market tools.',
-  full: 'All 4 specialist desks + cross-examination + Arbiter trade plan.',
+  single: 'Fast single AI answer with live market data checks.',
+  full: 'Complete 4-angle analysis: Economy, Chart Levels, Risk Sizing & Market Sentiment.',
 };
 
 export function ComposerModePill({
@@ -36,10 +31,11 @@ export function ComposerModePill({
     <div
       role="group"
       aria-label="Analysis mode"
-      className="border-border bg-bg-elev-2 relative inline-flex h-8 shrink-0 items-center gap-0.5 rounded-lg border p-0.5"
+      className="border-border bg-bg-elev-2 relative inline-flex h-9 shrink-0 items-center gap-0.5 rounded-lg border p-0.5"
     >
       {(['single', 'full'] as const).map((mode) => {
         const isActive = analysisMode === mode;
+        const Icon = mode === 'full' ? IconSparkles : IconBolt;
         return (
           <button
             key={mode}
@@ -49,11 +45,11 @@ export function ComposerModePill({
             aria-label={`Analysis mode: ${MODE_LABELS[mode]}`}
             onClick={() => onAnalysisModeChange(mode)}
             className={cn(
-              'relative z-10 inline-flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-medium whitespace-nowrap transition-colors',
+              'relative z-10 inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium whitespace-nowrap transition-colors',
               isActive
                 ? mode === 'full'
-                  ? 'text-brand'
-                  : 'text-fg'
+                  ? 'text-brand font-semibold'
+                  : 'text-fg font-semibold'
                 : 'text-fg-subtle hover:text-fg',
             )}
           >
@@ -70,7 +66,8 @@ export function ComposerModePill({
                 transition={{ type: 'spring', stiffness: 420, damping: 32 }}
               />
             ) : null}
-            <span>{MODE_LABELS_COMPACT[mode]}</span>
+            <Icon className="size-3.5 shrink-0" strokeWidth={2} />
+            <span>{MODE_LABELS[mode]}</span>
           </button>
         );
       })}

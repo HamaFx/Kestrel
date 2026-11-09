@@ -32,13 +32,13 @@ export function EquitySection({ run }: { run: RunDetail }) {
   return (
     <>
       <section className="grid grid-cols-1 gap-3 lg:grid-cols-[1.6fr_1fr]">
-        <div className="surface-panel flex flex-col gap-2 rounded-xl border border-white/10 p-4">
+        <div className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-2 rounded-xl border p-4">
           <div className="flex items-center gap-2">
             <IconChartLine className="text-fg-subtle size-3.5" />
-            <h3 className="text-fg-subtle text-[10px] font-semibold tracking-wider uppercase">
+            <h3 className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
               Equity curve
             </h3>
-            <span className="text-fg-subtle ml-auto font-mono text-[10px]">
+            <span className="text-fg-subtle ml-auto font-mono text-[11px]">
               start {fmtMoney(run.initialBalance)}
             </span>
           </div>
@@ -52,14 +52,14 @@ export function EquitySection({ run }: { run: RunDetail }) {
           </div>
         </div>
 
-        <div className="surface-panel flex flex-col gap-2 rounded-xl border border-white/10 p-4">
+        <div className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-2 rounded-xl border p-4">
           <div className="flex items-center gap-2">
             <IconFlask className="text-fg-subtle size-3.5" />
-            <h3 className="text-fg-subtle text-[10px] font-semibold tracking-wider uppercase">
+            <h3 className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
               Trade distribution
             </h3>
           </div>
-          <dl className="grid grid-cols-2 gap-2 text-[11px]">
+          <dl className="grid grid-cols-2 gap-2 text-xs">
             <Row label="Average win" value={fmtR(run.metrics.averageWinR)} tone="text-bull" />
             <Row label="Average loss" value={fmtR(run.metrics.averageLossR)} tone="text-bear" />
             <Row label="Largest win" value={fmtMoney(run.metrics.largestWin)} tone="text-bull" />
@@ -78,7 +78,7 @@ export function EquitySection({ run }: { run: RunDetail }) {
       </section>
 
       {run.warnings.length > 0 ? (
-        <ul className="border-warn/30 bg-warn/5 text-warn flex flex-col gap-1 rounded-lg border p-3 text-[11px]">
+        <ul className="border-warn/30 bg-warn/5 text-warn flex flex-col gap-1 rounded-lg border p-3 text-xs">
           {run.warnings.map((warning) => (
             <li key={warning} className="flex items-start gap-1.5">
               <IconAlertTriangle className="mt-0.5 size-3 shrink-0" />
@@ -93,8 +93,8 @@ export function EquitySection({ run }: { run: RunDetail }) {
 
 function Row({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
-    <div className="bg-bg-elev-1/60 border-border/40 flex flex-col gap-0.5 rounded-md border p-2">
-      <dt className="text-fg-subtle text-[10px] font-semibold tracking-wider uppercase">{label}</dt>
+    <div className="bg-bg-elev-1/60 border-border/40 flex flex-col gap-0.5 rounded-lg border p-2.5">
+      <dt className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">{label}</dt>
       <dd className={`font-mono text-xs font-semibold tabular-nums ${tone ?? 'text-fg'}`}>
         {value}
       </dd>

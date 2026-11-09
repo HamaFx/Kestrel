@@ -27,7 +27,7 @@ import { DeskTabs } from './desk-tabs';
 import { CYCLE_DURATION_MS, DESKS } from './desks';
 
 export function LandingDesks() {
-  const [selectedId, setSelectedId] = useState<string>('technical');
+  const [selectedId, setSelectedId] = useState<string>('macro');
   const [isPaused, setIsPaused] = useState(false);
   const activeDesk = DESKS.find((d) => d.id === selectedId) ?? DESKS[0]!;
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -68,33 +68,33 @@ export function LandingDesks() {
             <div className="border-border/60 inline-flex items-center gap-2 rounded-full border bg-white/[0.03] px-3 py-1 font-mono text-xs">
               <span className="bg-brand size-2 rounded-full" />
               <span className="text-brand font-semibold tracking-wider uppercase">
-                Autonomous Syndicate
+                4 Analysis Angles
               </span>
             </div>
 
             <h2 className="font-display text-fg text-3xl font-normal tracking-[-0.03em] sm:text-4xl lg:text-5xl">
-              THE 4 SPECIALIST DESKS{' '}
-              <span className="font-redaction-35 text-brand italic">Deliberating In Sync</span>
+              FOUR ANGLES ON{' '}
+              <span className="font-redaction-35 text-brand italic">Every Market Setup</span>
             </h2>
             <p className="text-fg-muted font-sans text-sm leading-relaxed sm:text-base">
-              Unlike single-prompt trading bots that make emotional decisions, Kestrel operates as
-              an institutional multi-desk trading committee. Each specialist evaluates markets from
-              an independent mathematical lens.
+              Instead of relying on a single generic prompt, Kestrel checks every setup across four
+              clear research angles: Economy &amp; News, Chart &amp; Price Levels, Risk &amp; Trade
+              Sizing, and Positioning &amp; Sentiment.
             </p>
           </div>
 
-          {/* Syndicate Synchronization Telemetry Badge */}
+          {/* Synchronization Status Badge */}
           <div className="text-fg-subtle hidden items-center gap-2.5 rounded-lg border border-white/10 bg-white/[0.02] px-3.5 py-2 font-mono text-xs lg:flex">
             <span className="bg-bull size-2 rounded-full" />
-            <span>4/4 DESKS SYNCHRONIZED</span>
+            <span>4/4 ANGLES EVALUATED IN PARALLEL</span>
           </div>
         </div>
 
         {/* Unified 2-Pane Milled Instrument Frame */}
-        <div className="grid overflow-hidden rounded-2xl border border-white/10 bg-[#121315] divide-y divide-white/[0.08] lg:grid-cols-12 lg:divide-x lg:divide-y-0">
+        <div className="grid divide-y divide-white/[0.08] overflow-hidden rounded-2xl border border-white/10 bg-[#121315] lg:grid-cols-12 lg:divide-x lg:divide-y-0">
           <DeskTabs selectedId={selectedId} isPaused={isPaused} onSelect={handleSelectDesk} />
 
-          {/* Right Console: Active Desk Briefing Cockpit */}
+          {/* Right Console: Active Angle Preview */}
           <div className="flex min-w-0 flex-col lg:col-span-7">
             <DeskConsole desk={activeDesk} />
           </div>

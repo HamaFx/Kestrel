@@ -83,7 +83,7 @@ export default async function NotificationsPage() {
   const telegramReady = Boolean(env.TELEGRAM_BOT_TOKEN);
 
   return (
-    <div className="flex max-w-2xl flex-col gap-6">
+    <div className="flex max-w-4xl flex-col gap-6">
       <div className="flex flex-col gap-1">
         <h2 className="text-fg text-lg font-semibold tracking-tight">Trading & Alerts</h2>
         <p className="text-fg-subtle text-sm">

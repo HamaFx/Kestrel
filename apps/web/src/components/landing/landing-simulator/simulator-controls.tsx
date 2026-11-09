@@ -44,7 +44,7 @@ export function SimulatorControls({
           </span>
         </div>
         <div className="shrink-0 text-right font-mono text-xs font-bold">
-          <span className="text-fg-subtle block text-[9px] font-medium tracking-wider uppercase">
+          <span className="text-fg-subtle block text-[11px] font-medium tracking-wider uppercase">
             On a $100k account
           </span>
           RISK PER TRADE:{' '}

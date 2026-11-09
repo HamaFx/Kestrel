@@ -38,15 +38,15 @@ export function TwoFactorDoneStage({
         <BackupCodesPanel
           codes={backupCodes}
           onCopy={onCopyBackupCodes}
-          copyButtonClassName="text-fg-subtle hover:text-fg cursor-pointer p-1 transition-colors"
+          copyButtonClassName="surface-chip text-fg-subtle hover:text-fg inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-white/10 px-2.5 text-xs font-medium transition-colors"
         />
       )}
       <Button
         type="button"
         variant="secondary"
-        size="sm"
+        size="md"
         onClick={onRegenerateBackupCodes}
-        className="tactile-press w-fit active:translate-y-[0.5px]"
+        className="tactile-press h-11 w-fit active:translate-y-[0.5px]"
       >
         Regenerate backup codes
       </Button>

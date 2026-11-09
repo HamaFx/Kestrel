@@ -27,8 +27,8 @@ type SweepResult = z.infer<typeof SweepResultSchema>;
 export function SweepResultsTable({ results }: { results: readonly SweepResult[] }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-left text-[11px]">
-        <thead className="text-fg-subtle text-[10px] uppercase">
+      <table className="w-full border-collapse text-left text-xs">
+        <thead className="text-fg-subtle text-[11px] uppercase">
           <tr className="border-border/60 border-b">
             <th className="py-1.5 pr-2 font-semibold">Params</th>
             <th className="py-1.5 pr-2 text-right font-semibold">Trades</th>
@@ -42,7 +42,7 @@ export function SweepResultsTable({ results }: { results: readonly SweepResult[]
         <tbody>
           {results.slice(0, 20).map((result, index) => (
             <tr key={index} className="border-border/40 border-b">
-              <td className="text-fg-muted max-w-64 truncate py-1.5 pr-2 font-mono text-[10px]">
+              <td className="text-fg-muted max-w-64 truncate py-1.5 pr-2 font-mono text-[11px]">
                 {JSON.stringify(result.params)}
               </td>
               <td className="py-1.5 pr-2 text-right tabular-nums">

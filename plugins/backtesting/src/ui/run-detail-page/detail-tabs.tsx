@@ -52,8 +52,8 @@ export function DetailTabs({
             onClick={() => onTab(id)}
             className={
               tab === id
-                ? 'bg-bg-elev-2 text-fg border-brand/40 rounded-md border px-3 py-1.5 text-xs font-semibold'
-                : 'text-fg-subtle hover:text-fg rounded-md border border-transparent px-3 py-1.5 text-xs font-semibold'
+                ? 'bg-bg-elev-2 text-fg border-brand/40 rounded-lg border px-3 py-1.5 text-xs font-semibold'
+                : 'text-fg-subtle hover:text-fg rounded-lg border border-transparent px-3 py-1.5 text-xs font-semibold'
             }
           >
             {label}
@@ -66,17 +66,17 @@ export function DetailTabs({
       {tab === 'diagnostics' ? <DiagnosticsPanel run={run} /> : null}
 
       {tab === 'source' ? (
-        <section className="surface-panel flex flex-col gap-2 rounded-xl border border-white/10 p-4">
+        <section className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-2 rounded-xl border p-4">
           <div className="flex items-center gap-2">
             <IconCode className="text-fg-subtle size-3.5" />
-            <h3 className="text-fg-subtle text-[10px] font-semibold tracking-wider uppercase">
+            <h3 className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
               Exact source
             </h3>
-            <span className="text-fg-subtle ml-auto font-mono text-[10px]">
+            <span className="text-fg-subtle ml-auto font-mono text-[11px]">
               params {JSON.stringify(run.params)}
             </span>
           </div>
-          <pre className="border-border/40 bg-bg-elev-1/50 text-fg-muted max-h-[520px] overflow-auto rounded-md border p-3 font-mono text-[11px] leading-relaxed">
+          <pre className="border-border/40 bg-bg-elev-1/50 text-fg-muted max-h-[520px] overflow-auto rounded-lg border p-3 font-mono text-xs leading-relaxed">
             {run.source}
           </pre>
         </section>
@@ -88,8 +88,8 @@ export function DetailTabs({
 function DiagnosticsPanel({ run }: { run: RunDetail }) {
   return (
     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-      <section className="surface-panel flex flex-col gap-2 rounded-xl border border-white/10 p-4">
-        <h3 className="text-fg-subtle text-[10px] font-semibold tracking-wider uppercase">
+      <section className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-2 rounded-xl border p-4">
+        <h3 className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
           Rejected signals
         </h3>
         {run.rejectedSignals.length === 0 ? (
@@ -99,7 +99,7 @@ function DiagnosticsPanel({ run }: { run: RunDetail }) {
             {run.rejectedSignals.map((rejection, index) => (
               <li key={`${rejection.signalTime}-${index}`} className="flex flex-col gap-0.5 py-1.5">
                 <span className="text-fg-muted text-xs">{rejection.reason}</span>
-                <span className="text-fg-subtle font-mono text-[10px]">
+                <span className="text-fg-subtle font-mono text-[11px]">
                   bar {rejection.signalIndex} · {fmtDate(rejection.signalTime)}
                 </span>
               </li>
@@ -107,14 +107,14 @@ function DiagnosticsPanel({ run }: { run: RunDetail }) {
           </ul>
         )}
       </section>
-      <section className="surface-panel flex flex-col gap-2 rounded-xl border border-white/10 p-4">
-        <h3 className="text-fg-subtle text-[10px] font-semibold tracking-wider uppercase">
+      <section className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-2 rounded-xl border p-4">
+        <h3 className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
           Strategy logs
         </h3>
         {run.logs.length === 0 ? (
           <p className="text-fg-subtle text-xs">The strategy did not log anything.</p>
         ) : (
-          <pre className="border-border/40 bg-bg-elev-1/50 text-fg-muted max-h-72 overflow-auto rounded-md border p-2 font-mono text-[10px] whitespace-pre-wrap">
+          <pre className="border-border/40 bg-bg-elev-1/50 text-fg-muted max-h-72 overflow-auto rounded-lg border p-2.5 font-mono text-[11px] whitespace-pre-wrap">
             {run.logs.join('\n')}
           </pre>
         )}

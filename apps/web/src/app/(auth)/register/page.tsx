@@ -45,7 +45,7 @@ export default function RegisterPage() {
   return (
     <div className="flex flex-col gap-6">
       <h2 className="font-display text-fg text-lg font-normal tracking-[-0.03em]">
-        Create your operator account
+        Create your account
       </h2>
 
       <OAuthButtons callbackUrl="/onboarding" action="Sign up" disabled={pending || success} />

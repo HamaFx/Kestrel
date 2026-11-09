@@ -22,9 +22,9 @@ export function AccountSummary({ summary }: { summary: Summary | null }) {
   return (
     <section className="grid grid-cols-2 gap-2 sm:grid-cols-4">
       <Stat label="Total equity" value={fmtMoneyPlain(summary?.totalEquity ?? 0)} />
-      <div className="surface-panel flex flex-col gap-0.5 rounded-xl border border-white/10 p-3">
-        <span className="text-fg-subtle text-[10px] font-semibold tracking-wider uppercase">
-          Open P&L
+      <div className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-0.5 rounded-xl border p-3">
+        <span className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
+          Unrealized P&L
         </span>
         <span
           className={`font-mono text-lg font-semibold tabular-nums ${toneClass(
@@ -35,15 +35,15 @@ export function AccountSummary({ summary }: { summary: Summary | null }) {
         </span>
       </div>
       <Stat label="Open positions" value={String(summary?.openPositions.length ?? 0)} />
-      <Stat label="Resting orders" value={String(summary?.pendingOrders.length ?? 0)} />
+      <Stat label="Pending orders" value={String(summary?.pendingOrders.length ?? 0)} />
     </section>
   );
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="surface-panel flex flex-col gap-0.5 rounded-xl border border-white/10 p-3">
-      <span className="text-fg-subtle text-[10px] font-semibold tracking-wider uppercase">
+    <div className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-0.5 rounded-xl border p-3">
+      <span className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
         {label}
       </span>
       <span className="text-fg font-mono text-lg font-semibold tabular-nums">{value}</span>

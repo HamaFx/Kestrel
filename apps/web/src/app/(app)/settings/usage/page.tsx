@@ -60,7 +60,7 @@ export default async function UsagePage() {
   );
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-4xl flex-col gap-6">
       <div className="flex flex-col gap-1">
         <h2 className="text-fg text-lg font-semibold tracking-tight">Account & System</h2>
         <p className="text-fg-subtle text-sm">

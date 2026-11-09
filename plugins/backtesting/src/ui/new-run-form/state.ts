@@ -16,7 +16,12 @@
 
 // Reducer state for the new-run form.
 
-import { STARTER_SOURCE, type Prefill } from './constants';
+import {
+  buildDefaultParams,
+  DEFAULT_TEMPLATE,
+  STARTER_SOURCE,
+  type Prefill,
+} from './constants';
 
 export interface NewRunFormState {
   name: string;
@@ -43,6 +48,7 @@ export type NewRunFormAction =
   | { type: 'toggleAdvanced' };
 
 export function createInitialState(prefill: Prefill | null): NewRunFormState {
+  const defaultParams = buildDefaultParams(DEFAULT_TEMPLATE);
   return {
     name: prefill?.name ?? '',
     symbol: prefill?.symbol ?? 'XAUUSD',
@@ -55,7 +61,7 @@ export function createInitialState(prefill: Prefill | null): NewRunFormState {
     slippage: '',
     commission: '',
     source: prefill?.source ?? STARTER_SOURCE,
-    params: prefill ? JSON.stringify(prefill.params, null, 2) : '{}',
+    params: JSON.stringify(prefill?.params ?? defaultParams, null, 2),
     strategyId: '',
     busy: false,
     error: null,

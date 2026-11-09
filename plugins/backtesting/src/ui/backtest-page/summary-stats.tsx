@@ -32,8 +32,8 @@ export function SummaryStats({ page }: { page: BacktestPageController }) {
         label="Knowledge docs"
         value={String(page.summary?.knowledgeCount ?? page.documents.length)}
       />
-      <div className="surface-panel flex flex-col gap-0.5 rounded-xl border border-white/10 p-3">
-        <span className="text-fg-subtle text-[10px] font-semibold tracking-wider uppercase">
+      <div className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-0.5 rounded-xl border p-3">
+        <span className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
           Latest run
         </span>
         {page.summary?.latestRun ? (
@@ -43,7 +43,7 @@ export function SummaryStats({ page }: { page: BacktestPageController }) {
             >
               {fmtMoney(page.summary.latestRun.metrics.netPnl)}
             </span>
-            <span className="text-fg-subtle font-mono text-[10px]">
+            <span className="text-fg-subtle font-mono text-[11px]">
               {page.summary.latestRun.symbol} ·{' '}
               {fmtPct(page.summary.latestRun.metrics.returnPct, 1)}
             </span>
@@ -58,8 +58,8 @@ export function SummaryStats({ page }: { page: BacktestPageController }) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="surface-panel flex flex-col gap-0.5 rounded-xl border border-white/10 p-3">
-      <span className="text-fg-subtle text-[10px] font-semibold tracking-wider uppercase">
+    <div className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-0.5 rounded-xl border p-3">
+      <span className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
         {label}
       </span>
       <span className="text-fg font-mono text-lg font-semibold tabular-nums">{value}</span>

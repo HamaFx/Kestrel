@@ -106,7 +106,7 @@ export function ActivityRollup({
 
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
               <span className="text-brand shrink-0 font-semibold tracking-wider uppercase">
-                {isRunning ? 'EXECUTION IN PROGRESS' : 'EXECUTION LEDGER'}
+                {isRunning ? 'CHECKING MARKET DATA' : 'DATA CHECKED'}
               </span>
               <span className="text-fg-subtle hidden sm:inline">·</span>
               <span className="text-fg-muted truncate font-mono text-[11px]">{label}</span>
@@ -138,7 +138,7 @@ export function ActivityRollup({
               </span>
             )}
             <span className="hidden font-mono md:inline">
-              {open ? 'Hide Trace ▲' : 'Inspect Ledger ▼'}
+              {open ? 'Hide Details ▲' : 'Details ▼'}
             </span>
             <IconChevronDown
               className={cn(

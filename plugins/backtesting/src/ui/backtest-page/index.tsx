@@ -56,12 +56,12 @@ export function BacktestingPage(_props: PluginPageProps) {
 
       <TabPanels page={page} />
 
-      <footer className="text-fg-subtle flex items-center gap-2 text-[10px]">
-        <IconFlask className="size-3" />
-        {page.summary?.engineVersion ?? 'kestrel-engine-1'}
+      <footer className="text-fg-subtle flex items-center gap-2 text-[11px]">
+        <IconFlask className="size-3.5" />
+        <span>Test trading strategies against historical market data</span>
         <span className="text-border">·</span>
-        <IconChartLine className="size-3" />
-        Fills are next-bar; stop wins intrabar ties; costs applied on both sides.
+        <IconChartLine className="size-3.5" />
+        <span>Next-bar fills with realistic spread and slippage costs</span>
       </footer>
     </div>
   );

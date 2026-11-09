@@ -23,13 +23,12 @@
 import type { Symbol } from '@kestrel/shared';
 import {
   IconChartCandle,
+  IconChevronDown,
   IconDots,
   IconFileDownload,
   IconHistory,
-  IconLayoutSidebar,
   IconLayoutSidebarRight,
   IconLoader2,
-  IconMessages,
   IconNotebook,
   IconPlus,
   IconTrash,
@@ -67,60 +66,46 @@ export interface ChatTopBarProps {
   isStreaming: boolean;
   splitMode?: boolean;
   onToggleSplitMode?: () => void;
-  /** Desktop research-ledger rail visibility (xl+). */
-  railOpen?: boolean;
-  onToggleRail?: () => void;
 }
 
 function ThreadContext({
   title,
+  threadCount,
   pinnedSymbol,
   unpinning,
   onOpenDrawer,
   onClearPin,
   isStreaming,
-  railOpen = true,
-  onToggleRail,
 }: {
   title: string;
+  threadCount: number;
   pinnedSymbol: Symbol | null;
   unpinning: boolean;
   onOpenDrawer: () => void;
   onClearPin: () => void;
   isStreaming: boolean;
-  railOpen?: boolean;
-  onToggleRail?: () => void;
 }) {
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2">
       <NavTrigger className="lg:hidden" />
       <KestrelBrand variant="mark" href="/dashboard" className="inline-flex lg:hidden" />
-      {onToggleRail ? (
-        <button
-          type="button"
-          onClick={onToggleRail}
-          aria-label={railOpen ? 'Hide research ledger' : 'Show research ledger'}
-          aria-pressed={railOpen}
-          title={railOpen ? 'Hide research ledger' : 'Show research ledger'}
-          className={cn(
-            'hidden size-8 shrink-0 items-center justify-center rounded-md border transition-colors xl:inline-flex',
-            railOpen
-              ? 'border-brand/35 bg-brand/10 text-brand'
-              : 'border-white/[0.08] text-fg-subtle hover:text-fg',
-          )}
-        >
-          <IconLayoutSidebar className="size-3.5" />
-        </button>
-      ) : null}
 
       <button
         type="button"
         onClick={onOpenDrawer}
-        className="hover:bg-bg-elev-2 group flex min-w-0 items-center gap-2 rounded-md px-2 py-1 text-left transition-colors"
+        className="hover:bg-bg-elev-2 border-border/60 bg-bg-elev-1/60 group flex min-h-9 min-w-0 items-center gap-2 rounded-lg border px-2.5 py-1 text-left transition-colors"
         title="Switch conversation"
       >
-        <h1 className="text-fg truncate text-sm font-semibold tracking-tight">{title}</h1>
-        <IconHistory className="text-fg-subtle group-hover:text-fg size-3.5 shrink-0 transition-colors" />
+        <IconHistory className="text-brand size-3.5 shrink-0" />
+        <h1 className="text-fg truncate text-xs font-semibold tracking-tight sm:text-sm">
+          {title}
+        </h1>
+        {threadCount > 1 ? (
+          <span className="bg-bg-elev-3 text-fg-subtle hidden rounded px-1.5 py-0.5 font-mono text-[10px] tabular-nums sm:inline-flex">
+            {threadCount}
+          </span>
+        ) : null}
+        <IconChevronDown className="text-fg-subtle group-hover:text-fg size-3.5 shrink-0 transition-colors" />
       </button>
 
       {pinnedSymbol ? (
@@ -130,7 +115,7 @@ function ThreadContext({
       {isStreaming ? (
         <span className="text-brand bg-brand/10 border-brand/30 hidden items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-xs font-medium sm:inline-flex">
           <span className="bg-brand size-1.5 animate-pulse rounded-full" />
-          Live
+          Analyzing…
         </span>
       ) : null}
     </div>
@@ -148,7 +133,7 @@ function ChatOverflowMenu({
 }) {
   const overflowMenu = usePopupMenu();
   const items = [
-    { icon: IconMessages, label: 'Switch conversation', onClick: onSwitchConversation },
+    { icon: IconHistory, label: 'All conversations', onClick: onSwitchConversation },
     { icon: IconFileDownload, label: 'Export as Markdown', onClick: onExport },
     { icon: IconTrash, label: 'Delete conversation', onClick: onDelete, danger: true },
   ];
@@ -204,8 +189,6 @@ export function ChatTopBar({
   isStreaming,
   splitMode = false,
   onToggleSplitMode,
-  railOpen = true,
-  onToggleRail,
 }: ChatTopBarProps) {
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -294,13 +277,12 @@ export function ChatTopBar({
     <header className="border-border bg-bg/95 pt-safe sticky top-0 z-30 flex h-[calc(3rem+env(safe-area-inset-top,0px))] min-h-12 w-full shrink-0 items-center justify-between gap-2 border-b px-3 backdrop-blur-md sm:px-4">
       <ThreadContext
         title={title}
+        threadCount={threads.length}
         pinnedSymbol={pinnedSymbol}
         unpinning={unpinning}
         onOpenDrawer={() => setDrawerOpen(true)}
         onClearPin={() => void clearPin()}
         isStreaming={isStreaming}
-        railOpen={railOpen}
-        {...(onToggleRail ? { onToggleRail } : {})}
       />
 
       <div className="flex shrink-0 items-center gap-1.5">
@@ -326,11 +308,7 @@ export function ChatTopBar({
 
         {onToggleSplitMode ? (
           <Tooltip
-            label={
-              splitMode
-                ? 'Close chart & desk panel'
-                : 'Open live chart, desk consensus & action plan'
-            }
+            label={splitMode ? 'Close chart & trade plan panel' : 'Open live chart & trade plan'}
             side="bottom"
           >
             <button
@@ -346,7 +324,7 @@ export function ChatTopBar({
               )}
             >
               <IconLayoutSidebarRight className="size-4" strokeWidth={splitMode ? 2 : 1.75} />
-              <span className="hidden sm:inline">Chart &amp; War Room</span>
+              <span className="hidden sm:inline">Chart &amp; Plan</span>
             </button>
           </Tooltip>
         ) : null}

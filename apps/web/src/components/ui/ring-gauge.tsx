@@ -75,12 +75,12 @@ export function RingGauge({
       <div className="pointer-events-none absolute inset-x-0 bottom-0.5 flex flex-col items-center leading-none">
         <span
           className="font-mono font-bold tracking-tight tabular-nums"
-          style={{ fontSize: Math.max(10, Math.round(size * 0.17)) }}
+          style={{ fontSize: Math.max(11, Math.round(size * 0.17)) }}
         >
           {Math.round(pct)}%
         </span>
         {showLabel && label ? (
-          <span className="text-fg-subtle mt-0.5 font-mono text-[7px] tracking-wider uppercase">
+          <span className="text-fg-subtle mt-0.5 font-mono text-[10px] tracking-wider uppercase">
             {label}
           </span>
         ) : null}

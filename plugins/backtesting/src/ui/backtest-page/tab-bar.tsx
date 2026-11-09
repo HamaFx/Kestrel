@@ -42,16 +42,16 @@ export function TabBar({ page }: { page: BacktestPageController }) {
             onClick={() => page.setTab(entry.id)}
             className={
               isActive
-                ? 'bg-bg-elev-2 text-fg border-brand/40 focus-visible:ring-brand/50 rounded-md border px-3 py-1.5 text-xs font-semibold focus-visible:ring-2 focus-visible:outline-none'
-                : 'text-fg-subtle hover:text-fg focus-visible:ring-brand/50 rounded-md border border-transparent px-3 py-1.5 text-xs font-semibold focus-visible:ring-2 focus-visible:outline-none'
+                ? 'bg-bg-elev-2 text-fg border-brand/40 focus-visible:ring-brand/50 rounded-lg border px-3 py-1.5 text-xs font-semibold focus-visible:ring-2 focus-visible:outline-none'
+                : 'text-fg-subtle hover:text-fg focus-visible:ring-brand/50 rounded-lg border border-transparent px-3 py-1.5 text-xs font-semibold focus-visible:ring-2 focus-visible:outline-none'
             }
           >
             {entry.label}
             {entry.id === 'runs' && page.runs.length > 0 ? (
-              <span className="text-fg-subtle ml-1 font-mono text-[10px]">{page.runs.length}</span>
+              <span className="text-fg-subtle ml-1 font-mono text-[11px]">{page.runs.length}</span>
             ) : null}
             {entry.id === 'strategies' && page.strategies.length > 0 ? (
-              <span className="text-fg-subtle ml-1 font-mono text-[10px]">
+              <span className="text-fg-subtle ml-1 font-mono text-[11px]">
                 {page.strategies.length}
               </span>
             ) : null}
@@ -62,7 +62,7 @@ export function TabBar({ page }: { page: BacktestPageController }) {
         type="button"
         onClick={() => void page.load()}
         disabled={page.loading}
-        className="text-fg-subtle hover:text-fg ml-auto inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-semibold disabled:opacity-50"
+        className="text-fg-subtle hover:text-fg ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold disabled:opacity-50"
       >
         {page.loading ? (
           <IconLoader2 className="size-3.5 animate-spin" />

@@ -75,7 +75,7 @@ export function PluginCard({
         {entry.badges.map((badge) => (
           <span
             key={badge}
-            className="border-border/70 bg-bg-elev-1/60 text-fg-subtle rounded-md border px-2 py-0.5 font-mono text-[10px] tracking-wide uppercase"
+            className="border-border/70 bg-bg-elev-1/60 text-fg-subtle rounded-md border px-2 py-0.5 font-mono text-[11px] tracking-wide uppercase"
           >
             {badge}
           </span>

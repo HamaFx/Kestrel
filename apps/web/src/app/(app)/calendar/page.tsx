@@ -55,7 +55,7 @@ export default async function CalendarPage() {
     <div className="flex flex-col gap-4">
       <PageHeader
         title="Calendar"
-        description="Upcoming macro events that move XAU / EUR / GBP / USD."
+        description="Upcoming economic releases, central bank decisions, and high-impact market catalysts."
       >
         <MarketSubNav />
       </PageHeader>

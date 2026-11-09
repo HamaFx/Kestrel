@@ -30,7 +30,7 @@ export function SweepList({ panel }: { panel: SweepPanelController }) {
           type="button"
           onClick={() => void panel.load()}
           disabled={panel.loading}
-          className="text-fg-subtle hover:text-fg inline-flex items-center gap-1 text-[10px] font-semibold disabled:opacity-40"
+          className="text-fg-subtle hover:text-fg inline-flex items-center gap-1 text-[11px] font-semibold disabled:opacity-40"
         >
           {panel.loading ? (
             <IconLoader2 className="size-3 animate-spin" />
@@ -41,26 +41,26 @@ export function SweepList({ panel }: { panel: SweepPanelController }) {
         </button>
       </div>
       {panel.sweeps.length === 0 ? (
-        <p className="text-fg-subtle text-[11px]">No sweeps yet.</p>
+        <p className="text-fg-subtle text-xs">No sweeps yet.</p>
       ) : (
-        <ul className="flex flex-col gap-1">
+        <ul className="flex flex-col gap-1.5">
           {panel.sweeps.map((sweep) => (
             <li key={sweep.id}>
               <button
                 type="button"
                 onClick={() => void panel.openSweep(sweep.id)}
-                className="border-border/50 hover:bg-bg-elev-2/50 flex w-full items-center justify-between gap-2 rounded-md border p-2 text-left"
+                className="border-border bg-bg-elev-1 hover:bg-bg-elev-2/50 flex w-full items-center justify-between gap-2 rounded-xl border p-3 text-left transition-colors"
               >
                 <span className="min-w-0">
-                  <span className="text-fg block truncate text-[11px] font-semibold">
+                  <span className="text-fg block truncate text-xs font-semibold">
                     {sweep.name}
                   </span>
-                  <span className="text-fg-subtle block font-mono text-[10px]">
+                  <span className="text-fg-subtle block font-mono text-[11px]">
                     {sweep.symbol} · {sweep.timeframe} · {sweep.status} · {sweep.completed}/
                     {sweep.total}
                   </span>
                 </span>
-                <span className="text-fg-subtle shrink-0 font-mono text-[10px]">
+                <span className="text-fg-subtle shrink-0 font-mono text-[11px]">
                   {sweep.bestScore !== null ? sweep.bestScore.toFixed(2) : '—'}
                 </span>
               </button>

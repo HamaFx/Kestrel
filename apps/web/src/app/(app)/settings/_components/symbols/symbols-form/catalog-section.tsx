@@ -108,7 +108,7 @@ export function CatalogSection({ controller }: { controller: SymbolsFormControll
             <div className="flex flex-col">
               <div className="flex items-baseline gap-2">
                 <span className="text-fg font-mono text-sm font-semibold">{item.symbol}</span>
-                <span className="surface-chip text-fg-subtle rounded-md px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase">
+                <span className="surface-chip text-fg-subtle rounded-md px-1.5 py-0.5 font-mono text-[11px] font-medium uppercase">
                   {item.category}
                 </span>
               </div>

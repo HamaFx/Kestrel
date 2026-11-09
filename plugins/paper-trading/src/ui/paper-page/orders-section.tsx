@@ -32,8 +32,8 @@ export function OrdersSection({
   return (
     <section className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
-        <h2 className="text-fg text-sm font-semibold">Resting orders</h2>
-        <span className="text-fg-subtle font-mono text-[10px]">{orders.length}</span>
+        <h2 className="text-fg text-sm font-semibold">Pending orders</h2>
+        <span className="text-fg-subtle font-mono text-[11px]">{orders.length}</span>
       </div>
       <OrdersTable orders={orders} busyId={busyId} onCancel={onCancel} />
     </section>

@@ -84,30 +84,35 @@ export function ArchitectureLayerPlate({
                 isActive ? 'bg-brand shadow-[0_0_8px_#ff3616]' : 'bg-white/20',
               )}
             />
-            <span className="text-fg-subtle font-mono text-[10px] font-bold tracking-wider uppercase">
-              TIER {layer.num} // {layer.id.toUpperCase()}
+            <span className="text-fg-subtle font-mono text-[11px] font-bold tracking-wider uppercase">
+              LAYER {layer.num} · {layer.id.toUpperCase()}
             </span>
           </div>
           <LayerIcon className={cn('size-4', isActive ? layer.accentColor : 'text-fg-subtle')} />
         </div>
 
-        <div className="flex items-center justify-between font-mono text-[10px]">
-          <span className={cn('font-bold tracking-wider', isActive ? 'text-fg' : 'text-fg-subtle')}>
+        <div className="flex items-center justify-between gap-2 font-mono text-[11px]">
+          <span
+            className={cn(
+              'truncate font-bold tracking-wider',
+              isActive ? 'text-fg' : 'text-fg-subtle',
+            )}
+          >
             {layer.title}
           </span>
           {isActive && (
-            <span className="text-brand bg-brand/10 border-brand/30 rounded border px-1.5 py-0.5 text-[9px] font-bold shadow-[0_0_8px_rgba(255,54,22,0.2)]">
-              ACTIVE LAYER
+            <span className="text-brand bg-brand/10 border-brand/30 shrink-0 rounded border px-1.5 py-0.5 text-[11px] font-bold shadow-[0_0_8px_rgba(255,54,22,0.2)]">
+              ACTIVE
             </span>
           )}
         </div>
 
-        <div className="text-fg-subtle flex items-center justify-between border-t border-white/5 pt-1.5 font-mono text-[9px]">
+        <div className="text-fg-subtle flex items-center justify-between border-t border-white/5 pt-1.5 font-mono text-[11px]">
           <div className="flex items-center gap-1">
-            <IconShieldLock className="text-bull size-3" />
-            <span>VERIFIED LAYER</span>
+            <IconShieldLock className="text-bull size-3.5" />
+            <span>SELF-HOSTED STACK</span>
           </div>
-          <span className="text-bull font-semibold">ACTIVE</span>
+          <span className="text-bull font-semibold">VERIFIED</span>
         </div>
       </div>
     </m.div>

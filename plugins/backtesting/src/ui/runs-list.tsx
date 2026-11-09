@@ -41,9 +41,9 @@ export function RunsList({
   }
 
   return (
-    <div className="border-border/50 overflow-x-auto rounded-xl border">
+    <div className="border-border bg-bg-elev-1 overflow-x-auto rounded-xl border">
       <table className="w-full min-w-[720px] text-left text-xs">
-        <thead className="bg-bg-elev-2/60 text-fg-subtle font-mono text-[10px] uppercase">
+        <thead className="bg-bg-elev-2/60 text-fg-subtle font-mono text-[11px] uppercase">
           <tr>
             <th className="px-3 py-2 font-semibold">Run</th>
             <th className="px-3 py-2 font-semibold">Market</th>
@@ -58,7 +58,7 @@ export function RunsList({
         </thead>
         <tbody className="divide-border/40 divide-y">
           {runs.map((run) => (
-            <tr key={run.id} className="hover:bg-bg-elev-1/40">
+            <tr key={run.id} className="hover:bg-bg-elev-2/40">
               <td className="px-3 py-2">
                 <a
                   href={`/plugins/backtesting/runs/${encodeURIComponent(run.id)}`}
@@ -67,11 +67,11 @@ export function RunsList({
                   {run.name}
                   <IconArrowUpRight className="text-fg-subtle size-3" />
                 </a>
-                <span className="text-fg-subtle font-mono text-[10px]">
+                <span className="text-fg-subtle font-mono text-[11px]">
                   {fmtDate(run.createdAt)}
                 </span>
               </td>
-              <td className="text-fg-muted px-3 py-2 font-mono text-[11px]">
+              <td className="text-fg-muted px-3 py-2 font-mono text-xs">
                 {run.symbol} · {run.timeframe}
               </td>
               <td className="text-fg px-3 py-2 text-right font-mono tabular-nums">
@@ -106,7 +106,7 @@ export function RunsList({
                   onClick={() => onDelete(run.id)}
                   disabled={busyId !== null}
                   aria-label={`Delete ${run.name}`}
-                  className="text-fg-subtle hover:text-danger inline-flex size-7 items-center justify-center rounded-md transition-colors disabled:opacity-40"
+                  className="text-fg-subtle hover:text-danger inline-flex size-8 items-center justify-center rounded-lg transition-colors disabled:opacity-40"
                 >
                   {busyId === run.id ? (
                     <IconLoader2 className="size-3.5 animate-spin" />

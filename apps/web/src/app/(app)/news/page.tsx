@@ -52,7 +52,7 @@ export default async function NewsPage() {
     <div className="flex flex-col gap-4">
       <PageHeader
         title="News"
-        description="Live market headlines and sentiment tagged for Gold (XAU), EUR, GBP, and USD."
+        description="Live market headlines and sentiment across Gold (XAU), Forex majors, and Crypto."
       >
         <MarketSubNav />
       </PageHeader>

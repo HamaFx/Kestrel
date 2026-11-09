@@ -28,7 +28,6 @@
 //   - 404 (rendered) → snapshot id not found
 
 import { getActiveSnapshot, verifyShareToken } from '@kestrel/ai';
-import type { ChartPriceLine } from '@kestrel/shared';
 import type { Metadata } from 'next';
 import { Link } from 'next-view-transitions';
 import { notFound } from 'next/navigation';
@@ -36,6 +35,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
+
+import { PriceLineChart } from './price-line-chart';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -53,58 +54,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: 'Not Found' };
   }
   return { title: `Shared analysis · ${id.slice(0, 8)}` };
-}
-
-/** Coerce a persisted price (JSON may hold either form) to a number. */
-function toPrice(value: number | string): number {
-  return typeof value === 'number' ? value : Number.parseFloat(value);
-}
-
-/**
- * Price-line visualization for the annotated chart snapshot.
- *
- * Uses a fixed `0 0 400 48` viewBox with numeric coordinates — the previous
- * percentage `y1={`${y}%`}` coordinates distorted stroke widths under
- * `preserveAspectRatio="none"`.
- */
-function PriceLineChart({ lines }: { lines: readonly ChartPriceLine[] }) {
-  const prices = lines.map((line) => toPrice(line.price)).filter((price) => Number.isFinite(price));
-  if (prices.length === 0) return null;
-
-  const min = Math.min(...prices);
-  const max = Math.max(...prices);
-  const range = max - min || 1;
-
-  return (
-    <div className="bg-bg-elev-1 border-border/80 relative mb-3 h-14 w-full overflow-hidden rounded-xl border">
-      <svg
-        className="size-full"
-        viewBox="0 0 400 48"
-        preserveAspectRatio="none"
-        role="img"
-        aria-label="Price lines visualization"
-      >
-        {lines.slice(0, 20).map((line, i) => {
-          const price = toPrice(line.price);
-          if (!Number.isFinite(price)) return null;
-          const y = 6 + ((max - price) / range) * 36;
-          return (
-            <line
-              key={i}
-              x1="0"
-              y1={y}
-              x2="400"
-              y2={y}
-              stroke={line.color || '#e5e5e5'}
-              strokeWidth="1.5"
-              strokeDasharray={i % 2 === 0 ? 'none' : '4 2'}
-              vectorEffect="non-scaling-stroke"
-            />
-          );
-        })}
-      </svg>
-    </div>
-  );
 }
 
 export default async function ShareSnapshotPage({ params, searchParams }: PageProps) {
@@ -161,7 +110,10 @@ export default async function ShareSnapshotPage({ params, searchParams }: PagePr
                   {snap.symbol} · {snap.tf}
                 </h2>
                 <span className="text-fg-subtle text-caption tabular-nums">
-                  {snap.overlay.markers.length}m / {snap.overlay.priceLines.length}l
+                  {snap.overlay.markers.length}{' '}
+                  {snap.overlay.markers.length === 1 ? 'Marker' : 'Markers'} ·{' '}
+                  {snap.overlay.priceLines.length}{' '}
+                  {snap.overlay.priceLines.length === 1 ? 'Price Level' : 'Price Levels'}
                 </span>
               </header>
 

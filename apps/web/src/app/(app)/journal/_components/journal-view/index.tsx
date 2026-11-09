@@ -149,10 +149,10 @@ export function JournalView({ initialData }: { initialData?: JournalResponse } =
                 />
               </div>
 
-              {/* Right Column: IconKey performance metrics & analytics (occupies 1/3 of desktop width) */}
+              {/* Right Column: Key performance metrics & analytics (occupies 1/3 of desktop width) */}
               <div className="lg:col-span-1">
                 {data?.stats ? (
-                  <div className="sticky top-[calc(var(--topbar-h)+24px+env(safe-area-inset-top,0px))] flex flex-col gap-6 lg:top-0">
+                  <div className="sticky top-0 flex flex-col gap-6">
                     <StatsSummary stats={data.stats} entries={data.entries} />
                   </div>
                 ) : null}

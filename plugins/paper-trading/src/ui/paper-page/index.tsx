@@ -109,7 +109,7 @@ export function PaperTradingPage(_props: PluginPageProps) {
                 <div className="flex items-center gap-2">
                   <IconChartLine className="text-fg-subtle size-4" />
                   <h2 className="text-fg text-sm font-semibold">Deployed strategies</h2>
-                  <span className="text-fg-subtle font-mono text-[10px]">
+                  <span className="text-fg-subtle font-mono text-[11px]">
                     {strategyRuns.length}
                   </span>
                 </div>
@@ -137,9 +137,9 @@ export function PaperTradingPage(_props: PluginPageProps) {
         </div>
       </div>
 
-      <footer className="text-fg-subtle text-[10px]">
-        Virtual accounts only. Fills use bid/ask + synthetic spread/slippage; no real money or
-        broker is involved.
+      <footer className="text-fg-subtle text-[11px]">
+        Virtual accounts only. Fills use live bid/ask pricing with realistic spread and slippage — no
+        real money or external broker is involved.
       </footer>
     </div>
   );

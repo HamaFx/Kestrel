@@ -47,17 +47,17 @@ export function NewRunForm({
   return (
     <form
       onSubmit={form.submit}
-      className="surface-panel flex flex-col gap-4 rounded-xl border border-white/10 p-4"
+      className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-4 rounded-xl border p-4"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="bg-brand/10 text-brand flex size-8 items-center justify-center rounded-md">
+        <div className="flex items-center gap-2.5">
+          <span className="bg-brand/10 text-brand flex size-9 items-center justify-center rounded-lg">
             <IconFlask className="size-4" />
           </span>
           <div>
             <h2 className="text-fg text-sm font-semibold">New backtest</h2>
-            <p className="text-fg-subtle text-[11px]">
-              Deterministic, next-bar fills, stop-first tie-breaks, real costs.
+            <p className="text-fg-subtle text-xs">
+              Test trading strategies against historical market data
             </p>
           </div>
         </div>
@@ -92,19 +92,19 @@ export function NewRunForm({
       ) : null}
 
       <div className="flex flex-wrap items-center justify-end gap-3">
-        <label className="text-fg-subtle inline-flex items-center gap-1.5 text-[11px]">
+        <label className="text-fg-subtle inline-flex items-center gap-1.5 text-xs">
           <input
             type="checkbox"
             checked={form.background}
             onChange={(event) => form.setBackground(event.target.checked)}
-            className="border-border/60 size-3.5 rounded border accent-[var(--brand)]"
+            className="border-border size-3.5 rounded border accent-[var(--brand)]"
           />
           Run in background (worker)
         </label>
         <button
           type="submit"
           disabled={form.busy || form.source.trim().length < 20}
-          className="bg-brand inline-flex h-10 items-center gap-2 rounded-md px-4 text-sm font-medium text-white transition-[filter] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+          className="bg-brand inline-flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-medium text-white transition-[filter] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {form.busy ? (
             <IconLoader2 className="size-4 animate-spin" />

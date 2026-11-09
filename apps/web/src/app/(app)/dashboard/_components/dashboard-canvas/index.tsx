@@ -98,7 +98,7 @@ export function DashboardCanvas({ ...props }: DashboardCanvasProps) {
           (checklist, log trade, layout customization) in one place. */}
       <PageHeader
         title="Overview"
-        description="Live 4-desk command deck, session catalysts, and portfolio telemetry."
+        description="Live market overview, upcoming economic events, and your trading performance."
       >
         <div className="flex flex-wrap items-center gap-2">
           <PreSessionChecklistDrawer

@@ -29,7 +29,7 @@
 // Mirrors the visual contract of the settings <AISubNav />: a recessed
 // `surface-well` rail of chips where the active route lifts onto a
 // `surface-chip` with the brand accent.
-import { IconBell, IconCalendarEvent, IconChartCandle, IconNews } from '@tabler/icons-react';
+import { IconBell, IconCalendarEvent, IconNews } from '@tabler/icons-react';
 import { m } from 'motion/react';
 import { Link } from 'next-view-transitions';
 import { usePathname } from 'next/navigation';
@@ -49,7 +49,7 @@ interface MarketTab {
 const MARKET_TABS: readonly MarketTab[] = [
   {
     href: '/news',
-    label: 'News Wire',
+    label: 'News & Macro',
     shortLabel: 'News',
     icon: IconNews,
     match: ['/news'],
@@ -67,13 +67,6 @@ const MARKET_TABS: readonly MarketTab[] = [
     shortLabel: 'Alerts',
     icon: IconBell,
     match: ['/alerts'],
-  },
-  {
-    href: '/chart/XAUUSD',
-    label: 'Live Chart',
-    shortLabel: 'Chart',
-    icon: IconChartCandle,
-    match: ['/chart'],
   },
 ];
 

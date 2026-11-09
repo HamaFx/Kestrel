@@ -34,14 +34,14 @@ function Cell({
   hint?: string;
 }) {
   return (
-    <div className="bg-bg-elev-1/60 border-border/40 flex flex-col gap-0.5 rounded-md border p-2.5">
-      <span className="text-fg-subtle text-[10px] font-semibold tracking-wider uppercase">
+    <div className="bg-bg-elev-1 border-border flex flex-col gap-0.5 rounded-xl border p-3">
+      <span className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
         {label}
       </span>
       <span className={`font-mono text-sm font-semibold tabular-nums ${tone ?? 'text-fg'}`}>
         {value}
       </span>
-      {hint ? <span className="text-fg-subtle text-[10px]">{hint}</span> : null}
+      {hint ? <span className="text-fg-subtle text-[11px]">{hint}</span> : null}
     </div>
   );
 }

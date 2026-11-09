@@ -60,10 +60,10 @@ const variants: Record<Variant, string> = {
 };
 
 const sizes: Record<Size, string> = {
-  xs: 'h-8 px-2.5 text-xs rounded-md',
-  sm: 'h-10 px-3 text-xs sm:text-sm rounded-md',
-  md: 'h-11 px-4 text-sm font-medium rounded-md',
-  lg: 'h-12 sm:h-14 px-5 text-base font-medium rounded-md',
+  xs: 'h-8 px-2.5 text-xs rounded-lg',
+  sm: 'h-10 px-3 text-xs sm:text-sm rounded-lg',
+  md: 'h-11 px-4 text-sm font-medium rounded-lg',
+  lg: 'h-12 sm:h-14 px-5 text-base font-medium rounded-lg',
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
@@ -92,8 +92,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
         aria-busy={loading || false}
         style={inlineStyle}
         className={cn(
-          'group tactile-press hover:border-brand/45 relative inline-flex items-center justify-between overflow-hidden rounded-l-[6px] rounded-r-full border border-white/12 bg-[#222326] pr-10 pl-4 leading-none tracking-[-0.02em] text-white shadow-[0_6px_20px_-4px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.12)] transition-colors',
+          'group tactile-press hover:border-brand/45 relative inline-flex items-center justify-between gap-3 overflow-hidden border border-white/12 bg-[#222326] leading-none tracking-[-0.02em] text-white shadow-[0_6px_20px_-4px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.12)] transition-colors',
           sizes[size],
+          'rounded-lg pr-9 pl-4',
           'focus-visible:ring-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
           'disabled:cursor-not-allowed disabled:opacity-60',
           className,

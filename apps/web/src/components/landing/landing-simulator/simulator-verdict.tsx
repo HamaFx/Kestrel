@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Verdict stage cards for the landing simulator: the risk-veto block and the
-// certified trade-plan ticket. Both render as motion roots so the parent
+// verified trade-plan ticket. Both render as motion roots so the parent
 // `AnimatePresence` keeps ownership of enter/exit timing.
 import { IconCheck, IconCopy, IconSend } from '@tabler/icons-react';
 import { m } from 'motion/react';
@@ -47,8 +47,9 @@ export function VetoedVerdictCard({ riskSlider, onRestoreLimit }: VetoedVerdictC
       </div>
 
       <div className="surface-well border-bear/20 text-fg-muted mt-4 rounded-lg border bg-black/60 p-4 font-sans text-xs leading-relaxed">
-        Kestrel&apos;s Risk Desk protects your account from emotional over-sizing. Lower the risk
-        slider back to ≤ 1.0% to unlock the verified trade plan and target levels.
+        Kestrel&apos;s Risk &amp; Trade Sizing guardrail protects your account from emotional
+        over-sizing. Lower the risk slider back to ≤ 1.0% to unlock the verified trade plan and
+        target levels.
       </div>
 
       <div className="mt-4 flex items-center justify-between pt-2">
@@ -90,32 +91,33 @@ export function VerifiedPlanCard({
       transition={{ duration: 0.3 }}
       className="border-brand/40 bg-brand/[0.03] rounded-xl border p-5 shadow-xl sm:p-6"
     >
-      {/* Certified Trade Plan Header */}
+      {/* Trade Plan Header */}
       <div className="flex flex-col justify-between gap-4 border-b border-white/10 pb-4 sm:flex-row sm:items-center">
         <div className="flex items-center gap-3">
           <span className="bg-bull size-3 rounded-full shadow-[0_0_8px_#3f9e3d]" />
           <div>
-            <div className="text-fg flex items-center gap-2 font-mono text-sm font-bold uppercase">
-              <span>VERIFIED COMMITTEE TRADE PLAN · {scenario.symbol}</span>
-              <span className="text-brand bg-brand/10 border-brand/20 rounded border px-2 py-0.5 font-mono text-[10px]">
+            <div className="text-fg flex flex-wrap items-center gap-2 font-mono text-sm font-bold uppercase">
+              <span>VERIFIED TRADE PLAN · {scenario.symbol}</span>
+              <span className="text-brand bg-brand/10 border-brand/20 rounded border px-2 py-0.5 font-mono text-[11px]">
                 {scenario.orderType}
               </span>
             </div>
-            <div className="text-fg-subtle mt-0.5 flex items-center gap-2 font-mono text-[11px]">
-              <span>PLAN ID: {scenario.txHash}</span>
+            <div className="text-fg-subtle mt-0.5 flex flex-wrap items-center gap-2 font-mono text-[11px]">
+              <span>SCENARIO: {scenario.name.toUpperCase()}</span>
               <button
                 type="button"
                 onClick={() => onCopyHash(scenario.journalSummary)}
-                className="hover:text-fg transition-colors"
+                className="hover:text-fg inline-flex items-center gap-1 transition-colors"
                 title="Copy Trade Setup"
               >
                 {copiedHash ? (
-                  <IconCheck className="text-bull inline size-3" />
+                  <IconCheck className="text-bull inline size-3.5" />
                 ) : (
-                  <IconCopy className="inline size-3" />
+                  <IconCopy className="inline size-3.5" />
                 )}
+                <span>{copiedHash ? 'Copied' : 'Copy Summary'}</span>
               </button>
-              <span>· STATUS: 4-DESK CONSENSUS VERIFIED</span>
+              <span>· STATUS: 4/4 ANGLES ALIGNED</span>
             </div>
           </div>
         </div>
@@ -135,60 +137,62 @@ export function VerifiedPlanCard({
       {/* Quantitative Levels Grid */}
       <div className="mt-5 grid grid-cols-2 gap-3 text-center font-mono sm:grid-cols-4">
         <div className="surface-well rounded-lg border border-white/5 bg-black/60 p-3.5">
-          <span className="text-fg-subtle block text-[10px] uppercase">ENTRY ZONE</span>
+          <span className="text-fg-subtle block text-[11px] uppercase">ENTRY ZONE</span>
           <span className="text-fg text-base font-bold tabular-nums">{scenario.entry}</span>
         </div>
         <div className="surface-well border-bear/20 rounded-lg border bg-black/60 p-3.5">
-          <span className="text-bear block text-[10px] uppercase">INVALIDATION (SL)</span>
+          <span className="text-bear block text-[11px] uppercase">STOP LOSS (SL)</span>
           <span className="text-bear text-base font-bold tabular-nums">
             {scenario.invalidation}
           </span>
         </div>
         <div className="surface-well rounded-lg border border-white/5 bg-black/60 p-3.5">
-          <span className="text-bull block text-[10px] uppercase">TP1 (40% SCALE)</span>
+          <span className="text-bull block text-[11px] uppercase">TP1 (40% SCALE)</span>
           <span className="text-bull text-base font-bold tabular-nums">{scenario.target1}</span>
         </div>
         <div className="surface-well rounded-lg border border-white/5 bg-black/60 p-3.5">
-          <span className="text-bull block text-[10px] uppercase">TP2 RUNNER ({scenario.rr})</span>
+          <span className="text-bull block text-[11px] uppercase">
+            TP2 RUNNER ({scenario.rr})
+          </span>
           <span className="text-bull text-base font-bold tabular-nums">{scenario.target2}</span>
         </div>
       </div>
 
       {/* Take Profit Cones Visual Breakdown */}
       <div className="mt-5 rounded-xl border border-white/5 bg-[#0e0f10] p-4">
-        <div className="mb-3 flex items-center justify-between font-mono text-xs">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 font-mono text-xs">
           <span className="text-fg-subtle uppercase">TAKE-PROFIT SCALING PLAN</span>
           <span className="text-fg font-bold">
             EXPECTED VALUE: {scenario.expectedValue} · RECOMMENDED RISK: {scenario.kellySize}
           </span>
         </div>
-        <div className="grid grid-cols-3 gap-3 font-mono text-xs">
+        <div className="grid grid-cols-1 gap-3 font-mono text-xs sm:grid-cols-3">
           <div className="rounded-lg border border-white/10 bg-black/40 p-2.5">
-            <div className="text-fg-subtle text-[10px]">TARGET 1 (1:1.5)</div>
+            <div className="text-fg-subtle text-[11px]">TARGET 1 (1:1.5)</div>
             <div className="text-bull mt-1 font-bold">{scenario.target1}</div>
-            <div className="text-fg-muted mt-0.5 text-[10px]">Scale Out 40%</div>
+            <div className="text-fg-muted mt-0.5 text-[11px]">Scale Out 40%</div>
           </div>
           <div className="rounded-lg border border-white/10 bg-black/40 p-2.5">
-            <div className="text-fg-subtle text-[10px]">TARGET 2 (1:2.5)</div>
+            <div className="text-fg-subtle text-[11px]">TARGET 2 (1:2.5)</div>
             <div className="text-bull mt-1 font-bold">{scenario.target2}</div>
-            <div className="text-fg-muted mt-0.5 text-[10px]">Scale Out 35%</div>
+            <div className="text-fg-muted mt-0.5 text-[11px]">Scale Out 35%</div>
           </div>
           <div className="border-brand/30 bg-brand/[0.04] rounded-lg border p-2.5">
-            <div className="text-brand text-[10px] font-bold">TARGET 3 RUNNER (1:4.0)</div>
+            <div className="text-brand text-[11px] font-bold">TARGET 3 RUNNER (1:4.0)</div>
             <div className="text-bull mt-1 font-bold">{scenario.target3}</div>
-            <div className="text-fg-muted mt-0.5 text-[10px]">Trail Remaining 25%</div>
+            <div className="text-fg-muted mt-0.5 text-[11px]">Trail Remaining 25%</div>
           </div>
         </div>
       </div>
 
-      {/* Committee Verdict Rationale & Action Dispatch */}
+      {/* Verdict Rationale & Action Dispatch */}
       <div className="mt-5 flex flex-col justify-between gap-4 border-t border-white/10 pt-4 sm:flex-row sm:items-center">
         <div className="flex max-w-xl flex-col gap-1.5">
           <p className="text-fg-muted font-sans text-xs leading-relaxed">
             &ldquo;{scenario.arbiterVerdict}&rdquo;
           </p>
-          <span className="text-fg-subtle font-mono text-[10px]">
-            Direct Broker Bridge (MT5 / cTrader) — Planned on Roadmap
+          <span className="text-fg-subtle font-mono text-[11px]">
+            Log directly to your Trade Journal or arm instant price alerts
           </span>
         </div>
 
@@ -199,7 +203,7 @@ export function VerifiedPlanCard({
           className="shrink-0 gap-2 font-mono text-xs font-semibold shadow-md"
         >
           <IconSend className="size-4" />
-          Save to Journal & Arm Alerts
+          Save to Journal &amp; Arm Alerts
         </Button>
       </div>
     </m.div>

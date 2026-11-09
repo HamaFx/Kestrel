@@ -34,16 +34,16 @@ export function OrdersTable({
 }) {
   if (orders.length === 0) {
     return (
-      <div className="border-border/50 text-fg-subtle rounded-xl border border-dashed p-6 text-center text-xs">
-        No resting orders.
+      <div className="border-border bg-bg-elev-1 text-fg-subtle rounded-xl border border-dashed p-6 text-center text-xs">
+        No Pending Orders.
       </div>
     );
   }
 
   return (
-    <div className="border-border/50 overflow-x-auto rounded-xl border">
+    <div className="border-border bg-bg-elev-1 overflow-x-auto rounded-xl border">
       <table className="w-full min-w-[720px] text-left text-xs">
-        <thead className="bg-bg-elev-2/60 text-fg-subtle font-mono text-[10px] uppercase">
+        <thead className="bg-bg-elev-2/60 text-fg-subtle font-mono text-[11px] uppercase">
           <tr>
             <th className="px-2.5 py-2 font-semibold">Market</th>
             <th className="px-2.5 py-2 font-semibold">Side</th>
@@ -59,22 +59,22 @@ export function OrdersTable({
         </thead>
         <tbody className="divide-border/40 divide-y">
           {orders.map((order) => (
-            <tr key={order.id} className="hover:bg-bg-elev-1/40">
-              <td className="text-fg px-2.5 py-2 font-mono text-[11px] font-semibold">
+            <tr key={order.id} className="hover:bg-bg-elev-2/40">
+              <td className="text-fg px-2.5 py-2 font-mono text-xs font-semibold">
                 {order.symbol}
               </td>
               <td className="px-2.5 py-2">
                 <span
                   className={
                     order.side === 'buy'
-                      ? 'bg-bull/10 text-bull rounded px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase'
-                      : 'bg-bear/10 text-bear rounded px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase'
+                      ? 'bg-bull/10 text-bull rounded-md px-1.5 py-0.5 font-mono text-[11px] font-bold uppercase'
+                      : 'bg-bear/10 text-bear rounded-md px-1.5 py-0.5 font-mono text-[11px] font-bold uppercase'
                   }
                 >
                   {order.side}
                 </span>
               </td>
-              <td className="text-fg-muted px-2.5 py-2 font-mono text-[10px] uppercase">
+              <td className="text-fg-muted px-2.5 py-2 font-mono text-[11px] uppercase">
                 {order.type}
               </td>
               <td className="text-fg px-2.5 py-2 text-right font-mono tabular-nums">
@@ -89,10 +89,10 @@ export function OrdersTable({
               <td className="text-fg-muted px-2.5 py-2 text-right font-mono tabular-nums">
                 {fmtPrice(order.takeProfit)}
               </td>
-              <td className="text-fg-subtle px-2.5 py-2 font-mono text-[10px] uppercase">
+              <td className="text-fg-subtle px-2.5 py-2 font-mono text-[11px] uppercase">
                 {order.status}
               </td>
-              <td className="text-fg-subtle px-2.5 py-2 font-mono text-[10px]">
+              <td className="text-fg-subtle px-2.5 py-2 font-mono text-[11px]">
                 {fmtDate(order.createdAt)}
               </td>
               {onCancel && order.status === 'pending' ? (
@@ -101,7 +101,7 @@ export function OrdersTable({
                     type="button"
                     onClick={() => onCancel(order)}
                     disabled={busyId !== null}
-                    className="text-fg-subtle hover:text-danger inline-flex size-7 items-center justify-center rounded-md disabled:opacity-40"
+                    className="text-fg-subtle hover:text-danger inline-flex size-8 items-center justify-center rounded-lg disabled:opacity-40"
                     aria-label="Cancel order"
                   >
                     {busyId === order.id ? (
@@ -118,7 +118,7 @@ export function OrdersTable({
           ))}
         </tbody>
       </table>
-      <p className="text-fg-subtle border-border/40 border-t px-3 py-1.5 text-[10px]">
+      <p className="text-fg-subtle border-border/40 border-t px-3 py-1.5 text-[11px]">
         Sizes are lots for FX/gold and coins for crypto. Trigger is the limit/stop price.{' '}
         {fmtNumber(orders.length, 0)} rows
       </p>

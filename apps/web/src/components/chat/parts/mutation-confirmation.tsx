@@ -30,10 +30,10 @@ import { useTime } from '@/components/providers/time-provider';
 import { apiMutate } from '@/lib/http/api-client';
 
 const KIND_LABELS: Record<MutationDraftPayload['mutation'], string> = {
-  set_alert: 'Alert',
-  log_journal: 'Journal entry',
-  share_snapshot: 'Share snapshot',
-  run_system_action: 'System action',
+  set_alert: 'Price Alert',
+  log_journal: 'Journal Entry',
+  share_snapshot: 'Shared Analysis Link',
+  run_system_action: 'System Action',
 };
 
 const KIND_ICONS: Record<MutationDraftPayload['mutation'], typeof IconBell> = {
@@ -127,9 +127,9 @@ export function MutationConfirmationCard({ payload }: { payload: MutationDraftPa
   return (
     <AegisConfirmGate
       ariaLabel={`${kindLabel} confirmation`}
-      subtitle={`${kindLabel} Mutation Request`}
+      subtitle={`${kindLabel} Request`}
       title={payload.summary}
-      badgeLabel={expired ? 'EXPIRED' : `TTL: ~${remainingMin}m`}
+      badgeLabel={expired ? 'EXPIRED' : `Expires in ~${remainingMin}m`}
       icon={<KindIcon className="size-5" strokeWidth={1.85} aria-hidden="true" />}
       confirmLabel={payload.confirmLabel ?? `Hold to Confirm ${kindLabel}`}
       cancelLabel={payload.cancelLabel ?? 'Cancel'}
@@ -139,17 +139,9 @@ export function MutationConfirmationCard({ payload }: { payload: MutationDraftPa
       onConfirm={confirm}
       onCancel={decline}
     >
-      <div className="border-border/40 bg-bg-elev-3 text-brand grid grid-cols-3 border-b px-3 py-1.5 text-[11px] font-semibold uppercase">
-        <span>Directive</span>
-        <span className="col-span-2">Execution Payload</span>
-      </div>
       <div className="text-fg/80 grid grid-cols-3 px-3 py-2">
         <span className="text-fg-subtle">Action</span>
-        <span className="text-fg col-span-2 font-semibold">{payload.mutation}</span>
-      </div>
-      <div className="border-border/20 text-fg/80 grid grid-cols-3 border-t px-3 py-2">
-        <span className="text-fg-subtle">Run ID</span>
-        <span className="col-span-2 truncate">{payload.runId}</span>
+        <span className="text-fg col-span-2 font-semibold">{kindLabel}</span>
       </div>
     </AegisConfirmGate>
   );

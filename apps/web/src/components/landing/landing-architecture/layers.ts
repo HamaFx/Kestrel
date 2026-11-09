@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Static specs for the four intelligence-stack layers of the landing
-// architecture workbench.
-import { IconArrowsSplit, IconBolt, IconCpu, IconScale } from '@tabler/icons-react';
+// Static specs for the four security & self-hosted architecture layers of the
+// landing architecture workbench.
+import { IconBolt, IconDatabase, IconKey, IconShieldLock } from '@tabler/icons-react';
 import type { ComponentType } from 'react';
 
 export interface LayerSpec {
@@ -12,6 +12,8 @@ export interface LayerSpec {
   title: string;
   shortDesc: string;
   fullDesc: string;
+  securityBadge: string;
+  highlights: string[];
   accentColor: string;
   borderColor: string;
   glowColor: string;
@@ -23,77 +25,97 @@ export const LAYERS: LayerSpec[] = [
   {
     id: 'execution',
     num: '04',
-    tag: 'APEX EXECUTION LAYER',
-    title: 'Verified Trade Plans & Take-Profit Cones',
-    shortDesc: 'Structured trade cards with entry, invalidation, and 3 take-profit targets.',
+    tag: 'PRIVATE WORKSPACE & ALERTS',
+    title: 'Private Workspace & Multi-Channel Alerts',
+    shortDesc: 'Row-level tenant isolation, TOTP 2FA, trade journal, and instant alerts.',
     fullDesc:
-      'Every approved setup produces a structured trade plan with exact entry zones, hard invalidation stops, and multi-tier take-profit targets ready to save to your Trade Journal or arm as instant alerts (with direct MT5 / cTrader bridge support on our roadmap).',
+      'Every user account is isolated at the PostgreSQL database level with Row-Level Security (RLS) and protected by TOTP 2FA. Save verified plans to your private Trade Journal and receive instant price alerts via Telegram, Browser Push, or Email.',
+    securityBadge: 'POSTGRESQL RLS · TOTP 2FA · NON-CUSTODIAL',
+    highlights: [
+      'PostgreSQL 16 Row-Level Security (RLS) enforces strict per-user tenant isolation',
+      'Optional 1-click plugins for Paper Trading, QuickJS WASM Backtesting, and Telegram Bot',
+    ],
     accentColor: 'text-bull',
     borderColor: 'border-bull/50',
     glowColor: 'rgba(63, 158, 61, 0.4)',
-    icon: IconArrowsSplit,
+    icon: IconShieldLock,
     telemetry: [
-      { label: 'WORKFLOW OUTPUT', value: 'Trade Journal & Price Alerts' },
-      { label: 'TARGET RATIOS', value: '1:1.5 · 1:2.5 · 1:4.0 R:R' },
+      { label: 'TENANT ISOLATION', value: 'PostgreSQL 16 Row-Level Security' },
+      { label: 'AUTHENTICATION', value: 'Auth.js v5 + TOTP 2FA' },
       { label: 'ALERT CHANNELS', value: 'Telegram · Web Push · Email' },
-      { label: 'BROKER BRIDGE', value: 'MT5 / cTrader (On Roadmap)' },
+      { label: 'CUSTODY MODEL', value: '100% Non-Custodial Copilot' },
     ],
   },
   {
     id: 'risk',
     num: '03',
-    tag: 'SAFETY GOVERNOR LAYER',
-    title: '1.0% Risk Limit & Invalidation Guardrail',
-    shortDesc: 'Strict drawdown protection that flags unsafe setups before you enter.',
+    tag: 'ENCRYPTED BYOK VAULT',
+    title: 'Encrypted API Keys & Spend Guardrails',
+    shortDesc: 'AES-256-GCM key encryption with integer-cent daily and monthly spend caps.',
     fullDesc:
-      'The Risk Desk enforces a strict 1.0% account risk discipline. If high-impact news is imminent or volatility requires a stop-loss wider than your risk rules allow, Kestrel warns you to stand down or reduce size.',
+      'Bring your own API keys for OpenAI, Anthropic, Google Gemini, or OpenRouter. Keys are encrypted at rest with AES-256-GCM and paired with an atomic budget ledger that enforces daily and monthly spend limits before any AI request is sent.',
+    securityBadge: 'AES-256-GCM VAULT · ATOMIC SPEND LEDGER',
+    highlights: [
+      'Keys are decrypted only in memory for outbound provider requests and never logged',
+      'Integer-cent budget reservations block unexpected API spend spikes automatically',
+    ],
     accentColor: 'text-warn',
     borderColor: 'border-warn/50',
     glowColor: 'rgba(235, 140, 31, 0.4)',
-    icon: IconScale,
+    icon: IconKey,
     telemetry: [
-      { label: 'PORTFOLIO CEILING', value: '≤ 1.0% Max Loss' },
-      { label: 'MIN RISK / REWARD', value: '≥ 1:2.5 Asymmetric Target' },
-      { label: 'CONFLICT PROTECTION', value: 'Instant Risk Warning' },
-      { label: 'STOP PLACEMENT', value: 'ATR (14) Volatility Buffer' },
+      { label: 'KEY ENCRYPTION', value: 'AES-256-GCM Authenticated Vault' },
+      { label: 'SUPPORTED PROVIDERS', value: 'OpenAI · Anthropic · Google · OpenRouter' },
+      { label: 'SPEND PROTECTION', value: 'Daily & Monthly Integer-Cent Caps' },
+      { label: 'RISK CEILING', value: '≤ 1.0% Account Risk Guardrail' },
     ],
   },
   {
     id: 'deliberation',
     num: '02',
-    tag: 'CONSENSUS SYNDICATE LAYER',
-    title: '4-Desk Specialist AI Committee',
-    shortDesc: 'Four specialized AI analysts evaluating independent market factors.',
+    tag: '4-ANGLE RESEARCH ENGINE',
+    title: 'Parallel 4-Angle Analysis & Numeric Verifier',
+    shortDesc: 'Four independent research angles checked against live market prices.',
     fullDesc:
-      'Four specialist AI desks analyze your setup in parallel: Technicals maps trend alignment, swing structure and session levels, Macro tracks central bank policy and yields, Risk calculates position sizing, and Sentiment monitors institutional COT positioning.',
+      'Evaluates Economy & News, Chart & Price Levels, Risk & Trade Sizing, and Positioning & Sentiment in parallel, then runs a deterministic numeric verifier to confirm entry, stop-loss, and reward-to-risk math.',
+    securityBadge: '4/4 NUMERIC VERIFIER · HYBRID RAG',
+    highlights: [
+      'Deterministic math check verifies stop distance and R:R ratios before display',
+      'Hybrid pgvector + full-text search recalls your past journal notes and market context',
+    ],
     accentColor: 'text-brand',
     borderColor: 'border-brand/50',
     glowColor: 'rgba(255, 54, 22, 0.45)',
-    icon: IconCpu,
+    icon: IconBolt,
     telemetry: [
-      { label: 'SPECIALIST DESKS', value: '4 Parallel AI Analysts' },
-      { label: 'CONSENSUS METHOD', value: 'Weighted Conviction Score' },
-      { label: 'ANALYSIS MODES', value: 'Fast Scout or Convene Council' },
-      { label: 'SIGNAL INTEGRITY', value: 'Cross-Checked Against Live Data' },
+      { label: 'ANALYSIS ANGLES', value: 'Economy · Chart · Risk · Positioning' },
+      { label: 'MODES AVAILABLE', value: 'Quick Question or Full 4-Angle Run' },
+      { label: 'MATH VERIFICATION', value: 'Deterministic R:R & Stop Check' },
+      { label: 'MEMORY ENGINE', value: 'Hybrid pgvector + FTS Recall' },
     ],
   },
   {
     id: 'ingestion',
     num: '01',
-    tag: 'FOUNDATION DATA LAYER',
-    title: 'Live Gold, Forex & Macro Market Feeds',
-    shortDesc: 'Real-time price action, technical indicators, and economic calendar.',
+    tag: 'MULTI-PROVIDER MARKET DATA',
+    title: 'Multi-Provider Market Data & Failover',
+    shortDesc: 'Live Gold, Forex, Crypto, and Macro feeds with automatic health-scored failover.',
     fullDesc:
-      'Continuously tracks Spot Gold (XAU/USD), major Forex pairs, and top crypto perpetuals alongside US 2Y/10Y Treasury yields, the Dollar Index (DXY), breaking financial headlines, and red-folder economic releases.',
+      'Aggregates real-time prices, OHLCV candles, Treasury yields, CFTC COT reports, and financial news across BiQuote, Binance, Finnhub, FRED, CFTC, and Marketaux with rolling health scores and L1/L2 stale-while-revalidate caching.',
+    securityBadge: 'HEALTH-SCORED FAILOVER · SWR CACHE',
+    highlights: [
+      'Automatic provider failover keeps charts and briefings online if an upstream feed lags',
+      'Freshness metadata tags every price and candle read so stale data is never hidden',
+    ],
     accentColor: 'text-info',
     borderColor: 'border-info/50',
     glowColor: 'rgba(38, 126, 224, 0.4)',
-    icon: IconBolt,
+    icon: IconDatabase,
     telemetry: [
-      { label: 'PRIMARY MARKETS', value: 'XAU/USD · EUR · GBP · JPY' },
-      { label: 'MACRO BENCHMARKS', value: 'US10Y / US02Y · DXY Index' },
-      { label: 'TECHNICAL ENGINE', value: 'EMA · RSI · MACD · ATR · Bollinger' },
-      { label: 'CALENDAR & WIRES', value: 'Live Red-Folder Event Alerts' },
+      { label: 'ASSET COVERAGE', value: 'XAU/USD · 11 Forex · 6 Crypto' },
+      { label: 'DATA ADAPTERS', value: 'BiQuote · Binance · Finnhub · FRED · CFTC' },
+      { label: 'RELIABILITY', value: 'Rolling Health-Scored Failover' },
+      { label: 'INDICATOR ENGINE', value: 'EMA · RSI · MACD · ATR · Bollinger' },
     ],
   },
 ];

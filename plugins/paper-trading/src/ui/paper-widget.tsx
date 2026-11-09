@@ -52,17 +52,17 @@ export function PaperTradingWidget(_props: PluginDashboardWidgetProps) {
       : 0;
 
   return (
-    <div className="surface-panel flex h-full flex-col gap-3 rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)]">
+    <div className="surface-panel border-border bg-bg-elev-1 flex h-full flex-col gap-3 rounded-xl border p-4 shadow-[var(--shadow-chip)]">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="bg-brand/10 text-brand flex size-8 items-center justify-center rounded-md">
+          <span className="bg-brand/10 text-brand flex size-8 items-center justify-center rounded-lg">
             <IconWallet className="size-4" />
           </span>
           <div className="flex flex-col">
             <span className="text-fg text-sm font-semibold">Paper Trading</span>
-            <span className="text-fg-subtle text-[11px]">
+            <span className="text-fg-subtle text-xs">
               {summary
-                ? `${summary.openPositions.length} open · ${summary.pendingOrders.length} resting`
+                ? `${summary.openPositions.length} open · ${summary.pendingOrders.length} pending`
                 : 'Loading accounts…'}
             </span>
           </div>
@@ -76,7 +76,7 @@ export function PaperTradingWidget(_props: PluginDashboardWidgetProps) {
         <>
           <div className="flex items-end justify-between gap-2">
             <div>
-              <p className="text-fg-subtle text-[10px] font-semibold tracking-wider uppercase">
+              <p className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
                 Total equity
               </p>
               <p className="text-fg font-mono text-lg font-semibold tabular-nums">
@@ -84,8 +84,8 @@ export function PaperTradingWidget(_props: PluginDashboardWidgetProps) {
               </p>
             </div>
             <div className="text-right">
-              <p className="text-fg-subtle text-[10px] font-semibold tracking-wider uppercase">
-                Open P&L
+              <p className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
+                Unrealized P&L
               </p>
               <p
                 className={`font-mono text-sm font-semibold ${toneClass(
@@ -96,22 +96,22 @@ export function PaperTradingWidget(_props: PluginDashboardWidgetProps) {
               </p>
             </div>
           </div>
-          <dl className="grid grid-cols-2 gap-2 text-[11px]">
+          <dl className="grid grid-cols-2 gap-2 text-xs">
             {summary.accounts.map((account) => (
-              <div key={account.id} className="bg-bg-elev-1/50 flex flex-col rounded-md p-2">
-                <dt className="text-fg-subtle truncate text-[10px]">{account.name}</dt>
+              <div key={account.id} className="bg-bg-elev-2/40 flex flex-col rounded-lg p-2.5">
+                <dt className="text-fg-subtle truncate text-[11px]">{account.name}</dt>
                 <dd className="flex items-baseline justify-between gap-1">
                   <span className="text-fg font-mono font-semibold">
                     {fmtMoneyPlain(account.equity)}
                   </span>
-                  <span className={`font-mono text-[10px] ${toneClass(account.unrealizedPnl)}`}>
+                  <span className={`font-mono text-[11px] ${toneClass(account.unrealizedPnl)}`}>
                     {fmtMoney(account.unrealizedPnl)}
                   </span>
                 </dd>
               </div>
             ))}
           </dl>
-          <p className="text-fg-subtle font-mono text-[10px]">
+          <p className="text-fg-subtle font-mono text-[11px]">
             Margin used {fmtNumber(marginPct, 1)}% · virtual money
           </p>
         </>

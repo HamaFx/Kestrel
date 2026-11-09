@@ -93,12 +93,12 @@ export function SidebarFooter({
                 <span className="text-fg truncate font-sans text-xs font-medium tracking-tight">
                   {userName ?? 'Trader'}
                 </span>
-                <span className="border-border/70 text-fg-subtle shrink-0 rounded border px-1 py-px font-mono text-[9px] tracking-wider uppercase">
+                <span className="border-border/70 text-fg-subtle shrink-0 rounded border px-1 py-px font-mono text-[10px] tracking-wider uppercase">
                   BYOK
                 </span>
               </span>
               <span className="text-fg-subtle truncate font-sans text-[11px]">
-                {userEmail ?? 'operator@kestrel'}
+                {userEmail ?? 'Account'}
               </span>
             </span>
           ) : null}

@@ -52,7 +52,7 @@ export default async function SettingsPage() {
   const isAdmin = await checkIsAdmin();
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-4xl flex-col gap-6">
       <UsageGlance userId={userId} />
 
       {/* Grouped Quick Links — 4 Clean Pillars */}

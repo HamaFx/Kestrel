@@ -62,7 +62,7 @@ export function SymbolChip({
         role={removable ? 'group' : undefined}
         aria-label={ariaLabel ?? symbol}
         className={cn(
-          'bg-bg-elev-3 text-fg ring-border text-caption inline-flex items-center gap-1 rounded-sm px-2 py-0.5 font-bold uppercase tabular-nums ring-1',
+          'bg-bg-elev-3 text-fg ring-border text-caption inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-bold uppercase tabular-nums ring-1',
           className,
         )}
       >
@@ -74,7 +74,7 @@ export function SymbolChip({
             disabled={clearing}
             aria-label={`Clear pinned symbol ${symbol}`}
             className={cn(
-              'relative -mr-1 ml-0.5 inline-flex size-4 items-center justify-center rounded-sm transition-colors',
+              'relative -mr-1 ml-0.5 inline-flex size-4 items-center justify-center rounded-md transition-colors',
               'hover:bg-bg-elev-3 focus-visible:bg-fg/25 focus-visible:ring-border focus:outline-none focus-visible:ring-2',
               'disabled:cursor-not-allowed disabled:opacity-60',
               'after:absolute after:top-1/2 after:left-1/2 after:size-[44px] after:-translate-x-1/2 after:-translate-y-1/2 after:content-[""]',

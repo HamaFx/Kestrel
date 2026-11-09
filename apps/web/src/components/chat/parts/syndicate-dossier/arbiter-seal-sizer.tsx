@@ -102,11 +102,11 @@ export function ArbiterSealSizer({
         aria-expanded={open}
         className="flex min-h-11 w-full items-center justify-between gap-2 px-3 py-2 text-left transition-colors hover:bg-white/[0.03]"
       >
-        <span className="text-fg-muted inline-flex items-center gap-2 font-mono text-[10px] font-semibold tracking-[0.14em] uppercase">
+        <span className="text-fg-muted inline-flex items-center gap-2 font-mono text-[11px] font-semibold tracking-wider uppercase">
           <IconSettings className="text-brand size-3.5" />
-          Arbiter position sizer &amp; seal
+          Position Size Calculator &amp; Save Trade
         </span>
-        <span className="text-fg-subtle font-mono text-[9px] uppercase">
+        <span className="text-fg-subtle font-mono text-[10px] uppercase">
           {open ? 'Hide' : 'Open'}
         </span>
       </button>
@@ -115,7 +115,7 @@ export function ArbiterSealSizer({
         <div className="border-t border-white/[0.06] p-3">
           <div className="grid grid-cols-2 gap-2">
             <label className="flex flex-col gap-1">
-              <span className="text-fg-subtle font-mono text-[9px] tracking-wider uppercase">
+              <span className="text-fg-subtle font-mono text-[10px] tracking-wider uppercase">
                 Account equity (USD)
               </span>
               <input
@@ -130,12 +130,12 @@ export function ArbiterSealSizer({
                     setEquity(Math.min(EQUITY_MAX, Math.max(EQUITY_MIN, next)));
                   }
                 }}
-                className="surface-well focus:border-brand/50 text-fg h-11 rounded-lg sm:h-9 border border-white/[0.08] bg-[#090a0b] px-2.5 font-mono text-xs tabular-nums outline-none"
+                className="surface-well focus:border-brand/50 text-fg h-11 rounded-lg border border-white/[0.08] bg-[#090a0b] px-2.5 font-mono text-xs tabular-nums outline-none sm:h-9"
               />
             </label>
             <div className="flex flex-col gap-1">
-              <span className="text-fg-subtle font-mono text-[9px] tracking-wider uppercase">
-                Risk budget
+              <span className="text-fg-subtle font-mono text-[10px] tracking-wider uppercase">
+                Risk per trade
               </span>
               <div className="flex gap-1">
                 {RISK_OPTIONS.map((option) => {
@@ -148,13 +148,13 @@ export function ArbiterSealSizer({
                       disabled={disabled}
                       onClick={() => setRiskPct(option)}
                       className={cn(
-                        'h-11 flex-1 rounded-md border font-mono sm:h-9 text-[10px] font-semibold tabular-nums transition-colors',
+                        'h-11 flex-1 rounded-md border font-mono text-[10px] font-semibold tabular-nums transition-colors sm:h-9',
                         active
                           ? 'border-brand/50 bg-brand/15 text-brand'
                           : 'text-fg-subtle border-white/[0.08] bg-white/[0.02] hover:text-fg',
                         disabled && 'cursor-not-allowed opacity-30',
                       )}
-                      title={disabled ? 'AEGIS caps risk at 0.5% while desks dissent' : undefined}
+                      title={disabled ? 'Risk is capped at 0.5% when signals disagree' : undefined}
                     >
                       {option.toFixed(2)}%
                     </button>
@@ -166,7 +166,7 @@ export function ArbiterSealSizer({
 
           <div className="mt-2.5 grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-white/[0.07] bg-white/[0.06]">
             <div className="bg-[#0d0e10] px-2 py-1.5">
-              <div className="text-fg-subtle font-mono text-[8px] tracking-wider uppercase">
+              <div className="text-fg-subtle font-mono text-[10px] tracking-wider uppercase">
                 Stop distance
               </div>
               <div className="text-fg font-mono text-[11px] font-semibold tabular-nums">
@@ -174,7 +174,7 @@ export function ArbiterSealSizer({
               </div>
             </div>
             <div className="bg-[#0d0e10] px-2 py-1.5">
-              <div className="text-fg-subtle font-mono text-[8px] tracking-wider uppercase">
+              <div className="text-fg-subtle font-mono text-[10px] tracking-wider uppercase">
                 Max risk
               </div>
               <div className="text-warn font-mono text-[11px] font-semibold tabular-nums">
@@ -182,8 +182,8 @@ export function ArbiterSealSizer({
               </div>
             </div>
             <div className="bg-[#0d0e10] px-2 py-1.5">
-              <div className="text-fg-subtle font-mono text-[8px] tracking-wider uppercase">
-                Size
+              <div className="text-fg-subtle font-mono text-[10px] tracking-wider uppercase">
+                Position size
               </div>
               <div className="text-fg truncate font-mono text-[11px] font-semibold tabular-nums">
                 {sizeLabel}
@@ -195,11 +195,11 @@ export function ArbiterSealSizer({
             {levels.isVetoed ? (
               <div className="border-danger/30 bg-danger/[0.06] text-danger flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 text-center font-mono text-[10px] font-bold tracking-wider uppercase">
                 <IconShieldLock className="size-4 shrink-0" />
-                Blocked by AEGIS risk guardrail
+                Blocked by 1.0% risk guardrail
               </div>
             ) : sealed ? (
               <div className="border-bull/30 bg-bull/[0.08] text-bull flex min-h-11 items-center justify-center rounded-xl border px-3 font-mono text-[10px] font-bold tracking-wider uppercase">
-                Sealed · {planId}
+                Saved · {planId}
               </div>
             ) : (
               <HoldToExecuteButton
@@ -207,18 +207,18 @@ export function ArbiterSealSizer({
                 holdDurationMs={1000}
                 variant={levels.direction === 'BUY' ? 'bull' : 'bear'}
                 disabled={sealing || lots <= 0}
-                label="Hold to seal plan (log journal + arm alerts)"
-                executingLabel="Sealing plan…"
-                completedLabel={`Sealed · ${planId}`}
+                label="Hold to Log Trade & Set Price Alerts"
+                executingLabel="Saving trade…"
+                completedLabel={`Saved · ${planId}`}
                 className="w-full"
               />
             )}
           </div>
 
-          <p className="text-fg-subtle/70 mt-2 font-mono text-[8px] leading-relaxed">
+          <p className="text-fg-subtle/70 mt-2 font-mono text-[10px] leading-relaxed">
             {levels.dissent
-              ? 'Desks dissent · AEGIS caps this ticket at 0.50% risk.'
-              : 'AEGIS 1.00% ceiling enforced · targets arm only when certified.'}
+              ? 'Signals are mixed · risk is capped at 0.50% for safety.'
+              : '1.00% maximum risk guardrail active · logs trade to Journal and sets price alerts.'}
           </p>
         </div>
       ) : null}

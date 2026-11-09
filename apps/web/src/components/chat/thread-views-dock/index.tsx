@@ -207,7 +207,7 @@ export function ThreadViewsDock({
   const tabs: Array<{ id: DockTab; label: string; icon: typeof IconChartCandle; badge?: number }> =
     [
       ...(stacked ? [] : [{ id: 'chart' as const, label: 'Chart', icon: IconChartCandle }]),
-      { id: 'opinions', label: 'Council', icon: IconUsers, badge: councilBadge },
+      { id: 'opinions', label: 'Analysis', icon: IconUsers, badge: councilBadge },
       { id: 'plan', label: 'Plan', icon: IconListCheck, badge: latestPlan?.steps.length },
     ];
 

@@ -56,7 +56,7 @@ function shortLabel(label: string): string {
   if (label === 'London') return 'LON';
   if (label === 'NY') return 'NY';
   if (label === 'Weekend') return 'WKND';
-  return 'IDLE';
+  return 'QUIET';
 }
 
 export function SessionDial({
@@ -151,7 +151,7 @@ export function SessionDial({
       </svg>
 
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-fg font-mono text-[8px] leading-none font-bold tracking-wider">
+        <span className="text-fg font-mono text-[9px] leading-none font-bold tracking-wider">
           {shortLabel(label)}
         </span>
       </div>

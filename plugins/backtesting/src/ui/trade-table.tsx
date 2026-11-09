@@ -59,9 +59,9 @@ export function TradeTable({
   }
 
   return (
-    <div className="border-border/50 overflow-x-auto rounded-lg border">
+    <div className="border-border bg-bg-elev-1 overflow-x-auto rounded-xl border">
       <table className="w-full min-w-[520px] text-left text-xs">
-        <thead className="bg-bg-elev-2/60 text-fg-subtle font-mono text-[10px] uppercase">
+        <thead className="bg-bg-elev-2/60 text-fg-subtle font-mono text-[11px] uppercase">
           <tr>
             <th className="px-2.5 py-2 font-semibold">#</th>
             <th className="px-2.5 py-2 font-semibold">Side</th>
@@ -76,21 +76,21 @@ export function TradeTable({
         </thead>
         <tbody className="divide-border/40 divide-y">
           {rows.map((trade) => (
-            <tr key={trade.id} className="hover:bg-bg-elev-1/40">
+            <tr key={trade.id} className="hover:bg-bg-elev-2/40">
               <td className="text-fg-subtle px-2.5 py-1.5 font-mono tabular-nums">{trade.id}</td>
               <td className="px-2.5 py-1.5">
                 <span
                   className={
                     trade.side === 'long'
-                      ? 'bg-bull/10 text-bull rounded px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase'
-                      : 'bg-bear/10 text-bear rounded px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase'
+                      ? 'bg-bull/10 text-bull rounded-md px-1.5 py-0.5 font-mono text-[11px] font-bold uppercase'
+                      : 'bg-bear/10 text-bear rounded-md px-1.5 py-0.5 font-mono text-[11px] font-bold uppercase'
                   }
                 >
                   {trade.side}
                 </span>
               </td>
               {showDates ? (
-                <td className="text-fg-subtle px-2.5 py-1.5 font-mono text-[10px]">
+                <td className="text-fg-subtle px-2.5 py-1.5 font-mono text-[11px]">
                   {fmtDate(trade.entryTime)}
                 </td>
               ) : null}
@@ -117,7 +117,7 @@ export function TradeTable({
               >
                 {fmtR(trade.rMultiple)}
               </td>
-              <td className="text-fg-subtle px-2.5 py-1.5 text-[10px]">
+              <td className="text-fg-subtle px-2.5 py-1.5 text-[11px]">
                 {reasonLabel(trade.exitReason)}
               </td>
             </tr>

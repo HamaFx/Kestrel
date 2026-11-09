@@ -36,10 +36,10 @@ export function TwoFactorIdleStage({
       <Button
         type="button"
         variant="secondary"
-        size="sm"
+        size="md"
         onClick={onStartSetup}
         disabled={isSettingUp}
-        className="tactile-press w-fit active:translate-y-[0.5px]"
+        className="tactile-press h-11 w-fit active:translate-y-[0.5px]"
       >
         {isSettingUp ? (
           <IconLoader2 className="mr-1 size-3.5 animate-spin" />

@@ -94,13 +94,13 @@ export function StatCard({
       role="group"
       aria-label={`${label}: ${value}${hint ? `. ${hint}` : ''}`}
       className={cn(
-        'surface-card group relative flex flex-col justify-between overflow-hidden rounded-xl border border-white/[0.06] p-3.5 shadow-sm transition-colors hover:border-white/12',
+        'surface-card group relative flex flex-col justify-between overflow-hidden rounded-xl border border-white/[0.06] p-3.5 transition-colors hover:border-white/12',
         className,
       )}
     >
       <div>
         <div className="flex items-center justify-between gap-2">
-          <div className="text-fg-subtle flex min-w-0 items-center gap-1.5 font-mono text-[10px] font-semibold tracking-wider uppercase">
+          <div className="text-fg-subtle flex min-w-0 items-center gap-1.5 font-mono text-[11px] font-semibold tracking-wider uppercase">
             {icon ? (
               <span className={cn('inline-flex shrink-0 [&>svg]:size-3.5', TONE_ICON[tone])}>
                 {icon}
@@ -114,7 +114,7 @@ export function StatCard({
             <span className="truncate">{label}</span>
           </div>
           {hint ? (
-            <span className="text-fg-subtle shrink-0 font-mono text-[9px] tracking-wide uppercase">
+            <span className="text-fg-subtle shrink-0 font-mono text-[11px] tracking-wide uppercase">
               {hint}
             </span>
           ) : null}
@@ -152,7 +152,7 @@ export function StatCard({
             />
           </div>
           {showMeterPct ? (
-            <span className="text-fg-subtle font-mono text-[9px] tabular-nums">
+            <span className="text-fg-subtle font-mono text-[11px] tabular-nums">
               {Math.round(meterPct)}%
             </span>
           ) : null}

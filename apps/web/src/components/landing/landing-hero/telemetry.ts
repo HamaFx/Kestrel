@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Static telemetry data for the landing hero: the switchable committee
-// briefings and the live market-pulse ticker items.
+// Static telemetry data for the landing hero: the switchable live market &
+// trade setup summary previews and the market-pulse ticker items.
 
 export type DeskBias = 'BULL' | 'BEAR' | 'GUARD';
 
@@ -12,12 +12,19 @@ interface SymbolTelemetry {
   change: string;
   isPositive: boolean;
   spread: string;
+  sessionLabel: string;
+  supportLevel: string;
+  supportNote: string;
+  resistanceLevel: string;
+  resistanceNote: string;
+  atrNote: string;
   direction: 'BUY / LONG' | 'SELL / SHORT';
   entry: string;
   invalidation: string;
   target1: string;
   target2: string;
   rr: string;
+  riskSize: string;
   conviction: number;
   techSignal: string;
   macroSignal: string;
@@ -37,17 +44,24 @@ export const SYMBOLS: SymbolTelemetry[] = [
     change: '+1.42% (+9.80)',
     isPositive: true,
     spread: '0.12 pts',
+    sessionLabel: 'London / NY Overlap · 4H Structure',
+    supportLevel: '2,846.50',
+    supportNote: '4H Demand + EMA 50',
+    resistanceLevel: '2,884.00',
+    resistanceNote: 'Prior Weekly High',
+    atrNote: 'ATR(14): 11.80 pts',
     direction: 'BUY / LONG',
     entry: '2,864.00',
     invalidation: '2,846.50',
     target1: '2,884.00',
     target2: '2,916.50',
     rr: '1:3.2',
+    riskSize: '0.85% Equity',
     conviction: 91,
-    techSignal: 'PDH Reclaim 94%',
-    macroSignal: 'Yields -4bp',
-    riskSignal: '1% @ 2,846',
-    sentimentSignal: 'Whales Long',
+    macroSignal: 'US 10Y yields -4.2 bps (4.28%) · DXY softening',
+    techSignal: 'Higher low held at 2,860 · EMA20 > EMA50 on 4H',
+    riskSignal: '0.85% risk within 1.0% cap · 17.5 pt stop',
+    sentimentSignal: 'CFTC Commercials net long +18,420 contracts',
     techBias: 'BULL',
     macroBias: 'BULL',
     riskBias: 'GUARD',
@@ -60,17 +74,24 @@ export const SYMBOLS: SymbolTelemetry[] = [
     change: '+0.28% (+0.0030)',
     isPositive: true,
     spread: '0.4 pips',
+    sessionLabel: 'London Session · 4H Structure',
+    supportLevel: '1.0812',
+    supportNote: 'Asian Session Low',
+    resistanceLevel: '1.0895',
+    resistanceNote: 'Weekly Supply Zone',
+    atrNote: 'ATR(14): 19.0 pips',
     direction: 'BUY / LONG',
     entry: '1.0840',
     invalidation: '1.0812',
     target1: '1.0895',
     target2: '1.0930',
     rr: '1:3.1',
+    riskSize: '0.75% Equity',
     conviction: 87,
-    techSignal: 'Swing Low +88%',
-    macroSignal: 'ECB Hold',
-    riskSignal: '0.8% SL',
-    sentimentSignal: 'COT Bullish',
+    macroSignal: 'ECB rate hold priced · Bund-Treasury spread narrowing',
+    techSignal: '4H swing low reclaimed above 1.0830 pivot',
+    riskSignal: '0.75% risk within 1.0% cap · 28 pip stop',
+    sentimentSignal: 'Asset managers net long +12,100 contracts',
     techBias: 'BULL',
     macroBias: 'GUARD',
     riskBias: 'GUARD',
@@ -83,17 +104,24 @@ export const SYMBOLS: SymbolTelemetry[] = [
     change: '-0.15% (-0.0019)',
     isPositive: false,
     spread: '0.6 pips',
+    sessionLabel: 'London Session · 4H Structure',
+    supportLevel: '1.2850',
+    supportNote: 'Daily EMA 50 Support',
+    resistanceLevel: '1.2950',
+    resistanceNote: 'Previous Day High',
+    atrNote: 'ATR(14): 24.0 pips',
     direction: 'SELL / SHORT',
     entry: '1.2915',
     invalidation: '1.2950',
     target1: '1.2850',
     target2: '1.2805',
     rr: '1:3.0',
+    riskSize: '0.80% Equity',
     conviction: 85,
-    techSignal: 'PDH Reject 85%',
-    macroSignal: 'BoE Doves',
-    riskSignal: '1% @ 1.295',
-    sentimentSignal: 'Funds Short',
+    macroSignal: 'Dovish BoE rate path weighing on Gilt yields',
+    techSignal: 'Previous-day high rejected at 1.2950 supply',
+    riskSignal: '0.80% risk within 1.0% cap · 35 pip stop',
+    sentimentSignal: 'Leveraged funds trimming long exposure',
     techBias: 'BEAR',
     macroBias: 'BEAR',
     riskBias: 'GUARD',

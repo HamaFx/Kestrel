@@ -36,41 +36,41 @@ interface StageDef {
 const FULL_COUNCIL_STAGES: readonly StageDef[] = [
   {
     id: 'collect-packet',
-    title: 'Market Packet',
-    caption: 'Locking 15m/1H/4H candles, ATR-14, FRED real yields, CFTC COT and the news wire',
+    title: 'Live Market Data',
+    caption: 'Checking 15m/1H/4H candles, volatility (ATR), interest rates, COT positioning, and news',
   },
   {
     id: 'deliberation',
-    title: '4-Desk Deliberation',
-    caption: 'HORUS · ASTROLABE · AEGIS · SENTINEL deliberating in parallel',
+    title: '4-Angle Analysis',
+    caption: 'Evaluating Economy & News, Chart Levels, Risk Sizing, and Market Sentiment',
   },
   {
     id: 'verify',
-    title: 'Risk Audit',
-    caption: 'Aegis 1.0% ceiling and numerical grounding against the packet',
+    title: 'Risk & Level Verification',
+    caption: 'Verifying key price levels and 1.0% maximum risk guardrails',
   },
   {
     id: 'fusion',
-    title: 'Arbiter Synthesis',
-    caption: 'Certifying the execution plan and minting the dossier',
+    title: 'Final Trade Plan',
+    caption: 'Combining all findings into one clear trade summary',
   },
 ];
 
 const FAST_SCOUT_STAGES: readonly StageDef[] = [
   {
     id: 'collect-packet',
-    title: 'Market Packet',
-    caption: 'Locking live price, structure and indicator feeds',
+    title: 'Live Market Data',
+    caption: 'Checking live price, chart structure, and technical indicators',
   },
   {
     id: 'deliberation',
-    title: 'Specialist Desk',
-    caption: 'ASTROLABE mapping swing structure, session levels and invalidation',
+    title: 'Market Check',
+    caption: 'Mapping trend direction, key levels, and stop-loss zones',
   },
   {
     id: 'verify',
     title: 'Verification',
-    caption: 'Grounding check and strict completion audit',
+    caption: 'Verifying price numbers against live market data',
   },
 ];
 
@@ -140,13 +140,13 @@ export function SyndicateCircuitLive({
         <div className="flex items-center gap-2">
           <span className="bg-brand size-2 animate-pulse rounded-full" />
           <span className="text-fg font-mono text-[11px] font-semibold tracking-wider uppercase">
-            {isSingle ? 'FAST SCOUT · SINGLE-PASS READ' : 'LIVE COUNCIL TELEMETRY'}
+            {isSingle ? 'QUICK ANSWER · CHECKING DATA' : 'DEEP ANALYSIS IN PROGRESS'}
           </span>
         </div>
         <span className="text-fg-muted font-mono text-xs tabular-nums">
           {agents.length > 0
-            ? `${doneCount}/${agents.length} DESKS READY`
-            : `STAGE 0${activeIndex + 1}`}
+            ? `${doneCount}/${agents.length} CHECKS READY`
+            : `STEP ${activeIndex + 1} OF ${stages.length}`}
         </span>
       </div>
 

@@ -20,7 +20,7 @@ import Link from 'next/link';
 
 export function BotActions({ botUrl }: { botUrl: string | null }) {
   return (
-    <section className="surface-panel rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]">
+    <section className="surface-panel border-border bg-bg-elev-1 rounded-xl border p-5 shadow-[var(--shadow-chip)]">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-fg text-sm font-semibold">Open your bot</h3>
@@ -34,7 +34,7 @@ export function BotActions({ botUrl }: { botUrl: string | null }) {
               href={botUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-brand inline-flex h-10 items-center gap-2 rounded-md px-4 text-sm font-medium text-white transition-[filter] hover:brightness-110"
+              className="bg-brand inline-flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-medium text-white transition-[filter] hover:brightness-110"
             >
               <IconBrandTelegram className="size-4" />
               Open in Telegram
@@ -43,7 +43,7 @@ export function BotActions({ botUrl }: { botUrl: string | null }) {
           ) : (
             <Link
               href="/settings/plugins"
-              className="bg-brand inline-flex h-10 items-center gap-2 rounded-md px-4 text-sm font-medium text-white transition-[filter] hover:brightness-110"
+              className="bg-brand inline-flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-medium text-white transition-[filter] hover:brightness-110"
             >
               Finish setup
             </Link>

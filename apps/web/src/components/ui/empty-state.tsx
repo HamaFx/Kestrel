@@ -63,14 +63,14 @@ export function EmptyState({
       aria-label={title}
       className={cn(
         'flex flex-col items-center gap-5 px-6 py-10 text-center',
-        !bare && 'border-border bg-bg-elev-1 rounded-sm border',
+        !bare && 'border-border bg-bg-elev-1 rounded-xl border',
         className,
       )}
     >
       <span
         aria-hidden="true"
         className={cn(
-          'inline-flex items-center justify-center rounded-sm',
+          'inline-flex items-center justify-center rounded-xl',
           tone === 'brand'
             ? 'text-fg bg-bg-elev-2 h-20 w-20'
             : 'text-fg-muted bg-bg-elev-2 h-16 w-16',

@@ -56,10 +56,11 @@ export function TwoFactorQrStage({
           <button
             type="button"
             onClick={onCopySecret}
-            className="text-fg-subtle hover:text-fg cursor-pointer p-1"
+            className="surface-chip text-fg-subtle hover:text-fg inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-white/10 px-2.5 text-xs font-medium transition-colors"
             aria-label="Copy secret"
           >
             <IconCopy className="size-3.5" />
+            <span>Copy</span>
           </button>
         </div>
       </div>
@@ -67,25 +68,26 @@ export function TwoFactorQrStage({
         <BackupCodesPanel
           codes={backupCodes}
           onCopy={onCopyBackupCodes}
-          copyButtonClassName="text-fg-subtle hover:text-fg cursor-pointer p-1"
+          copyButtonClassName="surface-chip text-fg-subtle hover:text-fg inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-white/10 px-2.5 text-xs font-medium transition-colors"
         />
       )}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
         <Input
           value={token}
           onChange={(e) => setToken(e.target.value)}
-          placeholder="Enter 6-digit code"
+          placeholder="6-digit code"
           maxLength={6}
+          inputMode="numeric"
           aria-label="Enter verification code"
-          className="h-9 w-32 text-sm"
+          className="h-11 w-full text-sm sm:w-64"
         />
         <Button
           type="button"
           variant="primary"
-          size="sm"
+          size="md"
           onClick={onVerify}
           disabled={verifying || token.length !== 6}
-          className="tactile-press active:translate-y-[0.5px]"
+          className="tactile-press h-11 active:translate-y-[0.5px]"
         >
           {verifying ? <IconLoader2 className="mr-1 size-3.5 animate-spin" /> : null}
           Verify & Enable

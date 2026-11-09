@@ -46,7 +46,7 @@ export function DailyActivityChart({ daily7 }: { daily7: DayBucket[] }) {
           <h2 id="usage-daily-heading" className="text-fg text-sm font-semibold tracking-tight">
             Daily Research Activity (Last 7 Days)
           </h2>
-          <p className="text-fg-subtle mt-0.5 font-mono text-[10px] tabular-nums">
+          <p className="text-fg-subtle mt-0.5 font-mono text-[11px] tabular-nums">
             {totalTurns} total {totalTurns === 1 ? 'analysis' : 'analyses'} across{' '}
             {activeDays.length} active {activeDays.length === 1 ? 'day' : 'days'}
           </p>

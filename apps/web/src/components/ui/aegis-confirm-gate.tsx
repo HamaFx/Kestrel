@@ -71,7 +71,7 @@ export function AegisConfirmGate({
         <div className="flex items-center gap-2">
           <IconLock className="text-brand size-4" strokeWidth={1.85} aria-hidden="true" />
           <span className="text-brand font-mono text-[11px] font-semibold tracking-wider uppercase">
-            AEGIS EXECUTION GATE // REQUIRES OPERATOR APPROVAL
+            CONFIRM ACTION
           </span>
         </div>
         {badgeLabel ? (

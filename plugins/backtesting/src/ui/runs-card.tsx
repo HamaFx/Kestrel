@@ -50,11 +50,11 @@ export function BacktestRunsCard({ output, state, errorMessage }: PluginToolPart
 
   const runs = parsed.data.runs;
   return (
-    <section className="surface-panel flex flex-col gap-2 rounded-xl border border-white/10 p-3">
+    <section className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-2 rounded-xl border p-3">
       <header className="flex items-center gap-2">
         <IconFlask className="text-brand size-4" />
         <h3 className="text-fg text-sm font-semibold">Recent backtests</h3>
-        <span className="text-fg-subtle font-mono text-[10px]">{runs.length} runs</span>
+        <span className="text-fg-subtle font-mono text-[11px]">{runs.length} runs</span>
       </header>
 
       {runs.length === 0 ? (
@@ -67,11 +67,11 @@ export function BacktestRunsCard({ output, state, errorMessage }: PluginToolPart
             <li key={run.id}>
               <a
                 href={`/plugins/backtesting/runs/${encodeURIComponent(run.id)}`}
-                className="hover:bg-bg-elev-1/50 -mx-1 flex items-center justify-between gap-3 rounded-md px-1 py-2"
+                className="hover:bg-bg-elev-2/50 -mx-1 flex items-center justify-between gap-3 rounded-lg px-2 py-2"
               >
                 <div className="flex min-w-0 flex-col">
                   <span className="text-fg truncate text-xs font-semibold">{run.name}</span>
-                  <span className="text-fg-subtle font-mono text-[10px]">
+                  <span className="text-fg-subtle font-mono text-[11px]">
                     {run.symbol} · {run.timeframe} · {fmtDate(run.createdAt)}
                   </span>
                 </div>
@@ -82,7 +82,7 @@ export function BacktestRunsCard({ output, state, errorMessage }: PluginToolPart
                     >
                       {fmtMoney(run.metrics.netPnl)}
                     </p>
-                    <p className="text-fg-subtle font-mono text-[10px]">
+                    <p className="text-fg-subtle font-mono text-[11px]">
                       {fmtPct(run.metrics.returnPct, 1)} · DD{' '}
                       {fmtNumber(run.metrics.maxDrawdownPct, 1)}%
                     </p>

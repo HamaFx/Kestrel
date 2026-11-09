@@ -81,10 +81,10 @@ export function BacktestingWidget(_props: PluginDashboardWidgetProps) {
         <p className="text-fg-subtle text-xs">Could not load the latest run.</p>
       ) : summary?.latestRun ? (
         <dl className="grid grid-cols-2 gap-2 text-[11px]">
-          <div className="bg-bg-elev-1/50 col-span-2 flex flex-col rounded-md p-2">
+          <div className="bg-bg-elev-1/50 col-span-2 flex flex-col rounded-lg p-2.5">
             <dt className="text-fg-subtle truncate">{summary.latestRun.name}</dt>
             <dd className="flex items-baseline justify-between gap-2">
-              <span className="text-fg-subtle font-mono text-[10px]">
+              <span className="text-fg-subtle font-mono text-[11px]">
                 {summary.latestRun.symbol} · {summary.latestRun.timeframe}
               </span>
               <span

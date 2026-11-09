@@ -44,8 +44,8 @@ export function AccountsHistoryPanel({
       </section>
 
       <section className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-        <div className="surface-panel flex flex-col gap-2 rounded-xl border border-white/10 p-4">
-          <h2 className="text-fg text-sm font-semibold">Recent closes</h2>
+        <div className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-2 rounded-xl border p-4">
+          <h2 className="text-fg text-sm font-semibold">Closed trades</h2>
           {(summary?.recentClosed.length ?? 0) === 0 ? (
             <p className="text-fg-subtle text-xs">No closed trades yet.</p>
           ) : (
@@ -53,10 +53,10 @@ export function AccountsHistoryPanel({
               {summary?.recentClosed.map((position) => (
                 <li key={position.id} className="flex items-center justify-between gap-2 py-1.5">
                   <div className="flex min-w-0 flex-col">
-                    <span className="text-fg font-mono text-[11px] font-semibold">
+                    <span className="text-fg font-mono text-xs font-semibold">
                       {position.symbol} · {position.side} {fmtQty(position.initialQuantity)}
                     </span>
-                    <span className="text-fg-subtle font-mono text-[10px]">
+                    <span className="text-fg-subtle font-mono text-[11px]">
                       {position.closeReason ?? 'closed'} ·{' '}
                       {fmtDate(position.closeTime ?? position.entryTime)}
                     </span>
@@ -70,22 +70,22 @@ export function AccountsHistoryPanel({
           )}
         </div>
 
-        <div className="surface-panel flex flex-col gap-2 rounded-xl border border-white/10 p-4">
-          <h2 className="text-fg text-sm font-semibold">Execution ledger</h2>
+        <div className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-2 rounded-xl border p-4">
+          <h2 className="text-fg text-sm font-semibold">Trade history</h2>
           {(summary?.recentFills.length ?? 0) === 0 ? (
-            <p className="text-fg-subtle text-xs">No fills yet.</p>
+            <p className="text-fg-subtle text-xs">No trade executions yet.</p>
           ) : (
             <ul className="divide-border/40 flex max-h-64 flex-col divide-y overflow-auto">
               {summary?.recentFills.map((fill) => (
                 <li key={fill.id} className="flex items-center justify-between gap-2 py-1.5">
                   <div className="flex min-w-0 flex-col">
-                    <span className="text-fg font-mono text-[10px] uppercase">{fill.kind}</span>
-                    <span className="text-fg-subtle font-mono text-[10px]">
+                    <span className="text-fg font-mono text-[11px] uppercase">{fill.kind}</span>
+                    <span className="text-fg-subtle font-mono text-[11px]">
                       {fmtNumber(fill.quantity, 4)} @ {fmtNumber(fill.price, 4)} ·{' '}
                       {fmtDate(fill.ts)}
                     </span>
                   </div>
-                  <span className={`font-mono text-[11px] ${toneClass(fill.pnl)}`}>
+                  <span className={`font-mono text-xs ${toneClass(fill.pnl)}`}>
                     {fmtMoney(fill.pnl)}
                   </span>
                 </li>

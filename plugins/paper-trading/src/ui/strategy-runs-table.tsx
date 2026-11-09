@@ -39,39 +39,39 @@ export function StrategyRunsTable({
 }) {
   if (runs.length === 0) {
     return (
-      <div className="border-border/50 text-fg-subtle rounded-xl border border-dashed p-6 text-center text-[11px]">
-        No deployed strategies yet. Open a completed backtest and choose “Deploy to Paper Sandbox”.
+      <div className="border-border bg-bg-elev-1 text-fg-subtle rounded-xl border border-dashed p-6 text-center text-xs">
+        No deployed strategies yet. Open a completed backtest and choose “Deploy to Paper”.
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       {runs.map((run) => {
         const busy = busyId === run.id;
         return (
           <article
             key={run.id}
-            className="border-border/60 bg-bg-elev-2/40 flex flex-wrap items-center gap-2 rounded-lg border p-2.5"
+            className="border-border bg-bg-elev-1 flex flex-wrap items-center gap-2 rounded-xl border p-3"
           >
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="text-fg truncate text-[11px] font-semibold">{run.name}</span>
+                <span className="text-fg truncate text-xs font-semibold">{run.name}</span>
                 <span
                   className={
                     run.status === 'active'
-                      ? 'text-bull border-bull/30 bg-bull/10 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase'
+                      ? 'text-bull border-bull/30 bg-bull/10 rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase'
                       : run.status === 'paused'
-                        ? 'text-warn border-warn/30 bg-warn/10 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase'
+                        ? 'text-warn border-warn/30 bg-warn/10 rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase'
                         : run.status === 'error'
-                          ? 'text-danger border-danger/30 bg-danger/10 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase'
-                          : 'text-fg-subtle border-border/60 bg-bg-elev-3 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase'
+                          ? 'text-danger border-danger/30 bg-danger/10 rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase'
+                          : 'text-fg-subtle border-border/60 bg-bg-elev-3 rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase'
                   }
                 >
                   {run.status}
                 </span>
               </div>
-              <div className="text-fg-subtle mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 font-mono text-[10px]">
+              <div className="text-fg-subtle mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 font-mono text-[11px]">
                 <span>
                   {run.symbol} · {run.timeframe} · risk {run.riskPct}%
                 </span>
@@ -86,17 +86,17 @@ export function StrategyRunsTable({
                 {run.lastBarTime ? <span>bar {fmtDate(run.lastBarTime)}</span> : null}
               </div>
               {run.lastError ? (
-                <p className="text-danger mt-0.5 line-clamp-1 text-[10px]">{run.lastError}</p>
+                <p className="text-danger mt-0.5 line-clamp-1 text-[11px]">{run.lastError}</p>
               ) : null}
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               {run.status === 'active' ? (
                 <button
                   type="button"
                   onClick={() => onAction(run, 'pause')}
                   disabled={busy}
-                  className="border-border/60 text-fg-muted hover:text-fg inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[10px] font-semibold disabled:opacity-40"
+                  className="border-border bg-[#0e0f11]/90 text-fg-muted hover:text-fg inline-flex h-8 items-center gap-1 rounded-lg border px-2.5 text-[11px] font-semibold disabled:opacity-40"
                 >
                   {busy ? (
                     <IconLoader2 className="size-3 animate-spin" />
@@ -110,7 +110,7 @@ export function StrategyRunsTable({
                   type="button"
                   onClick={() => onAction(run, 'resume')}
                   disabled={busy || run.status === 'stopped'}
-                  className="border-border/60 text-fg-muted hover:text-fg inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[10px] font-semibold disabled:opacity-40"
+                  className="border-border bg-[#0e0f11]/90 text-fg-muted hover:text-fg inline-flex h-8 items-center gap-1 rounded-lg border px-2.5 text-[11px] font-semibold disabled:opacity-40"
                 >
                   {busy ? (
                     <IconLoader2 className="size-3 animate-spin" />
@@ -124,7 +124,7 @@ export function StrategyRunsTable({
                 type="button"
                 onClick={() => onAction(run, 'stop')}
                 disabled={busy || run.status === 'stopped'}
-                className="text-fg-subtle hover:text-warn inline-flex h-7 items-center gap-1 rounded-md px-1.5 text-[10px] font-semibold disabled:opacity-40"
+                className="text-fg-subtle hover:text-warn inline-flex h-8 items-center gap-1 rounded-lg px-2 text-[11px] font-semibold disabled:opacity-40"
                 title="Stop future entries"
               >
                 <IconPlayerStop className="size-3" />
@@ -134,7 +134,7 @@ export function StrategyRunsTable({
                 type="button"
                 onClick={() => onDelete(run)}
                 disabled={busy}
-                className="text-fg-subtle hover:text-danger inline-flex size-7 items-center justify-center rounded-md disabled:opacity-40"
+                className="text-fg-subtle hover:text-danger inline-flex size-8 items-center justify-center rounded-lg disabled:opacity-40"
                 aria-label={`Delete ${run.name}`}
               >
                 <IconTrash className="size-3.5" />

@@ -182,11 +182,11 @@ export function QuantDeskWidget() {
   };
 
   return (
-    <Card as="section" aria-label="Trading Floor Specialists" className="flex flex-col gap-3">
+    <Card as="section" aria-label="Quick Analysis Prompts" className="flex flex-col gap-3">
       <header className="border-border/60 flex flex-wrap items-center justify-between gap-2 border-b pb-2.5">
         <div className="flex items-center gap-2">
           <IconCpu className="text-brand size-4" />
-          <h3 className="text-fg text-sm font-semibold">4-Desk Specialist Launcher</h3>
+          <h3 className="text-fg text-sm font-semibold">Quick Analysis Prompts</h3>
           <span className="text-fg-subtle font-mono text-[11px] tabular-nums">
             · {sessionLabel}
           </span>
@@ -218,7 +218,7 @@ export function QuantDeskWidget() {
             href="/chat"
             className="text-fg-subtle hover:text-brand inline-flex min-h-[28px] items-center gap-1 font-mono text-xs font-semibold transition-colors"
           >
-            <span className="hidden sm:inline">Council</span>
+            <span className="hidden sm:inline">Open Chat</span>
             <IconArrowRight className="size-3.5" />
           </Link>
         </div>

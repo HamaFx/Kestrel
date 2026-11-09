@@ -111,6 +111,7 @@ const DrawerContent = React.forwardRef<
         tabIndex={-1}
         className={cn(
           'surface-panel border-border fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto max-h-[92svh] flex-col rounded-t-xl border-t border-b-0',
+          'md:inset-x-0 md:bottom-6 md:mx-auto md:mt-0 md:max-h-[86svh] md:w-full md:max-w-lg md:rounded-xl md:border md:shadow-2xl',
           'pb-[max(env(safe-area-inset-bottom),16px)]',
           'focus-visible:outline-none',
           className,
@@ -118,7 +119,7 @@ const DrawerContent = React.forwardRef<
         {...props}
       >
         <div
-          className="bg-fg-subtle/40 mx-auto mt-3 mb-2 h-1.5 w-12 rounded-sm"
+          className="bg-fg-subtle/40 mx-auto mt-3 mb-2 h-1.5 w-12 rounded-full md:hidden"
           aria-hidden="true"
         />
         {children}

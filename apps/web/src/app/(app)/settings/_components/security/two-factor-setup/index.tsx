@@ -51,6 +51,9 @@ export function TwoFactorSetup({ enabled }: TwoFactorSetupProps) {
         setToken={setToken}
         disabling={disabling}
         onDisable={handleDisable}
+        backupCodes={backupCodes}
+        onCopyBackupCodes={handleCopyBackupCodes}
+        onRegenerateBackupCodes={handleRegenerateBackupCodes}
       />
     );
   }

@@ -91,8 +91,8 @@ export function DeployToPaperButton({
         disabled={state === 'loading' || state === 'deployed'}
         className={
           compact
-            ? 'border-brand/30 text-brand hover:bg-brand/10 inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[10px] font-semibold disabled:opacity-50'
-            : 'border-brand/30 text-brand hover:bg-brand/10 inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[11px] font-semibold disabled:opacity-50'
+            ? 'border-brand/30 text-brand hover:bg-brand/10 inline-flex h-8 items-center gap-1 rounded-lg border px-2.5 text-[11px] font-semibold disabled:opacity-50'
+            : 'border-brand/30 text-brand hover:bg-brand/10 inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold disabled:opacity-50'
         }
         title="Deploy this exact strategy to the autonomous paper sandbox"
       >
@@ -104,7 +104,7 @@ export function DeployToPaperButton({
         {state === 'deployed' ? 'Deployed' : 'Deploy to Paper'}
       </button>
       {paperMissing ? (
-        <span className="text-danger max-w-64 text-[9px]">
+        <span className="text-danger max-w-64 text-[11px]">
           Paper Trading isn&apos;t installed —{' '}
           <a href="/settings/plugins" className="underline">
             install it in Settings → Plugins
@@ -112,7 +112,7 @@ export function DeployToPaperButton({
         </span>
       ) : message ? (
         <span
-          className={`max-w-64 truncate text-[9px] ${
+          className={`max-w-64 truncate text-[11px] ${
             state === 'error' ? 'text-danger' : 'text-fg-subtle'
           }`}
           title={message}

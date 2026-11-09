@@ -29,11 +29,11 @@ export function Field({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-fg-subtle text-[10px] font-semibold tracking-wider uppercase">
+      <span className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
         {label}
       </span>
       {children}
-      {hint ? <span className="text-fg-subtle text-[10px]">{hint}</span> : null}
+      {hint ? <span className="text-fg-subtle text-[11px]">{hint}</span> : null}
     </label>
   );
 }

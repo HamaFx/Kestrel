@@ -79,11 +79,11 @@ function ConfirmDrawer({
 }: ConfirmDrawerProps) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="surface-panel border-border rounded-t-xl border-t">
+      <DrawerContent className="surface-panel border-border rounded-t-xl border-t md:max-w-md md:pt-4">
         <DrawerHeader>
           <div className="flex items-center gap-3">
             {tone === 'danger' ? (
-              <IconBadge tone="danger" size="md" reticle>
+              <IconBadge tone="danger" size="md">
                 <IconAlertTriangle className="size-5" strokeWidth={1.85} />
               </IconBadge>
             ) : null}
@@ -95,14 +95,14 @@ function ConfirmDrawer({
             </div>
           </div>
         </DrawerHeader>
-        <DrawerFooter>
+        <DrawerFooter className="sm:flex-row-reverse sm:justify-start">
           <Button
             type="button"
             variant={tone === 'danger' ? 'danger' : 'primary'}
             size="md"
             disabled={busy}
             onClick={() => void onConfirm()}
-            className={cn('w-full', busy && 'opacity-70')}
+            className={cn('w-full sm:w-auto sm:min-w-[110px]', busy && 'opacity-70')}
           >
             {busy ? `${confirmLabel}…` : confirmLabel}
           </Button>
@@ -112,7 +112,7 @@ function ConfirmDrawer({
             size="md"
             disabled={busy}
             onClick={() => onOpenChange(false)}
-            className="w-full"
+            className="w-full sm:w-auto"
           >
             {cancelLabel}
           </Button>

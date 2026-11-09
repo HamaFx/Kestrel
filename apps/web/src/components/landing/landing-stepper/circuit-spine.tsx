@@ -6,9 +6,8 @@
 // background trace, illuminated active fill, glowing runner bead, node rings.
 import { m } from 'motion/react';
 
-// Coordinates for the 4 step nodes along the continuous circuit spine
-// Nodes at y = 55, 175, 295, 415
-export const nodeYCoordinates = [55, 175, 295, 415];
+// Coordinates for the 3 step nodes along the continuous circuit spine
+export const nodeYCoordinates = [65, 200, 335];
 
 interface CircuitSpineProps {
   activeStep: number;
@@ -19,7 +18,7 @@ interface CircuitSpineProps {
 export function CircuitSpine({ activeStep, activeY, progressRatio }: CircuitSpineProps) {
   return (
     <div className="pointer-events-none absolute top-2 bottom-2 left-2 -z-0 w-8 select-none sm:left-4">
-      <svg viewBox="0 0 32 480" preserveAspectRatio="none" className="size-full overflow-visible">
+      <svg viewBox="0 0 32 400" preserveAspectRatio="none" className="size-full overflow-visible">
         <defs>
           <linearGradient id="circuit-wire-gradient" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#ff3616" />
@@ -37,7 +36,7 @@ export function CircuitSpine({ activeStep, activeY, progressRatio }: CircuitSpin
 
         {/* Layer 1: Background Inactive Circuit Trace */}
         <path
-          d="M 16 20 L 16 460"
+          d="M 16 20 L 16 380"
           fill="none"
           stroke="rgba(255, 255, 255, 0.08)"
           strokeWidth="2"
@@ -46,7 +45,7 @@ export function CircuitSpine({ activeStep, activeY, progressRatio }: CircuitSpin
 
         {/* Layer 2: Illuminated Active Fill Trace */}
         <m.path
-          d="M 16 20 L 16 460"
+          d="M 16 20 L 16 380"
           fill="none"
           stroke="url(#circuit-wire-gradient)"
           strokeWidth="2.5"

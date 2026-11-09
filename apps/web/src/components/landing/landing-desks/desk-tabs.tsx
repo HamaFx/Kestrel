@@ -21,7 +21,7 @@ export function DeskTabs({ selectedId, isPaused, onSelect }: DeskTabsProps) {
   return (
     <div
       role="tablist"
-      aria-label="Specialist Desks"
+      aria-label="4 Analysis Angles"
       className="grid grid-cols-2 divide-x divide-y divide-white/[0.06] lg:col-span-5 lg:flex lg:flex-col lg:justify-between lg:divide-x-0"
     >
       {DESKS.map((desk) => {
@@ -87,7 +87,7 @@ export function DeskTabs({ selectedId, isPaused, onSelect }: DeskTabsProps) {
                 {/* Mobile Conviction Pill */}
                 <span
                   className={cn(
-                    'shrink-0 rounded-full border px-2 py-0.5 font-mono text-[10px] font-bold transition-colors lg:hidden',
+                    'shrink-0 rounded-full border px-2 py-0.5 font-mono text-[11px] font-bold transition-colors lg:hidden',
                     isSelected
                       ? 'bg-brand/10 border-brand/30 text-brand'
                       : 'text-fg-subtle border-white/5 bg-white/5',
@@ -101,7 +101,7 @@ export function DeskTabs({ selectedId, isPaused, onSelect }: DeskTabsProps) {
                 <h3 className="font-display text-fg truncate text-xs font-normal tracking-tight group-hover:text-white sm:text-sm lg:text-base">
                   {desk.name}
                 </h3>
-                <p className="text-fg-muted truncate font-sans text-[10px] sm:text-[11px] lg:text-xs">
+                <p className="text-fg-muted truncate font-sans text-[11px] lg:text-xs">
                   {desk.role}
                 </p>
               </div>

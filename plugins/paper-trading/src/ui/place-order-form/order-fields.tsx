@@ -24,7 +24,7 @@ import {
 } from './use-place-order';
 
 const inputClass =
-  'border-border/60 bg-bg-elev-1 text-fg placeholder:text-fg-subtle focus:border-brand/60 h-9 rounded-md border px-2.5 font-mono text-xs outline-none';
+  'border-border bg-[#0e0f11]/90 text-fg placeholder:text-fg-subtle focus:border-brand/60 h-10 rounded-lg border px-3 font-mono text-xs outline-none';
 
 const SYMBOLS = ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'BTCUSDT', 'ETHUSDT'];
 
@@ -39,11 +39,11 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-fg-subtle text-[10px] font-semibold tracking-wider uppercase">
+      <span className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
         {label}
       </span>
       {children}
-      {hint ? <span className="text-fg-subtle text-[10px]">{hint}</span> : null}
+      {hint ? <span className="text-fg-subtle text-[11px]">{hint}</span> : null}
     </label>
   );
 }
@@ -156,14 +156,14 @@ export function OrderFields({
         <span
           className={
             effectiveRisk > 1
-              ? 'text-warn text-[10px] leading-snug'
-              : 'text-fg-subtle text-[10px] leading-snug'
+              ? 'text-warn text-[11px] leading-snug'
+              : 'text-fg-subtle text-[11px] leading-snug'
           }
         >
           {riskDollars !== null
             ? `≈ ${fmtMoneyPlain(riskDollars)} at risk on ${fmtMoneyPlain(selected?.equity ?? 0)} equity`
             : 'Exact risk is calculated on submit.'}
-          {effectiveRisk > 1 ? ' · Above the 1.0% Aegis default' : ''}
+          {effectiveRisk > 1 ? ' · Above the 1.0% risk default' : ''}
         </span>
       </Field>
       <Field label={state.type === 'market' ? 'Trigger (n/a)' : 'Trigger price'}>

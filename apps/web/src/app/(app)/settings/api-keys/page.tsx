@@ -75,7 +75,7 @@ export default async function ApiKeysSettingsPage({
   } = await loadApiKeysPageData(session.user.id);
 
   return (
-    <div className="flex max-w-2xl min-w-0 flex-col gap-6">
+    <div className="flex max-w-4xl min-w-0 flex-col gap-6">
       {fromChat ? (
         <ApiKeysLandingBanner {...(preservedPrompt ? { prompt: preservedPrompt } : {})} />
       ) : null}

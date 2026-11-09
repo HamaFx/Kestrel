@@ -36,7 +36,7 @@ export function Skeleton({ className, decorative = false, ...rest }: SkeletonPro
       {...(decorative
         ? { 'aria-hidden': true }
         : { role: 'status', 'aria-label': 'Loading content' })}
-      className={cn('shimmer rounded-sm', className)}
+      className={cn('shimmer rounded-md', className)}
       {...rest}
     />
   );
@@ -55,7 +55,7 @@ export function SkeletonCard({ className, lines = 2, ...rest }: SkeletonCardProp
       aria-busy="true"
       aria-label="Loading content"
       className={cn(
-        'border-border bg-bg-elev-1/60 fade-in flex flex-col gap-2 overflow-hidden rounded-sm border p-4',
+        'border-border bg-bg-elev-1/60 fade-in flex flex-col gap-2 overflow-hidden rounded-xl border p-4',
         className,
       )}
       {...rest}

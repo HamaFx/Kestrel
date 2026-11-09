@@ -29,11 +29,11 @@ export function SweepDetail({ panel }: { panel: SweepPanelController }) {
   if (!selected) return null;
 
   return (
-    <section className="surface-panel flex flex-col gap-3 rounded-xl border border-white/10 p-4">
+    <section className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-3 rounded-xl border p-4">
       <header className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="text-fg text-sm font-semibold">{selected.name}</h2>
-          <p className="text-fg-subtle font-mono text-[10px]">
+          <p className="text-fg-subtle font-mono text-[11px]">
             {selected.symbol} · {selected.timeframe} · {selected.objective} · {selected.completed}/
             {selected.total}
           </p>
@@ -44,7 +44,7 @@ export function SweepDetail({ panel }: { panel: SweepPanelController }) {
               type="button"
               onClick={() => void panel.cancelSweep(selected.id)}
               disabled={panel.busy}
-              className="border-warn/30 text-warn inline-flex h-8 items-center gap-1 rounded-md border px-2.5 text-[11px] font-semibold"
+              className="border-warn/30 text-warn inline-flex h-9 items-center gap-1 rounded-lg border px-3 text-xs font-semibold"
             >
               Cancel
             </button>
@@ -53,7 +53,7 @@ export function SweepDetail({ panel }: { panel: SweepPanelController }) {
               type="button"
               onClick={() => void panel.deleteSweep(selected.id)}
               disabled={panel.busy}
-              className="text-fg-subtle hover:text-danger inline-flex size-8 items-center justify-center rounded-md"
+              className="text-fg-subtle hover:text-danger inline-flex size-9 items-center justify-center rounded-lg"
               aria-label="Delete sweep"
             >
               <IconTrash className="size-3.5" />
@@ -62,7 +62,7 @@ export function SweepDetail({ panel }: { panel: SweepPanelController }) {
           <button
             type="button"
             onClick={() => void panel.openSweep(selected.id)}
-            className="text-fg-subtle hover:text-fg inline-flex size-8 items-center justify-center rounded-md"
+            className="text-fg-subtle hover:text-fg inline-flex size-9 items-center justify-center rounded-lg"
             aria-label="Refresh sweep"
           >
             <IconRefresh className="size-3.5" />
@@ -78,7 +78,7 @@ export function SweepDetail({ panel }: { panel: SweepPanelController }) {
               style={{ width: `${panel.progress}%` }}
             />
           </div>
-          <span className="text-fg-subtle text-[10px]">
+          <span className="text-fg-subtle text-[11px]">
             {selected.status === 'queued'
               ? 'Queued for the worker…'
               : `Running… ${panel.progress}%`}
@@ -86,7 +86,7 @@ export function SweepDetail({ panel }: { panel: SweepPanelController }) {
         </div>
       ) : null}
 
-      {selected.error ? <p className="text-danger text-[11px]">{selected.error}</p> : null}
+      {selected.error ? <p className="text-danger text-xs">{selected.error}</p> : null}
 
       {selected.bestMetrics ? (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -126,8 +126,8 @@ function Metric({
   mono?: boolean;
 }) {
   return (
-    <div className="border-border/50 bg-bg-elev-2/40 flex flex-col gap-0.5 rounded-md border p-2">
-      <span className="text-fg-subtle text-[9px] font-semibold uppercase">{label}</span>
+    <div className="border-border/50 bg-bg-elev-2/40 flex flex-col gap-0.5 rounded-lg border p-2.5">
+      <span className="text-fg-subtle text-[11px] font-semibold uppercase">{label}</span>
       <span
         className={`text-fg text-xs font-semibold ${mono ? 'font-mono' : 'tabular-nums'} ${
           tone === undefined ? '' : toneClass(tone)

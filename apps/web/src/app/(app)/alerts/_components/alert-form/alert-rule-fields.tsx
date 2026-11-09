@@ -4,10 +4,17 @@
 
 // Rule fields for the alert form: type, symbol, timeframe, indicator,
 // direction, and the trigger level.
-import { SYMBOLS, TIMEFRAMES, type Symbol, type Timeframe } from '@kestrel/shared';
+import {
+  DEFAULT_WATCHLIST_SYMBOLS,
+  SYMBOLS,
+  TIMEFRAMES,
+  type Symbol,
+  type Timeframe,
+} from '@kestrel/shared';
 
 import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
+import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/formatters/cn';
 
 import { INDICATOR_PRESETS, type RuleType } from './rule-helpers';
@@ -47,15 +54,40 @@ export function AlertRuleFields({ controller }: { controller: AlertFormControlle
         ]}
       />
 
-      <Segmented<Symbol>
-        label="Symbol"
-        value={symbol}
-        onChange={setSymbol}
-        role="radiogroup"
-        variant="solid"
-        size="md"
-        options={SYMBOLS.map((s) => ({ value: s, label: s }))}
-      />
+      <div className="flex flex-col gap-2">
+        <Select
+          label="Symbol"
+          value={symbol}
+          onChange={(e) => setSymbol(e.target.value as Symbol)}
+        >
+          {SYMBOLS.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </Select>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-fg-subtle font-mono text-[10px] uppercase">Quick pick:</span>
+          {DEFAULT_WATCHLIST_SYMBOLS.map((s) => {
+            const active = symbol === s;
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setSymbol(s)}
+                className={cn(
+                  'rounded-md border px-2 py-0.5 font-mono text-[11px] font-semibold transition-colors',
+                  active
+                    ? 'border-brand/50 bg-brand/15 text-brand'
+                    : 'border-white/10 bg-white/[0.03] text-fg-muted hover:text-fg',
+                )}
+              >
+                {s}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {type !== 'priceCross' ? (
         <Segmented<Timeframe>

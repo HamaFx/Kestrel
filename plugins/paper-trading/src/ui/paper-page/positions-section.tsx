@@ -36,7 +36,7 @@ export function PositionsSection({
       <div className="flex items-center gap-2">
         <IconChartLine className="text-fg-subtle size-4" />
         <h2 className="text-fg text-sm font-semibold">Open positions</h2>
-        <span className="text-fg-subtle font-mono text-[10px]">{positions.length}</span>
+        <span className="text-fg-subtle font-mono text-[11px]">{positions.length}</span>
       </div>
       <PositionsTable positions={positions} busyId={busyId} onClose={onClose} />
     </section>

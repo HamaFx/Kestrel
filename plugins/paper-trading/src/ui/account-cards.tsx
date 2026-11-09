@@ -39,15 +39,15 @@ export function AccountCards({
         return (
           <article
             key={account.id}
-            className="surface-panel flex flex-col gap-3 rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)]"
+            className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-3 rounded-xl border p-4 shadow-[var(--shadow-chip)]"
           >
             <header className="flex items-start justify-between gap-2">
               <div className="flex items-start gap-2.5">
                 <span
                   className={
                     sandbox
-                      ? 'bg-success/10 text-success flex size-9 items-center justify-center rounded-md'
-                      : 'bg-brand/10 text-brand flex size-9 items-center justify-center rounded-md'
+                      ? 'bg-success/10 text-success flex size-9 items-center justify-center rounded-lg'
+                      : 'bg-brand/10 text-brand flex size-9 items-center justify-center rounded-lg'
                   }
                 >
                   {sandbox ? (
@@ -58,7 +58,7 @@ export function AccountCards({
                 </span>
                 <div className="flex flex-col gap-0.5">
                   <h3 className="text-fg text-sm font-semibold">{account.name}</h3>
-                  <span className="text-fg-subtle font-mono text-[10px] uppercase">
+                  <span className="text-fg-subtle font-mono text-[11px] uppercase">
                     {sandbox ? 'autonomous sandbox' : 'confirm every order'}
                   </span>
                 </div>
@@ -68,7 +68,7 @@ export function AccountCards({
                   type="button"
                   onClick={() => onReset(account)}
                   disabled={busyId === account.id}
-                  className="text-fg-subtle hover:text-fg border-border/60 inline-flex size-8 items-center justify-center rounded-md border disabled:opacity-40"
+                  className="text-fg-subtle hover:text-fg border-border bg-[#0e0f11]/90 inline-flex size-9 items-center justify-center rounded-lg border disabled:opacity-40"
                   aria-label={`Reset ${account.name}`}
                   title="Reset account"
                 >
@@ -81,7 +81,7 @@ export function AccountCards({
 
             <div className="flex items-end justify-between gap-2">
               <div>
-                <p className="text-fg-subtle text-[10px] font-semibold tracking-wider uppercase">
+                <p className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
                   Equity
                 </p>
                 <p className="text-fg font-mono text-xl font-semibold tabular-nums">
@@ -89,8 +89,8 @@ export function AccountCards({
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-fg-subtle text-[10px] font-semibold tracking-wider uppercase">
-                  Open P&L
+                <p className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
+                  Unrealized P&L
                 </p>
                 <p
                   className={`font-mono text-sm font-semibold tabular-nums ${toneClass(
@@ -102,7 +102,7 @@ export function AccountCards({
               </div>
             </div>
 
-            <dl className="grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-4">
+            <dl className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
               <Cell label="Balance" value={fmtMoneyPlain(account.balance)} />
               <Cell label="Margin" value={fmtMoneyPlain(account.marginUsed)} />
               <Cell label="Utilisation" value={`${fmtNumber(account.marginUtilisationPct, 1)}%`} />
@@ -127,8 +127,8 @@ export function AccountCards({
 
 function Cell({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-bg-elev-1/60 border-border/40 flex flex-col gap-0.5 rounded-md border p-2">
-      <dt className="text-fg-subtle text-[10px] font-semibold tracking-wider uppercase">{label}</dt>
+    <div className="bg-bg-elev-2/40 border-border/50 flex flex-col gap-0.5 rounded-lg border p-2.5">
+      <dt className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">{label}</dt>
       <dd className="text-fg font-mono text-xs font-semibold tabular-nums">{value}</dd>
     </div>
   );

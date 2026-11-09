@@ -55,8 +55,8 @@ const TONE_STYLES: Record<IconBadgeTone, string> = {
 
 const SIZE_STYLES: Record<IconBadgeSize, string> = {
   xs: 'size-6 rounded-md',
-  sm: 'size-8 rounded-lg',
-  md: 'h-10 w-10 rounded-md',
+  sm: 'size-8 rounded-md',
+  md: 'h-10 w-10 rounded-lg',
   lg: 'size-11 rounded-xl',
   xl: 'h-16 w-16 rounded-xl',
 };

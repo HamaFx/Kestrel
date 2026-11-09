@@ -61,10 +61,10 @@ function DataPanel({
 }) {
   const rows: Array<[string, string]> = [
     ['Symbol', symbol ?? '—'],
-    ['Mode', mode === 'single' ? 'Fast Scout (single-pass)' : 'Convene Council (4-desk)'],
-    ['Desks', `${deskCount} specialist desk${deskCount === 1 ? '' : 's'}`],
+    ['Mode', mode === 'single' ? 'Quick Answer' : 'Deep Analysis (4 angles)'],
+    ['Checks', `${deskCount} market angle${deskCount === 1 ? '' : 's'}`],
     [
-      'Packet',
+      'Data Source',
       dataQuality === 'complete' || !dataQuality ? 'Verified against live feed' : dataQuality,
     ],
   ];
@@ -139,9 +139,9 @@ export function SyndicateDossierCard({
 
   // Clean vector iconography without redundant OS emoji prefixes.
   const tabs: Array<{ id: DossierTab; label: string; icon: typeof IconUsers }> = [
-    { id: 'desks', label: `4 Desks (${doneDesks}/${doneDesks || 4})`, icon: IconUsers },
-    { id: 'clash', label: `Alignment${levels.dissent ? ' (split)' : ''}`, icon: IconSwords },
-    { id: 'data', label: 'Data & Sources', icon: IconDatabase },
+    { id: 'desks', label: `4 Angles (${doneDesks}/${doneDesks || 4})`, icon: IconUsers },
+    { id: 'clash', label: `Agreement${levels.dissent ? ' (mixed)' : ''}`, icon: IconSwords },
+    { id: 'data', label: 'Data Checked', icon: IconDatabase },
   ];
 
   return (
@@ -164,7 +164,7 @@ export function SyndicateDossierCard({
         <div className="border-brand/30 bg-brand/[0.04] flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2">
           <span className="text-brand inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold tracking-wider uppercase">
             <IconUsers className="size-3.5" strokeWidth={1.85} />
-            <span>4 Desks &amp; Cross-Examination open in War Room</span>
+            <span>Full 4-angle breakdown open in side panel</span>
           </span>
           {onOpenWarRoom ? (
             <button

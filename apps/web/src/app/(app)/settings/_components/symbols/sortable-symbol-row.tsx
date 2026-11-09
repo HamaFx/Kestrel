@@ -100,7 +100,7 @@ export function SortableSymbolRow({
         <div className="flex min-w-0 flex-col">
           <div className="flex items-baseline gap-2">
             <span className="text-fg font-mono text-sm font-semibold">{item.symbol}</span>
-            <span className="surface-chip text-fg-subtle shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase">
+            <span className="surface-chip text-fg-subtle shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[11px] font-medium uppercase">
               {item.category}
             </span>
           </div>
@@ -114,7 +114,7 @@ export function SortableSymbolRow({
             {price !== undefined ? price.toFixed(decimals) : '\u2014'}
           </span>
           {price !== undefined && (
-            <span className="text-info font-mono text-[10px] tracking-wider uppercase">Live</span>
+            <span className="text-info font-mono text-[11px] tracking-wider uppercase">Live</span>
           )}
         </div>
 

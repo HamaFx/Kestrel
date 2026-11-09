@@ -60,9 +60,9 @@ export function useMarketSessions() {
     sessions,
     isKillzoneActive,
     killzoneLabel: isLondonNyOverlap
-      ? 'OVERLAP'
+      ? 'LON/NY OVERLAP'
       : isNyOpenKillzone
-        ? 'NY KILLZONE'
-        : 'LON KILLZONE',
+        ? 'NY OPEN'
+        : 'LONDON OPEN',
   };
 }

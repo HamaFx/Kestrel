@@ -71,13 +71,13 @@ export function DeskTabs({
             onClick={() => onSelect(tab.id)}
             className={
               isActive
-                ? 'bg-bg-elev-2 text-fg border-brand/40 rounded-md border px-3 py-1.5 text-xs font-semibold'
-                : 'text-fg-subtle hover:text-fg rounded-md border border-transparent px-3 py-1.5 text-xs font-semibold'
+                ? 'bg-bg-elev-2 text-fg border-brand/40 rounded-lg border px-3 py-1.5 text-xs font-semibold'
+                : 'text-fg-subtle hover:text-fg rounded-lg border border-transparent px-3 py-1.5 text-xs font-semibold'
             }
           >
             {tab.label}
             {counts[tab.id] > 0 ? (
-              <span className="text-fg-subtle ml-1 font-mono text-[10px]">{counts[tab.id]}</span>
+              <span className="text-fg-subtle ml-1 font-mono text-[11px]">{counts[tab.id]}</span>
             ) : null}
           </button>
         );
@@ -86,7 +86,7 @@ export function DeskTabs({
         type="button"
         onClick={onRefresh}
         disabled={loading}
-        className="text-fg-subtle hover:text-fg ml-auto inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-semibold disabled:opacity-50"
+        className="text-fg-subtle hover:text-fg ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold disabled:opacity-50"
       >
         {loading ? (
           <IconLoader2 className="size-3.5 animate-spin" />

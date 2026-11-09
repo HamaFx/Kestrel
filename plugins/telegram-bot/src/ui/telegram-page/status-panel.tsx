@@ -36,8 +36,8 @@ function StatusPill({ ok, label }: { ok: boolean; label: string }) {
     <span
       className={
         ok
-          ? 'bg-success/10 text-success inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono text-[11px] font-bold tracking-wider uppercase'
-          : 'bg-warn/10 text-warn inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono text-[11px] font-bold tracking-wider uppercase'
+          ? 'bg-success/10 text-success inline-flex items-center gap-1 rounded-lg px-2.5 py-0.5 font-mono text-[11px] font-bold tracking-wider uppercase'
+          : 'bg-warn/10 text-warn inline-flex items-center gap-1 rounded-lg px-2.5 py-0.5 font-mono text-[11px] font-bold tracking-wider uppercase'
       }
     >
       {ok ? <IconCheck className="size-3" /> : <IconAlertTriangle className="size-3" />}
@@ -59,7 +59,7 @@ function Row({
 }) {
   return (
     <div className="border-border/50 flex items-center gap-3 border-b py-3 last:border-b-0">
-      <span className="bg-bg-elev-2 text-fg-muted flex size-9 shrink-0 items-center justify-center rounded-md">
+      <span className="bg-bg-elev-2 text-fg-muted flex size-9 shrink-0 items-center justify-center rounded-lg">
         {icon}
       </span>
       <div className="flex min-w-0 flex-1 flex-col">
@@ -87,7 +87,7 @@ export function StatusPanel({
   onTest: () => void;
 }) {
   return (
-    <section className="surface-panel rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]">
+    <section className="surface-panel border-border bg-bg-elev-1 rounded-xl border p-5 shadow-[var(--shadow-chip)]">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <span className="bg-brand/10 text-brand flex size-11 items-center justify-center rounded-lg">
@@ -100,11 +100,11 @@ export function StatusPanel({
               </h2>
               <StatusPill
                 ok={Boolean(status?.connected)}
-                label={status?.connected ? 'Connected' : 'Not configured'}
+                label={status?.connected ? 'Connected' : 'Not Connected'}
               />
               <StatusPill
                 ok={Boolean(status?.linked)}
-                label={status?.linked ? 'Chat linked' : 'Chat not linked'}
+                label={status?.linked ? 'Chat Connected' : 'Chat Not Connected'}
               />
             </div>
             <p className="text-fg-subtle text-sm">
@@ -116,7 +116,7 @@ export function StatusPanel({
           type="button"
           onClick={onRefresh}
           disabled={loading}
-          className="text-fg-subtle hover:text-fg border-border/60 inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold transition-colors disabled:opacity-50"
+          className="text-fg-subtle hover:text-fg border-border bg-[#0e0f11]/90 inline-flex h-10 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors disabled:opacity-50"
         >
           {loading ? (
             <IconLoader2 className="size-3.5 animate-spin" />
@@ -133,23 +133,23 @@ export function StatusPanel({
           label="Webhook"
           value={
             status?.webhook.configured
-              ? `Configured${typeof status.webhook.pendingUpdateCount === 'number' ? ` · ${status.webhook.pendingUpdateCount} pending` : ''}`
-              : 'Not configured — finish the guided setup'
+              ? `Connected${typeof status.webhook.pendingUpdateCount === 'number' ? ` · ${status.webhook.pendingUpdateCount} pending` : ''}`
+              : 'Not connected — finish the guided setup'
           }
           action={
             <StatusPill
               ok={Boolean(status?.webhook.configured)}
-              label={status?.webhook.configured ? 'Ready' : 'Setup'}
+              label={status?.webhook.configured ? 'Connected' : 'Not Connected'}
             />
           }
         />
         <Row
           icon={<IconMessageCircle className="size-4" />}
-          label="Linked chat"
+          label="Connected chat"
           value={
             status?.linked
               ? `${status.linked.chatId}${status.linked.linkedAt ? ` · since ${new Date(status.linked.linkedAt).toLocaleDateString()}` : ''}`
-              : 'No chat linked yet'
+              : 'No chat connected yet'
           }
           action={
             status?.linked ? (
@@ -157,14 +157,14 @@ export function StatusPanel({
                 type="button"
                 onClick={onUnlink}
                 disabled={busy !== null}
-                className="text-fg-subtle hover:text-danger inline-flex h-9 items-center gap-1.5 rounded-md px-2 text-xs font-semibold transition-colors disabled:opacity-50"
+                className="text-fg-subtle hover:text-danger inline-flex h-10 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition-colors disabled:opacity-50"
               >
                 {busy === 'unlink' ? (
                   <IconLoader2 className="size-3.5 animate-spin" />
                 ) : (
                   <IconUnlink className="size-3.5" />
                 )}
-                Unlink
+                Disconnect
               </button>
             ) : null
           }
@@ -190,7 +190,7 @@ export function StatusPanel({
           icon={<IconSend className="size-4" />}
           label="Alert notifications"
           value={
-            status?.settings.alertsEnabled ? 'On — Telegram alerts are delivered here' : 'Muted'
+            status?.settings.alertsEnabled ? 'On — Telegram alerts are delivered here' : 'Off'
           }
           action={
             status?.linked ? (
@@ -198,14 +198,14 @@ export function StatusPanel({
                 type="button"
                 onClick={onTest}
                 disabled={busy !== null}
-                className="border-border/60 text-fg-muted hover:text-fg inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold transition-colors disabled:opacity-50"
+                className="border-border bg-[#0e0f11]/90 text-fg-muted hover:text-fg inline-flex h-10 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors disabled:opacity-50"
               >
                 {busy === 'test' ? (
                   <IconLoader2 className="size-3.5 animate-spin" />
                 ) : (
                   <IconSend className="size-3.5" />
                 )}
-                Test
+                Send Test
               </button>
             ) : null
           }

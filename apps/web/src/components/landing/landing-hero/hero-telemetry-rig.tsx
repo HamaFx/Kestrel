@@ -2,22 +2,21 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Right column of the landing hero: the interactive hardware telemetry rig
-// framed by the Horus & Obelisk 3-layer blueprint engravings, with an
-// interactive viewport toggle (3-Layer Sovereign Plate vs 3D Hologram), a
-// 4-desk consensus matrix, and the committee trade plan.
-import { IconBolt, IconCube, IconStack2 } from '@tabler/icons-react';
+// Right column of the landing hero: clean live market & trade setup summary
+// preview showing price, key support/resistance levels, risk/reward, the 4
+// analysis angles (Economy & News, Chart & Price Levels, Risk & Trade Sizing,
+// Positioning & Sentiment), and an optional 3D view.
+import { IconBolt, IconChartCandle, IconCube } from '@tabler/icons-react';
 import { m } from 'motion/react';
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
 
-import { BlueprintPlate, type BlueprintPlateId } from '@/components/brand/blueprint-plates';
 import { cn } from '@/lib/formatters/cn';
 
 import { SYMBOLS, type DeskBias } from './telemetry';
 
 const Landing3DHologram = dynamic(
-  () => import('@/components/landing/landing-3d-hologram').then((m) => m.Landing3DHologram),
+  () => import('@/components/landing/landing-3d-hologram').then((mod) => mod.Landing3DHologram),
   { ssr: false },
 );
 
@@ -32,20 +31,28 @@ const BIAS_STYLES: Record<DeskBias, string> = {
   GUARD: 'border-warn/30 bg-warn/10 text-warn',
 };
 
-const SYMBOL_PLATES: readonly BlueprintPlateId[] = ['horus', 'obelisk', 'arbiter'];
-
 export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTelemetryRigProps) {
-  const [viewportMode, setViewportMode] = useState<'plate' | 'hologram'>('plate');
+  const [viewportMode, setViewportMode] = useState<'preview' | 'hologram'>('preview');
   const active = SYMBOLS[activeSymbolIndex] ?? SYMBOLS[0]!;
-  const activePlateId = SYMBOL_PLATES[activeSymbolIndex % SYMBOL_PLATES.length] ?? 'horus';
 
-  const desks = [
-    { code: 'DESK-I', label: 'HORUS', read: active.macroSignal, bias: active.macroBias },
-    { code: 'DESK-II', label: 'ASTROLABE', read: active.techSignal, bias: active.techBias },
-    { code: 'DESK-III', label: 'AEGIS', read: active.riskSignal, bias: active.riskBias },
+  const analysisAngles = [
     {
-      code: 'DESK-IV',
-      label: 'SENTINEL',
+      label: 'Economy & News',
+      read: active.macroSignal,
+      bias: active.macroBias,
+    },
+    {
+      label: 'Chart & Price Levels',
+      read: active.techSignal,
+      bias: active.techBias,
+    },
+    {
+      label: 'Risk & Trade Sizing',
+      read: active.riskSignal,
+      bias: active.riskBias,
+    },
+    {
+      label: 'Positioning & Sentiment',
       read: active.sentimentSignal,
       bias: active.sentimentBias,
     },
@@ -53,20 +60,13 @@ export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTele
 
   return (
     <div className="relative lg:col-span-5">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -inset-6 z-0 opacity-75 sm:-inset-10"
-      >
-        <BlueprintPlate id={activePlateId} showRasterBackup className="h-full w-full" />
-      </div>
-
       <div className="surface-panel relative z-10 overflow-hidden rounded-2xl border border-white/15 bg-[#141516]/95 p-4 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.12)] sm:p-6">
         {/* Header Status & Symbol Switcher */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3.5">
           <div className="flex items-center gap-2">
             <span className="bg-bull size-2 rounded-full" />
             <span className="text-fg font-mono text-xs font-bold tracking-wider uppercase">
-              COMMITTEE BRIEFING
+              LIVE MARKET & SETUP PREVIEW
             </span>
           </div>
 
@@ -80,7 +80,7 @@ export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTele
                   type="button"
                   onClick={() => onSelectSymbol(idx)}
                   className={cn(
-                    'relative rounded px-2.5 py-1 font-mono text-[10px] font-semibold transition-colors duration-200 active:translate-y-[0.5px]',
+                    'relative rounded px-2.5 py-1 font-mono text-[11px] font-semibold transition-colors duration-200 active:translate-y-[0.5px]',
                     isSelected ? 'text-white' : 'text-fg-subtle hover:text-fg hover:bg-white/5',
                   )}
                 >
@@ -102,7 +102,7 @@ export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTele
         <div key={active.symbol}>
           {/* Price Display */}
           <div className="surface-well my-3.5 rounded-xl border border-white/5 bg-[#0b0c0d] p-3.5 sm:p-4">
-            <div className="flex items-baseline justify-between">
+            <div className="flex items-baseline justify-between gap-2">
               <span className="text-fg-subtle font-sans text-xs tracking-wider uppercase">
                 {active.name}
               </span>
@@ -115,65 +115,112 @@ export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTele
                 {active.isPositive ? '▲' : '▼'} {active.change}
               </span>
             </div>
-            <div className="mt-1 flex items-baseline justify-between">
+            <div className="mt-1 flex items-baseline justify-between gap-2">
               <div className="text-fg font-mono text-2xl font-bold tracking-tight tabular-nums sm:text-4xl">
                 {active.price}
               </div>
-              <span className="text-fg-subtle font-mono text-[11px]">Spread: {active.spread}</span>
+              <div className="text-fg-subtle flex flex-col items-end font-mono text-[11px]">
+                <span>Spread: {active.spread}</span>
+                <span>{active.atrNote}</span>
+              </div>
             </div>
           </div>
 
-          {/* ── Sovereign 3-Layer Brand Plate + 3D Hologram Dual Viewport ── */}
-          <div className="my-3 flex flex-col gap-2">
+          {/* ── Clean Live Market Levels & Risk/Reward Preview + Optional 3D Toggle ── */}
+          <div className="my-3 flex flex-col gap-2.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-fg-subtle font-mono text-[9px] tracking-[0.16em] uppercase">
-                SOVEREIGN VISUAL ENGINE
+              <span className="text-fg-subtle font-mono text-[11px] tracking-wider uppercase">
+                {active.sessionLabel}
               </span>
               <div className="flex items-center gap-1 rounded-md border border-white/10 bg-black/50 p-0.5">
                 <button
                   type="button"
-                  onClick={() => setViewportMode('plate')}
+                  onClick={() => setViewportMode('preview')}
                   className={cn(
-                    'inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[9px] font-semibold tracking-wider uppercase transition-colors',
-                    viewportMode === 'plate'
+                    'inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[11px] font-semibold tracking-wider uppercase transition-colors',
+                    viewportMode === 'preview'
                       ? 'bg-brand text-white'
                       : 'text-fg-subtle hover:text-fg',
                   )}
                 >
-                  <IconStack2 className="size-3" />
-                  3-Layer Plate
+                  <IconChartCandle className="size-3.5" />
+                  Key Levels
                 </button>
                 <button
                   type="button"
                   onClick={() => setViewportMode('hologram')}
                   className={cn(
-                    'inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[9px] font-semibold tracking-wider uppercase transition-colors',
+                    'inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[11px] font-semibold tracking-wider uppercase transition-colors',
                     viewportMode === 'hologram'
                       ? 'bg-brand text-white'
                       : 'text-fg-subtle hover:text-fg',
                   )}
                 >
-                  <IconCube className="size-3" />
-                  3D Hologram
+                  <IconCube className="size-3.5" />
+                  3D View
                 </button>
               </div>
             </div>
 
-            {viewportMode === 'plate' ? (
-              <BlueprintPlate
-                id={activePlateId}
-                variant="showcase"
-                showRasterBackup
-                allowLayerToggle
-                className="h-[236px] w-full sm:h-[248px]"
-              />
-            ) : (
-              <div className="relative flex h-[236px] w-full items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/60 shadow-inner sm:h-[248px]">
-                <div className="text-fg-subtle absolute top-2.5 left-3 z-10 flex items-center gap-2 font-mono text-[9px] select-none">
-                  <span className="bg-brand size-1.5 rounded-full" />
-                  <span>MULTI-DESK CONSENSUS ENGINE</span>
+            {viewportMode === 'preview' ? (
+              <div className="surface-well flex flex-col justify-between gap-3 rounded-xl border border-white/10 bg-[#0b0c0d] p-3.5 sm:p-4">
+                {/* Support & Resistance Level Cards */}
+                <div className="grid grid-cols-2 gap-2.5 font-mono">
+                  <div className="rounded-lg border border-white/5 bg-black/50 p-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-fg-subtle text-[11px] uppercase">Key Support</span>
+                      <span className="text-bull text-[11px] font-semibold">S1 Floor</span>
+                    </div>
+                    <div className="text-fg mt-1 text-sm font-bold tabular-nums">
+                      {active.supportLevel}
+                    </div>
+                    <div className="text-fg-muted mt-0.5 font-sans text-[11px]">
+                      {active.supportNote}
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-white/5 bg-black/50 p-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-fg-subtle text-[11px] uppercase">Key Resistance</span>
+                      <span className="text-brand text-[11px] font-semibold">R1 Ceiling</span>
+                    </div>
+                    <div className="text-fg mt-1 text-sm font-bold tabular-nums">
+                      {active.resistanceLevel}
+                    </div>
+                    <div className="text-fg-muted mt-0.5 font-sans text-[11px]">
+                      {active.resistanceNote}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-brand/80 pointer-events-none absolute right-3 bottom-2 z-10 font-mono text-[9px] select-none">
+
+                {/* Visual Range Position Meter */}
+                <div className="rounded-lg border border-white/5 bg-black/40 px-3 py-2.5">
+                  <div className="mb-1.5 flex items-center justify-between font-mono text-[11px]">
+                    <span className="text-bear">SL {active.invalidation}</span>
+                    <span className="text-fg font-semibold">Entry {active.entry}</span>
+                    <span className="text-bull">TP1 {active.target1}</span>
+                  </div>
+                  <div className="relative h-2 w-full overflow-hidden rounded-full bg-white/10">
+                    <div className="bg-bear/60 absolute inset-y-0 left-0 w-[26%]" />
+                    <div className="bg-bull/70 absolute inset-y-0 right-0 left-[26%]" />
+                    <div
+                      aria-hidden="true"
+                      className="absolute top-0 bottom-0 left-[26%] w-1 bg-white shadow-[0_0_6px_#ffffff]"
+                    />
+                  </div>
+                  <div className="text-fg-subtle mt-1.5 flex items-center justify-between font-mono text-[11px]">
+                    <span>Risk/Reward: {active.rr}</span>
+                    <span>Size: {active.riskSize} (≤ 1.0% Max)</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="relative flex h-[196px] w-full items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/60 shadow-inner sm:h-[208px]">
+                <div className="text-fg-subtle absolute top-2.5 left-3 z-10 flex items-center gap-2 font-mono text-[11px] select-none">
+                  <span className="bg-brand size-1.5 rounded-full" />
+                  <span>MULTI-ANGLE CONSENSUS ENGINE</span>
+                </div>
+                <div className="text-brand/80 pointer-events-none absolute right-3 bottom-2 z-10 font-mono text-[11px] select-none">
                   DRAG TO INSPECT
                 </div>
                 <Landing3DHologram className="h-full w-full" />
@@ -181,33 +228,31 @@ export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTele
             )}
           </div>
 
-          {/* 4-Desk Live Consensus Matrix */}
-          <div className="border-y border-white/[0.07]">
-            <div className="text-fg-subtle flex items-center justify-between py-1.5 font-mono text-[9px] tracking-[0.18em] uppercase">
-              <span>4-Desk Consensus Matrix</span>
-              <span className="text-fg-subtle/70 tabular-nums">{active.conviction}%</span>
+          {/* 4 Analysis Angles Breakdown */}
+          <div className="border-y border-white/[0.07] py-2">
+            <div className="text-fg-subtle flex items-center justify-between pb-1.5 font-mono text-[11px] tracking-wider uppercase">
+              <span>4 Analysis Angles</span>
+              <span className="text-fg font-semibold tabular-nums">
+                {active.conviction}% Alignment
+              </span>
             </div>
             <div className="divide-y divide-white/[0.06]">
-              {desks.map((desk) => (
+              {analysisAngles.map((angle) => (
                 <div
-                  key={desk.code}
-                  className="grid grid-cols-[52px_1fr_auto] items-center gap-2 py-1.5"
+                  key={angle.label}
+                  className="grid grid-cols-[1fr_auto] items-center gap-2 py-2"
                 >
-                  <span className="text-fg-subtle font-mono text-[9px] tracking-wider">
-                    {desk.code}
-                  </span>
-                  <span className="text-fg-muted truncate font-mono text-[10px]">
-                    <span className="text-fg/80 font-semibold">{desk.label}</span>
-                    <span className="text-fg-subtle/60 mx-1">·</span>
-                    {desk.read}
-                  </span>
+                  <div className="min-w-0">
+                    <div className="text-fg font-sans text-xs font-semibold">{angle.label}</div>
+                    <div className="text-fg-muted truncate font-mono text-[11px]">{angle.read}</div>
+                  </div>
                   <span
                     className={cn(
-                      'rounded border px-1.5 py-0.5 font-mono text-[9px] font-bold tracking-wider',
-                      BIAS_STYLES[desk.bias],
+                      'rounded border px-2 py-0.5 font-mono text-[11px] font-bold tracking-wider',
+                      BIAS_STYLES[angle.bias],
                     )}
                   >
-                    {desk.bias}
+                    {angle.bias}
                   </span>
                 </div>
               ))}
@@ -219,10 +264,10 @@ export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTele
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <span className="text-fg font-mono text-xs font-bold uppercase">
-                  Committee Trade Plan
+                  Trade Setup Summary
                 </span>
-                <span className="text-brand bg-brand/10 border-brand/20 rounded border px-1.5 py-0.5 font-mono text-[10px]">
-                  {active.conviction}% Conviction
+                <span className="text-brand bg-brand/10 border-brand/20 rounded border px-1.5 py-0.5 font-mono text-[11px]">
+                  {active.rr} R:R
                 </span>
               </div>
               <span
@@ -239,21 +284,21 @@ export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTele
 
             <div className="mt-3 grid grid-cols-3 gap-2 text-center font-mono text-xs tabular-nums">
               <div className="surface-well rounded-lg border border-white/5 bg-[#0a0b0c] p-2">
-                <span className="text-fg-subtle block text-[10px]">ENTRY</span>
+                <span className="text-fg-subtle block text-[11px]">ENTRY</span>
                 <span className="text-fg font-bold">{active.entry}</span>
               </div>
               <div className="surface-well rounded-lg border border-white/5 bg-[#0a0b0c] p-2">
-                <span className="text-bear block text-[10px]">INVALIDATION</span>
+                <span className="text-bear block text-[11px]">STOP LOSS</span>
                 <span className="text-bear font-bold">{active.invalidation}</span>
               </div>
               <div className="surface-well rounded-lg border border-white/5 bg-[#0a0b0c] p-2">
-                <span className="text-bull block text-[10px]">TARGET ({active.rr})</span>
+                <span className="text-bull block text-[11px]">TARGET ({active.rr})</span>
                 <span className="text-bull font-bold">{active.target2}</span>
               </div>
             </div>
-            <p className="text-fg-subtle mt-2 flex items-center gap-1.5 font-mono text-[9px]">
-              <IconBolt className="text-brand size-3" />
-              ILLUSTRATIVE COMMITTEE OUTPUT · NOT A LIVE SIGNAL
+            <p className="text-fg-subtle mt-2 flex items-center gap-1.5 font-mono text-[11px]">
+              <IconBolt className="text-brand size-3.5" />
+              SAMPLE RESEARCH OUTPUT · FOR EDUCATIONAL PREVIEW
             </p>
           </div>
         </div>

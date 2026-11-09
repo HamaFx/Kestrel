@@ -23,7 +23,7 @@ import { cn } from '@/lib/formatters/cn';
 import { handleRadioKeyDown } from '@/lib/formatters/datetime';
 
 type ImportanceFilter = Importance | 'all';
-type CurrencyFilter = 'USD' | 'EUR' | 'GBP' | 'all';
+type CurrencyFilter = 'USD' | 'EUR' | 'GBP' | 'JPY' | 'AUD' | 'CAD' | 'CHF' | 'NZD' | 'all';
 
 interface CalendarToolbarProps {
   importance: ImportanceFilter;
@@ -53,6 +53,11 @@ const CURRENCIES: Array<{ value: CurrencyFilter; label: string }> = [
   { value: 'USD', label: 'USD' },
   { value: 'EUR', label: 'EUR' },
   { value: 'GBP', label: 'GBP' },
+  { value: 'JPY', label: 'JPY' },
+  { value: 'AUD', label: 'AUD' },
+  { value: 'CAD', label: 'CAD' },
+  { value: 'CHF', label: 'CHF' },
+  { value: 'NZD', label: 'NZD' },
 ];
 
 export function CalendarToolbar({

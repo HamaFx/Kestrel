@@ -17,7 +17,7 @@ export function NewThesisButton({ collapsed = false }: { collapsed?: boolean }) 
     <Link
       href="/chat?new=1"
       prefetch={true}
-      aria-label="New thesis"
+      aria-label="New analysis"
       className={cn(
         'group tactile-press border-brand/45 relative flex items-center overflow-hidden rounded-lg border select-none',
         'from-brand/[0.18] via-brand/[0.08] to-brand/[0.03] bg-gradient-to-b',
@@ -34,7 +34,7 @@ export function NewThesisButton({ collapsed = false }: { collapsed?: boolean }) 
         </span>
         {!collapsed ? (
           <span className="text-fg font-sans text-[12.5px] font-medium tracking-tight">
-            New thesis
+            New analysis
           </span>
         ) : null}
       </span>
@@ -51,7 +51,7 @@ export function NewThesisButton({ collapsed = false }: { collapsed?: boolean }) 
 
   if (collapsed) {
     return (
-      <Tooltip label="New thesis" side="right" className="w-full justify-center">
+      <Tooltip label="New analysis" side="right" className="w-full justify-center">
         {button}
       </Tooltip>
     );

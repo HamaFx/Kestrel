@@ -25,7 +25,6 @@ import { IconPlayerPlay, IconRefresh } from '@tabler/icons-react';
 import { AnimatePresence, m } from 'motion/react';
 import { useState } from 'react';
 
-import { BlueprintPlate, type BlueprintPlateId } from '@/components/brand/blueprint-plates';
 import { Button } from '@/components/ui/button';
 import { useCopied } from '@/hooks/use-copied';
 import { cn } from '@/lib/formatters/cn';
@@ -40,16 +39,10 @@ export function LandingSimulator() {
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>('london-sweep');
   const [simulationStage, setSimulationStage] = useState<SimulationStage>('idle');
   const [riskSlider, setRiskSlider] = useState<number>(1.0);
-  const [copiedHash, markCopiedHash] = useCopied(2000);
+  const [copiedSummary, markCopiedSummary] = useCopied(2000);
 
   const scenario = SCENARIOS.find((s) => s.id === selectedScenarioId) ?? SCENARIOS[0]!;
   const isVetoed = riskSlider > 1.0;
-  const scenarioPlateMap: Record<string, BlueprintPlateId> = {
-    'london-sweep': 'eclipse',
-    'fomc-rate': 'obelisk',
-    'cpi-shock': 'aegis',
-  };
-  const activeScenarioPlate = isVetoed ? 'aegis' : (scenarioPlateMap[scenario.id] ?? 'eclipse');
 
   const handleRunDeliberation = () => {
     setSimulationStage('voting');
@@ -70,9 +63,9 @@ export function LandingSimulator() {
     setSimulationStage('idle');
   };
 
-  const handleCopyHash = (text: string) => {
+  const handleCopySummary = (text: string) => {
     void navigator.clipboard?.writeText(text);
-    markCopiedHash();
+    markCopiedSummary();
   };
 
   const handleRestoreLimit = () => setRiskSlider(1.0);
@@ -82,30 +75,22 @@ export function LandingSimulator() {
       id="simulator"
       className="relative overflow-hidden border-t border-white/5 bg-[#0d0e0f] py-28 lg:py-36"
     >
-      {/* ── Aegis Risk Governor Blueprint (raster backup preserved) ── */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute top-8 right-0 z-0 h-[380px] w-full opacity-40 select-none sm:h-[480px] lg:right-4 lg:h-[620px] lg:w-[46%]"
-      >
-        <BlueprintPlate id="aegis" showRasterBackup className="h-full w-full" />
-      </div>
-
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="mx-auto mb-14 flex max-w-3xl flex-col items-center gap-4 text-center">
           <div className="border-brand/30 bg-brand/10 inline-flex items-center gap-2 rounded-full border px-3.5 py-1 font-mono text-xs">
             <span className="bg-brand size-2 rounded-full" />
             <span className="text-brand font-semibold tracking-wider uppercase">
-              Interactive Committee Simulator
+              Interactive Trade Plan Simulator
             </span>
           </div>
 
           <h2 className="font-display text-fg text-3xl font-normal tracking-[-0.03em] sm:text-5xl">
-            TEST THE 4-DESK{' '}
+            TEST THE 4-ANGLE{' '}
             <span className="font-redaction-35 text-brand italic">Decision Loop</span>
           </h2>
           <p className="text-fg-muted font-sans text-base leading-relaxed">
-            Pick a real market scenario below and run the 4-desk analysis. Test how Kestrel scores
+            Pick a real market scenario below and run the 4-angle analysis. Test how Kestrel scores
             conviction, blocks unsafe risk above 1.0%, and builds a complete trade plan ready for
             your journal and price alerts.
           </p>
@@ -155,12 +140,15 @@ export function LandingSimulator() {
           {/* Top Bar: Event Catalyst & Deliberation Trigger */}
           <div className="flex flex-col justify-between gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-center">
             <div className="flex max-w-2xl flex-col gap-1">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-brand font-mono text-[11px] font-bold tracking-wider uppercase">
                   MARKET SCENARIO · {scenario.symbol}
                 </span>
-                <span className="text-fg-subtle py-0.2 rounded border border-white/10 bg-black/40 px-1.5 font-mono text-[10px]">
+                <span className="text-fg-subtle rounded border border-white/10 bg-black/40 px-2 py-0.5 font-mono text-[11px]">
                   {scenario.orderType}
+                </span>
+                <span className="text-fg-subtle rounded border border-white/10 bg-black/40 px-2 py-0.5 font-mono text-[11px]">
+                  R:R {scenario.rr}
                 </span>
               </div>
               <span className="text-fg font-sans text-sm font-medium">{scenario.catalyst}</span>
@@ -175,7 +163,7 @@ export function LandingSimulator() {
                   className="gap-2 font-mono text-xs font-semibold shadow-sm"
                 >
                   <IconPlayerPlay className="size-4" />
-                  Run 4-Desk Analysis
+                  Run 4-Angle Analysis
                 </Button>
               ) : (
                 <Button
@@ -189,16 +177,6 @@ export function LandingSimulator() {
                 </Button>
               )}
             </div>
-          </div>
-
-          <div className="my-4">
-            <BlueprintPlate
-              id={activeScenarioPlate}
-              variant="showcase"
-              showRasterBackup
-              allowLayerToggle
-              className="h-[188px] w-full sm:h-[208px]"
-            />
           </div>
 
           <SimulatorCanvas
@@ -223,8 +201,8 @@ export function LandingSimulator() {
             {simulationStage === 'verdict' && !isVetoed && (
               <VerifiedPlanCard
                 scenario={scenario}
-                copiedHash={copiedHash}
-                onCopyHash={handleCopyHash}
+                copiedHash={copiedSummary}
+                onCopyHash={handleCopySummary}
                 onDispatchBridge={handleDispatchBridge}
               />
             )}
@@ -234,8 +212,8 @@ export function LandingSimulator() {
             {simulationStage === 'dispatched' && (
               <DispatchedCard
                 scenario={scenario}
-                copiedHash={copiedHash}
-                onCopyHash={handleCopyHash}
+                copiedHash={copiedSummary}
+                onCopyHash={handleCopySummary}
                 onReset={handleReset}
               />
             )}

@@ -66,7 +66,7 @@ export function DocumentList({
             <IconBook className="text-fg-subtle size-3.5 shrink-0" />
             <div className="flex min-w-0 flex-1 flex-col">
               <span className="text-fg truncate text-xs font-semibold">{entry.title}</span>
-              <span className="text-fg-subtle font-mono text-[10px]">
+              <span className="text-fg-subtle font-mono text-[11px]">
                 {entry.key} · {entry.chars} chars · {fmtDate(entry.updatedAt)}
               </span>
             </div>
@@ -74,7 +74,7 @@ export function DocumentList({
               {entry.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="bg-bg-elev-2 text-fg-subtle rounded px-1.5 py-0.5 font-mono text-[10px]"
+                  className="bg-bg-elev-2 text-fg-subtle rounded-md px-1.5 py-0.5 font-mono text-[11px]"
                 >
                   {tag}
                 </span>
@@ -83,7 +83,7 @@ export function DocumentList({
                 type="button"
                 onClick={() => void form.remove(entry.key)}
                 disabled={form.busy !== null}
-                className="text-fg-subtle hover:text-danger ml-1 inline-flex size-7 items-center justify-center rounded-md disabled:opacity-40"
+                className="text-fg-subtle hover:text-danger ml-1 inline-flex size-8 items-center justify-center rounded-lg disabled:opacity-40"
                 aria-label={`Delete ${entry.title}`}
               >
                 <IconTrash className="size-3.5" />

@@ -234,7 +234,7 @@ export function CommandPalette({ onNewChat, installedPluginIds = [] }: CommandPa
                     </span>
                   </div>
                   <span className="text-brand font-semibold tracking-wider">
-                    KESTREL COMMAND // ⌘K
+                    Quick Switch · ⌘K
                   </span>
                 </div>
               </m.div>

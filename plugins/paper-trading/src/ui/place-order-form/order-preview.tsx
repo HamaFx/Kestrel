@@ -38,7 +38,7 @@ export function OrderPreview({
             : 'Virtual money only.'}
         </p>
       </div>
-      <div className="border-border/60 flex rounded-md border p-0.5">
+      <div className="border-border bg-[#0e0f11]/90 flex rounded-lg border p-0.5">
         {(['buy', 'sell'] as const).map((value) => (
           <button
             key={value}
@@ -47,9 +47,9 @@ export function OrderPreview({
             className={
               side === value
                 ? value === 'buy'
-                  ? 'bg-bull/15 text-bull rounded px-3 py-1 text-xs font-bold uppercase'
-                  : 'bg-bear/15 text-bear rounded px-3 py-1 text-xs font-bold uppercase'
-                : 'text-fg-subtle rounded px-3 py-1 text-xs font-bold uppercase'
+                  ? 'bg-bull/15 text-bull rounded-md px-3 py-1.5 text-xs font-bold uppercase'
+                  : 'bg-bear/15 text-bear rounded-md px-3 py-1.5 text-xs font-bold uppercase'
+                : 'text-fg-subtle rounded-md px-3 py-1.5 text-xs font-bold uppercase'
             }
           >
             {value}

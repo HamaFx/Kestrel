@@ -49,7 +49,7 @@ export function KnowledgeBase({
         <button
           type="button"
           onClick={form.toggleCreating}
-          className="border-border/60 text-fg-muted hover:text-fg inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold"
+          className="border-border bg-[#0e0f11]/90 text-fg-muted hover:text-fg inline-flex h-10 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors"
         >
           <IconPlus className="size-3.5" />
           {form.creating ? 'Close' : 'Add document'}

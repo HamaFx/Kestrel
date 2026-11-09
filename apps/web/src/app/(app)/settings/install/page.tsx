@@ -28,7 +28,7 @@ export const metadata: Metadata = {
 
 export default function InstallSettingsPage() {
   return (
-    <div className="flex max-w-2xl flex-col gap-6">
+    <div className="flex max-w-4xl flex-col gap-6">
       <div className="flex flex-col gap-1">
         <h2 className="text-fg text-lg font-semibold tracking-tight">Account & System</h2>
         <p className="text-fg-subtle text-sm">
@@ -40,7 +40,7 @@ export default function InstallSettingsPage() {
 
       <InstallAppCard />
 
-      <section className="border-border bg-bg-elev-1 flex flex-col gap-2 rounded-sm border p-4">
+      <section className="border-border bg-bg-elev-1 flex flex-col gap-2 rounded-xl border p-4">
         <h3 className="text-fg text-sm font-semibold">What installing adds</h3>
         <ul className="text-fg-muted text-caption flex list-disc flex-col gap-1.5 pl-4 leading-snug">
           <li>A home-screen or taskbar icon that opens the full workspace, not a browser tab.</li>

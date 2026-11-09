@@ -22,13 +22,13 @@ import { IconLoader2 } from '@tabler/icons-react';
 import type { KnowledgeBaseController } from './use-knowledge-base';
 
 const inputClass =
-  'border-border/60 bg-bg-elev-1 text-fg placeholder:text-fg-subtle focus:border-brand/60 h-9 rounded-md border px-2.5 text-xs outline-none';
+  'border-border bg-[#0e0f11]/90 text-fg placeholder:text-fg-subtle focus:border-brand/60 h-10 rounded-lg border px-3 text-xs outline-none';
 
 export function DocumentEditor({ form }: { form: KnowledgeBaseController }) {
   return (
     <form
       onSubmit={form.save}
-      className="surface-panel flex flex-col gap-2 rounded-xl border border-white/10 p-3"
+      className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-2.5 rounded-xl border p-4"
     >
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <input
@@ -59,7 +59,7 @@ export function DocumentEditor({ form }: { form: KnowledgeBaseController }) {
         rows={7}
         required
         minLength={20}
-        className="border-border/60 bg-bg-elev-1 text-fg focus:border-brand/60 rounded-md border p-3 font-mono text-[11px] leading-relaxed outline-none"
+        className="border-border bg-[#0e0f11]/90 text-fg focus:border-brand/60 rounded-lg border p-3 font-mono text-xs leading-relaxed outline-none"
       />
       <div className="flex justify-end">
         <button
@@ -67,7 +67,7 @@ export function DocumentEditor({ form }: { form: KnowledgeBaseController }) {
           disabled={
             form.busy !== null || form.title.trim().length === 0 || form.content.trim().length < 20
           }
-          className="bg-brand inline-flex h-9 items-center gap-2 rounded-md px-3 text-xs font-semibold text-white disabled:opacity-50"
+          className="bg-brand inline-flex h-10 items-center gap-2 rounded-lg px-4 text-xs font-semibold text-white disabled:opacity-50"
         >
           {form.busy === 'save' ? <IconLoader2 className="size-3.5 animate-spin" /> : null}
           Save document

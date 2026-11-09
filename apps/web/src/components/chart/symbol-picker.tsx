@@ -21,6 +21,7 @@
 // across ALL symbols so users can navigate to a symbol not in their watchlist.
 import { BUILTIN_SYMBOLS, type Symbol } from '@kestrel/shared';
 import { IconSearch } from '@tabler/icons-react';
+import { Link } from 'next-view-transitions';
 import { useMemo, useState } from 'react';
 
 import { Segmented } from '@/components/ui/segmented';
@@ -34,7 +35,6 @@ export function SymbolPicker({ active, watchlist }: { active: Symbol; watchlist:
   const filteredAll = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
-    // IconSearch all BUILTIN_SYMBOLS (not just the old 3) by internal symbol or display name
     return BUILTIN_SYMBOLS.filter(
       (s) =>
         !watchlist.includes(s.internal) &&
@@ -43,25 +43,13 @@ export function SymbolPicker({ active, watchlist }: { active: Symbol; watchlist:
   }, [query, watchlist]);
 
   const showSearch = watchlist.length > 0 || query.length > 0;
+  const noMatches =
+    Boolean(query) &&
+    filteredAll.length === 0 &&
+    watchlist.every((s) => !s.toLowerCase().includes(query.trim().toLowerCase()));
 
   return (
-    <div className="flex flex-col gap-2">
-      {showSearch ? (
-        <div className="relative">
-          <IconSearch
-            aria-hidden="true"
-            className="text-fg-subtle absolute top-1/2 left-3 size-4 -translate-y-1/2"
-          />
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search symbols…"
-            className="bg-bg-elev-1/60 text-fg placeholder:text-fg-subtle focus:border-border border-border h-11 w-full rounded-sm border pr-4 pl-10 text-[16px] focus:outline-none sm:text-sm"
-          />
-        </div>
-      ) : null}
-
+    <div className="relative flex flex-wrap items-center gap-2">
       <Segmented<Symbol>
         as="link"
         label="Symbol"
@@ -69,32 +57,50 @@ export function SymbolPicker({ active, watchlist }: { active: Symbol; watchlist:
         value={active}
         role="tablist"
         variant="accent"
+        size="sm"
         groupId="symbol-indicator"
         hrefFor={(s) => `/chart/${s}?tf=${tf}`}
-        options={watchlist.map((s) => ({ value: s, label: s }))}
+        options={watchlist.map((s) => ({ value: s as Symbol, label: s }))}
       />
 
-      {query && filteredAll.length > 0 ? (
-        <div className="flex flex-wrap gap-1">
-          {filteredAll.map((s) => (
-            <a
-              key={s}
-              href={`/chart/${s}?tf=${tf}`}
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-sm font-semibold tabular-nums transition-colors',
-                'text-fg-muted hover:text-fg hover:bg-bg-elev-2',
-              )}
-            >
-              {s}
-            </a>
-          ))}
-        </div>
-      ) : null}
+      {showSearch ? (
+        <div className="relative">
+          <IconSearch
+            aria-hidden="true"
+            className="text-fg-subtle pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2"
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search symbols…"
+            className="bg-bg-elev-1/80 text-fg placeholder:text-fg-subtle focus:border-brand/50 border-border h-9 w-36 rounded-lg border pr-2.5 pl-8 font-mono text-xs focus:outline-none sm:w-44"
+          />
 
-      {query &&
-      filteredAll.length === 0 &&
-      watchlist.every((s) => !s.toLowerCase().includes(query.trim().toLowerCase())) ? (
-        <p className="text-fg-subtle px-3 py-2 text-center text-sm">No symbols match.</p>
+          {query && (filteredAll.length > 0 || noMatches) ? (
+            <div className="border-border bg-bg-elev-1 absolute top-full left-0 z-30 mt-1.5 min-w-[14rem] rounded-xl border p-2 shadow-xl">
+              {filteredAll.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                  {filteredAll.map((s) => (
+                    <Link
+                      key={s}
+                      href={`/chart/${s}?tf=${tf}`}
+                      onClick={() => setQuery('')}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-mono text-xs font-semibold tabular-nums transition-colors',
+                        'text-fg-muted hover:text-fg hover:bg-bg-elev-2',
+                      )}
+                    >
+                      {s}
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-fg-subtle px-2 py-1.5 text-center text-xs">No symbols match.</p>
+              )}
+            </div>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

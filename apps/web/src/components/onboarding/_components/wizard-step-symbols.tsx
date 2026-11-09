@@ -19,6 +19,7 @@ import { IconCheck, IconChevronRight } from '@tabler/icons-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/select';
 
 interface WizardStepSymbolsProps {
   symbolsCatalog: SymbolCatalogRow[];
@@ -78,7 +79,7 @@ export function WizardStepSymbols({
               }}
               aria-pressed={active}
               aria-describedby={symbolsError ? 'onboarding-symbols-error' : undefined}
-              className={`hover:bg-bg-elev-2 relative flex min-h-11 cursor-pointer items-center justify-between rounded-sm border p-4 text-left transition-all ${
+              className={`hover:bg-bg-elev-2 relative flex min-h-11 cursor-pointer items-center justify-between rounded-xl border p-4 text-left transition-all ${
                 active
                   ? 'border-border bg-bg-elev-1 ring-fg ring-1'
                   : 'border-border bg-bg-elev-1 hover:border-fg-muted'
@@ -93,7 +94,7 @@ export function WizardStepSymbols({
                 </span>
               </div>
               <div
-                className={`flex size-5 items-center justify-center rounded-sm border transition-colors ${
+                className={`flex size-5 items-center justify-center rounded-lg border transition-colors ${
                   active ? 'bg-fg border-border text-black' : 'border-border bg-bg-elev-1'
                 }`}
               >
@@ -109,9 +110,9 @@ export function WizardStepSymbols({
           <label className="text-fg text-sm font-medium" htmlFor="onboarding-default-symbol">
             Default Chart Symbol
           </label>
-          <select
+          <Select
             id="onboarding-default-symbol"
-            className="border-border bg-bg-elev-1 text-fg focus:ring-fg h-11 w-full cursor-pointer rounded-sm border px-3 py-2 text-sm focus:ring-1 focus:outline-none"
+            className="rounded-lg"
             value={defaultSymbol}
             onChange={(e) => setDefaultSymbol(e.target.value)}
           >
@@ -120,7 +121,7 @@ export function WizardStepSymbols({
                 {sym}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       )}
 

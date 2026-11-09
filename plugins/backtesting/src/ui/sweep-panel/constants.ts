@@ -22,7 +22,7 @@ export interface ParamRow {
 }
 
 export const inputClass =
-  'border-border/60 bg-bg-elev-1 text-fg placeholder:text-fg-subtle focus:border-brand/60 h-9 w-full rounded-md border px-2.5 text-xs outline-none';
+  'border-border bg-[#0e0f11]/90 text-fg placeholder:text-fg-subtle focus:border-brand/60 h-10 w-full rounded-lg border px-3 text-xs outline-none';
 
 export const OBJECTIVES = [
   { value: 'expectancyR', label: 'Expectancy (R)' },

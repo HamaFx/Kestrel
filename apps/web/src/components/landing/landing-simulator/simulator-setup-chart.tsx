@@ -51,13 +51,25 @@ function formatPrice(value: number): string {
   });
 }
 
+interface SimulatorSetupChartScenario {
+  symbol: string;
+  action: string;
+  entry: string;
+  invalidation: string;
+  target1: string;
+  target2: string;
+  target3: string;
+  rr: string;
+  [key: string]: unknown;
+}
+
 export function SimulatorSetupChart({
   scenario,
   stage,
   isVetoed,
 }: {
-  scenario: Scenario;
-  stage: SimulationStage;
+  scenario: Scenario | SimulatorSetupChartScenario;
+  stage: SimulationStage | 'complete';
   isVetoed: boolean;
 }) {
   const entry = parsePrice(scenario.entry);
@@ -123,7 +135,7 @@ export function SimulatorSetupChart({
 
   return (
     <div className="my-5 rounded-xl border border-white/5 bg-black/40 p-3">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2 font-mono text-[10px]">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2 font-mono text-[11px]">
         <span className="text-fg-subtle flex items-center gap-1.5 font-semibold tracking-wider uppercase">
           <span className="bg-brand size-1.5 rounded-full" />
           Simulated setup bands
@@ -131,7 +143,7 @@ export function SimulatorSetupChart({
         <div className="flex items-center gap-1.5">
           <span
             className={cn(
-              'rounded-full border px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase',
+              'rounded-full border px-2 py-0.5 text-[11px] font-bold tracking-wider uppercase',
               isLong
                 ? 'border-bull/30 bg-bull/10 text-bull'
                 : 'border-bear/30 bg-bear/10 text-bear',
@@ -139,9 +151,9 @@ export function SimulatorSetupChart({
           >
             {scenario.action}
           </span>
-          <span className="text-fg-subtle text-[9px]">R:R {scenario.rr}</span>
+          <span className="text-fg-subtle text-[11px]">R:R {scenario.rr}</span>
           {isVetoed ? (
-            <span className="border-bear/30 bg-bear/10 text-bear rounded-full border px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase">
+            <span className="border-bear/30 bg-bear/10 text-bear rounded-full border px-2 py-0.5 text-[11px] font-bold tracking-wider uppercase">
               Veto
             </span>
           ) : null}
@@ -149,7 +161,7 @@ export function SimulatorSetupChart({
       </div>
 
       <div
-        className="surface-well relative grid h-48 grid-cols-[1fr_6.5rem] overflow-hidden rounded-lg border border-white/[0.05]"
+        className="surface-well relative grid h-48 grid-cols-[1fr_7.25rem] overflow-hidden rounded-lg border border-white/[0.05]"
         role="img"
         aria-label={`Simulated setup for ${scenario.symbol}: entry ${scenario.entry}, stop ${scenario.invalidation}, targets ${scenario.target1}, ${scenario.target2}, ${scenario.target3}`}
       >
@@ -236,7 +248,7 @@ export function SimulatorSetupChart({
             >
               <span
                 className={cn(
-                  'text-[8px] font-semibold tracking-wider uppercase',
+                  'text-[11px] font-semibold tracking-wider uppercase',
                   level.tone === 'bull'
                     ? 'text-bull'
                     : level.tone === 'bear'
@@ -246,7 +258,7 @@ export function SimulatorSetupChart({
               >
                 {level.label}
               </span>
-              <span className="text-fg text-[9px]">{formatPrice(level.price)}</span>
+              <span className="text-fg text-[11px]">{formatPrice(level.price)}</span>
             </div>
           ))}
         </div>

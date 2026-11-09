@@ -46,15 +46,15 @@ export function DockOpinionsPanel({
       <div className="border-border/40 mb-3.5 flex items-center justify-between border-b pb-2.5">
         <div className="flex items-center gap-2">
           <span className={cn('bg-brand size-2 rounded-full', isRunning && 'animate-pulse')} />
-          <span className="text-brand font-mono text-[10px] font-semibold tracking-wider uppercase">
-            SYNDICATE WAR ROOM
+          <span className="text-brand font-mono text-[11px] font-semibold tracking-wider uppercase">
+            4-ANGLE ANALYSIS
           </span>
         </div>
-        <span className="text-fg-subtle font-mono text-[10px] uppercase tabular-nums">
+        <span className="text-fg-subtle font-mono text-[11px] uppercase tabular-nums">
           {latest?.symbol ? `${latest.symbol} · ` : ''}
           {opinions.length > 0
-            ? `${doneCount}/${agents.length} DESKS · ${avgConfidence}% CONV`
-            : 'AWAITING COUNCIL'}
+            ? `${doneCount}/${agents.length} CHECKS · ${avgConfidence}% CONF`
+            : 'READY'}
         </span>
       </div>
 
@@ -82,11 +82,12 @@ export function DockOpinionsPanel({
           </div>
         )
       ) : (
-        <div className="surface-card border-border/40 bg-bg-elev-1 flex min-h-[300px] flex-col items-center justify-center gap-2 rounded-xl border p-6 text-center shadow-sm">
+        <div className="surface-card border-border/40 bg-bg-elev-1 flex min-h-[300px] flex-col items-center justify-center gap-2 rounded-xl border p-6 text-center">
           <IconUsers className="text-brand size-8 stroke-1" />
-          <p className="font-display text-fg text-sm font-normal">4-Desk Committee Ready</p>
+          <p className="font-display text-fg text-sm font-normal">Deep Analysis Breakdown</p>
           <p className="text-fg-muted max-w-xs font-sans text-xs leading-relaxed">
-            HORUS, ASTROLABE, AEGIS, and SENTINEL opinions synchronize here in real time.
+            Economy, Chart Levels, Risk Sizing, and Market Sentiment breakdowns appear here in real
+            time.
           </p>
         </div>
       )}

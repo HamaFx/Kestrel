@@ -2,8 +2,8 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// 4-desk conviction breakdown and the tug-of-war probability bar for the
-// landing simulator. Pure presentation: every value arrives via props.
+// 4-angle conviction breakdown, centerpiece SimulatorSetupChart, and the
+// tug-of-war probability bar for the landing simulator.
 import { m } from 'motion/react';
 
 import { cn } from '@/lib/formatters/cn';
@@ -19,30 +19,53 @@ interface SimulatorCanvasProps {
 
 export function SimulatorCanvas({ scenario, simulationStage, isVetoed }: SimulatorCanvasProps) {
   return (
-    <div className="my-8">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="my-6">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <span className="text-fg-subtle font-mono text-xs font-bold tracking-wider uppercase">
-          4-DESK CONVICTION BREAKDOWN
+          4-ANGLE CONVICTION BREAKDOWN
         </span>
         <span className="text-brand flex items-center gap-2 font-mono text-xs font-semibold">
           {simulationStage === 'voting' && (
             <>
               <span className="bg-brand size-2 rounded-full" />
-              <span>ANALYZING MARKET STRUCTURE & MACRO...</span>
+              <span>ANALYZING ECONOMY, LEVELS, RISK &amp; POSITIONING...</span>
             </>
           )}
           {simulationStage !== 'voting' && simulationStage !== 'idle' && (
-            <span>COMMITTEE CONSENSUS ({scenario.consensusScore}%)</span>
+            <span>OVERALL ALIGNMENT ({scenario.consensusScore}%)</span>
           )}
           {simulationStage === 'idle' && <span>READY TO ANALYZE</span>}
         </span>
       </div>
 
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-white/10 bg-white/[0.06] lg:grid-cols-4">
-        {/* Desk 1: Technical */}
+        {/* Angle 1: Economy & News */}
         <div className="bg-[#0f1011] p-4">
           <div className="mb-2 flex items-center justify-between font-mono text-xs">
-            <span className="text-bull font-bold uppercase">Technical</span>
+            <span className="text-info font-bold uppercase">Economy &amp; News</span>
+            <span className="text-fg font-bold tabular-nums">
+              {simulationStage === 'idle' ? '--' : `${scenario.macroScore}%`}
+            </span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-white/5">
+            <m.div
+              className="bg-info h-full rounded-full"
+              initial={{ width: 0 }}
+              animate={{
+                width: simulationStage !== 'idle' ? `${scenario.macroScore}%` : '0%',
+              }}
+              transition={{ duration: 0.9, ease: 'easeOut', delay: 0.05 }}
+            />
+          </div>
+          <p className="text-fg-muted mt-2 truncate font-sans text-[11px]">
+            Yields, DXY &amp; Rate Catalysts
+          </p>
+        </div>
+
+        {/* Angle 2: Chart & Price Levels */}
+        <div className="bg-[#0f1011] p-4">
+          <div className="mb-2 flex items-center justify-between font-mono text-xs">
+            <span className="text-bull font-bold uppercase">Chart &amp; Levels</span>
             <span className="text-fg font-bold tabular-nums">
               {simulationStage === 'idle' ? '--' : `${scenario.techScore}%`}
             </span>
@@ -58,37 +81,14 @@ export function SimulatorCanvas({ scenario, simulationStage, isVetoed }: Simulat
             />
           </div>
           <p className="text-fg-muted mt-2 truncate font-sans text-[11px]">
-            Swing Low Retest & Session Breakout
+            Swing Structure &amp; Session Levels
           </p>
         </div>
 
-        {/* Desk 2: Macro */}
+        {/* Angle 3: Risk & Trade Sizing */}
         <div className="bg-[#0f1011] p-4">
           <div className="mb-2 flex items-center justify-between font-mono text-xs">
-            <span className="text-info font-bold uppercase">Macro</span>
-            <span className="text-fg font-bold tabular-nums">
-              {simulationStage === 'idle' ? '--' : `${scenario.macroScore}%`}
-            </span>
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-white/5">
-            <m.div
-              className="bg-info h-full rounded-full"
-              initial={{ width: 0 }}
-              animate={{
-                width: simulationStage !== 'idle' ? `${scenario.macroScore}%` : '0%',
-              }}
-              transition={{ duration: 0.9, ease: 'easeOut', delay: 0.1 }}
-            />
-          </div>
-          <p className="text-fg-muted mt-2 truncate font-sans text-[11px]">
-            Yields, DXY & Rate Catalysts
-          </p>
-        </div>
-
-        {/* Desk 3: Risk */}
-        <div className="bg-[#0f1011] p-4">
-          <div className="mb-2 flex items-center justify-between font-mono text-xs">
-            <span className="text-warn font-bold uppercase">Risk</span>
+            <span className="text-warn font-bold uppercase">Risk &amp; Sizing</span>
             <span className={cn('font-bold tabular-nums', isVetoed ? 'text-bear' : 'text-fg')}>
               {simulationStage === 'idle' ? '--' : isVetoed ? 'VETO' : `${scenario.riskScore}%`}
             </span>
@@ -108,7 +108,7 @@ export function SimulatorCanvas({ scenario, simulationStage, isVetoed }: Simulat
                       : `${scenario.riskScore}%`
                     : '0%',
               }}
-              transition={{ duration: 0.7, ease: 'easeOut', delay: 0.2 }}
+              transition={{ duration: 0.7, ease: 'easeOut', delay: 0.15 }}
             />
           </div>
           <p className="text-fg-muted mt-2 truncate font-sans text-[11px]">
@@ -116,10 +116,10 @@ export function SimulatorCanvas({ scenario, simulationStage, isVetoed }: Simulat
           </p>
         </div>
 
-        {/* Desk 4: Sentiment */}
+        {/* Angle 4: Positioning & Sentiment */}
         <div className="bg-[#0f1011] p-4">
           <div className="mb-2 flex items-center justify-between font-mono text-xs">
-            <span className="text-brand font-bold uppercase">Whales</span>
+            <span className="text-brand font-bold uppercase">Positioning</span>
             <span className="text-fg font-bold tabular-nums">
               {simulationStage === 'idle' ? '--' : `${scenario.sentimentScore}%`}
             </span>
@@ -131,7 +131,7 @@ export function SimulatorCanvas({ scenario, simulationStage, isVetoed }: Simulat
               animate={{
                 width: simulationStage !== 'idle' ? `${scenario.sentimentScore}%` : '0%',
               }}
-              transition={{ duration: 0.85, ease: 'easeOut', delay: 0.15 }}
+              transition={{ duration: 0.85, ease: 'easeOut', delay: 0.1 }}
             />
           </div>
           <p className="text-fg-muted mt-2 truncate font-sans text-[11px]">
@@ -155,7 +155,7 @@ export function SimulatorCanvas({ scenario, simulationStage, isVetoed }: Simulat
               <span className="bg-bull size-1.5 rounded-full" />
               BULLISH PROBABILITY {scenario.bullProbability}%
             </span>
-            <span className="text-fg-subtle">COMMITTEE BIAS BALANCE</span>
+            <span className="text-fg-subtle">DIRECTIONAL BIAS BALANCE</span>
             <span className="text-bear flex items-center gap-1.5 font-semibold">
               BEARISH PROBABILITY {100 - scenario.bullProbability}%
               <span className="bg-bear size-1.5 rounded-full" />

@@ -128,15 +128,15 @@ export function TagInput({
       <div ref={containerRef} className="relative">
         <div
           className={cn(
-            'bg-bg-elev-1 flex min-h-[44px] flex-wrap items-center gap-1.5 rounded-sm border px-3 py-2 transition-all',
-            focused ? 'border-border ring-fg/10 ring-2' : 'border-border',
+            'bg-[#0e0f11]/90 flex min-h-[44px] flex-wrap items-center gap-1.5 rounded-lg border px-3 py-2 shadow-[var(--shadow-well)] transition-all',
+            focused ? 'border-brand/60 ring-brand/15 ring-2' : 'border-border hover:border-white/20',
           )}
           onClick={() => inputRef.current?.focus()}
         >
           {value.map((tag) => (
             <span
               key={tag}
-              className="bg-bg-elev-2 text-fg-muted text-body-sm inline-flex items-center gap-1 rounded-sm px-2 py-0.5"
+              className="bg-bg-elev-2 text-fg-muted text-body-sm inline-flex items-center gap-1 rounded-md px-2 py-0.5"
             >
               {tag}
               <button
@@ -158,12 +158,12 @@ export function TagInput({
             onKeyDown={handleKey}
             placeholder={value.length === 0 ? placeholder : ''}
             maxLength={maxTagLength}
-            className="text-fg placeholder:text-fg-subtle h-auto min-w-[80px] flex-1 border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="text-fg placeholder:text-fg-subtle h-auto min-w-[80px] flex-1 border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
           />
         </div>
 
         {focused && filtered.length > 0 && (
-          <ul className="bg-bg-elev-1 border-border absolute z-10 mt-1 w-full overflow-hidden rounded-sm border shadow-md">
+          <ul className="bg-bg-elev-1 border-border absolute z-10 mt-1 w-full overflow-hidden rounded-lg border shadow-lg">
             {filtered.map((s, i) => (
               <li key={s}>
                 <button

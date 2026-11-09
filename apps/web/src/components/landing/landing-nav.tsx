@@ -52,7 +52,7 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Brand Lockup */}
           <div className="flex items-center gap-6">
-            <KestrelBrand variant="lockup" href="/landing" label="Kestrel" />
+            <KestrelBrand variant="lockup" href="/" label="Kestrel" />
 
             <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 lg:flex">
               <span className="bg-bull size-2 rounded-full shadow-[0_0_8px_rgba(63,158,61,0.6)]" />

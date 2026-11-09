@@ -18,7 +18,7 @@
 
 export function CommandReference() {
   return (
-    <section className="surface-panel rounded-xl border border-white/10 p-5 shadow-[var(--shadow-chip)]">
+    <section className="surface-panel border-border bg-bg-elev-1 rounded-xl border p-5 shadow-[var(--shadow-chip)]">
       <h3 className="text-fg text-sm font-semibold">Command reference</h3>
       <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
         {[
@@ -35,10 +35,10 @@ export function CommandReference() {
         ].map(([command, description]) => (
           <div
             key={command}
-            className="border-border/50 bg-bg-elev-1/40 flex flex-col gap-0.5 rounded-md border p-2.5"
+            className="border-border/50 bg-[#0e0f11]/90 flex flex-col gap-0.5 rounded-lg border p-3"
           >
             <code className="text-fg font-mono text-xs">{command}</code>
-            <span className="text-fg-subtle text-[11px]">{description}</span>
+            <span className="text-fg-subtle text-xs">{description}</span>
           </div>
         ))}
       </div>

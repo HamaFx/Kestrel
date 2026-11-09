@@ -26,7 +26,7 @@ export function DispatchingCard({ scenario }: DispatchCardProps) {
     >
       <div className="text-brand mb-4 flex items-center gap-3 font-mono text-xs">
         <IconTerminal2 className="size-4 animate-spin" />
-        <span>LOGGING SETUP TO TRADE JOURNAL & ARMING PRICE ALERTS...</span>
+        <span>LOGGING SETUP TO TRADE JOURNAL &amp; ARMING PRICE ALERTS...</span>
       </div>
       <div className="surface-well text-bull/90 overflow-x-auto rounded-lg border border-white/10 bg-[#08090a] p-4 font-mono text-[11px]">
         <code>{scenario.journalSummary}</code>
@@ -58,12 +58,12 @@ export function DispatchedCard({ scenario, copiedHash, onCopyHash, onReset }: Di
         <IconCheck className="size-6" />
       </div>
       <h4 className="font-display text-fg text-xl font-normal tracking-tight">
-        SETUP LOGGED TO JOURNAL & PRICE ALERTS ARMED
+        SETUP LOGGED TO JOURNAL &amp; PRICE ALERTS ARMED
       </h4>
       <p className="text-fg-muted mx-auto mt-2 max-w-lg font-mono text-xs leading-relaxed">
-        Plan {scenario.txHash} has been saved to your Trade Journal with R-multiple targets and
-        instant Telegram, Browser Push, and Email alerts armed at Entry ({scenario.entry}),
-        Invalidation ({scenario.invalidation}), and TP1 ({scenario.target1}).
+        The {scenario.symbol} ({scenario.name}) setup has been saved to your Trade Journal with
+        R-multiple targets and instant Telegram, Browser Push, and Email alerts armed at Entry (
+        {scenario.entry}), Stop Loss ({scenario.invalidation}), and TP1 ({scenario.target1}).
       </p>
 
       <div className="mt-5 flex flex-wrap items-center justify-center gap-3">

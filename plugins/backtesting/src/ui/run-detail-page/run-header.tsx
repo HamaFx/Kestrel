@@ -40,7 +40,7 @@ export function RunHeader({
       <div className="flex items-start gap-3">
         <Link
           href="/plugins/backtesting"
-          className="text-fg-subtle hover:text-fg mt-1 inline-flex size-7 items-center justify-center rounded-md"
+          className="text-fg-subtle hover:text-fg mt-1 inline-flex size-8 items-center justify-center rounded-lg"
           aria-label="Back to Backtesting Lab"
         >
           <IconArrowLeft className="size-4" />
@@ -48,18 +48,17 @@ export function RunHeader({
         <div className="flex flex-col gap-0.5">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-fg text-lg font-semibold tracking-tight">{run.name}</h2>
-            <span className="bg-bg-elev-2 text-fg-subtle rounded px-2 py-0.5 font-mono text-[10px] uppercase">
+            <span className="bg-bg-elev-2 text-fg-subtle rounded-md px-2 py-0.5 font-mono text-[11px] uppercase">
               {run.symbol} · {run.timeframe}
             </span>
             {run.truncated ? (
-              <span className="bg-warn/10 text-warn rounded px-2 py-0.5 font-mono text-[10px] uppercase">
+              <span className="bg-warn/10 text-warn rounded-md px-2 py-0.5 font-mono text-[11px] uppercase">
                 preview
               </span>
             ) : null}
           </div>
-          <p className="text-fg-subtle font-mono text-[11px]">
-            {run.bars} bars · {fmtDate(run.from)} → {fmtDate(run.to)} · {run.trades.length} trades ·{' '}
-            {run.engineVersion}
+          <p className="text-fg-subtle font-mono text-xs">
+            {run.bars} bars · {fmtDate(run.from)} → {fmtDate(run.to)} · {run.trades.length} trades
           </p>
         </div>
       </div>
@@ -70,7 +69,7 @@ export function RunHeader({
           >
             {fmtMoney(run.metrics.netPnl)}
           </p>
-          <p className={`font-mono text-[11px] ${toneClass(run.metrics.returnPct)}`}>
+          <p className={`font-mono text-xs ${toneClass(run.metrics.returnPct)}`}>
             {fmtPct(run.metrics.returnPct)} · {fmtNumber(run.metrics.expectancyR, 2)}R avg
           </p>
         </div>
@@ -78,7 +77,7 @@ export function RunHeader({
           type="button"
           onClick={onDelete}
           disabled={deleting}
-          className="text-fg-subtle hover:text-danger border-border/60 inline-flex size-9 items-center justify-center rounded-md border transition-colors disabled:opacity-50"
+          className="text-fg-subtle hover:text-danger border-border bg-[#0e0f11]/90 inline-flex size-10 items-center justify-center rounded-lg border transition-colors disabled:opacity-50"
           aria-label="Delete run"
         >
           {deleting ? (

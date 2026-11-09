@@ -2,7 +2,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// The 4 interactive stage card buttons of the landing stepper pipeline, with
+// The 3 interactive stage card buttons of the landing stepper workflow, with
 // the gliding active pill, pass-state badges and countdown progress strip.
 import { IconCircleCheck } from '@tabler/icons-react';
 import { m } from 'motion/react';
@@ -48,7 +48,7 @@ export function StageCards({ activeStep, progress, isPlaying, onSelectStep }: St
               />
             )}
 
-            {/* Step Number Badge in Redaction Font */}
+            {/* Step Number Badge */}
             <div
               className={cn(
                 'relative z-10 flex size-10 shrink-0 items-center justify-center rounded-lg font-mono text-sm font-bold transition-all',
@@ -68,10 +68,10 @@ export function StageCards({ activeStep, progress, isPlaying, onSelectStep }: St
                   <span className="text-brand font-mono text-[11px] font-semibold tracking-wider uppercase">
                     {step.tag}
                   </span>
-                  <span className="text-fg-subtle font-mono text-[10px]">· {step.latency}</span>
+                  <span className="text-fg-subtle font-mono text-[11px]">· {step.latency}</span>
                 </div>
                 {active && isPlaying && (
-                  <span className="text-brand font-mono text-[10px] font-bold uppercase">
+                  <span className="text-brand font-mono text-[11px] font-bold uppercase">
                     ACTIVE
                   </span>
                 )}

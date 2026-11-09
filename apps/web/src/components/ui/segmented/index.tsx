@@ -129,7 +129,7 @@ function SegmentedItem<T extends string>({
   mode: SegmentedItemMode<T>;
 }) {
   const baseItem = cn(
-    'relative inline-flex items-center justify-center rounded-sm font-semibold tabular-nums transition-colors tactile-press active:translate-y-[0.5px]',
+    'relative inline-flex items-center justify-center rounded-md font-semibold tabular-nums transition-colors tactile-press active:translate-y-[0.5px]',
     'focus-visible:ring-fg focus:outline-none focus-visible:ring-2',
     itemMinWidth(size),
     ITEM_PAD[size],
@@ -144,7 +144,7 @@ function SegmentedItem<T extends string>({
     active && variant === 'accent' ? (
       <m.span
         layoutId={layoutId}
-        className="bg-brand absolute inset-0 -z-0 rounded-sm"
+        className="bg-brand absolute inset-0 -z-0 rounded-md"
         transition={{ type: 'spring', stiffness: 380, damping: 30 }}
       />
     ) : null;
@@ -220,8 +220,8 @@ function SegmentedList<T extends string>({
       onKeyDown={onKeyDown}
       className={cn(
         variant === 'accent'
-          ? 'border-border bg-bg-elev-2 inline-flex items-center gap-0.5 rounded-sm border p-0.5'
-          : 'border-border bg-bg-elev-2 inline-flex flex-wrap items-center gap-0.5 rounded-sm border p-0.5',
+          ? 'border-border bg-bg-elev-2 inline-flex items-center gap-0.5 rounded-lg border p-0.5'
+          : 'border-border bg-bg-elev-2 inline-flex flex-wrap items-center gap-0.5 rounded-lg border p-0.5',
         className,
       )}
     >

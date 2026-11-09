@@ -89,13 +89,13 @@ export function PositionsCard({ output, state, errorMessage }: PluginToolPartPro
   }
 
   return (
-    <section className="surface-panel flex flex-col gap-2 rounded-xl border border-white/10 p-3">
+    <section className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-2 rounded-xl border p-3">
       <header className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <IconWallet className="text-brand size-4" />
           <h3 className="text-fg text-sm font-semibold">Paper positions</h3>
         </div>
-        <span className="text-fg-subtle font-mono text-[10px]">{parsed.data.count}</span>
+        <span className="text-fg-subtle font-mono text-[11px]">{parsed.data.count}</span>
       </header>
       <PositionsTable positions={parsed.data.positions} compact />
       <a

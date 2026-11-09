@@ -42,7 +42,7 @@ interface CalendarViewProps {
 const AUTO_REFRESH_MS = 5 * 60_000;
 
 const IMPORTANCE_VALUES = ['all', 'high', 'medium', 'low'] as const;
-const CURRENCY_VALUES = ['all', 'USD', 'EUR', 'GBP'] as const;
+const CURRENCY_VALUES = ['all', 'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'NZD'] as const;
 
 const importanceParser = parseAsStringLiteral(IMPORTANCE_VALUES).withDefault('all');
 const currencyParser = parseAsStringLiteral(CURRENCY_VALUES).withDefault('all');
@@ -167,7 +167,7 @@ export function CalendarView({ initialEvents }: CalendarViewProps) {
         <div className="flex flex-col gap-6">
           {sections.map(([label, items]) => (
             <section key={label} className="flex flex-col gap-3">
-              <h2 className="bg-bg-elev-1/95 text-fg-subtle text-caption sticky top-[calc(3rem+env(safe-area-inset-top,0px))] z-10 -mx-4 flex items-baseline gap-2 px-5 py-2 font-semibold tracking-wider uppercase lg:top-0">
+              <h2 className="bg-bg-elev-1/95 text-fg-subtle text-caption sticky top-0 z-10 -mx-4 flex items-baseline gap-2 px-5 py-2 font-semibold tracking-wider uppercase backdrop-blur-sm">
                 {label}
                 <span className="text-fg-subtle/60 tabular-nums">{items.length}</span>
               </h2>

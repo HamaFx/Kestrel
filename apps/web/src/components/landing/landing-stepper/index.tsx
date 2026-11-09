@@ -19,11 +19,10 @@
  */
 
 // Landing stepper section shell: owns the auto-advance state machine and
-// composes the circuit spine, stage cards and briefing panel.
+// composes the 3-step research workflow preview (1. Pick a Market ->
+// 2. Ask or Run Deep Analysis -> 3. Review Levels & Risk Plan).
 import { IconPlayerPause, IconPlayerPlay } from '@tabler/icons-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-
-import { BlueprintPlate } from '@/components/brand/blueprint-plates';
 
 import { BriefingPanel } from './briefing-panel';
 import { CircuitSpine, nodeYCoordinates } from './circuit-spine';
@@ -73,29 +72,21 @@ export function LandingStepper() {
 
   const current: Step = STEPS.find((s) => s.id === activeStep) ?? STEPS[0]!;
 
-  const activeY = nodeYCoordinates[activeStep - 1] ?? 55;
-  const progressRatio = (activeStep - 1) / (STEPS.length - 1);
+  const activeY = nodeYCoordinates[activeStep - 1] ?? 65;
+  const progressRatio = (activeStep - 1) / Math.max(1, STEPS.length - 1);
 
   return (
     <section
       id="stepper"
       className="relative overflow-hidden border-t border-b border-white/5 bg-[#0c0d0e] py-28 lg:py-36"
     >
-      {/* ── Sentinel Stoa Blueprint (raster backup preserved) ── */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute top-8 left-0 z-0 h-[380px] w-full opacity-40 select-none sm:h-[480px] lg:left-4 lg:h-[620px] lg:w-[46%]"
-      >
-        <BlueprintPlate id="sentinel" showRasterBackup className="h-full w-full" />
-      </div>
-
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Section Header with Kestrel Rosette Badge */}
+        {/* Section Header */}
         <div className="mb-16 flex max-w-3xl flex-col items-start gap-4">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono text-xs">
             <span className="bg-brand size-2 rounded-full shadow-[0_0_8px_#ff3616]" />
             <span className="text-brand font-semibold tracking-wider uppercase">
-              ※ 4-Step Research Workflow
+              3-Step Research Workflow
             </span>
           </div>
 
@@ -104,13 +95,13 @@ export function LandingStepper() {
             <span className="font-redaction-35 text-brand italic">Your Trade Plan</span>
           </h2>
           <p className="text-fg-muted font-sans text-base leading-relaxed">
-            From scanning live price structure to delivering a risk-checked trade plan with exact
-            invalidation and take-profit targets, here is what happens every time you ask Kestrel to
-            analyze a market.
+            Go from selecting a market to reviewing a complete, risk-checked trade plan in three
+            clear steps: 1. Pick a Market → 2. Ask or Run Deep Analysis → 3. Review Levels &amp;
+            Risk Plan.
           </p>
 
-          {/* Autoplay & Telemetry Status Pill */}
-          <div className="flex items-center gap-3 pt-2">
+          {/* Autoplay & Workflow Status Pill */}
+          <div className="flex flex-wrap items-center gap-3 pt-2">
             <button
               type="button"
               onClick={() => setIsPlaying(!isPlaying)}
@@ -119,17 +110,17 @@ export function LandingStepper() {
               {isPlaying ? (
                 <>
                   <IconPlayerPause className="text-brand size-3.5" />
-                  <span>Auto-Advancing Pipeline (Active)</span>
+                  <span>Auto-Advancing Walkthrough (Active)</span>
                 </>
               ) : (
                 <>
                   <IconPlayerPlay className="text-bull size-3.5" />
-                  <span>Resume Auto-Run</span>
+                  <span>Resume Walkthrough</span>
                 </>
               )}
             </button>
             <span className="text-fg-subtle font-mono text-xs">
-              COMMITTEE WORKFLOW: <strong className="text-bull">4 VERIFIED STAGES</strong>
+              WORKFLOW: <strong className="text-bull">3 SIMPLE STEPS</strong>
             </span>
           </div>
         </div>
@@ -139,7 +130,7 @@ export function LandingStepper() {
           {/* Left Column: Continuous Circuit SVG + Step Cards */}
           <div
             role="tablist"
-            aria-label="Pipeline stages"
+            aria-label="Workflow steps"
             className="relative flex flex-col gap-4 pl-10 sm:pl-14 lg:col-span-6"
           >
             <CircuitSpine activeStep={activeStep} activeY={activeY} progressRatio={progressRatio} />

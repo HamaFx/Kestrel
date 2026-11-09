@@ -49,7 +49,7 @@ export function LoginForm() {
           <input type="hidden" name="next" value={next} />
 
           {requires2FA && (
-            <div className="bg-brand/10 border-brand/25 flex items-center gap-3 rounded-sm border p-3">
+            <div className="bg-brand/10 border-brand/25 flex items-center gap-3 rounded-xl border p-3">
               <IconShieldCheck className="text-brand size-5 shrink-0" />
               <div className="flex flex-col">
                 <span className="text-fg text-xs font-bold">Two-Factor Authentication</span>

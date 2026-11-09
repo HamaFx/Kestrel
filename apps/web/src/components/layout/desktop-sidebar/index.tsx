@@ -29,6 +29,7 @@ import { toast } from 'sonner';
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
 import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/formatters/cn';
+import { clearKestrelClientState } from '@/lib/http/cache-isolation';
 
 import '@/lib/plugins/register-ui';
 
@@ -54,6 +55,7 @@ export function DesktopSidebar({
 
   async function handleLogout() {
     try {
+      await clearKestrelClientState();
       await signOut({ callbackUrl: '/login', redirect: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Logout failed');

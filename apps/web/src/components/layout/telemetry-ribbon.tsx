@@ -35,7 +35,7 @@ export function TelemetryRibbon() {
               key={session.id}
               title={`${session.name} (${session.startHourUtc}:00–${session.endHourUtc}:00 UTC)`}
               className={cn(
-                'inline-flex items-center rounded px-1 py-0.5 text-[9px] leading-none font-semibold tracking-wider uppercase sm:text-[10px]',
+                'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] leading-none font-semibold tracking-wider uppercase',
                 session.active ? 'border-bull/30 bg-bull/15 text-bull border' : 'text-fg-subtle/60',
               )}
             >
@@ -44,7 +44,7 @@ export function TelemetryRibbon() {
           ))}
         </div>
         {isKillzoneActive ? (
-          <span className="border-brand/30 bg-brand/10 text-brand inline-flex shrink-0 items-center gap-1 rounded border px-1.5 py-0.5 text-[9px] leading-none font-semibold tracking-wider uppercase">
+          <span className="border-brand/30 bg-brand/10 text-brand inline-flex shrink-0 items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] leading-none font-semibold tracking-wider uppercase">
             <IconFlame className="size-2.5" strokeWidth={2} />
             <span className="hidden sm:inline">{killzoneLabel}</span>
           </span>

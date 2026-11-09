@@ -29,36 +29,36 @@ export function TelegramStatusWidget({ settings }: PluginDashboardWidgetProps) {
   const alerts = settings['alertsEnabled'] !== false;
 
   return (
-    <div className="surface-panel flex h-full flex-col gap-3 rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)]">
+    <div className="surface-panel border-border bg-bg-elev-1 flex h-full flex-col gap-3 rounded-xl border p-4 shadow-[var(--shadow-chip)]">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="bg-brand/10 text-brand flex size-8 items-center justify-center rounded-md">
+          <span className="bg-brand/10 text-brand flex size-8 items-center justify-center rounded-lg">
             <IconBrandTelegram className="size-4" />
           </span>
           <div className="flex flex-col">
             <span className="text-fg text-sm font-semibold">Telegram Copilot</span>
-            <span className="text-fg-subtle text-[11px]">
-              {botUsername ? `@${botUsername}` : 'Not configured'}
+            <span className="text-fg-subtle text-xs">
+              {botUsername ? `@${botUsername}` : 'Not Connected'}
             </span>
           </div>
         </div>
         <span
           className={
             linked
-              ? 'bg-success/10 text-success rounded-md px-2 py-0.5 font-mono text-[10px] font-bold uppercase'
-              : 'bg-warn/10 text-warn rounded-md px-2 py-0.5 font-mono text-[10px] font-bold uppercase'
+              ? 'bg-success/10 text-success rounded-lg px-2 py-0.5 font-mono text-[11px] font-bold uppercase'
+              : 'bg-warn/10 text-warn rounded-lg px-2 py-0.5 font-mono text-[11px] font-bold uppercase'
           }
         >
-          {linked ? 'Linked' : 'Unlinked'}
+          {linked ? 'Connected' : 'Not Connected'}
         </span>
       </div>
 
-      <dl className="grid grid-cols-2 gap-2 text-[11px]">
-        <div className="bg-bg-elev-1/50 rounded-md p-2">
+      <dl className="grid grid-cols-2 gap-2 text-xs">
+        <div className="bg-bg-elev-2/40 rounded-lg p-2.5">
           <dt className="text-fg-subtle">Alerts</dt>
-          <dd className="text-fg font-mono font-semibold">{alerts ? 'On' : 'Muted'}</dd>
+          <dd className="text-fg font-mono font-semibold">{alerts ? 'On' : 'Off'}</dd>
         </div>
-        <div className="bg-bg-elev-1/50 rounded-md p-2">
+        <div className="bg-bg-elev-2/40 rounded-lg p-2.5">
           <dt className="text-fg-subtle">Briefing</dt>
           <dd className="text-fg font-mono font-semibold">{briefing ? 'On' : 'Off'}</dd>
         </div>

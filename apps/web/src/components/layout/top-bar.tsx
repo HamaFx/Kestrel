@@ -65,7 +65,7 @@ export function TopBar({ title, right }: TopBarProps) {
           variant="mark"
           showName
           label={title ?? 'Kestrel'}
-          href="/chat"
+          href="/dashboard"
           className="group px-1 transition-opacity hover:opacity-80"
         />
       </div>

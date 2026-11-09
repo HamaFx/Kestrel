@@ -19,11 +19,13 @@
 // New journal-entry form. Mobile-first: stacked, all tap targets ≥ 44px,
 // CTA is the size-lg primary button so it sits in the thumb zone of the
 // drawer.
-import { SYMBOLS, type Symbol, type TradeSide } from '@kestrel/shared';
+import { DEFAULT_WATCHLIST_SYMBOLS, SYMBOLS, type Symbol, type TradeSide } from '@kestrel/shared';
 
 import { HoldToExecuteButton } from '@/components/ui/hold-to-execute-button';
 import { Segmented } from '@/components/ui/segmented';
+import { Select } from '@/components/ui/select';
 import { TagInput } from '@/components/ui/tag-input';
+import { cn } from '@/lib/formatters/cn';
 
 import { MindsetSelector } from './mindset-selector';
 import { NotesField } from './notes-field';
@@ -43,15 +45,40 @@ export function EntryForm({ onCreated }: EntryFormProps) {
       onSubmit={form.submit}
       className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4"
     >
-      <Segmented<Symbol>
-        label="Symbol"
-        value={form.symbol}
-        onChange={form.setSymbol}
-        role="radiogroup"
-        variant="solid"
-        size="md"
-        options={SYMBOLS.map((s) => ({ value: s, label: s }))}
-      />
+      <div className="flex flex-col gap-2">
+        <Select
+          label="Symbol"
+          value={form.symbol}
+          onChange={(e) => form.setSymbol(e.target.value as Symbol)}
+        >
+          {SYMBOLS.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </Select>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-fg-subtle font-mono text-[10px] uppercase">Quick pick:</span>
+          {DEFAULT_WATCHLIST_SYMBOLS.map((s) => {
+            const active = form.symbol === s;
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => form.setSymbol(s)}
+                className={cn(
+                  'rounded-md border px-2 py-0.5 font-mono text-[11px] font-semibold transition-colors',
+                  active
+                    ? 'border-brand/50 bg-brand/15 text-brand'
+                    : 'border-white/10 bg-white/[0.03] text-fg-muted hover:text-fg',
+                )}
+              >
+                {s}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <Segmented<TradeSide>
         label="Side"

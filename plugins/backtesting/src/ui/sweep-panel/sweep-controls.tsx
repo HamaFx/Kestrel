@@ -35,7 +35,7 @@ export function SweepControls({
   strategies: readonly StrategySummary[];
 }) {
   return (
-    <section className="surface-panel flex flex-col gap-3 rounded-xl border border-white/10 p-4">
+    <section className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-3 rounded-xl border p-4">
       <div className="flex items-center gap-2">
         <IconFlask className="text-brand size-4" />
         <h2 className="text-fg text-sm font-semibold">Parameter sweep</h2>
@@ -43,7 +43,7 @@ export function SweepControls({
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <label className="col-span-2 flex flex-col gap-1">
-          <span className="text-fg-subtle text-[10px] font-semibold uppercase">Strategy</span>
+          <span className="text-fg-subtle text-[11px] font-semibold uppercase">Strategy</span>
           <select
             value={panel.strategyId}
             onChange={(event) => panel.setStrategyId(event.target.value)}
@@ -58,7 +58,7 @@ export function SweepControls({
           </select>
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-fg-subtle text-[10px] font-semibold uppercase">Symbol</span>
+          <span className="text-fg-subtle text-[11px] font-semibold uppercase">Symbol</span>
           <input
             value={panel.symbol}
             onChange={(event) => panel.setSymbol(event.target.value.toUpperCase())}
@@ -66,7 +66,7 @@ export function SweepControls({
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-fg-subtle text-[10px] font-semibold uppercase">Timeframe</span>
+          <span className="text-fg-subtle text-[11px] font-semibold uppercase">Timeframe</span>
           <select
             value={panel.timeframe}
             onChange={(event) => panel.setTimeframe(event.target.value as typeof panel.timeframe)}
@@ -80,7 +80,7 @@ export function SweepControls({
           </select>
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-fg-subtle text-[10px] font-semibold uppercase">Objective</span>
+          <span className="text-fg-subtle text-[11px] font-semibold uppercase">Objective</span>
           <select
             value={panel.objective}
             onChange={(event) => panel.setObjective(event.target.value as typeof panel.objective)}
@@ -94,7 +94,7 @@ export function SweepControls({
           </select>
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-fg-subtle text-[10px] font-semibold uppercase">Max combos</span>
+          <span className="text-fg-subtle text-[11px] font-semibold uppercase">Max combos</span>
           <input
             type="number"
             min={1}
@@ -105,7 +105,7 @@ export function SweepControls({
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-fg-subtle text-[10px] font-semibold uppercase">Min trades</span>
+          <span className="text-fg-subtle text-[11px] font-semibold uppercase">Min trades</span>
           <input
             type="number"
             min={1}
@@ -119,11 +119,11 @@ export function SweepControls({
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <span className="text-fg-subtle text-[10px] font-semibold uppercase">Parameter grid</span>
+          <span className="text-fg-subtle text-[11px] font-semibold uppercase">Parameter grid</span>
           <button
             type="button"
             onClick={() => panel.setParams((rows) => [...rows, { name: '', values: '' }])}
-            className="text-fg-subtle hover:text-fg inline-flex items-center gap-1 text-[10px] font-semibold"
+            className="text-fg-subtle hover:text-fg inline-flex items-center gap-1 text-[11px] font-semibold"
           >
             <IconPlus className="size-3" />
             Add parameter
@@ -160,14 +160,14 @@ export function SweepControls({
               type="button"
               onClick={() => panel.setParams((rows) => rows.filter((_, i) => i !== index))}
               disabled={panel.params.length === 1}
-              className="text-fg-subtle hover:text-danger inline-flex size-8 shrink-0 items-center justify-center rounded-md disabled:opacity-30"
+              className="text-fg-subtle hover:text-danger inline-flex size-9 shrink-0 items-center justify-center rounded-lg disabled:opacity-30"
               aria-label="Remove parameter"
             >
               <IconX className="size-3.5" />
             </button>
           </div>
         ))}
-        <p className="text-fg-subtle text-[10px]">
+        <p className="text-fg-subtle text-[11px]">
           Values are typed automatically (numbers when numeric). The product of all value lists must
           stay under the max-combination limit.
         </p>
@@ -177,7 +177,7 @@ export function SweepControls({
         type="button"
         onClick={() => void panel.startSweep()}
         disabled={panel.busy || strategies.length === 0}
-        className="bg-brand/10 text-brand border-brand/30 hover:bg-brand/20 inline-flex h-9 items-center gap-1.5 self-start rounded-md border px-3 text-xs font-semibold disabled:opacity-40"
+        className="bg-brand/10 text-brand border-brand/30 hover:bg-brand/20 inline-flex h-10 items-center gap-1.5 self-start rounded-lg border px-4 text-xs font-semibold disabled:opacity-40"
       >
         {panel.busy ? (
           <IconLoader2 className="size-3.5 animate-spin" />

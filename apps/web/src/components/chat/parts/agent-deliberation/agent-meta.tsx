@@ -61,8 +61,6 @@ export interface AgentMeta {
   activeClass: string;
   code?: string;
   epithet?: string;
-  /** Canonical registry artwork for neoclassical watermarks. */
-  artworkPath?: string;
   accentColor?: string;
 }
 
@@ -103,7 +101,6 @@ function metaFromRegistry(desk: StrategistDeskConfig, key: string): AgentMeta {
     activeClass: tokens?.activeClass ?? 'border-border bg-bg-elev-2',
     code: desk.code,
     epithet: desk.epithet,
-    artworkPath: desk.artworkPath,
     accentColor: desk.accentColor,
   };
 }
@@ -130,23 +127,19 @@ export const FALLBACK_META: AgentMeta = {
   activeClass: 'border-border bg-bg-elev-2',
   code: FALLBACK_STRATEGIST_DESK.code,
   epithet: FALLBACK_STRATEGIST_DESK.epithet,
-  artworkPath: FALLBACK_STRATEGIST_DESK.artworkPath,
   accentColor: FALLBACK_STRATEGIST_DESK.accentColor,
 };
 
 export function formatPlainModeLabel(mode: string, comparisonSymbols?: string[]): string {
   if (comparisonSymbols && comparisonSymbols.length >= 2) {
-    // M-01 (audit 2026-10-18): comparison runs are per-symbol desk passes
-    // (technical + risk when enabled) plus a cross-symbol synthesis — never
-    // "N committees".
-    return `Comparison — per-symbol desk passes (${comparisonSymbols.join(', ')}) + cross-symbol synthesis`;
+    return `Comparison (${comparisonSymbols.join(', ')}) + combined summary`;
   }
   const normalized = mode.toLowerCase();
   if (normalized === 'single') {
-    return 'Fast Scout — single-pass specialist read';
+    return 'Quick Answer — live market check';
   }
   if (normalized === 'full') {
-    return 'Convene Council — 4 Specialist Desks';
+    return 'Deep Analysis — 4-angle trade report';
   }
-  return `Committee Analysis · ${mode}`;
+  return `Analysis · ${mode}`;
 }

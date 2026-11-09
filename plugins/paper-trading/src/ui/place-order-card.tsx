@@ -60,21 +60,21 @@ export function PlaceOrderCard({ output, state, errorMessage }: PluginToolPartPr
   const filled = result.position !== null;
 
   return (
-    <section className="surface-panel flex flex-col gap-3 rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)]">
+    <section className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-3 rounded-xl border p-4 shadow-[var(--shadow-chip)]">
       <header className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex items-start gap-2.5">
           <span
             className={
               sandbox
-                ? 'bg-success/10 text-success flex size-9 items-center justify-center rounded-md'
-                : 'bg-brand/10 text-brand flex size-9 items-center justify-center rounded-md'
+                ? 'bg-success/10 text-success flex size-9 items-center justify-center rounded-lg'
+                : 'bg-brand/10 text-brand flex size-9 items-center justify-center rounded-lg'
             }
           >
             {sandbox ? <IconRobot className="size-4" /> : <IconShieldCheck className="size-4" />}
           </span>
           <div className="flex flex-col gap-0.5">
             <h3 className="text-fg text-sm font-semibold">{result.account.name}</h3>
-            <p className="text-fg-subtle font-mono text-[10px] uppercase">
+            <p className="text-fg-subtle font-mono text-[11px] uppercase">
               {sandbox ? 'autonomous sandbox' : 'personal · approved'}
             </p>
           </div>
@@ -82,11 +82,11 @@ export function PlaceOrderCard({ output, state, errorMessage }: PluginToolPartPr
         <span
           className={
             filled
-              ? 'bg-success/10 text-success rounded px-2 py-0.5 font-mono text-[10px] font-bold uppercase'
-              : 'bg-warn/10 text-warn rounded px-2 py-0.5 font-mono text-[10px] font-bold uppercase'
+              ? 'bg-success/10 text-success rounded-md px-2 py-0.5 font-mono text-[11px] font-bold uppercase'
+              : 'bg-warn/10 text-warn rounded-md px-2 py-0.5 font-mono text-[11px] font-bold uppercase'
           }
         >
-          {filled ? 'filled' : 'resting'}
+          {filled ? 'filled' : 'pending'}
         </span>
       </header>
 
@@ -126,7 +126,7 @@ export function PlaceOrderCard({ output, state, errorMessage }: PluginToolPartPr
       ) : null}
 
       {result.warnings.length > 0 ? (
-        <ul className="text-warn flex flex-col gap-1 text-[11px]">
+        <ul className="text-warn flex flex-col gap-1 text-xs">
           {result.warnings.map((warning) => (
             <li key={warning} className="flex items-start gap-1.5">
               <IconAlertTriangle className="mt-0.5 size-3 shrink-0" />
@@ -137,9 +137,9 @@ export function PlaceOrderCard({ output, state, errorMessage }: PluginToolPartPr
       ) : null}
 
       <footer className="flex items-center justify-between gap-2">
-        <span className="text-fg-subtle flex items-center gap-1 font-mono text-[10px]">
+        <span className="text-fg-subtle flex items-center gap-1 font-mono text-[11px]">
           <IconClock className="size-3" />
-          {filled ? 'Filled now' : 'Waiting for the tick bus'} · virtual money
+          {filled ? 'Filled now' : 'Waiting for price trigger'} · virtual money
         </span>
         <a
           href="/plugins/paper-trading"
@@ -155,8 +155,8 @@ export function PlaceOrderCard({ output, state, errorMessage }: PluginToolPartPr
 
 function Cell({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
-    <div className="bg-bg-elev-1/60 border-border/40 flex flex-col gap-0.5 rounded-md border p-2">
-      <span className="text-fg-subtle text-[10px] font-semibold tracking-wider uppercase">
+    <div className="bg-bg-elev-2/40 border-border/50 flex flex-col gap-0.5 rounded-lg border p-2.5">
+      <span className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
         {label}
       </span>
       <span className={`font-mono text-xs font-semibold tabular-nums ${tone ?? 'text-fg'}`}>

@@ -26,6 +26,7 @@ export function BackupCodesPanel({
           aria-label="Copy all backup codes"
         >
           <IconCopy className="size-3.5" />
+          <span>Copy</span>
         </button>
       </div>
       <p className="text-caption text-fg-subtle">

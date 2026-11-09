@@ -15,6 +15,7 @@
  */
 
 import { IconBolt, IconKey, IconRobot, IconUser } from '@tabler/icons-react';
+import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 
@@ -74,9 +75,15 @@ export function WizardStepReview({
       <div className="border-border bg-bg-elev-2 flex items-start gap-2.5 rounded-xl border p-3.5">
         <IconKey className="text-brand mt-0.5 size-4 shrink-0" aria-hidden="true" />
         <p className="text-fg-subtle text-xs leading-relaxed">
-          Kestrel is bring-your-own-key: connect your AI provider keys anytime in{' '}
-          <span className="text-fg font-medium">Settings → AI &amp; Models</span>. Keys are
-          encrypted at rest with AES-256-GCM and your spend guardrails run locally.
+          Kestrel uses your own AI API key (OpenAI, Anthropic, Gemini, OpenRouter, etc.), which you
+          can connect right after finishing setup in{' '}
+          <Link
+            href="/settings/api-keys"
+            className="text-fg hover:text-brand font-semibold underline underline-offset-2 transition-colors"
+          >
+            Settings → API Keys
+          </Link>
+          . Your keys stay encrypted in your private vault with local spend limits.
         </p>
       </div>
 
@@ -90,15 +97,15 @@ export function WizardStepReview({
             A quick example of Kestrel&apos;s market analysis. You can ask about any symbol on your
             watchlist immediately after finishing setup.
           </p>
-          <div className="bg-bg-elev-2 flex flex-col gap-2 rounded-lg p-3">
+          <div className="bg-bg-elev-2 flex flex-col gap-2 rounded-xl p-3">
             <div className="flex items-start gap-2">
-              <div className="bg-bg-elev-3 mt-0.5 rounded-sm p-1.5">
+              <div className="bg-bg-elev-3 mt-0.5 rounded-lg p-1.5">
                 <IconUser className="text-fg size-3" />
               </div>
               <div className="text-fg flex-1 text-xs">How is XAUUSD looking?</div>
             </div>
             <div className="flex items-start gap-2">
-              <div className="bg-bg-elev-2 mt-0.5 rounded-sm p-1.5">
+              <div className="bg-bg-elev-2 mt-0.5 rounded-lg p-1.5">
                 <IconRobot className="text-fg size-3" />
               </div>
               <div className="text-fg flex-1 space-y-1 text-xs leading-[1.4]">

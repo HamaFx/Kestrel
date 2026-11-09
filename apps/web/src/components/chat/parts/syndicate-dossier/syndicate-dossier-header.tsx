@@ -31,12 +31,12 @@ function SyndicateGuardrailBanner({
                 SETUP BLOCKED BY RISK GUARDRAIL
               </div>
               <div className="text-fg-subtle font-mono text-[10px] uppercase">
-                AEGIS · DESK-III · IMMUTABLE 1.0% CEILING
+                1.0% MAXIMUM RISK GUARDRAIL
               </div>
             </div>
           </div>
           <span className="border-bear/30 bg-bear/10 text-bear rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase">
-            Risk Veto Active
+            Risk Limit Reached
           </span>
         </div>
         {levels.vetoReason ? (
@@ -52,10 +52,10 @@ function SyndicateGuardrailBanner({
           <IconAlertTriangle className="text-warn size-4 shrink-0" />
           <div>
             <div className="text-warn font-mono text-[11px] font-bold tracking-wider uppercase">
-              AEGIS RISK GUARDRAIL — DESKS DISSENT
+              MIXED SIGNALS — REDUCE RISK TO 0.5%
             </div>
             <div className="text-fg-subtle font-mono text-[10px] uppercase">
-              REDUCE SIZING TO 0.5% UNTIL DESKS RE-ALIGN
+              ANGLES DISAGREE · LOWER POSITION SIZE UNTIL SIGNALS ALIGN
             </div>
           </div>
         </div>
@@ -79,7 +79,7 @@ function DirectionBadge({ direction }: { direction: ExtractedTradeLevels['direct
             : 'text-warn bg-warn/10 border-warn/30',
       )}
     >
-      {direction === 'BUY' ? 'BUY / GO' : direction === 'SELL' ? 'SELL / GO' : 'STAND ASIDE'}
+      {direction === 'BUY' ? 'BUY' : direction === 'SELL' ? 'SELL' : 'WAIT / NEUTRAL'}
     </span>
   );
 }
@@ -105,7 +105,7 @@ export function SyndicateTicketHeader({
           <span className="bg-bull size-2.5 shrink-0 rounded-full shadow-[0_0_8px_#3f9e3d]" />
           <div className="min-w-0">
             <div className="text-fg flex flex-wrap items-center gap-1.5 font-mono text-[11px] font-bold tracking-wider uppercase">
-              <span>VERIFIED SYNDICATE DOSSIER{symbol ? ` · ${symbol}` : ''}</span>
+              <span>TRADE ANALYSIS SUMMARY{symbol ? ` · ${symbol}` : ''}</span>
             </div>
             <div className="text-fg-subtle mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[10px]">
               <span>PLAN {planId}</span>
@@ -127,10 +127,10 @@ export function SyndicateTicketHeader({
               </button>
               <span>·</span>
               <span className="tabular-nums">
-                {levels.dissent ? 'DESKS DISSENT' : 'ALIGNMENT CONFIRMED'}
+                {levels.dissent ? 'MIXED SIGNALS' : 'SIGNALS ALIGNED'}
               </span>
               <span>·</span>
-              <span>{mode === 'single' ? 'FAST SCOUT' : '4-DESK COUNCIL'}</span>
+              <span>{mode === 'single' ? 'QUICK ANSWER' : 'DEEP ANALYSIS'}</span>
             </div>
           </div>
         </div>
@@ -148,9 +148,9 @@ export function SyndicateTicketHeader({
         rr={levels.rr !== '—' ? levels.rr : undefined}
         levels={[
           { label: 'ENTRY ZONE', value: levels.entry },
-          { label: 'INVALIDATION (SL)', value: levels.invalidation, tone: 'bear' },
-          { label: 'TP1 (40% SCALE)', value: levels.tp1, tone: 'bull' },
-          { label: 'TP2 RUNNER', value: levels.tp2, tone: 'bull' },
+          { label: 'STOP LOSS', value: levels.invalidation, tone: 'bear' },
+          { label: 'TARGET 1 (TP1)', value: levels.tp1, tone: 'bull' },
+          { label: 'TARGET 2 (TP2)', value: levels.tp2, tone: 'bull' },
         ]}
       />
 

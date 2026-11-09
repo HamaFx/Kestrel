@@ -61,7 +61,7 @@ export function ArchitectureLayerTab({
 
       <div className="flex w-full flex-col gap-1">
         <div className="flex items-center justify-between">
-          <span className="text-brand font-mono text-[10px] font-bold tracking-wider uppercase">
+          <span className="text-brand font-mono text-[11px] font-bold tracking-wider uppercase">
             {layer.tag}
           </span>
           <Icon className={cn('size-4', isActive ? layer.accentColor : 'text-fg-subtle')} />

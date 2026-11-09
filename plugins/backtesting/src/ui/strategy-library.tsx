@@ -48,26 +48,26 @@ export function StrategyLibrary({
       {strategies.map((strategy) => (
         <article
           key={strategy.id}
-          className="surface-panel flex flex-col gap-2 rounded-xl border border-white/10 p-3"
+          className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-2.5 rounded-xl border p-4"
         >
           <header className="flex items-start justify-between gap-2">
             <div className="flex min-w-0 flex-col">
               <h3 className="text-fg truncate text-sm font-semibold">{strategy.name}</h3>
-              <span className="text-fg-subtle font-mono text-[10px]">
+              <span className="text-fg-subtle font-mono text-[11px]">
                 {strategy.slug} · {fmtDate(strategy.updatedAt)}
               </span>
             </div>
             <IconCode className="text-fg-subtle size-4 shrink-0" />
           </header>
           {strategy.description ? (
-            <p className="text-fg-muted line-clamp-2 text-[11px]">{strategy.description}</p>
+            <p className="text-fg-muted line-clamp-2 text-xs">{strategy.description}</p>
           ) : null}
           {strategy.tags.length > 0 ? (
             <div className="flex flex-wrap gap-1">
               {strategy.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="bg-bg-elev-2 text-fg-subtle rounded px-1.5 py-0.5 font-mono text-[10px]"
+                  className="bg-bg-elev-2 text-fg-subtle rounded-md px-1.5 py-0.5 font-mono text-[11px]"
                 >
                   {tag}
                 </span>
@@ -78,7 +78,7 @@ export function StrategyLibrary({
             <button
               type="button"
               onClick={() => onLoad(strategy)}
-              className="border-border/60 text-fg-muted hover:text-fg inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[11px] font-semibold transition-colors"
+              className="border-border bg-[#0e0f11]/90 text-fg-muted hover:text-fg inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors"
             >
               <IconPlayerPlay className="size-3.5" />
               Load into form
@@ -87,7 +87,7 @@ export function StrategyLibrary({
               type="button"
               onClick={() => onDelete(strategy.id)}
               disabled={busyId !== null}
-              className="text-fg-subtle hover:text-danger ml-auto inline-flex size-7 items-center justify-center rounded-md transition-colors disabled:opacity-40"
+              className="text-fg-subtle hover:text-danger ml-auto inline-flex size-8 items-center justify-center rounded-lg transition-colors disabled:opacity-40"
               aria-label={`Delete ${strategy.name}`}
             >
               {busyId === strategy.id ? (

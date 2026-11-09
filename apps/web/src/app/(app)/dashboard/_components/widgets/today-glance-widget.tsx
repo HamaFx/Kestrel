@@ -50,7 +50,7 @@ export function TodayGlanceWidget({
     <section
       role="status"
       aria-label="Today at a glance"
-      className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-4"
+      className="grid grid-cols-2 gap-2.5 p-3.5 sm:gap-3 sm:p-4 md:grid-cols-4"
     >
       <CellNextEvent events={events} />
       <CellSession />
@@ -76,9 +76,9 @@ function GlanceCell({
   children: ReactNode;
 }) {
   return (
-    <div className="surface-card group flex min-h-[132px] flex-col justify-between gap-2.5 rounded-xl border border-white/[0.06] p-3.5 shadow-sm transition-colors hover:border-white/12">
+    <div className="surface-card group flex min-h-[132px] flex-col justify-between gap-2.5 rounded-xl border border-white/[0.06] p-3.5 transition-colors hover:border-white/12">
       <div className="flex items-center justify-between gap-2">
-        <div className="text-fg-subtle flex min-w-0 items-center gap-1.5 font-mono text-[10px] font-semibold tracking-wider uppercase">
+        <div className="text-fg-subtle flex min-w-0 items-center gap-1.5 font-mono text-[11px] font-semibold tracking-wider uppercase">
           <span className={cn('shrink-0', tone ?? 'text-fg-subtle')}>{icon}</span>
           <span className="truncate">{label}</span>
         </div>
@@ -101,7 +101,7 @@ function CellNextEvent({ events }: { events: EconomicEvent[] }) {
       tone="text-warn"
       right={
         upcoming?.currency ? (
-          <span className="bg-warn/10 text-warn border-warn/30 rounded-full border px-1.5 py-0.5 font-mono text-[9px] font-bold">
+          <span className="bg-warn/10 text-warn border-warn/30 rounded-full border px-1.5 py-0.5 font-mono text-[10px] font-bold">
             {upcoming.currency}
           </span>
         ) : null
@@ -109,15 +109,15 @@ function CellNextEvent({ events }: { events: EconomicEvent[] }) {
       footer={
         upcoming ? (
           <div className="flex items-center justify-between gap-2">
-            <span className="text-fg-subtle font-mono text-[9px] uppercase">Impact window</span>
-            <span className="text-warn font-mono text-[10px] font-semibold tabular-nums">
+            <span className="text-fg-subtle font-mono text-[10px] uppercase">In</span>
+            <span className="text-warn font-mono text-[11px] font-semibold tabular-nums">
               {formatCountdown(upcoming.date - now)}
             </span>
           </div>
         ) : (
           <div className="flex items-center justify-between gap-2">
-            <span className="text-fg-subtle font-mono text-[9px] uppercase">Schedule</span>
-            <span className="text-fg-subtle font-mono text-[9px]">Clear</span>
+            <span className="text-fg-subtle font-mono text-[10px] uppercase">Schedule</span>
+            <span className="text-fg-subtle font-mono text-[10px]">Clear</span>
           </div>
         )
       }
@@ -130,7 +130,7 @@ function CellNextEvent({ events }: { events: EconomicEvent[] }) {
           >
             {upcoming.title}
           </span>
-          <span className="text-fg-subtle font-mono text-[10px] tabular-nums">
+          <span className="text-fg-subtle font-mono text-[11px] tabular-nums">
             {new Date(upcoming.date).toISOString().slice(11, 16)} UTC
           </span>
         </>
@@ -152,7 +152,7 @@ function CellSession() {
       label="Session"
       right={active ? <StatusIndicator tone="online" label="Session live" /> : null}
       footer={
-        <div className="text-fg-subtle flex items-center justify-between gap-2 font-mono text-[8px] tracking-wider uppercase">
+        <div className="text-fg-subtle flex items-center justify-between gap-2 font-mono text-[10px] tracking-wider uppercase">
           <span className="inline-flex items-center gap-1">
             <span className="bg-info size-1 rounded-full" /> Asia
           </span>
@@ -170,7 +170,7 @@ function CellSession() {
           <span className="text-fg text-sm font-semibold">{sessionInfo.label}</span>
           <span
             className={cn(
-              'inline-flex w-fit items-center rounded-full border px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase',
+              'inline-flex w-fit items-center rounded-full border px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase',
               active
                 ? 'bg-bull/10 text-bull border-bull/30'
                 : 'bg-bg-elev-2 text-fg-muted border-border',
@@ -201,7 +201,7 @@ function CellOpenRisk({ entries }: { entries: JournalEntry[] }) {
       tone="text-danger"
       right={
         withoutStop > 0 ? (
-          <span className="bg-danger/10 text-danger border-danger/30 rounded-full border px-1.5 py-0.5 font-mono text-[9px] font-bold tabular-nums">
+          <span className="bg-danger/10 text-danger border-danger/30 rounded-full border px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums">
             {withoutStop} no stop
           </span>
         ) : null
@@ -219,7 +219,7 @@ function CellOpenRisk({ entries }: { entries: JournalEntry[] }) {
                 style={{ width: `${100 - protectedPct}%` }}
               />
             </div>
-            <div className="text-fg-subtle flex justify-between font-mono text-[8px] uppercase">
+            <div className="text-fg-subtle flex justify-between font-mono text-[10px] uppercase">
               <span>{protectedCount} protected</span>
               <span className={withoutStop > 0 ? 'text-danger' : undefined}>
                 {withoutStop} exposed
@@ -228,8 +228,8 @@ function CellOpenRisk({ entries }: { entries: JournalEntry[] }) {
           </div>
         ) : (
           <div className="flex items-center justify-between gap-2">
-            <span className="text-fg-subtle font-mono text-[9px] uppercase">Stop guard</span>
-            <span className="text-fg-subtle font-mono text-[9px]">0 exposed</span>
+            <span className="text-fg-subtle font-mono text-[10px] uppercase">Stop guard</span>
+            <span className="text-fg-subtle font-mono text-[10px]">0 exposed</span>
           </div>
         )
       }
@@ -241,7 +241,7 @@ function CellOpenRisk({ entries }: { entries: JournalEntry[] }) {
           <span className="text-fg text-sm font-semibold">
             {open.length} {open.length === 1 ? 'position' : 'positions'}
           </span>
-          <span className="text-fg-subtle truncate font-mono text-[10px]" title={symbols}>
+          <span className="text-fg-subtle truncate font-mono text-[11px]" title={symbols}>
             {symbols}
           </span>
         </>
@@ -267,17 +267,17 @@ function CellAiNudge({
       right={
         <Link
           href="/chat"
-          className="text-brand font-mono text-[9px] font-semibold hover:underline"
+          className="text-brand font-mono text-[10px] font-semibold hover:underline"
         >
           Ask AI →
         </Link>
       }
       footer={
         <div className="flex items-center justify-between gap-2">
-          <span className="text-fg-subtle font-mono text-[8px] tracking-wider uppercase">
+          <span className="text-fg-subtle font-mono text-[10px] tracking-wider uppercase">
             {briefingNudge ? 'Latest briefing' : 'Start a conversation'}
           </span>
-          <span className="text-fg-subtle font-mono text-[8px] uppercase">{defaultSymbol}</span>
+          <span className="text-fg-subtle font-mono text-[10px] uppercase">{defaultSymbol}</span>
         </div>
       }
     >

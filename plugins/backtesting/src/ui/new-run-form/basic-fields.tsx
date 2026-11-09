@@ -100,11 +100,11 @@ export function BasicFields({ form }: { form: NewRunFormController }) {
           className={inputClass}
         />
       </Field>
-      <Field label="Costs">
+      <Field label="Execution costs">
         <button
           type="button"
           onClick={form.toggleAdvanced}
-          className="border-border/60 text-fg-muted hover:text-fg h-9 rounded-md border px-2.5 text-xs"
+          className="border-border bg-[#0e0f11]/90 text-fg-muted hover:text-fg h-10 rounded-lg border px-3 text-xs font-medium transition-colors"
         >
           {form.advanced ? 'Hide' : 'Show'} advanced
         </button>

@@ -89,7 +89,7 @@ export function WizardStepStyle({
               type="button"
               onClick={() => setTradingStyle(style.id)}
               aria-pressed={active}
-              className={`hover:bg-bg-elev-2 relative flex min-h-11 cursor-pointer flex-col gap-1.5 rounded-sm border p-4 text-left transition-all ${
+              className={`hover:bg-bg-elev-2 relative flex min-h-11 cursor-pointer flex-col gap-1.5 rounded-xl border p-4 text-left transition-all ${
                 active
                   ? 'border-brand bg-bg-elev-1 ring-brand ring-1'
                   : 'border-border bg-bg-elev-1 hover:border-fg-muted'
@@ -100,7 +100,7 @@ export function WizardStepStyle({
                   <Icon className={active ? 'text-brand size-4' : 'text-fg-subtle size-4'} />
                   <span>{style.title}</span>
                 </span>
-                <span className="bg-bg-elev-2 text-fg-subtle border-border rounded-sm border px-2 py-0.5 font-mono text-xs font-medium">
+                <span className="bg-bg-elev-2 text-fg-subtle border-border rounded-lg border px-2 py-0.5 font-mono text-xs font-medium">
                   {style.timeframe}
                 </span>
               </div>

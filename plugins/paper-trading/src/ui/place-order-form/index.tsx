@@ -33,7 +33,7 @@ export function PlaceOrderForm({
   return (
     <form
       onSubmit={submit}
-      className="surface-panel flex flex-col gap-3 rounded-xl border border-white/10 p-4"
+      className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-3 rounded-xl border p-4"
     >
       <OrderPreview
         selected={selected}
@@ -59,7 +59,7 @@ export function PlaceOrderForm({
         <button
           type="submit"
           disabled={state.busy}
-          className="bg-brand inline-flex h-10 items-center gap-2 rounded-md px-4 text-sm font-medium text-white transition-[filter] hover:brightness-110 disabled:opacity-50"
+          className="bg-brand inline-flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-medium text-white transition-[filter] hover:brightness-110 disabled:opacity-50"
         >
           {state.busy ? (
             <IconLoader2 className="size-4 animate-spin" />

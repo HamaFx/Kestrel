@@ -16,27 +16,24 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import type { BlueprintPlateId } from '@/components/brand/blueprint-plates';
-
 import type { AnalysisMode } from './analysis-mode';
 
 /**
- * Single canonical source of truth for the Sovereign Council's 4 Specialist
- * Desks (`DESK-I // HORUS` … `DESK-IV // SENTINEL`) and the
- * `STAGE II // ARBITER` synthesizer.
+ * Single canonical source of truth for Kestrel's 4 specialist analysis lenses
+ * (`fundamental`, `technical`, `risk`, `sentiment`) and the combined
+ * `arbiter` trade plan synthesis.
  *
- * Every `apps/web` surface (chat empty state, desk grids, docking War Room,
- * composer, dashboard deck, tool renderers) must derive its desk copy from
- * here — no local `AGENT_META`, `CHARACTER_PROFILES`, `PERSONA_LABELS`, or
- * `DESKS` duplicates. Legacy aliases (`macro`, `quant`, `economist`,
- * `technician`, `risk_manager`, `flow`, `fusion`, `decision`) resolve through
- * {@link resolveStrategistDesk} so historical payloads keep working.
+ * Every `apps/web` surface (chat empty state, specialist grids, sidecar dock,
+ * composer, dashboard launcher, tool renderers) derives its copy from here.
+ * Legacy aliases (`macro`, `quant`, `economist`, `technician`, `risk_manager`,
+ * `flow`, `fusion`, `decision`) resolve through {@link resolveStrategistDesk}
+ * so historical payloads keep working seamlessly.
  */
 
-/** The four canonical specialist desk ids (later, adjusted by the Arbiter). */
+/** The four canonical specialist lens ids. */
 export type CanonicalDeskId = 'fundamental' | 'technical' | 'risk' | 'sentiment';
 
-/** Canonical ids plus the Arbiter synthesizer and the legacy aliases. */
+/** Canonical ids plus the synthesizer and legacy aliases. */
 export type StrategistDeskId =
   | CanonicalDeskId
   | 'arbiter'
@@ -50,159 +47,123 @@ export type StrategistDeskId =
 export interface StrategistDeskConfig {
   /** Canonical registry key (`fundamental`, `technical`, `risk`, `sentiment`, `arbiter`). */
   id: StrategistDeskId;
-  /** Roman desk code shown in every monospace telemetry label. */
+  /** Short category code shown in compact headers. */
   code: string;
-  /** Full institutional title. */
+  /** Clear, plain-English specialist title. */
   title: string;
-  /** Short label used in compact pills and aria-labels ("Macro", "Technical", …). */
+  /** Short label used in compact pills and aria-labels ("Macro", "Technicals", …). */
   label: string;
-  /** 4–5 char chip label for dense telemetry strips (MACRO, TECH, RISK, FLOW). */
+  /** 4–5 char chip label for dense strips (MACRO, CHART, RISK, SENT). */
   chipLabel: string;
-  /** `Redaction` serif epithet rendered as the desk signature. */
+  /** Plain-English subtitle describing what this lens checks. */
   epithet: string;
   description: string;
-  /** Primary domain & metrics line (mirrors the identity matrix). */
+  /** Key inputs checked by this lens. */
   domainMetrics: string;
-  /** Preserved raster artwork — primary chiaroscuro engraving. */
-  artworkPath: string;
-  /** Companion chiaroscuro engraving blended with the primary plate. */
-  pairedArtworkPath?: string;
-  /** Precision SVG engraving rendered as the primary desk illustration. */
-  blueprintId: BlueprintPlateId;
-  /** Paired companion blueprint plate ID. */
-  pairedBlueprintId?: BlueprintPlateId;
-  /**
-   * CSS color token (from `globals.css`) for the desk identity dot. Keep these
-   * as `var(--color-*)` references so the Kestrel palette stays the single
-   * source of truth instead of re-hardcoding hexes here.
-   */
+  /** CSS color token (from `globals.css`) for the identity dot. */
   accentColor: string;
   analysisMode: AnalysisMode;
   defaultPrompt: string;
-  /** Short role tag shown in the standby matrix ("Price Action", "Governance"). */
+  /** Short role tag ("Economy", "Price Action", "Risk Control", "Positioning"). */
   roleTag: string;
-  /** One-line desk doctrine rendered as the strategist quote. */
+  /** One-line guiding principle. */
   motto: string;
-  /** Legacy keys that resolve to this desk. */
+  /** Legacy keys that resolve to this lens. */
   aliases: readonly string[];
 }
 
 const FUNDAMENTAL_DESK: StrategistDeskConfig = {
   id: 'fundamental',
-  code: 'DESK-I // HORUS',
-  title: 'Macro & Rates Desk',
+  code: 'MACRO & NEWS',
+  title: 'Economy & News',
   label: 'Macro',
   chipLabel: 'MACRO',
-  epithet: 'The All-Seeing Horizon',
+  epithet: 'Interest Rates & Economic Drivers',
   description:
-    'Central bank reaction functions, real yields, sovereign flows, and cross-asset correlations.',
-  domainMetrics:
-    'US10Y Real Yields · Central Bank Policy · DXY Correlation · High-Impact Catalysts',
-  artworkPath: '/landing/kestrel-horus-statue.webp',
-  pairedArtworkPath: '/landing/temple-obelisk-meridian.webp',
-  blueprintId: 'horus',
-  pairedBlueprintId: 'obelisk',
+    'Central bank policy, interest rate expectations, inflation data, and major economic news.',
+  domainMetrics: 'Central Banks · Interest Rates · USD Strength · Economic Calendar',
   accentColor: 'var(--color-info)',
   analysisMode: 'single',
   defaultPrompt:
-    'Conduct a macroeconomic horizon assessment on XAUUSD, evaluating real yields, central bank flows, and DXY correlation.',
-  roleTag: 'Catalysts',
-  motto: 'Rate differentials and macro catalysts drive sustained directional flow.',
+    'Check the macroeconomic outlook for XAUUSD, including interest rates, central bank policy, and USD strength.',
+  roleTag: 'Economy',
+  motto: 'Interest rates and major economic news drive sustained market direction.',
   aliases: ['macro', 'economist'],
 };
 
 const TECHNICAL_DESK: StrategistDeskConfig = {
   id: 'technical',
-  code: 'DESK-II // ASTROLABE',
-  title: 'Technical Structure Desk',
-  label: 'Technical',
-  chipLabel: 'TECH',
-  epithet: 'The Mathematical Compass',
+  code: 'CHART & LEVELS',
+  title: 'Chart & Price Levels',
+  label: 'Technicals',
+  chipLabel: 'CHART',
+  epithet: 'Trend, Support & Resistance',
   description:
-    'Multi-timeframe trend alignment, swing structure, session levels, and momentum confluence across 1D, 4H, 1H, and 15M.',
-  domainMetrics:
-    'EMA20/50/200 Alignment · Swing Highs & Lows · PDH/PDL & Session Ranges · RSI/MACD/ATR',
-  artworkPath: '/landing/simulator-astrolabe.webp',
-  pairedArtworkPath: '/landing/stepper-colonnade.webp',
-  blueprintId: 'astrolabe',
-  pairedBlueprintId: 'colonnade',
+    'Multi-timeframe trend direction, key support and resistance zones, session highs/lows, and momentum.',
+  domainMetrics: 'Trend Direction · Support & Resistance · Session Highs/Lows · RSI & ATR',
   accentColor: 'var(--color-bull)',
   analysisMode: 'single',
   defaultPrompt:
-    'Map multi-timeframe trend alignment, swing highs/lows, and PDH/PDL session levels on XAUUSD 4H/15m.',
+    'Map the trend direction, key support and resistance levels, and session highs/lows on XAUUSD 4H and 15m.',
   roleTag: 'Price Action',
-  motto: 'Price structure and liquidity levels define the execution frame.',
+  motto: 'Clear support, resistance, and trend alignment define high-probability entries.',
   aliases: ['quant', 'technician'],
 };
 
 const RISK_DESK: StrategistDeskConfig = {
   id: 'risk',
-  code: 'DESK-III // AEGIS',
-  title: 'Quantitative Risk Desk',
+  code: 'RISK & SIZING',
+  title: 'Risk & Trade Sizing',
   label: 'Risk',
   chipLabel: 'RISK',
-  epithet: 'The Impassable Shield',
+  epithet: 'Stop-Loss, Targets & Position Size',
   description:
-    'Immutable 1.0% portfolio drawdown ceiling, ATR-adjusted invalidation stops, and asymmetric expectancy.',
-  domainMetrics:
-    'Immutable 1.0% Drawdown Ceiling · ATR-14 Invalidation Stops · R:R Asymmetry & Veto',
-  artworkPath: '/landing/aegis-spartan-bust.webp',
-  pairedArtworkPath: '/landing/sentinel-eclipse-watch.webp',
-  blueprintId: 'aegis',
-  pairedBlueprintId: 'eclipse',
+    'Safe position sizing (1% max risk), volatility-adjusted stop-loss placement, and reward-to-risk targets.',
+  domainMetrics: '1% Max Risk · Volatility Stop-Loss · Profit Targets · Risk/Reward Ratio',
   accentColor: 'var(--color-warn)',
   analysisMode: 'single',
   defaultPrompt:
-    'Calculate strict 1% risk-budget parameters, ATR invalidation level, and multi-tier TP targets for XAUUSD.',
-  roleTag: 'Governance',
-  motto: 'Every thesis requires an explicit price invalidation level before entry.',
+    'Calculate a 1% risk trade setup with volatility stop-loss and take-profit targets for XAUUSD.',
+  roleTag: 'Risk Control',
+  motto: 'Every trade needs a clear stop-loss and safe position size before entry.',
   aliases: ['risk_manager'],
 };
 
 const SENTIMENT_DESK: StrategistDeskConfig = {
   id: 'sentiment',
-  code: 'DESK-IV // SENTINEL',
-  title: 'Flow & Positioning Desk',
+  code: 'SENTIMENT',
+  title: 'Positioning & Sentiment',
   label: 'Sentiment',
-  chipLabel: 'FLOW',
-  epithet: 'Whale Positioning',
+  chipLabel: 'SENT',
+  epithet: 'Institutional Flow & Crowd Positioning',
   description:
-    'CFTC Commitments of Traders, commercial hedging flows, and retail skew contrarian exhaustion reads.',
-  domainMetrics:
-    'CFTC Commitments of Traders (COT) · Commercial Hedging · Retail Skew Contrarian Index',
-  artworkPath: '/landing/desks-council-strategists.webp',
-  pairedArtworkPath: '/landing/war-room-pantheon.webp',
-  blueprintId: 'sentinel',
-  pairedBlueprintId: 'warroom',
+    'Institutional trader positioning (CFTC COT), hedger activity, and whether a move is overcrowded.',
+  domainMetrics: 'Institutional Positioning (COT) · Commercial Hedging · Crowd Sentiment',
   accentColor: 'var(--color-brand)',
   analysisMode: 'single',
   defaultPrompt:
-    'Analyze CFTC Commitments of Traders (COT) institutional positioning, commercial hedging, and retail skew on XAUUSD.',
-  roleTag: 'Sentiment',
-  motto: 'Institutional positioning reveals whether a move is crowded or supported.',
+    'Check institutional positioning (COT), commercial hedging, and market sentiment on XAUUSD.',
+  roleTag: 'Positioning',
+  motto: 'Positioning data shows whether a trend is backed by institutions or overcrowded.',
   aliases: ['flow'],
 };
 
 const ARBITER_DESK_CONFIG: StrategistDeskConfig = {
   id: 'arbiter',
-  code: 'STAGE II // ARBITER',
-  title: 'Arbiter Council Synthesis',
-  label: 'Consensus',
-  chipLabel: 'ARBT',
-  epithet: 'The Unified Syndicate',
+  code: 'FULL REPORT',
+  title: 'Deep Analysis',
+  label: 'Summary',
+  chipLabel: 'PLAN',
+  epithet: 'Complete 4-Angle Trade Report',
   description:
-    'Full multi-agent deliberation: all four specialist desks synthesizing into one decisive execution plan.',
-  domainMetrics: 'Cross-Desk Reconciliation · Conflict Resolution · Certified Execution Blueprint',
-  artworkPath: '/landing/arbiter-scales-falcon.webp',
-  pairedArtworkPath: '/landing/architecture-titan.webp',
-  blueprintId: 'arbiter',
-  pairedBlueprintId: 'titan',
+    'Checks Economy, Chart Levels, Risk, and Sentiment together to build one clear, verified trade plan.',
+  domainMetrics: 'Combined Verdict · Entry, Stop-Loss & Targets · Risk-Checked Plan',
   accentColor: 'var(--color-brand)',
   analysisMode: 'full',
   defaultPrompt:
-    'Convene the full 4-desk council to deliver an integrated synthesis and execution plan for XAUUSD.',
-  roleTag: 'Synthesis',
-  motto: 'The council speaks with one verified voice — or stands aside.',
+    'Run a full trade analysis on XAUUSD covering economy, chart levels, risk sizing, and market sentiment.',
+  roleTag: 'Full Plan',
+  motto: 'All four angles checked and combined into one clear trade plan.',
   aliases: ['fusion', 'decision'],
 };
 
@@ -226,8 +187,8 @@ export const STRATEGIST_DESKS: Record<StrategistDeskId, StrategistDeskConfig> = 
 };
 
 /**
- * The 4 Specialist Desks in canonical deliberation order:
- * HORUS (Macro) → ASTROLABE (Technical) → AEGIS (Risk) → SENTINEL (Flow).
+ * The 4 Specialist Lenses in canonical order:
+ * Economy & News → Chart & Price Levels → Risk & Trade Sizing → Positioning & Sentiment.
  */
 export const FOUR_SPECIALIST_DESKS: readonly StrategistDeskConfig[] = [
   FUNDAMENTAL_DESK,
@@ -236,26 +197,24 @@ export const FOUR_SPECIALIST_DESKS: readonly StrategistDeskConfig[] = [
   SENTIMENT_DESK,
 ];
 
-/** The `STAGE II // ARBITER` synthesizer. */
+/** The combined Deep Analysis synthesizer. */
 export const ARBITER_DESK: StrategistDeskConfig = ARBITER_DESK_CONFIG;
 
-/** Fallback shown when an unknown agent name reaches a desk renderer. */
+/** Fallback shown when an unknown agent name reaches a renderer. */
 export const FALLBACK_STRATEGIST_DESK: StrategistDeskConfig = {
   id: 'technical',
-  code: 'DESK // SPECIALIST',
-  title: 'Specialist Desk',
-  label: 'Specialist',
-  chipLabel: 'SPEC',
-  epithet: 'Independent Lens',
-  description: 'Independent specialist analysis.',
-  domainMetrics: 'Independent lens',
-  artworkPath: '/landing/simulator-astrolabe.webp',
-  blueprintId: 'astrolabe',
+  code: 'ANALYSIS',
+  title: 'Market Analysis',
+  label: 'Analysis',
+  chipLabel: 'ANLS',
+  epithet: 'Focused Market Check',
+  description: 'Focused market analysis.',
+  domainMetrics: 'Price & market data',
   accentColor: 'var(--color-fg-muted)',
   analysisMode: 'single',
-  defaultPrompt: 'Run a specialist analysis on XAUUSD.',
-  roleTag: 'Specialist',
-  motto: 'Independent analysis.',
+  defaultPrompt: 'Analyze XAUUSD.',
+  roleTag: 'Analysis',
+  motto: 'Focused market check.',
   aliases: [],
 };
 
@@ -269,8 +228,8 @@ function normalizeDeskKey(key: string): string {
 /**
  * Resolve any canonical id or legacy alias (`macro`, `economist`, `quant`,
  * `technician`, `risk_manager`, `flow`, `fusion`, `decision`) to its canonical
- * desk config. Unknown keys resolve to the neutral specialist fallback so call
- * sites never have to null-check.
+ * config. Unknown keys resolve to the neutral fallback so call sites never
+ * have to null-check.
  */
 export function resolveStrategistDesk(key: string): StrategistDeskConfig {
   return findStrategistDesk(key) ?? FALLBACK_STRATEGIST_DESK;
@@ -286,10 +245,3 @@ function findStrategistDesk(key: string): StrategistDeskConfig | null {
   }
   return null;
 }
-
-/**
- * @deprecated Use {@link FOUR_SPECIALIST_DESKS} (canonical order) or
- * {@link STRATEGIST_DESKS}. Kept for the desktop dashboard deck, which renders
- * the four specialist desks under its own "Convene Full Council" CTA.
- */
-export const STRATEGIST_DESK_LIST: readonly StrategistDeskConfig[] = [...FOUR_SPECIALIST_DESKS];

@@ -61,17 +61,17 @@ export function ClosePositionCard({ output, state, errorMessage }: PluginToolPar
   }
 
   return (
-    <section className="surface-panel flex flex-col gap-3 rounded-xl border border-white/10 p-4 shadow-[var(--shadow-chip)]">
+    <section className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-3 rounded-xl border p-4 shadow-[var(--shadow-chip)]">
       <header className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="bg-success/10 text-success flex size-8 items-center justify-center rounded-md">
+          <span className="bg-success/10 text-success flex size-8 items-center justify-center rounded-lg">
             <IconCheck className="size-4" />
           </span>
           <div>
             <h3 className="text-fg text-sm font-semibold">
               {position.symbol} {position.status === 'closed' ? 'closed' : 'partially closed'}
             </h3>
-            <p className="text-fg-subtle font-mono text-[10px]">
+            <p className="text-fg-subtle font-mono text-[11px]">
               {position.accountName} · {fmtDate(position.closeTime ?? position.entryTime)}
             </p>
           </div>
@@ -98,7 +98,7 @@ export function ClosePositionCard({ output, state, errorMessage }: PluginToolPar
       </div>
 
       {fill ? (
-        <p className="text-fg-subtle font-mono text-[10px]">
+        <p className="text-fg-subtle font-mono text-[11px]">
           Fill {fmtNumber(fill.quantity, 4)} @ {fmtNumber(fill.price, 4)} · fee{' '}
           {fmtMoney(-Math.abs(fill.fees))}
         </p>
@@ -117,8 +117,8 @@ export function ClosePositionCard({ output, state, errorMessage }: PluginToolPar
 
 function Cell({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
-    <div className="bg-bg-elev-1/60 border-border/40 flex flex-col gap-0.5 rounded-md border p-2">
-      <span className="text-fg-subtle text-[10px] font-semibold tracking-wider uppercase">
+    <div className="bg-bg-elev-2/40 border-border/50 flex flex-col gap-0.5 rounded-lg border p-2.5">
+      <span className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
         {label}
       </span>
       <span

@@ -20,8 +20,7 @@
 
 // Landing hero section shell. The ticker, headline copy and telemetry rig
 // live in sibling presentation components; this file owns the active-symbol
-// state and composes the Swiss-grid section frame. The Horus raster is now a
-// 7% underlay inside the telemetry rig's BlueprintPlate.
+// state and composes the Swiss-grid section frame.
 import { useState } from 'react';
 
 import { HeroCopy } from './hero-copy';

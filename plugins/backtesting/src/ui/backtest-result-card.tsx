@@ -116,7 +116,7 @@ export function BacktestResultCard({ output, state, errorMessage }: PluginToolPa
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-1.5">
           <IconChartLine className="text-fg-subtle size-3.5" />
-          <span className="text-fg-subtle text-[10px] font-semibold tracking-wider uppercase">
+          <span className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
             Recent trades
           </span>
         </div>
@@ -124,7 +124,7 @@ export function BacktestResultCard({ output, state, errorMessage }: PluginToolPa
       </div>
 
       {run.warnings.length > 0 ? (
-        <ul className="text-warn flex flex-col gap-1 text-[11px]">
+        <ul className="text-warn flex flex-col gap-1 text-xs">
           {run.warnings.slice(0, 4).map((warning) => (
             <li key={warning} className="flex items-start gap-1.5">
               <IconAlertTriangle className="mt-0.5 size-3 shrink-0" />
@@ -135,7 +135,7 @@ export function BacktestResultCard({ output, state, errorMessage }: PluginToolPa
       ) : null}
 
       <footer className="flex items-center justify-between gap-2">
-        <span className="text-fg-subtle font-mono text-[10px]">
+        <span className="text-fg-subtle font-mono text-[11px]">
           {run.metrics.trades} trades · PF {run.metrics.profitFactor.toFixed(2)} · maxDD{' '}
           {run.metrics.maxDrawdownPct.toFixed(1)}%
         </span>

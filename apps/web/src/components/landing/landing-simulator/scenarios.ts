@@ -25,7 +25,6 @@ export interface Scenario {
   consensusScore: number;
   bullProbability: number;
   arbiterVerdict: string;
-  txHash: string;
   journalSummary: string;
 }
 
@@ -54,8 +53,7 @@ export const SCENARIOS: Scenario[] = [
     consensusScore: 90,
     bullProbability: 88,
     arbiterVerdict:
-      'Unanimous 4-Desk Consensus. Asymmetric Long Setup Confirmed. Scale 40% at TP1 and trail stop behind the 15m swing low.',
-    txHash: 'KSL-XAU-8F4A21',
+      'All 4 analysis angles aligned. Asymmetric long setup confirmed. Scale 40% at TP1 and trail stop behind the 15m swing low.',
     journalSummary:
       'Setup: XAU/USD Long @ 2,864.20 | Stop: 2,846.50 (0.85% Risk) | Targets: 2,884.00 / 2,908.50 / 2,936.00 | Alerts Armed: Telegram, Push & Email',
   },
@@ -82,8 +80,7 @@ export const SCENARIOS: Scenario[] = [
     consensusScore: 89,
     bullProbability: 16,
     arbiterVerdict:
-      'Macro Rate Divergence Confirmed. Previous-day high at 1.0850 rejected. Short plan validated with a strict 30-pip invalidation.',
-    txHash: 'KSL-EUR-3D7C91',
+      'Macro rate divergence confirmed. Previous-day high at 1.0850 rejected. Short plan validated with a strict 30-pip invalidation.',
     journalSummary:
       'Setup: EUR/USD Short @ 1.0845 | Stop: 1.0875 (0.75% Risk) | Targets: 1.0810 / 1.0760 / 1.0715 | Alerts Armed: Telegram, Push & Email',
   },
@@ -110,8 +107,7 @@ export const SCENARIOS: Scenario[] = [
     consensusScore: 92,
     bullProbability: 92,
     arbiterVerdict:
-      'Institutional Whale Accumulation. Sovereign bullion ETF inflows +24 tons. Multi-target runner plan approved.',
-    txHash: 'KSL-XAU-EE92B4',
+      'Institutional positioning aligned with macro catalysts. Bullion ETF inflows +24 tons. Multi-target runner plan approved.',
     journalSummary:
       'Setup: XAU/USD Long @ 2,870.00 | Stop: 2,852.00 (0.90% Risk) | Targets: 2,900.00 / 2,945.00 / 2,990.00 | Alerts Armed: Telegram, Push & Email',
   },

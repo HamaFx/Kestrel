@@ -110,7 +110,7 @@ export function StatsWidget({ entries }: StatsWidgetProps) {
   }, [entries]);
 
   return (
-    <section aria-label="Trading stats" className="grid grid-cols-2 gap-3">
+    <section aria-label="Trading stats" className="grid grid-cols-2 gap-3 p-3.5 sm:p-4">
       {metrics.map((m) => (
         <StatCard
           key={m.label}

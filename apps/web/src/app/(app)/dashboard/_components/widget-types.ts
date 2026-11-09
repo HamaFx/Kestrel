@@ -112,7 +112,7 @@ export const LEGACY_DEFAULT_LAYOUT: WidgetConfig[] = [
 export const WIDGET_LABELS: Record<CoreWidgetType, string> = {
   'today-glance': 'Today at a Glance',
   briefing: 'AI Market Briefing',
-  'quant-desk': '4-Desk AI Committee',
+  'quant-desk': 'Quick Analysis Prompts',
   'pnl-heatmap': 'P&L Heatmap',
   'equity-curve': 'Performance Curve',
   watchlist: 'Watchlist',
@@ -131,7 +131,7 @@ export const PRESET_LAYOUTS: Record<
 > = {
   default: {
     name: 'Essential Overview',
-    description: 'Core 6 market intelligence widgets',
+    description: 'Core market intelligence and performance widgets',
     layout: DEFAULT_LAYOUT,
   },
   day_trader: {
@@ -141,11 +141,10 @@ export const PRESET_LAYOUTS: Record<
       { id: 'w-dt-1', type: 'watchlist', span: 1, order: 0 },
       { id: 'w-dt-2', type: 'open-positions', span: 2, order: 1 },
       { id: 'w-dt-3', type: 'today-glance', span: 3, order: 2 },
-      { id: 'w-dt-qd', type: 'quant-desk', span: 1, order: 3 },
-      { id: 'w-dt-4', type: 'alerts', span: 1, order: 4 },
-      { id: 'w-dt-5', type: 'calendar', span: 1, order: 5 },
-      { id: 'w-dt-6', type: 'news-pulse', span: 1, order: 6 },
-      { id: 'w-dt-7', type: 'stats', span: 1, order: 7 },
+      { id: 'w-dt-4', type: 'alerts', span: 1, order: 3 },
+      { id: 'w-dt-5', type: 'calendar', span: 1, order: 4 },
+      { id: 'w-dt-6', type: 'news-pulse', span: 1, order: 5 },
+      { id: 'w-dt-7', type: 'stats', span: 1, order: 6 },
     ],
   },
   macro: {
@@ -153,12 +152,11 @@ export const PRESET_LAYOUTS: Record<
     description: 'Economic calendar, tagged headlines, and AI daily briefing',
     layout: [
       { id: 'w-mc-1', type: 'briefing', span: 2, order: 0 },
-      { id: 'w-mc-qd', type: 'quant-desk', span: 1, order: 1 },
-      { id: 'w-mc-2', type: 'calendar', span: 2, order: 2 },
-      { id: 'w-mc-3', type: 'news-pulse', span: 1, order: 3 },
-      { id: 'w-mc-4', type: 'today-glance', span: 3, order: 4 },
-      { id: 'w-mc-5', type: 'watchlist', span: 1, order: 5 },
-      { id: 'w-mc-6', type: 'pnl-heatmap', span: 2, order: 6 },
+      { id: 'w-mc-2', type: 'calendar', span: 1, order: 1 },
+      { id: 'w-mc-3', type: 'news-pulse', span: 1, order: 2 },
+      { id: 'w-mc-4', type: 'today-glance', span: 3, order: 3 },
+      { id: 'w-mc-5', type: 'watchlist', span: 1, order: 4 },
+      { id: 'w-mc-6', type: 'pnl-heatmap', span: 2, order: 5 },
     ],
   },
   risk: {
