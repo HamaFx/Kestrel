@@ -9,7 +9,13 @@ import { getSymbolDefinition, type JournalEntry, type Symbol } from '@kestrel/sh
 import { IconAdjustmentsHorizontal, IconZoomIn } from '@tabler/icons-react';
 import { useState } from 'react';
 
-import { Drawer, DrawerContent } from '@/components/ui/drawer';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
 import type { useConfirm } from '@/components/ui/confirm-drawer';
 import { cn } from '@/lib/formatters/cn';
 
@@ -258,6 +264,14 @@ export function ExecutionLedger({
         }}
       >
         <DrawerContent className="max-h-[92vh] overflow-y-auto p-4">
+          <DrawerHeader className="px-0 pt-0 pb-3">
+            <DrawerTitle className="font-display text-fg text-base font-normal">
+              {managedEntry ? `Manage Execution · ${managedEntry.symbol}` : 'Manage Execution'}
+            </DrawerTitle>
+            <DrawerDescription className="text-fg-subtle text-xs">
+              Adjust levels, close position, edit notes, or run AI post-trade review.
+            </DrawerDescription>
+          </DrawerHeader>
           {managedEntry ? (
             <ul>
               <EntryRow

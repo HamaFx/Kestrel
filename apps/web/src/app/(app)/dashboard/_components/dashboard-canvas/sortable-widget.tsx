@@ -90,7 +90,7 @@ export function SortableWidget({
         </div>
       ) : null}
 
-      <div className="h-full [&>*]:h-full [&>*]:rounded-none [&>*]:border-0 [&>*]:bg-[#121315] [&>*]:shadow-none">
+      <div className="h-full [&>.surface-card]:h-full [&>.surface-card]:rounded-none [&>.surface-card]:border-0 [&>.surface-card]:bg-[#121315] [&>.surface-card]:shadow-none">
         {renderWidget(widget.type, data, pluginWidgetByType)}
       </div>
     </div>

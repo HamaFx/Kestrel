@@ -29,6 +29,7 @@ import {
 import type { Metadata } from 'next';
 import { Link } from 'next-view-transitions';
 
+import { BlueprintPlate } from '@/components/brand/blueprint-plates';
 import { KestrelBrand } from '@/components/brand/kestrel-brand';
 
 export const dynamic = 'force-dynamic';
@@ -69,8 +70,13 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   return (
     <main className="bg-bg text-fg relative min-h-svh overflow-hidden lg:grid lg:grid-cols-12">
       {/* ── Credential column ── */}
-      <section className="relative z-10 flex min-h-svh flex-col justify-between p-6 sm:p-10 lg:col-span-5 lg:border-r lg:border-white/[0.08]">
-        <div className="flex items-center justify-between gap-4">
+      <section className="relative z-10 flex min-h-svh flex-col justify-between overflow-hidden p-6 sm:p-10 lg:col-span-5 lg:border-r lg:border-white/[0.08]">
+        <BlueprintPlate
+          id="horus"
+          variant="watermark"
+          className="pointer-events-none absolute -top-10 -right-10 z-0 size-52 opacity-14 lg:hidden"
+        />
+        <div className="relative z-10 flex items-center justify-between gap-4">
           <KestrelBrand variant="lockup" href="/landing" />
           <Link
             href="/landing"
@@ -82,13 +88,20 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         <h1 className="sr-only">Kestrel</h1>
-        <div className="mx-auto w-full max-w-sm py-8 lg:py-10">{children}</div>
+        <div className="relative z-10 mx-auto w-full max-w-sm py-8 lg:py-10">{children}</div>
 
-        <p className="text-fg-subtle text-xs">Encrypted API Key Vault · Private &amp; Self-Hosted</p>
+        <p className="text-fg-subtle relative z-10 text-xs">
+          Encrypted API Key Vault · Private &amp; Self-Hosted
+        </p>
       </section>
 
       {/* ── Feature summary column (Desktop) ── */}
       <aside className="relative hidden overflow-hidden border-l border-white/[0.06] bg-[#0c0d0f] p-10 lg:col-span-7 lg:flex lg:flex-col lg:justify-between xl:p-12">
+        <BlueprintPlate
+          id="horus"
+          variant="watermark"
+          className="pointer-events-none absolute top-6 right-0 bottom-20 left-8 z-0 opacity-32"
+        />
         <div className="relative z-10 flex items-center justify-between gap-4">
           <span className="text-fg-subtle font-mono text-[11px] tracking-[0.16em] uppercase">
             AI Trading Research Platform

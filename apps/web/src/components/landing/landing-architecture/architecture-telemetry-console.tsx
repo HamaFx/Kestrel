@@ -7,17 +7,31 @@
 import { IconCheck, IconLayersLinked } from '@tabler/icons-react';
 import { AnimatePresence, m } from 'motion/react';
 
+import { BlueprintPlate, type BlueprintPlateId } from '@/components/brand/blueprint-plates';
+
 import type { LayerSpec } from './layers';
 
 interface ArchitectureTelemetryConsoleProps {
   activeLayer: LayerSpec;
 }
 
+const LAYER_PLATE_MAP: Record<string, BlueprintPlateId> = {
+  edge: 'obelisk',
+  risk: 'aegis',
+  committee: 'sentinel',
+  vault: 'titan',
+};
+
 export function ArchitectureTelemetryConsole({ activeLayer }: ArchitectureTelemetryConsoleProps) {
   const ActiveIcon = activeLayer.icon;
 
   return (
     <div className="surface-panel relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-white/15 bg-[#121314] p-5 shadow-2xl sm:p-6">
+      <BlueprintPlate
+        id={LAYER_PLATE_MAP[activeLayer.id] ?? 'titan'}
+        variant="watermark"
+        className="pointer-events-none absolute -right-6 -bottom-6 z-0 size-48 opacity-20 sm:size-60 sm:opacity-25"
+      />
       {/* Lit Corner Flare */}
       <div
         aria-hidden="true"

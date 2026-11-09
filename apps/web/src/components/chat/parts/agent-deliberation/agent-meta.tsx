@@ -61,6 +61,7 @@ export interface AgentMeta {
   activeClass: string;
   code?: string;
   epithet?: string;
+  artworkPath?: string;
   accentColor?: string;
 }
 
@@ -101,6 +102,7 @@ function metaFromRegistry(desk: StrategistDeskConfig, key: string): AgentMeta {
     activeClass: tokens?.activeClass ?? 'border-border bg-bg-elev-2',
     code: desk.code,
     epithet: desk.epithet,
+    artworkPath: desk.artworkPath,
     accentColor: desk.accentColor,
   };
 }
@@ -127,6 +129,7 @@ export const FALLBACK_META: AgentMeta = {
   activeClass: 'border-border bg-bg-elev-2',
   code: FALLBACK_STRATEGIST_DESK.code,
   epithet: FALLBACK_STRATEGIST_DESK.epithet,
+  artworkPath: FALLBACK_STRATEGIST_DESK.artworkPath,
   accentColor: FALLBACK_STRATEGIST_DESK.accentColor,
 };
 

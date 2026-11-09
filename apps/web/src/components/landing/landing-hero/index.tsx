@@ -23,6 +23,8 @@
 // state and composes the Swiss-grid section frame.
 import { useState } from 'react';
 
+import { BlueprintPlate } from '@/components/brand/blueprint-plates';
+
 import { HeroCopy } from './hero-copy';
 import { HeroTelemetryRig } from './hero-telemetry-rig';
 import { HeroTickerStrip } from './hero-ticker-strip';
@@ -43,6 +45,14 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
 
   return (
     <section className="relative overflow-hidden border-b border-white/[0.08] pt-6 pb-16 lg:pt-10 lg:pb-24">
+      {/* Responsive chiaroscuro sculpture backdrop */}
+      <div
+        aria-hidden="true"
+        className="hero-backdrop-mask pointer-events-none absolute top-10 right-0 z-0 h-[280px] w-[85%] opacity-20 mix-blend-screen select-none sm:h-[380px] sm:w-[70%] lg:top-8 lg:right-0 lg:h-[86%] lg:w-[52%] lg:opacity-32"
+      >
+        <BlueprintPlate id="horus" variant="backdrop" className="h-full w-full" />
+      </div>
+
       {/* Structural column hairlines */}
       <div
         aria-hidden="true"

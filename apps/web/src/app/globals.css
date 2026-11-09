@@ -1383,40 +1383,106 @@ html[data-reduce-motion='force'] *::after {
  * Landing Page Responsive Backdrop Masks
  * ------------------------------------------------------------------------- */
 .hero-backdrop-mask {
-  mask-image: radial-gradient(ellipse 75% 70% at 50% 45%, black 35%, transparent 80%);
-  -webkit-mask-image: radial-gradient(ellipse 75% 70% at 50% 45%, black 35%, transparent 80%);
+  mask-image: radial-gradient(
+    ellipse 74% 68% at 58% 42%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 0.65) 46%,
+    rgba(0, 0, 0, 0.15) 68%,
+    transparent 82%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 74% 68% at 58% 42%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 0.65) 46%,
+    rgba(0, 0, 0, 0.15) 68%,
+    transparent 82%
+  );
 }
 @media (min-width: 1024px) {
   .hero-backdrop-mask {
-    mask-image: radial-gradient(ellipse 70% 65% at 65% 50%, black 30%, transparent 80%);
-    -webkit-mask-image: radial-gradient(ellipse 70% 65% at 65% 50%, black 30%, transparent 80%);
+    mask-image: radial-gradient(
+      ellipse 70% 68% at 54% 48%,
+      rgba(0, 0, 0, 1) 20%,
+      rgba(0, 0, 0, 0.68) 48%,
+      rgba(0, 0, 0, 0.16) 70%,
+      transparent 82%
+    );
+    -webkit-mask-image: radial-gradient(
+      ellipse 70% 68% at 54% 48%,
+      rgba(0, 0, 0, 1) 20%,
+      rgba(0, 0, 0, 0.68) 48%,
+      rgba(0, 0, 0, 0.16) 70%,
+      transparent 82%
+    );
   }
 }
 
 .desks-backdrop-mask {
-  mask-image: radial-gradient(ellipse 75% 70% at 50% 30%, black 35%, transparent 75%);
-  -webkit-mask-image: radial-gradient(ellipse 75% 70% at 50% 30%, black 35%, transparent 75%);
-}
-@media (min-width: 1024px) {
-  .desks-backdrop-mask {
-    mask-image: radial-gradient(ellipse 65% 65% at 35% 50%, black 25%, transparent 75%);
-    -webkit-mask-image: radial-gradient(ellipse 65% 65% at 35% 50%, black 25%, transparent 75%);
-  }
+  mask-image: radial-gradient(
+    ellipse 72% 68% at 50% 42%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 0.62) 45%,
+    rgba(0, 0, 0, 0.14) 68%,
+    transparent 80%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 72% 68% at 50% 42%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 0.62) 45%,
+    rgba(0, 0, 0, 0.14) 68%,
+    transparent 80%
+  );
 }
 
 .simulator-backdrop-mask {
-  mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black 25%, transparent 75%);
-  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black 25%, transparent 75%);
+  mask-image: radial-gradient(
+    ellipse 72% 68% at 56% 45%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 0.62) 45%,
+    rgba(0, 0, 0, 0.14) 68%,
+    transparent 80%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 72% 68% at 56% 45%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 0.62) 45%,
+    rgba(0, 0, 0, 0.14) 68%,
+    transparent 80%
+  );
 }
 
 .stepper-backdrop-mask {
-  mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black 25%, transparent 75%);
-  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black 25%, transparent 75%);
+  mask-image: radial-gradient(
+    ellipse 72% 68% at 48% 45%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 0.62) 45%,
+    rgba(0, 0, 0, 0.14) 68%,
+    transparent 80%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 72% 68% at 48% 45%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 0.62) 45%,
+    rgba(0, 0, 0, 0.14) 68%,
+    transparent 80%
+  );
 }
 
 .architecture-backdrop-mask {
-  mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black 25%, transparent 75%);
-  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black 25%, transparent 75%);
+  mask-image: radial-gradient(
+    ellipse 72% 68% at 56% 45%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 0.62) 45%,
+    rgba(0, 0, 0, 0.14) 68%,
+    transparent 80%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 72% 68% at 56% 45%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 0.62) 45%,
+    rgba(0, 0, 0, 0.14) 68%,
+    transparent 80%
+  );
 }
 
 /* -------------------------------------------------------------------------

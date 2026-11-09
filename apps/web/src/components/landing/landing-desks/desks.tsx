@@ -8,6 +8,8 @@
 // capabilities, and auto-cycle cadence.
 import { IconBuildingBank, IconChartCandle, IconRadar, IconScale } from '@tabler/icons-react';
 
+import type { BlueprintPlateId } from '@/components/brand/blueprint-plates';
+
 interface DeskMetric {
   label: string;
   value: string;
@@ -19,6 +21,7 @@ export interface DeskSpec {
   name: string;
   role: string;
   badge: string;
+  blueprintId: BlueprintPlateId;
   color: string;
   borderColor: string;
   bgGlow: string;
@@ -41,6 +44,7 @@ export const DESKS: DeskSpec[] = [
     name: 'Economy & News',
     role: 'Central Banks, Yields & Catalysts',
     badge: 'ECONOMY & NEWS',
+    blueprintId: 'horus',
     color: 'text-info',
     borderColor: 'border-info/30',
     bgGlow: 'from-info/10 to-transparent',
@@ -87,6 +91,7 @@ export const DESKS: DeskSpec[] = [
     name: 'Chart & Price Levels',
     role: 'Technical Structure & Key Levels',
     badge: 'CHART & PRICE LEVELS',
+    blueprintId: 'astrolabe',
     color: 'text-bull',
     borderColor: 'border-bull/30',
     bgGlow: 'from-bull/10 to-transparent',
@@ -133,6 +138,7 @@ export const DESKS: DeskSpec[] = [
     name: 'Risk & Trade Sizing',
     role: 'Position Sizing & 1% Risk Guardrail',
     badge: 'RISK & TRADE SIZING',
+    blueprintId: 'aegis',
     color: 'text-warn',
     borderColor: 'border-warn/30',
     bgGlow: 'from-warn/10 to-transparent',
@@ -179,6 +185,7 @@ export const DESKS: DeskSpec[] = [
     name: 'Positioning & Sentiment',
     role: 'CFTC COT Flow & Market Positioning',
     badge: 'POSITIONING & SENTIMENT',
+    blueprintId: 'sentinel',
     color: 'text-brand',
     borderColor: 'border-brand/30',
     bgGlow: 'from-brand/10 to-transparent',

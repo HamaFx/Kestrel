@@ -32,6 +32,7 @@ import {
 } from '@tabler/icons-react';
 import { useMemo } from 'react';
 
+import { BlueprintPlate } from '@/components/brand/blueprint-plates';
 import type { AnalysisMode } from '@/lib/analysis-mode';
 import { FOUR_SPECIALIST_DESKS, type CanonicalDeskId } from '@/lib/kestrel-strategist-desks';
 
@@ -93,8 +94,13 @@ export function ChatEmptyState({
         {/* Main launcher card */}
         <div className="divide-y divide-white/[0.07] overflow-hidden rounded-2xl border border-white/10 bg-[#121315]/95 shadow-xl">
           {/* Primary Deep Analysis CTA */}
-          <div className="flex flex-col justify-between gap-4 p-4 sm:flex-row sm:items-center sm:p-5">
-            <div className="flex flex-col gap-1.5">
+          <div className="relative flex flex-col justify-between gap-4 overflow-hidden p-4 sm:flex-row sm:items-center sm:p-5">
+            <BlueprintPlate
+              id="arbiter"
+              variant="watermark"
+              className="pointer-events-none absolute -top-6 right-2 z-0 size-36 opacity-20 sm:size-44 sm:opacity-25"
+            />
+            <div className="relative z-10 flex flex-col gap-1.5">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-fg text-sm font-semibold">Deep Trade Analysis</span>
                 <span className="border-brand/30 bg-brand/10 text-brand rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase">
@@ -111,7 +117,7 @@ export function ChatEmptyState({
               type="button"
               disabled={disabled}
               onClick={() => onSelect(DEEP_ANALYSIS_PROMPT(sym), 'full')}
-              className="tactile-press border-brand/60 bg-brand inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border px-4 font-sans text-xs font-semibold text-white shadow-[0_4px_14px_rgba(255,54,22,0.3)] transition-all hover:brightness-110 disabled:pointer-events-none disabled:opacity-50"
+              className="tactile-press border-brand/60 bg-brand relative z-10 inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border px-4 font-sans text-xs font-semibold text-white shadow-[0_4px_14px_rgba(255,54,22,0.3)] transition-all hover:brightness-110 disabled:pointer-events-none disabled:opacity-50"
             >
               <span>Run Deep Analysis</span>
               <IconArrowRight className="size-3.5" />
@@ -128,9 +134,14 @@ export function ChatEmptyState({
                   type="button"
                   disabled={disabled}
                   onClick={() => onSelect(prompt, 'single')}
-                  className="group flex flex-col justify-between gap-3 bg-[#121315] p-4 text-left transition-colors hover:bg-white/[0.03] active:translate-y-[0.5px] disabled:pointer-events-none disabled:opacity-50"
+                  className="group relative flex flex-col justify-between gap-3 overflow-hidden bg-[#121315] p-4 text-left transition-colors hover:bg-white/[0.03] active:translate-y-[0.5px] disabled:pointer-events-none disabled:opacity-50"
                 >
-                  <div className="flex flex-col gap-2">
+                  <BlueprintPlate
+                    id={desk.blueprintId}
+                    variant="watermark"
+                    className="pointer-events-none absolute -right-3 -bottom-3 z-0 size-24 opacity-18 transition-opacity duration-300 group-hover:opacity-28 sm:size-28"
+                  />
+                  <div className="relative z-10 flex flex-col gap-2">
                     <div className="flex items-center justify-between gap-2">
                       <span className="bg-bg-elev-2 inline-flex size-8 items-center justify-center rounded-lg border border-white/[0.08]">
                         <SpecialistIcon id={desk.id as CanonicalDeskId} />
@@ -146,7 +157,7 @@ export function ChatEmptyState({
                       </p>
                     </div>
                   </div>
-                  <div className="text-fg-subtle group-hover:text-brand flex items-center justify-between pt-1 font-mono text-[11px] font-medium transition-colors">
+                  <div className="text-fg-subtle group-hover:text-brand relative z-10 flex items-center justify-between pt-1 font-mono text-[11px] font-medium transition-colors">
                     <span>Quick Check</span>
                     <IconArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
                   </div>

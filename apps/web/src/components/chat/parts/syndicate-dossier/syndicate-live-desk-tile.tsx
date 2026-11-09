@@ -4,6 +4,9 @@
 
 // One live angle tile for the Deep Analysis progress view: category code,
 // live bias pill, and progress bar.
+import Image from 'next/image';
+
+import { getArtworkWatermarkClass } from '@/components/brand/blueprint-plates';
 import { cn } from '@/lib/formatters/cn';
 import type { StrategistDeskConfig } from '@/lib/kestrel-strategist-desks';
 
@@ -30,6 +33,18 @@ export function LiveDeskTile({
             : 'border-edge/60 opacity-70',
       )}
     >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-1.5 -right-1.5 z-0 size-14 opacity-16 mix-blend-screen"
+      >
+        <Image
+          src={desk.artworkPath}
+          alt=""
+          fill
+          unoptimized
+          className={getArtworkWatermarkClass(desk.artworkPath)}
+        />
+      </div>
       <div className="relative z-10 flex items-center justify-between gap-1">
         <span className="text-brand font-mono text-[10px] font-semibold tracking-wider uppercase">
           {desk.code}

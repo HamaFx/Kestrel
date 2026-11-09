@@ -8,6 +8,7 @@
 import { IconCheck, IconMessageCircleQuestion } from '@tabler/icons-react';
 import { AnimatePresence, m } from 'motion/react';
 
+import { BlueprintPlate } from '@/components/brand/blueprint-plates';
 import { cn } from '@/lib/formatters/cn';
 
 import type { DeskSpec } from './desks';
@@ -30,6 +31,11 @@ export function DeskConsole({ desk }: DeskConsoleProps) {
         transition={{ duration: 0.2, ease: 'easeOut' }}
         className="relative flex h-full flex-col justify-between overflow-hidden p-4 sm:p-7"
       >
+        <BlueprintPlate
+          id={desk.blueprintId}
+          variant="watermark"
+          className="pointer-events-none absolute -right-6 -bottom-6 z-0 size-52 opacity-22 sm:size-68 sm:opacity-28"
+        />
         {/* Panel Top Header Bar */}
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">

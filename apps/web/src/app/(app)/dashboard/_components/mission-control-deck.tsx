@@ -25,6 +25,7 @@ import { IconArrowRight, IconSparkles } from '@tabler/icons-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
+import { BlueprintPlate } from '@/components/brand/blueprint-plates';
 import { cn } from '@/lib/formatters/cn';
 import { FOUR_SPECIALIST_DESKS } from '@/lib/kestrel-strategist-desks';
 
@@ -39,9 +40,14 @@ export function MissionControlDeck() {
   return (
     <section
       aria-label="Quick AI Market Analysis"
-      className="surface-panel flex flex-col gap-3 rounded-xl border border-white/[0.08] px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
+      className="surface-panel relative flex flex-col gap-3 overflow-hidden rounded-xl border border-white/[0.08] px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
     >
-      <div className="flex flex-wrap items-center gap-2.5">
+      <BlueprintPlate
+        id="warroom"
+        variant="watermark"
+        className="pointer-events-none absolute -top-8 right-24 z-0 hidden size-36 opacity-20 lg:block"
+      />
+      <div className="relative z-10 flex flex-wrap items-center gap-2.5">
         <div className="flex items-center gap-2">
           <span className="bg-brand/15 text-brand border-brand/30 inline-flex size-7 items-center justify-center rounded-lg border">
             <IconSparkles className="size-3.5" strokeWidth={2} />
@@ -90,7 +96,7 @@ export function MissionControlDeck() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="relative z-10 flex items-center gap-2">
         <Link
           href={`/chat?mode=full&symbol=${selectedSymbol}&prompt=${encodeURIComponent(`Run a full trade analysis on ${selectedSymbol} covering economy, chart levels, risk sizing, and market sentiment.`)}`}
           className="tactile-press border-brand/60 bg-brand inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border px-3.5 text-xs font-semibold text-white shadow-[0_2px_10px_rgba(255,54,22,0.3),inset_0_1px_0_rgba(255,255,255,0.28)] transition-all hover:brightness-110 sm:w-auto"

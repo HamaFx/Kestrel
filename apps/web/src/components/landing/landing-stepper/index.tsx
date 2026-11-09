@@ -24,6 +24,8 @@
 import { IconPlayerPause, IconPlayerPlay } from '@tabler/icons-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { BlueprintPlate } from '@/components/brand/blueprint-plates';
+
 import { BriefingPanel } from './briefing-panel';
 import { CircuitSpine, nodeYCoordinates } from './circuit-spine';
 import { StageCards } from './stage-cards';
@@ -80,6 +82,14 @@ export function LandingStepper() {
       id="stepper"
       className="relative overflow-hidden border-t border-b border-white/5 bg-[#0c0d0e] py-28 lg:py-36"
     >
+      {/* Responsive chiaroscuro colonnade backdrop */}
+      <div
+        aria-hidden="true"
+        className="stepper-backdrop-mask pointer-events-none absolute top-0 left-0 z-0 h-[280px] w-[85%] opacity-18 mix-blend-screen select-none sm:h-[380px] sm:w-[70%] lg:h-[580px] lg:w-[54%] lg:opacity-28"
+      >
+        <BlueprintPlate id="colonnade" variant="backdrop" className="h-full w-full" />
+      </div>
+
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="mb-16 flex max-w-3xl flex-col items-start gap-4">

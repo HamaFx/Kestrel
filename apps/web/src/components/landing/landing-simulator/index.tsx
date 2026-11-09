@@ -25,6 +25,7 @@ import { IconPlayerPlay, IconRefresh } from '@tabler/icons-react';
 import { AnimatePresence, m } from 'motion/react';
 import { useState } from 'react';
 
+import { BlueprintPlate } from '@/components/brand/blueprint-plates';
 import { Button } from '@/components/ui/button';
 import { useCopied } from '@/hooks/use-copied';
 import { cn } from '@/lib/formatters/cn';
@@ -75,6 +76,14 @@ export function LandingSimulator() {
       id="simulator"
       className="relative overflow-hidden border-t border-white/5 bg-[#0d0e0f] py-28 lg:py-36"
     >
+      {/* Responsive chiaroscuro astrolabe backdrop */}
+      <div
+        aria-hidden="true"
+        className="simulator-backdrop-mask pointer-events-none absolute top-0 right-0 z-0 h-[280px] w-[85%] opacity-20 mix-blend-screen select-none sm:h-[380px] sm:w-[70%] lg:h-[580px] lg:w-[54%] lg:opacity-30"
+      >
+        <BlueprintPlate id="astrolabe" variant="backdrop" className="h-full w-full" />
+      </div>
+
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="mx-auto mb-14 flex max-w-3xl flex-col items-center gap-4 text-center">
@@ -137,8 +146,13 @@ export function LandingSimulator() {
 
         {/* Main Interactive Simulator Console */}
         <div className="surface-panel relative overflow-hidden rounded-2xl border border-white/15 bg-[#121314]/95 p-6 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.12)] sm:p-8">
+          <BlueprintPlate
+            id="arbiter"
+            variant="watermark"
+            className="pointer-events-none absolute -top-8 -right-8 z-0 size-56 opacity-18 sm:size-72"
+          />
           {/* Top Bar: Event Catalyst & Deliberation Trigger */}
-          <div className="flex flex-col justify-between gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-center">
+          <div className="relative z-10 flex flex-col justify-between gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-center">
             <div className="flex max-w-2xl flex-col gap-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-brand font-mono text-[11px] font-bold tracking-wider uppercase">

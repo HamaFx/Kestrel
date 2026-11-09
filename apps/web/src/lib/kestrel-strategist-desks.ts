@@ -16,6 +16,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
+import type { BlueprintPlateId } from '@/components/brand/blueprint-plates';
 import type { AnalysisMode } from './analysis-mode';
 
 /**
@@ -60,6 +61,10 @@ export interface StrategistDeskConfig {
   description: string;
   /** Key inputs checked by this lens. */
   domainMetrics: string;
+  /** Preserved raster artwork — primary chiaroscuro engraving. */
+  artworkPath: string;
+  /** Chiaroscuro engraving plate ID. */
+  blueprintId: BlueprintPlateId;
   /** CSS color token (from `globals.css`) for the identity dot. */
   accentColor: string;
   analysisMode: AnalysisMode;
@@ -82,6 +87,8 @@ const FUNDAMENTAL_DESK: StrategistDeskConfig = {
   description:
     'Central bank policy, interest rate expectations, inflation data, and major economic news.',
   domainMetrics: 'Central Banks · Interest Rates · USD Strength · Economic Calendar',
+  artworkPath: '/landing/kestrel-horus-statue.webp',
+  blueprintId: 'horus',
   accentColor: 'var(--color-info)',
   analysisMode: 'single',
   defaultPrompt:
@@ -101,6 +108,8 @@ const TECHNICAL_DESK: StrategistDeskConfig = {
   description:
     'Multi-timeframe trend direction, key support and resistance zones, session highs/lows, and momentum.',
   domainMetrics: 'Trend Direction · Support & Resistance · Session Highs/Lows · RSI & ATR',
+  artworkPath: '/landing/simulator-astrolabe.webp',
+  blueprintId: 'astrolabe',
   accentColor: 'var(--color-bull)',
   analysisMode: 'single',
   defaultPrompt:
@@ -120,6 +129,8 @@ const RISK_DESK: StrategistDeskConfig = {
   description:
     'Safe position sizing (1% max risk), volatility-adjusted stop-loss placement, and reward-to-risk targets.',
   domainMetrics: '1% Max Risk · Volatility Stop-Loss · Profit Targets · Risk/Reward Ratio',
+  artworkPath: '/landing/aegis-spartan-bust.webp',
+  blueprintId: 'aegis',
   accentColor: 'var(--color-warn)',
   analysisMode: 'single',
   defaultPrompt:
@@ -139,6 +150,8 @@ const SENTIMENT_DESK: StrategistDeskConfig = {
   description:
     'Institutional trader positioning (CFTC COT), hedger activity, and whether a move is overcrowded.',
   domainMetrics: 'Institutional Positioning (COT) · Commercial Hedging · Crowd Sentiment',
+  artworkPath: '/landing/desks-council-strategists.webp',
+  blueprintId: 'sentinel',
   accentColor: 'var(--color-brand)',
   analysisMode: 'single',
   defaultPrompt:
@@ -158,6 +171,8 @@ const ARBITER_DESK_CONFIG: StrategistDeskConfig = {
   description:
     'Checks Economy, Chart Levels, Risk, and Sentiment together to build one clear, verified trade plan.',
   domainMetrics: 'Combined Verdict · Entry, Stop-Loss & Targets · Risk-Checked Plan',
+  artworkPath: '/landing/arbiter-scales-falcon.webp',
+  blueprintId: 'arbiter',
   accentColor: 'var(--color-brand)',
   analysisMode: 'full',
   defaultPrompt:
@@ -210,6 +225,8 @@ export const FALLBACK_STRATEGIST_DESK: StrategistDeskConfig = {
   epithet: 'Focused Market Check',
   description: 'Focused market analysis.',
   domainMetrics: 'Price & market data',
+  artworkPath: '/landing/simulator-astrolabe.webp',
+  blueprintId: 'astrolabe',
   accentColor: 'var(--color-fg-muted)',
   analysisMode: 'single',
   defaultPrompt: 'Analyze XAUUSD.',

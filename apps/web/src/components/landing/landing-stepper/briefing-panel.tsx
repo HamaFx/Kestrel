@@ -8,6 +8,7 @@
 import { IconActivity, IconArrowRight, IconFlame } from '@tabler/icons-react';
 import { AnimatePresence, m } from 'motion/react';
 
+import { BlueprintPlate, type BlueprintPlateId } from '@/components/brand/blueprint-plates';
 import { cn } from '@/lib/formatters/cn';
 
 import type { Step } from './steps';
@@ -15,6 +16,12 @@ import type { Step } from './steps';
 interface BriefingPanelProps {
   current: Step;
 }
+
+const STEP_PLATE_MAP: Record<number, BlueprintPlateId> = {
+  1: 'horus',
+  2: 'sentinel',
+  3: 'arbiter',
+};
 
 const TONE_CLASSES = {
   bull: 'text-bull border-bull/25 bg-bull/10',
@@ -27,6 +34,11 @@ export function BriefingPanel({ current }: BriefingPanelProps) {
   return (
     <div id="pipeline-detail-panel" role="tabpanel" className="lg:col-span-6">
       <div className="border-brand/40 relative overflow-hidden rounded-2xl border bg-[#121314] p-4 shadow-2xl sm:p-6">
+        <BlueprintPlate
+          id={STEP_PLATE_MAP[current.id] ?? 'horus'}
+          variant="watermark"
+          className="pointer-events-none absolute -top-6 -right-6 z-0 size-48 opacity-20 sm:size-60 sm:opacity-25"
+        />
         {/* Kestrel Signature Elliptical Radial Border Glow Mask */}
         <div
           aria-hidden="true"

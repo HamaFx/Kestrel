@@ -22,6 +22,8 @@
 // composes the 2-pane milled instrument frame (selector rail + active console).
 import { useEffect, useRef, useState } from 'react';
 
+import { BlueprintPlate } from '@/components/brand/blueprint-plates';
+
 import { DeskConsole } from './desk-console';
 import { DeskTabs } from './desk-tabs';
 import { CYCLE_DURATION_MS, DESKS } from './desks';
@@ -61,6 +63,14 @@ export function LandingDesks() {
       onMouseLeave={() => setIsPaused(false)}
       className="relative overflow-hidden border-t border-white/[0.06] bg-[#101112] py-16 sm:py-20 lg:py-24"
     >
+      {/* Responsive chiaroscuro council backdrop */}
+      <div
+        aria-hidden="true"
+        className="desks-backdrop-mask pointer-events-none absolute top-0 left-0 z-0 h-[260px] w-[85%] opacity-18 mix-blend-screen select-none sm:h-[360px] sm:w-[70%] lg:h-[520px] lg:w-[52%] lg:opacity-28"
+      >
+        <BlueprintPlate id="sentinel" variant="backdrop" className="h-full w-full" />
+      </div>
+
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="mb-10 flex flex-col gap-4 sm:mb-12 md:flex-row md:items-end md:justify-between">

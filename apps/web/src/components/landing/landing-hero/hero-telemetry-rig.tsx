@@ -3,22 +3,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Right column of the landing hero: clean live market & trade setup summary
-// preview showing price, key support/resistance levels, risk/reward, the 4
+// preview showing price, key support/resistance levels, risk/reward, and the 4
 // analysis angles (Economy & News, Chart & Price Levels, Risk & Trade Sizing,
-// Positioning & Sentiment), and an optional 3D view.
-import { IconBolt, IconChartCandle, IconCube } from '@tabler/icons-react';
+// Positioning & Sentiment).
+import { IconBolt, IconChartCandle } from '@tabler/icons-react';
 import { m } from 'motion/react';
-import dynamic from 'next/dynamic';
-import { useState } from 'react';
 
+import { BlueprintPlate } from '@/components/brand/blueprint-plates';
 import { cn } from '@/lib/formatters/cn';
 
 import { SYMBOLS, type DeskBias } from './telemetry';
-
-const Landing3DHologram = dynamic(
-  () => import('@/components/landing/landing-3d-hologram').then((mod) => mod.Landing3DHologram),
-  { ssr: false },
-);
 
 interface HeroTelemetryRigProps {
   activeSymbolIndex: number;
@@ -32,7 +26,6 @@ const BIAS_STYLES: Record<DeskBias, string> = {
 };
 
 export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTelemetryRigProps) {
-  const [viewportMode, setViewportMode] = useState<'preview' | 'hologram'>('preview');
   const active = SYMBOLS[activeSymbolIndex] ?? SYMBOLS[0]!;
 
   const analysisAngles = [
@@ -61,8 +54,13 @@ export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTele
   return (
     <div className="relative lg:col-span-5">
       <div className="surface-panel relative z-10 overflow-hidden rounded-2xl border border-white/15 bg-[#141516]/95 p-4 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.12)] sm:p-6">
+        <BlueprintPlate
+          id="horus"
+          variant="watermark"
+          className="pointer-events-none absolute -top-6 -right-6 z-0 size-56 opacity-20 sm:size-64"
+        />
         {/* Header Status & Symbol Switcher */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3.5">
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3.5">
           <div className="flex items-center gap-2">
             <span className="bg-bull size-2 rounded-full" />
             <span className="text-fg font-mono text-xs font-bold tracking-wider uppercase">
@@ -99,7 +97,7 @@ export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTele
         </div>
 
         {/* Symbol Data Container */}
-        <div key={active.symbol}>
+        <div key={active.symbol} className="relative z-10">
           {/* Price Display */}
           <div className="surface-well my-3.5 rounded-xl border border-white/5 bg-[#0b0c0d] p-3.5 sm:p-4">
             <div className="flex items-baseline justify-between gap-2">
@@ -126,106 +124,69 @@ export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTele
             </div>
           </div>
 
-          {/* ── Clean Live Market Levels & Risk/Reward Preview + Optional 3D Toggle ── */}
+          {/* ── Clean Live Market Levels & Risk/Reward Preview ── */}
           <div className="my-3 flex flex-col gap-2.5">
             <div className="flex items-center justify-between gap-2">
               <span className="text-fg-subtle font-mono text-[11px] tracking-wider uppercase">
                 {active.sessionLabel}
               </span>
-              <div className="flex items-center gap-1 rounded-md border border-white/10 bg-black/50 p-0.5">
-                <button
-                  type="button"
-                  onClick={() => setViewportMode('preview')}
-                  className={cn(
-                    'inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[11px] font-semibold tracking-wider uppercase transition-colors',
-                    viewportMode === 'preview'
-                      ? 'bg-brand text-white'
-                      : 'text-fg-subtle hover:text-fg',
-                  )}
-                >
-                  <IconChartCandle className="size-3.5" />
-                  Key Levels
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewportMode('hologram')}
-                  className={cn(
-                    'inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[11px] font-semibold tracking-wider uppercase transition-colors',
-                    viewportMode === 'hologram'
-                      ? 'bg-brand text-white'
-                      : 'text-fg-subtle hover:text-fg',
-                  )}
-                >
-                  <IconCube className="size-3.5" />
-                  3D View
-                </button>
-              </div>
+              <span className="text-brand border-brand/30 bg-brand/10 inline-flex items-center gap-1 rounded border px-2 py-0.5 font-mono text-[11px] font-semibold tracking-wider uppercase">
+                <IconChartCandle className="size-3.5" />
+                Key Levels
+              </span>
             </div>
 
-            {viewportMode === 'preview' ? (
-              <div className="surface-well flex flex-col justify-between gap-3 rounded-xl border border-white/10 bg-[#0b0c0d] p-3.5 sm:p-4">
-                {/* Support & Resistance Level Cards */}
-                <div className="grid grid-cols-2 gap-2.5 font-mono">
-                  <div className="rounded-lg border border-white/5 bg-black/50 p-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-fg-subtle text-[11px] uppercase">Key Support</span>
-                      <span className="text-bull text-[11px] font-semibold">S1 Floor</span>
-                    </div>
-                    <div className="text-fg mt-1 text-sm font-bold tabular-nums">
-                      {active.supportLevel}
-                    </div>
-                    <div className="text-fg-muted mt-0.5 font-sans text-[11px]">
-                      {active.supportNote}
-                    </div>
+            <div className="surface-well flex flex-col justify-between gap-3 rounded-xl border border-white/10 bg-[#0b0c0d] p-3.5 sm:p-4">
+              {/* Support & Resistance Level Cards */}
+              <div className="grid grid-cols-2 gap-2.5 font-mono">
+                <div className="rounded-lg border border-white/5 bg-black/50 p-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-fg-subtle text-[11px] uppercase">Key Support</span>
+                    <span className="text-bull text-[11px] font-semibold">S1 Floor</span>
                   </div>
-
-                  <div className="rounded-lg border border-white/5 bg-black/50 p-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-fg-subtle text-[11px] uppercase">Key Resistance</span>
-                      <span className="text-brand text-[11px] font-semibold">R1 Ceiling</span>
-                    </div>
-                    <div className="text-fg mt-1 text-sm font-bold tabular-nums">
-                      {active.resistanceLevel}
-                    </div>
-                    <div className="text-fg-muted mt-0.5 font-sans text-[11px]">
-                      {active.resistanceNote}
-                    </div>
+                  <div className="text-fg mt-1 text-sm font-bold tabular-nums">
+                    {active.supportLevel}
+                  </div>
+                  <div className="text-fg-muted mt-0.5 font-sans text-[11px]">
+                    {active.supportNote}
                   </div>
                 </div>
 
-                {/* Visual Range Position Meter */}
-                <div className="rounded-lg border border-white/5 bg-black/40 px-3 py-2.5">
-                  <div className="mb-1.5 flex items-center justify-between font-mono text-[11px]">
-                    <span className="text-bear">SL {active.invalidation}</span>
-                    <span className="text-fg font-semibold">Entry {active.entry}</span>
-                    <span className="text-bull">TP1 {active.target1}</span>
+                <div className="rounded-lg border border-white/5 bg-black/50 p-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-fg-subtle text-[11px] uppercase">Key Resistance</span>
+                    <span className="text-brand text-[11px] font-semibold">R1 Ceiling</span>
                   </div>
-                  <div className="relative h-2 w-full overflow-hidden rounded-full bg-white/10">
-                    <div className="bg-bear/60 absolute inset-y-0 left-0 w-[26%]" />
-                    <div className="bg-bull/70 absolute inset-y-0 right-0 left-[26%]" />
-                    <div
-                      aria-hidden="true"
-                      className="absolute top-0 bottom-0 left-[26%] w-1 bg-white shadow-[0_0_6px_#ffffff]"
-                    />
+                  <div className="text-fg mt-1 text-sm font-bold tabular-nums">
+                    {active.resistanceLevel}
                   </div>
-                  <div className="text-fg-subtle mt-1.5 flex items-center justify-between font-mono text-[11px]">
-                    <span>Risk/Reward: {active.rr}</span>
-                    <span>Size: {active.riskSize} (≤ 1.0% Max)</span>
+                  <div className="text-fg-muted mt-0.5 font-sans text-[11px]">
+                    {active.resistanceNote}
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="relative flex h-[196px] w-full items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/60 shadow-inner sm:h-[208px]">
-                <div className="text-fg-subtle absolute top-2.5 left-3 z-10 flex items-center gap-2 font-mono text-[11px] select-none">
-                  <span className="bg-brand size-1.5 rounded-full" />
-                  <span>MULTI-ANGLE CONSENSUS ENGINE</span>
+
+              {/* Visual Range Position Meter */}
+              <div className="rounded-lg border border-white/5 bg-black/40 px-3 py-2.5">
+                <div className="mb-1.5 flex items-center justify-between font-mono text-[11px]">
+                  <span className="text-bear">SL {active.invalidation}</span>
+                  <span className="text-fg font-semibold">Entry {active.entry}</span>
+                  <span className="text-bull">TP1 {active.target1}</span>
                 </div>
-                <div className="text-brand/80 pointer-events-none absolute right-3 bottom-2 z-10 font-mono text-[11px] select-none">
-                  DRAG TO INSPECT
+                <div className="relative h-2 w-full overflow-hidden rounded-full bg-white/10">
+                  <div className="bg-bear/60 absolute inset-y-0 left-0 w-[26%]" />
+                  <div className="bg-bull/70 absolute inset-y-0 right-0 left-[26%]" />
+                  <div
+                    aria-hidden="true"
+                    className="absolute top-0 bottom-0 left-[26%] w-1 bg-white shadow-[0_0_6px_#ffffff]"
+                  />
                 </div>
-                <Landing3DHologram className="h-full w-full" />
+                <div className="text-fg-subtle mt-1.5 flex items-center justify-between font-mono text-[11px]">
+                  <span>Risk/Reward: {active.rr}</span>
+                  <span>Size: {active.riskSize} (≤ 1.0% Max)</span>
+                </div>
               </div>
-            )}
+            </div>
           </div>
 
           {/* 4 Analysis Angles Breakdown */}

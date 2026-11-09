@@ -23,6 +23,8 @@
 // Private Workspace) and interactive 4-layer stack inspector.
 import { useState } from 'react';
 
+import { BlueprintPlate } from '@/components/brand/blueprint-plates';
+
 import { ArchitectureHeader } from './architecture-header';
 import { ArchitectureLayerPlate } from './architecture-layer-plate';
 import { ArchitectureLayerTab } from './architecture-layer-tab';
@@ -42,6 +44,14 @@ export function LandingArchitecture() {
       id="architecture"
       className="relative overflow-hidden border-t border-white/5 bg-[#0e0f10] py-28 lg:py-36"
     >
+      {/* Responsive chiaroscuro titan backdrop */}
+      <div
+        aria-hidden="true"
+        className="architecture-backdrop-mask pointer-events-none absolute top-0 right-0 z-0 h-[280px] w-[85%] opacity-20 mix-blend-screen select-none sm:h-[380px] sm:w-[70%] lg:h-[620px] lg:w-[54%] lg:opacity-30"
+      >
+        <BlueprintPlate id="titan" variant="backdrop" className="h-full w-full" />
+      </div>
+
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header + 3 Core Security & Self-Hosted Pillars */}
         <ArchitectureHeader />

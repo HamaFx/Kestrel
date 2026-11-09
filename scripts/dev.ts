@@ -48,7 +48,7 @@ async function main() {
   console.log('📦 Database: Postgres');
   console.log('▶  Starting workspace development tasks...');
 
-  execFileSync('turbo', ['run', 'dev'], { stdio: 'inherit', env: process.env });
+  execFileSync('turbo', ['run', 'dev', '--env-mode=loose'], { stdio: 'inherit', env: process.env });
 }
 
 main().catch((err) => {

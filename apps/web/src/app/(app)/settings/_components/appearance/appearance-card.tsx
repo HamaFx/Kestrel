@@ -17,6 +17,7 @@
  */
 import { IconMoon, IconPalette } from '@tabler/icons-react';
 
+import { RowDivider } from '../row-divider';
 import { SettingsRow } from '../settings-row';
 
 export function AppearanceCard() {
@@ -52,18 +53,17 @@ export function AppearanceCard() {
           </span>
         }
       />
-      <div className="mt-1">
-        <SettingsRow
-          label="Color Scheme"
-          description="Kestrel is tuned for dark cyber-industrial trading desks. Light mode is coming in a future update."
-          action={
-            <span className="surface-chip text-fg-subtle inline-flex items-center gap-1.5 rounded-md border border-white/10 px-3 py-1.5 font-mono text-xs font-medium">
-              <IconMoon className="text-brand size-3.5" />
-              Dark (Standard)
-            </span>
-          }
-        />
-      </div>
+      <RowDivider />
+      <SettingsRow
+        label="Color Scheme"
+        description="Kestrel is tuned for dark cyber-industrial trading desks. Light mode is coming in a future update."
+        action={
+          <span className="surface-chip text-fg-subtle inline-flex items-center gap-1.5 rounded-md border border-white/10 px-3 py-1.5 font-mono text-xs font-medium">
+            <IconMoon className="text-brand size-3.5" />
+            Dark (Standard)
+          </span>
+        }
+      />
     </section>
   );
 }

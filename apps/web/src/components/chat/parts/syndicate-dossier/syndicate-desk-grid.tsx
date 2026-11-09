@@ -5,7 +5,9 @@
 // The 2×2 Analysis Breakdown Grid: shows all 4 market angles (Macro, Technicals,
 // Risk, Sentiment) with bias badges, confidence bars, and expandable reasoning.
 import { IconAlertCircle, IconAlertTriangle } from '@tabler/icons-react';
+import Image from 'next/image';
 
+import { getArtworkWatermarkClass } from '@/components/brand/blueprint-plates';
 import { cn } from '@/lib/formatters/cn';
 
 import { AGENT_META, FALLBACK_META, type AgentProgress } from '../agent-deliberation/agent-meta';
@@ -85,6 +87,21 @@ export function SyndicateDeskGrid({
               key={a.agentName}
               className="surface-chip border-edge/80 hover:border-brand/40 relative min-w-0 overflow-hidden rounded-xl border p-3 transition-all sm:p-3.5"
             >
+              {meta.artworkPath ? (
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -right-2 -bottom-2 z-0 size-20 opacity-16 mix-blend-screen sm:size-24 sm:opacity-20"
+                >
+                  <Image
+                    src={meta.artworkPath}
+                    alt=""
+                    fill
+                    unoptimized
+                    className={getArtworkWatermarkClass(meta.artworkPath)}
+                  />
+                </div>
+              ) : null}
+
               <div className="relative z-10">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-brand font-mono text-[10px] font-semibold tracking-wider uppercase">

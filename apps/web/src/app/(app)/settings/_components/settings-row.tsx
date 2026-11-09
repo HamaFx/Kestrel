@@ -48,7 +48,7 @@ export function SettingsRow({
   return (
     <div
       className={cn(
-        'flex min-h-14 items-center gap-3 border-b border-white/[0.06] px-4 py-3 last:border-b-0',
+        'flex min-h-14 items-center gap-3 py-1.5',
         stack ? 'flex-col items-stretch gap-3' : '',
         className,
       )}
