@@ -35,7 +35,7 @@
     "@kestrel/shared": "workspace:*",
     "@tabler/icons-react": "^3.49.0",
     "@tanstack/react-query": "^5.104.4",
-    "@tanstack/react-virtual": "^3.14.21",
+    "@tanstack/react-virtual": "^3.14.26",
     "ai": "^7.0.143",
     "bcryptjs": "^3.0.3",
     "bklit-tanstack-charts": "0.1.1",
