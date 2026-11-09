@@ -18,96 +18,64 @@
  * limitations under the License.
  */
 
-// Landing desks section shell: owns the auto-cycling/pause-on-hover state and
-// composes the 2-pane milled instrument frame (selector rail + active console).
-import { useEffect, useRef, useState } from 'react';
+// "Inside the 4 Specialist Desks" 2x2 SVG Bento Grid section. Replaces the
+// multi-box tab wall with four simultaneous hardware cards and bespoke 1px SVG
+// schematics.
+import { useState } from 'react';
 
 import { BlueprintPlate } from '@/components/brand/blueprint-plates';
 
 import { DeskConsole } from './desk-console';
 import { DeskTabs } from './desk-tabs';
-import { CYCLE_DURATION_MS, DESKS } from './desks';
+import { DESKS } from './desks';
 
 export function LandingDesks() {
-  const [selectedId, setSelectedId] = useState<string>('macro');
-  const [isPaused, setIsPaused] = useState(false);
-  const activeDesk = DESKS.find((d) => d.id === selectedId) ?? DESKS[0]!;
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Auto-cycling tabs with pause on hover
-  useEffect(() => {
-    if (isPaused) return;
-
-    timerRef.current = setTimeout(() => {
-      setSelectedId((current) => {
-        const idx = DESKS.findIndex((d) => d.id === current);
-        const nextIdx = (idx + 1) % DESKS.length;
-        return DESKS[nextIdx]!.id;
-      });
-    }, CYCLE_DURATION_MS);
-
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [selectedId, isPaused]);
-
-  const handleSelectDesk = (id: string) => {
-    setSelectedId(id);
-    setIsPaused(true);
-  };
+  const [activeDesk, setActiveDesk] = useState(0);
 
   return (
     <section
       id="desks"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-      className="relative overflow-hidden border-t border-white/[0.06] bg-[#101112] py-16 sm:py-20 lg:py-24"
+      className="relative overflow-hidden border-b border-white/[0.07] bg-[#121212] py-20 lg:py-28"
     >
-      {/* Responsive chiaroscuro council backdrop */}
+      {/* Bayer-dithered chiaroscuro council backdrop */}
       <div
         aria-hidden="true"
-        className="desks-backdrop-mask pointer-events-none absolute top-0 left-0 z-0 h-[260px] w-[85%] opacity-18 mix-blend-screen select-none sm:h-[360px] sm:w-[70%] lg:h-[520px] lg:w-[52%] lg:opacity-28"
+        className="section-backdrop-mask pointer-events-none absolute top-6 left-0 z-0 h-[260px] w-[85%] opacity-22 mix-blend-screen select-none sm:h-[340px] sm:w-[70%] lg:top-0 lg:left-0 lg:h-[78%] lg:w-[46%] lg:opacity-30"
       >
         <BlueprintPlate id="sentinel" variant="backdrop" className="h-full w-full" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="mb-10 flex flex-col gap-4 sm:mb-12 md:flex-row md:items-end md:justify-between">
-          <div className="flex max-w-2xl flex-col items-start gap-3">
-            <div className="border-border/60 inline-flex items-center gap-2 rounded-full border bg-white/[0.03] px-3 py-1 font-mono text-xs">
-              <span className="bg-brand size-2 rounded-full" />
-              <span className="text-brand font-semibold tracking-wider uppercase">
-                4 Analysis Angles
-              </span>
+        {/* Concise Section Header */}
+        <div className="mb-10 flex flex-col justify-between gap-4 border-b border-white/[0.07] pb-7 lg:flex-row lg:items-end">
+          <div>
+            <div className="text-brand mb-2.5 flex items-center gap-2 font-mono text-xs tracking-[0.14em] uppercase">
+              <span>// 01 · PARALLEL SPECIALIST COMMITTEE</span>
             </div>
-
-            <h2 className="font-display text-fg text-3xl font-normal tracking-[-0.03em] sm:text-4xl lg:text-5xl">
-              FOUR ANGLES ON{' '}
-              <span className="font-redaction-35 text-brand italic">Every Market Setup</span>
+            <h2 className="font-display text-fg text-3xl font-normal tracking-[-0.02em] sm:text-5xl">
+              Four Specialist Desks.{' '}
+              <span className="font-redaction-35 text-brand italic">Zero Blind Spots.</span>
             </h2>
-            <p className="text-fg-muted font-sans text-sm leading-relaxed sm:text-base">
-              Instead of relying on a single generic prompt, Kestrel checks every setup across four
-              clear research angles: Economy &amp; News, Chart &amp; Price Levels, Risk &amp; Trade
-              Sizing, and Positioning &amp; Sentiment.
-            </p>
           </div>
-
-          {/* Synchronization Status Badge */}
-          <div className="text-fg-subtle hidden items-center gap-2.5 rounded-lg border border-white/10 bg-white/[0.02] px-3.5 py-2 font-mono text-xs lg:flex">
-            <span className="bg-bull size-2 rounded-full" />
-            <span>4/4 ANGLES EVALUATED IN PARALLEL</span>
-          </div>
+          <p className="text-fg-muted max-w-md font-sans text-sm leading-relaxed sm:text-base">
+            Every query runs across four domain-isolated AI desks before the numeric verifier locks
+            in your entry, invalidation, and position size.
+          </p>
         </div>
 
-        {/* Unified 2-Pane Milled Instrument Frame */}
-        <div className="grid divide-y divide-white/[0.08] overflow-hidden rounded-2xl border border-white/10 bg-[#121315] lg:grid-cols-12 lg:divide-x lg:divide-y-0">
-          <DeskTabs selectedId={selectedId} isPaused={isPaused} onSelect={handleSelectDesk} />
+        {/* Interactive Focus Bar */}
+        <DeskTabs activeDesk={activeDesk} onSelectDesk={setActiveDesk} />
 
-          {/* Right Console: Active Angle Preview */}
-          <div className="flex min-w-0 flex-col lg:col-span-7">
-            <DeskConsole desk={activeDesk} />
-          </div>
+        {/* 2x2 Hardware Bento Grid */}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          {DESKS.map((desk, idx) => (
+            <DeskConsole
+              key={desk.id}
+              desk={desk}
+              isSelected={activeDesk === idx}
+              onSelect={() => setActiveDesk(idx)}
+            />
+          ))}
         </div>
       </div>
     </section>

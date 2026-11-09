@@ -2,106 +2,172 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Risk tolerance slider and the veto governor for the landing simulator.
-import { IconAlertTriangle, IconLock } from '@tabler/icons-react';
+// Left-column control deck for the landing simulator: scenario selector cards,
+// interactive 1.0% max-loss risk governor slider, and committee re-run button.
+import { IconAlertTriangle, IconLock, IconRefresh } from '@tabler/icons-react';
 import { m } from 'motion/react';
 
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/formatters/cn';
 
+import { SCENARIOS, type SimulationStage } from './scenarios';
+
 interface SimulatorControlsProps {
-  riskSlider: number;
+  selectedIdx: number;
+  riskPercent: number;
   isVetoed: boolean;
+  stage: SimulationStage;
+  onSelectScenario: (idx: number) => void;
   onRiskChange: (value: number) => void;
-  onRestoreLimit: () => void;
+  onReconvene: () => void;
 }
 
 export function SimulatorControls({
-  riskSlider,
+  selectedIdx,
+  riskPercent,
   isVetoed,
+  stage,
+  onSelectScenario,
   onRiskChange,
-  onRestoreLimit,
+  onReconvene,
 }: SimulatorControlsProps) {
-  const riskDollars = Math.round(100_000 * (riskSlider / 100));
+  const riskDollars = Math.round(100_000 * (riskPercent / 100));
 
   return (
-    <div
-      className={cn(
-        'surface-well my-6 rounded-xl border p-4 transition-all duration-300 sm:p-5',
-        isVetoed
-          ? 'border-bear/50 bg-bear/[0.05] shadow-[0_0_20px_rgba(224,44,16,0.15)]'
-          : 'border-white/10 bg-[#090a0b]',
-      )}
-    >
-      <div className="mb-3 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
-        <div>
-          <span className="text-fg flex items-center gap-2 font-mono text-xs font-bold tracking-wider uppercase">
-            <IconLock className="text-brand size-3.5" />
-            PORTFOLIO RISK GUARDRAIL (1.0% MAX LOSS)
-          </span>
-          <span className="text-fg-muted mt-0.5 block font-sans text-xs">
-            Drag the slider above 1.0% to see how Kestrel blocks oversized risk before you place a
-            trade.
-          </span>
+    <div className="flex flex-col justify-between gap-4 lg:col-span-4">
+      {/* Scenario Selector Stack */}
+      <div className="flex flex-col gap-2.5" role="tablist" aria-label="Market scenarios">
+        <div className="text-fg-subtle px-1 font-mono text-[11px] tracking-wider uppercase">
+          SELECT MARKET SCENARIO
         </div>
-        <div className="shrink-0 text-right font-mono text-xs font-bold">
-          <span className="text-fg-subtle block text-[11px] font-medium tracking-wider uppercase">
-            On a $100k account
+
+        {SCENARIOS.map((sc, idx) => {
+          const isSelected = idx === selectedIdx;
+          const isLong = sc.action.startsWith('BUY');
+          return (
+            <button
+              key={sc.id}
+              type="button"
+              role="tab"
+              aria-selected={isSelected}
+              onClick={() => onSelectScenario(idx)}
+              className={cn(
+                'relative flex flex-col gap-1.5 rounded-xl border p-3.5 text-left transition-colors duration-200',
+                isSelected
+                  ? 'border-brand/50 bg-[#17181b] shadow-lg'
+                  : 'border-white/[0.07] bg-[#121316]/90 hover:border-white/15',
+              )}
+            >
+              {isSelected && (
+                <m.div
+                  layoutId="simulator-scenario-active-pill"
+                  className="border-brand/40 bg-brand/[0.05] absolute inset-0 rounded-xl border"
+                  transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                />
+              )}
+
+              <div className="relative z-10 flex items-center justify-between gap-2 font-mono text-xs">
+                <span className="text-fg font-bold">{sc.symbol}</span>
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className={cn(
+                      'rounded border px-1.5 py-0.5 text-[10px] font-bold',
+                      isLong
+                        ? 'text-bull border-bull/30 bg-bull/10'
+                        : 'text-bear border-bear/30 bg-bear/10',
+                    )}
+                  >
+                    {sc.action}
+                  </span>
+                  <span className="text-brand border-brand/30 bg-brand/10 rounded border px-1.5 py-0.5 text-[10px] font-bold tabular-nums">
+                    {sc.rr}
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-fg relative z-10 font-sans text-sm font-medium">{sc.name}</div>
+              <p className="text-fg-muted relative z-10 line-clamp-2 font-sans text-xs leading-relaxed">
+                {sc.catalyst}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Interactive 1.0% Risk Governor Slider */}
+      <div
+        className={cn(
+          'rounded-xl border p-4 transition-colors duration-200',
+          isVetoed
+            ? 'border-bear/50 bg-bear/[0.06] shadow-[0_0_24px_rgba(229,72,77,0.14)]'
+            : 'border-white/10 bg-[#121316]',
+        )}
+      >
+        <div className="flex items-center justify-between gap-2 font-mono text-xs">
+          <span className="text-fg flex items-center gap-1.5 font-bold uppercase">
+            <IconLock className="text-brand size-3.5" />
+            RISK GUARDRAIL
           </span>
-          RISK PER TRADE:{' '}
           <span
             className={cn(
-              'font-mono font-black tabular-nums',
+              'font-bold tabular-nums',
               isVetoed ? 'text-bear' : 'text-bull',
             )}
           >
-            {riskSlider.toFixed(1)}%
-          </span>{' '}
-          <span className={cn('tabular-nums', isVetoed ? 'text-bear' : 'text-fg-muted')}>
-            · ${riskDollars.toLocaleString('en-US')}
+            {riskPercent.toFixed(2)}% · ${riskDollars.toLocaleString('en-US')}
           </span>
         </div>
-      </div>
 
-      <div className="flex items-center gap-4">
-        <span className="text-fg-subtle font-mono text-xs">0.5%</span>
-        <input
-          type="range"
-          min="0.5"
-          max="2.5"
-          step="0.1"
-          value={riskSlider}
-          aria-label="Max account risk percentage"
-          aria-valuemin={0.5}
-          aria-valuemax={2.5}
-          aria-valuenow={riskSlider}
-          onChange={(e) => onRiskChange(parseFloat(e.target.value))}
-          className="accent-brand w-full cursor-pointer"
-        />
-        <span className="text-fg-subtle font-mono text-xs">2.5%</span>
-      </div>
+        <p className="text-fg-muted mt-1 font-sans text-xs">
+          Drag above 1.00% ($1,000 on $100k) to trigger the Risk Desk veto.
+        </p>
 
-      {isVetoed && (
-        <m.div
-          initial={{ opacity: 0, y: -4 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-bear/15 border-bear/40 text-bear mt-3.5 flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 font-mono text-xs"
-        >
-          <div className="flex items-center gap-2">
-            <IconAlertTriangle className="size-4 shrink-0 animate-bounce" />
-            <span>
-              <strong>RISK GUARDRAIL TRIGGERED:</strong> {riskSlider.toFixed(1)}% risk exceeds your
-              1.0% maximum drawdown rule. Trade plan paused.
+        <div className="mt-3 flex items-center gap-3 font-mono text-[11px]">
+          <span className="text-fg-subtle">0.5%</span>
+          <input
+            type="range"
+            min="0.5"
+            max="2.0"
+            step="0.05"
+            value={riskPercent}
+            aria-label="Max account risk percentage"
+            aria-valuemin={0.5}
+            aria-valuemax={2.0}
+            aria-valuenow={riskPercent}
+            onChange={(e) => onRiskChange(parseFloat(e.target.value))}
+            className="accent-brand w-full cursor-pointer"
+          />
+          <span className="text-fg-subtle">2.0%</span>
+        </div>
+
+        {isVetoed && (
+          <div className="border-bear/40 bg-bear/15 text-bear mt-3 flex items-center justify-between gap-2 rounded-lg border px-2.5 py-2 font-mono text-[11px]">
+            <span className="flex items-center gap-1.5 font-bold">
+              <IconAlertTriangle className="size-3.5 shrink-0" />
+              CAP EXCEEDED (&gt; 1.00%)
             </span>
+            <button
+              type="button"
+              onClick={() => onRiskChange(0.85)}
+              className="underline hover:text-white"
+            >
+              Reset 0.85%
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onRestoreLimit}
-            className="bg-bear/20 hover:bg-bear/30 border-bear/40 cursor-pointer rounded border px-2.5 py-1 text-[11px] font-bold underline transition-colors"
-          >
-            Restore 1.0% Limit
-          </button>
-        </m.div>
-      )}
+        )}
+      </div>
+
+      {/* Re-run 4 Desks Action */}
+      <Button
+        variant="secondary"
+        size="md"
+        onClick={onReconvene}
+        disabled={stage === 'voting'}
+        className="w-full justify-center gap-2 border-white/10 font-mono text-xs uppercase"
+      >
+        <IconRefresh className={cn('size-3.5', stage === 'voting' && 'animate-spin')} />
+        <span>{stage === 'voting' ? 'Scoring 4 Desks...' : 'Re-Run 4-Desk Check'}</span>
+      </Button>
     </div>
   );
 }

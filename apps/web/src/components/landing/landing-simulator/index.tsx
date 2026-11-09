@@ -18,220 +18,120 @@
  * limitations under the License.
  */
 
-// Interactive committee-simulator shell. Scenario data lives in `scenarios.ts`
-// and each console section is its own component; this file owns the state
-// machine shared between them.
-import { IconPlayerPlay, IconRefresh } from '@tabler/icons-react';
-import { AnimatePresence, m } from 'motion/react';
+// Landing-page interactive trade setup & 1% risk governor simulator shell.
 import { useState } from 'react';
 
 import { BlueprintPlate } from '@/components/brand/blueprint-plates';
-import { Button } from '@/components/ui/button';
-import { useCopied } from '@/hooks/use-copied';
-import { cn } from '@/lib/formatters/cn';
 
 import { SCENARIOS, type SimulationStage } from './scenarios';
 import { SimulatorCanvas } from './simulator-canvas';
 import { SimulatorControls } from './simulator-controls';
-import { DispatchedCard, DispatchingCard } from './simulator-dispatch';
-import { VerifiedPlanCard, VetoedVerdictCard } from './simulator-verdict';
 
 export function LandingSimulator() {
-  const [selectedScenarioId, setSelectedScenarioId] = useState<string>('london-sweep');
-  const [simulationStage, setSimulationStage] = useState<SimulationStage>('idle');
-  const [riskSlider, setRiskSlider] = useState<number>(1.0);
-  const [copiedSummary, markCopiedSummary] = useCopied(2000);
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const [stage, setStage] = useState<SimulationStage>('verdict');
+  const [riskPercent, setRiskPercent] = useState<number>(0.85);
+  const [copiedHash, setCopiedHash] = useState(false);
 
-  const scenario = SCENARIOS.find((s) => s.id === selectedScenarioId) ?? SCENARIOS[0]!;
-  const isVetoed = riskSlider > 1.0;
+  const scenario = SCENARIOS[selectedIdx] ?? SCENARIOS[0]!;
+  const isVetoed = riskPercent > 1.0;
 
-  const handleRunDeliberation = () => {
-    setSimulationStage('voting');
+  const effectiveScore = isVetoed ? 42 : scenario.consensusScore;
+  const effectiveBullProb = isVetoed
+    ? scenario.action.startsWith('BUY')
+      ? 48
+      : 52
+    : scenario.bullProbability;
 
+  const handleSelectScenario = (idx: number) => {
+    setSelectedIdx(idx);
+    setStage('voting');
     setTimeout(() => {
-      setSimulationStage('verdict');
-    }, 1100);
+      setStage('verdict');
+    }, 600);
   };
 
-  const handleDispatchBridge = () => {
-    setSimulationStage('dispatching');
+  const handleReconvene = () => {
+    setStage('voting');
     setTimeout(() => {
-      setSimulationStage('dispatched');
+      setStage('verdict');
     }, 850);
   };
 
-  const handleReset = () => {
-    setSimulationStage('idle');
+  const handleDispatch = () => {
+    if (isVetoed) return;
+    setStage('dispatching');
+    setTimeout(() => {
+      setStage('dispatched');
+    }, 1100);
   };
 
-  const handleCopySummary = (text: string) => {
+  const handleCopyHash = (text: string) => {
     void navigator.clipboard?.writeText(text);
-    markCopiedSummary();
+    setCopiedHash(true);
+    setTimeout(() => setCopiedHash(false), 1800);
   };
-
-  const handleRestoreLimit = () => setRiskSlider(1.0);
 
   return (
     <section
       id="simulator"
-      className="relative overflow-hidden border-t border-white/5 bg-[#0d0e0f] py-28 lg:py-36"
+      className="relative overflow-hidden border-b border-white/[0.07] bg-[#121212] py-20 lg:py-28"
     >
-      {/* Responsive chiaroscuro astrolabe backdrop */}
+      {/* Bayer-dithered chiaroscuro astrolabe backdrop */}
       <div
         aria-hidden="true"
-        className="simulator-backdrop-mask pointer-events-none absolute top-0 right-0 z-0 h-[280px] w-[85%] opacity-20 mix-blend-screen select-none sm:h-[380px] sm:w-[70%] lg:h-[580px] lg:w-[54%] lg:opacity-30"
+        className="section-backdrop-mask-right pointer-events-none absolute top-8 right-0 z-0 h-[260px] w-[85%] opacity-22 mix-blend-screen select-none sm:h-[340px] sm:w-[70%] lg:top-0 lg:right-0 lg:h-[78%] lg:w-[46%] lg:opacity-32"
       >
         <BlueprintPlate id="astrolabe" variant="backdrop" className="h-full w-full" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="mx-auto mb-14 flex max-w-3xl flex-col items-center gap-4 text-center">
-          <div className="border-brand/30 bg-brand/10 inline-flex items-center gap-2 rounded-full border px-3.5 py-1 font-mono text-xs">
-            <span className="bg-brand size-2 rounded-full" />
-            <span className="text-brand font-semibold tracking-wider uppercase">
-              Interactive Trade Plan Simulator
-            </span>
+        {/* Concise Section Header */}
+        <div className="mb-10 flex flex-col justify-between gap-4 border-b border-white/[0.07] pb-7 lg:flex-row lg:items-end">
+          <div>
+            <div className="text-brand mb-2.5 flex items-center gap-2 font-mono text-xs tracking-[0.14em] uppercase">
+              <span>// 03 · INTERACTIVE SANDBOX</span>
+            </div>
+            <h2 className="font-display text-fg text-3xl font-normal tracking-[-0.02em] sm:text-5xl">
+              Test the 1% Risk Governor{' '}
+              <span className="font-redaction-35 text-brand italic">Live.</span>
+            </h2>
           </div>
-
-          <h2 className="font-display text-fg text-3xl font-normal tracking-[-0.03em] sm:text-5xl">
-            TEST THE 4-ANGLE{' '}
-            <span className="font-redaction-35 text-brand italic">Decision Loop</span>
-          </h2>
-          <p className="text-fg-muted font-sans text-base leading-relaxed">
-            Pick a real market scenario below and run the 4-angle analysis. Test how Kestrel scores
-            conviction, blocks unsafe risk above 1.0%, and builds a complete trade plan ready for
-            your journal and price alerts.
+          <p className="text-fg-muted max-w-md font-sans text-sm leading-relaxed sm:text-base">
+            Switch scenarios or drag the risk slider past 1.00% equity to watch the Risk Desk veto
+            an unsafe trade in real time.
           </p>
         </div>
 
-        {/* Scenario Pill Selector */}
-        <div
-          role="tablist"
-          aria-label="Market scenarios"
-          className="mb-10 flex flex-wrap items-center justify-center gap-2"
-        >
-          {SCENARIOS.map((sc) => {
-            const isSelected = sc.id === selectedScenarioId;
-            return (
-              <button
-                key={sc.id}
-                type="button"
-                role="tab"
-                aria-selected={isSelected}
-                onClick={() => {
-                  setSelectedScenarioId(sc.id);
-                  setSimulationStage('idle');
-                }}
-                className={cn(
-                  'relative rounded-xl border px-4 py-2.5 font-mono text-xs font-semibold transition-all duration-200 active:translate-y-[0.5px]',
-                  isSelected
-                    ? 'border-brand/40 bg-brand/10 text-brand shadow-[0_0_16px_rgba(255,54,22,0.15)]'
-                    : 'text-fg-muted hover:text-fg border-white/5 bg-white/[0.02] hover:border-white/10',
-                )}
-              >
-                {isSelected && (
-                  <m.div
-                    layoutId="scenario-pill-glow"
-                    className="border-brand/50 bg-brand/5 absolute inset-0 -z-10 rounded-xl border"
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                  />
-                )}
-                <span>{sc.name}</span>
-                <span className="text-fg-subtle ml-2">({sc.symbol})</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Main Interactive Simulator Console */}
-        <div className="surface-panel relative overflow-hidden rounded-2xl border border-white/15 bg-[#121314]/95 p-6 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.12)] sm:p-8">
-          <BlueprintPlate
-            id="arbiter"
-            variant="watermark"
-            className="pointer-events-none absolute -top-8 -right-8 z-0 size-56 opacity-18 sm:size-72"
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <SimulatorControls
+            selectedIdx={selectedIdx}
+            riskPercent={riskPercent}
+            isVetoed={isVetoed}
+            stage={stage}
+            onSelectScenario={handleSelectScenario}
+            onRiskChange={(next) => {
+              setRiskPercent(next);
+              if (stage === 'dispatched' || stage === 'dispatching') {
+                setStage('verdict');
+              }
+            }}
+            onReconvene={handleReconvene}
           />
-          {/* Top Bar: Event Catalyst & Deliberation Trigger */}
-          <div className="relative z-10 flex flex-col justify-between gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-center">
-            <div className="flex max-w-2xl flex-col gap-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-brand font-mono text-[11px] font-bold tracking-wider uppercase">
-                  MARKET SCENARIO · {scenario.symbol}
-                </span>
-                <span className="text-fg-subtle rounded border border-white/10 bg-black/40 px-2 py-0.5 font-mono text-[11px]">
-                  {scenario.orderType}
-                </span>
-                <span className="text-fg-subtle rounded border border-white/10 bg-black/40 px-2 py-0.5 font-mono text-[11px]">
-                  R:R {scenario.rr}
-                </span>
-              </div>
-              <span className="text-fg font-sans text-sm font-medium">{scenario.catalyst}</span>
-            </div>
-
-            <div className="flex shrink-0 items-center gap-3">
-              {simulationStage === 'idle' ? (
-                <Button
-                  variant="tactical"
-                  size="md"
-                  onClick={handleRunDeliberation}
-                  className="gap-2 font-mono text-xs font-semibold shadow-sm"
-                >
-                  <IconPlayerPlay className="size-4" />
-                  Run 4-Angle Analysis
-                </Button>
-              ) : (
-                <Button
-                  variant="secondary"
-                  size="md"
-                  onClick={handleReset}
-                  className="gap-2 border-white/15 font-mono text-xs hover:bg-white/5"
-                >
-                  <IconRefresh className="size-4" />
-                  Reset Simulation
-                </Button>
-              )}
-            </div>
-          </div>
 
           <SimulatorCanvas
             scenario={scenario}
-            simulationStage={simulationStage}
+            stage={stage}
+            riskPercent={riskPercent}
             isVetoed={isVetoed}
+            effectiveScore={effectiveScore}
+            effectiveBullProb={effectiveBullProb}
+            copiedHash={copiedHash}
+            onCopyHash={handleCopyHash}
+            onDispatch={handleDispatch}
+            onReset={() => setStage('verdict')}
+            onRepairRisk={() => setRiskPercent(0.85)}
           />
-
-          <SimulatorControls
-            riskSlider={riskSlider}
-            isVetoed={isVetoed}
-            onRiskChange={setRiskSlider}
-            onRestoreLimit={handleRestoreLimit}
-          />
-
-          {/* Verdict and Trade Plan Ticket */}
-          <AnimatePresence mode="wait">
-            {simulationStage === 'verdict' && isVetoed && (
-              <VetoedVerdictCard riskSlider={riskSlider} onRestoreLimit={handleRestoreLimit} />
-            )}
-
-            {simulationStage === 'verdict' && !isVetoed && (
-              <VerifiedPlanCard
-                scenario={scenario}
-                copiedHash={copiedSummary}
-                onCopyHash={handleCopySummary}
-                onDispatchBridge={handleDispatchBridge}
-              />
-            )}
-
-            {simulationStage === 'dispatching' && <DispatchingCard scenario={scenario} />}
-
-            {simulationStage === 'dispatched' && (
-              <DispatchedCard
-                scenario={scenario}
-                copiedHash={copiedSummary}
-                onCopyHash={handleCopySummary}
-                onReset={handleReset}
-              />
-            )}
-          </AnimatePresence>
         </div>
       </div>
     </section>

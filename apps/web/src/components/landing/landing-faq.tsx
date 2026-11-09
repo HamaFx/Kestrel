@@ -18,6 +18,7 @@
 import { IconChevronDown } from '@tabler/icons-react';
 import { useState } from 'react';
 
+import { BlueprintPlate } from '@/components/brand/blueprint-plates';
 import { cn } from '@/lib/formatters/cn';
 
 interface FAQItem {
@@ -29,33 +30,33 @@ interface FAQItem {
 const FAQS: FAQItem[] = [
   {
     id: '01',
-    question: 'What markets does Kestrel specialize in?',
+    question: 'Which markets are supported out of the box?',
     answer:
-      'Kestrel is built for Spot Gold (XAU/USD), major Forex pairs (EUR/USD, GBP/USD, USD/JPY, AUD/USD), and leading crypto perpetuals. Every analysis cross-references live price action against US Treasury yields (2Y, 10Y), the Dollar Index (DXY), and upcoming economic events.',
+      'Spot Gold (XAU/USD), 11 major Forex pairs, and 6 liquid Crypto pairs—cross-referenced against US Treasury yields and DXY.',
   },
   {
     id: '02',
-    question: 'How does the 4-Desk Committee resolve conflicting market signals?',
+    question: 'How does the 4-Desk Committee handle conflicting signals?',
     answer:
-      'Fast Scout mode runs a single analyst for a fast 5-second check. In Convene Council mode, all four specialist desks (Technical, Macro, Risk, and Sentiment) evaluate the market independently. If Technicals spots a bullish setup right before a high-impact Fed release or hawkish macro shift, the desks flag the conflict openly and the Risk Desk warns you to stand down or reduce size instead of forcing a weak trade.',
+      'All four desks score independently; if Risk or Macro flags a conflict or R:R below 1:2.0, the setup is automatically vetoed.',
   },
   {
     id: '03',
-    question: 'Does Kestrel hold custody of funds or place trades automatically?',
+    question: 'Does Kestrel hold custody of funds or execute live broker orders?',
     answer:
-      'Never. Kestrel is a 100% non-custodial research and trade-planning copilot. Every committee briefing gives you exact Entry zones, Invalidation stops, position sizing, and Take-Profit targets that you can log to your Trade Journal and monitor with instant Telegram, Push, and Email alerts (with direct MT5 / cTrader bridge integration on our future roadmap).',
+      'Never—Kestrel is a 100% non-custodial research terminal with an optional virtual Paper Trading broker and QuickJS backtester.',
   },
   {
     id: '04',
-    question: 'Do I need to configure my own AI API keys or market data feeds?',
+    question: 'How are my AI API keys and monthly budgets protected?',
     answer:
-      'Yes — Kestrel is self-hosted and bring-your-own-key (BYOK). You connect your own provider keys (OpenAI, Anthropic, Google, OpenRouter, or a local model) plus optional market data adapters; they are encrypted at rest with AES-256-GCM in the local vault and never leave your deployment. Local spend guardrails cap monthly and per-provider usage before a single request is sent. Feature plugins — Backtesting Lab, Paper Trading, and Telegram Copilot — install with one click from the Plugin Store whenever you want them.',
+      'Keys are encrypted at rest with AES-256-GCM and guarded by an atomic integer-cent ledger that enforces daily and monthly caps.',
   },
   {
     id: '05',
-    question: 'Can I use Kestrel on my phone as well as desktop?',
+    question: 'Can I receive alerts on mobile and Telegram?',
     answer:
-      'Yes. Kestrel works seamlessly across desktop, tablet, and mobile browsers, and can be installed directly to your phone’s home screen as a web app with instant browser push and Telegram notifications for your price and indicator alerts.',
+      'Yes—install Kestrel as a mobile PWA for Web Push alerts or connect your own BotFather webhook via the Telegram plugin.',
   },
 ];
 
@@ -65,42 +66,44 @@ export function LandingFAQ() {
   return (
     <section
       id="faq"
-      className="relative overflow-hidden border-t border-white/5 bg-[#0d0d0d] py-28 lg:py-36"
+      className="relative overflow-hidden border-b border-white/[0.07] bg-[#121212] py-20 lg:py-28"
     >
-      {/* Halftone Columns Background */}
+      {/* Bayer-dithered chiaroscuro aegis backdrop */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-contain bg-right bg-no-repeat opacity-20 select-none"
-        style={{ backgroundImage: 'url(/landing/faq-halftone-columns.png)' }}
-      />
+        className="section-backdrop-mask-right pointer-events-none absolute top-6 right-0 z-0 h-[260px] w-[80%] opacity-20 mix-blend-screen select-none sm:h-[340px] sm:w-[60%] lg:top-0 lg:right-0 lg:h-[78%] lg:w-[40%] lg:opacity-28"
+      >
+        <BlueprintPlate id="aegis" variant="backdrop" className="h-full w-full" />
+      </div>
 
       <div className="relative z-10 mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="mb-16 flex flex-col items-center gap-4 text-center">
-          <span className="text-brand font-mono text-xs font-semibold tracking-wider uppercase">
-            Frequently Asked Questions
-          </span>
-          <h2 className="font-display text-fg text-3xl font-normal tracking-[-0.03em] sm:text-5xl">
-            EVERY DETAIL <span className="font-redaction-35 text-brand italic">Clarified</span>
-          </h2>
-          <p className="text-fg-muted max-w-xl font-sans text-base">
-            Clear answers on how Kestrel&apos;s 4-desk AI committee, risk guardrails, BYOK key
-            vault, and 1-click feature plugins work.
+        {/* Concise Section Header */}
+        <div className="mb-10 flex flex-col justify-between gap-4 border-b border-white/[0.07] pb-7 lg:flex-row lg:items-end">
+          <div>
+            <div className="text-brand mb-2.5 flex items-center gap-2 font-mono text-xs tracking-[0.14em] uppercase">
+              <span>// 05 · SPECIFICATION FAQ</span>
+            </div>
+            <h2 className="font-display text-fg text-3xl font-normal tracking-[-0.02em] sm:text-5xl">
+              Every Detail <span className="font-redaction-35 text-brand italic">Clarified.</span>
+            </h2>
+          </div>
+          <p className="text-fg-muted max-w-sm font-sans text-sm leading-relaxed">
+            Direct answers on market coverage, risk vetoes, BYOK encryption, and self-hosting.
           </p>
         </div>
 
-        {/* Accordion List with Zero-Jitter CSS Grid Row Transitions */}
-        <div className="flex flex-col gap-4">
+        {/* Accordion List */}
+        <div className="flex flex-col gap-3">
           {FAQS.map((faq, index) => {
             const isOpen = openIndex === index;
             return (
               <div
                 key={faq.id}
                 className={cn(
-                  'surface-chip overflow-hidden rounded-xl border transition-all duration-200',
+                  'overflow-hidden rounded-xl border transition-all duration-200',
                   isOpen
-                    ? 'border-brand/40 bg-[#161616] shadow-[var(--shadow-chip)]'
-                    : 'border-white/5 bg-white/[0.02] hover:border-white/10',
+                    ? 'border-brand/40 bg-[#151618]'
+                    : 'border-white/[0.07] bg-[#141517]/60 hover:border-white/15',
                 )}
               >
                 <button
@@ -109,7 +112,7 @@ export function LandingFAQ() {
                   aria-expanded={isOpen}
                   aria-controls={`faq-panel-${faq.id}`}
                   onClick={() => setOpenIndex(isOpen ? null : index)}
-                  className="flex w-full items-center justify-between p-5 text-left transition-transform active:translate-y-[0.5px] sm:p-6"
+                  className="flex w-full items-center justify-between px-5 py-4 text-left sm:px-6"
                 >
                   <div className="flex items-center gap-3 pr-4">
                     <span className="text-brand font-mono text-xs font-bold">{faq.id}</span>
@@ -119,9 +122,9 @@ export function LandingFAQ() {
                   </div>
                   <div
                     className={cn(
-                      'flex size-8 shrink-0 items-center justify-center rounded-lg border transition-transform duration-200',
+                      'flex size-7 shrink-0 items-center justify-center rounded-md border transition-transform duration-200',
                       isOpen
-                        ? 'bg-brand border-brand rotate-180 text-white shadow-[0_0_8px_rgba(255,54,22,0.3)]'
+                        ? 'bg-brand border-brand rotate-180 text-white'
                         : 'text-fg-subtle border-white/10 bg-white/5',
                     )}
                   >
@@ -129,20 +132,19 @@ export function LandingFAQ() {
                   </div>
                 </button>
 
-                {/* Zero-Jitter CSS Grid Row Accordion Body */}
                 <div
                   id={`faq-panel-${faq.id}`}
                   role="region"
                   aria-labelledby={`faq-trigger-${faq.id}`}
                   className={cn(
-                    'grid transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
+                    'grid transition-all duration-200 ease-out',
                     isOpen
                       ? 'grid-rows-[1fr] opacity-100'
                       : 'pointer-events-none grid-rows-[0fr] opacity-0',
                   )}
                 >
                   <div className="overflow-hidden">
-                    <div className="text-fg-muted border-t border-white/5 px-5 pt-4 pb-5 font-sans text-sm leading-relaxed sm:px-6 sm:pb-6">
+                    <div className="text-fg-muted border-t border-white/[0.06] px-5 pt-3.5 pb-4 font-sans text-sm leading-relaxed sm:px-6">
                       {faq.answer}
                     </div>
                   </div>

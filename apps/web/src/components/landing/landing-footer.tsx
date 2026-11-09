@@ -20,36 +20,35 @@ import { KestrelBrand } from '@/components/brand/kestrel-brand';
 
 export function LandingFooter() {
   return (
-    <footer className="relative overflow-hidden border-t border-white/10 bg-[#0a0a0a] pt-20 pb-12">
-      {/* ASCII Skyline Ambient Artwork */}
+    <footer className="relative overflow-hidden bg-[#0e0f11] pt-16 pb-12">
+      {/* Subtle Pixelated ASCII Skyline Ambient Artwork */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-72 bg-bottom bg-repeat-x opacity-15 select-none"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-64 bg-bottom bg-repeat-x opacity-15 select-none [image-rendering:pixelated]"
         style={{ backgroundImage: 'url(/landing/ascii-art.webp)', backgroundSize: 'contain' }}
       />
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Top Grid */}
-        <div className="grid gap-12 border-b border-white/10 pb-16 lg:grid-cols-12 lg:gap-8">
+        <div className="grid gap-10 border-b border-white/[0.08] pb-12 lg:grid-cols-12 lg:gap-8">
           {/* Brand & Mission */}
-          <div className="flex flex-col items-start gap-4 lg:col-span-5">
+          <div className="flex flex-col items-start gap-3.5 lg:col-span-5">
             <KestrelBrand variant="lockup" href="/" label="Kestrel" />
-            <p className="text-fg-muted max-w-md font-sans text-sm leading-relaxed">
-              The AI market research and trade-planning copilot for gold, forex, and crypto traders.
-              Four specialist desks working in parallel to protect your edge.
+            <p className="text-fg-muted max-w-sm font-sans text-sm leading-relaxed">
+              Self-hosted BYOK AI trading research platform for XAU/USD, 11 Forex pairs, and 6
+              Crypto pairs.
             </p>
-            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono text-xs">
+            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 font-mono text-[11px]">
               <span className="bg-bull size-2 rounded-full shadow-[0_0_8px_#3f9e3d]" />
               <span className="text-fg-subtle tracking-wider uppercase">
-                ALL SYSTEMS OPERATIONAL
+                4 DESKS ONLINE · BYOK VAULT ACTIVE
               </span>
             </div>
           </div>
 
-          {/* Links Column 1: Platform */}
-          <div className="flex flex-col gap-3 sm:col-span-4 lg:col-span-2">
+          {/* Links Column 1: Terminal */}
+          <div className="flex flex-col gap-2.5 sm:col-span-4 lg:col-span-2">
             <h4 className="text-fg font-mono text-xs font-bold tracking-wider uppercase">
-              Platform
+              Terminal
             </h4>
             <Link
               href="/dashboard"
@@ -61,13 +60,13 @@ export function LandingFooter() {
               href="/chat"
               className="text-fg-muted hover:text-fg font-sans text-sm transition-colors"
             >
-              AI Committee Chat
+              4-Desk Chat
             </Link>
             <Link
               href="/calendar"
               className="text-fg-muted hover:text-fg font-sans text-sm transition-colors"
             >
-              Economic Calendar
+              Macro Calendar
             </Link>
             <Link
               href="/journal"
@@ -77,48 +76,40 @@ export function LandingFooter() {
             </Link>
           </div>
 
-          {/* Links Column 2: Specialist Desks */}
-          <div className="flex flex-col gap-3 sm:col-span-4 lg:col-span-3">
+          {/* Links Column 2: Committee */}
+          <div className="flex flex-col gap-2.5 sm:col-span-4 lg:col-span-3">
             <h4 className="text-fg font-mono text-xs font-bold tracking-wider uppercase">
-              Specialist Desks
+              4-Desk Committee
             </h4>
-            <span className="text-fg-muted font-sans text-sm">
-              Technical Desk · Price Structure & Levels
-            </span>
-            <span className="text-fg-muted font-sans text-sm">
-              Macro Desk · Central Banks & Yields
-            </span>
-            <span className="text-fg-muted font-sans text-sm">
-              Risk Desk · 1% Drawdown Guardrail
-            </span>
-            <span className="text-fg-muted font-sans text-sm">
-              Sentiment Desk · Institutional COT Flow
-            </span>
+            <span className="text-fg-muted font-sans text-sm">01 · Macro &amp; Real Yields</span>
+            <span className="text-fg-muted font-sans text-sm">02 · Multi-Timeframe Structure</span>
+            <span className="text-fg-muted font-sans text-sm">03 · 1.0% Equity Risk Governor</span>
+            <span className="text-fg-muted font-sans text-sm">04 · CFTC COT Positioning</span>
           </div>
 
-          {/* Links Column 3: Security & Trust */}
-          <div className="flex flex-col gap-3 sm:col-span-4 lg:col-span-2">
+          {/* Links Column 3: Sovereign Stack */}
+          <div className="flex flex-col gap-2.5 sm:col-span-4 lg:col-span-2">
             <h4 className="text-fg font-mono text-xs font-bold tracking-wider uppercase">
-              Trust & Safety
+              Architecture
             </h4>
-            <span className="text-fg-muted font-sans text-sm">100% Non-Custodial</span>
-            <span className="text-fg-muted font-sans text-sm">AES-256 BYOK Vault</span>
-            <span className="text-fg-muted font-sans text-sm">Private Trade Journal</span>
-            <span className="text-fg-muted font-sans text-sm">Instant Multi-Channel Alerts</span>
+            <span className="text-fg-muted font-sans text-sm">AES-256-GCM BYOK</span>
+            <span className="text-fg-muted font-sans text-sm">PostgreSQL 16 RLS</span>
+            <span className="text-fg-muted font-sans text-sm">TOTP 2FA Auth</span>
+            <span className="text-fg-muted font-sans text-sm">Non-Custodial</span>
           </div>
         </div>
 
         {/* Monumental Watermark */}
-        <div className="overflow-hidden pt-12 pb-6 text-center opacity-20 transition-opacity select-none hover:opacity-30">
-          <span className="font-bebas text-[80px] leading-none tracking-widest text-white sm:text-[140px] md:text-[200px]">
+        <div className="overflow-hidden pt-10 pb-4 text-center opacity-15 transition-opacity select-none hover:opacity-25">
+          <span className="font-bebas text-[76px] leading-none tracking-widest text-white sm:text-[136px] md:text-[188px]">
             KESTREL AI
           </span>
         </div>
 
         {/* Bottom Strip */}
-        <div className="text-fg-subtle flex flex-col items-center justify-between gap-4 border-t border-white/5 pt-6 font-mono text-xs sm:flex-row">
+        <div className="text-fg-subtle flex flex-col items-center justify-between gap-4 border-t border-white/[0.06] pt-6 font-mono text-xs sm:flex-row">
           <span>© 2026 Kestrel. All rights reserved.</span>
-          <span>DISCLAIMER: NOT FINANCIAL ADVICE. FOR MARKET RESEARCH & EDUCATION ONLY.</span>
+          <span>NOT FINANCIAL ADVICE · FOR MARKET RESEARCH &amp; EDUCATION ONLY</span>
         </div>
       </div>
     </footer>

@@ -18,141 +18,106 @@
  * limitations under the License.
  */
 
-// Landing stepper section shell: owns the auto-advance state machine and
-// composes the 3-step research workflow preview (1. Pick a Market ->
-// 2. Ask or Run Deep Analysis -> 3. Review Levels & Risk Plan).
-import { IconPlayerPause, IconPlayerPlay } from '@tabler/icons-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+// 3-Stage Pipeline Visualizer section (#stepper). Combines the left circuit
+// spine + stage cards with the right interactive SVG pipeline schematic.
+import { useEffect, useState } from 'react';
 
 import { BlueprintPlate } from '@/components/brand/blueprint-plates';
 
 import { BriefingPanel } from './briefing-panel';
 import { CircuitSpine, nodeYCoordinates } from './circuit-spine';
 import { StageCards } from './stage-cards';
-import { STAGE_INTERVAL_MS, STEPS, type Step } from './steps';
+import { STEPS } from './steps';
 
 export function LandingStepper() {
   const [activeStep, setActiveStep] = useState<number>(1);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [progress, setProgress] = useState<number>(0);
-  const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const nextStep = useCallback(() => {
-    setActiveStep((prev) => (prev % STEPS.length) + 1);
-    setProgress(0);
-  }, []);
-
-  // Auto-advancing stage runner
   useEffect(() => {
-    if (!isPlaying) {
-      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-      return;
-    }
+    if (!isPlaying) return;
 
-    const intervalMs = 50;
-    const increment = (intervalMs / STAGE_INTERVAL_MS) * 100;
-
-    progressTimerRef.current = setInterval(() => {
+    const interval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
-          nextStep();
+          setActiveStep((s) => (s >= STEPS.length ? 1 : s + 1));
           return 0;
         }
-        return prev + increment;
+        return prev + 2;
       });
-    }, intervalMs);
+    }, 110);
 
-    return () => {
-      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-    };
-  }, [isPlaying, nextStep]);
+    return () => clearInterval(interval);
+  }, [isPlaying]);
 
-  const handleSelectStep = (id: number) => {
+  const handleStepSelect = (id: number) => {
     setActiveStep(id);
     setProgress(0);
+    setIsPlaying(false);
   };
 
-  const current: Step = STEPS.find((s) => s.id === activeStep) ?? STEPS[0]!;
-
+  const currentStep = STEPS.find((s) => s.id === activeStep) ?? STEPS[0]!;
   const activeY = nodeYCoordinates[activeStep - 1] ?? 65;
-  const progressRatio = (activeStep - 1) / Math.max(1, STEPS.length - 1);
+  const progressRatio = (activeY - 20) / 360;
 
   return (
     <section
       id="stepper"
-      className="relative overflow-hidden border-t border-b border-white/5 bg-[#0c0d0e] py-28 lg:py-36"
+      className="relative overflow-hidden border-b border-white/[0.07] bg-[#121212] py-20 lg:py-28"
     >
-      {/* Responsive chiaroscuro colonnade backdrop */}
+      {/* Bayer-dithered chiaroscuro colonnade backdrop */}
       <div
         aria-hidden="true"
-        className="stepper-backdrop-mask pointer-events-none absolute top-0 left-0 z-0 h-[280px] w-[85%] opacity-18 mix-blend-screen select-none sm:h-[380px] sm:w-[70%] lg:h-[580px] lg:w-[54%] lg:opacity-28"
+        className="section-backdrop-mask pointer-events-none absolute top-8 left-0 z-0 h-[260px] w-[85%] opacity-22 mix-blend-screen select-none sm:h-[340px] sm:w-[70%] lg:top-0 lg:left-0 lg:h-[78%] lg:w-[44%] lg:opacity-30"
       >
         <BlueprintPlate id="colonnade" variant="backdrop" className="h-full w-full" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="mb-16 flex max-w-3xl flex-col items-start gap-4">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono text-xs">
-            <span className="bg-brand size-2 rounded-full shadow-[0_0_8px_#ff3616]" />
-            <span className="text-brand font-semibold tracking-wider uppercase">
-              3-Step Research Workflow
-            </span>
+        {/* Concise Section Header */}
+        <div className="mb-10 flex flex-col justify-between gap-4 border-b border-white/[0.07] pb-7 lg:flex-row lg:items-end">
+          <div>
+            <div className="text-brand mb-2.5 flex items-center gap-2 font-mono text-xs tracking-[0.14em] uppercase">
+              <span>// 02 · EXECUTION WORKFLOW</span>
+            </div>
+            <h2 className="font-display text-fg text-3xl font-normal tracking-[-0.02em] sm:text-5xl">
+              From Market Feed to{' '}
+              <span className="font-redaction-35 text-brand italic">Verified Bracket.</span>
+            </h2>
           </div>
-
-          <h2 className="font-display text-fg text-3xl font-normal tracking-[-0.03em] sm:text-5xl">
-            HOW KESTREL BUILDS{' '}
-            <span className="font-redaction-35 text-brand italic">Your Trade Plan</span>
-          </h2>
-          <p className="text-fg-muted font-sans text-base leading-relaxed">
-            Go from selecting a market to reviewing a complete, risk-checked trade plan in three
-            clear steps: 1. Pick a Market → 2. Ask or Run Deep Analysis → 3. Review Levels &amp;
-            Risk Plan.
+          <p className="text-fg-muted max-w-md font-sans text-sm leading-relaxed sm:text-base">
+            Three deterministic stages transform raw multi-provider market feeds into a risk-capped
+            trade plan and live price alerts.
           </p>
-
-          {/* Autoplay & Workflow Status Pill */}
-          <div className="flex flex-wrap items-center gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setIsPlaying(!isPlaying)}
-              className="text-fg-subtle hover:text-fg inline-flex items-center gap-2 rounded-lg border border-white/10 bg-[#161718] px-3 py-1.5 font-mono text-xs transition-colors hover:border-white/20 active:translate-y-[0.5px]"
-            >
-              {isPlaying ? (
-                <>
-                  <IconPlayerPause className="text-brand size-3.5" />
-                  <span>Auto-Advancing Walkthrough (Active)</span>
-                </>
-              ) : (
-                <>
-                  <IconPlayerPlay className="text-bull size-3.5" />
-                  <span>Resume Walkthrough</span>
-                </>
-              )}
-            </button>
-            <span className="text-fg-subtle font-mono text-xs">
-              WORKFLOW: <strong className="text-bull">3 SIMPLE STEPS</strong>
-            </span>
-          </div>
         </div>
 
-        {/* Pipeline Layout: Left Circuit Trace + Stages; Right Dynamic Panel */}
-        <div className="grid gap-8 lg:grid-cols-12 lg:items-start">
-          {/* Left Column: Continuous Circuit SVG + Step Cards */}
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-stretch">
+          {/* Left Column: Continuous SVG Circuit Spine & 3 Stage Cards */}
           <div
+            className="relative flex flex-col justify-between gap-4 pl-8 sm:pl-10 lg:col-span-5"
             role="tablist"
-            aria-label="Workflow steps"
-            className="relative flex flex-col gap-4 pl-10 sm:pl-14 lg:col-span-6"
+            aria-label="Research workflow stages"
           >
-            <CircuitSpine activeStep={activeStep} activeY={activeY} progressRatio={progressRatio} />
+            <CircuitSpine
+              activeStep={activeStep}
+              activeY={activeY}
+              progressRatio={progressRatio}
+            />
             <StageCards
               activeStep={activeStep}
               progress={progress}
               isPlaying={isPlaying}
-              onSelectStep={handleSelectStep}
+              onSelectStep={handleStepSelect}
             />
           </div>
 
-          <BriefingPanel current={current} />
+          {/* Right Column: Interactive SVG Pipeline Visualizer */}
+          <BriefingPanel
+            currentStep={currentStep}
+            isPlaying={isPlaying}
+            onTogglePlay={() => setIsPlaying((p) => !p)}
+            onSelectStep={handleStepSelect}
+          />
         </div>
       </div>
     </section>
