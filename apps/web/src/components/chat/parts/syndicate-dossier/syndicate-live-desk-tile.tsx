@@ -6,6 +6,7 @@
 // watermark, canonical desk code, live bias pill + conviction bar.
 import Image from 'next/image';
 
+import { getArtworkWatermarkClass } from '@/components/brand/blueprint-plates';
 import { cn } from '@/lib/formatters/cn';
 import type { StrategistDeskConfig } from '@/lib/kestrel-strategist-desks';
 
@@ -34,9 +35,15 @@ export function LiveDeskTile({
     >
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-2 -right-2 z-0 size-14 opacity-[0.12] mix-blend-luminosity"
+        className="pointer-events-none absolute -top-1.5 -right-1.5 z-0 size-14 opacity-18 mix-blend-screen"
       >
-        <Image src={desk.artworkPath} alt="" fill unoptimized className="object-contain" />
+        <Image
+          src={desk.artworkPath}
+          alt=""
+          fill
+          unoptimized
+          className={getArtworkWatermarkClass(desk.artworkPath)}
+        />
       </div>
       <div className="relative z-10 flex items-center justify-between gap-1">
         <span className="text-brand font-mono text-[9px] font-semibold tracking-wider uppercase">

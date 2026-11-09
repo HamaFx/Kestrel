@@ -68,7 +68,6 @@ export function StageCards({ activeStep, progress, isPlaying, onSelectStep }: St
                   <span className="text-brand font-mono text-[11px] font-semibold tracking-wider uppercase">
                     {step.tag}
                   </span>
-                  <span className="text-fg-subtle font-mono text-[10px]">· {step.latency}</span>
                 </div>
                 {active && isPlaying && (
                   <span className="text-brand font-mono text-[10px] font-bold uppercase">

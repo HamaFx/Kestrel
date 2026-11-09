@@ -50,7 +50,7 @@ export function TodayGlanceWidget({
     <section
       role="status"
       aria-label="Today at a glance"
-      className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-4"
+      className="grid h-full grid-cols-2 gap-px bg-white/[0.06] md:grid-cols-4"
     >
       <CellNextEvent events={events} />
       <CellSession />
@@ -76,7 +76,7 @@ function GlanceCell({
   children: ReactNode;
 }) {
   return (
-    <div className="surface-card group flex min-h-[132px] flex-col justify-between gap-2.5 rounded-xl border border-white/[0.06] p-3.5 shadow-sm transition-colors hover:border-white/12">
+    <div className="group flex min-h-[132px] flex-col justify-between gap-2.5 bg-[#121315] p-3.5 transition-colors hover:bg-[#16171a] sm:p-4">
       <div className="flex items-center justify-between gap-2">
         <div className="text-fg-subtle flex min-w-0 items-center gap-1.5 font-mono text-[10px] font-semibold tracking-wider uppercase">
           <span className={cn('shrink-0', tone ?? 'text-fg-subtle')}>{icon}</span>

@@ -1383,40 +1383,34 @@ html[data-reduce-motion='force'] *::after {
  * Landing Page Responsive Backdrop Masks
  * ------------------------------------------------------------------------- */
 .hero-backdrop-mask {
-  mask-image: radial-gradient(ellipse 75% 70% at 50% 45%, black 35%, transparent 80%);
-  -webkit-mask-image: radial-gradient(ellipse 75% 70% at 50% 45%, black 35%, transparent 80%);
+  mask-image: radial-gradient(ellipse 72% 68% at 55% 45%, black 22%, transparent 76%);
+  -webkit-mask-image: radial-gradient(ellipse 72% 68% at 55% 45%, black 22%, transparent 76%);
 }
 @media (min-width: 1024px) {
   .hero-backdrop-mask {
-    mask-image: radial-gradient(ellipse 70% 65% at 65% 50%, black 30%, transparent 80%);
-    -webkit-mask-image: radial-gradient(ellipse 70% 65% at 65% 50%, black 30%, transparent 80%);
+    mask-image: radial-gradient(ellipse 70% 68% at 52% 48%, black 25%, transparent 78%);
+    -webkit-mask-image: radial-gradient(ellipse 70% 68% at 52% 48%, black 25%, transparent 78%);
   }
 }
 
 .desks-backdrop-mask {
-  mask-image: radial-gradient(ellipse 75% 70% at 50% 30%, black 35%, transparent 75%);
-  -webkit-mask-image: radial-gradient(ellipse 75% 70% at 50% 30%, black 35%, transparent 75%);
-}
-@media (min-width: 1024px) {
-  .desks-backdrop-mask {
-    mask-image: radial-gradient(ellipse 65% 65% at 35% 50%, black 25%, transparent 75%);
-    -webkit-mask-image: radial-gradient(ellipse 65% 65% at 35% 50%, black 25%, transparent 75%);
-  }
+  mask-image: radial-gradient(ellipse 70% 68% at 55% 45%, black 22%, transparent 76%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 68% at 55% 45%, black 22%, transparent 76%);
 }
 
 .simulator-backdrop-mask {
-  mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black 25%, transparent 75%);
-  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black 25%, transparent 75%);
+  mask-image: radial-gradient(ellipse 70% 68% at 55% 45%, black 22%, transparent 76%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 68% at 55% 45%, black 22%, transparent 76%);
 }
 
 .stepper-backdrop-mask {
-  mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black 25%, transparent 75%);
-  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black 25%, transparent 75%);
+  mask-image: radial-gradient(ellipse 70% 68% at 55% 45%, black 22%, transparent 76%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 68% at 55% 45%, black 22%, transparent 76%);
 }
 
 .architecture-backdrop-mask {
-  mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black 25%, transparent 75%);
-  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black 25%, transparent 75%);
+  mask-image: radial-gradient(ellipse 70% 68% at 55% 45%, black 22%, transparent 76%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 68% at 55% 45%, black 22%, transparent 76%);
 }
 
 /* -------------------------------------------------------------------------

@@ -18,11 +18,10 @@
  * limitations under the License.
  */
 
-// Landing hero section shell. The ticker, headline copy and telemetry rig
-// live in sibling presentation components; this file owns the active-symbol
-// state and composes the Swiss-grid section frame. The Horus raster is now a
-// 7% underlay inside the telemetry rig's BlueprintPlate.
-import { useState } from 'react';
+// Landing hero section shell. Composes the multi-market ticker strip,
+// headline copy, and the live multi-asset motion stage with the Horus
+// classical sculpture backdrop.
+import { BlueprintPlate } from '@/components/brand/blueprint-plates';
 
 import { HeroCopy } from './hero-copy';
 import { HeroTelemetryRig } from './hero-telemetry-rig';
@@ -32,46 +31,23 @@ export interface LandingHeroProps {
   isAuthenticated?: boolean;
 }
 
-const REGISTRATION_MARKS = [
-  'top-3 left-3 sm:left-5 lg:left-7',
-  'top-3 right-3 sm:right-5 lg:right-7',
-  'bottom-3 left-3 sm:left-5 lg:left-7',
-  'bottom-3 right-3 sm:right-5 lg:right-7',
-] as const;
-
 export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
-  const [activeSymbolIndex, setActiveSymbolIndex] = useState(0);
-
   return (
     <section className="relative overflow-hidden border-b border-white/[0.08] pt-6 pb-16 lg:pt-10 lg:pb-24">
-      {/* Structural column hairlines */}
+      {/* Ambient Horus classical sculpture backdrop framing the right column */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-px bg-white/[0.04] lg:block"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/[0.04]"
-      />
-      {REGISTRATION_MARKS.map((position) => (
-        <span
-          key={position}
-          aria-hidden="true"
-          className={`text-fg-subtle/30 pointer-events-none absolute z-20 font-mono text-xs select-none ${position}`}
-        >
-          +
-        </span>
-      ))}
+        className="hero-backdrop-mask pointer-events-none absolute top-6 right-0 z-0 h-[280px] w-[78%] opacity-22 mix-blend-screen select-none sm:top-10 sm:h-[380px] sm:w-[70%] lg:top-1/2 lg:right-[10%] lg:h-[84%] lg:w-[52%] lg:-translate-y-1/2 lg:opacity-35"
+      >
+        <BlueprintPlate id="horus" variant="watermark" className="h-full w-full" />
+      </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <HeroTickerStrip />
 
-        <div className="relative grid grid-cols-1 gap-12 lg:grid-cols-12 lg:items-center lg:gap-8 lg:border-x lg:border-white/[0.05] lg:px-6 xl:px-8">
+        <div className="relative grid grid-cols-1 gap-10 lg:grid-cols-12 lg:items-center lg:gap-10">
           <HeroCopy isAuthenticated={isAuthenticated} />
-          <HeroTelemetryRig
-            activeSymbolIndex={activeSymbolIndex}
-            onSelectSymbol={setActiveSymbolIndex}
-          />
+          <HeroTelemetryRig />
         </div>
       </div>
     </section>

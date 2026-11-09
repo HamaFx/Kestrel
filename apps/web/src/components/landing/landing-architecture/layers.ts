@@ -1,99 +1,81 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Static specs for the four intelligence-stack layers of the landing
-// architecture workbench.
-import { IconArrowsSplit, IconBolt, IconCpu, IconScale } from '@tabler/icons-react';
-import type { ComponentType } from 'react';
+// Simplified, high-hype data for `LandingArchitecture`: combines the 1-click
+// Trap Blocker vs. Green-Light stage with the 4 Kestrel Superpower Bento cards.
 
-export interface LayerSpec {
-  id: string;
-  num: string;
-  tag: string;
-  title: string;
-  shortDesc: string;
-  fullDesc: string;
-  accentColor: string;
-  borderColor: string;
-  glowColor: string;
-  icon: ComponentType<{ className?: string }>;
-  telemetry: { label: string; value: string }[];
+export type ConduitMode = 'approved' | 'blocked';
+
+export interface ConduitSummary {
+  badge: string;
+  headline: string;
+  subline: string;
+  pills: readonly { label: string; value: string }[];
 }
 
-export const LAYERS: LayerSpec[] = [
-  {
-    id: 'execution',
-    num: '04',
-    tag: 'APEX EXECUTION LAYER',
-    title: 'Verified Trade Plans & Take-Profit Cones',
-    shortDesc: 'Structured trade cards with entry, invalidation, and 3 take-profit targets.',
-    fullDesc:
-      'Every approved setup produces a structured trade plan with exact entry zones, hard invalidation stops, and multi-tier take-profit targets ready to save to your Trade Journal or arm as instant alerts (with direct MT5 / cTrader bridge support on our roadmap).',
-    accentColor: 'text-bull',
-    borderColor: 'border-bull/50',
-    glowColor: 'rgba(63, 158, 61, 0.4)',
-    icon: IconArrowsSplit,
-    telemetry: [
-      { label: 'WORKFLOW OUTPUT', value: 'Trade Journal & Price Alerts' },
-      { label: 'TARGET RATIOS', value: '1:1.5 · 1:2.5 · 1:4.0 R:R' },
-      { label: 'ALERT CHANNELS', value: 'Telegram · Web Push · Email' },
-      { label: 'BROKER BRIDGE', value: 'MT5 / cTrader (On Roadmap)' },
+export const CONDUIT_SUMMARIES: Record<ConduitMode, ConduitSummary> = {
+  approved: {
+    badge: 'GREEN LIGHT · SAFE TO TRADE',
+    headline: 'Clean Setup Cleared Through the 1% Shield',
+    subline:
+      'Trend is aligned, no dangerous news is nearby, and your stop-loss risks only 0.85% of your account.',
+    pills: [
+      { label: 'ACCOUNT RISK', value: '0.85% (Inside 1% Cap)' },
+      { label: 'PROFIT TARGETS', value: 'TP1 · TP2 · TP3 Locked' },
+      { label: 'PHONE ALERTS', value: 'Telegram & Push Armed' },
     ],
   },
-  {
-    id: 'risk',
-    num: '03',
-    tag: 'SAFETY GOVERNOR LAYER',
-    title: '1.0% Risk Limit & Invalidation Guardrail',
-    shortDesc: 'Strict drawdown protection that flags unsafe setups before you enter.',
-    fullDesc:
-      'The Risk Desk enforces a strict 1.0% account risk discipline. If high-impact news is imminent or volatility requires a stop-loss wider than your risk rules allow, Kestrel warns you to stand down or reduce size.',
-    accentColor: 'text-warn',
-    borderColor: 'border-warn/50',
-    glowColor: 'rgba(235, 140, 31, 0.4)',
-    icon: IconScale,
-    telemetry: [
-      { label: 'PORTFOLIO CEILING', value: '≤ 1.0% Max Loss' },
-      { label: 'MIN RISK / REWARD', value: '≥ 1:2.5 Asymmetric Target' },
-      { label: 'CONFLICT PROTECTION', value: 'Instant Risk Warning' },
-      { label: 'STOP PLACEMENT', value: 'ATR (14) Volatility Buffer' },
+  blocked: {
+    badge: 'TRAP BLOCKED · CAPITAL SAVED',
+    headline: 'FOMO Fakeout & News Bomb Intercepted',
+    subline:
+      'The chart looked tempting, but CPI news drops in 12 minutes and the stop-loss would risk 2.4%. Kestrel blocks the trap.',
+    pills: [
+      { label: 'DANGER CAUGHT', value: 'CPI News in 12 Mins' },
+      { label: 'OVER-RISK BLOCKED', value: '2.4% Risk Exceeds 1% Rule' },
+      { label: 'MONEY SAVED', value: '$2,400 Whipsaw Avoided' },
     ],
   },
+};
+
+export interface SuperpowerCardSpec {
+  id: 'vision' | 'radar' | 'backtest' | 'journal';
+  tag: string;
+  title: string;
+  description: string;
+  accent: 'brand' | 'bull' | 'info' | 'warn';
+}
+
+export const SUPERPOWER_CARDS: readonly SuperpowerCardSpec[] = [
   {
-    id: 'deliberation',
-    num: '02',
-    tag: 'CONSENSUS SYNDICATE LAYER',
-    title: '4-Desk Specialist AI Committee',
-    shortDesc: 'Four specialized AI analysts evaluating independent market factors.',
-    fullDesc:
-      'Four specialist AI desks analyze your setup in parallel: Technicals maps trend alignment, swing structure and session levels, Macro tracks central bank policy and yields, Risk calculates position sizing, and Sentiment monitors institutional COT positioning.',
-    accentColor: 'text-brand',
-    borderColor: 'border-brand/50',
-    glowColor: 'rgba(255, 54, 22, 0.45)',
-    icon: IconCpu,
-    telemetry: [
-      { label: 'SPECIALIST DESKS', value: '4 Parallel AI Analysts' },
-      { label: 'CONSENSUS METHOD', value: 'Weighted Conviction Score' },
-      { label: 'ANALYSIS MODES', value: 'Fast Scout or Convene Council' },
-      { label: 'SIGNAL INTEGRITY', value: 'Cross-Checked Against Live Data' },
-    ],
+    id: 'vision',
+    tag: 'AI CHART VISION',
+    title: 'Drop Any Chart Screenshot',
+    description:
+      'Paste or drag any chart image into chat. Kestrel reads candlestick patterns, trendlines, and support/resistance zones in 5 seconds.',
+    accent: 'brand',
   },
   {
-    id: 'ingestion',
-    num: '01',
-    tag: 'FOUNDATION DATA LAYER',
-    title: 'Live Gold, Forex & Macro Market Feeds',
-    shortDesc: 'Real-time price action, technical indicators, and economic calendar.',
-    fullDesc:
-      'Continuously tracks Spot Gold (XAU/USD), major Forex pairs, and top crypto perpetuals alongside US 2Y/10Y Treasury yields, the Dollar Index (DXY), breaking financial headlines, and red-folder economic releases.',
-    accentColor: 'text-info',
-    borderColor: 'border-info/50',
-    glowColor: 'rgba(38, 126, 224, 0.4)',
-    icon: IconBolt,
-    telemetry: [
-      { label: 'PRIMARY MARKETS', value: 'XAU/USD · EUR · GBP · JPY' },
-      { label: 'MACRO BENCHMARKS', value: 'US10Y / US02Y · DXY Index' },
-      { label: 'TECHNICAL ENGINE', value: 'EMA · RSI · MACD · ATR · Bollinger' },
-      { label: 'CALENDAR & WIRES', value: 'Live Red-Folder Event Alerts' },
-    ],
+    id: 'radar',
+    tag: '24/7 PHONE RADAR',
+    title: 'Instant Telegram & Push Alerts',
+    description:
+      'Stop staring at screens all night. Set price, RSI, EMA, or candle-close triggers and get pinged on your phone the second your level hits.',
+    accent: 'info',
   },
-];
+  {
+    id: 'backtest',
+    tag: 'BACKTEST & PAPER DESK',
+    title: 'Test & Practice Risk-Free',
+    description:
+      'Replay strategies on historical market data or practice live trades in the built-in Paper Trading desk before risking a single dollar.',
+    accent: 'bull',
+  },
+  {
+    id: 'journal',
+    tag: 'AUTOMATED JOURNAL',
+    title: 'Track Your Real R-Multiple Edge',
+    description:
+      'Log setups in one click and automatically track your win rate, equity curve, drawdown buffer, and best trading sessions.',
+    accent: 'warn',
+  },
+] as const;

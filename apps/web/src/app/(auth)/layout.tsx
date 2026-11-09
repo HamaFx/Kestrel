@@ -16,10 +16,8 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Institutional split auth gateway: the credential column on the left (with a
-// responsive mobile Sovereign Plate banner on <lg viewports), and the
-// interactive Horus / Obelisk / Arbiter 3-Layer Sovereign showcase + sample
-// verified dossier on the right.
+// Institutional split auth gateway: the credential column on the left and the
+// Horus blueprint schematic + sample verified dossier on the right.
 import { IconArrowLeft, IconShieldCheck } from '@tabler/icons-react';
 import type { Metadata } from 'next';
 import { Link } from 'next-view-transitions';
@@ -52,19 +50,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             className="text-fg-subtle hover:text-fg inline-flex items-center gap-1.5 font-mono text-[11px] transition-colors active:translate-y-[0.5px]"
           >
             <IconArrowLeft className="text-brand size-3.5" />
-            <span className="hidden sm:inline">Back to Kestrel</span>
+            <span>Back to Kestrel</span>
           </Link>
-        </div>
-
-        {/* Mobile Sovereign Plate Showcase (visible on <lg screens) */}
-        <div className="mt-6 lg:hidden">
-          <BlueprintPlate
-            id="horus"
-            variant="showcase"
-            showRasterBackup
-            allowLayerToggle
-            className="h-44 w-full"
-          />
         </div>
 
         <h1 className="sr-only">Kestrel</h1>
@@ -77,9 +64,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
       {/* ── Architecture column (Desktop) ── */}
       <aside className="relative hidden overflow-hidden border-l border-white/[0.06] bg-[#0c0d0f] p-10 lg:col-span-7 lg:flex lg:flex-col lg:justify-between xl:p-12">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-85">
-          <BlueprintPlate id="horus" showRasterBackup className="h-full w-full" />
-        </div>
+        <BlueprintPlate
+          id="horus"
+          showRasterBackup
+          variant="watermark"
+          className="pointer-events-none absolute top-8 right-0 bottom-28 left-12 z-0 opacity-45"
+        />
 
         <div className="relative z-10 flex items-center justify-between gap-4">
           <span className="text-fg-subtle font-mono text-[10px] tracking-[0.2em] uppercase">
@@ -90,62 +80,52 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </span>
         </div>
 
-        <div className="relative z-10 my-auto flex flex-col gap-5">
-          <BlueprintPlate
-            id="arbiter"
-            variant="showcase"
-            showRasterBackup
-            allowLayerToggle
-            className="h-[240px] w-full max-w-xl self-end shadow-2xl"
-          />
+        <div className="relative z-10 mt-auto mb-6 w-full max-w-md self-start rounded-2xl border border-white/[0.1] bg-[#121315]/90 p-4 shadow-2xl backdrop-blur-md sm:p-5">
+          <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+            <div className="flex items-center gap-2">
+              <span className="bg-bull size-2 rounded-full" />
+              <span className="text-fg font-mono text-[11px] font-bold tracking-wider uppercase">
+                Sample Verified Dossier
+              </span>
+            </div>
+            <span className="text-brand border-brand/30 bg-brand/10 rounded border px-1.5 py-0.5 font-mono text-[9px] font-bold">
+              #KSL-4A9F
+            </span>
+          </div>
 
-          <div className="w-full max-w-md self-end rounded-2xl border border-white/[0.1] bg-[#121315]/90 p-4 shadow-2xl backdrop-blur-md sm:p-5">
-            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
-              <div className="flex items-center gap-2">
-                <span className="bg-bull size-2 rounded-full" />
-                <span className="text-fg font-mono text-[11px] font-bold tracking-wider uppercase">
-                  Sample Verified Dossier
+          <div className="divide-y divide-white/[0.06]">
+            {SAMPLE_DESKS.map((desk) => (
+              <div
+                key={desk.code}
+                className="grid grid-cols-[52px_1fr_auto] items-center gap-2 py-2"
+              >
+                <span className="text-fg-subtle font-mono text-[9px] tracking-wider">
+                  {desk.code}
+                </span>
+                <span className="text-fg-muted min-w-0 truncate font-mono text-[10px]">
+                  <span className="text-fg font-semibold">{desk.name}</span>
+                  <span className="text-fg-subtle/60 mx-1">·</span>
+                  {desk.read}
+                </span>
+                <span
+                  className={
+                    desk.bias === 'GUARD'
+                      ? 'border-warn/30 bg-warn/10 text-warn rounded border px-1.5 py-0.5 font-mono text-[9px] font-bold'
+                      : 'border-bull/30 bg-bull/10 text-bull rounded border px-1.5 py-0.5 font-mono text-[9px] font-bold'
+                  }
+                >
+                  {desk.bias}
                 </span>
               </div>
-              <span className="text-brand border-brand/30 bg-brand/10 rounded border px-1.5 py-0.5 font-mono text-[9px] font-bold">
-                #KSL-4A9F
-              </span>
-            </div>
+            ))}
+          </div>
 
-            <div className="divide-y divide-white/[0.06]">
-              {SAMPLE_DESKS.map((desk) => (
-                <div
-                  key={desk.code}
-                  className="grid grid-cols-[52px_1fr_auto] items-center gap-2 py-2"
-                >
-                  <span className="text-fg-subtle font-mono text-[9px] tracking-wider">
-                    {desk.code}
-                  </span>
-                  <span className="text-fg-muted min-w-0 truncate font-mono text-[10px]">
-                    <span className="text-fg font-semibold">{desk.name}</span>
-                    <span className="text-fg-subtle/60 mx-1">·</span>
-                    {desk.read}
-                  </span>
-                  <span
-                    className={
-                      desk.bias === 'GUARD'
-                        ? 'border-warn/30 bg-warn/10 text-warn rounded border px-1.5 py-0.5 font-mono text-[9px] font-bold'
-                        : 'border-bull/30 bg-bull/10 text-bull rounded border px-1.5 py-0.5 font-mono text-[9px] font-bold'
-                    }
-                  >
-                    {desk.bias}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <div className="border-brand/25 bg-brand/[0.05] mt-3 flex items-center justify-between gap-2 rounded-lg border px-3 py-2">
-              <span className="text-fg-muted flex items-center gap-1.5 font-mono text-[10px]">
-                <IconShieldCheck className="text-brand size-3.5" />
-                IMMUTABLE RISK GUARDRAIL
-              </span>
-              <span className="text-brand font-mono text-xs font-bold tabular-nums">1.00%</span>
-            </div>
+          <div className="border-brand/25 bg-brand/[0.05] mt-3 flex items-center justify-between gap-2 rounded-lg border px-3 py-2">
+            <span className="text-fg-muted flex items-center gap-1.5 font-mono text-[10px]">
+              <IconShieldCheck className="text-brand size-3.5" />
+              IMMUTABLE RISK GUARDRAIL
+            </span>
+            <span className="text-brand font-mono text-xs font-bold tabular-nums">1.00%</span>
           </div>
         </div>
 

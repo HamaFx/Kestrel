@@ -81,36 +81,40 @@ export function LandingStepper() {
       id="stepper"
       className="relative overflow-hidden border-t border-b border-white/5 bg-[#0c0d0e] py-28 lg:py-36"
     >
-      {/* ── Sentinel Stoa Blueprint (raster backup preserved) ── */}
+      {/* ── Classical Colonnade Stoa Perspective (anchored top-right clear of header) ── */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute top-8 left-0 z-0 h-[380px] w-full opacity-40 select-none sm:h-[480px] lg:left-4 lg:h-[620px] lg:w-[46%]"
+        className="stepper-backdrop-mask pointer-events-none absolute top-4 right-0 z-0 h-[260px] w-[72%] opacity-16 mix-blend-screen select-none sm:top-8 sm:h-[360px] sm:w-[60%] lg:top-8 lg:right-4 lg:h-[500px] lg:w-[44%] lg:opacity-24"
       >
-        <BlueprintPlate id="sentinel" showRasterBackup className="h-full w-full" />
+        <BlueprintPlate
+          id="colonnade"
+          showRasterBackup
+          variant="watermark"
+          className="h-full w-full"
+        />
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Section Header with Kestrel Rosette Badge */}
-        <div className="mb-16 flex max-w-3xl flex-col items-start gap-4">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono text-xs">
+        {/* Section Header */}
+        <div className="mb-14 flex max-w-3xl flex-col items-start gap-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-1 font-mono text-xs">
             <span className="bg-brand size-2 rounded-full shadow-[0_0_8px_#ff3616]" />
             <span className="text-brand font-semibold tracking-wider uppercase">
-              ※ 4-Step Research Workflow
+              Fast & Effortless Workflow
             </span>
           </div>
 
           <h2 className="font-display text-fg text-3xl font-normal tracking-[-0.03em] sm:text-5xl">
-            HOW KESTREL BUILDS{' '}
-            <span className="font-redaction-35 text-brand italic">Your Trade Plan</span>
+            FROM IDEA TO TRADE{' '}
+            <span className="font-redaction-35 text-brand italic">In Seconds</span>
           </h2>
           <p className="text-fg-muted font-sans text-base leading-relaxed">
-            From scanning live price structure to delivering a risk-checked trade plan with exact
-            invalidation and take-profit targets, here is what happens every time you ask Kestrel to
-            analyze a market.
+            No complex setups, no staring at ten indicators, and no manual risk math. Four
+            effortless steps take you from spotting a move to locking in your plan and walking away.
           </p>
 
-          {/* Autoplay & Telemetry Status Pill */}
-          <div className="flex items-center gap-3 pt-2">
+          {/* Autoplay Control Pill */}
+          <div className="flex items-center gap-3 pt-1">
             <button
               type="button"
               onClick={() => setIsPlaying(!isPlaying)}
@@ -119,18 +123,15 @@ export function LandingStepper() {
               {isPlaying ? (
                 <>
                   <IconPlayerPause className="text-brand size-3.5" />
-                  <span>Auto-Advancing Pipeline (Active)</span>
+                  <span>Pause Walkthrough</span>
                 </>
               ) : (
                 <>
                   <IconPlayerPlay className="text-bull size-3.5" />
-                  <span>Resume Auto-Run</span>
+                  <span>Play Walkthrough</span>
                 </>
               )}
             </button>
-            <span className="text-fg-subtle font-mono text-xs">
-              COMMITTEE WORKFLOW: <strong className="text-bull">4 VERIFIED STAGES</strong>
-            </span>
           </div>
         </div>
 

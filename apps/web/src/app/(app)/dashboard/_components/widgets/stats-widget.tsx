@@ -110,7 +110,7 @@ export function StatsWidget({ entries }: StatsWidgetProps) {
   }, [entries]);
 
   return (
-    <section aria-label="Trading stats" className="grid grid-cols-2 gap-3">
+    <section aria-label="Trading stats" className="grid h-full grid-cols-2 gap-px bg-white/[0.06]">
       {metrics.map((m) => (
         <StatCard
           key={m.label}
@@ -118,6 +118,7 @@ export function StatsWidget({ entries }: StatsWidgetProps) {
           value={m.value}
           tone={m.tone ?? 'fg'}
           icon={m.icon}
+          className="rounded-none border-0 bg-[#121315] shadow-none hover:bg-[#16171a]"
           {...(m.hint ? { hint: m.hint } : {})}
           {...(m.sparkline && m.sparkline.length >= 2 ? { sparkline: m.sparkline } : {})}
           {...(m.meter ? { meter: m.meter } : {})}

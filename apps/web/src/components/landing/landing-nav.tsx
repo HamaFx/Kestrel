@@ -57,7 +57,7 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
             <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 lg:flex">
               <span className="bg-bull size-2 rounded-full shadow-[0_0_8px_rgba(63,158,61,0.6)]" />
               <span className="text-fg-subtle font-mono text-[11px] font-semibold tracking-wider uppercase">
-                XAU/USD · LIVE
+                24/7 AI COPILOT
               </span>
             </div>
           </div>
@@ -86,7 +86,7 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
               href="#architecture"
               className="text-fg-muted hover:text-fg font-sans text-sm font-medium transition-colors"
             >
-              System Stack
+              Superpowers
             </a>
             <a
               href="#faq"
@@ -180,7 +180,7 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
               onClick={() => setMobileMenuOpen(false)}
               className="text-fg-muted hover:text-fg transition-colors"
             >
-              System Stack
+              Superpowers
             </a>
             <a
               href="#faq"

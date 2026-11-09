@@ -10,6 +10,7 @@
 import { IconAlertCircle, IconAlertTriangle } from '@tabler/icons-react';
 import Image from 'next/image';
 
+import { getArtworkWatermarkClass } from '@/components/brand/blueprint-plates';
 import { cn } from '@/lib/formatters/cn';
 
 import { AGENT_META, FALLBACK_META, type AgentProgress } from '../agent-deliberation/agent-meta';
@@ -92,14 +93,14 @@ export function SyndicateDeskGrid({
               {meta.artworkPath ? (
                 <div
                   aria-hidden="true"
-                  className="pointer-events-none absolute -right-3 -bottom-3 z-0 size-20 opacity-[0.12] mix-blend-luminosity"
+                  className="pointer-events-none absolute -right-2 -bottom-2 z-0 size-20 opacity-18 mix-blend-screen"
                 >
                   <Image
                     src={meta.artworkPath}
                     alt=""
                     fill
                     unoptimized
-                    className="object-contain"
+                    className={getArtworkWatermarkClass(meta.artworkPath)}
                   />
                 </div>
               ) : null}

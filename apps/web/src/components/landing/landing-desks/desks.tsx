@@ -2,9 +2,9 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Static catalogue for the landing desks section: the four specialist desk
-// specs + paired Sovereign blueprint engravings, verdicts, capabilities, and
-// auto-cycle cadence.
+// Static catalogue for the landing desks section: the four specialist desks
+// explained in clear, everyday trader language alongside their classical
+// engravings and live conviction verdicts.
 import { IconBuildingBank, IconChartCandle, IconRadar, IconScale } from '@tabler/icons-react';
 
 import type { BlueprintPlateId } from '@/components/brand/blueprint-plates';
@@ -15,7 +15,6 @@ export interface DeskSpec {
   role: string;
   badge: string;
   blueprintId: BlueprintPlateId;
-  pairedBlueprintId: BlueprintPlateId;
   color: string;
   borderColor: string;
   bgGlow: string;
@@ -33,106 +32,102 @@ export interface DeskSpec {
 export const DESKS: DeskSpec[] = [
   {
     id: 'technical',
-    name: 'Technical Desk',
-    role: 'Structure & Level Architect',
-    badge: 'PRICE ACTION & QUANTITATIVE STRUCTURE',
+    name: 'Price Action & Trend Desk',
+    role: 'Key Levels & Breakout Mapper',
+    badge: 'TREND, SUPPORT & RESISTANCE',
     blueprintId: 'astrolabe',
-    pairedBlueprintId: 'colonnade',
     color: 'text-bull',
     borderColor: 'border-bull/30',
     bgGlow: 'from-bull/10 to-transparent',
     sprite: <IconChartCandle className="text-bull size-5" />,
-    methodology: 'Multi-Timeframe Quantitative Structure',
+    methodology: 'Multi-Timeframe Trend & Key Price Zones',
     verdict: {
       bias: 'BULLISH',
       conviction: 94,
-      keyMetric: 'Swing Low Re-test @ 2,860.20',
+      keyMetric: 'Support Held @ $2,860.20 (4H & 1H)',
       rationale:
-        'Higher lows held above the Asian session low while EMA20 crossed above EMA50 on the 4H chart and RSI14 pushed through 55.',
+        'Buyers stepped in strongly above the Asian session low while the 4-hour trend and momentum indicators aligned upward.',
     },
     features: [
-      'Swing high/low mapping and session ranges across 15m, 1h, 4h, and Daily frames',
-      'Multi-timeframe EMA20/50/200 alignment with ADX regime confirmation',
-      'Previous-day high/low, Asian range, and London/New York session levels',
-      'RSI, MACD and ATR confluence for momentum, volatility and invalidation sizing',
+      'Scans 15m, 1H, 4H & Daily charts at once',
+      'Pinpoints support floors & breakout zones',
+      'Tracks Asian, London & NY session levels',
+      'Checks momentum so you never chase late',
     ],
   },
   {
     id: 'macro',
-    name: 'Macroeconomic Desk',
-    role: 'Central Bank & Yield Strategist',
-    badge: 'INTEREST RATES & CATALYSTS',
+    name: 'Economy & News Desk',
+    role: 'Interest Rates & Breaking News',
+    badge: 'CENTRAL BANKS & MARKET CATALYSTS',
     blueprintId: 'horus',
-    pairedBlueprintId: 'obelisk',
     color: 'text-info',
     borderColor: 'border-info/30',
     bgGlow: 'from-info/10 to-transparent',
     sprite: <IconBuildingBank className="text-info size-5" />,
-    methodology: 'Central Bank Reaction Functions & Yield Dynamics',
+    methodology: 'Interest Rates, Inflation & Live News Impact',
     verdict: {
       bias: 'BULLISH',
       conviction: 88,
-      keyMetric: 'US 10Y Yields -4.2 bps (4.28%)',
+      keyMetric: 'US 10Y Yields Falling (-4.2 bps)',
       rationale:
-        'Softening PCE inflation metrics increase probability of 25 bps rate cut, compressing real yields and boosting non-yielding bullion demand.',
+        'Cooler inflation numbers and falling US bond yields weaken the Dollar and create a strong tailwind for Gold and major currencies.',
     },
     features: [
-      'Sub-second news parsing across Bloomberg, Reuters, Dow Jones, and institutional wires',
-      'Real-time US Treasury 2Y/10Y yield curve inversion and real interest rate tracking',
-      'FedWatch / ECB / BOE rate cut probability matrices dynamically recalculated per speech',
-      'High-impact economic catalyst event countdown with automated volatility forecasting',
+      'Reads breaking financial news in seconds',
+      'Tracks US bond yields & Dollar Index live',
+      'Follows Fed, ECB & BoE rate expectations',
+      'Flags high-impact red-folder news events',
     ],
   },
   {
     id: 'risk',
-    name: 'Quantitative Risk Desk',
-    role: '1% Mathematical Governor',
-    badge: 'CAPITAL PRESERVATION & VETO',
+    name: '1% Risk Shield Desk',
+    role: 'Account & Stop-Loss Protector',
+    badge: 'CAPITAL PROTECTION & POSITION SIZING',
     blueprintId: 'aegis',
-    pairedBlueprintId: 'eclipse',
     color: 'text-warn',
     borderColor: 'border-warn/30',
     bgGlow: 'from-warn/10 to-transparent',
     sprite: <IconScale className="text-warn size-5" />,
-    methodology: 'Kelly-Adjusted Volatility Invalidation Protocol',
+    methodology: 'Strict 1% Max Risk & Volatility Stop Sizing',
     verdict: {
       bias: 'BULLISH',
       conviction: 92,
-      keyMetric: '1:3.22 Risk/Reward Ratio',
+      keyMetric: '1 : 3.22 Reward-to-Risk Ratio',
       rationale:
-        'Strict 1.0% account drawdown constraint satisfied with ATR invalidation stop placed below the structural swing low at 2,846.50.',
+        'Stop-loss is placed safely below market noise at $2,846.50, risking under 1.0% of your account for a 3.2x reward target.',
     },
     features: [
-      'Immutable 1.0% portfolio drawdown ceiling — automatically vetoes sub-par setups',
-      'Volatility-adjusted ATR (Average True Range) stop loss placing beyond market noise',
-      'Dynamic multi-tier Take-Profit cones (1:1.5 partial, 1:2.5 runner, 1:4.0 maximum extension)',
-      'Asymmetric trade structure verification preventing negative expected value entries',
+      'Enforces a strict 1.0% max account loss rule',
+      'Sizes stop-loss using real volatility (ATR)',
+      'Builds 3-step Take-Profit scaling targets',
+      'Warns you to stand down on bad reward/risk',
     ],
   },
   {
     id: 'sentiment',
-    name: 'Institutional Desk',
-    role: 'Whale Positioning & COT Analyst',
-    badge: 'CFTC & VOLUME PROFILE',
+    name: 'Big-Money Flow Desk',
+    role: 'Bank & Whale Positioning Tracker',
+    badge: 'INSTITUTIONAL & WHALE FLOW',
     blueprintId: 'sentinel',
-    pairedBlueprintId: 'warroom',
     color: 'text-brand',
     borderColor: 'border-brand/30',
     bgGlow: 'from-brand/10 to-transparent',
     sprite: <IconRadar className="text-brand size-5" />,
-    methodology: 'CFTC Commitments of Traders & Interbank Flow',
+    methodology: 'Institutional Bank Positioning & Crowd Sentiment',
     verdict: {
       bias: 'BULLISH',
       conviction: 86,
-      keyMetric: 'COT Commercial Net Long +18,420 contracts',
+      keyMetric: 'Major Banks +18,420 Net Long Contracts',
       rationale:
-        'Major bullion banks expanding net long positioning for third consecutive week while retail traders remain 64% short at resistance.',
+        'Institutional reports show large banks and funds adding long positions for the third straight week while retail traders bet the wrong way.',
     },
     features: [
-      'Weekly CFTC Commitments of Traders (COT) report breakdown: Commercial Hedgers vs. Non-Commercial Funds',
-      'Retail sentiment contrarian index — fading crowded retail positioning traps',
-      'Central bank sovereign gold reserve accumulation trends and ETF bullion inventory flows',
-      'Interbank currency correlation tracking (EUR/USD, GBP/USD, USD/JPY vs. DXY basket)',
+      'Tracks weekly CFTC bank positioning reports',
+      'Spots when retail traders are trapped wrong',
+      'Monitors big-money flows in Gold, FX & Crypto',
+      'Cross-checks correlations across 18+ pairs',
     ],
   },
 ];

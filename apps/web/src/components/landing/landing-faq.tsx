@@ -29,9 +29,9 @@ interface FAQItem {
 const FAQS: FAQItem[] = [
   {
     id: '01',
-    question: 'What markets does Kestrel specialize in?',
+    question: 'What markets does Kestrel support?',
     answer:
-      'Kestrel is built for Spot Gold (XAU/USD), major Forex pairs (EUR/USD, GBP/USD, USD/JPY, AUD/USD), and leading crypto perpetuals. Every analysis cross-references live price action against US Treasury yields (2Y, 10Y), the Dollar Index (DXY), and upcoming economic events.',
+      'Kestrel supports 18+ markets out of the box: Spot Gold (XAU/USD), 11 Major and Cross Forex pairs (EUR/USD, GBP/USD, USD/JPY, AUD/USD, USD/CAD, NZD/USD, USD/CHF, EUR/GBP, EUR/JPY, GBP/JPY, AUD/JPY), and 6 top Crypto perpetuals (BTC/USDT, ETH/USDT, SOL/USDT, BNB/USDT, XRP/USDT, ADA/USDT), all cross-checked against US Treasury yields and the Dollar Index (DXY).',
   },
   {
     id: '02',
@@ -47,9 +47,9 @@ const FAQS: FAQItem[] = [
   },
   {
     id: '04',
-    question: 'Do I need to configure my own AI API keys or market data feeds?',
+    question: 'How do AI keys, spending limits, and optional add-ons work?',
     answer:
-      'Yes — Kestrel is self-hosted and bring-your-own-key (BYOK). You connect your own provider keys (OpenAI, Anthropic, Google, OpenRouter, or a local model) plus optional market data adapters; they are encrypted at rest with AES-256-GCM in the local vault and never leave your deployment. Local spend guardrails cap monthly and per-provider usage before a single request is sent. Feature plugins — Backtesting Lab, Paper Trading, and Telegram Copilot — install with one click from the Plugin Store whenever you want them.',
+      'You stay in complete control. Connect your preferred AI provider (OpenAI, Anthropic, Google, OpenRouter, or a local model) inside your private encrypted vault and set a monthly spending cap so you never get a surprise bill. Want extra tools? Enable 1-click add-ons like Backtesting, Paper Trading, and the Telegram Bot anytime.',
   },
   {
     id: '05',
@@ -70,7 +70,7 @@ export function LandingFAQ() {
       {/* Halftone Columns Background */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-contain bg-right bg-no-repeat opacity-20 select-none"
+        className="pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-contain bg-right bg-no-repeat opacity-10 mix-blend-screen [mask-image:radial-gradient(ellipse_80%_70%_at_85%_50%,black_20%,transparent_80%)] select-none lg:w-1/3 lg:opacity-20"
         style={{ backgroundImage: 'url(/landing/faq-halftone-columns.png)' }}
       />
 

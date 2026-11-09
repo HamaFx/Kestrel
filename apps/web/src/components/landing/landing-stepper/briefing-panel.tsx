@@ -2,116 +2,87 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Live briefing preview workbench on the right of the landing stepper: window
-// chrome, stage-synchronized 3-Layer Sovereign Plate (Colonnade, Eclipse Watch,
-// Aegis Governor, Arbiter Scales Falcon), fading code surface, telemetry grid,
-// and the circuit footer.
-import { IconActivity, IconFlame } from '@tabler/icons-react';
+// Simplified, high-craft 4-scene Motion Graphics stage on the right of
+// `LandingStepper`.
+import { IconSparkles } from '@tabler/icons-react';
 import { AnimatePresence, m } from 'motion/react';
 
-import { BlueprintPlate, type BlueprintPlateId } from '@/components/brand/blueprint-plates';
-
+import {
+  SceneAutoSizedRisk,
+  SceneInstantClarity,
+  SceneSnapOrAsk,
+  SceneWalkAway,
+} from './stepper-scenes';
 import type { Step } from './steps';
 
 interface BriefingPanelProps {
   current: Step;
 }
 
-const STEP_PLATE_MAP: Record<number, BlueprintPlateId> = {
-  1: 'colonnade',
-  2: 'warroom',
-  3: 'aegis',
-  4: 'arbiter',
-};
-
 export function BriefingPanel({ current }: BriefingPanelProps) {
-  const plateId = STEP_PLATE_MAP[current.id] ?? 'colonnade';
-
   return (
     <div id="pipeline-detail-panel" role="tabpanel" className="lg:col-span-6">
-      <div className="border-brand/40 relative overflow-hidden rounded-2xl border bg-[#121314] p-4 shadow-2xl sm:p-6">
-        {/* Kestrel Signature Elliptical Radial Border Glow Mask */}
+      <div className="border-brand/40 relative overflow-hidden rounded-3xl border bg-[#121315] p-5 shadow-2xl sm:p-7">
+        {/* Top-Right Forge Border Glow */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 rounded-2xl select-none"
+          className="pointer-events-none absolute inset-0 rounded-3xl select-none"
           style={{
             border: '0.5px solid #ff3616',
             maskImage: 'radial-gradient(ellipse 60% 48% at 100% 0%, black 30%, transparent 72%)',
             WebkitMaskImage:
               'radial-gradient(ellipse 60% 48% at 100% 0%, black 30%, transparent 72%)',
             backgroundImage:
-              'radial-gradient(ellipse 52% 44% at 100% 0%, rgba(255,54,22,0.12) 0%, transparent 70%)',
+              'radial-gradient(ellipse 52% 44% at 100% 0%, rgba(255,54,22,0.14) 0%, transparent 70%)',
           }}
         />
 
-        {/* Workbench Header Bar */}
+        {/* Clean Header Bar */}
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-4">
           <div className="flex items-center gap-2">
-            <span className="bg-danger/80 size-2.5 rounded-full" />
-            <span className="bg-warn/80 size-2.5 rounded-full" />
-            <span className="bg-bull/80 size-2.5 rounded-full" />
-            <span className="text-fg-subtle ml-2 font-mono text-xs">
-              kestrel / briefing / {current.fileName}
+            <span className="bg-brand size-2 rounded-full shadow-[0_0_8px_#ff3616]" />
+            <span className="text-brand font-mono text-xs font-bold tracking-wider uppercase">
+              {current.sceneBadge}
             </span>
           </div>
-          <div className="flex items-center gap-2 font-mono text-xs">
-            <span className="bg-bull size-2 rounded-full" />
-            <span className="text-bull font-semibold">STAGE {current.label} VERIFIED</span>
-          </div>
+          <span className="text-bull bg-bull/10 border-bull/30 rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-bold">
+            STEP {current.label} OF 04
+          </span>
         </div>
 
-        {/* Stage-Synchronized 3-Layer Sovereign Plate */}
-        <div className="relative z-10 mt-4">
-          <BlueprintPlate
-            id={plateId}
-            variant="showcase"
-            showRasterBackup
-            allowLayerToggle
-            className="h-[196px] w-full sm:h-[216px]"
-          />
-        </div>
-
-        {/* Briefing Output Surface with Smooth Fade */}
+        {/* Full-Bleed Choreographed Visual Motion Stage */}
         <AnimatePresence mode="wait">
           <m.div
             key={current.id}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="surface-well relative z-10 mt-4 overflow-x-auto rounded-xl border border-white/5 bg-[#08090a] p-4 sm:p-5"
+            transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+            className="relative z-10 mt-4 flex flex-col gap-4"
           >
-            <pre className="text-fg font-mono text-xs leading-relaxed font-medium whitespace-pre sm:text-[13px]">
-              <code>{current.codeHighlighted}</code>
-            </pre>
+            <div>
+              <h4 className="font-display text-fg text-xl font-normal tracking-tight sm:text-2xl">
+                {current.sceneTitle}
+              </h4>
+              <p className="text-fg-muted mt-1 font-sans text-xs sm:text-sm">
+                {current.sceneSubtitle}
+              </p>
+            </div>
+
+            <div className="surface-well overflow-hidden rounded-2xl border border-white/10 bg-[#08090b] p-4">
+              {current.id === 1 && <SceneSnapOrAsk />}
+              {current.id === 2 && <SceneInstantClarity />}
+              {current.id === 3 && <SceneAutoSizedRisk />}
+              {current.id === 4 && <SceneWalkAway />}
+            </div>
+
+            {/* Single Clean Takeaway Strip */}
+            <div className="flex items-center gap-2.5 rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3 font-sans text-xs sm:text-sm">
+              <IconSparkles className="text-brand size-4 shrink-0" />
+              <span className="text-fg font-medium">{current.takeaway}</span>
+            </div>
           </m.div>
         </AnimatePresence>
-
-        {/* Live Stage Telemetry Metrics Grid */}
-        <div className="relative z-10 mt-4 grid grid-cols-1 gap-2 font-mono text-xs sm:grid-cols-3 sm:gap-2.5">
-          {current.telemetry.map((item, idx) => (
-            <div
-              key={idx}
-              className="surface-well flex flex-col gap-0.5 rounded-lg border border-white/5 bg-black/40 p-2.5"
-            >
-              <span className="text-fg-subtle text-[9px] uppercase">{item.label}</span>
-              <span className="text-fg truncate text-[11px] font-bold">{item.value}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Dynamic Pipeline Circuit Footer */}
-        <div className="relative z-10 mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/5 bg-white/[0.02] p-3.5 font-mono text-xs">
-          <div className="flex items-center gap-2">
-            <IconActivity className="text-brand size-4" />
-            <span className="text-fg-subtle">WORKFLOW STAGE:</span>
-            <span className="text-bull font-semibold tabular-nums">{current.latency}</span>
-          </div>
-          <div className="text-brand flex items-center gap-1.5">
-            <IconFlame className="size-3.5" />
-            <span>Verified Trade Protocol</span>
-          </div>
-        </div>
       </div>
     </div>
   );

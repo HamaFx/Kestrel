@@ -18,31 +18,22 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Institutional command deck for /dashboard: the archival Pantheon War Room &
-// Arbiter Scales header banner with the Convene Full Council CTA, and the
-// four strategist desk cards with 3-Layer Sovereign Blueprint Plates.
+// Institutional command deck for /dashboard: the archival pediment banner with
+// the Convene Full Council CTA, and the four strategist desk cards in a
+// flush 4-column hairline matrix.
 import { IconArrowRight, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import Link from 'next/link';
-import { useState } from 'react';
 
-import { BlueprintPlate, type BlueprintPlateId } from '@/components/brand/blueprint-plates';
+import { BlueprintPlate } from '@/components/brand/blueprint-plates';
 import { useLocalStorage } from '@/hooks/use-local-storage';
-import { cn } from '@/lib/formatters/cn';
 import { STRATEGIST_DESK_LIST } from '@/lib/kestrel-strategist-desks';
 
 import { StrategistDeskCard } from './strategist-desk-card';
 
-const DECK_COLLAPSED_KEY = 'kestrel:mission-control-collapsed:v2';
-
-const COMMAND_PLATES: Array<{ id: BlueprintPlateId; label: string }> = [
-  { id: 'warroom', label: 'Pantheon War Room' },
-  { id: 'arbiter', label: 'Arbiter Scales' },
-  { id: 'sentinel', label: 'Council Stoa' },
-];
+const DECK_COLLAPSED_KEY = 'kestrel:mission-control-collapsed:v1';
 
 export function MissionControlDeck() {
-  const [collapsed, setCollapsed] = useLocalStorage<boolean>(DECK_COLLAPSED_KEY, false);
-  const [headerPlate, setHeaderPlate] = useState<BlueprintPlateId>('warroom');
+  const [collapsed, setCollapsed] = useLocalStorage<boolean>(DECK_COLLAPSED_KEY, true);
 
   if (collapsed) {
     return (
@@ -105,80 +96,56 @@ export function MissionControlDeck() {
       aria-label="Mission Control Deck"
       className="relative mb-2 flex flex-col gap-3 overflow-hidden rounded-2xl sm:gap-4"
     >
-      {/* ── 1. Archival Pediment Header Banner with Sovereign 3-Layer Plate ── */}
-      <div className="surface-panel relative grid grid-cols-1 gap-5 overflow-hidden rounded-xl p-4 sm:p-6 lg:grid-cols-12 lg:items-center">
-        <div className="relative z-10 flex flex-col justify-between gap-4 lg:col-span-7">
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="label-eyebrow">INSTITUTIONAL MULTI-AGENT COMMAND DECK</span>
-                <span className="bg-brand size-1.5 rounded-full shadow-[0_0_8px_#ff3616]" />
-              </div>
-              <div className="flex items-center gap-1 rounded-md border border-white/10 bg-black/40 p-0.5">
-                {COMMAND_PLATES.map((plate) => (
-                  <button
-                    key={plate.id}
-                    type="button"
-                    onClick={() => setHeaderPlate(plate.id)}
-                    className={cn(
-                      'rounded px-2 py-0.5 font-mono text-[9px] font-semibold tracking-wider uppercase transition-colors',
-                      headerPlate === plate.id
-                        ? 'bg-brand text-white'
-                        : 'text-fg-subtle hover:text-fg',
-                    )}
-                  >
-                    {plate.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+      {/* ── 1. Archival Pediment Header Banner ── */}
+      <div className="surface-panel relative flex flex-col justify-between gap-4 overflow-hidden rounded-xl p-5 sm:p-6 md:flex-row md:items-center">
+        <BlueprintPlate
+          id="arbiter"
+          showRasterBackup
+          variant="watermark"
+          className="pointer-events-none absolute -top-8 right-4 z-0 size-56 opacity-20"
+        />
 
-            <h2 className="font-display text-fg text-2xl font-normal tracking-[-0.03em] sm:text-3xl">
-              The Council of{' '}
-              <span className="font-redaction-35 text-brand italic">Four Strategists</span>
-            </h2>
-
-            <p className="text-fg-muted max-w-xl text-xs leading-relaxed sm:text-sm">
-              Autonomous multi-desk committee operating in parallel. Macro horizon, quant liquidity,
-              and mathematical risk governor synthesized by the Arbiter into high-expectancy trade
-              directives.
-            </p>
+        <div className="relative z-10 flex max-w-2xl flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <span className="label-eyebrow">INSTITUTIONAL MULTI-AGENT COMMAND DECK</span>
+            <span className="bg-brand size-1.5 rounded-full shadow-[0_0_8px_#ff3616]" />
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            <Link
-              href="/chat?mode=full"
-              className="tactile-press border-brand/60 bg-brand inline-flex h-10 items-center gap-2 rounded-md border px-4 font-mono text-xs font-semibold tracking-wider text-white uppercase shadow-[0_4px_14px_rgba(255,54,22,0.32),inset_0_1px_0_rgba(255,255,255,0.32),inset_0_-1px_0_rgba(0,0,0,0.35)] transition-all hover:brightness-110"
-            >
-              <span>Convene Full Council</span>
-              <IconArrowRight className="size-3.5" strokeWidth={2} />
-            </Link>
+          <h2 className="font-display text-fg text-2xl font-normal tracking-[-0.03em] sm:text-3xl">
+            The Council of{' '}
+            <span className="font-redaction-35 text-brand italic">Four Strategists</span>
+          </h2>
 
-            <button
-              type="button"
-              onClick={() => setCollapsed(true)}
-              aria-label="Collapse Mission Control Deck to compact strip"
-              aria-expanded="true"
-              className="text-fg-subtle hover:text-fg inline-flex items-center gap-1 rounded px-2.5 py-1.5 font-mono text-[11px] transition-colors"
-            >
-              <span>Compact strip</span>
-              <IconChevronUp className="size-3.5" strokeWidth={1.75} />
-            </button>
-          </div>
+          <p className="text-fg-muted max-w-xl text-xs leading-relaxed sm:text-sm">
+            Autonomous multi-desk committee operating in parallel. Macro horizon, quant liquidity,
+            and mathematical risk governor synthesized by the Arbiter into high-expectancy trade
+            directives.
+          </p>
         </div>
 
-        <div className="relative z-10 lg:col-span-5">
-          <BlueprintPlate
-            id={headerPlate}
-            variant="showcase"
-            showRasterBackup
-            allowLayerToggle
-            className="h-[196px] w-full sm:h-[212px]"
-          />
+        <div className="relative z-10 flex flex-wrap items-center gap-2.5 md:flex-col md:items-end">
+          <Link
+            href="/chat?mode=full"
+            className="tactile-press border-brand/60 bg-brand inline-flex h-10 items-center gap-2 rounded-md border px-4 font-mono text-xs font-semibold tracking-wider text-white uppercase shadow-[0_4px_14px_rgba(255,54,22,0.32),inset_0_1px_0_rgba(255,255,255,0.32),inset_0_-1px_0_rgba(0,0,0,0.35)] transition-all hover:brightness-110"
+          >
+            <span>Convene Full Council</span>
+            <IconArrowRight className="size-3.5" strokeWidth={2} />
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setCollapsed(true)}
+            aria-label="Collapse Mission Control Deck to compact strip"
+            aria-expanded="true"
+            className="text-fg-subtle hover:text-fg inline-flex items-center gap-1 rounded px-2 py-1 font-mono text-[11px] transition-colors"
+          >
+            <span>Compact strip</span>
+            <IconChevronUp className="size-3.5" strokeWidth={1.75} />
+          </button>
         </div>
       </div>
 
-      {/* ── 2. The Four Strategist Desk Cards (Responsive 1 → 2 → 4 Column Grid) ── */}
+      {/* ── 2. The Four Strategist Desk Cards (4-Column Hairline Matrix) ── */}
       <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.06] sm:grid-cols-2 lg:grid-cols-4">
         {STRATEGIST_DESK_LIST.map((desk) => (
           <StrategistDeskCard key={desk.id} desk={desk} />

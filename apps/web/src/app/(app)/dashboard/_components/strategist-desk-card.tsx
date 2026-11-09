@@ -17,44 +17,25 @@
  */
 
 // SPDX-License-Identifier: Apache-2.0
-import { IconArrowRight, IconSwitchHorizontal } from '@tabler/icons-react';
+import { IconArrowRight } from '@tabler/icons-react';
 import Link from 'next/link';
-import { useState } from 'react';
 
 import { BlueprintPlate } from '@/components/brand/blueprint-plates';
 import type { StrategistDeskConfig } from '@/lib/kestrel-strategist-desks';
 
 export function StrategistDeskCard({ desk }: { desk: StrategistDeskConfig }) {
-  const [usePairedArt, setUsePairedArt] = useState(false);
   const consultHref = `/chat?desk=${desk.id}&prompt=${encodeURIComponent(desk.defaultPrompt)}`;
-  const activePlateId =
-    usePairedArt && desk.pairedBlueprintId ? desk.pairedBlueprintId : desk.blueprintId;
 
   return (
-    <div className="group hover:bg-bg-elev-2 relative flex flex-col justify-between overflow-hidden bg-[#121315] p-3.5 transition-colors duration-200 sm:p-4">
-      <div className="flex flex-col gap-3">
-        {/* Top Chiaroscuro + CAD + ASCII Plate Header */}
-        <div className="relative">
-          <BlueprintPlate
-            id={activePlateId}
-            variant="compact"
-            showRasterBackup
-            showAsciiStrip
-            className="h-32 w-full"
-          />
-          {desk.pairedBlueprintId && (
-            <button
-              type="button"
-              onClick={() => setUsePairedArt((prev) => !prev)}
-              title="Switch between original and paired chiaroscuro plate"
-              className="text-fg-subtle hover:text-fg absolute top-2 right-2 z-20 inline-flex items-center gap-1 rounded border border-white/15 bg-black/70 px-1.5 py-0.5 font-mono text-[8px] font-semibold tracking-wider uppercase backdrop-blur-sm transition-colors"
-            >
-              <IconSwitchHorizontal className="size-2.5" />
-              {usePairedArt ? 'Plate II' : 'Plate I'}
-            </button>
-          )}
-        </div>
+    <div className="group hover:bg-bg-elev-2 relative flex flex-col justify-between overflow-hidden bg-[#121315] p-4 transition-colors duration-200">
+      <BlueprintPlate
+        id={desk.blueprintId}
+        showRasterBackup
+        variant="watermark"
+        className="pointer-events-none absolute -top-2 -right-2 z-0 size-28 opacity-20 transition-opacity duration-300 group-hover:opacity-35"
+      />
 
+      <div className="relative z-10 flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <span className="text-brand font-mono text-[10px] font-semibold tracking-wider uppercase">
             {desk.code}

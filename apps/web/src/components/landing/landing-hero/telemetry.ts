@@ -1,111 +1,42 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Static telemetry data for the landing hero: the switchable committee
-// briefings and the live market-pulse ticker items.
+// Kinetic hero showcase data: highlights Kestrel's core trader superpowers
+// (AI Chart Vision, 1% Risk Shield, 24/7 Phone Radar) without symbol lists.
 
-export type DeskBias = 'BULL' | 'BEAR' | 'GUARD';
-
-interface SymbolTelemetry {
-  symbol: string;
-  name: string;
-  price: string;
-  change: string;
-  isPositive: boolean;
-  spread: string;
-  direction: 'BUY / LONG' | 'SELL / SHORT';
-  entry: string;
-  invalidation: string;
-  target1: string;
-  target2: string;
-  rr: string;
-  conviction: number;
-  techSignal: string;
-  macroSignal: string;
-  riskSignal: string;
-  sentimentSignal: string;
-  techBias: DeskBias;
-  macroBias: DeskBias;
-  riskBias: DeskBias;
-  sentimentBias: DeskBias;
+export interface HeroHighlightPill {
+  badge: string;
+  title: string;
+  detail: string;
+  tone: 'brand' | 'bull' | 'info';
 }
 
-export const SYMBOLS: SymbolTelemetry[] = [
+export const HERO_HIGHLIGHTS: readonly HeroHighlightPill[] = [
   {
-    symbol: 'XAU/USD',
-    name: 'Spot Gold / US Dollar',
-    price: '2,864.20',
-    change: '+1.42% (+9.80)',
-    isPositive: true,
-    spread: '0.12 pts',
-    direction: 'BUY / LONG',
-    entry: '2,864.00',
-    invalidation: '2,846.50',
-    target1: '2,884.00',
-    target2: '2,916.50',
-    rr: '1:3.2',
-    conviction: 91,
-    techSignal: 'PDH Reclaim 94%',
-    macroSignal: 'Yields -4bp',
-    riskSignal: '1% @ 2,846',
-    sentimentSignal: 'Whales Long',
-    techBias: 'BULL',
-    macroBias: 'BULL',
-    riskBias: 'GUARD',
-    sentimentBias: 'BULL',
+    badge: 'AI CHART VISION',
+    title: 'Drop Any Screenshot',
+    detail: 'Reads structure & key levels in 5s',
+    tone: 'brand',
   },
   {
-    symbol: 'EUR/USD',
-    name: 'Euro / US Dollar',
-    price: '1.0845',
-    change: '+0.28% (+0.0030)',
-    isPositive: true,
-    spread: '0.4 pips',
-    direction: 'BUY / LONG',
-    entry: '1.0840',
-    invalidation: '1.0812',
-    target1: '1.0895',
-    target2: '1.0930',
-    rr: '1:3.1',
-    conviction: 87,
-    techSignal: 'Swing Low +88%',
-    macroSignal: 'ECB Hold',
-    riskSignal: '0.8% SL',
-    sentimentSignal: 'COT Bullish',
-    techBias: 'BULL',
-    macroBias: 'GUARD',
-    riskBias: 'GUARD',
-    sentimentBias: 'BULL',
+    badge: '1% RISK SHIELD',
+    title: 'Auto-Sized Protection',
+    detail: 'Exact stop-loss & lot size locked',
+    tone: 'bull',
   },
   {
-    symbol: 'GBP/USD',
-    name: 'British Pound / US Dollar',
-    price: '1.2912',
-    change: '-0.15% (-0.0019)',
-    isPositive: false,
-    spread: '0.6 pips',
-    direction: 'SELL / SHORT',
-    entry: '1.2915',
-    invalidation: '1.2950',
-    target1: '1.2850',
-    target2: '1.2805',
-    rr: '1:3.0',
-    conviction: 85,
-    techSignal: 'PDH Reject 85%',
-    macroSignal: 'BoE Doves',
-    riskSignal: '1% @ 1.295',
-    sentimentSignal: 'Funds Short',
-    techBias: 'BEAR',
-    macroBias: 'BEAR',
-    riskBias: 'GUARD',
-    sentimentBias: 'BEAR',
+    badge: '24/7 RADAR',
+    title: 'Instant Phone Alerts',
+    detail: 'Telegram & Push when levels hit',
+    tone: 'info',
   },
-];
+] as const;
 
 export const TICKER_ITEMS = [
-  { symbol: 'XAU/USD', price: '$2,864.20', change: '+1.42%', up: true },
-  { symbol: 'EUR/USD', price: '1.0845', change: '+0.28%', up: true },
-  { symbol: 'GBP/USD', price: '1.2912', change: '-0.15%', up: false },
-  { symbol: 'USD/JPY', price: '153.80', change: '-0.45%', up: false },
-  { symbol: 'DXY', price: '104.12', change: '-0.34%', up: false },
-  { symbol: 'US10Y', price: '4.28%', change: '-4.2bp', up: false },
-];
+  { label: 'AI CHART SCREENSHOT VISION', tag: 'INSTANT READ', up: true },
+  { label: '1.0% ACCOUNT RISK SHIELD', tag: 'AUTO STOP-LOSS', up: true },
+  { label: '24/7 TELEGRAM & PHONE ALERTS', tag: 'REAL-TIME PING', up: true },
+  { label: 'VOICE & SLASH COMMAND COPILOT', tag: 'HANDS-FREE', up: true },
+  { label: 'BUILT-IN PAPER TRADING DESK', tag: 'ZERO-RISK PRACTICE', up: true },
+  { label: 'STRATEGY BACKTESTING LAB', tag: 'HISTORICAL REPLAY', up: true },
+  { label: 'R-MULTIPLE TRADE JOURNAL', tag: 'EQUITY ANALYTICS', up: true },
+] as const;

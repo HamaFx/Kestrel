@@ -27,7 +27,6 @@ import type { EconomicEvent } from '@kestrel/shared';
 import { IconBolt, IconClock } from '@tabler/icons-react';
 import { Link } from 'next-view-transitions';
 
-import { BlueprintPlate } from '@/components/brand/blueprint-plates';
 import { useTime } from '@/components/providers/time-provider';
 import { cn } from '@/lib/formatters/cn';
 import { startOfDay, startOfDayOffset } from '@/lib/formatters/datetime';
@@ -64,15 +63,6 @@ export function CalendarHero({ events = [] }: CalendarHeroProps) {
       aria-label="Calendar overview"
       className="border-border/80 bg-bg-elev-1 surface-chip border-edge/80 relative flex flex-col gap-4 overflow-hidden rounded-xl border p-4 shadow-[var(--shadow-chip)] sm:p-5"
     >
-      {/* Sentinel Eclipse Watch & Meridian Obelisk 3-Layer Sovereign Header Plate */}
-      <BlueprintPlate
-        id="eclipse"
-        variant="compact"
-        showRasterBackup
-        showAsciiStrip
-        className="h-28 w-full sm:h-32"
-      />
-
       {/* Countdown row */}
       {nextHigh ? (
         <div className="flex items-start gap-3.5">

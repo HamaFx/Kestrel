@@ -21,10 +21,10 @@ import { KestrelBrand } from '@/components/brand/kestrel-brand';
 export function LandingFooter() {
   return (
     <footer className="relative overflow-hidden border-t border-white/10 bg-[#0a0a0a] pt-20 pb-12">
-      {/* ASCII Skyline Ambient Artwork */}
+      {/* ASCII Skyline Ambient Artwork (white source inverted + screen-blended) */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-72 bg-bottom bg-repeat-x opacity-15 select-none"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-64 bg-bottom bg-repeat-x opacity-20 mix-blend-screen invert [mask-image:linear-gradient(to_top,black_10%,transparent_85%)] select-none"
         style={{ backgroundImage: 'url(/landing/ascii-art.webp)', backgroundSize: 'contain' }}
       />
 

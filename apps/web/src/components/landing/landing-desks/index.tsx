@@ -22,6 +22,8 @@
 // composes the 2-pane milled instrument frame (selector rail + active console).
 import { useEffect, useRef, useState } from 'react';
 
+import { BlueprintPlate } from '@/components/brand/blueprint-plates';
+
 import { DeskConsole } from './desk-console';
 import { DeskTabs } from './desk-tabs';
 import { CYCLE_DURATION_MS, DESKS } from './desks';
@@ -61,6 +63,19 @@ export function LandingDesks() {
       onMouseLeave={() => setIsPaused(false)}
       className="relative overflow-hidden border-t border-white/[0.06] bg-[#101112] py-16 sm:py-20 lg:py-24"
     >
+      {/* Ambient 4-Strategist Council engraving framing the top-right */}
+      <div
+        aria-hidden="true"
+        className="desks-backdrop-mask pointer-events-none absolute top-4 right-0 z-0 h-[240px] w-[70%] opacity-15 mix-blend-screen select-none sm:top-6 sm:h-[320px] sm:w-[58%] lg:top-6 lg:right-4 lg:h-[420px] lg:w-[40%] lg:opacity-20"
+      >
+        <BlueprintPlate
+          id="sentinel"
+          showRasterBackup
+          variant="watermark"
+          className="h-full w-full"
+        />
+      </div>
+
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="mb-10 flex flex-col gap-4 sm:mb-12 md:flex-row md:items-end md:justify-between">
@@ -68,25 +83,24 @@ export function LandingDesks() {
             <div className="border-border/60 inline-flex items-center gap-2 rounded-full border bg-white/[0.03] px-3 py-1 font-mono text-xs">
               <span className="bg-brand size-2 rounded-full" />
               <span className="text-brand font-semibold tracking-wider uppercase">
-                Autonomous Syndicate
+                Four AI Minds · One Clear Verdict
               </span>
             </div>
 
             <h2 className="font-display text-fg text-3xl font-normal tracking-[-0.03em] sm:text-4xl lg:text-5xl">
-              THE 4 SPECIALIST DESKS{' '}
-              <span className="font-redaction-35 text-brand italic">Deliberating In Sync</span>
+              FOUR SPECIALISTS{' '}
+              <span className="font-redaction-35 text-brand italic">In Your Corner</span>
             </h2>
             <p className="text-fg-muted font-sans text-sm leading-relaxed sm:text-base">
-              Unlike single-prompt trading bots that make emotional decisions, Kestrel operates as
-              an institutional multi-desk trading committee. Each specialist evaluates markets from
-              an independent mathematical lens.
+              Why trust a single AI prompt that guesses blindly? Kestrel puts four specialized
+              analysts on every setup—checking trend, breaking news, 1% risk rules, and whale
+              positioning at the same time.
             </p>
           </div>
 
-          {/* Syndicate Synchronization Telemetry Badge */}
           <div className="text-fg-subtle hidden items-center gap-2.5 rounded-lg border border-white/10 bg-white/[0.02] px-3.5 py-2 font-mono text-xs lg:flex">
             <span className="bg-bull size-2 rounded-full" />
-            <span>4/4 DESKS SYNCHRONIZED</span>
+            <span>WORKING IN PARALLEL</span>
           </div>
         </div>
 
