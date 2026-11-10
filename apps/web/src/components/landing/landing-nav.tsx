@@ -68,25 +68,25 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
               href="#desks"
               className="text-fg-muted hover:text-fg font-sans text-sm font-medium transition-colors"
             >
-              Specialist Desks
+              4 Desks
             </a>
             <a
               href="#simulator"
               className="text-brand hover:text-brand font-sans text-sm font-medium transition-colors"
             >
-              Live Simulator
+              The Edge
             </a>
             <a
               href="#stepper"
               className="text-fg-muted hover:text-fg font-sans text-sm font-medium transition-colors"
             >
-              How It Works
+              Trading Arsenal
             </a>
             <a
               href="#architecture"
               className="text-fg-muted hover:text-fg font-sans text-sm font-medium transition-colors"
             >
-              System Stack
+              Markets &amp; BYOK
             </a>
             <a
               href="#faq"
@@ -159,28 +159,28 @@ export function LandingNav({ isAuthenticated = false }: LandingNavProps) {
               onClick={() => setMobileMenuOpen(false)}
               className="text-fg-muted hover:text-fg transition-colors"
             >
-              Specialist Desks
+              4 Desks
             </a>
             <a
               href="#simulator"
               onClick={() => setMobileMenuOpen(false)}
               className="text-brand font-medium transition-colors"
             >
-              Live Simulator
+              The Edge
             </a>
             <a
               href="#stepper"
               onClick={() => setMobileMenuOpen(false)}
               className="text-fg-muted hover:text-fg transition-colors"
             >
-              How It Works
+              Trading Arsenal
             </a>
             <a
               href="#architecture"
               onClick={() => setMobileMenuOpen(false)}
               className="text-fg-muted hover:text-fg transition-colors"
             >
-              System Stack
+              Markets &amp; BYOK
             </a>
             <a
               href="#faq"

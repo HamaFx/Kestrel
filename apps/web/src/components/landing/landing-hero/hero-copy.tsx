@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Left 7-column area of the landing hero: asset badge, monumental headline,
-// concise value-prop copy, calls to action and unboxed hardware specs.
+// high-conviction trader copy, calls to action and unboxed hardware specs.
 import Image from 'next/image';
 
 import { TacticalFlameButton } from '@/components/landing/landing-button';
@@ -14,9 +14,9 @@ interface HeroCopyProps {
 }
 
 const HERO_SPECS = [
-  { value: '4 Desks', label: 'Parallel Consensus' },
-  { value: '≤ 1.0%', label: 'Hard Risk Cap', highlight: true },
-  { value: 'AES-256', label: 'BYOK Key Vault' },
+  { value: '4 Desks', label: 'Parallel War Room' },
+  { value: '1 : 3+ R:R', label: 'Asymmetric Floor', highlight: true },
+  { value: '≤ 1.0%', label: 'Hard Risk Cap' },
 ] as const;
 
 export function HeroCopy({ isAuthenticated }: HeroCopyProps) {
@@ -34,26 +34,27 @@ export function HeroCopy({ isAuthenticated }: HeroCopyProps) {
           priority
         />
         <span className="text-brand font-mono text-[11px] font-semibold tracking-[0.14em] uppercase">
-          XAU/USD · 11 FX · 6 CRYPTO
+          XAU/USD · 11 FOREX · 6 CRYPTO
         </span>
       </div>
 
       {/* Monumental Headline */}
       <h1 className="font-display text-4xl leading-[1.05] font-normal tracking-[-0.03em] sm:text-6xl lg:text-[70px]">
         <span className="bg-gradient-to-b from-white via-white/95 to-white/60 bg-clip-text text-transparent">
-          FOUR AI DESKS.
+          YOUR INSTITUTIONAL
         </span>
         <br />
-        <span className="font-redaction-35 text-brand tracking-normal italic">One Verified</span>{' '}
+        <span className="font-redaction-35 text-brand tracking-normal italic">AI War Room</span>{' '}
         <span className="bg-gradient-to-b from-white via-white/95 to-white/60 bg-clip-text text-transparent">
-          TRADE PLAN.
+          FOR GOLD &amp; FX.
         </span>
       </h1>
 
-      {/* Distilled Subtitle */}
+      {/* High-Conviction Trader Subtitle */}
       <p className="text-fg-muted max-w-xl font-sans text-base leading-relaxed sm:text-lg">
-        Technical structure, central bank yields, 1% risk guardrails, and CFTC positioning—evaluated
-        in parallel before you act.
+        Stop trading solo against institutions. Four specialist AI desks cross-examine price
+        structure, Treasury yields, CFTC positioning, and a hard 1% risk cap before you pull the
+        trigger.
       </p>
 
       {/* Primary & Secondary CTAs */}
@@ -62,10 +63,10 @@ export function HeroCopy({ isAuthenticated }: HeroCopyProps) {
           href={isAuthenticated ? '/dashboard' : '/register'}
           label={isAuthenticated ? 'Open Dashboard' : 'Get Started'}
         />
-        <a href="#simulator">
+        <a href="#stepper">
           <Button variant="secondary" size="lg" className="gap-2 px-5 text-sm font-medium">
             <span aria-hidden="true" className="bg-brand size-2 rounded-full" />
-            Try Live Simulator
+            Explore the Arsenal
           </Button>
         </a>
       </div>
