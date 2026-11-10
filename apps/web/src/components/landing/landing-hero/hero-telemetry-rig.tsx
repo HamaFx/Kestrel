@@ -2,12 +2,13 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Right 5-column instrument card of the landing hero: clean price header,
-// minimalist optical SVG price-and-horizon curve, 4 single-line desk reads,
-// and a hairline-divided Entry / Stop / Target strip.
+// Right 5-column instrument card of the landing hero: live symbol switcher,
+// interactive 3-Layer Sovereign Plate viewport (blending chiaroscuro classical
+// engravings, 3px micro-pixel halftone screen, and kinetic CAD SVG reticles),
+// 4 single-line desk reads, and a hairline-divided Entry / Stop / Target strip.
 import { m } from 'motion/react';
 
-import { BlueprintPlate } from '@/components/brand/blueprint-plates';
+import { BlueprintPlate, type BlueprintPlateId } from '@/components/brand/blueprint-plates';
 import { cn } from '@/lib/formatters/cn';
 
 import { SYMBOLS, type DeskBias } from './telemetry';
@@ -29,9 +30,12 @@ const BIAS_TEXT: Record<DeskBias, string> = {
   GUARD: 'text-warn',
 };
 
+const SYMBOL_PLATES: readonly BlueprintPlateId[] = ['horus', 'obelisk', 'arbiter'];
+
 export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTelemetryRigProps) {
   const active = SYMBOLS[activeSymbolIndex] ?? SYMBOLS[0]!;
   const isLong = active.direction.startsWith('BUY');
+  const activePlateId = SYMBOL_PLATES[activeSymbolIndex % SYMBOL_PLATES.length] ?? 'horus';
 
   const desks = [
     { label: 'Macro & Yields', signal: active.macroSignal, bias: active.macroBias },
@@ -40,28 +44,19 @@ export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTele
     { label: 'COT Positioning', signal: active.sentimentSignal, bias: active.sentimentBias },
   ] as const;
 
-  const curvePath = isLong
-    ? 'M 0 102 C 48 106, 86 90, 132 94 C 178 98, 214 70, 264 68 C 306 66, 344 38, 400 26'
-    : 'M 0 34 C 48 30, 86 46, 132 42 C 178 38, 214 66, 264 68 C 306 70, 344 98, 400 110';
-
-  const areaPath = isLong
-    ? `${curvePath} L 400 136 L 0 136 Z`
-    : `${curvePath} L 400 136 L 0 136 Z`;
-
-  const targetY = isLong ? 26 : 110;
-  const stopY = isLong ? 112 : 24;
-
   return (
     <div className="relative lg:col-span-5">
-      <div className="surface-panel relative z-10 overflow-hidden rounded-2xl border border-white/12 bg-[#141517]/95 p-6 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.1)]">
-        <BlueprintPlate
-          id="horus"
-          variant="watermark"
-          className="pointer-events-none absolute -top-8 -right-8 z-0 size-56 opacity-25"
-        />
+      {/* Ambient Outer CAD & Chiaroscuro Halo */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -inset-6 z-0 opacity-60 sm:-inset-8"
+      >
+        <BlueprintPlate id={activePlateId} variant="backdrop" className="h-full w-full" />
+      </div>
 
+      <div className="surface-panel relative z-10 overflow-hidden rounded-2xl border border-white/12 bg-[#141517]/95 p-5 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.1)] sm:p-6">
         {/* Top Bar: Live Status & Gliding Symbol Switcher */}
-        <div className="relative z-10 flex items-center justify-between gap-2 border-b border-white/[0.08] pb-4">
+        <div className="relative z-10 flex items-center justify-between gap-2 border-b border-white/[0.08] pb-3.5">
           <div className="flex items-center gap-2">
             <span className="bg-bull size-2 rounded-full shadow-[0_0_8px_#3f9e3d]" />
             <span className="text-fg-subtle font-mono text-[11px] font-semibold tracking-wider uppercase">
@@ -97,10 +92,10 @@ export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTele
         </div>
 
         {/* Price & Conviction Readout */}
-        <div className="relative z-10 mt-5 flex items-baseline justify-between gap-3">
+        <div className="relative z-10 mt-4 flex items-baseline justify-between gap-3">
           <div>
             <div className="text-fg-subtle font-sans text-xs">{active.name}</div>
-            <div className="mt-1 flex items-baseline gap-2.5">
+            <div className="mt-0.5 flex items-baseline gap-2.5">
               <span className="text-fg font-mono text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
                 {active.price}
               </span>
@@ -132,80 +127,22 @@ export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTele
           </div>
         </div>
 
-        {/* Clean Optical SVG Price & Horizon Curve */}
-        <div className="relative z-10 my-5 overflow-hidden rounded-xl border border-white/[0.07] bg-[#0a0b0d]">
-          <svg
-            viewBox="0 0 400 136"
-            className=" block h-32 w-full select-none"
-            role="img"
-            aria-label={`${active.symbol} price trajectory and setup horizons`}
-          >
-            <defs>
-              <linearGradient id="hero-curve-wash" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="0%"
-                  stopColor={isLong ? 'rgba(63,158,61,0.22)' : 'rgba(240,62,62,0.22)'}
-                />
-                <stop offset="100%" stopColor="rgba(10,11,13,0)" />
-              </linearGradient>
-            </defs>
-
-            {/* Target, Entry, and Stop Hairlines */}
-            <line
-              x1="0"
-              y1={targetY}
-              x2="400"
-              y2={targetY}
-              stroke="rgba(63,158,61,0.4)"
-              strokeDasharray="3 4"
-            />
-            <line
-              x1="0"
-              y1="68"
-              x2="400"
-              y2="68"
-              stroke="rgba(255,255,255,0.18)"
-              strokeDasharray="2 4"
-            />
-            <line
-              x1="0"
-              y1={stopY}
-              x2="400"
-              y2={stopY}
-              stroke="rgba(240,62,62,0.4)"
-              strokeDasharray="3 4"
-            />
-
-            {/* Area Fill & Smooth Price Curve */}
-            <path d={areaPath} fill="url(#hero-curve-wash)" />
-            <m.path
-              key={active.symbol}
-              d={curvePath}
-              fill="none"
-              stroke={isLong ? '#3f9e3d' : '#f03e3e'}
-              strokeWidth="2"
-              initial={{ pathLength: 0, opacity: 0.4 }}
-              animate={{ pathLength: 1, opacity: 1 }}
-              transition={{ duration: 0.65, ease: 'easeOut' }}
-            />
-
-            {/* Entry Anchor & Active Pulse Node */}
-            <circle cx="264" cy="68" r="3.5" fill="#f3f2ee" stroke="#0a0b0d" strokeWidth="1.5" />
-            <circle
-              cx="400"
-              cy={targetY}
-              r="4"
-              fill={isLong ? '#3f9e3d' : '#f03e3e'}
-            />
-          </svg>
+        {/* Interactive 3-Layer Sovereign Plate Viewport (Chiaroscuro + Kinetic CAD SVG + Telemetry) */}
+        <div className="relative z-10 my-4">
+          <BlueprintPlate
+            id={activePlateId}
+            variant="showcase"
+            allowLayerToggle
+            className="h-[228px] w-full sm:h-[242px]"
+          />
         </div>
 
-        {/* 4 Single-Line Specialist Desk Reads (Unboxed) */}
+        {/* 4 Single-Line Specialist Desk Reads */}
         <div className="relative z-10 divide-y divide-white/[0.06] border-t border-white/[0.08]">
           {desks.map((desk) => (
             <div
               key={desk.label}
-              className="flex items-center justify-between gap-4 py-2.5 text-xs"
+              className="flex items-center justify-between gap-4 py-2 text-xs"
             >
               <div className="flex min-w-0 items-center gap-2.5">
                 <span className={cn('size-1.5 shrink-0 rounded-full', BIAS_DOT[desk.bias])} />
@@ -227,7 +164,7 @@ export function HeroTelemetryRig({ activeSymbolIndex, onSelectSymbol }: HeroTele
         </div>
 
         {/* Hairline-Divided Execution Levels Footer */}
-        <div className="relative z-10 mt-3 grid grid-cols-3 divide-x divide-white/[0.08] border-t border-white/[0.08] pt-4 font-mono text-xs tabular-nums">
+        <div className="relative z-10 mt-2.5 grid grid-cols-3 divide-x divide-white/[0.08] border-t border-white/[0.08] pt-3.5 font-mono text-xs tabular-nums">
           <div className="pr-3">
             <span className="text-fg-subtle block text-[10px] uppercase">Entry</span>
             <span className="text-fg mt-0.5 block font-bold">{active.entry}</span>

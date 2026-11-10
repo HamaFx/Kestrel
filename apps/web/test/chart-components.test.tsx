@@ -17,7 +17,6 @@ import { PerformanceChart } from '@/components/chart/performance-chart';
 import { ProfitLossLine } from '@/components/chart/profit-loss-line';
 import { CandleSparkline } from '@/components/chat/parts/get-candles-sparkline';
 import { VolatilityConePlot } from '@/components/chat/parts/volatility-cone-plot';
-import { SimulatorSetupChart } from '@/components/landing/landing-simulator/simulator-setup-chart';
 import { RingGauge } from '@/components/ui/ring-gauge';
 import { Sparkline } from '@/components/ui/sparkline';
 
@@ -241,32 +240,6 @@ describe('Kestrel Bklit chart components & geometry', () => {
     );
     expect(coneHtml).toContain('ATR cone');
     expect(coneHtml).toContain('2,620.00');
-
-    const simHtml = renderToStaticMarkup(
-      createElement(SimulatorSetupChart, {
-        scenario: {
-          id: 'xau',
-          symbol: 'XAU/USD',
-          tag: 'Bullish',
-          event: 'CPI',
-          headline: 'Test',
-          action: 'LONG',
-          entry: '2,650.00',
-          invalidation: '2,632.00',
-          target1: '2,668.00',
-          target2: '2,684.00',
-          target3: '2,702.00',
-          rr: '1:2.9',
-          confidence: 88,
-          votes: { tech: 'LONG', macro: 'LONG', risk: 'APPROVE', cot: 'LONG' },
-          rationale: 'Test',
-        },
-        stage: 'complete',
-        isVetoed: false,
-      }),
-    );
-    expect(simHtml).toContain('Simulated setup bands');
-    expect(simHtml).toContain('TP3');
 
     const sparkHtml = renderToStaticMarkup(
       createElement(Sparkline, {

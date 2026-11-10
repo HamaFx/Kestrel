@@ -157,7 +157,11 @@ export function LandingArchitecture() {
                 exact tokens you run.
               </p>
 
-              <div className="mt-6 space-y-3 border-t border-white/[0.08] pt-6">
+              <div className="my-5">
+                <BlueprintPlate id="titan" variant="compact" className="h-[168px] w-full" />
+              </div>
+
+              <div className="space-y-3 border-t border-white/[0.08] pt-5">
                 {BYOK_ADVANTAGES.map((item) => (
                   <div key={item} className="flex items-start gap-2.5 text-sm">
                     <IconCheck className="text-bull mt-0.5 size-4 shrink-0" />
