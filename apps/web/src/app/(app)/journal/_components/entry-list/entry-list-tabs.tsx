@@ -5,6 +5,7 @@
 // Journal list controls: mode tabs, text search, and the advanced-filter toggle.
 import { IconAdjustmentsHorizontal, IconSearch } from '@tabler/icons-react';
 
+import { Input, InputAddon, InputGroup } from '@/components/ui/input';
 import { cn } from '@/lib/formatters/cn';
 
 import type { EntryTab } from './use-entry-filters';
@@ -81,17 +82,19 @@ export function EntryListTabs({
 
       {/* IconFilter Trigger & IconSearch Bar */}
       <div className="flex items-center gap-2">
-        <div className="relative flex-1 sm:w-64">
-          <IconSearch className="text-fg-muted absolute top-3 left-3.5 size-3.5" />
-          <input
+        <InputGroup className="h-9 flex-1 rounded-xl sm:w-64">
+          <InputAddon>
+            <IconSearch className="size-3.5" aria-hidden="true" />
+          </InputAddon>
+          <Input
             type="text"
             placeholder="Search notes, tags, symbol..."
             aria-label="Search trades"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="surface-well text-fg w-full rounded-xl border border-white/10 py-2 pr-4 pl-9 text-xs shadow-inner transition-all focus:border-white/20 focus:outline-none"
+            className="text-xs sm:text-xs"
           />
-        </div>
+        </InputGroup>
         <button
           onClick={onToggleFilters}
           aria-label="Toggle advanced filters"

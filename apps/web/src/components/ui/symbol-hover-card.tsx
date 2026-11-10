@@ -61,10 +61,10 @@ export function SymbolHoverCard({ symbol, children }: { symbol: Symbol; children
       Math.max(8, rect.left + rect.width / 2 - CARD_WIDTH / 2),
       Math.max(8, window.innerWidth - CARD_WIDTH - 8),
     );
-    const top = Math.min(
-      Math.max(8, rect.bottom + 8),
-      Math.max(8, window.innerHeight - CARD_HEIGHT - 8),
-    );
+    const preferAbove =
+      rect.bottom + CARD_HEIGHT + 8 > window.innerHeight && rect.top - CARD_HEIGHT - 8 >= 8;
+    const rawTop = preferAbove ? rect.top - CARD_HEIGHT - 8 : rect.bottom + 8;
+    const top = Math.min(Math.max(8, rawTop), Math.max(8, window.innerHeight - CARD_HEIGHT - 8));
     setCoords({ left, top });
     setOpen(true);
   };
@@ -85,6 +85,8 @@ export function SymbolHoverCard({ symbol, children }: { symbol: Symbol; children
       <span
         ref={triggerRef}
         className="inline-flex"
+        onFocus={openCard}
+        onBlur={close}
         onPointerEnter={(event) => {
           if (event.pointerType !== 'touch') openCard();
         }}

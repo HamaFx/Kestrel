@@ -21,6 +21,7 @@ import {
   IconAlertCircle,
   IconBuildingBank,
   IconChartCandle,
+  IconCheck,
   IconChevronDown,
   IconCpu,
   IconPlayerPlay,
@@ -243,13 +244,7 @@ export function CompactTelemetryRow({
               />
               {celebrate && (
                 <span className="text-success animate-in fade-in zoom-in-75 pointer-events-none absolute inset-0 grid place-items-center duration-200">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    className="size-3.5 stroke-current stroke-[2.5]"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
+                  <IconCheck className="size-3.5" stroke={2.5} />
                 </span>
               )}
             </>

@@ -77,6 +77,8 @@ export const radii = {
   xl: '16px',
   '2xl': '20px',
   pill: '9999px',
+  'pill-concentric': '14px',
+  'pill-outer': '20px',
 } as const;
 
 export const shadows = {
@@ -84,8 +86,8 @@ export const shadows = {
   md: '0 2px 8px -2px rgba(0, 0, 0, 0.7)',
   lg: '0 4px 16px -4px rgba(0, 0, 0, 0.8)',
   xl: '0 8px 32px -8px rgba(0, 0, 0, 0.9)',
-  well: '0 1px 1px rgba(255, 255, 255, 0.06), inset 0 2px 3px -1px rgba(0, 0, 0, 0.65)',
-  keycap: '2px 2.5px 0 -0.5px rgba(0, 0, 0, 0.6), 1px 1px 0 rgba(255, 255, 255, 0.18)',
+  well: '0 1px 0 rgba(255, 255, 255, 0.06), inset 0 2px 4px -1px rgba(0, 0, 0, 0.72)',
+  keycap: '2px 2.5px 0 -0.5px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.16)',
 } as const;
 
 export const motion = {

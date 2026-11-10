@@ -5,7 +5,7 @@
 // Search box and page-size selector for the admin user table.
 import { IconSearch } from '@tabler/icons-react';
 
-import { Input } from '@/components/ui/input';
+import { Input, InputAddon, InputGroup } from '@/components/ui/input';
 
 import { PAGE_SIZES } from './user-table-format';
 
@@ -19,16 +19,17 @@ interface UserFiltersProps {
 export function UserFilters({ q, onQueryChange, pageSize, onPageSizeChange }: UserFiltersProps) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="relative max-w-sm flex-1">
-        <IconSearch className="text-fg-subtle absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+      <InputGroup className="max-w-sm flex-1">
+        <InputAddon>
+          <IconSearch className="size-4" aria-hidden="true" />
+        </InputAddon>
         <Input
           type="text"
           placeholder="Search by email or name"
           value={q}
           onChange={(e) => onQueryChange(e.target.value)}
-          className="pl-10"
         />
-      </div>
+      </InputGroup>
       <div className="flex items-center gap-2">
         <label htmlFor="page-size" className="text-fg-subtle text-sm">
           Show

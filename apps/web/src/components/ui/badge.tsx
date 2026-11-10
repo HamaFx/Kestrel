@@ -31,10 +31,11 @@ import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/formatters/cn';
 
-export type BadgeTone = 'success' | 'danger' | 'warn' | 'brand' | 'neutral';
+export type BadgeTone = 'success' | 'danger' | 'warn' | 'brand' | 'info' | 'neutral';
 
 interface BadgeProps {
   tone?: BadgeTone;
+  dot?: boolean;
   children: ReactNode;
   className?: string;
 }
@@ -44,18 +45,32 @@ const toneClasses: Record<BadgeTone, string> = {
   danger: 'bg-danger/10 text-danger',
   warn: 'bg-warn/10 text-warn',
   brand: 'bg-brand/10 text-brand',
+  info: 'bg-info/10 text-info',
   neutral: 'bg-bg-elev-2 text-fg-muted',
 };
 
-export function Badge({ tone = 'neutral', children, className }: BadgeProps) {
+const dotClasses: Record<BadgeTone, string> = {
+  success: 'bg-success',
+  danger: 'bg-danger',
+  warn: 'bg-warn',
+  brand: 'bg-brand',
+  info: 'bg-info',
+  neutral: 'bg-fg-muted',
+};
+
+export function Badge({ tone = 'neutral', dot = false, children, className }: BadgeProps) {
   return (
     <span
+      data-slot="badge"
       className={cn(
-        'inline-flex items-center rounded-md px-2 py-0.5 font-mono text-[11px] font-bold tracking-wider uppercase',
+        'inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 font-mono text-[11px] font-bold tracking-wider uppercase',
         toneClasses[tone],
         className,
       )}
     >
+      {dot ? (
+        <span aria-hidden="true" className={cn('size-1.5 shrink-0 rounded-full', dotClasses[tone])} />
+      ) : null}
       {children}
     </span>
   );

@@ -4,7 +4,7 @@
 
 // Entry/stop/target/size price inputs with inline field validation.
 import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
+import { Input, InputAddon, InputGroup } from '@/components/ui/input';
 
 interface PriceFieldsProps {
   entry: string;
@@ -68,12 +68,15 @@ export function PriceFields({
         />
       </Field>
       <Field label="Size in lots (optional)" htmlFor="size">
-        <Input
-          id="size"
-          value={size}
-          onChange={(e) => onSizeChange(e.target.value)}
-          inputMode="decimal"
-        />
+        <InputGroup>
+          <Input
+            id="size"
+            value={size}
+            onChange={(e) => onSizeChange(e.target.value)}
+            inputMode="decimal"
+          />
+          <InputAddon className="font-mono text-[10px] tracking-wider uppercase">lots</InputAddon>
+        </InputGroup>
       </Field>
     </div>
   );

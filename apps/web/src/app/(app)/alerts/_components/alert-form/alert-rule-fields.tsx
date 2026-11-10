@@ -12,6 +12,7 @@ import {
   type Timeframe,
 } from '@kestrel/shared';
 
+import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
 import { Select } from '@/components/ui/select';
@@ -55,17 +56,19 @@ export function AlertRuleFields({ controller }: { controller: AlertFormControlle
       />
 
       <div className="flex flex-col gap-2">
-        <Select
-          label="Symbol"
-          value={symbol}
-          onChange={(e) => setSymbol(e.target.value as Symbol)}
-        >
-          {SYMBOLS.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </Select>
+        <Field label="Symbol" htmlFor="alert-symbol">
+          <Select
+            id="alert-symbol"
+            value={symbol}
+            onChange={(e) => setSymbol(e.target.value as Symbol)}
+          >
+            {SYMBOLS.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </Select>
+        </Field>
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-fg-subtle font-mono text-[10px] uppercase">Quick pick:</span>
           {DEFAULT_WATCHLIST_SYMBOLS.map((s) => {
@@ -102,13 +105,11 @@ export function AlertRuleFields({ controller }: { controller: AlertFormControlle
       ) : null}
 
       {type === 'indicatorCross' ? (
-        <div className="flex flex-col gap-2">
-          <label
-            htmlFor="alert-indicator"
-            className="text-fg-subtle text-body-sm tracking-wide uppercase"
-          >
-            Select Indicator
-          </label>
+        <Field
+          label="Select Indicator"
+          htmlFor="alert-indicator"
+          error={fieldErrors.indicator ?? null}
+        >
           <div className="flex flex-wrap gap-1.5">
             {INDICATOR_PRESETS.map((preset) => (
               <button
@@ -132,14 +133,8 @@ export function AlertRuleFields({ controller }: { controller: AlertFormControlle
             onChange={(e) => setIndicator(e.target.value)}
             onBlur={() => touch('indicator')}
             placeholder="Custom indicator (e.g. rsi:14, ema:50)"
-            {...(fieldErrors.indicator ? { 'aria-describedby': 'alert-indicator-error' } : {})}
           />
-          {fieldErrors.indicator ? (
-            <p id="alert-indicator-error" role="alert" className="text-danger text-xs">
-              {fieldErrors.indicator}
-            </p>
-          ) : null}
-        </div>
+        </Field>
       ) : null}
 
       <Segmented
@@ -155,13 +150,11 @@ export function AlertRuleFields({ controller }: { controller: AlertFormControlle
         ]}
       />
 
-      <div className="flex flex-col gap-2">
-        <label
-          className="text-fg-subtle text-body-sm tracking-wide uppercase"
-          htmlFor="alert-level"
-        >
-          Trigger Value / Price
-        </label>
+      <Field
+        label="Trigger Value / Price"
+        htmlFor="alert-level"
+        error={fieldErrors.level ?? null}
+      >
         <Input
           id="alert-level"
           value={level}
@@ -175,14 +168,8 @@ export function AlertRuleFields({ controller }: { controller: AlertFormControlle
                 ? 'e.g. 2850.00'
                 : 'e.g. 1.0850'
           }
-          {...(fieldErrors.level ? { 'aria-describedby': 'alert-level-error' } : {})}
         />
-        {fieldErrors.level ? (
-          <p id="alert-level-error" role="alert" className="text-danger text-xs">
-            {fieldErrors.level}
-          </p>
-        ) : null}
-      </div>
+      </Field>
     </>
   );
 }

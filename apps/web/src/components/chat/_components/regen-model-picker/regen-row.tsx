@@ -3,10 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Roving-keyboard-navigable model row for the regenerate & composer model picker.
-// Blended with Wensity's AI Model Selector gliding layoutId highlight and compact
-// hardware capability/tier telemetry pills.
+// Blended with PanelUI's ModelPicker capability telemetry pills and gliding highlight.
 import type { CatalogModel } from '@kestrel/shared';
-import { IconCircleCheck, IconEye } from '@tabler/icons-react';
+import { IconCircleCheck, IconEye, IconTool } from '@tabler/icons-react';
 import { m } from 'motion/react';
 
 import { cn } from '@/lib/formatters/cn';
@@ -46,6 +45,7 @@ export function RegenRow({
   highlightLayoutId,
   tier,
   hasVision = false,
+  hasTools = false,
   contextTokens,
   onHover,
   onClick,
@@ -57,6 +57,7 @@ export function RegenRow({
   highlightLayoutId?: string;
   tier?: CatalogModel['tier'];
   hasVision?: boolean;
+  hasTools?: boolean;
   contextTokens?: number;
   onHover?: () => void;
   onClick: () => void;
@@ -100,6 +101,14 @@ export function RegenRow({
       </span>
 
       <span className="relative z-10 flex shrink-0 items-center gap-1.5">
+        {hasTools ? (
+          <span
+            title="Supports tool calling"
+            className="text-fg-subtle inline-flex items-center"
+          >
+            <IconTool size={12} aria-hidden="true" />
+          </span>
+        ) : null}
         {hasVision ? (
           <span
             title="Supports chart & image vision"

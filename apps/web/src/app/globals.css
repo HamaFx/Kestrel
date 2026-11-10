@@ -230,7 +230,9 @@
 }
 
 /* ── Selected tabs in solid segmented controls get a subtle brand border. ── */
-[data-segmented='solid'] [aria-pressed='true'] {
+[data-segmented='solid'] [aria-pressed='true'],
+[data-segmented='solid'] [aria-selected='true'],
+[data-segmented='solid'] [aria-checked='true'] {
   border-color: rgba(255, 54, 22, 0.22);
 }
 

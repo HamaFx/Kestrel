@@ -18,6 +18,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 import { IconChevronDown, IconCpu } from '@tabler/icons-react';
+import { useEffect } from 'react';
 
 import { usePopupMenu } from '@/hooks/use-popup-menu';
 import { cn } from '@/lib/formatters/cn';
@@ -46,6 +47,18 @@ export function ChatModelSelector({
   const label = modelLabelFromSelection(activeModelId);
   const provider = providerLabelFromSelection(activeModelId);
 
+  useEffect(() => {
+    if (disabled) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        menu.toggle();
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [disabled, menu]);
+
   return (
     <div className="relative shrink-0" ref={menu.menuRef}>
       <button
@@ -54,10 +67,14 @@ export function ChatModelSelector({
         disabled={disabled}
         onClick={menu.toggle}
         aria-label="Chat model"
-        title={activeModelId ? `Chat model: ${label}` : 'Chat model: use configured default'}
+        title={
+          activeModelId
+            ? `Chat model: ${label} (Alt+M)`
+            : 'Chat model: use configured default (Alt+M)'
+        }
         {...menu.triggerProps}
         className={cn(
-          'surface-chip tactile-press text-fg-muted hover:text-fg hover:border-brand/40 inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 font-mono text-[11px] font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50',
+          'surface-chip tactile-press text-fg-muted hover:text-fg hover:border-brand/40 focus-visible:ring-brand inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 font-mono text-[11px] font-medium transition-all focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50',
           menu.open && 'border-brand/50 text-fg',
         )}
       >
@@ -86,9 +103,14 @@ export function ChatModelSelector({
             'max-w-[calc(100vw-1.5rem)]',
           )}
         >
-          <div className="border-border/40 text-fg-subtle mb-1 flex items-center justify-between border-b px-2 pb-1.5 font-mono text-[10px] tracking-wider uppercase">
+          <div className="border-border/40 text-fg-subtle mb-1.5 flex items-center justify-between border-b px-2 pb-1.5 font-mono text-[10px] tracking-wider uppercase">
             <span>Intelligence Engine</span>
-            <span className="text-brand">Next Turn</span>
+            <div className="flex items-center gap-1.5">
+              <kbd className="surface-chip text-fg-subtle rounded px-1 py-0.5 font-mono text-[9px]">
+                Alt+M
+              </kbd>
+              <span className="text-brand">Next Turn</span>
+            </div>
           </div>
           <RegenModelPicker
             popoverId={menu.menuId}

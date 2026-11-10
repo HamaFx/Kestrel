@@ -9,8 +9,17 @@ import type { JournalEntry } from '@kestrel/shared';
 import { priceDecimals } from '@kestrel/shared';
 import { useMemo, useState } from 'react';
 
+import {
+  Frame,
+  FrameDescription,
+  FrameFooter,
+  FrameHeader,
+  FramePanel,
+  FrameTitle,
+} from '@/components/ui/frame';
+import { Kpi, KpiGroup, KpiLabel, KpiTrend, KpiValue } from '@/components/ui/kpi';
+import { Slider } from '@/components/ui/slider';
 import type { TradeSetupReplayDTO } from '@/lib/services/journal';
-import { cn } from '@/lib/formatters/cn';
 
 interface WhatIfScrubberProps {
   entry: JournalEntry;
@@ -126,93 +135,78 @@ export function WhatIfScrubber({ entry, replay }: WhatIfScrubberProps) {
   const setTargetSafe = (value: number) => setWhatIfTarget(clamp(value, targetMin, targetMax));
 
   return (
-    <div className="surface-well border-white/[0.07] flex flex-col gap-3 rounded-xl border bg-[#090a0b] p-3.5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-fg-muted font-mono text-[10px] font-semibold tracking-[0.14em] uppercase">
-          What-if replay lab
-        </span>
-        <span className="text-fg-subtle font-mono text-[9px] tabular-nums">
+    <Frame>
+      <FrameHeader>
+        <FrameTitle>What-if replay lab</FrameTitle>
+        <FrameDescription>
           {replay?.candles.length ?? 0} candles · {replay?.timeframe.toUpperCase() ?? '—'}
-        </span>
-      </div>
+        </FrameDescription>
+      </FrameHeader>
 
-      <div className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-white/[0.07] bg-white/[0.06]">
-        <div className="bg-[#0d0e10] px-2 py-1.5">
-          <div className="text-fg-subtle font-mono text-[8px] tracking-wider uppercase">
-            Outcome
-          </div>
-          <div
-            className={cn(
-              'font-mono text-[11px] font-bold',
-              result?.outcome === 'TARGET HIT'
-                ? 'text-bull'
-                : result?.outcome === 'STOPPED OUT'
-                  ? 'text-bear'
-                  : 'text-fg',
-            )}
-          >
-            {result?.outcome ?? '—'}
-          </div>
-        </div>
-        <div className="bg-[#0d0e10] px-2 py-1.5">
-          <div className="text-fg-subtle font-mono text-[8px] tracking-wider uppercase">
-            Simulated R
-          </div>
-          <div
-            className={cn(
-              'font-mono text-[11px] font-bold tabular-nums',
-              (result?.r ?? 0) >= 0 ? 'text-bull' : 'text-bear',
-            )}
-          >
-            {result ? `${result.r >= 0 ? '+' : ''}${result.r.toFixed(2)}R` : '—'}
-          </div>
-        </div>
-        <div className="bg-[#0d0e10] px-2 py-1.5">
-          <div className="text-fg-subtle font-mono text-[8px] tracking-wider uppercase">
-            vs actual
-          </div>
-          <div
-            className={cn(
-              'font-mono text-[11px] font-bold tabular-nums',
-              delta === null ? 'text-fg-subtle' : delta >= 0 ? 'text-bull' : 'text-bear',
-            )}
-          >
-            {delta === null ? '—' : `${delta >= 0 ? '+' : ''}${delta.toFixed(2)}R`}
-          </div>
-        </div>
-      </div>
+      <FramePanel variant="inset">
+        <KpiGroup cols={3}>
+          <Kpi className="px-2.5 py-2">
+            <KpiLabel>Outcome</KpiLabel>
+            <KpiValue
+              tone={
+                result?.outcome === 'TARGET HIT'
+                  ? 'bull'
+                  : result?.outcome === 'STOPPED OUT'
+                    ? 'bear'
+                    : 'fg'
+              }
+              className="text-xs sm:text-xs"
+            >
+              {result?.outcome ?? '—'}
+            </KpiValue>
+          </Kpi>
+          <Kpi className="px-2.5 py-2">
+            <KpiLabel>Simulated R</KpiLabel>
+            <KpiValue
+              tone={(result?.r ?? 0) >= 0 ? 'bull' : 'bear'}
+              className="text-xs sm:text-xs"
+            >
+              {result ? `${result.r >= 0 ? '+' : ''}${result.r.toFixed(2)}R` : '—'}
+            </KpiValue>
+          </Kpi>
+          <Kpi className="px-2.5 py-2">
+            <KpiLabel>vs actual</KpiLabel>
+            <KpiTrend change={delta} goodDirection="up" suffix="R" />
+          </Kpi>
+        </KpiGroup>
 
-      <ScrubberRow
-        label="Invalidation"
-        value={whatIfStop}
-        min={stopMin}
-        max={stopMax}
-        decimals={decimals}
-        tone="bear"
-        onChange={setStopSafe}
-        presets={stopPresets}
-        onPreset={setStopSafe}
-      />
+        <ScrubberRow
+          label="Invalidation"
+          value={whatIfStop}
+          min={stopMin}
+          max={stopMax}
+          decimals={decimals}
+          tone="bear"
+          onChange={setStopSafe}
+          presets={stopPresets}
+          onPreset={setStopSafe}
+        />
 
-      <ScrubberRow
-        label="Target"
-        value={whatIfTarget}
-        min={targetMin}
-        max={targetMax}
-        decimals={decimals}
-        tone="bull"
-        onChange={setTargetSafe}
-        presets={targetPresets}
-        onPreset={setTargetSafe}
-      />
+        <ScrubberRow
+          label="Target"
+          value={whatIfTarget}
+          min={targetMin}
+          max={targetMax}
+          decimals={decimals}
+          tone="bull"
+          onChange={setTargetSafe}
+          presets={targetPresets}
+          onPreset={setTargetSafe}
+        />
+      </FramePanel>
 
-      <div className="text-fg-subtle flex flex-wrap items-center justify-between gap-2 font-mono text-[9px] tabular-nums">
+      <FrameFooter>
         <span>
           Risk {riskDistance.toFixed(decimals)} pts · R:R {rr !== null ? `1:${rr.toFixed(2)}` : '—'}
         </span>
         <span className="text-fg-subtle/70">Conservative: stop checked before target per bar.</span>
-      </div>
-    </div>
+      </FrameFooter>
+    </Frame>
   );
 }
 
@@ -240,28 +234,16 @@ function ScrubberRow({
   const step = Math.max(0.00001, (max - min) / 200);
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-fg-subtle font-mono text-[9px] tracking-wider uppercase">
-          {label}
-        </span>
-        <span
-          className={cn(
-            'font-mono text-[11px] font-semibold tabular-nums',
-            tone === 'bull' ? 'text-bull' : 'text-bear',
-          )}
-        >
-          {value.toFixed(decimals)}
-        </span>
-      </div>
-      <input
-        type="range"
+      <Slider
+        label={label}
+        valueLabel={value.toFixed(decimals)}
+        ariaLabel={`${label} price`}
         min={min}
         max={max}
         step={step}
         value={value}
-        aria-label={`${label} price`}
-        onChange={(event) => onChange(Number(event.target.value))}
-        className={cn('w-full cursor-pointer', tone === 'bull' ? 'accent-bull' : 'accent-bear')}
+        tone={tone}
+        onValueChange={onChange}
       />
       <div className="flex flex-wrap gap-1">
         {presets.map((preset) => (
@@ -269,7 +251,7 @@ function ScrubberRow({
             key={preset.label}
             type="button"
             onClick={() => onPreset(preset.value)}
-            className="border-white/[0.08] text-fg-subtle hover:border-brand/40 hover:text-brand inline-flex min-h-11 items-center rounded border sm:min-h-7 bg-white/[0.02] px-1.5 font-mono text-[8px] transition-colors"
+            className="border-white/[0.08] text-fg-subtle hover:border-brand/40 hover:text-brand inline-flex min-h-11 items-center rounded border bg-white/[0.02] px-1.5 font-mono text-[8px] transition-colors sm:min-h-7"
           >
             {preset.label}
           </button>

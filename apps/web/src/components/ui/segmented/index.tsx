@@ -130,7 +130,7 @@ function SegmentedItem<T extends string>({
 }) {
   const baseItem = cn(
     'relative inline-flex items-center justify-center rounded-md font-semibold tabular-nums transition-colors tactile-press active:translate-y-[0.5px]',
-    'focus-visible:ring-fg focus:outline-none focus-visible:ring-2',
+    'focus-visible:ring-brand focus:outline-none focus-visible:ring-2',
     itemMinWidth(size),
     ITEM_PAD[size],
     SIZE[size],

@@ -11,7 +11,7 @@
 import type { ProviderMeta } from '@kestrel/shared';
 import { IconCircleCheck, IconCircleX, IconCopy, IconEye, IconEyeOff } from '@tabler/icons-react';
 
-import { Input } from '@/components/ui/input';
+import { Input, InputAddon, InputGroup } from '@/components/ui/input';
 
 import type { TestState } from './api-key-badges';
 
@@ -62,8 +62,7 @@ export function ApiKeyInput({
 
   return (
     <>
-      {/* Input area */}
-      <div className="relative">
+      <InputGroup error={testState.kind === 'err'}>
         <Input
           id={`key-${provider.id}`}
           name={provider.id}
@@ -76,9 +75,9 @@ export function ApiKeyInput({
           autoComplete="off"
           spellCheck={false}
           disabled={pendingRemoval}
-          className="pr-24 font-mono"
+          className="font-mono"
         />
-        <div className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-0.5">
+        <InputAddon>
           {canCopy && !pendingRemoval && (
             <button
               type="button"
@@ -98,8 +97,8 @@ export function ApiKeyInput({
           >
             {revealed ? <IconEyeOff className="size-3.5" /> : <IconEye className="size-3.5" />}
           </button>
-        </div>
-      </div>
+        </InputAddon>
+      </InputGroup>
 
       {/* Validation / test feedback. */}
       {testState.kind === 'err' ? (

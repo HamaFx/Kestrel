@@ -4,10 +4,10 @@
 
 // 2FA QR stage: shows the enrolment QR code + secret and verifies the first
 // authenticator code to enable two-factor auth.
-import { IconCopy, IconLoader2, IconShield } from '@tabler/icons-react';
+import { IconCopy, IconShield } from '@tabler/icons-react';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { OtpInput } from '@/components/ui/otp-input';
 
 import { BackupCodesPanel } from './backup-codes-panel';
 
@@ -72,24 +72,16 @@ export function TwoFactorQrStage({
         />
       )}
       <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
-        <Input
-          value={token}
-          onChange={(e) => setToken(e.target.value)}
-          placeholder="6-digit code"
-          maxLength={6}
-          inputMode="numeric"
-          aria-label="Enter verification code"
-          className="h-11 w-full text-sm sm:w-64"
-        />
+        <OtpInput value={token} onValueChange={setToken} aria-label="Enter verification code" />
         <Button
           type="button"
           variant="primary"
           size="md"
+          loading={verifying}
           onClick={onVerify}
           disabled={verifying || token.length !== 6}
           className="tactile-press h-11 active:translate-y-[0.5px]"
         >
-          {verifying ? <IconLoader2 className="mr-1 size-3.5 animate-spin" /> : null}
           Verify & Enable
         </Button>
       </div>

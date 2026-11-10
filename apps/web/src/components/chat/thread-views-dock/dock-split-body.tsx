@@ -8,8 +8,8 @@ import type { Symbol, Timeframe } from '@kestrel/shared';
 import type { UIMessage } from 'ai';
 import { useCallback, useRef, useState } from 'react';
 
+import { Splitter } from '@/components/ui/splitter';
 import type { AgentProgress } from '@/lib/chat-transport';
-import { cn } from '@/lib/formatters/cn';
 
 import type { ExtractedTradeLevels } from '../parts/syndicate-dossier/extract-trade-levels';
 import { DockChartPanel } from './dock-chart-panel';
@@ -90,45 +90,25 @@ export function DockSplitBody({
         <DockChartPanel symbol={symbol} activeTf={activeTf} onTimeframeChange={onTimeframeChange} />
       </div>
 
-      <div
-        role="separator"
-        tabIndex={0}
-        aria-orientation="horizontal"
-        aria-label="Resize chart and intelligence panes"
-        aria-valuemin={MIN_SPLIT_RATIO}
-        aria-valuemax={MAX_SPLIT_RATIO}
-        aria-valuenow={Math.round(splitRatio)}
-        title="Drag to resize (double-click to reset)"
+      <Splitter
+        orientation="horizontal"
+        label="Resize chart and intelligence panes"
+        min={MIN_SPLIT_RATIO}
+        max={MAX_SPLIT_RATIO}
+        value={splitRatio}
+        active={isRowResizing}
         onPointerDown={startRowResize}
         onPointerMove={moveRowResize}
         onPointerUp={endRowResize}
         onPointerCancel={endRowResize}
-        onDoubleClick={() => onSplitRatioChange(DEFAULT_SPLIT_RATIO)}
-        onKeyDown={(event) => {
-          if (event.key === 'ArrowUp') {
-            event.preventDefault();
-            onSplitRatioChange(Math.max(MIN_SPLIT_RATIO, splitRatio - 2));
-          } else if (event.key === 'ArrowDown') {
-            event.preventDefault();
-            onSplitRatioChange(Math.min(MAX_SPLIT_RATIO, splitRatio + 2));
-          } else if (event.key === 'Home') {
-            event.preventDefault();
-            onSplitRatioChange(DEFAULT_SPLIT_RATIO);
-          }
-        }}
-        className={cn(
-          'group flex h-2 shrink-0 cursor-row-resize items-center justify-center border-y border-white/[0.07] bg-[#101113] transition-colors',
-          isRowResizing ? 'bg-brand/25' : 'hover:bg-brand/15',
-        )}
-      >
-        <span
-          aria-hidden="true"
-          className={cn(
-            'h-[2px] w-10 rounded-full transition-colors',
-            isRowResizing ? 'bg-brand' : 'bg-white/15 group-hover:bg-brand/70',
-          )}
-        />
-      </div>
+        onReset={() => onSplitRatioChange(DEFAULT_SPLIT_RATIO)}
+        onStep={(dir) =>
+          onSplitRatioChange(
+            Math.max(MIN_SPLIT_RATIO, Math.min(MAX_SPLIT_RATIO, splitRatio + dir * 2)),
+          )
+        }
+        className="border-y border-white/[0.07] bg-[#101113]"
+      />
 
       <div className="min-h-0 flex-1 overflow-hidden">
         {activeTab === 'plan' ? (

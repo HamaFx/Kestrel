@@ -19,6 +19,14 @@
 // Reusable sortable breakdown table for by-symbol / by-session / by-hour / by-day / by-tag stats.
 import { useMemo, useState } from 'react';
 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { cn } from '@/lib/formatters/cn';
 
 interface BreakdownRow {
@@ -78,14 +86,11 @@ export function BreakdownTable({ title, data, sortBy = 'totalR' }: BreakdownTabl
     const active = sort.key === key;
     const ariaSort = active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none';
     return (
-      <th
-        scope="col"
+      <TableHead
         role="columnheader"
         aria-sort={ariaSort}
-        className={cn(
-          'text-caption text-fg-subtle cursor-pointer px-3 py-2 text-left font-bold tracking-wider uppercase select-none',
-          numeric && 'text-right',
-        )}
+        numeric={numeric}
+        className="text-caption text-fg-subtle cursor-pointer font-bold tracking-wider uppercase"
         onClick={() =>
           setSort((prev) => ({
             key,
@@ -94,7 +99,7 @@ export function BreakdownTable({ title, data, sortBy = 'totalR' }: BreakdownTabl
         }
       >
         {label}
-      </th>
+      </TableHead>
     );
   };
 
@@ -107,8 +112,8 @@ export function BreakdownTable({ title, data, sortBy = 'totalR' }: BreakdownTabl
       <div className="border-border border-b px-3 py-2">
         <span className="text-body-sm text-fg font-semibold">{title}</span>
       </div>
-      <table className="table-stack w-full text-sm">
-        <thead className="bg-bg-elev-2">
+      <Table stackOnMobile>
+        <TableHeader className="bg-bg-elev-2">
           <tr>
             {header('label', 'Label', false)}
             {header('trades', 'Trades')}
@@ -116,18 +121,22 @@ export function BreakdownTable({ title, data, sortBy = 'totalR' }: BreakdownTabl
             {header('totalR', 'Total R')}
             {header('expectancy', 'Expectancy')}
           </tr>
-        </thead>
-        <tbody>
+        </TableHeader>
+        <TableBody>
           {rows.map((row) => (
-            <tr key={row.label} className="row-primary border-divider border-b last:border-b-0">
-              <td className="text-fg px-3 py-2 font-medium">{row.label}</td>
-              <td data-label="Trades" className="text-fg-muted px-3 py-2 text-right tabular-nums">
+            <TableRow
+              key={row.label}
+              className="row-primary border-divider bg-transparent border-b last:border-b-0"
+            >
+              <TableCell className="text-fg font-medium">{row.label}</TableCell>
+              <TableCell data-label="Trades" numeric className="text-fg-muted">
                 {row.trades}
-              </td>
-              <td
+              </TableCell>
+              <TableCell
                 data-label="Win rate"
+                numeric
                 className={cn(
-                  'px-3 py-2 text-right font-medium tabular-nums',
+                  'font-medium',
                   row.winRate === null
                     ? 'text-fg-muted'
                     : row.winRate > 0.55
@@ -138,11 +147,12 @@ export function BreakdownTable({ title, data, sortBy = 'totalR' }: BreakdownTabl
                 )}
               >
                 {row.winRate === null ? '—' : `${(row.winRate * 100).toFixed(0)}%`}
-              </td>
-              <td
+              </TableCell>
+              <TableCell
                 data-label="Total R"
+                numeric
                 className={cn(
-                  'px-3 py-2 text-right font-medium tabular-nums',
+                  'font-medium',
                   row.totalR === null
                     ? 'text-fg-muted'
                     : row.totalR > 0
@@ -155,19 +165,16 @@ export function BreakdownTable({ title, data, sortBy = 'totalR' }: BreakdownTabl
                 {row.totalR === null
                   ? '—'
                   : `${row.totalR > 0 ? '+' : ''}${row.totalR.toFixed(2)}R`}
-              </td>
-              <td
-                data-label="Expectancy"
-                className="text-fg-muted px-3 py-2 text-right tabular-nums"
-              >
+              </TableCell>
+              <TableCell data-label="Expectancy" numeric className="text-fg-muted">
                 {row.expectancy == null
                   ? '—'
                   : `${row.expectancy > 0 ? '+' : ''}${row.expectancy.toFixed(2)}R`}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }

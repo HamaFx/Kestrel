@@ -18,35 +18,25 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-// Shared Market Intelligence sub-navigation.
-//
-// The primary sidebar exposes a single "Market" pillar (`/news`), but the
-// market workspace spans three routes: the headlines wire, the macro
-// economic calendar, and the live pro chart. Rendering this sub-nav on each
-// of those routes lets a trader hop between them in one click instead of
-// guessing that `/calendar` or `/chart/XAUUSD` exist.
-//
-// Mirrors the visual contract of the settings <AISubNav />: a recessed
-// `surface-well` rail of chips where the active route lifts onto a
-// `surface-chip` with the brand accent.
 import { IconBell, IconCalendarEvent, IconNews } from '@tabler/icons-react';
 import { m } from 'motion/react';
 import { Link } from 'next-view-transitions';
 import { usePathname } from 'next/navigation';
+import type { ComponentType } from 'react';
 
 import { MOTION_PRESETS } from '@/components/ui/motion-config';
 import { cn } from '@/lib/formatters/cn';
 
-interface MarketTab {
+interface PillarSubNavTab {
   href: string;
   label: string;
   shortLabel: string;
-  icon: typeof IconNews;
-  /** Path prefixes that should light this tab up. */
-  match: readonly string[];
+  icon: ComponentType<{ className?: string }>;
+  /** Optional path prefixes that should light this tab up. */
+  match?: readonly string[];
 }
 
-const MARKET_TABS: readonly MarketTab[] = [
+const MARKET_TABS: readonly PillarSubNavTab[] = [
   {
     href: '/news',
     label: 'News & Macro',
@@ -70,22 +60,37 @@ const MARKET_TABS: readonly MarketTab[] = [
   },
 ];
 
-/** Whether a market tab owns the current pathname (exact or nested route). */
-function isMarketTabActive(tab: MarketTab, pathname: string | null): boolean {
+function isSubNavTabActive(tab: PillarSubNavTab, pathname: string | null): boolean {
   if (!pathname) return false;
-  return tab.match.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  if (tab.match && tab.match.length > 0) {
+    return tab.match.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  }
+  return pathname === tab.href;
 }
 
-export function MarketSubNav() {
+export function PillarSubNav({
+  ariaLabel,
+  layoutId,
+  tabs,
+  className,
+}: {
+  ariaLabel: string;
+  layoutId: string;
+  tabs: readonly PillarSubNavTab[];
+  className?: string;
+}) {
   const pathname = usePathname();
 
   return (
     <nav
-      aria-label="Market Intelligence Sections"
-      className="surface-well scrollbar-hide flex flex-row gap-1 overflow-x-auto rounded-xl border border-white/5 p-1"
+      aria-label={ariaLabel}
+      className={cn(
+        'surface-well scrollbar-hide flex flex-row gap-1 overflow-x-auto rounded-xl border border-white/5 p-1',
+        className,
+      )}
     >
-      {MARKET_TABS.map((tab) => {
-        const active = isMarketTabActive(tab, pathname);
+      {tabs.map((tab) => {
+        const active = isSubNavTabActive(tab, pathname);
         const Icon = tab.icon;
 
         return (
@@ -94,13 +99,13 @@ export function MarketSubNav() {
             href={tab.href}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'tactile-press relative flex min-h-9 flex-1 items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all active:translate-y-[0.5px]',
+              'tactile-press focus-visible:ring-brand relative flex min-h-9 flex-1 items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all focus:outline-none focus-visible:ring-2 active:translate-y-[0.5px]',
               active ? 'text-brand font-semibold' : 'text-fg-subtle hover:text-fg',
             )}
           >
             {active ? (
               <m.span
-                layoutId="market-subnav-active-pill"
+                layoutId={layoutId}
                 aria-hidden="true"
                 className="surface-chip bg-bg-elev-2 border-brand/30 absolute inset-0 -z-10 rounded-lg border shadow-xs"
                 transition={MOTION_PRESETS.layout}
@@ -113,5 +118,15 @@ export function MarketSubNav() {
         );
       })}
     </nav>
+  );
+}
+
+export function MarketSubNav() {
+  return (
+    <PillarSubNav
+      ariaLabel="Market Intelligence Sections"
+      layoutId="market-subnav-active-pill"
+      tabs={MARKET_TABS}
+    />
   );
 }

@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Copyright 2026 Kestrel
  *
@@ -16,30 +18,42 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { forwardRef, type SelectHTMLAttributes } from 'react';
+import { forwardRef, useId, type ReactNode, type SelectHTMLAttributes } from 'react';
 
+import { useFieldContext } from '@/components/ui/field';
 import { cn } from '@/lib/formatters/cn';
 
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   error?: boolean;
+  /** Optional inline field label when Select is used outside `<Field>`. */
+  label?: ReactNode;
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
-  { className, error, children, ...rest },
+  { className, error, label, id, 'aria-describedby': ariaDescribedBy, children, ...rest },
   ref,
 ) {
-  return (
+  const generatedId = useId();
+  const fieldCtx = useFieldContext();
+  const resolvedId = id ?? fieldCtx?.id ?? (label ? generatedId : undefined);
+  const resolvedDescribedBy = ariaDescribedBy ?? fieldCtx?.describedBy;
+  const resolvedError = error ?? fieldCtx?.hasError ?? false;
+
+  const selectEl = (
     <select
       ref={ref}
-      aria-invalid={error ? 'true' : undefined}
+      id={resolvedId}
+      data-slot="select"
+      aria-invalid={resolvedError ? 'true' : undefined}
+      aria-describedby={resolvedDescribedBy}
       className={cn(
-        'text-fg bg-[#0e0f11]/90',
-        'h-12 w-full rounded-lg border px-3.5 text-[16px] shadow-[var(--shadow-well)] sm:h-11 sm:text-sm',
-        error
+        'surface-well text-fg',
+        'h-12 w-full rounded-lg border px-3.5 text-[16px] sm:text-sm',
+        resolvedError
           ? 'border-danger/60 focus:ring-danger/30 focus:ring-2 focus-visible:outline-none'
-          : 'border-border focus:border-brand/60 hover:border-white/20',
+          : 'border-border focus:border-brand/60 hover:border-white/20 focus-visible:ring-brand focus-visible:ring-2 focus-visible:outline-none',
         'transition-all duration-150 ease-in-out',
-        'focus:bg-[#121316] focus:outline-none',
+        'focus:bg-[#121316]',
         'disabled:cursor-not-allowed disabled:opacity-60',
         className,
       )}
@@ -48,4 +62,17 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
       {children}
     </select>
   );
+
+  if (label && !fieldCtx) {
+    return (
+      <div className="flex flex-col gap-2">
+        <label htmlFor={resolvedId} className="text-fg-subtle text-body-sm tracking-wide uppercase">
+          {label}
+        </label>
+        {selectEl}
+      </div>
+    );
+  }
+
+  return selectEl;
 });

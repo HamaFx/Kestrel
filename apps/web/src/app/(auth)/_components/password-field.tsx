@@ -18,10 +18,10 @@
 
 // §5: Shared password field with show/hide toggle, caps-lock hint,
 // and strength meter. Used by login, register, and reset-password pages.
-import { IconEye, IconEyeOff } from '@tabler/icons-react';
+import { IconCheck, IconEye, IconEyeOff, IconX } from '@tabler/icons-react';
 import { useState } from 'react';
 
-import { Input } from '@/components/ui/input';
+import { Input, InputAddon, InputGroup } from '@/components/ui/input';
 import { cn } from '@/lib/formatters/cn';
 
 interface PasswordFieldProps {
@@ -84,7 +84,7 @@ export function PasswordField({
           {label}
         </label>
       ) : null}
-      <div className="relative">
+      <InputGroup error={error}>
         <Input
           id={id}
           name={name}
@@ -106,20 +106,22 @@ export function PasswordField({
           onKeyUp={(e) =>
             setCapsLockOn((e.nativeEvent as KeyboardEvent).getModifierState?.('CapsLock') ?? false)
           }
-          className={cn('pr-11', className)}
+          className={className}
           {...(error !== undefined ? { error } : {})}
           {...(error && errorId ? { 'aria-describedby': errorId } : {})}
         />
-        <button
-          type="button"
-          onClick={() => setShow(!show)}
-          className="text-fg-muted hover:text-fg focus-visible:ring-brand absolute top-1/2 right-1.5 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
-          aria-label={show ? 'Hide password' : 'Show password'}
-          aria-pressed={show}
-        >
-          {show ? <IconEyeOff className="size-4" /> : <IconEye className="size-4" />}
-        </button>
-      </div>
+        <InputAddon>
+          <button
+            type="button"
+            onClick={() => setShow(!show)}
+            className="text-fg-muted hover:text-fg focus-visible:ring-brand inline-flex size-8 items-center justify-center rounded-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            aria-label={show ? 'Hide password' : 'Show password'}
+            aria-pressed={show}
+          >
+            {show ? <IconEyeOff className="size-4" /> : <IconEye className="size-4" />}
+          </button>
+        </InputAddon>
+      </InputGroup>
 
       {/* Caps-lock hint */}
       {capsLockOn && (
@@ -132,10 +134,12 @@ export function PasswordField({
       {checks && value.length > 0 && (
         <div className={cn('mt-1 grid grid-cols-2 gap-1 text-xs')}>
           {checks.map((c) => (
-            <div key={c.label} className="flex items-center gap-1">
-              <span className={c.ok ? 'text-success' : 'text-danger'}>
-                {c.ok ? '\u2713' : '\u2717'}
-              </span>
+            <div key={c.label} className="flex items-center gap-1.5">
+              {c.ok ? (
+                <IconCheck className="text-success size-3.5 shrink-0" aria-hidden="true" />
+              ) : (
+                <IconX className="text-danger size-3.5 shrink-0" aria-hidden="true" />
+              )}
               <span className="text-fg-subtle">{c.label}</span>
             </div>
           ))}

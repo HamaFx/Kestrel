@@ -9,6 +9,8 @@ import { getSymbolDefinition, type JournalEntry, type Symbol } from '@kestrel/sh
 import { IconAdjustmentsHorizontal, IconZoomIn } from '@tabler/icons-react';
 import { useState } from 'react';
 
+import { Button, ButtonGroup } from '@/components/ui/button';
+import type { useConfirm } from '@/components/ui/confirm-drawer';
 import {
   Drawer,
   DrawerContent,
@@ -16,7 +18,14 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import type { useConfirm } from '@/components/ui/confirm-drawer';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { cn } from '@/lib/formatters/cn';
 
 import { EntryRow } from '../entry-row';
@@ -133,56 +142,53 @@ export function ExecutionLedger({
     <>
       {/* Desktop ledger */}
       <div className="hidden overflow-hidden rounded-xl border border-white/[0.08] md:block">
-        <table className="w-full border-collapse text-left">
-          <thead>
-            <tr className="bg-[#101113] text-fg-subtle font-mono text-[9px] tracking-[0.12em] uppercase">
-              <th className="px-3 py-2 font-semibold">Date</th>
-              <th className="px-3 py-2 font-semibold">Symbol</th>
-              <th className="px-3 py-2 font-semibold">Side</th>
-              <th className="px-3 py-2 font-semibold">Entry → Exit</th>
-              <th className="px-3 py-2 font-semibold">Stop / Target</th>
-              <th className="px-3 py-2 font-semibold">Plan</th>
-              <th className="px-3 py-2 text-right font-semibold">R</th>
-              <th className="px-3 py-2 text-right font-semibold">P&amp;L</th>
-              <th className="px-3 py-2 text-right font-semibold">Actions</th>
+        <Table>
+          <TableHeader>
+            <tr>
+              <TableHead>Date</TableHead>
+              <TableHead>Symbol</TableHead>
+              <TableHead>Side</TableHead>
+              <TableHead>Entry → Exit</TableHead>
+              <TableHead>Stop / Target</TableHead>
+              <TableHead>Plan</TableHead>
+              <TableHead numeric>R</TableHead>
+              <TableHead numeric>P&amp;L</TableHead>
+              <TableHead numeric>Actions</TableHead>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-white/[0.06]">
+          </TableHeader>
+          <TableBody>
             {entries.map((entry) => {
               const labels = timeLabels.get(entry.id);
               const live = priceMap.get(entry.symbol);
               const pnl = cashPnl(entry, live);
               return (
-                <tr
-                  key={entry.id}
-                  className="group bg-[#121315] transition-colors hover:bg-white/[0.03]"
-                >
-                  <td className="text-fg-subtle px-3 py-2 font-mono text-[10px] whitespace-nowrap tabular-nums">
+                <TableRow key={entry.id}>
+                  <TableCell className="text-fg-subtle font-mono text-[10px] whitespace-nowrap tabular-nums">
                     {labels?.openedAt ?? '—'}
-                  </td>
-                  <td className="px-3 py-2">
+                  </TableCell>
+                  <TableCell>
                     <span className="text-fg font-mono text-xs font-semibold">{entry.symbol}</span>
-                  </td>
-                  <td className="px-3 py-2">
+                  </TableCell>
+                  <TableCell>
                     <SideBadge side={entry.side} />
-                  </td>
-                  <td className="px-3 py-2 font-mono text-[11px] tabular-nums">
+                  </TableCell>
+                  <TableCell className="font-mono text-[11px] tabular-nums">
                     <span className="text-fg-muted">{fmtPrice(entry.entry)}</span>
                     <span className="text-fg-subtle/60 mx-1">→</span>
                     <span className="text-fg">{fmtPrice(entry.exit)}</span>
-                  </td>
-                  <td className="px-3 py-2 font-mono text-[10px] tabular-nums">
+                  </TableCell>
+                  <TableCell className="font-mono text-[10px] tabular-nums">
                     <span className="text-bear">{fmtPrice(entry.stop)}</span>
                     <span className="text-fg-subtle/60 mx-1">/</span>
                     <span className="text-bull">{fmtPrice(entry.target)}</span>
-                  </td>
-                  <td className="px-3 py-2">
+                  </TableCell>
+                  <TableCell>
                     <PlanBar entry={entry} live={live} />
-                  </td>
-                  <td className="px-3 py-2 text-right">
+                  </TableCell>
+                  <TableCell numeric>
                     <RValue entry={entry} live={live} />
-                  </td>
-                  <td className="px-3 py-2 text-right font-mono text-[10px] tabular-nums">
+                  </TableCell>
+                  <TableCell numeric className="text-[10px]">
                     {pnl === null ? (
                       <span className="text-fg-subtle">—</span>
                     ) : (
@@ -190,34 +196,37 @@ export function ExecutionLedger({
                         {pnl >= 0 ? '+' : '−'}${Math.abs(pnl).toFixed(2)}
                       </span>
                     )}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setReplayEntry(entry)}
-                        aria-label={`Replay ${entry.symbol} setup`}
-                        title="Inspect / replay setup"
-                        className="text-fg-subtle hover:bg-bg-elev-3 hover:text-brand inline-flex size-8 items-center justify-center rounded-md transition-colors"
-                      >
-                        <IconZoomIn className="size-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openInspector(entry)}
-                        aria-label={`Manage ${entry.symbol} entry`}
-                        title="Manage entry"
-                        className="text-fg-subtle hover:bg-bg-elev-3 hover:text-fg inline-flex size-8 items-center justify-center rounded-md transition-colors"
-                      >
-                        <IconAdjustmentsHorizontal className="size-3.5" />
-                      </button>
+                  </TableCell>
+                  <TableCell numeric>
+                    <div className="flex items-center justify-end">
+                      <ButtonGroup>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => setReplayEntry(entry)}
+                          aria-label={`Replay ${entry.symbol} setup`}
+                          title="Inspect / replay setup"
+                          className="hover:text-brand"
+                        >
+                          <IconZoomIn className="size-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => openInspector(entry)}
+                          aria-label={`Manage ${entry.symbol} entry`}
+                          title="Manage entry"
+                        >
+                          <IconAdjustmentsHorizontal className="size-3.5" />
+                        </Button>
+                      </ButtonGroup>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               );
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       {/* Mobile compact ledger */}

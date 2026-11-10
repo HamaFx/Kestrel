@@ -21,6 +21,7 @@
 // drawer.
 import { DEFAULT_WATCHLIST_SYMBOLS, SYMBOLS, type Symbol, type TradeSide } from '@kestrel/shared';
 
+import { Field } from '@/components/ui/field';
 import { HoldToExecuteButton } from '@/components/ui/hold-to-execute-button';
 import { Segmented } from '@/components/ui/segmented';
 import { Select } from '@/components/ui/select';
@@ -46,17 +47,19 @@ export function EntryForm({ onCreated }: EntryFormProps) {
       className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4"
     >
       <div className="flex flex-col gap-2">
-        <Select
-          label="Symbol"
-          value={form.symbol}
-          onChange={(e) => form.setSymbol(e.target.value as Symbol)}
-        >
-          {SYMBOLS.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </Select>
+        <Field label="Symbol" htmlFor="journal-symbol">
+          <Select
+            id="journal-symbol"
+            value={form.symbol}
+            onChange={(e) => form.setSymbol(e.target.value as Symbol)}
+          >
+            {SYMBOLS.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </Select>
+        </Field>
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-fg-subtle font-mono text-[10px] uppercase">Quick pick:</span>
           {DEFAULT_WATCHLIST_SYMBOLS.map((s) => {

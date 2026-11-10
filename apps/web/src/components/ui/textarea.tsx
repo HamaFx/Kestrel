@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Copyright 2026 Kestrel
  *
@@ -18,6 +20,7 @@
 
 import { forwardRef, type TextareaHTMLAttributes } from 'react';
 
+import { useFieldContext } from '@/components/ui/field';
 import { cn } from '@/lib/formatters/cn';
 
 interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -25,21 +28,29 @@ interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
 }
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
-  { className, error, ...rest },
+  { className, error, id, 'aria-describedby': ariaDescribedBy, ...rest },
   ref,
 ) {
+  const fieldCtx = useFieldContext();
+  const resolvedId = id ?? fieldCtx?.id;
+  const resolvedDescribedBy = ariaDescribedBy ?? fieldCtx?.describedBy;
+  const resolvedError = error ?? fieldCtx?.hasError ?? false;
+
   return (
     <textarea
       ref={ref}
-      aria-invalid={error ? 'true' : undefined}
+      id={resolvedId}
+      data-slot="textarea"
+      aria-invalid={resolvedError ? 'true' : undefined}
+      aria-describedby={resolvedDescribedBy}
       className={cn(
-        'text-fg placeholder:text-fg-subtle bg-[#0e0f11]/90',
-        'min-h-[96px] w-full rounded-lg border px-4 py-3 text-[16px] shadow-[var(--shadow-well)] sm:text-sm',
-        error
+        'surface-well text-fg placeholder:text-fg-subtle',
+        'min-h-[96px] w-full rounded-lg border px-4 py-3 text-[16px] sm:text-sm',
+        resolvedError
           ? 'border-danger/60 focus:ring-danger/30 focus:ring-2 focus-visible:outline-none'
-          : 'border-border focus:border-brand/60 hover:border-white/20',
+          : 'border-border focus:border-brand/60 hover:border-white/20 focus-visible:ring-brand focus-visible:ring-2 focus-visible:outline-none',
         'transition-all duration-150 ease-in-out',
-        'focus:bg-[#121316] focus:outline-none',
+        'focus:bg-[#121316]',
         'disabled:cursor-not-allowed disabled:opacity-60',
         className,
       )}

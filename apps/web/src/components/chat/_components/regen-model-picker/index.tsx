@@ -15,8 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { IconLoader2 } from '@tabler/icons-react';
+import { IconLoader2, IconSearch } from '@tabler/icons-react';
 import { useState } from 'react';
+
+import { cn } from '@/lib/formatters/cn';
 
 import { modelSelectionMatches, toChatModelValue, toQualifiedModelId } from '../model-picker-utils';
 import { RegenRow } from './regen-row';
@@ -34,14 +36,6 @@ interface RegenModelPickerProps {
   onPick: (modelId: string) => void;
 }
 
-/**
- * Phase F — replaces the 5-domain picker with a single chat_model
- * picker. The "My default" section is now just one row (the user's
- * saved chat_model). The per-provider full list is unchanged so
- * the user can override per-turn without losing access to the rest.
- *
- * Fetched lazily on first open so we don't block the chat thread.
- */
 export function RegenModelPicker({ popoverId, activeModelId, onPick }: RegenModelPickerProps) {
   const { catalog, chatModel, loading } = useModelCatalog();
   const { containerRef, handleKeyDown } = useModelMenuKeyboard({
@@ -50,6 +44,8 @@ export function RegenModelPicker({ popoverId, activeModelId, onPick }: RegenMode
     popoverId,
   });
   const [hoveredRowKey, setHoveredRowKey] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedProviderId, setSelectedProviderId] = useState<string>('all');
   const highlightLayoutId = `regen-picker-pill-${popoverId}`;
 
   function pick(modelId: string) {
@@ -84,6 +80,22 @@ export function RegenModelPicker({ popoverId, activeModelId, onPick }: RegenMode
     );
   }
 
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredProviders = configured
+    .filter((p) => selectedProviderId === 'all' || p.id === selectedProviderId)
+    .map((p) => ({
+      ...p,
+      models: normalizedQuery
+        ? p.models.filter(
+            (m) =>
+              (m.label ?? m.modelId).toLowerCase().includes(normalizedQuery) ||
+              m.modelId.toLowerCase().includes(normalizedQuery) ||
+              p.displayName.toLowerCase().includes(normalizedQuery),
+          )
+        : p.models,
+    }))
+    .filter((p) => p.models.length > 0);
+
   // Find the chat-model row by parsing "<providerId>:<bareModelId>"
   // and matching against the configured providers' full catalog.
   const chatModelParts = chatModel?.split(':');
@@ -110,75 +122,132 @@ export function RegenModelPicker({ popoverId, activeModelId, onPick }: RegenMode
       tabIndex={-1}
       className="flex max-h-96 min-w-72 flex-col gap-2 overflow-y-auto p-0.5 focus:outline-none sm:min-w-80"
     >
-      {/* My default — the chat_model the user saved in /settings/models */}
-      <section className="flex flex-col gap-0.5">
-        <div className="text-fg-subtle px-2 py-1 font-mono text-[10px] font-semibold tracking-[0.14em] uppercase">
-          Primary Default
-        </div>
-        {chatProvider && chatCatalogModel && chatFullyQualified && defaultRowKey ? (
-          <RegenRow
-            label={`${chatProvider.displayName} · ${chatCatalogModel.label ?? chatCatalogModel.modelId}`}
-            fullyQualified={chatFullyQualified}
-            isActive={modelSelectionMatches(
-              activeModelId,
-              chatProvider.id,
-              chatCatalogModel.modelId,
-            )}
-            isHighlighted={hoveredRowKey === defaultRowKey}
-            highlightLayoutId={highlightLayoutId}
-            tier={chatCatalogModel.tier}
-            hasVision={Boolean(chatCatalogModel.capabilities?.vision)}
-            contextTokens={chatCatalogModel.contextTokens}
-            onHover={() => setHoveredRowKey(defaultRowKey)}
-            onClick={() => pick(toChatModelValue(chatProvider.id, chatCatalogModel.modelId))}
+      {/* Search + Provider Filter Rail */}
+      <div className="flex flex-col gap-1.5 px-1 pt-0.5">
+        <div className="surface-well focus-within:border-brand/50 flex h-8 items-center gap-1.5 rounded-lg border border-white/10 px-2">
+          <IconSearch size={13} className="text-fg-subtle shrink-0" aria-hidden="true" />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Filter models…"
+            aria-label="Filter models"
+            className="text-fg placeholder:text-fg-subtle w-full bg-transparent font-mono text-xs focus:outline-none"
           />
-        ) : (
-          <div className="text-caption text-fg-subtle px-2 py-1 italic">
-            No default set.{' '}
-            <a href="/settings/models" className="text-fg not-italic hover:underline">
-              Pick one in Settings → Models
-            </a>
-            .
+        </div>
+
+        {configured.length > 1 ? (
+          <div className="scrollbar-hide flex items-center gap-1 overflow-x-auto pb-0.5">
+            <button
+              type="button"
+              onClick={() => setSelectedProviderId('all')}
+              className={cn(
+                'rounded-md px-2 py-0.5 font-mono text-[10px] tracking-wider uppercase transition-colors',
+                selectedProviderId === 'all'
+                  ? 'bg-brand/15 text-brand border-brand/35 border font-semibold'
+                  : 'text-fg-subtle hover:text-fg border border-transparent',
+              )}
+            >
+              All
+            </button>
+            {configured.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setSelectedProviderId(p.id)}
+                className={cn(
+                  'shrink-0 rounded-md px-2 py-0.5 font-mono text-[10px] tracking-wider uppercase transition-colors',
+                  selectedProviderId === p.id
+                    ? 'bg-brand/15 text-brand border-brand/35 border font-semibold'
+                    : 'text-fg-subtle hover:text-fg border border-transparent',
+                )}
+              >
+                {p.displayName}
+              </button>
+            ))}
           </div>
-        )}
-      </section>
+        ) : null}
+      </div>
+
+      {/* My default — the chat_model the user saved in /settings/models */}
+      {!normalizedQuery && selectedProviderId === 'all' ? (
+        <section className="flex flex-col gap-0.5">
+          <div className="text-fg-subtle px-2 py-1 font-mono text-[10px] font-semibold tracking-[0.14em] uppercase">
+            Primary Default
+          </div>
+          {chatProvider && chatCatalogModel && chatFullyQualified && defaultRowKey ? (
+            <RegenRow
+              label={`${chatProvider.displayName} · ${chatCatalogModel.label ?? chatCatalogModel.modelId}`}
+              fullyQualified={chatFullyQualified}
+              isActive={modelSelectionMatches(
+                activeModelId,
+                chatProvider.id,
+                chatCatalogModel.modelId,
+              )}
+              isHighlighted={hoveredRowKey === defaultRowKey}
+              highlightLayoutId={highlightLayoutId}
+              tier={chatCatalogModel.tier}
+              hasVision={Boolean(chatCatalogModel.capabilities?.vision)}
+              hasTools={Boolean(chatCatalogModel.capabilities?.tools)}
+              contextTokens={chatCatalogModel.contextTokens}
+              onHover={() => setHoveredRowKey(defaultRowKey)}
+              onClick={() => pick(toChatModelValue(chatProvider.id, chatCatalogModel.modelId))}
+            />
+          ) : (
+            <div className="text-caption text-fg-subtle px-2 py-1 italic">
+              No default set.{' '}
+              <a href="/settings/models" className="text-fg not-italic hover:underline">
+                Pick one in Settings → Models
+              </a>
+              .
+            </div>
+          )}
+        </section>
+      ) : null}
 
       {/* Per-provider model list */}
       <section className="border-border/40 flex flex-col gap-1 border-t pt-1.5">
         <div className="text-fg-subtle px-2 py-0.5 font-mono text-[10px] font-semibold tracking-[0.14em] uppercase">
           Configured Engines
         </div>
-        {configured.map((p) => (
-          <div key={p.id} className="flex flex-col gap-0.5">
-            <div className="text-fg-muted flex items-center justify-between px-2 pt-1.5 pb-0.5 font-mono text-[10px] font-semibold tracking-wider uppercase">
-              <span>{p.displayName}</span>
-              {p.bestFor ? (
-                <span className="text-fg-subtle font-sans text-[10px] font-normal tracking-normal normal-case">
-                  {p.bestFor}
-                </span>
-              ) : null}
-            </div>
-            {p.models.map((m) => {
-              const fullyQualified = toQualifiedModelId(p.id, m.modelId);
-              const rowKey = `${p.id}/${m.modelId}`;
-              return (
-                <RegenRow
-                  key={rowKey}
-                  label={m.label ?? m.modelId}
-                  fullyQualified={fullyQualified}
-                  isActive={modelSelectionMatches(activeModelId, p.id, m.modelId)}
-                  isHighlighted={hoveredRowKey === rowKey}
-                  highlightLayoutId={highlightLayoutId}
-                  tier={m.tier}
-                  hasVision={Boolean(m.capabilities?.vision)}
-                  contextTokens={m.contextTokens}
-                  onHover={() => setHoveredRowKey(rowKey)}
-                  onClick={() => pick(toChatModelValue(p.id, m.modelId))}
-                />
-              );
-            })}
+        {filteredProviders.length === 0 ? (
+          <div className="text-fg-subtle px-2 py-2 font-mono text-xs">
+            No matching models found.
           </div>
-        ))}
+        ) : (
+          filteredProviders.map((p) => (
+            <div key={p.id} className="flex flex-col gap-0.5">
+              <div className="text-fg-muted flex items-center justify-between px-2 pt-1.5 pb-0.5 font-mono text-[10px] font-semibold tracking-wider uppercase">
+                <span>{p.displayName}</span>
+                {p.bestFor ? (
+                  <span className="text-fg-subtle font-sans text-[10px] font-normal tracking-normal normal-case">
+                    {p.bestFor}
+                  </span>
+                ) : null}
+              </div>
+              {p.models.map((m) => {
+                const fullyQualified = toQualifiedModelId(p.id, m.modelId);
+                const rowKey = `${p.id}/${m.modelId}`;
+                return (
+                  <RegenRow
+                    key={rowKey}
+                    label={m.label ?? m.modelId}
+                    fullyQualified={fullyQualified}
+                    isActive={modelSelectionMatches(activeModelId, p.id, m.modelId)}
+                    isHighlighted={hoveredRowKey === rowKey}
+                    highlightLayoutId={highlightLayoutId}
+                    tier={m.tier}
+                    hasVision={Boolean(m.capabilities?.vision)}
+                    hasTools={Boolean(m.capabilities?.tools)}
+                    contextTokens={m.contextTokens}
+                    onHover={() => setHoveredRowKey(rowKey)}
+                    onClick={() => pick(toChatModelValue(p.id, m.modelId))}
+                  />
+                );
+              })}
+            </div>
+          ))
+        )}
       </section>
     </div>
   );

@@ -18,11 +18,13 @@
 
 // Upgraded Stats Summary Dashboard with advanced risk analytics.
 // Displays core metrics, a horizontal segmented trade distribution gauge,
-// and institutional stats (Profit Factor, Max Drawdown, Expectancy, and Extreme trade boundaries).
+// daily consistency DayGrid heatmap, and institutional stats (Profit Factor,
+// Max Drawdown, Expectancy, and Extreme trade boundaries).
 import type { JournalEntry, JournalStatsWithNulls } from '@kestrel/shared';
 import { IconBook } from '@tabler/icons-react';
 import { useMemo } from 'react';
 
+import { DayGrid, type DayGridDatum } from '@/components/ui/day-grid';
 import { EmptyState } from '@/components/ui/empty-state';
 
 import { CoreStatCards } from './core-stat-cards';
@@ -46,6 +48,24 @@ export function StatsSummary({ stats, entries = [] }: StatsSummaryProps) {
       (e) => e.rMultiple !== null && e.rMultiple !== undefined && e.outcome !== 'open',
     );
   }, [entries]);
+
+  const dailyConsistency = useMemo<DayGridDatum[]>(() => {
+    const byDay = new Map<string, { value: number; count: number }>();
+    for (const trade of closedTrades) {
+      const ts = trade.closedAt ?? trade.openedAt;
+      const dateKey = new Date(ts).toISOString().slice(0, 10);
+      const prev = byDay.get(dateKey) ?? { value: 0, count: 0 };
+      byDay.set(dateKey, {
+        value: prev.value + (trade.rMultiple ?? 0),
+        count: prev.count + 1,
+      });
+    }
+    return Array.from(byDay.entries(), ([date, info]) => ({
+      date,
+      value: info.value,
+      count: info.count,
+    }));
+  }, [closedTrades]);
 
   const sparks = useStatSparks(entries);
 
@@ -72,6 +92,9 @@ export function StatsSummary({ stats, entries = [] }: StatsSummaryProps) {
 
       {/* Advanced Institutional Metrics Grid */}
       <InstitutionalMetrics closedTrades={closedTrades} />
+
+      {/* Daily R-Multiple Consistency Heatmap */}
+      <DayGrid data={dailyConsistency} weeks={16} />
 
       {/* Phase B — UX_UPGRADE_PLAN.md item 13. Extended stats
           surface. Three new tiles + a per-day-of-week bar chart.

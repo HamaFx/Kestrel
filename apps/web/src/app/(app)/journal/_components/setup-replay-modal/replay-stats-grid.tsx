@@ -5,74 +5,87 @@
 // Replay analytics grid: realized R, MFE, MAE, and execution efficiency.
 import { IconGauge, IconTarget, IconTrendingDown, IconTrendingUp } from '@tabler/icons-react';
 
-import { cn } from '@/lib/formatters/cn';
+import {
+  Kpi,
+  KpiFooter,
+  KpiGroup,
+  KpiHeader,
+  KpiLabel,
+  KpiTrend,
+  KpiValue,
+} from '@/components/ui/kpi';
 import type { TradeSetupReplayDTO } from '@/lib/services/journal';
 
 export function ReplayStatsGrid({ replay }: { replay: TradeSetupReplayDTO }) {
+  const realizedR = replay.stats.realizedRR;
+  const plannedR = replay.stats.plannedRR;
+  const planDelta = realizedR !== null && plannedR !== null ? realizedR - plannedR : null;
+
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      <div className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-3">
-        <div className="text-fg-subtle text-caption flex items-center gap-1 font-semibold tracking-wider uppercase">
-          <IconTarget className="size-3.5" />
-          <span>Realized R</span>
-        </div>
-        <div
-          className={cn(
-            'text-base font-black tabular-nums',
-            (replay.stats.realizedRR ?? 0) > 0 ? 'text-bull' : 'text-bear',
-          )}
-        >
-          {replay.stats.realizedRR !== null
-            ? `${replay.stats.realizedRR >= 0 ? '+' : ''}${replay.stats.realizedRR.toFixed(2)} R`
-            : 'N/A'}
-        </div>
-        <span className="text-fg-subtle text-caption tabular-nums">
-          Planned: {replay.stats.plannedRR ? `${replay.stats.plannedRR.toFixed(2)} R` : '—'}
-        </span>
-      </div>
+    <KpiGroup cols={4}>
+      <Kpi>
+        <KpiHeader>
+          <KpiLabel>
+            <IconTarget className="size-3.5" />
+            <span>Realized R</span>
+          </KpiLabel>
+          {planDelta !== null ? (
+            <KpiTrend change={planDelta} goodDirection="up" suffix="R" />
+          ) : null}
+        </KpiHeader>
+        <KpiValue tone={(realizedR ?? 0) > 0 ? 'bull' : 'bear'}>
+          {realizedR !== null ? `${realizedR >= 0 ? '+' : ''}${realizedR.toFixed(2)} R` : 'N/A'}
+        </KpiValue>
+        <KpiFooter>Planned: {plannedR ? `${plannedR.toFixed(2)} R` : '—'}</KpiFooter>
+      </Kpi>
 
-      <div className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-3">
-        <div className="text-fg-subtle text-caption flex items-center gap-1 font-semibold tracking-wider uppercase">
-          <IconTrendingUp className="text-bull size-3.5" />
-          <span>Max Runup (MFE)</span>
-        </div>
-        <div className="text-bull text-base font-black tabular-nums">
+      <Kpi>
+        <KpiHeader>
+          <KpiLabel>
+            <IconTrendingUp className="text-bull size-3.5" />
+            <span>Max Runup (MFE)</span>
+          </KpiLabel>
+        </KpiHeader>
+        <KpiValue tone="bull">
           {replay.mfe.r !== null ? `+${replay.mfe.r.toFixed(2)} R` : '—'}
-        </div>
-        <span className="text-fg-subtle text-caption tabular-nums">
-          +{replay.mfe.pips.toFixed(1)} pips peak
-        </span>
-      </div>
+        </KpiValue>
+        <KpiFooter>+{replay.mfe.pips.toFixed(1)} pips peak</KpiFooter>
+      </Kpi>
 
-      <div className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-3">
-        <div className="text-fg-subtle text-caption flex items-center gap-1 font-semibold tracking-wider uppercase">
-          <IconTrendingDown className="text-bear size-3.5" />
-          <span>Max Drawdown (MAE)</span>
-        </div>
-        <div className="text-bear text-base font-black tabular-nums">
-          {replay.mae.r !== null ? `-${replay.mae.r.toFixed(2)} R` : '—'}
-        </div>
-        <span className="text-fg-subtle text-caption tabular-nums">
-          -{replay.mae.pips.toFixed(1)} pips adverse
-        </span>
-      </div>
+      <Kpi>
+        <KpiHeader>
+          <KpiLabel>
+            <IconTrendingDown className="text-bear size-3.5" />
+            <span>Max Drawdown (MAE)</span>
+          </KpiLabel>
+          {replay.mae.r !== null ? (
+            <KpiTrend change={replay.mae.r} goodDirection="down" suffix="R" />
+          ) : null}
+        </KpiHeader>
+        <KpiValue tone="bear">
+          {replay.mae.r !== null ? `−${replay.mae.r.toFixed(2)} R` : '—'}
+        </KpiValue>
+        <KpiFooter>−{replay.mae.pips.toFixed(1)} pips adverse</KpiFooter>
+      </Kpi>
 
-      <div className="border-border bg-bg-elev-1 flex flex-col gap-1 rounded-sm border p-3">
-        <div className="text-fg-subtle text-caption flex items-center gap-1 font-semibold tracking-wider uppercase">
-          <IconGauge className="text-info size-3.5" />
-          <span>Efficiency</span>
-        </div>
-        <div className="text-info text-base font-black tabular-nums">
+      <Kpi>
+        <KpiHeader>
+          <KpiLabel>
+            <IconGauge className="text-info size-3.5" />
+            <span>Efficiency</span>
+          </KpiLabel>
+        </KpiHeader>
+        <KpiValue tone="info">
           {replay.stats.executionEfficiencyPct !== null
             ? `${replay.stats.executionEfficiencyPct.toFixed(0)}%`
             : '—'}
-        </div>
-        <span className="text-fg-subtle text-caption">
+        </KpiValue>
+        <KpiFooter>
           {replay.stats.durationMs
             ? `${Math.round(replay.stats.durationMs / 60000)}m hold time`
             : 'Open position'}
-        </span>
-      </div>
-    </div>
+        </KpiFooter>
+      </Kpi>
+    </KpiGroup>
   );
 }

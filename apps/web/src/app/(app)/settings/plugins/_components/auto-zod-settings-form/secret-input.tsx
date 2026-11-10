@@ -6,7 +6,7 @@
 import { IconEye, IconEyeOff } from '@tabler/icons-react';
 import { useState } from 'react';
 
-import { Input } from '@/components/ui/input';
+import { Input, InputAddon, InputGroup } from '@/components/ui/input';
 
 export function SecretInput({
   id,
@@ -27,7 +27,7 @@ export function SecretInput({
 }) {
   const [reveal, setReveal] = useState(false);
   return (
-    <div className="relative">
+    <InputGroup error={error}>
       <Input
         id={id}
         type={reveal ? 'text' : 'password'}
@@ -39,17 +39,19 @@ export function SecretInput({
         spellCheck={false}
         aria-describedby={describedBy}
         onChange={(event) => onChange(event.target.value)}
-        className="pr-12 font-mono"
+        className="font-mono"
       />
-      <button
-        type="button"
-        onClick={() => setReveal((current) => !current)}
-        disabled={disabled}
-        aria-label={reveal ? 'Hide secret' : 'Reveal secret'}
-        className="text-fg-subtle hover:text-fg absolute inset-y-0 right-0 flex w-11 items-center justify-center transition-colors"
-      >
-        {reveal ? <IconEyeOff className="size-4" /> : <IconEye className="size-4" />}
-      </button>
-    </div>
+      <InputAddon>
+        <button
+          type="button"
+          onClick={() => setReveal((current) => !current)}
+          disabled={disabled}
+          aria-label={reveal ? 'Hide secret' : 'Reveal secret'}
+          className="text-fg-subtle hover:text-fg inline-flex size-8 items-center justify-center rounded-sm transition-colors"
+        >
+          {reveal ? <IconEyeOff className="size-4" /> : <IconEye className="size-4" />}
+        </button>
+      </InputAddon>
+    </InputGroup>
   );
 }

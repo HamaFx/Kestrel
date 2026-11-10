@@ -4,10 +4,10 @@
 
 // 2FA enabled stage: lets an already-enrolled user disable two-factor auth
 // by entering a current TOTP code or regenerate single-use backup codes.
-import { IconLoader2, IconRefresh, IconShield, IconShieldOff } from '@tabler/icons-react';
+import { IconRefresh, IconShield, IconShieldOff } from '@tabler/icons-react';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { OtpInput } from '@/components/ui/otp-input';
 
 import { BackupCodesPanel } from './backup-codes-panel';
 
@@ -50,28 +50,21 @@ export function TwoFactorEnabledStage({
         />
       ) : null}
       <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center">
-        <Input
+        <OtpInput
           value={token}
-          onChange={(e) => setToken(e.target.value)}
-          placeholder="6-digit code"
-          maxLength={6}
-          inputMode="numeric"
+          onValueChange={setToken}
           aria-label="Enter 6-digit code to disable two-factor authentication"
-          className="bg-bg-elev-1 h-11 w-full text-sm sm:w-64"
         />
         <Button
           type="button"
           variant="danger"
           size="md"
+          loading={disabling}
           onClick={onDisable}
           disabled={disabling || token.length !== 6}
           className="h-11 w-fit"
         >
-          {disabling ? (
-            <IconLoader2 className="mr-1 size-3.5 animate-spin" />
-          ) : (
-            <IconShieldOff className="mr-1 size-3.5" />
-          )}
+          <IconShieldOff className="size-3.5" />
           Disable 2FA
         </Button>
         {onRegenerateBackupCodes ? (
@@ -82,7 +75,7 @@ export function TwoFactorEnabledStage({
             onClick={onRegenerateBackupCodes}
             className="tactile-press h-11 w-fit active:translate-y-[0.5px]"
           >
-            <IconRefresh className="mr-1 size-3.5" />
+            <IconRefresh className="size-3.5" />
             Regenerate backup codes
           </Button>
         ) : null}

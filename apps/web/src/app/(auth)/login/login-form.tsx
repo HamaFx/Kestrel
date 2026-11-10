@@ -9,6 +9,7 @@ import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { OtpInput } from '@/components/ui/otp-input';
 
 import { FormError } from '../_components/form-error';
 import { OAuthButtons } from '../_components/oauth-buttons';
@@ -97,19 +98,14 @@ export function LoginForm() {
               <label htmlFor="totpCode" className="text-fg text-sm font-semibold">
                 2FA Code
               </label>
-              <Input
+              <OtpInput
                 id="totpCode"
                 name="totpCode"
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={6}
-                autoComplete="one-time-code"
                 autoFocus
                 required
                 disabled={success}
                 readOnly={pending}
-                placeholder="Enter 6-digit code"
+                aria-label="Enter 6-digit 2FA code"
               />
             </div>
           )}

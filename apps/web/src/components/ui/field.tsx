@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Copyright 2026 Kestrel
  *
@@ -16,63 +18,95 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-import { Children, cloneElement, type ReactElement, type ReactNode } from 'react';
+// <Field> — accessible form field wrapper inspired by PanelUI's Field primitive.
+// Wires `<label htmlFor>`, helper description, and error feedback (`role="alert"`)
+// via React context so controls works seamlessly whether rendered bare (`<Input>`)
+// or nested inside `<InputGroup>` / custom wrappers. Automatically hides the
+// helper description while an error message is active to prevent vertical jitter.
+
+import { cloneElement, createContext, isValidElement, useContext, type ReactNode } from 'react';
 
 import { cn } from '@/lib/formatters/cn';
 
+interface FieldContextValue {
+  id: string;
+  describedBy: string | undefined;
+  hasError: boolean;
+}
+
+const FieldContext = createContext<FieldContextValue | null>(null);
+
+export function useFieldContext(): FieldContextValue | null {
+  return useContext(FieldContext);
+}
+
 interface FieldProps {
   label: ReactNode;
-  /** The `id` of the wrapped input and the `htmlFor` of the label. */
   htmlFor: string;
-  error?: string | null;
-  required?: boolean;
+  error?: string | null | undefined;
+  required?: boolean | undefined;
   helper?: ReactNode;
-  children: ReactElement<{ id?: string; 'aria-describedby'?: string }>;
+  children: ReactNode;
   className?: string;
 }
 
-/**
- * Reusable field primitive.
- *
- * Usage:
- *   <Field label="Level" htmlFor="alert-level" error={fieldErrors.level}>
- *     <Input id="alert-level" value={level} onChange={...} />
- *   </Field>
- *
- * The child is cloned so it receives the correct `id` and an
- * `aria-describedby` pointer when an error is present.
- */
 export function Field({
   label,
   htmlFor,
   error,
-  required,
+  required = false,
   helper,
   children,
   className,
 }: FieldProps) {
-  const hasError = error !== undefined && error !== null && error.length > 0;
-  const errorId = `${htmlFor}-error`;
+  const hasError = Boolean(error && error.trim().length > 0);
+  const errorId = hasError ? `${htmlFor}-error` : undefined;
+  const showHelper = !hasError && Boolean(helper);
+  const helperId = showHelper ? `${htmlFor}-helper` : undefined;
+  const describedBy = errorId ?? helperId;
 
-  const child = Children.only(children);
-  const input = cloneElement(child, {
-    id: htmlFor,
-    ...(hasError ? { 'aria-describedby': errorId } : {}),
-  });
+  // Fallback clone for raw native elements (<select>, <textarea>) that do not
+  // consume FieldContext directly.
+  const control = isValidElement<{ id?: string; 'aria-describedby'?: string }>(children)
+    ? cloneElement(children, {
+        id: children.props.id ?? htmlFor,
+        ...(describedBy && !children.props['aria-describedby']
+          ? { 'aria-describedby': describedBy }
+          : {}),
+      })
+    : children;
 
   return (
-    <div className={cn('flex flex-col gap-2', className)}>
-      <label htmlFor={htmlFor} className="text-fg-subtle text-body-sm tracking-wide uppercase">
-        {label}
-        {required ? <span className="text-danger ml-1">*</span> : null}
-      </label>
-      {input}
-      {helper ? <p className="text-fg-subtle text-xs">{helper}</p> : null}
-      {hasError ? (
-        <p id={errorId} role="alert" className="text-danger text-xs">
-          {error}
-        </p>
-      ) : null}
-    </div>
+    <FieldContext.Provider value={{ id: htmlFor, describedBy, hasError }}>
+      <div
+        data-slot="field"
+        data-invalid={hasError || undefined}
+        className={cn('flex flex-col gap-2', className)}
+      >
+        <label
+          data-slot="field-label"
+          htmlFor={htmlFor}
+          className="text-fg-subtle text-body-sm tracking-wide uppercase"
+        >
+          {label}
+          {required ? (
+            <span className="text-danger ml-1" aria-hidden="true">
+              *
+            </span>
+          ) : null}
+        </label>
+        {control}
+        {showHelper ? (
+          <p id={helperId} data-slot="field-description" className="text-fg-subtle text-xs">
+            {helper}
+          </p>
+        ) : null}
+        {hasError ? (
+          <p id={errorId} data-slot="field-error" role="alert" className="text-danger text-xs">
+            {error}
+          </p>
+        ) : null}
+      </div>
+    </FieldContext.Provider>
   );
 }

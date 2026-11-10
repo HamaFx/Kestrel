@@ -15,12 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { IconCheck, IconEye, IconEyeOff, IconLock } from '@tabler/icons-react';
+import { IconCheck, IconEye, IconEyeOff, IconLock, IconX } from '@tabler/icons-react';
 import { useActionState, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Input, InputAddon, InputGroup } from '@/components/ui/input';
+import { OtpInput } from '@/components/ui/otp-input';
 
 import { changePasswordAction } from '../../actions';
 
@@ -76,7 +77,7 @@ export function ChangePasswordCard() {
         </div>
       ) : (
         <form key={formKey} action={action} className="flex flex-col gap-3">
-          <div className="relative">
+          <InputGroup>
             <Input
               name="currentPassword"
               type={showCurrent ? 'text' : 'password'}
@@ -85,17 +86,19 @@ export function ChangePasswordCard() {
               required
               disabled={pending}
             />
-            <button
-              type="button"
-              onClick={() => setShowCurrent(!showCurrent)}
-              className="text-fg-muted hover:text-fg absolute top-1/2 right-2 -translate-y-1/2"
-              tabIndex={-1}
-              aria-label={showCurrent ? 'Hide password' : 'Show password'}
-            >
-              {showCurrent ? <IconEyeOff className="size-4" /> : <IconEye className="size-4" />}
-            </button>
-          </div>
-          <div className="relative">
+            <InputAddon>
+              <button
+                type="button"
+                onClick={() => setShowCurrent(!showCurrent)}
+                className="text-fg-muted hover:text-fg inline-flex size-8 items-center justify-center rounded-sm transition-colors"
+                tabIndex={-1}
+                aria-label={showCurrent ? 'Hide password' : 'Show password'}
+              >
+                {showCurrent ? <IconEyeOff className="size-4" /> : <IconEye className="size-4" />}
+              </button>
+            </InputAddon>
+          </InputGroup>
+          <InputGroup>
             <Input
               name="newPassword"
               type={showNew ? 'text' : 'password'}
@@ -107,40 +110,68 @@ export function ChangePasswordCard() {
               minLength={8}
               disabled={pending}
             />
-            <button
-              type="button"
-              onClick={() => setShowNew(!showNew)}
-              className="text-fg-muted hover:text-fg absolute top-1/2 right-2 -translate-y-1/2"
-              tabIndex={-1}
-            >
-              {showNew ? <IconEyeOff className="size-4" /> : <IconEye className="size-4" />}
-            </button>
-          </div>
+            <InputAddon>
+              <button
+                type="button"
+                onClick={() => setShowNew(!showNew)}
+                className="text-fg-muted hover:text-fg inline-flex size-8 items-center justify-center rounded-sm transition-colors"
+                tabIndex={-1}
+                aria-label={showNew ? 'Hide new password' : 'Show new password'}
+              >
+                {showNew ? <IconEyeOff className="size-4" /> : <IconEye className="size-4" />}
+              </button>
+            </InputAddon>
+          </InputGroup>
           {newPassword.length > 0 && (
             <div className="text-fg-subtle grid grid-cols-2 gap-1 text-xs">
-              <span className={newPassword.length >= 8 ? 'text-success' : 'text-danger'}>
-                {newPassword.length >= 8 ? '✓' : '✗'} Min 8 characters
+              <span
+                className={`inline-flex items-center gap-1 ${newPassword.length >= 8 ? 'text-success' : 'text-danger'}`}
+              >
+                {newPassword.length >= 8 ? (
+                  <IconCheck className="size-3.5 shrink-0" aria-hidden="true" />
+                ) : (
+                  <IconX className="size-3.5 shrink-0" aria-hidden="true" />
+                )}
+                Min 8 characters
               </span>
-              <span className={/[A-Z]/.test(newPassword) ? 'text-success' : 'text-danger'}>
-                {/[A-Z]/.test(newPassword) ? '✓' : '✗'} Uppercase
+              <span
+                className={`inline-flex items-center gap-1 ${/[A-Z]/.test(newPassword) ? 'text-success' : 'text-danger'}`}
+              >
+                {/[A-Z]/.test(newPassword) ? (
+                  <IconCheck className="size-3.5 shrink-0" aria-hidden="true" />
+                ) : (
+                  <IconX className="size-3.5 shrink-0" aria-hidden="true" />
+                )}
+                Uppercase
               </span>
-              <span className={/[a-z]/.test(newPassword) ? 'text-success' : 'text-danger'}>
-                {/[a-z]/.test(newPassword) ? '✓' : '✗'} Lowercase
+              <span
+                className={`inline-flex items-center gap-1 ${/[a-z]/.test(newPassword) ? 'text-success' : 'text-danger'}`}
+              >
+                {/[a-z]/.test(newPassword) ? (
+                  <IconCheck className="size-3.5 shrink-0" aria-hidden="true" />
+                ) : (
+                  <IconX className="size-3.5 shrink-0" aria-hidden="true" />
+                )}
+                Lowercase
               </span>
-              <span className={/[0-9]/.test(newPassword) ? 'text-success' : 'text-danger'}>
-                {/[0-9]/.test(newPassword) ? '✓' : '✗'} Number
+              <span
+                className={`inline-flex items-center gap-1 ${/[0-9]/.test(newPassword) ? 'text-success' : 'text-danger'}`}
+              >
+                {/[0-9]/.test(newPassword) ? (
+                  <IconCheck className="size-3.5 shrink-0" aria-hidden="true" />
+                ) : (
+                  <IconX className="size-3.5 shrink-0" aria-hidden="true" />
+                )}
+                Number
               </span>
             </div>
           )}
-          <Input
-            name="totpCode"
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            maxLength={6}
-            placeholder="2FA code (if enabled)"
-            disabled={pending}
-          />
+          <div className="flex flex-col gap-1.5">
+            <span className="text-fg-subtle font-mono text-[10px] tracking-wider uppercase">
+              2FA code (if enabled)
+            </span>
+            <OtpInput name="totpCode" disabled={pending} aria-label="2FA code (if enabled)" />
+          </div>
           <Button type="submit" size="sm" loading={pending} disabled={pending}>
             Change password
           </Button>

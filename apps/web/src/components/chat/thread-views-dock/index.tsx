@@ -27,6 +27,7 @@ import type { UIMessage } from 'ai';
 import { m } from 'motion/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { Splitter } from '@/components/ui/splitter';
 import { useTimeframe } from '@/hooks/use-tf';
 import type { AgentProgress } from '@/lib/chat-transport';
 import { cn } from '@/lib/formatters/cn';
@@ -250,45 +251,21 @@ export function ThreadViewsDock({
         className="border-border/40 bg-bg-elev-1 fixed inset-y-0 right-0 z-40 flex h-full w-full max-w-md shrink-0 flex-col overflow-hidden border-l shadow-[0_0_50px_rgba(0,0,0,0.6)] lg:relative lg:z-auto lg:max-w-none lg:shadow-none"
       >
         {/* Machined Desktop Resize Handle (left edge) */}
-        <div
-          role="separator"
-          tabIndex={0}
-          aria-orientation="vertical"
-          aria-label="Resize War Room dock"
-          aria-valuemin={MIN_DOCK_WIDTH}
-          aria-valuemax={MAX_DOCK_WIDTH}
-          aria-valuenow={dockWidth}
-          title="Drag to resize War Room (double-click to reset)"
+        <Splitter
+          orientation="vertical"
+          label="Resize War Room dock"
+          min={MIN_DOCK_WIDTH}
+          max={MAX_DOCK_WIDTH}
+          value={dockWidth}
+          active={isResizing}
           onPointerDown={startResize}
           onPointerMove={moveResize}
           onPointerUp={endResize}
           onPointerCancel={endResize}
-          onDoubleClick={() => persistWidth(DEFAULT_DOCK_WIDTH)}
-          onKeyDown={(e) => {
-            if (e.key === 'ArrowLeft') {
-              e.preventDefault();
-              persistWidth(dockWidth + 24);
-            } else if (e.key === 'ArrowRight') {
-              e.preventDefault();
-              persistWidth(dockWidth - 24);
-            } else if (e.key === 'Home') {
-              e.preventDefault();
-              persistWidth(DEFAULT_DOCK_WIDTH);
-            }
-          }}
-          className={cn(
-            'group absolute inset-y-0 left-0 z-30 hidden w-2 cursor-col-resize items-center justify-center transition-colors lg:flex',
-            isResizing ? 'bg-brand/25' : 'hover:bg-brand/15',
-          )}
-        >
-          <span
-            aria-hidden="true"
-            className={cn(
-              'h-10 w-[2px] rounded-full transition-colors',
-              isResizing ? 'bg-brand' : 'bg-white/15 group-hover:bg-brand/70',
-            )}
-          />
-        </div>
+          onReset={() => persistWidth(DEFAULT_DOCK_WIDTH)}
+          onStep={(dir) => persistWidth(dockWidth - dir * 24)}
+          className="absolute inset-y-0 left-0 z-30 hidden lg:flex"
+        />
 
         {/* Dock Header & Navigation Tabs */}
         <div className="border-border/40 bg-bg-elev-2/80 relative flex h-12 shrink-0 items-center justify-between overflow-hidden border-b px-3">

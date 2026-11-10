@@ -33,6 +33,8 @@ interface ActivityRollupProps {
   children: ReactNode;
 }
 
+const AUTO_COLLAPSE_DELAY_MS = 1000;
+
 export function ActivityRollup({
   toolCount,
   thinkingCount = 0,
@@ -44,6 +46,7 @@ export function ActivityRollup({
   const [open, setOpen] = useState(defaultOpen || isRunning);
   const [elapsedMs, setElapsedMs] = useState(0);
   const wasRunningRef = useRef(isRunning);
+  const userToggledRef = useRef(false);
   const startTimeRef = useRef<number | null>(isRunning ? Date.now() : null);
 
   useEffect(() => {
@@ -52,7 +55,9 @@ export function ActivityRollup({
         startTimeRef.current = Date.now();
       }
       wasRunningRef.current = true;
-      setOpen(true);
+      if (!userToggledRef.current) {
+        setOpen(true);
+      }
       const timer = window.setInterval(() => {
         if (startTimeRef.current !== null) {
           setElapsedMs(Date.now() - startTimeRef.current);
@@ -67,9 +72,14 @@ export function ActivityRollup({
         setElapsedMs(Date.now() - startTimeRef.current);
         startTimeRef.current = null;
       }
-      // Auto-collapse once all tool checks finish so the chat thread stays calm.
-      setOpen(false);
+      if (!userToggledRef.current) {
+        const foldTimer = window.setTimeout(() => {
+          setOpen(false);
+        }, AUTO_COLLAPSE_DELAY_MS);
+        return () => window.clearTimeout(foldTimer);
+      }
     }
+    return undefined;
   }, [isRunning]);
 
   const parts: string[] = [];
@@ -87,14 +97,17 @@ export function ActivityRollup({
   const visibleSummaries = summaries.slice(0, 3);
 
   return (
-    <div className="my-2 w-full select-none">
+    <div data-slot="task-rollup" className="my-2 w-full select-none">
       <div className="hover:border-brand/40 rounded-xl border border-white/[0.08] bg-[#141416]/85 p-1 shadow-sm transition-all">
         <button
           type="button"
-          onClick={() => setOpen((v) => !v)}
+          onClick={() => {
+            userToggledRef.current = true;
+            setOpen((v) => !v);
+          }}
           aria-expanded={open}
           className={cn(
-            'flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left font-mono text-xs transition-colors',
+            'focus-visible:ring-brand flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left font-mono text-xs transition-colors focus:outline-none focus-visible:ring-2',
             'hover:bg-bg-elev-2 active:translate-y-[0.5px]',
             isRunning ? 'text-fg' : 'text-fg-muted',
           )}
@@ -137,9 +150,7 @@ export function ActivityRollup({
                 {(elapsedMs / 1000).toFixed(1)}s
               </span>
             )}
-            <span className="hidden font-mono md:inline">
-              {open ? 'Hide Details ▲' : 'Details ▼'}
-            </span>
+            <span className="hidden font-mono md:inline">{open ? 'Hide Details' : 'Details'}</span>
             <IconChevronDown
               className={cn(
                 'size-3.5 shrink-0 transition-transform duration-150',
@@ -158,8 +169,13 @@ export function ActivityRollup({
               transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
               className="overflow-hidden"
             >
-              <div className="border-border/30 mt-1 flex flex-col gap-1 border-t px-2 py-2 font-mono text-xs">
-                {children}
+              <div className="border-border/30 mt-1 border-t px-2 py-2 font-mono text-xs">
+                <div
+                  data-slot="task-rail"
+                  className="border-border/50 ml-2.5 flex flex-col gap-1 border-l pl-2.5"
+                >
+                  {children}
+                </div>
               </div>
             </m.div>
           )}

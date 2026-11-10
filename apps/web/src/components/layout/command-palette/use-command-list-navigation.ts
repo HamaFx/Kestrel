@@ -46,6 +46,12 @@ export function useCommandListNavigation({
       setActiveIdx((i) =>
         flatRows.length === 0 ? 0 : (i - 1 + flatRows.length) % flatRows.length,
       );
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      if (flatRows.length === 0) return;
+      setActiveIdx((i) =>
+        e.shiftKey ? (i - 1 + flatRows.length) % flatRows.length : (i + 1) % flatRows.length,
+      );
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const target = flatRows[activeIdx];
