@@ -135,7 +135,9 @@ describe('Kestrel PanelUI-inspired Tier 1 & Tier 2 primitives', () => {
       }),
     );
     expect(otpHtml).toContain('data-slot="otp-input"');
-    expect(otpHtml).toContain('autocomplete="one-time-code"');
+    // React 19.3 serialises `autoComplete` with its JSX casing; attribute names
+    // are case-insensitive in HTML, so assert the value without the casing.
+    expect(otpHtml.toLowerCase()).toContain('autocomplete="one-time-code"');
     expect(otpHtml).toContain('name="totpCode"');
     expect(otpHtml).toContain('—');
   });
@@ -219,9 +221,7 @@ describe('Kestrel PanelUI-inspired Tier 1 & Tier 2 primitives', () => {
     expect(meterHtml).toContain('role="meter"');
 
     const gridData: DayGridDatum[] = [{ date: '2026-10-01', value: 2.1, count: 2 }];
-    const dayGridHtml = renderToStaticMarkup(
-      createElement(DayGrid, { data: gridData, weeks: 4 }),
-    );
+    const dayGridHtml = renderToStaticMarkup(createElement(DayGrid, { data: gridData, weeks: 4 }));
     expect(dayGridHtml).toContain('data-slot="day-grid"');
     expect(dayGridHtml).toContain('+2.10R');
 
