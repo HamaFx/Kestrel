@@ -139,11 +139,7 @@ export function LandingSimulator() {
             </div>
 
             <div className="relative z-10 my-6">
-              <SimulatorSetupChart
-                scenario={featuredScenario}
-                isVetoed={false}
-                riskPercent={0.85}
-              />
+              <SimulatorSetupChart scenario={featuredScenario} stage="complete" isVetoed={false} />
             </div>
 
             <div className="relative z-10 grid grid-cols-2 gap-4 border-t border-white/[0.08] pt-5 font-mono text-xs tabular-nums sm:grid-cols-4 sm:divide-x sm:divide-white/[0.08]">
