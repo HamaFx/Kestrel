@@ -12,8 +12,14 @@
  *   3. `<epoch>` fallback (logged as a warning)
  *
  * Outputs (into `public/` unless `KESTREL_SW_OUT_DIR` overrides it):
- *   - `sw.js`              — `__BUILD_ID__` / `__ASSET_REV__` / VAPID substituted
+ *   - `sw.js`              — `__BUILD_ID__` / `__ASSET_REV__` / `__SW_DEV__` /
+ *                            VAPID substituted
  *   - `sw-precache.json`   — exact precache list
+ *
+ * `--dev` (or `KESTREL_SW_DEV=1`) stamps the worker as a development build.
+ * `next dev` reuses `/_next/static/` chunk URLs across recompiles, so the
+ * generated worker clears its caches and unregisters itself instead of serving
+ * stale modules. `predev` passes the flag; `build.mjs` never does.
  *
  * `KESTREL_SW_OUT_DIR` exists for tests and packaging checks: they must be
  * able to exercise the generator without overwriting the served `public/sw.js`
@@ -102,6 +108,19 @@ export function resolveOutDir() {
   return override ? resolve(override) : PUBLIC_DIR;
 }
 
+/**
+ * True when the worker is generated for `next dev`.
+ *
+ * The dev server keeps chunk URLs stable across recompiles, so a cache-first
+ * worker shadows every edit until the site data is cleared. The dev worker
+ * unregisters itself and drops its caches instead.
+ *
+ * @returns {boolean}
+ */
+export function resolveDevMode() {
+  return process.argv.includes('--dev') || process.env.KESTREL_SW_DEV === '1';
+}
+
 export function main() {
   if (!existsSync(TEMPLATE_FILE)) {
     // Fail before writing anything: a fresh manifest with no worker behind it
@@ -116,6 +135,7 @@ export function main() {
 
   const buildId = resolveBuildId();
   const assetRev = resolveAssetRev();
+  const isDev = resolveDevMode();
   const outDir = resolveOutDir();
   const swFile = resolve(outDir, 'sw.js');
   const precacheFile = resolve(outDir, 'sw-precache.json');
@@ -125,6 +145,7 @@ export function main() {
   const stamped = template
     .replace(/__BUILD_ID__/g, buildId)
     .replace(/__ASSET_REV__/g, assetRev)
+    .replace(/__SW_DEV__/g, String(isDev))
     .replace(/__VAPID_PUBLIC_KEY__/g, vapidPublicKey);
 
   mkdirSync(outDir, { recursive: true });
@@ -133,6 +154,7 @@ export function main() {
 
   console.log(
     `[generate-sw] wrote ${swFile} (build: ${buildId}, assets: ${assetRev}` +
+      `${isDev ? ', dev: self-unregistering' : ''}` +
       `${vapidPublicKey ? '' : ', no VAPID key — push re-subscribe disabled'})`,
   );
   console.log(`[generate-sw] wrote ${precacheFile} (${PRECACHE_URLS.length} urls)`);

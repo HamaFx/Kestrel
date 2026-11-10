@@ -46,6 +46,23 @@ export function SwRegister(): null {
     if (!('serviceWorker' in navigator)) return;
     if (!window.isSecureContext) return;
 
+    // `next dev` reuses `/_next/static/` chunk URLs across recompiles, so a
+    // cache-first worker keeps stale modules alive after a save or a restart;
+    // React then fails with "Element type is invalid". Development runs without
+    // a worker: the generated dev worker is self-unregistering already, and
+    // this removes any older one together with its cached chunks.
+    if (process.env.NODE_ENV === 'development') {
+      void navigator.serviceWorker.getRegistrations().then((existing) => {
+        for (const registration of existing) void registration.unregister();
+      });
+      if ('caches' in window) {
+        void caches.keys().then((keys) => {
+          for (const key of keys) void caches.delete(key);
+        });
+      }
+      return;
+    }
+
     // Did this page already start under a controller? Only then can a
     // controllerchange mean "an update took over".
     const controlledOnLoad = Boolean(navigator.serviceWorker.controller);

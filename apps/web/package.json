@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "predev": "node scripts/generate-sw.mjs",
+    "predev": "node scripts/generate-sw.mjs --dev",
     "build": "node scripts/build.mjs",
     "start": "next start",
     "verify:built-security": "node scripts/verify-built-security.mjs",

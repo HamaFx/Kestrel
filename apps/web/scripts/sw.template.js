@@ -55,6 +55,14 @@
 // image with no git metadata) but the precached asset set changed.
 const CACHE_NAME = 'kestrel-shell-v__BUILD_ID__-__ASSET_REV__';
 /**
+ * True for `next dev` builds (`predev` passes `--dev`). Dev chunk URLs under
+ * `/_next/static/` are stable across recompiles, so caching them cache-first
+ * keeps old modules alive after every save and restart — React then fails with
+ * "Element type is invalid". The dev worker therefore caches nothing, drops
+ * every existing cache, and unregisters itself.
+ */
+const IS_DEV = __SW_DEV__;
+/**
  * Bumped when the message/strategy contract changes so a client can tell a
  * stale worker from a current one (`GET_VERSION`).
  */
@@ -132,6 +140,11 @@ const PUBLIC_NAV_ALLOWLIST = new Set(['/offline', '/login', '/landing']);
 // --- install ---------------------------------------------------------------
 
 self.addEventListener('install', (event) => {
+  // Dev: activate immediately so the cleanup below runs without a user tap.
+  if (IS_DEV) {
+    event.waitUntil(self.skipWaiting());
+    return;
+  }
   event.waitUntil(precacheShell());
 });
 
@@ -182,6 +195,16 @@ async function precacheOne(cache, url) {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
+      // Dev: wipe the caches a previous worker left behind, then remove this
+      // worker entirely. No claim(): the page is about to be served by the
+      // dev server alone, and a controller would keep the old navigations.
+      if (IS_DEV) {
+        const devKeys = await caches.keys();
+        await Promise.all(devKeys.map((key) => caches.delete(key)));
+        await self.registration.unregister();
+        return;
+      }
+
       const keys = await caches.keys();
       await Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)));
 
@@ -226,6 +249,9 @@ async function ensureOfflineShell() {
 // --- fetch -----------------------------------------------------------------
 
 self.addEventListener('fetch', (event) => {
+  // Dev: network-only. A cached module chunk is never worth a stale render.
+  if (IS_DEV) return;
+
   const req = event.request;
   if (req.method !== 'GET') return;
 
