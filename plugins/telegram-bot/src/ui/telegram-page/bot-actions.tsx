@@ -15,13 +15,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { PLUGIN_UI_CLASSES } from '@kestrel/plugin-sdk/ui';
 import { IconBrandTelegram, IconExternalLink } from '@tabler/icons-react';
 import Link from 'next/link';
 
 export function BotActions({ botUrl }: { botUrl: string | null }) {
   return (
-    <section className="surface-panel border-border bg-bg-elev-1 rounded-xl border p-5 shadow-[var(--shadow-chip)]">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <section data-slot="frame" className={PLUGIN_UI_CLASSES.frame}>
+      <div data-slot="frame-header" className={PLUGIN_UI_CLASSES.frameHeader}>
+        <span data-slot="frame-title" className={PLUGIN_UI_CLASSES.frameTitle}>
+          Bot Gateway
+        </span>
+      </div>
+      <div
+        data-slot="frame-panel"
+        className={`${PLUGIN_UI_CLASSES.framePanel} flex flex-wrap items-center justify-between gap-3`}
+      >
         <div>
           <h3 className="text-fg text-sm font-semibold">Open your bot</h3>
           <p className="text-fg-subtle text-xs">
@@ -34,17 +43,14 @@ export function BotActions({ botUrl }: { botUrl: string | null }) {
               href={botUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-brand inline-flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-medium text-white transition-[filter] hover:brightness-110"
+              className={PLUGIN_UI_CLASSES.buttonPrimary}
             >
               <IconBrandTelegram className="size-4" />
               Open in Telegram
               <IconExternalLink className="size-3.5" />
             </a>
           ) : (
-            <Link
-              href="/settings/plugins"
-              className="bg-brand inline-flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-medium text-white transition-[filter] hover:brightness-110"
-            >
+            <Link href="/settings/plugins" className={PLUGIN_UI_CLASSES.buttonPrimary}>
               Finish setup
             </Link>
           )}

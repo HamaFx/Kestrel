@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { fmtMoneyPlain } from '../format';
+import { fmtMoneyPlain, PLUGIN_UI_CLASSES } from '../format';
 import {
   type Account,
   type OrderFormState,
@@ -23,8 +23,7 @@ import {
   type OrderType,
 } from './use-place-order';
 
-const inputClass =
-  'border-border bg-[#0e0f11]/90 text-fg placeholder:text-fg-subtle focus:border-brand/60 h-10 rounded-lg border px-3 font-mono text-xs outline-none';
+const inputClass = PLUGIN_UI_CLASSES.input;
 
 const SYMBOLS = ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'BTCUSDT', 'ETHUSDT'];
 
@@ -38,12 +37,16 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="flex flex-col gap-1">
-      <span className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
+    <label data-slot="field" className="flex flex-col gap-1.5">
+      <span data-slot="field-label" className={PLUGIN_UI_CLASSES.fieldLabel}>
         {label}
       </span>
       {children}
-      {hint ? <span className="text-fg-subtle text-[11px]">{hint}</span> : null}
+      {hint ? (
+        <span data-slot="field-description" className="text-fg-subtle text-[11px]">
+          {hint}
+        </span>
+      ) : null}
     </label>
   );
 }
@@ -69,7 +72,7 @@ export function OrderFields({
   const sliderValue = Math.min(2, Math.max(0.1, effectiveRisk || 1));
 
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
       <Field label="Account">
         <select
           value={state.accountRef}

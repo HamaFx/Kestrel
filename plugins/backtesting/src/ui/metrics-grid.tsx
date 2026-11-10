@@ -18,7 +18,15 @@
 import type { z } from 'zod';
 
 import type { BacktestMetricsSchema } from '../schemas';
-import { fmtMoney, fmtNumber, fmtPct, fmtR, toneClass } from './format';
+import {
+  fmtMoney,
+  fmtNumber,
+  fmtPct,
+  fmtR,
+  PLUGIN_UI_CLASSES,
+  toneClass,
+  trendToneClass,
+} from './format';
 
 type Metrics = z.infer<typeof BacktestMetricsSchema>;
 
@@ -34,19 +42,26 @@ function Cell({
   hint?: string;
 }) {
   return (
-    <div className="bg-bg-elev-1 border-border flex flex-col gap-0.5 rounded-xl border p-3">
-      <span className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
+    <div data-slot="kpi" className={PLUGIN_UI_CLASSES.kpiCell}>
+      <span data-slot="kpi-label" className={PLUGIN_UI_CLASSES.kpiLabel}>
         {label}
       </span>
-      <span className={`font-mono text-sm font-semibold tabular-nums ${tone ?? 'text-fg'}`}>
+      <span
+        data-slot="kpi-value"
+        className={`${PLUGIN_UI_CLASSES.kpiValue} ${tone ?? 'text-fg'}`}
+      >
         {value}
       </span>
-      {hint ? <span className="text-fg-subtle text-[11px]">{hint}</span> : null}
+      {hint ? (
+        <span data-slot="kpi-footer" className={PLUGIN_UI_CLASSES.kpiHint}>
+          {hint}
+        </span>
+      ) : null}
     </div>
   );
 }
 
-/** Compact scorecard used by the chat card and the run page. */
+/** Compact shared-hairline KPI scorecard used by the chat card and the run page. */
 export function MetricsGrid({ metrics }: { metrics: Metrics }) {
   const cells = [
     {
@@ -84,7 +99,7 @@ export function MetricsGrid({ metrics }: { metrics: Metrics }) {
     {
       label: 'Max drawdown',
       value: `${fmtNumber(metrics.maxDrawdownPct, 1)}%`,
-      tone: metrics.maxDrawdownPct > 20 ? 'text-bear' : 'text-fg',
+      tone: trendToneClass(metrics.maxDrawdownPct - 20, 'down'),
       hint: fmtMoney(-Math.abs(metrics.maxDrawdown)),
     },
     {
@@ -100,7 +115,7 @@ export function MetricsGrid({ metrics }: { metrics: Metrics }) {
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <div role="group" data-slot="kpi-group" className={PLUGIN_UI_CLASSES.kpiGroup}>
       {cells.map((cell) => (
         <Cell key={cell.label} {...cell} />
       ))}

@@ -17,12 +17,12 @@
  */
 
 // Summary statistics header for the Backtesting Lab page.
-import { fmtMoney, fmtPct, toneClass } from '../format';
+import { fmtMoney, fmtPct, PLUGIN_UI_CLASSES, toneClass } from '../format';
 import type { BacktestPageController } from './use-backtest-page';
 
 export function SummaryStats({ page }: { page: BacktestPageController }) {
   return (
-    <section className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <section role="group" data-slot="kpi-group" className={PLUGIN_UI_CLASSES.kpiGroup}>
       <Stat label="Saved runs" value={String(page.summary?.runCount ?? page.runs.length)} />
       <Stat
         label="Strategies"
@@ -32,18 +32,19 @@ export function SummaryStats({ page }: { page: BacktestPageController }) {
         label="Knowledge docs"
         value={String(page.summary?.knowledgeCount ?? page.documents.length)}
       />
-      <div className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-0.5 rounded-xl border p-3">
-        <span className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
+      <div data-slot="kpi" className={PLUGIN_UI_CLASSES.kpiCell}>
+        <span data-slot="kpi-label" className={PLUGIN_UI_CLASSES.kpiLabel}>
           Latest run
         </span>
         {page.summary?.latestRun ? (
           <>
             <span
-              className={`font-mono text-sm font-semibold ${toneClass(page.summary.latestRun.metrics.netPnl)}`}
+              data-slot="kpi-value"
+              className={`${PLUGIN_UI_CLASSES.kpiValue} ${toneClass(page.summary.latestRun.metrics.netPnl)}`}
             >
               {fmtMoney(page.summary.latestRun.metrics.netPnl)}
             </span>
-            <span className="text-fg-subtle font-mono text-[11px]">
+            <span data-slot="kpi-footer" className={PLUGIN_UI_CLASSES.kpiHint}>
               {page.summary.latestRun.symbol} ·{' '}
               {fmtPct(page.summary.latestRun.metrics.returnPct, 1)}
             </span>
@@ -58,11 +59,13 @@ export function SummaryStats({ page }: { page: BacktestPageController }) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-0.5 rounded-xl border p-3">
-      <span className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
+    <div data-slot="kpi" className={PLUGIN_UI_CLASSES.kpiCell}>
+      <span data-slot="kpi-label" className={PLUGIN_UI_CLASSES.kpiLabel}>
         {label}
       </span>
-      <span className="text-fg font-mono text-lg font-semibold tabular-nums">{value}</span>
+      <span data-slot="kpi-value" className={`${PLUGIN_UI_CLASSES.kpiValue} text-fg`}>
+        {value}
+      </span>
     </div>
   );
 }

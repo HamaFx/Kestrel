@@ -8,6 +8,14 @@ import { IconStethoscope } from '@tabler/icons-react';
 
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { formatRelative } from '@/lib/formatters/datetime';
 import { formatAbsoluteTime, formatMs } from '@/lib/formatters/format-number';
 import type { TraceExplorerEvent } from '@/lib/services/admin-dtos';
@@ -23,11 +31,11 @@ function EventRow({
 }) {
   const correlation = primaryCorrelation(event);
   return (
-    <tr
+    <TableRow
       tabIndex={0}
       role="button"
       aria-label={`Inspect ${event.name} ${event.status}`}
-      className="border-border hover:bg-bg-elev-1 focus-visible:bg-bg-elev-2 focus-visible:ring-brand/50 cursor-pointer border-t outline-none focus-visible:ring-2"
+      className="focus-visible:bg-bg-elev-2 focus-visible:ring-brand/50 cursor-pointer outline-none focus-visible:ring-2"
       onClick={() => onOpen(event)}
       onKeyDown={(keyboardEvent) => {
         if (keyboardEvent.key === 'Enter' || keyboardEvent.key === ' ') {
@@ -36,33 +44,33 @@ function EventRow({
         }
       }}
     >
-      <td data-label="Source" className="px-3 py-2">
+      <TableCell data-label="Source">
         <Badge tone={sourceTone(event.source)}>{event.source}</Badge>
-      </td>
-      <td data-label="Event" className="text-fg px-3 py-2 font-mono text-xs">
+      </TableCell>
+      <TableCell data-label="Event" className="text-fg font-mono text-xs">
         {event.name}
-      </td>
-      <td data-label="Status" className="px-3 py-2">
+      </TableCell>
+      <TableCell data-label="Status">
         <Badge tone={statusTone(event.status)}>{event.status}</Badge>
-      </td>
-      <td
+      </TableCell>
+      <TableCell
         data-label="Correlation"
-        className="text-fg-subtle max-w-36 truncate px-3 py-2 font-mono text-xs"
+        className="text-fg-subtle max-w-36 truncate font-mono text-xs"
         title={correlation ?? undefined}
       >
         {correlation ?? '—'}
-      </td>
-      <td data-label="Duration" className="text-fg-subtle px-3 py-2 tabular-nums">
+      </TableCell>
+      <TableCell data-label="Duration" numeric className="text-fg-subtle">
         {event.durationMs === null ? '—' : formatMs(event.durationMs)}
-      </td>
-      <td
+      </TableCell>
+      <TableCell
         data-label="Time"
-        className="text-fg-subtle px-3 py-2"
+        className="text-fg-subtle"
         title={formatAbsoluteTime(event.timestamp)}
       >
         {formatRelative(event.timestamp)}
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -74,36 +82,36 @@ export function TraceEventsTable({
   onOpen: (event: TraceExplorerEvent) => void;
 }) {
   return (
-    <div className="border-border overflow-hidden overflow-x-auto rounded-sm border">
-      <table className="table-stack w-full text-sm">
+    <div className="overflow-hidden overflow-x-auto rounded-xl border border-white/[0.07]">
+      <Table stackOnMobile>
         <caption className="sr-only">AI execution timeline</caption>
-        <thead className="bg-bg-elev-2 text-fg-subtle">
+        <TableHeader>
           <tr>
-            <th className="px-3 py-2 text-left font-medium">Source</th>
-            <th className="px-3 py-2 text-left font-medium">Event</th>
-            <th className="px-3 py-2 text-left font-medium">Status</th>
-            <th className="px-3 py-2 text-left font-medium">Correlation</th>
-            <th className="px-3 py-2 text-left font-medium">Duration</th>
-            <th className="px-3 py-2 text-left font-medium">Time</th>
+            <TableHead>Source</TableHead>
+            <TableHead>Event</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Correlation</TableHead>
+            <TableHead numeric>Duration</TableHead>
+            <TableHead>Time</TableHead>
           </tr>
-        </thead>
-        <tbody>
+        </TableHeader>
+        <TableBody>
           {events.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="px-4 py-8">
+            <TableRow>
+              <TableCell colSpan={6} className="px-4 py-8">
                 <EmptyState
                   icon={<IconStethoscope className="size-6" />}
                   title="No timeline events"
                   description="Try a trace, run, job, thread, or message ID."
                   bare
                 />
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ) : (
             events.map((event) => <EventRow key={event.id} event={event} onOpen={onOpen} />)
           )}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }

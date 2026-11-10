@@ -23,6 +23,7 @@ export {
   fmtPrice,
   fmtQty,
   fmtR,
+  PLUGIN_UI_CLASSES,
 } from '@kestrel/plugin-sdk/ui';
 
 import { toneClass as sharedToneClass } from '@kestrel/plugin-sdk/ui';

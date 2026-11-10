@@ -18,7 +18,15 @@
 import type { z } from 'zod';
 
 import type { BacktestTradeSchema } from '../schemas';
-import { fmtDate, fmtMoney, fmtNumber, fmtPrice, fmtR, toneClass } from './format';
+import {
+  fmtDate,
+  fmtMoney,
+  fmtNumber,
+  fmtPrice,
+  fmtR,
+  PLUGIN_UI_CLASSES,
+  toneClass,
+} from './format';
 
 type Trade = z.infer<typeof BacktestTradeSchema>;
 
@@ -59,9 +67,9 @@ export function TradeTable({
   }
 
   return (
-    <div className="border-border bg-bg-elev-1 overflow-x-auto rounded-xl border">
-      <table className="w-full min-w-[520px] text-left text-xs">
-        <thead className="bg-bg-elev-2/60 text-fg-subtle font-mono text-[11px] uppercase">
+    <div className={PLUGIN_UI_CLASSES.tableWrap}>
+      <table data-slot="table" className={`${PLUGIN_UI_CLASSES.table} min-w-[520px]`}>
+        <thead data-slot="table-header" className={PLUGIN_UI_CLASSES.tableHead}>
           <tr>
             <th className="px-2.5 py-2 font-semibold">#</th>
             <th className="px-2.5 py-2 font-semibold">Side</th>
@@ -74,9 +82,9 @@ export function TradeTable({
             <th className="px-2.5 py-2 font-semibold">Exit</th>
           </tr>
         </thead>
-        <tbody className="divide-border/40 divide-y">
+        <tbody data-slot="table-body" className={PLUGIN_UI_CLASSES.tableBody}>
           {rows.map((trade) => (
-            <tr key={trade.id} className="hover:bg-bg-elev-2/40">
+            <tr key={trade.id} data-slot="table-row" className={PLUGIN_UI_CLASSES.tableRow}>
               <td className="text-fg-subtle px-2.5 py-1.5 font-mono tabular-nums">{trade.id}</td>
               <td className="px-2.5 py-1.5">
                 <span

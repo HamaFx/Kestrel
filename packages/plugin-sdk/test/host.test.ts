@@ -24,6 +24,7 @@ import { z } from 'zod';
 import { PluginHost } from '../src/host';
 import { definePlugin } from '../src/index';
 import type { KestrelPlugin, PluginExecutionContext } from '../src/types';
+import { PLUGIN_UI_CLASSES, trendToneClass } from '../src/ui';
 
 const InputSchema = z.object({ symbol: z.string() });
 const OutputSchema = z.object({ ok: z.boolean() });
@@ -330,5 +331,16 @@ describe('PluginHost', () => {
     await tool.execute({ symbol: 'XAUUSD' }, ctx('alpha'));
     expect(seen?.pluginId).toBe('alpha');
     expect(seen?.userId).toBe('user-1');
+  });
+
+  it('exports polarity-aware trendToneClass and PLUGIN_UI_CLASSES tokens from ./ui', () => {
+    expect(trendToneClass(1.2, 'up')).toBe('text-bull');
+    expect(trendToneClass(-1.2, 'up')).toBe('text-bear');
+    expect(trendToneClass(-0.8, 'down')).toBe('text-bull');
+    expect(trendToneClass(0.8, 'down')).toBe('text-bear');
+    expect(trendToneClass(0, 'down')).toBe('text-fg-muted');
+    expect(PLUGIN_UI_CLASSES.frame).toContain('rounded-[20px]');
+    expect(PLUGIN_UI_CLASSES.kpiGroup).toContain('grid-cols-2');
+    expect(PLUGIN_UI_CLASSES.input).toContain('surface-well');
   });
 });

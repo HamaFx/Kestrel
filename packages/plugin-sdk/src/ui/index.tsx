@@ -60,5 +60,7 @@ export {
   fmtPrice,
   fmtQty,
   fmtR,
+  PLUGIN_UI_CLASSES,
   toneClass,
+  trendToneClass,
 } from './format';

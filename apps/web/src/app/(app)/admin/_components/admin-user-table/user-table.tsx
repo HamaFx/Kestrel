@@ -3,11 +3,19 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Sortable registered-user table with role badges and promote/demote actions.
-import { IconUsers } from '@tabler/icons-react';
+import { IconArrowDown, IconArrowUp, IconUsers } from '@tabler/icons-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { formatAbsoluteTime } from '@/lib/formatters/format-number';
 import type { UserSummary } from '@/lib/services/admin-dtos';
 
@@ -26,89 +34,97 @@ export function UserTable({ users, sort, onSort, pendingUserId, onRoleChange }: 
     <button
       type="button"
       onClick={() => onSort(key)}
-      className="hover:text-fg flex items-center gap-1 text-left font-medium"
+      className="hover:text-fg focus-visible:ring-brand inline-flex items-center gap-1 rounded text-left font-medium focus:outline-none focus-visible:ring-1"
     >
       {label}
-      {sort.key === key && (
-        <span className="text-fg-subtle">{sort.order === 'asc' ? '↑' : '↓'}</span>
-      )}
+      {sort.key === key ? (
+        sort.order === 'asc' ? (
+          <IconArrowUp className="text-brand size-3" aria-hidden="true" />
+        ) : (
+          <IconArrowDown className="text-brand size-3" aria-hidden="true" />
+        )
+      ) : null}
     </button>
   );
 
   return (
-    <div className="border-border overflow-x-auto rounded-sm border">
-      <table className="table-stack w-full min-w-[600px] text-sm">
-        <thead className="bg-bg-elev-2 text-fg-subtle">
+    <div className="overflow-x-auto rounded-xl border border-white/[0.07]">
+      <Table stackOnMobile className="min-w-[600px]">
+        <TableHeader>
           <tr>
-            <th className="px-4 py-2">{headerCell('email', 'Email')}</th>
-            <th className="px-4 py-2">{headerCell('role', 'Role')}</th>
-            <th className="px-4 py-2">Onboarding</th>
-            <th className="px-4 py-2">{headerCell('createdAt', 'Created')}</th>
-            <th className="px-4 py-2 text-right">Actions</th>
+            <TableHead className="px-4">{headerCell('email', 'Email')}</TableHead>
+            <TableHead className="px-4">{headerCell('role', 'Role')}</TableHead>
+            <TableHead className="px-4">Onboarding</TableHead>
+            <TableHead className="px-4">{headerCell('createdAt', 'Created')}</TableHead>
+            <TableHead numeric className="px-4">
+              Actions
+            </TableHead>
           </tr>
-        </thead>
-        <tbody>
+        </TableHeader>
+        <TableBody>
           {users.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="px-4 py-6">
+            <TableRow>
+              <TableCell colSpan={5} className="px-4 py-6">
                 <EmptyState
                   icon={<IconUsers className="size-6" />}
                   title="No users found"
                   description="Registered users will appear here."
                   bare
                 />
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ) : (
             users.map((user) => (
-              <tr key={user.id} className="row-primary border-border border-t">
-                <td className="text-fg px-4 py-2">
+              <TableRow key={user.id} className="row-primary">
+                <TableCell className="text-fg px-4">
                   <div className="flex flex-col">
                     <span>{user.email}</span>
                     {user.name && <span className="text-fg-subtle text-xs">{user.name}</span>}
                   </div>
-                </td>
-                <td data-label="Role" className="px-4 py-2">
+                </TableCell>
+                <TableCell data-label="Role" className="px-4">
                   <Badge tone={ROLE_TONE[user.role] ?? 'neutral'}>{user.role}</Badge>
-                </td>
-                <td data-label="Onboarding" className="px-4 py-2">
-                  <Badge tone={user.onboardingCompleted ? 'success' : 'warn'}>
+                </TableCell>
+                <TableCell data-label="Onboarding" className="px-4">
+                  <Badge tone={user.onboardingCompleted ? 'success' : 'warn'} dot>
                     {user.onboardingCompleted ? 'Done' : 'Pending'}
                   </Badge>
-                </td>
-                <td
+                </TableCell>
+                <TableCell
                   data-label="Created"
-                  className="text-fg-subtle px-4 py-2"
+                  className="text-fg-subtle px-4"
                   title={formatAbsoluteTime(user.createdAt)}
                 >
                   {new Date(user.createdAt).toLocaleDateString()}
-                </td>
-                <td data-label="Actions" className="px-4 py-2 text-right">
+                </TableCell>
+                <TableCell data-label="Actions" numeric className="px-4">
                   {user.role === 'admin' ? (
                     <Button
                       variant="secondary"
                       size="sm"
+                      loading={pendingUserId === user.id}
                       disabled={pendingUserId === user.id}
                       onClick={() => onRoleChange(user, 'user')}
                     >
-                      {pendingUserId === user.id ? 'Demoting…' : 'Demote'}
+                      Demote
                     </Button>
                   ) : (
                     <Button
                       variant="secondary"
                       size="sm"
+                      loading={pendingUserId === user.id}
                       disabled={pendingUserId === user.id}
                       onClick={() => onRoleChange(user, 'admin')}
                     >
-                      {pendingUserId === user.id ? 'Promoting…' : 'Promote'}
+                      Promote
                     </Button>
                   )}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))
           )}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }

@@ -19,7 +19,15 @@ import { IconLoader2, IconX } from '@tabler/icons-react';
 import type { z } from 'zod';
 
 import type { PositionSchema } from '../schemas';
-import { fmtDate, fmtMoney, fmtPrice, fmtQty, fmtR, toneClass } from './format';
+import {
+  fmtDate,
+  fmtMoney,
+  fmtPrice,
+  fmtQty,
+  fmtR,
+  PLUGIN_UI_CLASSES,
+  toneClass,
+} from './format';
 
 type Position = z.infer<typeof PositionSchema>;
 
@@ -43,9 +51,12 @@ export function PositionsTable({
   }
 
   return (
-    <div className="border-border bg-bg-elev-1 overflow-x-auto rounded-xl border">
-      <table className={`w-full text-left text-xs ${compact ? 'min-w-[560px]' : 'min-w-[860px]'}`}>
-        <thead className="bg-bg-elev-2/60 text-fg-subtle font-mono text-[11px] uppercase">
+    <div className={PLUGIN_UI_CLASSES.tableWrap}>
+      <table
+        data-slot="table"
+        className={`${PLUGIN_UI_CLASSES.table} ${compact ? 'min-w-[560px]' : 'min-w-[860px]'}`}
+      >
+        <thead data-slot="table-header" className={PLUGIN_UI_CLASSES.tableHead}>
           <tr>
             <th className="px-2.5 py-2 font-semibold">Market</th>
             <th className="px-2.5 py-2 font-semibold">Side</th>
@@ -63,11 +74,11 @@ export function PositionsTable({
             {onClose ? <th className="px-2.5 py-2" /> : null}
           </tr>
         </thead>
-        <tbody className="divide-border/40 divide-y">
+        <tbody data-slot="table-body" className={PLUGIN_UI_CLASSES.tableBody}>
           {positions.map((position) => {
             const open = position.status === 'open';
             return (
-              <tr key={position.id} className="hover:bg-bg-elev-2/40">
+              <tr key={position.id} data-slot="table-row" className={PLUGIN_UI_CLASSES.tableRow}>
                 <td className="px-2.5 py-2">
                   <div className="flex flex-col">
                     <span className="text-fg font-mono text-xs font-semibold">
@@ -131,7 +142,7 @@ export function PositionsTable({
                         type="button"
                         onClick={() => onClose(position, true)}
                         disabled={busyId !== null}
-                        className="border-border bg-[#0e0f11]/90 text-fg-subtle hover:text-fg inline-flex h-8 items-center rounded-lg border px-2.5 text-[11px] font-semibold disabled:opacity-40"
+                        className="surface-button text-fg-subtle hover:text-fg focus-visible:ring-brand inline-flex h-8 items-center rounded-lg border border-white/[0.09] px-2.5 text-[11px] font-semibold transition-all focus:outline-none focus-visible:ring-2 disabled:opacity-40"
                       >
                         Close 50%
                       </button>
@@ -139,7 +150,7 @@ export function PositionsTable({
                         type="button"
                         onClick={() => onClose(position, false)}
                         disabled={busyId !== null}
-                        className="text-fg-subtle hover:text-danger inline-flex size-8 items-center justify-center rounded-lg disabled:opacity-40"
+                        className="text-fg-subtle hover:text-danger focus-visible:ring-brand inline-flex size-8 items-center justify-center rounded-lg transition-colors focus:outline-none focus-visible:ring-2 disabled:opacity-40"
                         aria-label={`Close ${position.symbol}`}
                       >
                         {busyId === position.id ? (

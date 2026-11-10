@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { PLUGIN_UI_CLASSES } from '@kestrel/plugin-sdk/ui';
 import {
   IconAlertTriangle,
   IconBrandTelegram,
@@ -58,8 +59,11 @@ function Row({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="border-border/50 flex items-center gap-3 border-b py-3 last:border-b-0">
-      <span className="bg-bg-elev-2 text-fg-muted flex size-9 shrink-0 items-center justify-center rounded-lg">
+    <div
+      data-slot="frame-row"
+      className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white/[0.02]"
+    >
+      <span className="bg-bg-elev-2 text-fg-muted flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.06]">
         {icon}
       </span>
       <div className="flex min-w-0 flex-1 flex-col">
@@ -87,10 +91,10 @@ export function StatusPanel({
   onTest: () => void;
 }) {
   return (
-    <section className="surface-panel border-border bg-bg-elev-1 rounded-xl border p-5 shadow-[var(--shadow-chip)]">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <section data-slot="frame" className={PLUGIN_UI_CLASSES.frame}>
+      <div className="flex flex-wrap items-start justify-between gap-3 px-3 py-2.5">
         <div className="flex items-start gap-3">
-          <span className="bg-brand/10 text-brand flex size-11 items-center justify-center rounded-lg">
+          <span className="bg-brand/10 text-brand border-brand/25 flex size-11 items-center justify-center rounded-lg border">
             <IconBrandTelegram className="size-6" />
           </span>
           <div className="flex flex-col gap-1">
@@ -116,7 +120,7 @@ export function StatusPanel({
           type="button"
           onClick={onRefresh}
           disabled={loading}
-          className="text-fg-subtle hover:text-fg border-border bg-[#0e0f11]/90 inline-flex h-10 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors disabled:opacity-50"
+          className={PLUGIN_UI_CLASSES.buttonSecondary}
         >
           {loading ? (
             <IconLoader2 className="size-3.5 animate-spin" />
@@ -127,7 +131,7 @@ export function StatusPanel({
         </button>
       </div>
 
-      <div className="mt-4">
+      <div data-slot="frame-panel" className={PLUGIN_UI_CLASSES.framePanelBand}>
         <Row
           icon={<IconPlugConnected className="size-4" />}
           label="Webhook"
@@ -157,7 +161,7 @@ export function StatusPanel({
                 type="button"
                 onClick={onUnlink}
                 disabled={busy !== null}
-                className="text-fg-subtle hover:text-danger inline-flex h-10 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition-colors disabled:opacity-50"
+                className="text-fg-subtle hover:text-danger focus-visible:ring-brand inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 disabled:opacity-50"
               >
                 {busy === 'unlink' ? (
                   <IconLoader2 className="size-3.5 animate-spin" />
@@ -198,7 +202,7 @@ export function StatusPanel({
                 type="button"
                 onClick={onTest}
                 disabled={busy !== null}
-                className="border-border bg-[#0e0f11]/90 text-fg-muted hover:text-fg inline-flex h-10 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors disabled:opacity-50"
+                className={PLUGIN_UI_CLASSES.buttonSecondary}
               >
                 {busy === 'test' ? (
                   <IconLoader2 className="size-3.5 animate-spin" />
@@ -213,12 +217,12 @@ export function StatusPanel({
       </div>
 
       {status?.webhook.lastErrorMessage ? (
-        <p className="text-warn mt-3 text-xs">
+        <p className="text-warn px-3 py-1 text-xs">
           Telegram reports: {status.webhook.lastErrorMessage}
         </p>
       ) : null}
       {status?.settings.lastError ? (
-        <p className="text-warn mt-3 text-xs">Last setup error: {status.settings.lastError}</p>
+        <p className="text-warn px-3 py-1 text-xs">Last setup error: {status.settings.lastError}</p>
       ) : null}
     </section>
   );

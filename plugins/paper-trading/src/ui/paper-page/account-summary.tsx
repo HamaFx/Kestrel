@@ -15,19 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { fmtMoney, fmtMoneyPlain, toneClass } from '../format';
+import { fmtMoney, fmtMoneyPlain, PLUGIN_UI_CLASSES, toneClass } from '../format';
 import type { Summary } from './use-paper-page';
 
 export function AccountSummary({ summary }: { summary: Summary | null }) {
   return (
-    <section className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <section role="group" data-slot="kpi-group" className={PLUGIN_UI_CLASSES.kpiGroup}>
       <Stat label="Total equity" value={fmtMoneyPlain(summary?.totalEquity ?? 0)} />
-      <div className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-0.5 rounded-xl border p-3">
-        <span className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
+      <div data-slot="kpi" className={PLUGIN_UI_CLASSES.kpiCell}>
+        <span data-slot="kpi-label" className={PLUGIN_UI_CLASSES.kpiLabel}>
           Unrealized P&L
         </span>
         <span
-          className={`font-mono text-lg font-semibold tabular-nums ${toneClass(
+          data-slot="kpi-value"
+          className={`${PLUGIN_UI_CLASSES.kpiValue} ${toneClass(
             summary?.totalUnrealizedPnl ?? 0,
           )}`}
         >
@@ -42,11 +43,13 @@ export function AccountSummary({ summary }: { summary: Summary | null }) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="surface-panel border-border bg-bg-elev-1 flex flex-col gap-0.5 rounded-xl border p-3">
-      <span className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
+    <div data-slot="kpi" className={PLUGIN_UI_CLASSES.kpiCell}>
+      <span data-slot="kpi-label" className={PLUGIN_UI_CLASSES.kpiLabel}>
         {label}
       </span>
-      <span className="text-fg font-mono text-lg font-semibold tabular-nums">{value}</span>
+      <span data-slot="kpi-value" className={`${PLUGIN_UI_CLASSES.kpiValue} text-fg`}>
+        {value}
+      </span>
     </div>
   );
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Formatting helpers shared by the Backtesting Lab surfaces.
+// Formatting and PanelUI-aligned class helpers shared by the Backtesting Lab surfaces.
 
 export {
   fmtDate,
@@ -23,5 +23,7 @@ export {
   fmtPct,
   fmtPrice,
   fmtR,
+  PLUGIN_UI_CLASSES,
   toneClass,
+  trendToneClass,
 } from '@kestrel/plugin-sdk/ui';

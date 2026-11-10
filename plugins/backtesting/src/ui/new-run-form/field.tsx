@@ -17,6 +17,7 @@
  */
 
 // Labelled field wrapper for the new-run form.
+import { PLUGIN_UI_CLASSES } from '../format';
 
 export function Field({
   label,
@@ -28,12 +29,16 @@ export function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="flex flex-col gap-1">
-      <span className="text-fg-subtle text-[11px] font-semibold tracking-wider uppercase">
+    <label data-slot="field" className="flex flex-col gap-1.5">
+      <span data-slot="field-label" className={PLUGIN_UI_CLASSES.fieldLabel}>
         {label}
       </span>
       {children}
-      {hint ? <span className="text-fg-subtle text-[11px]">{hint}</span> : null}
+      {hint ? (
+        <span data-slot="field-description" className="text-fg-subtle text-[11px]">
+          {hint}
+        </span>
+      ) : null}
     </label>
   );
 }

@@ -15,12 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { PLUGIN_UI_CLASSES } from '@kestrel/plugin-sdk/ui';
 
 export function CommandReference() {
   return (
-    <section className="surface-panel border-border bg-bg-elev-1 rounded-xl border p-5 shadow-[var(--shadow-chip)]">
-      <h3 className="text-fg text-sm font-semibold">Command reference</h3>
-      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+    <section data-slot="frame" className={PLUGIN_UI_CLASSES.frame}>
+      <div data-slot="frame-header" className={PLUGIN_UI_CLASSES.frameHeader}>
+        <h3 data-slot="frame-title" className={PLUGIN_UI_CLASSES.frameTitle}>
+          Command Reference
+        </h3>
+      </div>
+      <div
+        data-slot="frame-panel"
+        className={`${PLUGIN_UI_CLASSES.framePanel} grid grid-cols-1 gap-2 sm:grid-cols-2`}
+      >
         {[
           ['/price XAUUSD', 'Live bid / ask'],
           ['/analyze XAUUSD full', '4-desk AI analysis'],
@@ -35,7 +43,7 @@ export function CommandReference() {
         ].map(([command, description]) => (
           <div
             key={command}
-            className="border-border/50 bg-[#0e0f11]/90 flex flex-col gap-0.5 rounded-lg border p-3"
+            className="surface-well border-border/60 flex flex-col gap-0.5 rounded-lg border p-3"
           >
             <code className="text-fg font-mono text-xs">{command}</code>
             <span className="text-fg-subtle text-xs">{description}</span>

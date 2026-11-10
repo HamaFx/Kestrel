@@ -22,9 +22,17 @@ import { useEffect, useState } from 'react';
 
 import { SettingsSection } from '@/app/(app)/settings/_components/settings-section';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, ButtonGroup } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { formatRelative } from '@/lib/formatters/datetime';
 import { downloadCSV, formatAbsoluteTime, formatMs } from '@/lib/formatters/format-number';
 import { apiFetch } from '@/lib/http/api-client';
@@ -89,67 +97,76 @@ export function AdminToolTelemetryTable() {
 
   return (
     <SettingsSection title="Tool Telemetry" description={description}>
-      <div className="flex justify-end gap-2 pb-3">
-        <Button variant="secondary" size="sm" onClick={fetchRows}>
-          Refresh
-        </Button>
-        {rows.length > 0 && (
-          <Button variant="ghost" size="sm" onClick={handleExport}>
-            <IconDownload className="size-4" aria-hidden="true" />
-            CSV
+      <div className="flex justify-end pb-3">
+        <ButtonGroup>
+          <Button variant="secondary" size="sm" onClick={fetchRows}>
+            Refresh
           </Button>
-        )}
+          {rows.length > 0 && (
+            <Button variant="secondary" size="sm" onClick={handleExport}>
+              <IconDownload className="size-4" aria-hidden="true" />
+              CSV
+            </Button>
+          )}
+        </ButtonGroup>
       </div>
-      <div className="border-border overflow-hidden overflow-x-auto rounded-sm border">
-        <table className="table-stack w-full text-sm">
-          <thead className="bg-bg-elev-2 text-fg-subtle">
+      <div className="overflow-hidden overflow-x-auto rounded-xl border border-white/[0.07]">
+        <Table stackOnMobile>
+          <TableHeader>
             <tr>
-              <th className="px-4 py-2 text-left font-medium">Tool</th>
-              <th className="px-4 py-2 text-left font-medium">Thread</th>
-              <th className="px-4 py-2 text-left font-medium">Status</th>
-              <th className="px-4 py-2 text-left font-medium">Duration</th>
-              <th className="px-4 py-2 text-left font-medium">Error</th>
-              <th className="px-4 py-2 text-left font-medium">Time</th>
+              <TableHead className="px-4">Tool</TableHead>
+              <TableHead className="px-4">Thread</TableHead>
+              <TableHead className="px-4">Status</TableHead>
+              <TableHead numeric className="px-4">
+                Duration
+              </TableHead>
+              <TableHead className="px-4">Error</TableHead>
+              <TableHead className="px-4">Time</TableHead>
             </tr>
-          </thead>
-          <tbody>
+          </TableHeader>
+          <TableBody>
             {rows.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-6">
+              <TableRow>
+                <TableCell colSpan={6} className="px-4 py-6">
                   <EmptyState
                     icon={<IconTool className="size-6" />}
                     title="No telemetry found"
                     description="AI tool call telemetry from recent chat sessions will appear here."
                     bare
                   />
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               rows.map((row) => (
-                <tr key={row.id} className="row-primary border-border border-t">
-                  <td className="text-fg px-4 py-2 font-mono text-xs">{row.tool}</td>
-                  <td data-label="Thread" className="text-fg-subtle px-4 py-2 font-mono text-xs">
+                <TableRow key={row.id} className="row-primary">
+                  <TableCell className="text-fg px-4 font-mono text-xs">{row.tool}</TableCell>
+                  <TableCell
+                    data-label="Thread"
+                    className="text-fg-subtle px-4 font-mono text-xs"
+                  >
                     {row.threadId}
-                  </td>
-                  <td data-label="Status" className="px-4 py-2">
-                    <Badge tone={row.ok ? 'success' : 'danger'}>{row.ok ? 'OK' : 'FAIL'}</Badge>
-                  </td>
-                  <td data-label="Duration" className="text-fg-subtle px-4 py-2 tabular-nums">
+                  </TableCell>
+                  <TableCell data-label="Status" className="px-4">
+                    <Badge tone={row.ok ? 'success' : 'danger'} dot>
+                      {row.ok ? 'OK' : 'FAIL'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell data-label="Duration" numeric className="text-fg-subtle px-4">
                     {formatMs(row.ms)}
-                  </td>
-                  <td data-label="Error" className="text-fg-subtle px-4 py-2">
+                  </TableCell>
+                  <TableCell data-label="Error" className="text-fg-subtle px-4">
                     {row.errorCode ?? '—'}
-                  </td>
-                  <td data-label="Time" className="text-fg-subtle px-4 py-2">
+                  </TableCell>
+                  <TableCell data-label="Time" className="text-fg-subtle px-4">
                     <span title={formatAbsoluteTime(row.createdAt)}>
                       {formatRelative(row.createdAt)}
                     </span>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </SettingsSection>
   );
