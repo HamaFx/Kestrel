@@ -75,35 +75,35 @@ export function LandingSimulator() {
   return (
     <section
       id="simulator"
-      className="relative overflow-hidden border-b border-white/[0.07] bg-[#121212] py-20 lg:py-28"
+      className="relative overflow-hidden border-b border-white/[0.08] bg-[#121212] py-28 lg:py-36"
     >
-      {/* Bayer-dithered chiaroscuro astrolabe backdrop */}
+      {/* Chiaroscuro astrolabe sculpture backdrop */}
       <div
         aria-hidden="true"
-        className="section-backdrop-mask-right pointer-events-none absolute top-8 right-0 z-0 h-[260px] w-[85%] opacity-22 mix-blend-screen select-none sm:h-[340px] sm:w-[70%] lg:top-0 lg:right-0 lg:h-[78%] lg:w-[46%] lg:opacity-32"
+        className="simulator-backdrop-mask pointer-events-none absolute top-6 right-0 z-0 h-[320px] w-[88%] opacity-35 mix-blend-screen select-none sm:h-[420px] sm:w-[72%] lg:top-0 lg:right-0 lg:h-[84%] lg:w-[48%] lg:opacity-45"
       >
         <BlueprintPlate id="astrolabe" variant="backdrop" className="h-full w-full" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Concise Section Header */}
-        <div className="mb-10 flex flex-col justify-between gap-4 border-b border-white/[0.07] pb-7 lg:flex-row lg:items-end">
+        {/* Spacious Section Header */}
+        <div className="mb-16 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div>
-            <div className="text-brand mb-2.5 flex items-center gap-2 font-mono text-xs tracking-[0.14em] uppercase">
-              <span>// 03 · INTERACTIVE SANDBOX</span>
+            <div className="text-brand mb-3 font-mono text-xs font-semibold tracking-[0.14em] uppercase">
+              03 · INTERACTIVE SANDBOX
             </div>
             <h2 className="font-display text-fg text-3xl font-normal tracking-[-0.02em] sm:text-5xl">
               Test the 1% Risk Governor{' '}
               <span className="font-redaction-35 text-brand italic">Live.</span>
             </h2>
           </div>
-          <p className="text-fg-muted max-w-md font-sans text-sm leading-relaxed sm:text-base">
+          <p className="text-fg-muted max-w-md font-sans text-base leading-relaxed">
             Switch scenarios or drag the risk slider past 1.00% equity to watch the Risk Desk veto
             an unsafe trade in real time.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
           <SimulatorControls
             selectedIdx={selectedIdx}
             riskPercent={riskPercent}

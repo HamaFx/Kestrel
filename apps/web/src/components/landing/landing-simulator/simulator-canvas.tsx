@@ -3,11 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Right-column interactive canvas of the landing committee simulator:
-// compact 4-desk alignment ribbon, SVG price setup bands chart, and
+// unboxed hairline 4-desk alignment bar, SVG price setup bands chart, and
 // verified/vetoed execution bar.
 import { IconCheck, IconClock, IconRefresh, IconShieldCheck } from '@tabler/icons-react';
 import { AnimatePresence } from 'motion/react';
 
+import { BlueprintPlate } from '@/components/brand/blueprint-plates';
 import { cn } from '@/lib/formatters/cn';
 
 import type { Scenario, SimulationStage } from './scenarios';
@@ -43,24 +44,30 @@ export function SimulatorCanvas({
   onRepairRisk,
 }: SimulatorCanvasProps) {
   const desks = [
-    { id: '01', code: 'MACRO', score: scenario.macroScore, vetoed: false },
-    { id: '02', code: 'TECH', score: scenario.techScore, vetoed: false },
+    { id: '01', code: 'Macro', score: scenario.macroScore, vetoed: false },
+    { id: '02', code: 'Technical', score: scenario.techScore, vetoed: false },
     {
       id: '03',
-      code: 'RISK ≤ 1%',
+      code: 'Risk ≤ 1%',
       score: isVetoed ? 12 : scenario.riskScore,
       vetoed: isVetoed,
     },
-    { id: '04', code: 'COT FLOW', score: scenario.sentimentScore, vetoed: false },
+    { id: '04', code: 'COT Flow', score: scenario.sentimentScore, vetoed: false },
   ] as const;
 
   const isActive = stage !== 'idle';
 
   return (
     <div className="lg:col-span-8">
-      <div className="surface-panel relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-white/12 bg-[#141517]/95 p-5 shadow-2xl sm:p-6">
+      <div className="surface-panel relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-white/12 bg-[#141517]/95 p-6 shadow-2xl sm:p-8">
+        <BlueprintPlate
+          id="astrolabe"
+          variant="watermark"
+          className="pointer-events-none absolute -top-8 -right-8 z-0 size-56 opacity-20"
+        />
+
         {/* Top Status Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] pb-3.5">
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
           <div className="flex items-center gap-2.5">
             <IconShieldCheck className="text-brand size-4" />
             <span className="text-fg font-mono text-xs font-bold tracking-[0.12em] uppercase">
@@ -97,84 +104,72 @@ export function SimulatorCanvas({
           </div>
         </div>
 
-        {/* Compact 4-Desk Alignment Ribbon (replaces 4 tall text cards + tug-of-war box) */}
-        <div className="my-3.5 rounded-xl border border-white/[0.07] bg-[#0a0b0d] p-3">
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-            {desks.map((desk) => (
-              <div
-                key={desk.id}
-                className={cn(
-                  'rounded-lg border px-3 py-2 font-mono transition-colors',
-                  isActive && desk.vetoed
-                    ? 'border-bear/45 bg-bear/10'
-                    : isActive
-                      ? 'border-white/10 bg-[#121417]'
-                      : 'border-white/[0.05] bg-black/40',
-                )}
-              >
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-fg-subtle">
-                    {desk.id} {desk.code}
-                  </span>
-                  <span
-                    className={cn(
-                      'font-bold tabular-nums',
-                      !isActive
-                        ? 'text-fg-subtle'
-                        : desk.vetoed
-                          ? 'text-bear'
-                          : 'text-bull',
-                    )}
-                  >
-                    {stage === 'idle' ? '--' : stage === 'voting' ? '...' : `${desk.score}%`}
-                  </span>
-                </div>
-                <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-white/10">
-                  <div
-                    className={cn(
-                      'h-full rounded-full transition-all duration-500',
-                      desk.vetoed ? 'bg-bear' : 'bg-bull',
-                    )}
-                    style={{
-                      width:
-                        stage === 'idle'
-                          ? '0%'
-                          : stage === 'voting'
-                            ? '55%'
-                            : `${desk.score}%`,
-                    }}
-                  />
-                </div>
+        {/* Unboxed 4-Desk Hairline Bar */}
+        <div className="relative z-10 my-5 grid grid-cols-2 gap-4 border-b border-white/[0.08] pb-5 sm:grid-cols-4 sm:divide-x sm:divide-white/[0.08]">
+          {desks.map((desk, idx) => (
+            <div key={desk.id} className={cn('font-mono', idx > 0 && 'sm:pl-4')}>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-fg-subtle">{desk.code}</span>
+                <span
+                  className={cn(
+                    'font-bold tabular-nums',
+                    !isActive
+                      ? 'text-fg-subtle'
+                      : desk.vetoed
+                        ? 'text-bear'
+                        : 'text-bull',
+                  )}
+                >
+                  {stage === 'idle' ? '--' : stage === 'voting' ? '...' : `${desk.score}%`}
+                </span>
               </div>
-            ))}
-          </div>
-
-          {/* Single-line Bull/Bear Alignment Meter */}
-          <div className="mt-2.5 flex items-center gap-3 border-t border-white/[0.06] pt-2.5 font-mono text-[11px]">
-            <span className="text-bull shrink-0 font-bold tabular-nums">
-              BULL {stage === 'idle' ? '--' : `${effectiveBullProb}%`}
-            </span>
-            <div className="relative flex h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="bg-bull h-full transition-all duration-500"
-                style={{ width: stage === 'idle' ? '50%' : `${effectiveBullProb}%` }}
-              />
-              <div
-                className="bg-bear h-full transition-all duration-500"
-                style={{ width: stage === 'idle' ? '50%' : `${100 - effectiveBullProb}%` }}
-              />
+              <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/10">
+                <div
+                  className={cn(
+                    'h-full rounded-full transition-all duration-500',
+                    desk.vetoed ? 'bg-bear' : 'bg-bull',
+                  )}
+                  style={{
+                    width:
+                      stage === 'idle' ? '0%' : stage === 'voting' ? '55%' : `${desk.score}%`,
+                  }}
+                />
+              </div>
             </div>
-            <span className="text-bear shrink-0 font-bold tabular-nums">
-              BEAR {stage === 'idle' ? '--' : `${100 - effectiveBullProb}%`}
-            </span>
-          </div>
+          ))}
         </div>
 
         {/* Centerpiece SVG Price & Setup Bands Chart */}
-        <SimulatorSetupChart scenario={scenario} isVetoed={isVetoed} riskPercent={riskPercent} />
+        <div className="relative z-10">
+          <SimulatorSetupChart
+            scenario={scenario}
+            isVetoed={isVetoed}
+            riskPercent={riskPercent}
+          />
+        </div>
+
+        {/* Single-Line Bull / Bear Alignment Bar */}
+        <div className="relative z-10 mt-4 flex items-center gap-3 font-mono text-[11px]">
+          <span className="text-bull shrink-0 font-bold tabular-nums">
+            BULL {stage === 'idle' ? '--' : `${effectiveBullProb}%`}
+          </span>
+          <div className="relative flex h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
+            <div
+              className="bg-bull h-full transition-all duration-500"
+              style={{ width: stage === 'idle' ? '50%' : `${effectiveBullProb}%` }}
+            />
+            <div
+              className="bg-bear h-full transition-all duration-500"
+              style={{ width: stage === 'idle' ? '50%' : `${100 - effectiveBullProb}%` }}
+            />
+          </div>
+          <span className="text-bear shrink-0 font-bold tabular-nums">
+            BEAR {stage === 'idle' ? '--' : `${100 - effectiveBullProb}%`}
+          </span>
+        </div>
 
         {/* Verdict / Dispatch Hardware Bar */}
-        <div className="mt-3.5">
+        <div className="relative z-10 mt-5">
           <AnimatePresence mode="wait">
             {stage === 'verdict' && isVetoed && (
               <VetoedVerdictCard riskPercent={riskPercent} onRepairRisk={onRepairRisk} />

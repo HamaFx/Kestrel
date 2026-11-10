@@ -66,55 +66,47 @@ export function LandingFAQ() {
   return (
     <section
       id="faq"
-      className="relative overflow-hidden border-b border-white/[0.07] bg-[#121212] py-20 lg:py-28"
+      className="relative overflow-hidden border-b border-white/[0.08] bg-[#121212] py-28 lg:py-36"
     >
-      {/* Bayer-dithered chiaroscuro aegis backdrop */}
+      {/* Chiaroscuro Aegis sculpture backdrop */}
       <div
         aria-hidden="true"
-        className="section-backdrop-mask-right pointer-events-none absolute top-6 right-0 z-0 h-[260px] w-[80%] opacity-20 mix-blend-screen select-none sm:h-[340px] sm:w-[60%] lg:top-0 lg:right-0 lg:h-[78%] lg:w-[40%] lg:opacity-28"
+        className="simulator-backdrop-mask pointer-events-none absolute top-6 right-0 z-0 h-[300px] w-[82%] opacity-30 mix-blend-screen select-none sm:h-[380px] sm:w-[64%] lg:top-0 lg:right-0 lg:h-[82%] lg:w-[44%] lg:opacity-40"
       >
         <BlueprintPlate id="aegis" variant="backdrop" className="h-full w-full" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-        {/* Concise Section Header */}
-        <div className="mb-10 flex flex-col justify-between gap-4 border-b border-white/[0.07] pb-7 lg:flex-row lg:items-end">
+        {/* Spacious Section Header */}
+        <div className="mb-16 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div>
-            <div className="text-brand mb-2.5 flex items-center gap-2 font-mono text-xs tracking-[0.14em] uppercase">
-              <span>// 05 · SPECIFICATION FAQ</span>
+            <div className="text-brand mb-3 font-mono text-xs font-semibold tracking-[0.14em] uppercase">
+              05 · SPECIFICATION FAQ
             </div>
             <h2 className="font-display text-fg text-3xl font-normal tracking-[-0.02em] sm:text-5xl">
               Every Detail <span className="font-redaction-35 text-brand italic">Clarified.</span>
             </h2>
           </div>
-          <p className="text-fg-muted max-w-sm font-sans text-sm leading-relaxed">
+          <p className="text-fg-muted max-w-sm font-sans text-base leading-relaxed">
             Direct answers on market coverage, risk vetoes, BYOK encryption, and self-hosting.
           </p>
         </div>
 
-        {/* Accordion List */}
-        <div className="flex flex-col gap-3">
+        {/* Clean Hairline Accordion List */}
+        <div className="divide-y divide-white/[0.08] rounded-2xl border border-white/[0.08] bg-[#141517]/85 backdrop-blur-md">
           {FAQS.map((faq, index) => {
             const isOpen = openIndex === index;
             return (
-              <div
-                key={faq.id}
-                className={cn(
-                  'overflow-hidden rounded-xl border transition-all duration-200',
-                  isOpen
-                    ? 'border-brand/40 bg-[#151618]'
-                    : 'border-white/[0.07] bg-[#141517]/60 hover:border-white/15',
-                )}
-              >
+              <div key={faq.id} className="transition-colors duration-200 hover:bg-white/[0.015]">
                 <button
                   id={`faq-trigger-${faq.id}`}
                   type="button"
                   aria-expanded={isOpen}
                   aria-controls={`faq-panel-${faq.id}`}
                   onClick={() => setOpenIndex(isOpen ? null : index)}
-                  className="flex w-full items-center justify-between px-5 py-4 text-left sm:px-6"
+                  className="flex w-full items-center justify-between px-6 py-5 text-left sm:px-8 sm:py-6"
                 >
-                  <div className="flex items-center gap-3 pr-4">
+                  <div className="flex items-center gap-4 pr-4">
                     <span className="text-brand font-mono text-xs font-bold">{faq.id}</span>
                     <span className="font-display text-fg text-lg font-normal tracking-tight sm:text-xl">
                       {faq.question}
@@ -144,7 +136,7 @@ export function LandingFAQ() {
                   )}
                 >
                   <div className="overflow-hidden">
-                    <div className="text-fg-muted border-t border-white/[0.06] px-5 pt-3.5 pb-4 font-sans text-sm leading-relaxed sm:px-6">
+                    <div className="text-fg-muted px-6 pb-6 pl-14 font-sans text-sm leading-relaxed sm:px-8 sm:pb-6 sm:pl-16">
                       {faq.answer}
                     </div>
                   </div>

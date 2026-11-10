@@ -18,9 +18,9 @@
  * limitations under the License.
  */
 
-// Landing hero section shell. The ticker, headline copy and kinetic SVG
-// telemetry rig live in sibling presentation components; this file owns the
-// active-symbol state and composes the Swiss-grid section frame.
+// Landing hero section shell. The ticker, headline copy and telemetry rig
+// live in sibling presentation components; this file owns the active-symbol
+// state and composes the spacious 7/5 section frame.
 import { useState } from 'react';
 
 import { BlueprintPlate } from '@/components/brand/blueprint-plates';
@@ -44,20 +44,16 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
   const [activeSymbolIndex, setActiveSymbolIndex] = useState(0);
 
   return (
-    <section className="relative overflow-hidden border-b border-white/[0.07] bg-[#121212] pt-6 pb-16 lg:pt-10 lg:pb-24">
-      {/* Bayer-dithered chiaroscuro sculpture backdrop */}
+    <section className="relative overflow-hidden border-b border-white/[0.08] bg-[#121212] pt-8 pb-20 lg:pt-12 lg:pb-28">
+      {/* Chiaroscuro Horus sculpture backdrop */}
       <div
         aria-hidden="true"
-        className="hero-backdrop-mask pointer-events-none absolute top-8 right-0 z-0 h-[300px] w-[88%] opacity-30 mix-blend-screen select-none sm:h-[400px] sm:w-[72%] lg:top-6 lg:right-0 lg:h-[88%] lg:w-[54%] lg:opacity-42"
+        className="hero-backdrop-mask pointer-events-none absolute top-6 right-0 z-0 h-[340px] w-[90%] opacity-35 mix-blend-screen select-none sm:h-[440px] sm:w-[74%] lg:top-4 lg:right-0 lg:h-[90%] lg:w-[56%] lg:opacity-48"
       >
         <BlueprintPlate id="horus" variant="backdrop" className="h-full w-full" />
       </div>
 
-      {/* Structural column hairlines */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-px bg-white/[0.04] lg:block"
-      />
+      {/* Structural hairlines */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/[0.04]"
@@ -75,7 +71,7 @@ export function LandingHero({ isAuthenticated = false }: LandingHeroProps) {
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <HeroTickerStrip />
 
-        <div className="relative grid grid-cols-1 gap-10 lg:grid-cols-12 lg:items-center lg:gap-8 lg:border-x lg:border-white/[0.05] lg:px-6 xl:px-8">
+        <div className="relative grid grid-cols-1 gap-12 lg:grid-cols-12 lg:items-center lg:gap-12">
           <HeroCopy isAuthenticated={isAuthenticated} />
           <HeroTelemetryRig
             activeSymbolIndex={activeSymbolIndex}

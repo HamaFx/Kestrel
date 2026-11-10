@@ -18,8 +18,8 @@
  * limitations under the License.
  */
 
-// 3-Stage Pipeline Visualizer section (#stepper). Combines the left circuit
-// spine + stage cards with the right interactive SVG pipeline schematic.
+// 3-Stage Workflow section (#stepper). Combines the left circuit spine + stage
+// cards with the right spacious preview surface.
 import { useEffect, useState } from 'react';
 
 import { BlueprintPlate } from '@/components/brand/blueprint-plates';
@@ -63,35 +63,35 @@ export function LandingStepper() {
   return (
     <section
       id="stepper"
-      className="relative overflow-hidden border-b border-white/[0.07] bg-[#121212] py-20 lg:py-28"
+      className="relative overflow-hidden border-b border-white/[0.08] bg-[#121212] py-28 lg:py-36"
     >
-      {/* Bayer-dithered chiaroscuro colonnade backdrop */}
+      {/* Chiaroscuro colonnade sculpture backdrop */}
       <div
         aria-hidden="true"
-        className="section-backdrop-mask pointer-events-none absolute top-8 left-0 z-0 h-[260px] w-[85%] opacity-22 mix-blend-screen select-none sm:h-[340px] sm:w-[70%] lg:top-0 lg:left-0 lg:h-[78%] lg:w-[44%] lg:opacity-30"
+        className="stepper-backdrop-mask pointer-events-none absolute top-6 left-0 z-0 h-[320px] w-[88%] opacity-35 mix-blend-screen select-none sm:h-[420px] sm:w-[72%] lg:top-0 lg:left-0 lg:h-[84%] lg:w-[48%] lg:opacity-45"
       >
         <BlueprintPlate id="colonnade" variant="backdrop" className="h-full w-full" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Concise Section Header */}
-        <div className="mb-10 flex flex-col justify-between gap-4 border-b border-white/[0.07] pb-7 lg:flex-row lg:items-end">
+        {/* Spacious Section Header */}
+        <div className="mb-16 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div>
-            <div className="text-brand mb-2.5 flex items-center gap-2 font-mono text-xs tracking-[0.14em] uppercase">
-              <span>// 02 · EXECUTION WORKFLOW</span>
+            <div className="text-brand mb-3 font-mono text-xs font-semibold tracking-[0.14em] uppercase">
+              02 · EXECUTION WORKFLOW
             </div>
             <h2 className="font-display text-fg text-3xl font-normal tracking-[-0.02em] sm:text-5xl">
               From Market Feed to{' '}
               <span className="font-redaction-35 text-brand italic">Verified Bracket.</span>
             </h2>
           </div>
-          <p className="text-fg-muted max-w-md font-sans text-sm leading-relaxed sm:text-base">
+          <p className="text-fg-muted max-w-md font-sans text-base leading-relaxed">
             Three deterministic stages transform raw multi-provider market feeds into a risk-capped
             trade plan and live price alerts.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-stretch">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:items-stretch lg:gap-12">
           {/* Left Column: Continuous SVG Circuit Spine & 3 Stage Cards */}
           <div
             className="relative flex flex-col justify-between gap-4 pl-8 sm:pl-10 lg:col-span-5"
@@ -111,7 +111,7 @@ export function LandingStepper() {
             />
           </div>
 
-          {/* Right Column: Interactive SVG Pipeline Visualizer */}
+          {/* Right Column: Spacious Stage Preview Surface */}
           <BriefingPanel
             currentStep={currentStep}
             isPlaying={isPlaying}
