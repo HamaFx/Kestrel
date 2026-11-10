@@ -19,11 +19,14 @@
  */
 
 // "The Unfair Advantage" section (#simulator). Contrasts emotional solo
-// retail trading against Kestrel's 4-Desk War Room and showcases the Arbiter's
-// Seal 3-Layer Sovereign Plate and verified 1:3.64 R:R execution ticket.
+// retail trading against Kestrel's 4-Desk War Room and showcases a clean,
+// verified 1:3.64 R:R London Breakout setup without multi-stage sandbox clutter.
 import { IconCheck, IconShieldCheck, IconX } from '@tabler/icons-react';
 
 import { BlueprintPlate } from '@/components/brand/blueprint-plates';
+
+import { SCENARIOS } from './scenarios';
+import { SimulatorSetupChart } from './simulator-setup-chart';
 
 const EDGE_CONTRASTS = [
   {
@@ -45,6 +48,8 @@ const EDGE_CONTRASTS = [
 ] as const;
 
 export function LandingSimulator() {
+  const featuredScenario = SCENARIOS[0]!;
+
   return (
     <section
       id="simulator"
@@ -113,46 +118,58 @@ export function LandingSimulator() {
             </div>
           </div>
 
-          {/* Right 7 Columns: Arbiter's Seal 3-Layer Sovereign Plate & Execution Ticket */}
+          {/* Right 7 Columns: Iconic Verified Setup Showcase */}
           <div className="surface-panel relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/12 bg-[#141517]/95 p-7 shadow-2xl sm:p-9 lg:col-span-7">
+            <BlueprintPlate
+              id="astrolabe"
+              variant="watermark"
+              className="pointer-events-none absolute -top-8 -right-8 z-0 size-56 opacity-20"
+            />
+
             <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
               <div className="flex items-center gap-2.5">
                 <IconShieldCheck className="text-brand size-4" />
                 <span className="text-fg font-mono text-xs font-bold tracking-[0.12em] uppercase">
-                  XAU/USD · LONDON BREAKOUT CONTINUATION
+                  {featuredScenario.symbol} · {featuredScenario.name}
                 </span>
               </div>
               <span className="border-bull/35 bg-bull/10 text-bull rounded border px-2.5 py-1 font-mono text-[11px] font-bold tabular-nums">
-                4/4 VERIFIED · 1:3.64 R:R
+                4/4 VERIFIED · {featuredScenario.rr} R:R
               </span>
             </div>
 
-            {/* Interactive 3-Layer Sovereign Arbiter Scales & 4-Desk Convergence Plate */}
             <div className="relative z-10 my-6">
-              <BlueprintPlate
-                id="arbiter"
-                variant="showcase"
-                allowLayerToggle
-                className="h-[264px] w-full sm:h-[288px]"
+              <SimulatorSetupChart
+                scenario={featuredScenario}
+                isVetoed={false}
+                riskPercent={0.85}
               />
             </div>
 
             <div className="relative z-10 grid grid-cols-2 gap-4 border-t border-white/[0.08] pt-5 font-mono text-xs tabular-nums sm:grid-cols-4 sm:divide-x sm:divide-white/[0.08]">
               <div>
                 <span className="text-fg-subtle block text-[10px] uppercase">ENTRY LIMIT</span>
-                <span className="text-fg mt-1 block text-sm font-bold">2,864.00</span>
+                <span className="text-fg mt-1 block text-sm font-bold">
+                  {featuredScenario.entry}
+                </span>
               </div>
               <div className="sm:pl-4">
                 <span className="text-fg-subtle block text-[10px] uppercase">STOP (0.85%)</span>
-                <span className="text-bear mt-1 block text-sm font-bold">2,846.50</span>
+                <span className="text-bear mt-1 block text-sm font-bold">
+                  {featuredScenario.invalidation}
+                </span>
               </div>
               <div className="sm:pl-4">
                 <span className="text-fg-subtle block text-[10px] uppercase">TARGET 1 (40%)</span>
-                <span className="text-bull mt-1 block text-sm font-bold">2,892.00</span>
+                <span className="text-bull mt-1 block text-sm font-bold">
+                  {featuredScenario.target1}
+                </span>
               </div>
               <div className="sm:pl-4">
                 <span className="text-fg-subtle block text-[10px] uppercase">RUNNER (TP3)</span>
-                <span className="text-brand mt-1 block text-sm font-bold">2,927.70</span>
+                <span className="text-brand mt-1 block text-sm font-bold">
+                  {featuredScenario.target3}
+                </span>
               </div>
             </div>
           </div>

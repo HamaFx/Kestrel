@@ -1,21 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Static data for the 4 specialist AI desks shown in the #desks 4-column grid.
+// Static data for the 4 specialist AI desks shown in the #desks 2x2 Bento Grid.
+import type { ReactNode } from 'react';
 import {
   IconActivityHeartbeat,
   IconChartCandle,
   IconShieldLock,
   IconWorld,
 } from '@tabler/icons-react';
-import type { ReactNode } from 'react';
-
-import type { BlueprintPlateId } from '@/components/brand/blueprint-plates';
 
 export type DeskSchematicKind = 'macro' | 'technical' | 'risk' | 'sentiment';
 
 export interface DeskSpec {
   id: DeskSchematicKind;
-  blueprintId: BlueprintPlateId;
   index: string;
   code: string;
   name: string;
@@ -31,7 +28,6 @@ export interface DeskSpec {
 export const DESKS: readonly DeskSpec[] = [
   {
     id: 'macro',
-    blueprintId: 'horus',
     index: '01',
     code: 'MACRO & RATES',
     name: 'Economy, Yields & Central Banks',
@@ -50,7 +46,6 @@ export const DESKS: readonly DeskSpec[] = [
   },
   {
     id: 'technical',
-    blueprintId: 'astrolabe',
     index: '02',
     code: 'PRICE STRUCTURE',
     name: 'Multi-Timeframe Levels & Sweeps',
@@ -69,7 +64,6 @@ export const DESKS: readonly DeskSpec[] = [
   },
   {
     id: 'risk',
-    blueprintId: 'aegis',
     index: '03',
     code: 'RISK GOVERNOR',
     name: '1% Equity Cap & Position Sizing',
@@ -88,7 +82,6 @@ export const DESKS: readonly DeskSpec[] = [
   },
   {
     id: 'sentiment',
-    blueprintId: 'sentinel',
     index: '04',
     code: 'COT & POSITIONING',
     name: 'Institutional Flow vs. Crowd Bias',

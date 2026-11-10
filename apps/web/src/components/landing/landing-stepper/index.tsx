@@ -18,15 +18,15 @@
  * limitations under the License.
  */
 
-// "The Trading Arsenal" section (#stepper). Showcases 3 high-impact trader
-// capabilities—Backtesting Lab, Tick-Level Paper Broker & R-Journal, and 24/7
-// Telegram War Room Briefings—each paired with its 3-Layer Sovereign Blueprint
-// Plate (chiaroscuro engraving + micro-pixel halftone + kinetic CAD reticle).
-import { BlueprintPlate, type BlueprintPlateId } from '@/components/brand/blueprint-plates';
+// "The Trading Arsenal" section (#stepper). Replaces the developer-centric
+// 3-stage pipeline with 3 high-impact trader capabilities: Backtesting Lab,
+// Tick-Level Paper Broker & R-Journal, and 24/7 Telegram War Room Briefings.
+import { BlueprintPlate } from '@/components/brand/blueprint-plates';
+
+type ArsenalKind = 'backtest' | 'paper' | 'telegram';
 
 interface ArsenalFeature {
-  id: string;
-  blueprintId: BlueprintPlateId;
+  id: ArsenalKind;
   index: string;
   tag: string;
   title: string;
@@ -37,7 +37,6 @@ interface ArsenalFeature {
 const ARSENAL_FEATURES: readonly ArsenalFeature[] = [
   {
     id: 'backtest',
-    blueprintId: 'colonnade',
     index: '01',
     tag: 'STRATEGY BACKTESTING LAB',
     title: 'Prove Your Edge Before Risking a Dollar',
@@ -50,7 +49,6 @@ const ARSENAL_FEATURES: readonly ArsenalFeature[] = [
   },
   {
     id: 'paper',
-    blueprintId: 'obelisk',
     index: '02',
     tag: 'PAPER BROKER & R-JOURNAL',
     title: 'Practice Live & Track Every R-Multiple',
@@ -63,7 +61,6 @@ const ARSENAL_FEATURES: readonly ArsenalFeature[] = [
   },
   {
     id: 'telegram',
-    blueprintId: 'eclipse',
     index: '03',
     tag: 'TELEGRAM WAR ROOM & ALERTS',
     title: 'Wake Up Ready for London & New York',
@@ -75,6 +72,96 @@ const ARSENAL_FEATURES: readonly ArsenalFeature[] = [
     ],
   },
 ];
+
+function ArsenalOpticalSvg({ kind }: { kind: ArsenalKind }) {
+  if (kind === 'backtest') {
+    return (
+      <svg viewBox="0 0 280 104" className="h-28 w-full select-none" aria-hidden="true">
+        <defs>
+          <linearGradient id="arsenal-bt-wash" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="rgba(255,54,22,0.22)" />
+            <stop offset="100%" stopColor="rgba(18,18,18,0)" />
+          </linearGradient>
+        </defs>
+        <line x1="0" y1="84" x2="280" y2="84" stroke="rgba(255,255,255,0.08)" />
+        {/* Baseline parameter sweep curves */}
+        <path
+          d="M 0 84 C 60 82, 120 74, 180 62 C 220 54, 250 48, 280 44"
+          fill="none"
+          stroke="rgba(255,255,255,0.16)"
+          strokeWidth="1.25"
+          strokeDasharray="3 3"
+        />
+        <path
+          d="M 0 84 C 60 78, 120 64, 180 48 C 220 38, 250 32, 280 28"
+          fill="none"
+          stroke="rgba(255,255,255,0.26)"
+          strokeWidth="1.25"
+        />
+        {/* Winning parameter sweep equity curve */}
+        <path
+          d="M 0 84 C 54 74, 110 56, 168 38 C 214 24, 248 16, 280 12 L 280 84 L 0 84 Z"
+          fill="url(#arsenal-bt-wash)"
+        />
+        <path
+          d="M 0 84 C 54 74, 110 56, 168 38 C 214 24, 248 16, 280 12"
+          fill="none"
+          stroke="#ff3616"
+          strokeWidth="2"
+        />
+        <circle cx="168" cy="38" r="3.5" fill="#ff3616" />
+        <circle cx="276" cy="12" r="3.5" fill="#3f9e3d" />
+      </svg>
+    );
+  }
+
+  if (kind === 'paper') {
+    return (
+      <svg viewBox="0 0 280 104" className="h-28 w-full select-none" aria-hidden="true">
+        <defs>
+          <linearGradient id="arsenal-paper-wash" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="rgba(63,158,61,0.22)" />
+            <stop offset="100%" stopColor="rgba(18,18,18,0)" />
+          </linearGradient>
+        </defs>
+        <line x1="0" y1="84" x2="280" y2="84" stroke="rgba(255,255,255,0.08)" />
+        {/* Stepwise R-Multiple Expectancy Ladder */}
+        <path
+          d="M 0 84 L 46 84 L 46 66 L 98 66 L 98 72 L 148 72 L 148 44 L 208 44 L 208 22 L 280 22 L 280 84 Z"
+          fill="url(#arsenal-paper-wash)"
+        />
+        <path
+          d="M 0 84 L 46 84 L 46 66 L 98 66 L 98 72 L 148 72 L 148 44 L 208 44 L 208 22 L 280 22"
+          fill="none"
+          stroke="#3f9e3d"
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+        <circle cx="46" cy="66" r="3" fill="#3f9e3d" />
+        <circle cx="148" cy="44" r="3" fill="#3f9e3d" />
+        <circle cx="208" cy="22" r="3.5" fill="#3f9e3d" />
+      </svg>
+    );
+  }
+
+  // kind === 'telegram'
+  return (
+    <svg viewBox="0 0 280 104" className="h-28 w-full select-none" aria-hidden="true">
+      <line x1="0" y1="52" x2="280" y2="52" stroke="rgba(255,255,255,0.08)" strokeDasharray="2 4" />
+      <circle cx="140" cy="52" r="42" fill="none" stroke="rgba(255,54,22,0.16)" strokeWidth="1" />
+      <circle cx="140" cy="52" r="26" fill="none" stroke="rgba(255,54,22,0.32)" strokeWidth="1.25" />
+      <circle cx="140" cy="52" r="10" fill="rgba(255,54,22,0.2)" />
+      <circle cx="140" cy="52" r="4" fill="#ff3616" />
+      {/* Outbound dispatch rays */}
+      <line x1="140" y1="52" x2="228" y2="24" stroke="#ff3616" strokeWidth="1.5" />
+      <line x1="140" y1="52" x2="236" y2="52" stroke="#3f9e3d" strokeWidth="1.5" />
+      <line x1="140" y1="52" x2="228" y2="80" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" />
+      <circle cx="228" cy="24" r="3.5" fill="#ff3616" />
+      <circle cx="236" cy="52" r="3.5" fill="#3f9e3d" />
+      <circle cx="228" cy="80" r="3" fill="#e5e5e5" />
+    </svg>
+  );
+}
 
 export function LandingStepper() {
   return (
@@ -122,13 +209,8 @@ export function LandingStepper() {
                   </span>
                 </div>
 
-                {/* 3-Layer Sovereign Blueprint Plate (Chiaroscuro + Kinetic CAD Reticle + Telemetry) */}
-                <div className="my-7">
-                  <BlueprintPlate
-                    id={feature.blueprintId}
-                    variant="showcase"
-                    className="h-[224px] w-full"
-                  />
+                <div className="my-8 border-y border-white/[0.05] py-4">
+                  <ArsenalOpticalSvg kind={feature.id} />
                 </div>
 
                 <h3 className="font-display text-fg text-2xl font-normal tracking-tight sm:text-3xl">
